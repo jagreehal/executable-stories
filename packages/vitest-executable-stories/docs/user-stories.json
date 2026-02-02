@@ -1,0 +1,48 @@
+{
+  "meta": {
+    "schemaVersion": 1,
+    "title": "Metadata Report",
+    "description": "Generated for metadata validation.",
+    "generatedAt": "2026-02-02T20:25:01.019Z",
+    "durationSec": 0.25,
+    "repoRoot": ".",
+    "packageVersion": "0.1.0",
+    "outputPath": "docs/user-stories.md"
+  },
+  "scenarios": [
+    {
+      "id": "c689296acd66",
+      "title": "Metadata scenario",
+      "sourceFile": "src/__tests__/fixtures/metadata/story.story.test.ts",
+      "tags": [],
+      "tickets": [],
+      "status": {
+        "passed": 3,
+        "failed": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "durationMs": 0,
+      "steps": [
+        {
+          "keyword": "Given",
+          "text": "a precondition",
+          "mode": "normal",
+          "docs": []
+        },
+        {
+          "keyword": "When",
+          "text": "an action happens",
+          "mode": "normal",
+          "docs": []
+        },
+        {
+          "keyword": "Then",
+          "text": "an outcome is observed",
+          "mode": "normal",
+          "docs": []
+        }
+      ]
+    }
+  ]
+}

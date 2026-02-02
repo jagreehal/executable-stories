@@ -1,0 +1,45 @@
+{
+  "testFilePath": "/Users/jreehal/dev/js/executable-stories/packages/jest-story-docs/src/__tests__/jest/fixtures/story.story.test.ts",
+  "scenarios": [
+    {
+      "scenario": "User logs in",
+      "steps": [
+        {
+          "keyword": "Given",
+          "text": "user is on login page",
+          "docs": []
+        },
+        {
+          "keyword": "When",
+          "text": "user submits valid credentials",
+          "docs": []
+        },
+        {
+          "keyword": "Then",
+          "text": "user sees the dashboard",
+          "docs": []
+        }
+      ]
+    },
+    {
+      "scenario": "User sees error on invalid login",
+      "steps": [
+        {
+          "keyword": "Given",
+          "text": "user is on login page",
+          "docs": []
+        },
+        {
+          "keyword": "When",
+          "text": "user submits invalid credentials",
+          "docs": []
+        },
+        {
+          "keyword": "Then",
+          "text": "user sees an error message",
+          "docs": []
+        }
+      ]
+    }
+  ]
+}

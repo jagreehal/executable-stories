@@ -1,0 +1,5 @@
+node_modules/
+dist/
+docs/user-stories.md
+src/__tests__/fixtures/dist/
+*.tsbuildinfo

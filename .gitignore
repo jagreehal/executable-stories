@@ -1,0 +1,17 @@
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+.turbo
+.DS_Store
+.env
+.env.test
+*.log
+.jest-executable-stories/
+__temp/
+test-results/
+playwright-report/
+playwright/.cache/
+docs/user-stories.md
+src/__tests__/fixtures/dist/
+src/__tests__/jest/fixtures/dist/

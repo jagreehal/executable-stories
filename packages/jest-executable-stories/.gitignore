@@ -1,0 +1,7 @@
+node_modules/
+dist/
+docs/user-stories.md
+src/__tests__/fixtures/dist/
+src/__tests__/jest/fixtures/dist/
+*.tsbuildinfo
+.jest-executable-stories/
