@@ -1,7 +1,7 @@
 {
   "name": "jest-executable-stories",
   "version": "0.1.0",
-  "description": "TS-first scenario/given/when/then helpers for Jest with Markdown user-story doc generation for Confluence.",
+  "description": "TS-first story/given/when/then helpers for Jest with Markdown user-story doc generation for Confluence.",
   "author": "Jag Reehal <jag@jagreehal.com>",
   "homepage": "https://github.com/jagreehal/story-docs#readme",
   "bugs": {
@@ -71,6 +71,7 @@
     "quality": "pnpm type-check && pnpm test && pnpm lint"
   },
   "dependencies": {
+    "@executable-stories/core": "workspace:*",
     "fast-glob": "^3.3.3",
     "picomatch": "^4.0.3"
   }

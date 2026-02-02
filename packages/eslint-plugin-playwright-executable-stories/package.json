@@ -1,0 +1,45 @@
+{
+  "name": "eslint-plugin-playwright-executable-stories",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "ESLint rules for playwright-executable-stories: step context, doc.story in test/it",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": ["dist", "README.md"],
+  "scripts": {
+    "build": "tsup",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest watch",
+    "lint": "eslint .",
+    "clean": "rm -rf dist",
+    "quality": "pnpm type-check && pnpm test && pnpm lint"
+  },
+  "keywords": ["eslint", "eslint-plugin", "playwright", "executable-stories", "bdd"],
+  "license": "MIT",
+  "peerDependencies": {
+    "eslint": ">=9"
+  },
+  "devDependencies": {
+    "@types/eslint": "^9.6.1",
+    "@types/estree": "^1.0.8",
+    "@types/node": "^25.2.0",
+    "eslint": "^9.39.2",
+    "eslint-config-executable-stories": "workspace:*",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

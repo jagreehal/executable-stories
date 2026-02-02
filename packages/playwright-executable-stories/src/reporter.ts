@@ -87,8 +87,8 @@ export interface StoryReporterOptions {
   };
 
   // Grouping & formatting
-  /** How to group scenarios. Default: "file" */
-  groupBy?: "file" | "none";
+  /** How to group scenarios. Default: "file". "suite" groups by suitePath across files. */
+  groupBy?: "file" | "suite" | "none";
   /** Heading level for scenario titles. Default: 3 when groupBy="file", 2 when "none" */
   scenarioHeadingLevel?: 2 | 3 | 4;
   /** Step rendering style. Default: "bullets" */
@@ -99,6 +99,8 @@ export interface StoryReporterOptions {
   includeStatus?: boolean;
   /** Include duration in markdown output. Default: false */
   includeDurations?: boolean;
+  /** Include failure error in markdown for failed scenarios. Default: true */
+  includeErrorInMarkdown?: boolean;
   /** Include outputs even when there are no matched scenarios. Default: true */
   includeEmpty?: boolean;
   /** Sort files in markdown output. Default: "alpha" */
@@ -145,6 +147,7 @@ interface ScenarioWithMeta {
   fixme: number;
   todo: number;
   durationMs: number;
+  failureDetails?: string;
 }
 
 type ResolvedOptions = Omit<
@@ -211,6 +214,7 @@ export default class StoryReporter implements Reporter {
       markdown: options.markdown ?? "gfm",
       includeStatus: options.includeStatus ?? true,
       includeDurations: options.includeDurations ?? false,
+      includeErrorInMarkdown: options.includeErrorInMarkdown ?? true,
       includeEmpty: options.includeEmpty ?? true,
       sortFiles: options.sortFiles ?? "alpha",
       sortScenarios: options.sortScenarios ?? "alpha",
@@ -282,6 +286,10 @@ export default class StoryReporter implements Reporter {
     const failed = status === "failed" || status === "timedOut" ? 1 : 0;
     const skipped = status === "skipped" || status === "interrupted" ? 1 : 0;
     const durationMs = typeof result.duration === "number" ? result.duration : 0;
+    const failureDetails =
+      failed && result.error
+        ? this.formatFailureFromError(result.error)
+        : undefined;
 
     const existing = this.scenarios.get(key);
     if (existing) {
@@ -289,6 +297,9 @@ export default class StoryReporter implements Reporter {
       existing.failed += failed;
       existing.skipped += skipped;
       existing.durationMs += durationMs;
+      if (failureDetails != null && existing.failed > 0 && existing.failureDetails == null) {
+        existing.failureDetails = failureDetails;
+      }
       this.mergeStepDocsInto(existing.meta, metaWithRuntime);
     } else {
       this.scenarios.set(key, {
@@ -301,17 +312,91 @@ export default class StoryReporter implements Reporter {
         fixme: 0,
         todo: 0,
         durationMs,
+        failureDetails: failed ? failureDetails : undefined,
       });
     }
   }
 
-  /** Merge step docs from source meta into target meta (accumulates across steps). */
+  private formatFailureFromError(error: { message?: string; stack?: string; snippet?: string }): string {
+    const parts: string[] = [];
+    if (typeof error.message === "string" && error.message) {
+      parts.push(error.message);
+    }
+    if (typeof error.snippet === "string" && error.snippet) {
+      if (parts.length) parts.push("");
+      parts.push(error.snippet);
+    }
+    if (typeof error.stack === "string" && error.stack) {
+      if (parts.length) parts.push("");
+      parts.push(error.stack);
+    }
+    return parts.length ? parts.join("\n") : "Unknown error";
+  }
+
+  /** Merge step docs from source meta into target meta (accumulates across steps). Deduplicates so the same doc entry is not added multiple times when onTestEnd runs for each step of the same scenario. */
   private mergeStepDocsInto(target: StoryMeta, source: StoryMeta): void {
     for (let i = 0; i < source.steps.length; i++) {
-      if (source.steps[i].docs?.length && target.steps[i]) {
-        target.steps[i].docs ??= [];
-        target.steps[i].docs!.push(...source.steps[i].docs!);
+      const sourceDocs = source.steps[i].docs;
+      if (!sourceDocs?.length || !target.steps[i]) continue;
+      target.steps[i].docs ??= [];
+      const existing = target.steps[i].docs!;
+      for (const entry of sourceDocs) {
+        if (!existing.some((e) => this.docEntryEquals(e, entry))) {
+          existing.push(entry);
+        }
       }
+    }
+  }
+
+  private docEntryEquals(a: DocEntry, b: DocEntry): boolean {
+    if (a.kind !== b.kind || a.phase !== b.phase) return false;
+    switch (a.kind) {
+      case "note":
+        return (b as DocEntry & { text: string }).text === a.text;
+      case "kv":
+        return (
+          (b as DocEntry & { label: string; value: unknown }).label === a.label &&
+          JSON.stringify((b as DocEntry & { value: unknown }).value) === JSON.stringify(a.value)
+        );
+      case "code":
+        return (
+          (b as DocEntry & { label: string; content: string; lang?: string }).label === a.label &&
+          (b as DocEntry & { content: string }).content === a.content &&
+          (b as DocEntry & { lang?: string }).lang === a.lang
+        );
+      case "table":
+        return (
+          (b as DocEntry & { label: string; columns: string[]; rows: string[][] }).label === a.label &&
+          JSON.stringify((b as DocEntry & { columns: string[] }).columns) === JSON.stringify(a.columns) &&
+          JSON.stringify((b as DocEntry & { rows: string[][] }).rows) === JSON.stringify(a.rows)
+        );
+      case "link":
+        return (
+          (b as DocEntry & { label: string; url: string }).label === a.label &&
+          (b as DocEntry & { url: string }).url === a.url
+        );
+      case "section":
+        return (
+          (b as DocEntry & { title: string; markdown: string }).title === a.title &&
+          (b as DocEntry & { markdown: string }).markdown === a.markdown
+        );
+      case "mermaid":
+        return (
+          (b as DocEntry & { code: string; title?: string }).code === a.code &&
+          (b as DocEntry & { title?: string }).title === a.title
+        );
+      case "screenshot":
+        return (
+          (b as DocEntry & { path: string; alt?: string }).path === a.path &&
+          (b as DocEntry & { alt?: string }).alt === a.alt
+        );
+      case "custom":
+        return (
+          (b as DocEntry & { type: string; data: unknown }).type === a.type &&
+          JSON.stringify((b as DocEntry & { data: unknown }).data) === JSON.stringify(a.data)
+        );
+      default:
+        return false;
     }
   }
 
@@ -446,18 +531,27 @@ export default class StoryReporter implements Reporter {
 
     const groupBy = this.options.groupBy;
     const fileHeadingLevel = 2;
-    const scenarioHeadingLevel = this.options.scenarioHeadingLevel ?? (groupBy === "file" ? 3 : 2);
-    const scenarioHeading = "#".repeat(scenarioHeadingLevel);
 
     const uniqueSourceFiles = new Set(outputScenarios.map((s) => s.sourceFile ?? "unknown"));
     const isColocated = uniqueSourceFiles.size === 1 && this.isColocatedOutput(outputPath);
 
-    if (isColocated || groupBy === "none") {
+    if (isColocated) {
+      // Colocated output - render with suite path grouping within single file
+      this.renderSuiteGroups(outputScenarios, lines, 2, permalinkBaseUrl);
+    } else if (groupBy === "none") {
+      // No grouping - flat list without file headers
+      const scenarioHeadingLevel = this.options.scenarioHeadingLevel ?? 3;
+      const scenarioHeading = "#".repeat(scenarioHeadingLevel);
       const sorted = this.sortScenarios(outputScenarios);
+
       for (const scenario of sorted) {
-        this.renderScenario(lines, scenario, scenarioHeading, isColocated ? undefined : permalinkBaseUrl);
+        this.renderScenario(lines, scenario, scenarioHeading, permalinkBaseUrl);
       }
+    } else if (groupBy === "suite") {
+      // Group by suite path across files
+      this.renderSuiteGroups(outputScenarios, lines, 2, permalinkBaseUrl);
     } else {
+      // Group by file (default)
       const byFile = new Map<string, ScenarioWithMeta[]>();
       for (const scenario of outputScenarios) {
         const file = scenario.sourceFile ?? "unknown";
@@ -480,14 +574,72 @@ export default class StoryReporter implements Reporter {
         }
         lines.push("");
 
-        const sorted = this.sortScenarios(fileScenarios);
-        for (const scenario of sorted) {
-          this.renderScenario(lines, scenario, scenarioHeading, undefined);
-        }
+        // Render suite groups within file
+        this.renderSuiteGroups(fileScenarios, lines, 3, undefined);
       }
     }
 
     return lines.join("\n").trimEnd() || "_No scenarios found._";
+  }
+
+  /**
+   * Group scenarios by their suitePath.
+   */
+  private groupBySuitePath(
+    scenarios: ScenarioWithMeta[],
+  ): { path: string[]; scenarios: ScenarioWithMeta[] }[] {
+    const grouped = new Map<string, { path: string[]; scenarios: ScenarioWithMeta[] }>();
+
+    for (const scenario of scenarios) {
+      const path = scenario.meta.suitePath ?? [];
+      const key = path.join("::");
+
+      const existing = grouped.get(key);
+      if (existing) {
+        existing.scenarios.push(scenario);
+      } else {
+        grouped.set(key, { path, scenarios: [scenario] });
+      }
+    }
+
+    // Sort groups alphabetically by key for stable output
+    const sorted = [...grouped.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([, group]) => group);
+
+    return sorted;
+  }
+
+  /**
+   * Render scenarios grouped by suite path.
+   */
+  private renderSuiteGroups(
+    scenarios: ScenarioWithMeta[],
+    lines: string[],
+    baseLevel: number,
+    permalinkBaseUrl: string | undefined,
+  ): void {
+    const groups = this.groupBySuitePath(scenarios);
+
+    for (const { path, scenarios: suiteScenarios } of groups) {
+      // Only render suite header if path exists and has content
+      if (path.length > 0) {
+        const heading = "#".repeat(baseLevel);
+        lines.push(`${heading} ${path.join(" - ")}`);
+        lines.push("");
+      }
+
+      // Sort scenarios within group using existing comparator for stable output
+      const sortedScenarios = this.sortScenarios(suiteScenarios);
+
+      // Render scenarios at next level (or same if no suite path), capped at ####
+      const storyLevel = Math.min(path.length > 0 ? baseLevel + 1 : baseLevel, 4);
+      const scenarioHeading = "#".repeat(storyLevel);
+
+      for (const scenario of sortedScenarios) {
+        this.renderScenario(lines, scenario, scenarioHeading, permalinkBaseUrl);
+      }
+    }
   }
 
   private renderJsonReport(
@@ -562,21 +714,24 @@ export default class StoryReporter implements Reporter {
     headingPrefix: string,
     permalinkBaseUrl: string | undefined,
   ): void {
-    const { meta, sourceFile, failed, skipped, fixme, todo, passed, durationMs, scenarioId } = scenario;
+    const { meta, sourceFile, failed, skipped, fixme, todo, passed, durationMs } = scenario;
     const includeStatus = this.options.includeStatus;
     const totalSteps = meta.steps.length;
+    const isDocOnly = totalSteps === 0;
 
     let icon = "";
-    if (includeStatus && totalSteps > 0) {
+    if (includeStatus) {
       if (failed > 0) {
         icon = "❌ ";
-      } else if (passed === totalSteps) {
+      } else if (isDocOnly ? passed > 0 : passed === totalSteps) {
         icon = "✅ ";
-      } else if (fixme === totalSteps || todo === totalSteps) {
+      } else if (!isDocOnly && (fixme === totalSteps || todo === totalSteps)) {
         icon = "📝 ";
-      } else if (skipped === totalSteps) {
+      } else if (isDocOnly ? skipped > 0 && passed === 0 : skipped === totalSteps) {
         icon = "⏩ ";
-      } else {
+      } else if (isDocOnly && passed === 0 && failed === 0 && skipped === 0) {
+        icon = "✅ "; // Doc-only with no explicit result, assume passed
+      } else if (!isDocOnly) {
         icon = "⚠️ ";
       }
     }
@@ -585,7 +740,6 @@ export default class StoryReporter implements Reporter {
       ? ` _(${this.formatDuration(durationMs)})_`
       : "";
     lines.push(`${headingPrefix} ${icon}${meta.scenario}${durationSuffix}`);
-    lines.push(`<!-- scenarioId: ${scenarioId} -->`);
 
     if (this.options.includeSourceLinks && permalinkBaseUrl && sourceFile) {
       const href = permalinkBaseUrl.replace(/\/$/, "") + "/" + sourceFile;
@@ -610,6 +764,15 @@ export default class StoryReporter implements Reporter {
 
     for (const step of meta.steps) {
       this.renderStep(lines, step);
+    }
+
+    if (failed > 0 && scenario.failureDetails && this.options.includeErrorInMarkdown) {
+      lines.push("**Failure**");
+      lines.push("");
+      lines.push("```text");
+      lines.push(scenario.failureDetails);
+      lines.push("```");
+      lines.push("");
     }
 
     lines.push("");

@@ -1,10 +1,10 @@
 /**
  * Fixture test for mixed mode - other (fallback aggregated).
  */
-import { scenario } from "../../../../../index.js";
+import { story, given, when, then } from "../../../../../index.js";
 import { expect } from "vitest";
 
-scenario("Other scenario", ({ given, when, then }) => {
+story("Other scenario", () => {
   given("some setup", () => {});
   when("something happens", () => {});
   then("result is expected", () => {

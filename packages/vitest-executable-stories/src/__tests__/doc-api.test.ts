@@ -2,16 +2,15 @@
  * Tests for the doc API feature.
  */
 import { describe, it, expect } from "vitest";
-import { scenario } from "../index.js";
-import { spawn } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { runVitest } from "./helpers/command.js";
 
 // Use absolute path to src fixtures (not dist)
 const fixturesDir = path.resolve(process.cwd(), "src/__tests__/fixtures/doc-api");
 
 describe("Doc API", () => {
-  it("renders static doc.note under step", async () => {
+  it("renders static doc.note under step", () => {
     const configPath = path.join(fixturesDir, "vitest.config.mts");
     const outputPath = path.join(fixturesDir, "dist", "docs.md");
 
@@ -21,30 +20,12 @@ describe("Doc API", () => {
     }
 
     // Run vitest with the fixture config
-    await new Promise<void>((resolve, reject) => {
-      const child = spawn(
-        "npx",
-        ["vitest", "run", "--config", configPath],
-        {
-          cwd: process.cwd(),
-          stdio: ["ignore", "pipe", "pipe"],
-        }
-      );
-
-      let stdout = "";
-      let stderr = "";
-      child.stdout?.on("data", (data) => { stdout += data.toString(); });
-      child.stderr?.on("data", (data) => { stderr += data.toString(); });
-
-      child.on("close", (code) => {
-        if (code !== 0) {
-          console.log("stdout:", stdout);
-          console.log("stderr:", stderr);
-        }
-        resolve();
-      });
-      child.on("error", reject);
-    });
+    const result = runVitest(configPath);
+    if (result.status !== 0) {
+      console.log("stdout:", result.stdout);
+      console.log("stderr:", result.stderr);
+    }
+    expect(result.status).toBe(0);
 
     // Check the generated markdown
     expect(fs.existsSync(outputPath)).toBe(true);

@@ -1,18 +1,41 @@
 /**
- * playwright-executable-stories: TS-first scenario/given/when/then for Playwright with Markdown doc generation.
+ * playwright-executable-stories: TS-first story/given/when/then for Playwright with Markdown doc generation.
  *
- * 1. Author tests with scenario(), given(), when(), then(), and() from this package.
+ * 1. Author tests with story(), given(), when(), then(), and() from this package.
  * 2. Add the StoryReporter to playwright.config (reporters: ['list', new StoryReporter()]).
  * 3. Run playwright test; docs/user-stories.md (or your output config) is written with user-story style Markdown.
  */
 export {
-  scenario,
+  story,
+  // BDD keywords
+  given,
+  when,
+  then,
+  and,
+  but,
+  // AAA pattern aliases
+  arrange,
+  act,
+  assert,
+  // Additional aliases
+  setup,
+  context,
+  execute,
+  action,
+  verify,
+  // Documentation API
+  doc,
+  // Steps API object
+  steps,
+  step,
+  // Types
   type StepsApi,
   type StoryMeta,
   type StoryStep,
   type StepKeyword,
   type StepMode,
-  type ScenarioOptions,
+  type StoryOptions,
+  type StoryFn,
   type PlaywrightTestArgs,
   type DocEntry,
   type DocPhase,

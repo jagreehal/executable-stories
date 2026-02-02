@@ -39,5 +39,22 @@ describe("StoryReporter", () => {
     expect(raw).toContain("**Given** user is on login page");
     expect(raw).toContain("**When** user submits valid credentials");
     expect(raw).toContain("**Then** user sees the dashboard");
+
+    expect(raw).toMatch(/## .* Alt API story/);
+    expect(raw).toContain("**Given** first precondition");
+    expect(raw).toContain("**And** second precondition");
+    expect(raw).toContain("**And** third precondition");
+    expect(raw).toContain("**When** user acts");
+    expect(raw).toContain("**And** user confirms");
+    expect(raw).toContain("**And** action completes");
+    expect(raw).toContain("**Then** result appears");
+    expect(raw).toContain("**And** result is persisted");
+    expect(raw).toContain("**And** result is verified");
+
+    expect(raw).toMatch(/## .* Optional step callback story/);
+    expect(raw).toContain("**Given** precondition with no impl");
+    expect(raw).toContain("**And** arrange-only step");
+    expect(raw).toContain("**When** action with no impl");
+    expect(raw).toContain("**Then** outcome with no impl");
   });
 });

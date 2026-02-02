@@ -1,7 +1,7 @@
 /**
  * TS-first BDD helpers for Vitest. This is Vitest, not Cucumber.
  *
- * - scenario() is describe() with story metadata
+ * - story() is describe() with story metadata
  * - Steps are it() tests with keyword labels
  * - All Vitest modifiers work: .skip, .only, .todo, .fails, .concurrent
  * - No enforced Given→When→Then ordering
@@ -9,12 +9,33 @@
  */
 import { describe, it } from "vitest";
 import { AsyncLocalStorage } from "node:async_hooks";
+import type { StepKeyword } from "@executable-stories/core";
+
+// Re-export core types for consumers
+export type { StepKeyword } from "@executable-stories/core";
+
+/** Current story's StepsApi when inside a story() callback. Used by vitest-executable-stories/steps. */
+const storyApiStore = new AsyncLocalStorage<StepsApi>();
+let activeStoryApi: StepsApi | null = null;
+
+/**
+ * Returns the current story's StepsApi. Only valid when called from inside a story() callback.
+ * @internal Used by the steps module for module-level given/when/then.
+ */
+export function _getStoryApi(): StepsApi {
+  const api = storyApiStore.getStore() ?? activeStoryApi;
+  if (!api) {
+    throw new Error(
+      "_getStoryApi() must be called from inside a story() callback. Did you call steps.given() from inside story('...', (steps) => { ... })?",
+    );
+  }
+  return api;
+}
 
 // ============================================================================
 // Types
 // ============================================================================
 
-export type StepKeyword = "Given" | "When" | "Then" | "And";
 export type StepMode = "normal" | "skip" | "only" | "todo" | "fails" | "concurrent";
 
 // ============================================================================
@@ -27,6 +48,7 @@ export type DocPhase = "static" | "runtime";
 /** Union type for all documentation entry kinds */
 export type DocEntry =
   | { kind: "note"; text: string; phase: DocPhase }
+  | { kind: "tag"; names: string[]; phase: DocPhase }
   | { kind: "kv"; label: string; value: unknown; phase: DocPhase }
   | { kind: "code"; label: string; content: string; lang?: string; phase: DocPhase }
   | { kind: "table"; label: string; columns: string[]; rows: string[][]; phase: DocPhase }
@@ -65,23 +87,32 @@ export interface StoryMeta {
   tickets?: string[];
   /** User-defined metadata (nested, not spread) */
   meta?: Record<string, unknown>;
+  /** Parent describe/suite names for hierarchical grouping (optional, omitted when empty) */
+  suitePath?: string[];
 }
 
 /** Serializable shape attached to task.meta.story for the reporter. */
 export const STORY_META_KEY = "story";
 
+/** Doc-only story meta for framework-native test: test('xxx', ({ task }) => { doc.story('xxx', task); ... }). */
+function createDocOnlyStoryMeta(title: string, suitePath?: string[]): StoryMeta {
+  return { scenario: title, steps: [], suitePath };
+}
+
+// docStoryOverload is defined after story() - see end of file. Exported const is assigned there.
+
 /**
- * Options for configuring a scenario.
+ * Options for configuring a story.
  *
  * @example
  * ```ts
- * scenario("Admin deletes user", { tags: ["admin"], ticket: "JIRA-123" }, ({ given }) => {
- *   given("admin is logged in", () => {});
+ * story("Admin deletes user", { tags: ["admin"], ticket: "JIRA-123" }, (steps) => {
+ *   steps.given("admin is logged in", () => {});
  * });
  * ```
  */
-export type ScenarioOptions = {
-  /** Tags for filtering and categorizing scenarios */
+export type StoryOptions = {
+  /** Tags for filtering and categorizing stories */
   tags?: string[];
   /** Ticket/issue reference(s) for requirements traceability */
   ticket?: string | string[];
@@ -102,7 +133,7 @@ interface StepDef {
 // ============================================================================
 
 export type StepFn = {
-  (text: string, fn: () => void | Promise<void>): void;
+  (text: string, fn?: () => void | Promise<void>): void;
   skip: (text: string, fn?: () => void | Promise<void>) => void;
   only: (text: string, fn: () => void | Promise<void>) => void;
   todo: (text: string) => void;
@@ -121,6 +152,8 @@ export type StepFn = {
 export interface DocRuntimeApi {
   /** Add a free-text note to the step documentation */
   note(text: string): void;
+  /** Add tag(s) to the step documentation */
+  tag(name: string | string[]): void;
   /** Add a key-value pair to the step documentation */
   kv(label: string, value: unknown): void;
   /** Add a code block with optional language for syntax highlighting */
@@ -136,21 +169,23 @@ export interface DocRuntimeApi {
 }
 
 /**
- * Full documentation API available during scenario definition.
+ * Full documentation API available during story definition.
  * Use these methods to add rich documentation to your test steps.
  *
  * @example
  * ```ts
- * scenario("User logs in", ({ given, doc }) => {
- *   given("user credentials", () => {});
- *   doc.kv("Username", "testuser");
- *   doc.mermaid(`graph LR\n  A-->B`);
+ * story("User logs in", (steps) => {
+ *   steps.given("user credentials", () => {});
+ *   steps.doc.kv("Username", "testuser");
+ *   steps.doc.mermaid(`graph LR\n  A-->B`);
  * });
  * ```
  */
 export interface DocApi {
   /** Add a free-text note to the step documentation */
   note(text: string): void;
+  /** Add tag(s) to the step documentation for categorization */
+  tag(name: string | string[]): void;
   /** Add a key-value pair to the step documentation */
   kv(label: string, value: unknown): void;
   /** Add a code block with optional language for syntax highlighting */
@@ -169,6 +204,8 @@ export interface DocApi {
   screenshot(path: string, alt?: string): void;
   /** Add a custom documentation entry for use with custom renderers */
   custom(type: string, data: unknown): void;
+  /** Define a story using the same API as `story()` */
+  story: DocStoryFn;
   /** Runtime-only API for capturing values known only at test execution time */
   runtime: DocRuntimeApi;
 }
@@ -178,17 +215,17 @@ export interface DocApi {
 // ============================================================================
 
 /**
- * API provided to scenario definition functions for defining steps and adding documentation.
+ * API provided to story definition functions for defining steps and adding documentation.
  * Includes BDD keywords (given/when/then), AAA pattern aliases (arrange/act/assert),
  * and a rich documentation API.
  *
  * @example
  * ```ts
- * scenario("User logs in", ({ given, when, then, doc }) => {
- *   given("user is on login page", () => { ... });
- *   when("user submits credentials", () => { ... });
- *   then("user sees dashboard", () => { ... });
- *   doc.note("This scenario requires valid test credentials");
+ * story("User logs in", (steps) => {
+ *   steps.given("user is on login page", () => { ... });
+ *   steps.when("user submits credentials", () => { ... });
+ *   steps.then("user sees dashboard", () => { ... });
+ *   steps.doc.note("This story requires valid test credentials");
  * });
  * ```
  */
@@ -201,6 +238,8 @@ export interface StepsApi {
   then: StepFn;
   /** Define a continuation step (And) - inherits context from previous keyword */
   and: StepFn;
+  /** Define a negative assertion step (But) - always renders as "But", never auto-converts to "And" */
+  but: StepFn;
 
   /** Alias for given - AAA pattern (Arrange) */
   arrange: StepFn;
@@ -225,21 +264,36 @@ export interface StepsApi {
 }
 
 // ============================================================================
-// Scenario Function Type with Modifiers
+// Story Function Type with Modifiers
 // ============================================================================
 
-export type ScenarioFn = {
+export type StoryFn = {
+  (title: string, define: () => void): void;
   (title: string, define: (steps: StepsApi) => void): void;
-  (title: string, options: ScenarioOptions, define: (steps: StepsApi) => void): void;
+  (title: string, options: StoryOptions, define: () => void): void;
+  (title: string, options: StoryOptions, define: (steps: StepsApi) => void): void;
   skip: {
+    (title: string, define: () => void): void;
     (title: string, define: (steps: StepsApi) => void): void;
-    (title: string, options: ScenarioOptions, define: (steps: StepsApi) => void): void;
+    (title: string, options: StoryOptions, define: () => void): void;
+    (title: string, options: StoryOptions, define: (steps: StepsApi) => void): void;
   };
   only: {
+    (title: string, define: () => void): void;
     (title: string, define: (steps: StepsApi) => void): void;
-    (title: string, options: ScenarioOptions, define: (steps: StepsApi) => void): void;
+    (title: string, options: StoryOptions, define: () => void): void;
+    (title: string, options: StoryOptions, define: (steps: StepsApi) => void): void;
   };
 };
+
+/**
+ * doc.story is `story(...)` plus a Vitest-native overload:
+ * `it('x', ({ task }) => { doc.story('x', task); ... })`
+ * Task overload is first so doc.story(title, task) resolves correctly.
+ */
+export type DocStoryFn = ((title: string, task: { meta: object }) => void) & StoryFn;
+
+type StoryDefineFn = (steps: StepsApi) => void;
 
 // ============================================================================
 // Implementation
@@ -256,12 +310,30 @@ function buildStepsApi(steps: StoryStep[], stepDefs: StepDef[]): StepsApi {
   const runtimeDocStore = new AsyncLocalStorage<DocApi>();
   // Most recently declared step for static docs at registration time
   let lastDefinedDoc: DocApi | null = null;
+  const primaryCounts: Record<"Given" | "When" | "Then", number> = {
+    Given: 0,
+    When: 0,
+    Then: 0,
+  };
+
+  const resolveKeyword = (keyword: StepKeyword): StepKeyword => {
+    if (keyword === "Given" || keyword === "When" || keyword === "Then") {
+      const count = primaryCounts[keyword];
+      primaryCounts[keyword] = count + 1;
+      return count === 0 ? keyword : "And";
+    }
+    return keyword;
+  };
 
   // Proxy doc API that delegates to the current step's bound doc API
   const doc: DocApi = {
     note(text: string) {
       const target = runtimeDocStore.getStore() ?? lastDefinedDoc;
       target?.note(text);
+    },
+    tag(name: string | string[]) {
+      const target = runtimeDocStore.getStore() ?? lastDefinedDoc;
+      target?.tag(name);
     },
     kv(label: string, value: unknown) {
       const target = runtimeDocStore.getStore() ?? lastDefinedDoc;
@@ -299,6 +371,7 @@ function buildStepsApi(steps: StoryStep[], stepDefs: StepDef[]): StepsApi {
       const target = runtimeDocStore.getStore() ?? lastDefinedDoc;
       target?.custom(type, data);
     },
+    story: docStoryOverload,
     get runtime(): DocRuntimeApi {
       const runtimeDoc = runtimeDocStore.getStore();
       if (!runtimeDoc) {
@@ -323,6 +396,10 @@ function buildStepsApi(steps: StoryStep[], stepDefs: StepDef[]): StepsApi {
     const staticApi: DocApi = {
       note(text: string) {
         addDoc({ kind: "note", text, phase: "static" });
+      },
+      tag(name: string | string[]) {
+        const names = Array.isArray(name) ? name : [name];
+        addDoc({ kind: "tag", names, phase: "static" });
       },
       kv(label: string, value: unknown) {
         addDoc({ kind: "kv", label, value, phase: "static" });
@@ -353,9 +430,14 @@ function buildStepsApi(steps: StoryStep[], stepDefs: StepDef[]): StepsApi {
       custom(type: string, data: unknown) {
         addDoc({ kind: "custom", type, data, phase: "static" });
       },
+      story: docStoryOverload,
       runtime: {
         note(text: string) {
           addDoc({ kind: "note", text, phase: "runtime" });
+        },
+        tag(name: string | string[]) {
+          const names = Array.isArray(name) ? name : [name];
+          addDoc({ kind: "tag", names, phase: "runtime" });
         },
         kv(label: string, value: unknown) {
           addDoc({ kind: "kv", label, value, phase: "runtime" });
@@ -387,43 +469,47 @@ function buildStepsApi(steps: StoryStep[], stepDefs: StepDef[]): StepsApi {
    * Create a step function with all modifiers for a given keyword.
    */
   function createStepFn(keyword: StepKeyword): StepFn {
-    const base = (text: string, fn: () => void | Promise<void>) => {
+    const base = (text: string, fn?: () => void | Promise<void>) => {
+      const resolvedKeyword = resolveKeyword(keyword);
       const stepIndex = steps.length;
-      steps.push({ keyword, text, docs: [] });
+      steps.push({ keyword: resolvedKeyword, text, docs: [] });
 
       const stepDocApi = createStepDocApi(stepIndex);
       lastDefinedDoc = stepDocApi;
 
+      const impl = fn ?? (() => {});
       stepDefs.push({
-        keyword,
+        keyword: resolvedKeyword,
         text,
         mode: "normal",
         fn: async () => {
           // Bind doc API for this step's execution (safe for concurrency)
-          await runtimeDocStore.run(stepDocApi, fn);
+          await runtimeDocStore.run(stepDocApi, impl);
         },
       });
     };
 
     base.skip = (text: string, _fn?: () => void | Promise<void>) => {
+      const resolvedKeyword = resolveKeyword(keyword);
       const stepIndex = steps.length;
-      steps.push({ keyword, text, mode: "skip", docs: [] });
+      steps.push({ keyword: resolvedKeyword, text, mode: "skip", docs: [] });
 
       const stepDocApi = createStepDocApi(stepIndex);
       lastDefinedDoc = stepDocApi;
 
-      stepDefs.push({ keyword, text, mode: "skip", fn: undefined });
+      stepDefs.push({ keyword: resolvedKeyword, text, mode: "skip", fn: undefined });
     };
 
     base.only = (text: string, fn: () => void | Promise<void>) => {
+      const resolvedKeyword = resolveKeyword(keyword);
       const stepIndex = steps.length;
-      steps.push({ keyword, text, mode: "only", docs: [] });
+      steps.push({ keyword: resolvedKeyword, text, mode: "only", docs: [] });
 
       const stepDocApi = createStepDocApi(stepIndex);
       lastDefinedDoc = stepDocApi;
 
       stepDefs.push({
-        keyword,
+        keyword: resolvedKeyword,
         text,
         mode: "only",
         fn: async () => {
@@ -433,21 +519,23 @@ function buildStepsApi(steps: StoryStep[], stepDefs: StepDef[]): StepsApi {
     };
 
     base.todo = (text: string) => {
+      const resolvedKeyword = resolveKeyword(keyword);
       const stepIndex = steps.length;
-      steps.push({ keyword, text, mode: "todo", docs: [] });
+      steps.push({ keyword: resolvedKeyword, text, mode: "todo", docs: [] });
       lastDefinedDoc = createStepDocApi(stepIndex);
-      stepDefs.push({ keyword, text, fn: undefined, mode: "todo" });
+      stepDefs.push({ keyword: resolvedKeyword, text, fn: undefined, mode: "todo" });
     };
 
     base.fails = (text: string, fn: () => void | Promise<void>) => {
+      const resolvedKeyword = resolveKeyword(keyword);
       const stepIndex = steps.length;
-      steps.push({ keyword, text, mode: "fails", docs: [] });
+      steps.push({ keyword: resolvedKeyword, text, mode: "fails", docs: [] });
 
       const stepDocApi = createStepDocApi(stepIndex);
       lastDefinedDoc = stepDocApi;
 
       stepDefs.push({
-        keyword,
+        keyword: resolvedKeyword,
         text,
         mode: "fails",
         fn: async () => {
@@ -457,14 +545,15 @@ function buildStepsApi(steps: StoryStep[], stepDefs: StepDef[]): StepsApi {
     };
 
     base.concurrent = (text: string, fn: () => void | Promise<void>) => {
+      const resolvedKeyword = resolveKeyword(keyword);
       const stepIndex = steps.length;
-      steps.push({ keyword, text, mode: "concurrent", docs: [] });
+      steps.push({ keyword: resolvedKeyword, text, mode: "concurrent", docs: [] });
 
       const stepDocApi = createStepDocApi(stepIndex);
       lastDefinedDoc = stepDocApi;
 
       stepDefs.push({
-        keyword,
+        keyword: resolvedKeyword,
         text,
         mode: "concurrent",
         fn: async () => {
@@ -480,6 +569,7 @@ function buildStepsApi(steps: StoryStep[], stepDefs: StepDef[]): StepsApi {
   const when = createStepFn("When");
   const then = createStepFn("Then");
   const and = createStepFn("And");
+  const but = createStepFn("But");
 
   return {
     // BDD keywords
@@ -487,6 +577,7 @@ function buildStepsApi(steps: StoryStep[], stepDefs: StepDef[]): StepsApi {
     when,
     then,
     and,
+    but,
 
     // AAA pattern aliases
     arrange: given,
@@ -543,12 +634,12 @@ function registerStep(step: StepDef, story: StoryMeta): void {
 }
 
 /**
- * Core scenario implementation with deferred registration.
+ * Core story implementation with deferred registration.
  */
-function scenarioImpl(
+function storyImpl(
   title: string,
-  options: ScenarioOptions | undefined,
-  define: (steps: StepsApi) => void,
+  options: StoryOptions | undefined,
+  define: StoryDefineFn,
   mode: "normal" | "skip" | "only",
 ): void {
   const descFn =
@@ -559,10 +650,15 @@ function scenarioImpl(
     const steps: StoryStep[] = [];
 
     const api = buildStepsApi(steps, stepDefs);
-    define(api);
+    activeStoryApi = api;
+    try {
+      storyApiStore.run(api, () => define(api));
+    } finally {
+      activeStoryApi = null;
+    }
 
     // Use direct reference to steps array so runtime docs are visible
-    // Each scenario has its own steps array, and runtime docs attach via closures
+    // Each story has its own steps array, and runtime docs attach via closures
     const story: StoryMeta = {
       scenario: title,
       steps, // Direct reference for runtime doc visibility
@@ -583,11 +679,11 @@ function scenarioImpl(
 }
 
 /**
- * Parse overloaded scenario arguments.
+ * Parse overloaded story arguments.
  */
-function parseScenarioArgs(
-  args: [string, ScenarioOptions | ((steps: StepsApi) => void), ((steps: StepsApi) => void)?],
-): { title: string; options?: ScenarioOptions; define: (steps: StepsApi) => void } {
+function parseStoryArgs(
+  args: [string, StoryOptions | StoryDefineFn, StoryDefineFn?],
+): { title: string; options?: StoryOptions; define: StoryDefineFn } {
   const [title, second, third] = args;
   if (typeof second === "function") {
     return { title, define: second };
@@ -596,48 +692,132 @@ function parseScenarioArgs(
 }
 
 /**
- * Define a scenario (user story). Each step becomes one Vitest test.
+ * Define a story. Each step becomes one Vitest test.
  * Stamp task.meta.story on each step so the StoryReporter can collect and write Markdown.
  *
  * @example
- * scenario("User logs in", ({ given, when, then }) => {
- *   given("user is on login page", () => { ... });
- *   when("user submits credentials", () => { ... });
- *   then("user sees dashboard", () => { ... });
+ * story("User logs in", (steps) => {
+ *   steps.given("user is on login page", () => { ... });
+ *   steps.when("user submits credentials", () => { ... });
+ *   steps.then("user sees dashboard", () => { ... });
  * });
  *
  * @example With options
- * scenario("Admin deletes user", { tags: ["admin"], meta: { priority: "high" } }, ({ given, when, then }) => {
- *   given("admin is logged in", () => { ... });
- *   when("admin clicks delete", () => { ... });
- *   then("user is removed", () => { ... });
+ * story("Admin deletes user", { tags: ["admin"], meta: { priority: "high" } }, (steps) => {
+ *   steps.given("admin is logged in", () => { ... });
+ *   steps.when("admin clicks delete", () => { ... });
+ *   steps.then("user is removed", () => { ... });
  * });
  */
-export const scenario: ScenarioFn = Object.assign(
-  function scenario(
-    ...args: [string, ScenarioOptions | ((steps: StepsApi) => void), ((steps: StepsApi) => void)?]
+export const story: StoryFn = Object.assign(
+  function story(
+    ...args: [string, StoryOptions | StoryDefineFn, StoryDefineFn?]
   ): void {
-    const { title, options, define } = parseScenarioArgs(args);
-    scenarioImpl(title, options, define, "normal");
+    const { title, options, define } = parseStoryArgs(args);
+    storyImpl(title, options, define, "normal");
   },
   {
     skip: Object.assign(
       function skip(
-        ...args: [string, ScenarioOptions | ((steps: StepsApi) => void), ((steps: StepsApi) => void)?]
+        ...args: [string, StoryOptions | StoryDefineFn, StoryDefineFn?]
       ): void {
-        const { title, options, define } = parseScenarioArgs(args);
-        scenarioImpl(title, options, define, "skip");
+        const { title, options, define } = parseStoryArgs(args);
+        storyImpl(title, options, define, "skip");
       },
       {},
     ),
     only: Object.assign(
       function only(
-        ...args: [string, ScenarioOptions | ((steps: StepsApi) => void), ((steps: StepsApi) => void)?]
+        ...args: [string, StoryOptions | StoryDefineFn, StoryDefineFn?]
       ): void {
-        const { title, options, define } = parseScenarioArgs(args);
-        scenarioImpl(title, options, define, "only");
+        const { title, options, define } = parseStoryArgs(args);
+        storyImpl(title, options, define, "only");
       },
       {},
     ),
   },
+);
+
+/**
+ * Check if a name looks like a file path (to filter out from suite paths).
+ */
+function looksLikeFilePath(name: string): boolean {
+  // Contains path separators
+  if (name.includes("/") || name.includes("\\")) return true;
+  // Contains .spec. or .test. anywhere (catches file names without full path)
+  if (name.includes(".spec.") || name.includes(".test.")) return true;
+  // Ends with file extensions
+  if (/\.(spec|test)\.(ts|js|mjs|cjs)$/.test(name)) return true;
+  if (/\.(ts|js|mjs|cjs)$/.test(name)) return true;
+  return false;
+}
+
+/**
+ * Extract the suite path (parent describe names) from a Vitest task object.
+ */
+function extractSuitePath(
+  task: { suite?: unknown; file?: { name?: string } },
+  storyTitle: string,
+): string[] | undefined {
+  const path: string[] = [];
+  const fileName = task.file?.name;
+  let current = task.suite as { name?: string; suite?: unknown } | undefined;
+
+  while (current) {
+    const name = current.name;
+    // Filter: non-empty, not story title, not root markers, not file paths
+    if (
+      name &&
+      name.trim() !== "" &&
+      name !== storyTitle &&
+      name !== "<root>" &&
+      name !== fileName &&
+      !looksLikeFilePath(name)
+    ) {
+      path.unshift(name);
+    }
+    current = current.suite as { name?: string; suite?: unknown } | undefined;
+  }
+
+  return path.length > 0 ? path : undefined;
+}
+
+/**
+ * doc.story overload: (title, callback) => story(title, callback);
+ * (title, task) => set task.meta.story for framework-native it('xxx', ({ task }) => { doc.story('xxx', task); ... }).
+ */
+export const docStoryOverload: DocStoryFn = Object.assign(
+  function docStoryOverloadImpl(
+    title: string,
+    second?: ((steps: StepsApi) => void) | StoryOptions | { meta: object },
+    third?: (steps: StepsApi) => void,
+  ): void {
+    if (arguments.length < 2) {
+      throw new Error(
+        "In Vitest, doc.story(title, task) requires the task argument. Use it('...', ({ task }) => { doc.story('Title', task); ... }).",
+      );
+    }
+    if (typeof second === "function") {
+      story(title, second);
+      return;
+    }
+    if (
+      second != null &&
+      typeof second === "object" &&
+      "meta" in second &&
+      !("tags" in second) &&
+      !("ticket" in second)
+    ) {
+      const taskObj = second as { meta: { story?: unknown }; suite?: unknown; file?: { name?: string } };
+      const suitePath = extractSuitePath(taskObj, title);
+      taskObj.meta.story = createDocOnlyStoryMeta(title, suitePath);
+      return;
+    }
+    if (third !== undefined) {
+      story(title, second as StoryOptions, third);
+    } else {
+      story(title, second as StoryDefineFn);
+    }
+  },
+  { skip: story.skip, only: story.only },
 );

@@ -9,6 +9,7 @@ export default {
   rootDir,
   testEnvironment: "node",
   testMatch: ["<rootDir>/src/__tests__/jest/fixtures/**/*.story.test.ts"],
+  testPathIgnorePatterns: ["/node_modules/", "/fixtures/failure/"],
   extensionsToTreatAsEsm: [".ts"],
   transform: {
     "^.+\\.ts$": [

@@ -1,6 +1,9 @@
 /**
  * Vitest reporter that reads task.meta.story from tests and writes Markdown user-story docs.
  * Ports useful options from vitest-markdown-reporter: title, permalink, summary table, GitHub Actions summary.
+ *
+ * Do not add value imports from "vitest" or "./bdd.js" here; this entry is loaded in vitest.config
+ * before Vitest is ready. Use only `import type` from those modules.
  */
 import type {
   Reporter,
@@ -85,8 +88,8 @@ export interface StoryReporterOptions {
   };
 
   // Grouping & formatting
-  /** How to group scenarios. Default: "file" */
-  groupBy?: "file" | "none";
+  /** How to group scenarios. Default: "file". "suite" groups by suitePath across files. */
+  groupBy?: "file" | "suite" | "none";
   /** Heading level for scenario titles. Default: 3 when groupBy="file", 2 when "none" */
   scenarioHeadingLevel?: 2 | 3 | 4;
   /** Step rendering style. Default: "bullets" */
@@ -97,6 +100,8 @@ export interface StoryReporterOptions {
   includeStatus?: boolean;
   /** Include duration in markdown output. Default: false */
   includeDurations?: boolean;
+  /** Include failure error in markdown for failed scenarios. Default: true */
+  includeErrorInMarkdown?: boolean;
   /** Include outputs even when there are no matched scenarios. Default: true */
   includeEmpty?: boolean;
   /** Sort files in markdown output. Default: "alpha" */
@@ -142,6 +147,7 @@ interface ScenarioWithMeta {
   skipped: number;
   todo: number;
   durationMs: number;
+  failureDetails?: string;
 }
 
 /**
@@ -196,9 +202,9 @@ function normalizeCoveragePayload(coverage: unknown): Record<string, CoverageFil
  *
  * @example
  * ```ts
- * // vitest.config.ts
+ * // vitest.config.ts - use /reporter subpath so Vitest is not loaded in config context
  * import { defineConfig } from "vitest/config";
- * import { StoryReporter } from "vitest-executable-stories";
+ * import { StoryReporter } from "vitest-executable-stories/reporter";
  *
  * export default defineConfig({
  *   test: {
@@ -247,6 +253,7 @@ export default class StoryReporter implements Reporter {
       markdown: options.markdown ?? "gfm",
       includeStatus: options.includeStatus ?? true,
       includeDurations: options.includeDurations ?? false,
+      includeErrorInMarkdown: options.includeErrorInMarkdown ?? true,
       includeEmpty: options.includeEmpty ?? true,
       sortFiles: options.sortFiles ?? "alpha",
       sortScenarios: options.sortScenarios ?? "alpha",
@@ -331,12 +338,21 @@ export default class StoryReporter implements Reporter {
         const durationMs = typeof (result as { duration?: number } | undefined)?.duration === "number"
           ? (result as unknown as { duration: number }).duration
           : 0;
+        const errors = state === "failed" && result
+          ? (result as { errors?: SerializedError[] }).errors
+          : undefined;
+        const failureDetails = errors?.length
+          ? this.formatFailureFromErrors(errors)
+          : undefined;
 
         if (existing) {
           existing.passed += passed;
           existing.failed += failed;
           existing.skipped += skipped;
           existing.durationMs += durationMs;
+          if (failureDetails && existing.failed > 0 && existing.failureDetails == null) {
+            existing.failureDetails = failureDetails;
+          }
         } else {
           scenarios.set(key, {
             meta,
@@ -347,6 +363,7 @@ export default class StoryReporter implements Reporter {
             skipped,
             todo: 0,
             durationMs,
+            failureDetails: failed ? failureDetails : undefined,
           });
         }
       }
@@ -501,23 +518,28 @@ export default class StoryReporter implements Reporter {
     // Determine heading levels
     const groupBy = this.options.groupBy;
     const fileHeadingLevel = 2;
-    const scenarioHeadingLevel = this.options.scenarioHeadingLevel ??
-      (groupBy === "file" ? 3 : 2);
-    const scenarioHeading = "#".repeat(scenarioHeadingLevel);
 
     // Check if this is a colocated output (single source file)
     const uniqueSourceFiles = new Set(outputScenarios.map((s) => s.sourceFile ?? "unknown"));
     const isColocated = uniqueSourceFiles.size === 1 && this.isColocatedOutput(outputPath);
 
-    if (isColocated || groupBy === "none") {
-      // Colocated or no grouping - flat list without file headers
+    if (isColocated) {
+      // Colocated output - render with suite path grouping within single file
+      this.renderSuiteGroups(outputScenarios, lines, 2, permalinkBaseUrl);
+    } else if (groupBy === "none") {
+      // No grouping - flat list without file headers
+      const scenarioHeadingLevel = this.options.scenarioHeadingLevel ?? 3;
+      const scenarioHeading = "#".repeat(scenarioHeadingLevel);
       const sorted = this.sortScenarios(outputScenarios);
 
       for (const scenario of sorted) {
-        this.renderScenario(lines, scenario, scenarioHeading, isColocated ? undefined : permalinkBaseUrl);
+        this.renderScenario(lines, scenario, scenarioHeading, permalinkBaseUrl);
       }
+    } else if (groupBy === "suite") {
+      // Group by suite path across files
+      this.renderSuiteGroups(outputScenarios, lines, 2, permalinkBaseUrl);
     } else {
-      // Group by file
+      // Group by file (default)
       const byFile = new Map<string, ScenarioWithMeta[]>();
       for (const scenario of outputScenarios) {
         const file = scenario.sourceFile ?? "unknown";
@@ -541,16 +563,72 @@ export default class StoryReporter implements Reporter {
         }
         lines.push("");
 
-        // Sort scenarios within file (optional)
-        const sorted = this.sortScenarios(fileScenarios);
-
-        for (const scenario of sorted) {
-          this.renderScenario(lines, scenario, scenarioHeading, undefined);
-        }
+        // Render suite groups within file
+        this.renderSuiteGroups(fileScenarios, lines, 3, undefined);
       }
     }
 
     return lines.join("\n").trimEnd() || "_No scenarios found._";
+  }
+
+  /**
+   * Group scenarios by their suitePath.
+   */
+  private groupBySuitePath(
+    scenarios: ScenarioWithMeta[],
+  ): { path: string[]; scenarios: ScenarioWithMeta[] }[] {
+    const grouped = new Map<string, { path: string[]; scenarios: ScenarioWithMeta[] }>();
+
+    for (const scenario of scenarios) {
+      const path = scenario.meta.suitePath ?? [];
+      const key = path.join("::");
+
+      const existing = grouped.get(key);
+      if (existing) {
+        existing.scenarios.push(scenario);
+      } else {
+        grouped.set(key, { path, scenarios: [scenario] });
+      }
+    }
+
+    // Sort groups alphabetically by key for stable output
+    const sorted = [...grouped.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([, group]) => group);
+
+    return sorted;
+  }
+
+  /**
+   * Render scenarios grouped by suite path.
+   */
+  private renderSuiteGroups(
+    scenarios: ScenarioWithMeta[],
+    lines: string[],
+    baseLevel: number,
+    permalinkBaseUrl: string | undefined,
+  ): void {
+    const groups = this.groupBySuitePath(scenarios);
+
+    for (const { path, scenarios: suiteScenarios } of groups) {
+      // Only render suite header if path exists and has content
+      if (path.length > 0) {
+        const heading = "#".repeat(baseLevel);
+        lines.push(`${heading} ${path.join(" - ")}`);
+        lines.push("");
+      }
+
+      // Sort scenarios within group using existing comparator for stable output
+      const sortedScenarios = this.sortScenarios(suiteScenarios);
+
+      // Render scenarios at next level (or same if no suite path), capped at ####
+      const storyLevel = Math.min(path.length > 0 ? baseLevel + 1 : baseLevel, 4);
+      const scenarioHeading = "#".repeat(storyLevel);
+
+      for (const scenario of sortedScenarios) {
+        this.renderScenario(lines, scenario, scenarioHeading, permalinkBaseUrl);
+      }
+    }
   }
 
   private renderJsonReport(
@@ -628,26 +706,29 @@ export default class StoryReporter implements Reporter {
     headingPrefix: string,
     permalinkBaseUrl: string | undefined,
   ): void {
-    const { meta, sourceFile, passed, failed, skipped, todo, durationMs, scenarioId } = scenario;
+    const { meta, sourceFile, passed, failed, skipped, todo, durationMs } = scenario;
     const includeStatus = this.options.includeStatus;
 
     // Compute status icon with precedence:
     // 1. ❌ if any failed
-    // 2. ✅ if all passed
+    // 2. ✅ if all passed (or doc-only story with passed > 0)
     // 3. 📝 if all todo
     // 4. ⏩ if all skipped
     // 5. ⚠️ otherwise (mixed state)
     let icon = "";
     if (includeStatus) {
       const totalSteps = meta.steps.length;
+      const isDocOnly = totalSteps === 0;
       if (failed > 0) {
         icon = "❌ ";
-      } else if (passed === totalSteps) {
+      } else if (isDocOnly ? passed > 0 : passed === totalSteps) {
         icon = "✅ ";
-      } else if (todo === totalSteps) {
+      } else if (!isDocOnly && todo === totalSteps) {
         icon = "📝 ";
-      } else if (skipped === totalSteps) {
+      } else if (isDocOnly ? skipped > 0 && passed === 0 : skipped === totalSteps) {
         icon = "⏩ ";
+      } else if (isDocOnly && passed === 0 && failed === 0 && skipped === 0) {
+        icon = "✅ "; // Doc-only with no explicit result, assume passed
       } else {
         icon = "⚠️ ";  // Mixed state
       }
@@ -657,7 +738,6 @@ export default class StoryReporter implements Reporter {
       ? ` _(${this.formatDuration(durationMs)})_`
       : "";
     lines.push(`${headingPrefix} ${icon}${meta.scenario}${durationSuffix}`);
-    lines.push(`<!-- scenarioId: ${scenarioId} -->`);
 
     if (this.options.includeSourceLinks && permalinkBaseUrl && sourceFile) {
       const href = permalinkBaseUrl.replace(/\/$/, "") + "/" + sourceFile;
@@ -687,7 +767,36 @@ export default class StoryReporter implements Reporter {
       this.renderStep(lines, step);
     }
 
+    if (failed > 0 && scenario.failureDetails && this.options.includeErrorInMarkdown) {
+      lines.push("**Failure**");
+      lines.push("");
+      lines.push("```text");
+      lines.push(scenario.failureDetails);
+      lines.push("```");
+      lines.push("");
+    }
+
     lines.push("");
+  }
+
+  private formatFailureFromErrors(errors: SerializedError[]): string {
+    const err = errors[0];
+    if (!err) return "";
+    const parts: string[] = [];
+    if (typeof err.message === "string" && err.message) {
+      parts.push(err.message);
+    }
+    const diff = err.diff != null && typeof err.diff === "string" ? err.diff : undefined;
+    if (diff) {
+      parts.push("");
+      parts.push(diff);
+    }
+    const stack = typeof err.stack === "string" && err.stack ? err.stack : undefined;
+    if (stack) {
+      parts.push("");
+      parts.push(stack);
+    }
+    return parts.length ? parts.join("\n") : "Unknown error";
   }
 
   private renderStep(lines: string[], step: StoryStep): void {
@@ -1222,3 +1331,5 @@ export default class StoryReporter implements Reporter {
     return outputMap;
   }
 }
+
+export { StoryReporter };

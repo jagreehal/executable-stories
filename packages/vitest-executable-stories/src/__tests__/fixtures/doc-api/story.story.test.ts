@@ -1,10 +1,10 @@
 /**
  * Fixture test for doc API. Run via vitest --config=src/__tests__/fixtures/doc-api/vitest.config.mts
  */
-import { scenario } from "../../../index.js";
+import { story } from "../../../index.js";
 import { expect } from "vitest";
 
-scenario("Doc API test", ({ given, when, then, doc }) => {
+story("Doc API test", ({ given, when, then, doc }) => {
   given("a precondition with static docs", () => {});
   doc.note("This is a static note");
   doc.kv("Test user", "admin@example.com");

@@ -12,6 +12,7 @@ const output = path.join(__dirname, "dist", "user-stories.md");
 export default defineConfig({
   testDir: __dirname,
   testMatch: "**/*.spec.ts",
+  testIgnore: ["**/failure/**"],
   fullyParallel: false,
   retries: 0,
   workers: 1,

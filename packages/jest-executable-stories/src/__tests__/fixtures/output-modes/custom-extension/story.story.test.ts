@@ -1,10 +1,10 @@
 /**
  * Fixture test for custom extension output mode.
  */
-import { scenario } from "../../../../index.js";
+import { story, given, when, then } from "../../../../index.js";
 import { expect } from "vitest";
 
-scenario("User logs in", ({ given, when, then }) => {
+story("User logs in", () => {
   given("user is on login page", () => {});
   when("user submits valid credentials", () => {});
   then("user sees the dashboard", () => {

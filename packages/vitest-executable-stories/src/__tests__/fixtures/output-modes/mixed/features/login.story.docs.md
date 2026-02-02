@@ -2,12 +2,11 @@
 
 | Key | Value |
 | --- | --- |
-| Date | 2026-02-02T21:40:47.511Z |
+| Date | 2026-02-03T18:04:14.434Z |
 | Version | 0.1.0 |
-| Git SHA | 91b1ddb |
+| Git SHA | 6177ca3 |
 
-### ✅ User logs in
-<!-- scenarioId: a0c9887e4b07 -->
+## ✅ User logs in
 
 - **Given** user is on login page
 - **When** user submits valid credentials

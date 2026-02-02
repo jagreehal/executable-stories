@@ -1,0 +1,110 @@
+---
+title: "Executable Stories"
+description: Framework-native BDD-style tests with generated docs for Vitest, Jest, and Playwright
+template: splash
+hero:
+  tagline: Framework-native BDD-style tests with generated docs for Vitest, Jest, and Playwright
+  actions:
+    - text: Get Started (Vitest)
+      link: getting-started/installation-vitest/
+      icon: right-arrow
+    - text: View on GitHub
+      link: https://github.com/jagreehal/executable-stories
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+One source of truth. Code that executes. Docs that do not lie.
+
+## What it does
+
+- **Scenario API** built on your test runner's native primitives (`describe` / `it`)
+- **given / when / then** (and `and`, `but`) that register real tests
+- **Reporter** that generates Markdown from test metadata
+- Output readable by developers and stakeholders; if a test is skipped, failed, or todo, the docs reflect that
+
+## Install
+
+**Vitest:**
+
+```bash
+pnpm add -D vitest vitest-executable-stories
+```
+
+**Jest:**
+
+```bash
+pnpm add -D jest-executable-stories
+```
+
+**Playwright:**
+
+```bash
+pnpm add -D playwright-executable-stories
+```
+
+## Quick example (Vitest)
+
+```typescript
+import { story } from "vitest-executable-stories";
+
+story("User logs in", (steps) => {
+  steps.given("user is on login page");
+  steps.when("user submits valid credentials");
+  steps.then("user sees the dashboard", () => {
+    expect(true).toBe(true);
+  });
+});
+```
+
+## Quick example (Jest)
+
+```typescript
+import { story, given, when, then } from "jest-executable-stories";
+
+story("User logs in", () => {
+  given("user is on login page");
+  when("user submits valid credentials");
+  then("user sees the dashboard", () => {
+    expect(true).toBe(true);
+  });
+});
+```
+
+## Quick example (Playwright)
+
+```typescript
+import { story, given, when, then } from "playwright-executable-stories";
+
+story("User logs in", () => {
+  given("user is on login page");
+  when("user submits valid credentials");
+  then("user sees the dashboard", async ({ page }) => {
+    await expect(page).toHaveURL(/dashboard/);
+  });
+});
+```
+
+## Next steps
+
+<CardGrid>
+  <LinkCard title="Installation (Vitest)" description="Install the package and add the reporter" href="getting-started/installation-vitest/" />
+  <LinkCard title="Installation (Jest)" description="Install and configure Jest" href="getting-started/installation-jest/" />
+  <LinkCard title="Installation (Playwright)" description="Install and configure Playwright" href="getting-started/installation-playwright/" />
+  <LinkCard title="Developer experience" description="Entry point, mental model, modifiers, and framework-native tests per framework" href="guides/developer-experience/" />
+  <LinkCard title="Output modes" description="Colocated, aggregated, or mixed Markdown output and file naming" href="guides/output-modes/" />
+  <LinkCard title="Understanding the report" description="Status icons, headings, and what appears in the generated Markdown" href="guides/understanding-the-report/" />
+  <LinkCard title="Common issues" description="Troubleshooting no Markdown, step errors, and framework gotchas" href="guides/common-issues/" />
+  <LinkCard title="Why not Cucumber?" description="No feature files, no step matching, no world — still Confluence-ready" href="guides/why-not-cucumber/" />
+  <LinkCard title="CI and source links" description="Permalink to source and GitHub Actions job summary" href="guides/ci-and-source-links/" />
+  <LinkCard title="Collating reports" description="Merge JSON or Markdown reports into a single index with the collate CLI" href="guides/collating-reports/" />
+  <LinkCard title="Formatting and metadata" description="Title, front-matter, Markdown dialect, filters, sorting, and JSON output" href="guides/formatting-and-metadata/" />
+  <LinkCard title="Converting existing tests" description="Adopt executable-stories without rewriting Vitest, Jest, or Playwright tests" href="guides/converting-vitest/" />
+  <LinkCard title="ESLint plugins" description="Lint rules per framework (e.g. require-task-for-doc-story in Vitest)" href="reference/eslint-plugins/" />
+  <LinkCard title="Reference (Vitest)" description="Reporter options and story API" href="reference/vitest-config/" />
+  <LinkCard title="Reference (Jest)" description="Reporter options and story API" href="reference/jest-config/" />
+  <LinkCard title="Reference (Playwright)" description="Reporter options and story API" href="reference/playwright-config/" />
+  <LinkCard title="Recipes" description="Example scenarios with code and generated output" href="recipes/vitest/" />
+</CardGrid>

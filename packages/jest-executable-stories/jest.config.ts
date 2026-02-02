@@ -1,6 +1,7 @@
 export default {
   testEnvironment: "node",
   testMatch: ["<rootDir>/src/__tests__/jest/**/*.test.ts"],
+  testPathIgnorePatterns: ["/node_modules/", "/jest/fixtures/failure/"],
   extensionsToTreatAsEsm: [".ts"],
   transform: {
     "^.+\\.ts$": [

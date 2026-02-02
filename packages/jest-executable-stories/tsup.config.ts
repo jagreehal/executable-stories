@@ -11,4 +11,6 @@ export default defineConfig({
   clean: true,
   splitting: false,
   sourcemap: true,
+  // Don't bundle @jest/globals so Jest can inject the real implementation when running tests.
+  external: ["@jest/globals"],
 });

@@ -1,0 +1,23 @@
+{
+  "name": "playwright-example",
+  "version": "1.0.0",
+  "description": "Playwright executable-stories example (file link to monorepo package)",
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "@playwright/test": "^1.58.1",
+    "@types/node": "^25.2.0",
+    "eslint": "^9.39.2",
+    "eslint-config-executable-stories": "workspace:*",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-playwright-executable-stories": "workspace:*",
+    "playwright-executable-stories": "workspace:*",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.54.0"
+  }
+}

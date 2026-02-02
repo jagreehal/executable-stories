@@ -1,8 +1,8 @@
 # jest-executable-stories
 
-TS-first **scenario / given / when / then** helpers for Jest. Author tests in TypeScript; generate **Markdown user-story docs** (Confluence-ready) from the same files.
+TS-first **story / given / when / then** helpers for Jest. Author tests in TypeScript; generate **Markdown user-story docs** (Confluence-ready) from the same files.
 
-- **Author:** Use `scenario()`, `given()`, `when()`, `then()`, `and()` in your `.test.ts` files.
+- **Author:** Use `story()`, `given()`, `when()`, `then()`, `and()` in your `.test.ts` files.
 - **Run:** Same files run as normal Jest tests (one `test` per step).
 - **Docs:** A custom reporter writes Markdown with natural-language sections.
 
@@ -25,13 +25,30 @@ No Gherkin files; no Cucumber. You write TypeScript; you get tests and shareable
 
 ## This is Jest, not Cucumber
 
-- `scenario()` is `describe()` with story metadata
+- `story()` is `describe()` with story metadata
 - Steps are `test()` cases with keyword labels
 - Supports Jest-style modifiers on steps: `.skip`, `.only`, `.todo`, `.fails`, `.concurrent` (more can be added as Jest evolves)
 - No enforced step ordering: write Given/When/Then in any order
 - Filter with `-t`, run with `--watch`, use `jest-mock-extended`; everything works
 
 **Note on `.concurrent`:** Steps with `.concurrent` may run in parallel. Since step keywords don't enforce execution order, this is Jest-like behavior, but be aware that parallelism can affect scenarios where steps depend on shared state.
+
+## Developer experience
+
+We aim for a **seamless native Jest experience**: same lifecycle, same reporting, no extra runner or "world" object.
+
+- **Entry point:** Import `story`, `given`, `when`, `then` from `jest-executable-stories` and `expect` from `@jest/globals`. Nothing else is required; there is no separate story runner.
+- **Mental model:** You are writing `describe()` + `test()` with readable step labels. Each step is one Jest test; they appear in Jest's reporter and respect `-t`, `--watch`, and other Jest options.
+- **Modifiers:** `.skip`, `.only`, `.todo`, `.fails`, `.concurrent` behave like Jest's `test.skip` / `test.only` / etc. No custom semantics.
+- **Framework-native tests:** Use plain `test("...", () => { doc.story("Title"); ... })` to attach a story title to a regular Jest test so it appears in the generated docs. Suite path in docs (e.g. `## Suite name`) only appears when Jest's `currentTestName` contains `" > "`; with the default Jest setup this is often not the case, so docs are flat unless you configure test name formatting.
+- **Reporter:** Add `["jest-executable-stories/reporter", { output: "docs/user-stories.md" }]` to `reporters` in your Jest config. Markdown is written as a side effect of the same test run; no separate doc-only run.
+
+**What we guarantee:** Native describe/test, standard modifiers, and `doc.story()` for plain tests. The only intentional difference is how we group scenarios in the generated Markdown (by story title and file).
+
+### Common issues
+
+- **No Markdown generated:** Is the reporter in `reporters` in your Jest config? Did at least one story test run (e.g. a file matching `*.story.test.ts`)?
+- **"Step functions must be called inside a story()":** Call `given`/`when`/`then` only inside the callback of `story('...', () => { ... })`.
 
 ## Install
 
@@ -47,9 +64,9 @@ Requires **Jest 29+** (peer dependency).
 
 ```ts
 import { expect } from "@jest/globals";
-import { scenario } from "jest-executable-stories";
+import { story, given, when, then } from "jest-executable-stories";
 
-scenario("User logs in", ({ given, when, then }) => {
+story("User logs in", () => {
   let page: Page; // Using a browser helper (could be Playwright, Puppeteer, etc.)
 
   given("user is on login page", async () => {
@@ -241,9 +258,9 @@ Jest-style modifiers are supported on steps:
 
 ```ts
 import { expect } from "@jest/globals";
-import { scenario } from "jest-executable-stories";
+import { story, given, when, then } from "jest-executable-stories";
 
-scenario("User profile", ({ given, when, then }) => {
+story("User profile", () => {
   given("user is logged in", () => {
     // setup
   });
@@ -291,24 +308,24 @@ scenario("User profile", ({ given, when, then }) => {
 Skip or focus entire scenarios:
 
 ```ts
-import { scenario } from "jest-executable-stories";
+import { story, given, when, then } from "jest-executable-stories";
 
-scenario.skip("Future feature", ({ given, when, then }) => {
-  // Entire scenario skipped but documented
+story.skip("Future feature", () => {
+  // Entire story skipped but documented
   given("some precondition", () => {});
   when("something happens", () => {});
   then("expected result", () => {});
 });
 
-scenario.only("Debug this one", ({ given, when, then }) => {
-  // Only this scenario runs
+story.only("Debug this one", () => {
+  // Only this story runs
   given("focused scenario", () => {});
   when("debugging", () => {});
   then("finding the issue", () => {});
 });
 ```
 
-**Output for `scenario.skip`:**
+**Output for `story.skip`:**
 
 ```markdown
 ### ⏩ Future feature
@@ -324,12 +341,12 @@ Pass options as the second argument:
 
 ```ts
 import { expect } from "@jest/globals";
-import { scenario } from "jest-executable-stories";
+import { story, given, when, then } from "jest-executable-stories";
 
-scenario(
+story(
   "Admin deletes user",
   { tags: ["admin", "critical"], meta: { priority: "high" } },
-  ({ given, when, then }) => {
+  () => {
     given("admin is logged in", () => {});
     when("admin clicks delete", () => {});
     then("user is removed", () => {
@@ -354,7 +371,7 @@ Tags: `admin`, `critical`
 Options work with modifiers too:
 
 ```ts
-scenario.skip("Future admin feature", { tags: ["admin"] }, ({ given, when, then }) => {
+story.skip("Future admin feature", { tags: ["admin"] }, () => {
   // ...
 });
 ```
@@ -365,9 +382,9 @@ Attach rich documentation (notes, key-value pairs, code blocks, tables, links) t
 
 ```ts
 import { expect } from "@jest/globals";
-import { scenario } from "jest-executable-stories";
+import { story, given, when, then, doc } from "jest-executable-stories";
 
-scenario("User logs in", ({ given, when, then, doc }) => {
+story("User logs in", () => {
   given("user is on login page", async () => {});
   // Static docs (attached at registration, visible even if step doesn't run)
   doc.note("Using seeded user: user@example.com");
@@ -569,9 +586,9 @@ Prefer Arrange/Act/Assert? Use the aliases:
 
 ```ts
 import { expect } from "@jest/globals";
-import { scenario } from "jest-executable-stories";
+import { story, arrange, act, assert } from "jest-executable-stories";
 
-scenario("Calculator adds numbers", ({ arrange, act, assert }) => {
+story("Calculator adds numbers", () => {
   let calculator: Calculator;
 
   arrange("calculator is initialized", () => {
@@ -615,13 +632,13 @@ All aliases support the same modifiers (`.skip`, `.only`, `.todo`, `.fails`, `.c
 
 ## Docs without running step bodies
 
-Story metadata is captured at **test registration time** and written to `.jest-executable-stories/` by each test file. This means the reporter can render scenario structure even when steps are skipped or todo.
+Story metadata is captured at **test registration time** and written to `.jest-executable-stories/` by each test file. This means the reporter can render story structure even when steps are skipped or todo.
 
 **Use modifiers to document without executing:**
 
 - `given.skip("not implemented yet")` - documented, not run
 - `then.todo("will add assertion")` - placeholder in docs
-- `scenario.skip("future feature", ...)` - entire scenario skipped but documented
+- `story.skip("future feature", ...)` - entire story skipped but documented
 
 **Static vs Runtime docs:** Static docs (`doc.*`) are attached at registration time and appear even for skipped steps. Runtime docs (`doc.runtime.*`) only appear for steps that actually run.
 
@@ -633,18 +650,19 @@ Story metadata is captured at **test registration time** and written to `.jest-e
 | ------ | ---- | ------- | ----------- |
 | **title** | string | `"User Stories"` | Report title (first line: `# ${title}`). |
 | **output** | `string \| OutputRule[]` | colocated next to test files | Output configuration. String for single aggregated file, array of rules for mixed modes. See [Output modes](#output-modes). |
-| **permalinkBaseUrl** | string | *none* | Base URL for source links. If set, each scenario gets a `Source: [file](url)` line. In GitHub Actions you can leave this unset and we build the URL from env (see [Permalink](#permalink-to-source)). |
+| **permalinkBaseUrl** | string | *none* | Base URL for source links. If set, each story gets a `Source: [file](url)` line. In GitHub Actions you can leave this unset and we build the URL from env (see [Permalink](#permalink-to-source)). |
 | **enableGithubActionsSummary** | boolean | `true` | When `GITHUB_ACTIONS` is set, append the report to the job summary. See [GitHub Actions](#github-actions-summary). |
-| **includeSummaryTable** | boolean | `false` | Add a markdown table: start time, duration, scenario/step counts, and passed/failed/skipped. |
+| **includeSummaryTable** | boolean | `false` | Add a markdown table: start time, duration, story/step counts, and passed/failed/skipped. |
 | **groupBy** | `"file"` \| `"none"` | `"file"` | Group scenarios by source file, or show a flat list. |
-| **scenarioHeadingLevel** | `2` \| `3` \| `4` | `3` (file) / `2` (none) | Heading level for scenario titles. Defaults to `###` when grouping by file, `##` when no grouping. |
+| **scenarioHeadingLevel** | `2` \| `3` \| `4` | `3` (file) / `2` (none) | Heading level for story titles. Defaults to `###` when grouping by file, `##` when no grouping. |
 | **stepStyle** | `"bullets"` \| `"gherkin"` | `"bullets"` | Render steps as bullet points or Gherkin-style (no bullets). Note: `"gherkin"` is just a rendering option; no Gherkin parsing or feature files. |
-| **includeStatus** | boolean | `true` | Include status icons (✅❌⏩📝) on scenario headings. |
+| **includeStatus** | boolean | `true` | Include status icons (✅❌⏩📝) on story headings. |
+| **includeErrorInMarkdown** | boolean | `true` | Include failure error in markdown for failed scenarios. |
 | **customRenderers** | `Record<string, CustomDocRenderer>` | *none* | Custom renderers for `doc.custom()` entries, keyed by type. See [Advanced](#advanced). |
 
 ## Permalink to source
 
-If you set **`permalinkBaseUrl`**, each scenario in the report gets a source link, e.g.:
+If you set **`permalinkBaseUrl`**, each story in the report gets a source link, e.g.:
 
 ```markdown
 ## ✅ User logs in
@@ -666,13 +684,13 @@ When **`enableGithubActionsSummary`** is `true` (default) and `process.env.GITHU
 
 ## API
 
-### scenario(title, define)
+### story(title, define)
 
-### scenario(title, options, define)
+### story(title, options, define)
 
-Defines a scenario (Jest `describe`). `define` receives the steps API with `given`, `when`, `then`, `and`, and all aliases.
+Defines a story (Jest `describe`). Inside `define`, use the top-level step functions (`given`, `when`, `then`, `and`, and all aliases) which are imported from the package.
 
-**Modifiers:** `scenario.skip(...)`, `scenario.only(...)`
+**Modifiers:** `story.skip(...)`, `story.only(...)`
 
 ### Step functions
 
@@ -693,7 +711,7 @@ import type {
   StepKeyword,      // "Given" | "When" | "Then" | "And"
   StepMode,         // "normal" | "skip" | "only" | "todo" | "fails" | "concurrent"
   StoryStep,        // { keyword, text, mode?, docs? }
-  StoryMeta,        // { scenario, steps, tags?, meta? }
+  StoryMeta,        // { story, steps, tags?, meta? }
   ScenarioOptions,  // { tags?, meta? }
   StepsApi,         // { given, when, then, and, arrange, act, assert, ..., doc }
   StepFn,           // Step function with modifiers
@@ -711,10 +729,11 @@ import type {
 ## How it works
 
 - Helpers wrap Jest's `describe` and `test`; each step is one test so you get normal Jest output and filtering.
+- Step functions (`given`, `when`, `then`, etc.) are top-level exports that use AsyncLocalStorage to access the current story context.
 - The `define` function runs synchronously, collecting step definitions. After `define()` completes, a single `StoryMeta` snapshot is created and shared by all steps.
 - During each test file run, story metadata is written to `.jest-executable-stories/` (one JSON file per test file, per worker).
 - The reporter uses **`onRunStart()`** to initialize and clear prior run artifacts, and **`onRunComplete()`** to read the JSON metadata, merge with Jest results, derive pass/fail/skip counts, and write Markdown output.
-- Scenarios are keyed by `(file + scenario title)` to prevent collisions when the same scenario title appears in different files.
+- Scenarios are keyed by `(file + story title)` to prevent collisions when the same story title appears in different files.
 
 ## Advanced
 

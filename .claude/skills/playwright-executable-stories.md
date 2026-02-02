@@ -1,21 +1,21 @@
 ---
 name: playwright-executable-stories
-description: Write Given/When/Then scenario tests for Playwright with automatic Markdown doc generation. Use when creating BDD-style E2E tests, converting existing Playwright tests to scenario format, or generating user story documentation from browser tests.
+description: Write Given/When/Then story tests for Playwright with automatic Markdown doc generation. Use when creating BDD-style E2E tests, converting existing Playwright tests to story format, or generating user story documentation from browser tests.
 version: 1.0.0
 libraries: ["@playwright/test"]
 ---
 
 # playwright-executable-stories
 
-TypeScript-first scenario testing for Playwright. Tests and documentation from the same code.
+TypeScript-first story testing for Playwright. Tests and documentation from the same code.
 
 ## Quick Start
 
 ```ts
-import { scenario } from "playwright-executable-stories";
+import { story } from "playwright-executable-stories";
 import { expect } from "@playwright/test";
 
-scenario("User logs in", ({ given, when, then }) => {
+story("User logs in", ({ given, when, then }) => {
   given("user is on login page", async ({ page }) => {
     await page.goto("/login");
   });
@@ -29,27 +29,62 @@ scenario("User logs in", ({ given, when, then }) => {
 });
 ```
 
+## Critical: All Steps are Async
+
+Every step callback in Playwright stories should be `async` because:
+- Playwright actions are async
+- Playwright fixtures are available in callback
+
+```ts
+given("user is on page", async ({ page, context, browser }) => {
+  await page.goto("/login");
+});
+```
+
+## Page State Warning
+
+**Page state does NOT persist across steps in the story model.** Each step is a separate test with its own browser context.
+
+```ts
+// WRONG - page state won't persist
+story("Multi-step flow", ({ given, when, then }) => {
+  given("user logs in", async ({ page }) => {
+    await page.goto("/login");
+    await page.fill("#email", "user@test.com");
+    await page.click("button");
+    // After this step, page state is lost!
+  });
+
+  then("user sees dashboard", async ({ page }) => {
+    // This is a NEW page - not logged in!
+    await expect(page).toHaveURL("/dashboard"); // FAILS
+  });
+});
+```
+
+For flows requiring persistent page state, use framework-native patterns or skip the story.
+
 ## Core Pattern
 
-- `scenario()` wraps `test.describe()` with story metadata
+- `story()` wraps `test.describe()` with story metadata
 - `given/when/then` are `test()` cases with keyword labels
 - Each step is a real Playwright test with fixtures
 - Reporter generates Markdown from test annotations
 
 ## API Reference
 
-### scenario(title, define)
+### story(title, define)
 
 ```ts
-scenario("Title", ({ given, when, then, and, doc }) => {
+story("Title", ({ given, when, then, and, doc }) => {
   // steps here
 });
 ```
 
-### scenario(title, options, define)
+### story(title, options, define)
 
 ```ts
-scenario("Title", { tags: ["smoke"], ticket: "JIRA-123", meta: { priority: "high" } }, ({ given, when, then }) => {
+story("Title", { tags: ["smoke"], ticket: "JIRA-123", meta: { priority: "high" } }, ({ given, when, then }) => {
   // steps here
 });
 ```
@@ -62,6 +97,7 @@ scenario("Title", { tags: ["smoke"], ticket: "JIRA-123", meta: { priority: "high
 | `when(text, fn)` | Action (When) |
 | `then(text, fn)` | Assertion (Then) |
 | `and(text, fn)` | Continuation (And) |
+| `but(text, fn)` | Continuation (But) |
 
 **Step callbacks receive Playwright fixtures:**
 
@@ -73,45 +109,61 @@ given("user is logged in", async ({ page, context, request }) => {
 
 ### Step Modifiers
 
+| Modifier | Purpose |
+|----------|---------|
+| `.skip` | Skip step |
+| `.only` | Focus mode (run only this step) |
+| `.todo` | Placeholder (no callback required) |
+| `.fixme` | Known issue - won't run (Playwright-specific) |
+| `.fail` | Expected failure (Playwright-specific) |
+| `.slow` | 3x timeout (Playwright-specific) |
+
 ```ts
 given.skip("not implemented yet");                    // Skip step
 when.only("debug this", async ({ page }) => {});      // Focus mode
-then.todo("will add assertion");                      // Placeholder
+then.todo("will add assertion");                      // Placeholder (no callback)
+then.fixme("broken test");                            // Known issue - won't run
 then.fail("expected to fail", async ({ page }) => {}); // Expected failure
 then.slow("heavy operation", async ({ page }) => {}); // 3x timeout
-then.fixme("broken test");                            // Won't run
 ```
 
-### AAA Pattern Aliases
+### Step Aliases
 
-| Alias | Maps to |
-|-------|---------|
-| `arrange` | given |
-| `act` | when |
-| `assert` | then |
-| `setup` | given |
-| `context` | given |
-| `execute` | when |
-| `action` | when |
-| `verify` | then |
+| Alias | Maps to | Purpose |
+|-------|---------|---------|
+| `arrange` | given | AAA pattern setup |
+| `act` | when | AAA pattern action |
+| `assert` | then | AAA pattern assertion |
+| `setup` | given | Alternative setup |
+| `context` | given | State establishment |
+| `execute` | when | Alternative action |
+| `action` | when | Alternative action |
+| `verify` | then | Alternative assertion |
 
-### Scenario Modifiers
+### Story Modifiers
+
+| Modifier | Purpose |
+|----------|---------|
+| `story.skip()` | Skip entire story |
+| `story.only()` | Run only this story |
+| `story.fixme()` | Entire story needs fix (Playwright-specific) |
+| `story.slow()` | Extended timeout for all steps (Playwright-specific) |
 
 ```ts
-scenario.skip("Future feature", ({ given, when, then }) => {
-  // Entire scenario skipped but documented
+story.skip("Future feature", ({ given, when, then }) => {
+  // Entire story skipped but documented
 });
 
-scenario.only("Debug this one", ({ given, when, then }) => {
-  // Only this scenario runs
+story.only("Debug this one", ({ given, when, then }) => {
+  // Only this story runs
 });
 
-scenario.fixme("Broken scenario", ({ given, when, then }) => {
-  // All steps skipped
+story.fixme("Broken story", ({ given, when, then }) => {
+  // All steps skipped - known issue
 });
 
-scenario.slow("Slow scenario", ({ given, when, then }) => {
-  // Extended timeout for all steps
+story.slow("Slow story", ({ given, when, then }) => {
+  // Extended timeout (3x) for all steps
 });
 ```
 
@@ -119,14 +171,30 @@ scenario.slow("Slow scenario", ({ given, when, then }) => {
 
 Attach documentation to steps. Static docs work for skipped steps; runtime docs capture execution values.
 
+### Doc Methods Reference
+
+| Method | Signature | Purpose |
+|--------|-----------|---------|
+| `doc.note()` | `(text: string)` | Free text notes |
+| `doc.tag()` | `(tags: string \| string[])` | Categorization |
+| `doc.kv()` | `(key: string, value: any)` | Key-value pairs |
+| `doc.code()` | `(label: string, content: string, lang?: string)` | Code blocks |
+| `doc.json()` | `(label: string, value: any)` | JSON objects |
+| `doc.table()` | `(label: string, columns: string[], rows: any[][])` | Tables |
+| `doc.link()` | `(label: string, url: string)` | Links |
+| `doc.section()` | `(title: string, markdown: string)` | Markdown sections |
+| `doc.mermaid()` | `(content: string, label?: string)` | Diagrams |
+| `doc.screenshot()` | `(path: string, alt?: string)` | Screenshots |
+| `doc.custom()` | `(type: string, data: any)` | Custom content |
+
 ### Static Docs (after step declaration)
 
 ```ts
-scenario("Example", ({ given, when, then, doc }) => {
+story("Example", ({ given, when, then, doc }) => {
   given("precondition", async ({ page }) => {});
   doc.note("This note appears in docs");
   doc.kv("User", "admin@example.com");
-  doc.code("Config", { setting: true });
+  doc.code("Config", "{ setting: true }", "json");
   doc.json("Response", { status: "ok" });
   doc.table("Matrix", ["Browser", "Status"], [["Chrome", "Pass"]]);
   doc.link("Docs", "https://example.com");
@@ -143,7 +211,7 @@ when("action", async ({ page }) => {
   const response = await page.request.post("/api");
   const data = await response.json();
   doc.runtime.kv("Status", response.status());
-  doc.runtime.code("Response", data);
+  doc.runtime.code("Response", JSON.stringify(data));
   doc.runtime.screenshot("screenshots/result.png");
 });
 ```
@@ -202,10 +270,10 @@ test.describe("User authentication", () => {
 ### After (playwright-executable-stories)
 
 ```ts
-import { scenario } from "playwright-executable-stories";
+import { story } from "playwright-executable-stories";
 import { expect } from "@playwright/test";
 
-scenario("User logs in with valid credentials", ({ given, when, then }) => {
+story("User logs in with valid credentials", ({ given, when, then }) => {
   given("user is on login page", async ({ page }) => {
     await page.goto("/login");
   });
@@ -228,16 +296,45 @@ scenario("User logs in with valid credentials", ({ given, when, then }) => {
 - SHOULD: Place related scenarios in same file
 - MAY: Mix regular tests and scenarios in same project
 
+## Hook Behavior Warning
+
+In the story model, each step is a separate test. This means `test.beforeEach` runs before EACH step, not each story.
+
+```ts
+// WRONG - hooks run per step, not per story
+test.describe("Stories", () => {
+  let value = 0;
+  test.beforeEach(() => { value = 42; });
+
+  story("Example", ({ given }) => {
+    given("check value", async () => {
+      // value might be 42 or 0 depending on step order
+    });
+  });
+});
+
+// CORRECT - use local variables within story callback
+story("Example", ({ given }) => {
+  let value = 42; // Scoped to story
+
+  given("check value", async () => {
+    expect(value).toBe(42);
+  });
+});
+```
+
 ## Best Practices
 
 - MUST: Use `expect` from `@playwright/test` for assertions
 - MUST: Keep step descriptions in natural language
 - MUST: Always `await` Playwright actions
+- MUST: Make all step callbacks `async`
 - SHOULD: Use present tense for step descriptions
 - SHOULD: One logical action per step
 - SHOULD: Use `doc.runtime.screenshot()` to capture test screenshots in docs
 - NEVER: Put assertions in `given` steps
 - NEVER: Put setup in `then` steps
+- NEVER: Rely on page state persisting across steps
 
 ## Playwright-Specific Features
 
@@ -246,7 +343,7 @@ scenario("User logs in with valid credentials", ({ given, when, then }) => {
 All Playwright fixtures are available in step callbacks:
 
 ```ts
-scenario("API test", ({ given, when, then }) => {
+story("API test", ({ given, when, then }) => {
   given("API is ready", async ({ request }) => {
     const response = await request.get("/health");
     expect(response.ok()).toBeTruthy();
@@ -257,7 +354,7 @@ scenario("API test", ({ given, when, then }) => {
 ### Multiple Contexts
 
 ```ts
-scenario("Multi-user flow", ({ given, when, then }) => {
+story("Multi-user flow", ({ given, when, then }) => {
   given("two users are logged in", async ({ browser }) => {
     const user1 = await browser.newContext();
     const user2 = await browser.newContext();

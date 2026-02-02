@@ -1,8 +1,8 @@
 # playwright-executable-stories
 
-TS-first **scenario / given / when / then** helpers for Playwright. Author tests in TypeScript; generate **Markdown user-story docs** (Confluence-ready) from the same files.
+TS-first **story / given / when / then** helpers for Playwright. Author tests in TypeScript; generate **Markdown user-story docs** (Confluence-ready) from the same files.
 
-- **Author:** Use `scenario()`, `given()`, `when()`, `then()`, `and()` in your `.spec.ts` files.
+- **Author:** Use `story()`, `given()`, `when()`, `then()`, `and()` in your `.spec.ts` files.
 - **Run:** Same files run as normal Playwright tests (one `test()` per step).
 - **Docs:** A custom reporter reads story-docs annotations and writes Markdown with natural-language sections.
 
@@ -25,12 +25,29 @@ No Gherkin files; no Cucumber. You write TypeScript; you get tests and shareable
 
 ## This is Playwright, not Cucumber
 
-- `scenario()` is `test.describe()` with story metadata stored in annotations
+- `story()` is `test.describe()` with story metadata stored in annotations
 - Steps are `test()` with keyword labels and a `story-docs` annotation
 - Playwright modifiers on steps: `.skip`, `.only`, `.fixme`, `.fail`, `.slow`, `.todo`
-- Scenario modifiers: `scenario.skip`, `scenario.only`, `scenario.fixme`, `scenario.slow`
+- Scenario modifiers: `story.skip`, `story.only`, `story.fixme`, `story.slow`
 - Step callbacks receive Playwright fixtures (e.g. `{ page }`)
 - Reporter reads annotations from test results and writes Markdown
+
+## Developer experience
+
+We aim for a **seamless native Playwright experience**: same test/describe semantics, same fixtures and hooks; steps are Playwright tests with given/when/then labels.
+
+- **Entry point:** Import `story`, `given`, `when`, `then` from `playwright-executable-stories` and `test`, `expect` from `@playwright/test`. Step callbacks are **async** and receive Playwright fixtures: `given("...", async ({ page }) => { await page.goto("/login"); })`.
+- **Mental model:** You are writing `test.describe()` + `test()` with given/when/then labels. Each step is one Playwright test; fixtures (e.g. `page`, `context`, `browser`) work exactly as in any Playwright test.
+- **Modifiers:** Playwright uses **`.fail`** (expected failure), not `.fails`. We expose `.skip`, `.only`, `.fixme`, `.todo`, `.fail`, `.slow` on steps and `story.skip`, `story.only`, `story.fixme`, `story.slow` on scenarios. This matches Playwright's naming; Jest and Vitest use `.fails` instead.
+- **Framework-native tests:** Use plain `test("...", async () => { doc.story("Title"); ... })` to attach a story title to a regular Playwright test so it appears in the generated docs. No `task` argument is required (unlike Vitest). Suite path in docs comes from `test.describe()` nesting via Playwright's title path.
+- **Hooks:** `test.beforeEach` and `test.afterEach` work as usual. Because each step is a separate test, **beforeEach runs before every step** (and afterEach after every step). Manage shared state within the story (e.g. variables in the closure) or via Playwright fixtures.
+
+**What we guarantee:** Native test.describe/test, Playwright modifiers (including `.fail` and `.fixme`), fixtures in steps, and `doc.story("Title")` for plain tests. The only intentional difference from Jest/Vitest is the modifier names (`.fail` vs `.fails`) and the presence of `.fixme` and `.slow`, which match Playwright's API.
+
+### Common issues
+
+- **No Markdown generated:** Is the reporter in `reporter` in your Playwright config (use the package path: `["playwright-executable-stories/reporter", { output: "..." }]`)? Did at least one story test run (e.g. a file matching `*.story.spec.ts`)?
+- **"Step functions must be called inside a story()":** Call `given`/`when`/`then` only inside the callback of `story('...', () => { ... })`.
 
 ## Install
 
@@ -45,10 +62,10 @@ Requires **@playwright/test 1.40+** (peer dependency).
 **1. Write a story test** (e.g. `login.story.spec.ts`):
 
 ```ts
-import { scenario } from "playwright-executable-stories";
+import { story, given, when, then } from "playwright-executable-stories";
 import { expect } from "@playwright/test";
 
-scenario("User logs in", ({ given, when, then }) => {
+story("User logs in", () => {
   given("user is on login page", async ({ page }) => {
     await page.goto("/login");
   });
@@ -243,7 +260,9 @@ Scenarios show a status icon based on step results, with this precedence:
 Playwright-style modifiers are supported on steps:
 
 ```ts
-scenario("User profile", ({ given, when, then }) => {
+import { story, given, when, then } from "playwright-executable-stories";
+
+story("User profile", () => {
   given("user is logged in", async ({ page }) => {
     // setup
   });
@@ -293,25 +312,27 @@ scenario("User profile", ({ given, when, then }) => {
 Skip or focus entire scenarios:
 
 ```ts
-scenario.skip("Future feature", ({ given, when, then }) => {
-  // Entire scenario skipped but documented
+import { story, given, when, then } from "playwright-executable-stories";
+
+story.skip("Future feature", () => {
+  // Entire story skipped but documented
   given("some precondition", async ({ page }) => {});
   when("something happens", async ({ page }) => {});
   then("expected result", async ({ page }) => {});
 });
 
-scenario.only("Debug this one", ({ given, when, then }) => {
-  // Only this scenario runs
-  given("focused scenario", async ({ page }) => {});
+story.only("Debug this one", () => {
+  // Only this story runs
+  given("focused story", async ({ page }) => {});
   when("debugging", async ({ page }) => {});
   then("finding the issue", async ({ page }) => {});
 });
 
-scenario.fixme("Broken scenario", ({ given, when, then }) => {
+story.fixme("Broken story", () => {
   // All steps skipped
 });
 
-scenario.slow("Slow scenario", ({ given, when, then }) => {
+story.slow("Slow story", () => {
   // All steps get extended timeout
 });
 ```
@@ -321,10 +342,12 @@ scenario.slow("Slow scenario", ({ given, when, then }) => {
 Pass options as the second argument:
 
 ```ts
-scenario(
+import { story, given, when, then } from "playwright-executable-stories";
+
+story(
   "Admin deletes user",
   { tags: ["admin", "critical"], ticket: ["JIRA-123"], meta: { priority: "high" } },
-  ({ given, when, then }) => {
+  () => {
     given("admin is logged in", async ({ page }) => {});
     when("admin clicks delete", async ({ page }) => {});
     then("user is removed", async ({ page }) => {});
@@ -348,7 +371,7 @@ Tickets: `JIRA-123`
 Options work with modifiers too:
 
 ```ts
-scenario.skip("Future admin feature", { tags: ["admin"] }, ({ given, when, then }) => {
+story.skip("Future admin feature", { tags: ["admin"] }, () => {
   // ...
 });
 ```
@@ -358,7 +381,9 @@ scenario.skip("Future admin feature", { tags: ["admin"] }, ({ given, when, then 
 Attach rich documentation (notes, key-value pairs, code blocks, tables, links, diagrams, screenshots) to individual steps using the `doc` API. Documentation can be **static** (attached at registration time, visible even for skipped steps) or **runtime** (captures execution-time values).
 
 ```ts
-scenario("User logs in", ({ given, when, then, doc }) => {
+import { story, given, when, then, doc } from "playwright-executable-stories";
+
+story("User logs in", () => {
   given("user is on login page", async () => {});
   // Static docs (attached at registration, visible even if step doesn't run)
   doc.note("Using seeded user: user@example.com");
@@ -567,7 +592,7 @@ then("screen is captured", async () => {
 Prefer Arrange/Act/Assert? Use the aliases:
 
 ```ts
-scenario("Calculator adds numbers", ({ arrange, act, assert }) => {
+story("Calculator adds numbers", ({ arrange, act, assert }) => {
   let calculator: Calculator;
 
   arrange("calculator is initialized", async ({ page }) => {
@@ -588,13 +613,13 @@ Aliases: `arrange` (Given), `act` (When), `assert` (Then), `setup`, `context`, `
 
 ## Docs without running step bodies
 
-Story metadata is attached at **test registration time** using `test(name, { annotation: [{ type: 'story-docs', description: JSON.stringify(story) }] }, fn)`, so the reporter can read the story without relying on the step body executing. This means the reporter sees scenario structure even when tests are skipped.
+Story metadata is attached at **test registration time** using `test(name, { annotation: [{ type: 'story-docs', description: JSON.stringify(story) }] }, fn)`, so the reporter can read the story without relying on the step body executing. This means the reporter sees story structure even when tests are skipped.
 
 **Use modifiers to document without executing:**
 
 - `given.skip("not implemented yet")` - documented, not run
 - `then.todo("will add assertion")` - placeholder in docs
-- `scenario.skip("future feature", ...)` - entire scenario skipped but documented
+- `story.skip("future feature", ...)` - entire story skipped but documented
 
 ## Reporter options
 
@@ -604,17 +629,18 @@ Story metadata is attached at **test registration time** using `test(name, { ann
 | **description** | string | `""` | Optional paragraph under the title. |
 | **includeFrontMatter** | boolean | `false` | Include YAML front-matter for machine parsing. |
 | **output** | `string \| OutputRule[]` | colocated next to test files | Output configuration. String for single aggregated file, array of rules for mixed modes. See Output modes. |
-| **permalinkBaseUrl** | string | *none* | Base URL for source links. If set, each scenario gets a `Source: [file](url)` line. In GitHub Actions you can leave this unset and we build the URL from env (see Permalink). |
+| **permalinkBaseUrl** | string | *none* | Base URL for source links. If set, each story gets a `Source: [file](url)` line. In GitHub Actions you can leave this unset and we build the URL from env (see Permalink). |
 | **enableGithubActionsSummary** | boolean | `true` | When `GITHUB_ACTIONS` is set, append the report to the job summary. |
-| **includeSummaryTable** | boolean | `false` | Add a markdown table: start time, duration, scenario/step counts, and passed/failed/skipped. |
+| **includeSummaryTable** | boolean | `false` | Add a markdown table: start time, duration, story/step counts, and passed/failed/skipped. |
 | **includeMetadata** | boolean | `true` | Add metadata block with date/version/git SHA (configurable). |
 | **includeJson** | boolean | `false` | Emit a JSON report alongside Markdown. |
 | **groupBy** | `"file" \| "none"` | `"file"` | Group scenarios by source file, or show a flat list. |
-| **scenarioHeadingLevel** | `2` \| `3` \| `4` | `3` (file) / `2` (none) | Heading level for scenario titles. |
+| **scenarioHeadingLevel** | `2` \| `3` \| `4` | `3` (file) / `2` (none) | Heading level for story titles. |
 | **stepStyle** | `"bullets" \| "gherkin"` | `"bullets"` | Render steps as bullet points or Gherkin-style (no bullets). |
 | **markdown** | `"gfm" \| "commonmark" \| "confluence"` | `"gfm"` | Markdown dialect (indentation for nested blocks). |
-| **includeStatus** | boolean | `true` | Include status icons (✅❌⏩📝⚠️) on scenario headings. |
-| **includeDurations** | boolean | `false` | Include per-scenario durations in markdown. |
+| **includeStatus** | boolean | `true` | Include status icons (✅❌⏩📝⚠️) on story headings. |
+| **includeDurations** | boolean | `false` | Include per-story durations in markdown. |
+| **includeErrorInMarkdown** | boolean | `true` | Include failure error in markdown for failed scenarios. |
 | **includeEmpty** | boolean | `true` | Write output even when no scenarios matched. |
 | **sortFiles** | `"alpha" \| "source" \| "none"` | `"alpha"` | Sorting for file groups. |
 | **sortScenarios** | `"alpha" \| "source" \| "none"` | `"alpha"` | Sorting for scenarios within a file. |
@@ -625,7 +651,7 @@ Story metadata is attached at **test registration time** using `test(name, { ann
 
 ## Permalink to source
 
-If you set **`permalinkBaseUrl`**, each scenario in the report gets a source link, e.g.:
+If you set **`permalinkBaseUrl`**, each story in the report gets a source link, e.g.:
 
 ```markdown
 ## ✅ User logs in
@@ -647,7 +673,7 @@ When **`enableGithubActionsSummary`** is `true` (default) and `process.env.GITHU
 
 ## API
 
-- **`scenario(title, define)`** / **`scenario(title, options, define)`** – Defines a scenario (Playwright `test.describe`). Modifiers: `scenario.skip`, `scenario.only`, `scenario.fixme`, `scenario.slow`.
+- **`story(title, define)`** / **`story(title, options, define)`** – Defines a story (Playwright `test.describe`). Modifiers: `story.skip`, `story.only`, `story.fixme`, `story.slow`.
 - **`given` / `when` / `then` / `and`** – Register a step (Playwright `test`) with story-docs annotation. Modifiers: `.skip`, `.only`, `.fixme`, `.todo`, `.fail`, `.slow`.
 - **`StoryReporter(options?)`** – Reporter module that collects annotations and writes Markdown (configured via Playwright reporter options).
 
@@ -679,7 +705,7 @@ import type {
 - Helpers wrap Playwright's `test.describe` and `test`; each step is one test so you get normal Playwright output and filtering.
 - The `define` function runs synchronously, collecting step definitions. After `define()` completes, a single `StoryMeta` snapshot is created and shared by all steps.
 - Each step is registered with `test(name, { annotation: [{ type: 'story-docs', description: JSON.stringify(storyMeta) }] }, fn)` so the reporter can read story metadata without relying on the step body executing.
-- The reporter implements Playwright's `Reporter` interface: `onBegin` stores config and start time; `onTestEnd` reads `result.annotations` for type `story-docs`, parses `StoryMeta`, and aggregates by (sourceFile, scenario); `onEnd` routes scenarios to output files (via output rules or default), renders Markdown, and writes one or more files. Scenarios are keyed by (sourceFile, scenario title).
+- The reporter implements Playwright's `Reporter` interface: `onBegin` stores config and start time; `onTestEnd` reads `result.annotations` for type `story-docs`, parses `StoryMeta`, and aggregates by (sourceFile, story); `onEnd` routes scenarios to output files (via output rules or default), renders Markdown, and writes one or more files. Scenarios are keyed by (sourceFile, story title).
 
 ## Advanced
 
@@ -727,7 +753,7 @@ We recommend TypeScript + ESLint for your project. Enable **`@typescript-eslint/
 
 ## Testing
 
-Integration test: run Playwright with a fixture config that uses `StoryReporter`, then assert the generated Markdown file contains the expected title, scenario header, and step lines.
+Integration test: run Playwright with a fixture config that uses `StoryReporter`, then assert the generated Markdown file contains the expected title, story header, and step lines.
 
 ## License
 

@@ -7,14 +7,12 @@
 | Git SHA | 030222a |
 
 ### ✅ User logs in
-<!-- scenarioId: e6b93ec2da2f -->
 
 - **Given** user is on login page
 - **When** user submits valid credentials
 - **Then** user sees the dashboard
 
 ### ✅ User sees error on invalid login
-<!-- scenarioId: 3a4f299e486d -->
 
 - **Given** user is on login page
 - **When** user submits invalid credentials

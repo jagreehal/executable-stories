@@ -2,7 +2,7 @@
  * Tests for the doc API feature.
  */
 import { describe, it, expect } from "vitest";
-import { scenario } from "../index.js";
+import { story } from "../index.js";
 import { spawn } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";

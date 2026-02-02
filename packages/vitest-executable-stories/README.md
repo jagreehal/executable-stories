@@ -1,8 +1,8 @@
 # vitest-executable-stories
 
-TS-first **scenario / given / when / then** helpers for Vitest. Author tests in TypeScript; generate **Markdown user-story docs** (Confluence-ready) from the same files.
+TS-first **story / given / when / then** helpers for Vitest. Author tests in TypeScript; generate **Markdown user-story docs** (Confluence-ready) from the same files.
 
-- **Author:** Use `scenario()`, `given()`, `when()`, `then()`, `and()` in your `.test.ts` files.
+- **Author:** Use `story()` and call `steps.given()`, `steps.when()`, `steps.then()` inside the callback.
 - **Run:** Same files run as normal Vitest tests (one `it` per step).
 - **Docs:** A custom reporter writes Markdown with natural-language sections.
 
@@ -25,13 +25,33 @@ No Gherkin files; no Cucumber. You write TypeScript; you get tests and shareable
 
 ## This is Vitest, not Cucumber
 
-- `scenario()` is `describe()` with story metadata
+- `story()` is `describe()` with story metadata
 - Steps are `it()` tests with keyword labels
 - Supports Vitest-style modifiers on steps: `.skip`, `.only`, `.todo`, `.fails`, `.concurrent` (more can be added as Vitest evolves)
 - No enforced step ordering: write Given/When/Then in any order
 - Filter with `-t`, run with `--watch`, use `vitest-mock-extended`; everything works
 
 **Note on `.concurrent`:** Steps with `.concurrent` may run in parallel. Since step keywords don't enforce execution order, this is Vitest-like behavior, but be aware that parallelism can affect scenarios where steps depend on shared state.
+
+## Developer experience
+
+We aim for a **seamless native Vitest experience**: same lifecycle, same reporting; the only difference is the callback API for steps (see below).
+
+- **Entry point:** Import `story` from `vitest-executable-stories` and use the **callback** pattern: `story("...", (steps) => { steps.given(...); steps.when(...); steps.then(...); })`. This is the primary and recommended pattern. Step functions exist only on the callback `steps` object; there is no top-level `then` export (see "Why no top-level `then`?" below).
+- **Mental model:** You are writing a describe and multiple `it()`s with step labels. Each step is one Vitest test; they appear in Vitest's reporter and respect `-t`, `--watch`, and other Vitest options.
+- **Modifiers:** `.skip`, `.only`, `.todo`, `.fails`, `.concurrent` work the same as Vitest's step modifiers. Use them on the callback object: `steps.then.skip(...)`, `steps.given.todo(...)`, etc.
+- **Framework-native tests:** To attach a story to a plain Vitest test, use `it("...", ({ task }) => { doc.story("Title", task); ... })`. The **`task`** argument is **required** so we can attach the story to this test. Without `task`, the story will not appear in the generated docs. After `doc.story("Title", task)`, other `doc.*` methods in the same test may not be fully reflected in the report; use `story()` with a callback when you need the full doc API.
+- **Alternatives for `then`:** If you want a `then`-like name without importing from the package, use the callback parameter: `(steps) => { const { then } = steps; then("...", () => {}); }` or use the module-level `step` object: `import { step } from "vitest-executable-stories"; step.then("...", () => {});` (only inside a `story()` callback).
+
+**Why no top-level `then`?** Tooling that uses `await import("...")` can treat the module namespace as a thenable if it has a `then` property, causing import-time side effects or broken imports. We therefore do not export a top-level `then`; the callback API is the intended, natural way to use steps in Vitest.
+
+**What we guarantee:** Native describe/it, standard modifiers via the callback, and `doc.story("Title", task)` for plain tests (with `task` required). The only intentional difference from Jest/Playwright is the callback-only step API and the `task` argument for framework-native story attachment.
+
+### Common issues
+
+- **No Markdown generated:** Is the reporter in `reporters` in your Vitest config? Did at least one story test run (e.g. a file matching `*.story.test.ts`)? The main entry re-exports BDD helpers that import Vitest; importing it in config can break. Use the `/reporter` entrypoint in config.
+- **Story not in docs for a plain `it()`:** Use `doc.story("Title", task)` with `it('...', ({ task }) => { doc.story('Title', task); ... })`. The `task` argument is required.
+- **"Step functions must be called inside a story()":** Call `steps.given`/`steps.when`/`steps.then` only inside the callback of `story('...', (steps) => { ... })`.
 
 ## Install
 
@@ -47,23 +67,23 @@ Requires **Vitest 4+** (peer dependency).
 
 ```ts
 import { expect } from "vitest";
-import { scenario } from "vitest-executable-stories";
+import { story } from "vitest-executable-stories";
 
-scenario("User logs in", ({ given, when, then }) => {
+story("User logs in", (steps) => {
   let page: Page; // Using a browser helper (could be Playwright, Puppeteer, etc.)
 
-  given("user is on login page", async () => {
+  steps.given("user is on login page", async () => {
     page = await browser.newPage();
     await page.goto("/login");
   });
 
-  when("user submits valid credentials", async () => {
+  steps.when("user submits valid credentials", async () => {
     await page.fill('[name="email"]', "user@example.com");
     await page.fill('[name="password"]', "secret");
     await page.click('button[type="submit"]');
   });
 
-  then("user sees the dashboard", async () => {
+  steps.then("user sees the dashboard", async () => {
     expect(page.url()).toContain("/dashboard");
   });
 });
@@ -71,9 +91,11 @@ scenario("User logs in", ({ given, when, then }) => {
 
 **2. Add the reporter** in `vitest.config.ts`:
 
+The main entry re-exports BDD helpers that import Vitest; importing it in config can break. Use the **`/reporter`** entrypoint:
+
 ```ts
 import { defineConfig } from "vitest/config";
-import { StoryReporter } from "vitest-executable-stories";
+import { StoryReporter } from "vitest-executable-stories/reporter";
 
 export default defineConfig({
   test: {
@@ -81,6 +103,39 @@ export default defineConfig({
   },
 });
 ```
+
+When running under Wallaby.js the reporter no-ops (no docs written) so you can keep the same config; tests run normally.
+
+**Wallaby and Vitest 4:** Wallaby's automatic config extraction fails with "Converting circular structure to JSON" when custom reporter instances are in the config. The workaround is to point Wallaby at a separate config file without the reporter.
+
+Create two files in your project root:
+
+**`wallaby.js`:**
+
+```js
+export default function () {
+  return {
+    autoDetect: true,
+    testFramework: {
+      configFile: "./vitest.wallaby.config.ts",
+    },
+  };
+}
+```
+
+**`vitest.wallaby.config.ts`:**
+
+```ts
+import { defineConfig } from "vitest/config";
+
+export default defineConfig({
+  test: {
+    reporters: ["default"],
+  },
+});
+```
+
+Your main `vitest.config.ts` keeps the `StoryReporter` for normal `vitest run`. Wallaby uses the minimal config and tests run without doc generation.
 
 **3. Run tests:**
 
@@ -240,22 +295,22 @@ Vitest-style modifiers are supported on steps:
 
 ```ts
 import { expect } from "vitest";
-import { scenario } from "vitest-executable-stories";
+import { story } from "vitest-executable-stories";
 
-scenario("User profile", ({ given, when, then }) => {
-  given("user is logged in", () => {
+story("User profile", (steps) => {
+  steps.given("user is logged in", () => {
     // setup
   });
 
-  when.skip("user uploads avatar"); // Skipped - not implemented yet
+  steps.when.skip("user uploads avatar"); // Skipped - not implemented yet
 
-  then.todo("avatar appears in header"); // Placeholder - no function needed
+  steps.then.todo("avatar appears in header"); // Placeholder - no function needed
 
-  then.fails("invalid upload shows error", () => {
+  steps.then.fails("invalid upload shows error", () => {
     throw new Error("Expected to fail");
   });
 
-  then.concurrent("notifications update", async () => {
+  steps.then.concurrent("notifications update", async () => {
     // Runs in parallel with other concurrent steps
   });
 });
@@ -290,24 +345,24 @@ scenario("User profile", ({ given, when, then }) => {
 Skip or focus entire scenarios:
 
 ```ts
-import { scenario } from "vitest-executable-stories";
+import { story } from "vitest-executable-stories";
 
-scenario.skip("Future feature", ({ given, when, then }) => {
-  // Entire scenario skipped but documented
-  given("some precondition", () => {});
-  when("something happens", () => {});
-  then("expected result", () => {});
+story.skip("Future feature", (steps) => {
+  // Entire story skipped but documented
+  steps.given("some precondition", () => {});
+  steps.when("something happens", () => {});
+  steps.then("expected result", () => {});
 });
 
-scenario.only("Debug this one", ({ given, when, then }) => {
-  // Only this scenario runs
-  given("focused scenario", () => {});
-  when("debugging", () => {});
-  then("finding the issue", () => {});
+story.only("Debug this one", (steps) => {
+  // Only this story runs
+  steps.given("focused story", () => {});
+  steps.when("debugging", () => {});
+  steps.then("finding the issue", () => {});
 });
 ```
 
-**Output for `scenario.skip`:**
+**Output for `story.skip`:**
 
 ```markdown
 ### ⏩ Future feature
@@ -323,15 +378,15 @@ Pass options as the second argument:
 
 ```ts
 import { expect } from "vitest";
-import { scenario } from "vitest-executable-stories";
+import { story } from "vitest-executable-stories";
 
-scenario(
+story(
   "Admin deletes user",
   { tags: ["admin", "critical"], meta: { priority: "high" } },
-  ({ given, when, then }) => {
-    given("admin is logged in", () => {});
-    when("admin clicks delete", () => {});
-    then("user is removed", () => {
+  (steps) => {
+    steps.given("admin is logged in", () => {});
+    steps.when("admin clicks delete", () => {});
+    steps.then("user is removed", () => {
       expect(true).toBe(true);
     });
   }
@@ -353,7 +408,7 @@ Tags: `admin`, `critical`
 Options work with modifiers too:
 
 ```ts
-scenario.skip("Future admin feature", { tags: ["admin"] }, ({ given, when, then }) => {
+story.skip("Future admin feature", { tags: ["admin"] }, (steps) => {
   // ...
 });
 ```
@@ -364,27 +419,27 @@ Attach rich documentation (notes, key-value pairs, code blocks, tables, links) t
 
 ```ts
 import { expect } from "vitest";
-import { scenario } from "vitest-executable-stories";
+import { story } from "vitest-executable-stories";
 
-scenario("User logs in", ({ given, when, then, doc }) => {
-  given("user is on login page", async () => {});
+story("User logs in", (steps) => {
+  steps.given("user is on login page", async () => {});
   // Static docs (attached at registration, visible even if step doesn't run)
-  doc.note("Using seeded user: user@example.com");
+  steps.doc.note("Using seeded user: user@example.com");
 
-  when("user submits valid credentials", async () => {
+  steps.when("user submits valid credentials", async () => {
     const payload = { email: "user@example.com", password: "secret" };
     // Runtime docs (captures execution-time values)
-    doc.runtime.code("Request payload", payload);
+    steps.doc.runtime.code("Request payload", payload);
   });
 
-  when.skip("user uses SSO");
+  steps.when.skip("user uses SSO");
   // Static doc still appears in output even though step is skipped!
-  doc.note("SSO integration pending - see JIRA-123");
+  steps.doc.note("SSO integration pending - see JIRA-123");
 
-  then("user sees the dashboard", async () => {
+  steps.then("user sees the dashboard", async () => {
     const url = "/dashboard";
     expect(url).toContain("/dashboard");
-    doc.runtime.kv("Redirected to", url); // Captures actual URL
+    steps.doc.runtime.kv("Redirected to", url); // Captures actual URL
   });
 });
 ```
@@ -566,9 +621,9 @@ Prefer Arrange/Act/Assert? Use the aliases:
 
 ```ts
 import { expect } from "vitest";
-import { scenario } from "vitest-executable-stories";
+import { story } from "vitest-executable-stories";
 
-scenario("Calculator adds numbers", ({ arrange, act, assert }) => {
+story("Calculator adds numbers", ({ arrange, act, assert }) => {
   let calculator: Calculator;
 
   arrange("calculator is initialized", () => {
@@ -612,13 +667,13 @@ All aliases support the same modifiers (`.skip`, `.only`, `.todo`, `.fails`, `.c
 
 ## Docs without running step bodies
 
-Story metadata is attached at **test registration time** using `it(name, { meta: { story } }, fn)`, so the reporter can read `task.meta.story` without relying on the step body executing. This means the reporter sees scenario structure even when tests are skipped.
+Story metadata is attached at **test registration time** using `it(name, { meta: { story } }, fn)`, so the reporter can read `task.meta.story` without relying on the step body executing. This means the reporter sees story structure even when tests are skipped.
 
 **Use modifiers to document without executing:**
 
 - `given.skip("not implemented yet")` - documented, not run
 - `then.todo("will add assertion")` - placeholder in docs
-- `scenario.skip("future feature", ...)` - entire scenario skipped but documented
+- `story.skip("future feature", ...)` - entire story skipped but documented
 
 **Static vs Runtime docs:** Static docs (`doc.*`) are attached at registration time and appear even for skipped steps. Runtime docs (`doc.runtime.*`) only appear for steps that actually run.
 
@@ -630,13 +685,14 @@ Story metadata is attached at **test registration time** using `it(name, { meta:
 | ------ | ---- | ------- | ----------- |
 | **title** | string | `"User Stories"` | Report title (first line: `# ${title}`). |
 | **output** | `string \| OutputRule[]` | colocated next to test files | Output configuration. String for single aggregated file, array of rules for mixed modes. See [Output modes](#output-modes). |
-| **permalinkBaseUrl** | string | *none* | Base URL for source links. If set, each scenario gets a `Source: [file](url)` line. In GitHub Actions you can leave this unset and we build the URL from env (see [Permalink](#permalink-to-source)). |
+| **permalinkBaseUrl** | string | *none* | Base URL for source links. If set, each story gets a `Source: [file](url)` line. In GitHub Actions you can leave this unset and we build the URL from env (see [Permalink](#permalink-to-source)). |
 | **enableGithubActionsSummary** | boolean | `true` | When `GITHUB_ACTIONS` is set, append the report to the job summary. See [GitHub Actions](#github-actions-summary). |
-| **includeSummaryTable** | boolean | `false` | Add a markdown table: start time, duration, scenario/step counts, and passed/failed/skipped. |
+| **includeSummaryTable** | boolean | `false` | Add a markdown table: start time, duration, story/step counts, and passed/failed/skipped. |
 | **groupBy** | `"file"` \| `"none"` | `"file"` | Group scenarios by source file, or show a flat list. |
-| **scenarioHeadingLevel** | `2` \| `3` \| `4` | `3` (file) / `2` (none) | Heading level for scenario titles. Defaults to `###` when grouping by file, `##` when no grouping. |
+| **storyHeadingLevel** | `2` \| `3` \| `4` | `3` (file) / `2` (none) | Heading level for story titles. Defaults to `###` when grouping by file, `##` when no grouping. |
 | **stepStyle** | `"bullets"` \| `"gherkin"` | `"bullets"` | Render steps as bullet points or Gherkin-style (no bullets). Note: `"gherkin"` is just a rendering option; no Gherkin parsing or feature files. |
-| **includeStatus** | boolean | `true` | Include status icons (✅❌⏩📝) on scenario headings. |
+| **includeStatus** | boolean | `true` | Include status icons (✅❌⏩📝) on story headings. |
+| **includeErrorInMarkdown** | boolean | `true` | Include failure error in markdown for failed scenarios. |
 | **customRenderers** | `Record<string, CustomDocRenderer>` | *none* | Custom renderers for `doc.custom()` entries, keyed by type. See [Advanced](#advanced). |
 
 ### Vitest 4
@@ -647,7 +703,7 @@ Story metadata is attached at **test registration time** using `it(name, { meta:
 
 ## Permalink to source
 
-If you set **`permalinkBaseUrl`**, each scenario in the report gets a source link, e.g.:
+If you set **`permalinkBaseUrl`**, each story in the report gets a source link, e.g.:
 
 ```markdown
 ## ✅ User logs in
@@ -669,13 +725,13 @@ When **`enableGithubActionsSummary`** is `true` (default) and `process.env.GITHU
 
 ## API
 
-### scenario(title, define)
+### story(title, define)
 
-### scenario(title, options, define)
+### story(title, options, define)
 
-Defines a scenario (Vitest `describe`). `define` receives the steps API with `given`, `when`, `then`, `and`, and all aliases.
+Defines a story (Vitest `describe`). `define(steps)` receives a steps object; use `steps.given()`, `steps.when()`, `steps.then()`, `steps.and()`, and `steps.doc` to define steps and documentation.
 
-**Modifiers:** `scenario.skip(...)`, `scenario.only(...)`
+**Modifiers:** `story.skip(...)`, `story.only(...)`
 
 ### Step functions
 
@@ -689,6 +745,8 @@ Register a step (Vitest `it`) and attach story meta for the reporter.
 
 Reporter that collects `task.meta.story` and writes Markdown. See [Reporter options](#reporter-options).
 
+**In `vitest.config.ts`:** Import from `vitest-executable-stories/reporter` (not the main package) so Vitest is not loaded in the config context, which would cause "Vitest failed to access its internal state".
+
 ## Types
 
 ```ts
@@ -696,7 +754,7 @@ import type {
   StepKeyword,      // "Given" | "When" | "Then" | "And"
   StepMode,         // "normal" | "skip" | "only" | "todo" | "fails" | "concurrent"
   StoryStep,        // { keyword, text, mode?, docs? }
-  StoryMeta,        // { scenario, steps, tags?, meta? }
+  StoryMeta,        // { story, steps, tags?, meta? }
   ScenarioOptions,  // { tags?, meta? }
   StepsApi,         // { given, when, then, and, arrange, act, assert, ..., doc }
   StepFn,           // Step function with modifiers
@@ -717,7 +775,7 @@ import type {
 - The `define` function runs synchronously, collecting step definitions. After `define()` completes, a single `StoryMeta` snapshot is created and shared by all steps.
 - Each step is registered with `it(name, { meta: { story } }, fn)` so the reporter can read `task.meta.story` without relying on the step body executing.
 - The reporter uses **`onInit(ctx)`** to store the Vitest context and start time (for duration and root path), **`onCoverage(coverage)`** when coverage is enabled (Vitest 4+) to receive coverage for the summary, and **`onTestRunEnd`** (with Vitest 4’s `TestRunEndReason`) to walk all test modules, collect `meta.story`, derive pass/fail/skip from test results, and write Markdown. If the run ends with reason `interrupted`, no files are written.
-- Scenarios are keyed by `(file + scenario title)` to prevent collisions when the same scenario title appears in different files.
+- Scenarios are keyed by `(file + story title)` to prevent collisions when the same story title appears in different files.
 
 ## Advanced
 
@@ -751,7 +809,7 @@ when("user performs action", () => {
 
 ```ts
 import { defineConfig } from "vitest/config";
-import { StoryReporter, CustomDocRenderer } from "vitest-executable-stories";
+import { StoryReporter, CustomDocRenderer } from "vitest-executable-stories/reporter";
 
 const screenshotRenderer: CustomDocRenderer = (entry, lines, indent) => {
   const { path, alt } = entry.data as { path: string; alt: string };
@@ -792,7 +850,7 @@ The reporter is tested the same way as [vitest-markdown-reporter](https://github
 
 - **`npm run test`** runs `build` then Vitest. It runs the main story tests and an integration test in `src/__tests__/reporter.test.ts`.
 - The integration test **spawns** Vitest with `--config=src/__tests__/fixtures/vitest.config.mts`. That config runs only a minimal fixture story test and uses `StoryReporter` with output to `src/__tests__/fixtures/dist/user-stories.md`.
-- After the spawned run finishes, the test **reads** that file and asserts it contains the expected structure: title, scenario header, and step lines (`**Given**`, `**When**`, `**Then**`).
+- After the spawned run finishes, the test **reads** that file and asserts it contains the expected structure: title, story header, and step lines (`**Given**`, `**When**`, `**Then**`).
 
 So we don't mock Vitest's reporter API; we run a real Vitest process that uses the reporter and then check the written output. That catches regressions in both the reporter logic and the fixture story flow.
 

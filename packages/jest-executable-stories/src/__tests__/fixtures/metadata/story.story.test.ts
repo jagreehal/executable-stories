@@ -1,9 +1,9 @@
 /**
  * Fixture test for metadata output. Run via vitest config in this folder.
  */
-import { scenario } from "../../../index.js";
+import { story, given, when, then } from "../../../index.js";
 
-scenario("Metadata scenario", ({ given, when, then }) => {
+story("Metadata scenario", () => {
   given("a precondition", () => {});
   when("an action happens", () => {});
   then("an outcome is observed", () => {});

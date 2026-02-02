@@ -1,10 +1,10 @@
 /**
  * Fixture test for mixed mode - e2e (aggregated).
  */
-import { scenario } from "../../../../../../dist/index.js";
+import { story, given, when, then } from "../../../../../../dist/index.js";
 import { expect } from "@playwright/test";
 
-scenario("E2E checkout flow", ({ given, when, then }) => {
+story("E2E checkout flow", () => {
   given("user has items in cart", async () => {});
   when("user completes checkout", async () => {});
   then("order is confirmed", async () => {

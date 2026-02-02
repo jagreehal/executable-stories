@@ -2,10 +2,10 @@
  * Example story test. Run: npx vitest run
  * Then open docs/user-stories.md (or the outputFile you configured).
  */
-import { scenario } from "./src/bdd";
+import { story } from "./src/bdd";
 import { expect } from "vitest";
 
-scenario("User logs in", ({ given, when, then }) => {
+story("User logs in", ({ given, when, then }) => {
   given("user is on login page", async () => {
     // e.g. await page.goto('/login')
   });
@@ -17,7 +17,7 @@ scenario("User logs in", ({ given, when, then }) => {
   });
 });
 
-scenario("User sees error on invalid login", ({ given, when, then }) => {
+story("User sees error on invalid login", ({ given, when, then }) => {
   given("user is on login page", () => {});
   when("user submits invalid credentials", () => {});
   then("user sees an error message", () => {

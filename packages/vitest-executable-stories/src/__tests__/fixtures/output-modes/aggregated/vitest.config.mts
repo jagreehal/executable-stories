@@ -4,7 +4,7 @@
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { defineConfig } from "vitest/config";
-import { StoryReporter } from "../../../../../dist/index.js";
+import { StoryReporter } from "../../../../../dist/reporter.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const outputFile = path.join(__dirname, "dist", "stories.md");

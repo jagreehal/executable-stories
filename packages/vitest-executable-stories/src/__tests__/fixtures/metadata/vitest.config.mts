@@ -1,5 +1,6 @@
 import { defineConfig } from "vitest/config";
-import { StoryReporter } from "../../../index.js";
+// Fixtures use reporter entry so config does not load main package (dist or source)
+import { StoryReporter } from "../../../reporter.js";
 
 export default defineConfig({
   test: {

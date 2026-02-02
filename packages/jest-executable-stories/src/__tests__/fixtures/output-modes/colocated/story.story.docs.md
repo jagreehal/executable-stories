@@ -7,7 +7,6 @@
 | Git SHA | a7e1bba |
 
 ### ✅ User logs in
-<!-- scenarioId: ba191cc9056f -->
 
 - **Given** user is on login page
 - **When** user submits valid credentials

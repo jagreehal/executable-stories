@@ -15,3 +15,5 @@ playwright/.cache/
 docs/user-stories.md
 src/__tests__/fixtures/dist/
 src/__tests__/jest/fixtures/dist/
+tsup.config.bundled_*.mjs
+___temp
