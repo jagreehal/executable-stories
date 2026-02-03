@@ -63,7 +63,7 @@
     "type-check": "tsc --noEmit",
     "lint": "eslint .",
     "clean": "rm -rf dist",
-    "test": "pnpm build && vitest run",
+    "test": "vitest run",
     "quality": "pnpm type-check && pnpm test && pnpm lint"
   },
   "dependencies": {

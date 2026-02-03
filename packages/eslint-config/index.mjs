@@ -8,7 +8,7 @@ import tseslint from "typescript-eslint";
 
 export default tseslint.config(
   {
-    ignores: ["lib/**", "dist/**", "coverage/**", "**/.jest-story-docs/**"],
+    ignores: ["lib/**", "dist/**", "coverage/**", "**/.jest-executable-stories/**", "**/.jest-story-docs/**"],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,

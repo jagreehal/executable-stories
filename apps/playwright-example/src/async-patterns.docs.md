@@ -2,9 +2,9 @@
 
 | Key | Value |
 | --- | --- |
-| Date | 2026-02-03T18:04:11.121Z |
+| Date | 2026-02-03T22:33:41.259Z |
 | Version | 1.0.0 |
-| Git SHA | 6177ca3 |
+| Git SHA | afb3e1f |
 
 ## ✅ Async iteration over collections
 
@@ -24,7 +24,7 @@
 - **Given** database connection is established
     **Connection ID:** conn-123
 - **And** transaction is started
-    **Transaction ID:** tx-1770141858557
+    **Transaction ID:** tx-1770158032825
 - **When** data is saved
 - **Then** transaction can be committed
 - **And** connection is still open for cleanup
@@ -58,7 +58,7 @@
 - **Given** timer starts
 - **When** operation with delay completes
 - **Then** elapsed time is measurable
-    **Elapsed (ms):** 114
+    **Elapsed (ms):** 169
 
 ## ✅ Error handling in async steps
 

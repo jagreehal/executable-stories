@@ -2,9 +2,9 @@
 
 | Key | Value |
 | --- | --- |
-| Date | 2026-02-03T18:04:11.121Z |
+| Date | 2026-02-03T22:33:41.259Z |
 | Version | 1.0.0 |
-| Git SHA | 6177ca3 |
+| Git SHA | afb3e1f |
 
 ## ✅ admin can delete users
 

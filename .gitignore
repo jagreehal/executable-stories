@@ -8,6 +8,7 @@ coverage/
 .env.test
 *.log
 .jest-executable-stories/
+.jest-story-docs/
 __temp/
 test-results/
 playwright-report/

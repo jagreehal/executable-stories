@@ -2,9 +2,9 @@
 
 | Key | Value |
 | --- | --- |
-| Date | 2026-02-03T18:04:11.121Z |
+| Date | 2026-02-03T22:33:41.259Z |
 | Version | 1.0.0 |
-| Git SHA | 6177ca3 |
+| Git SHA | afb3e1f |
 
 ## ✅ Complete doc API demonstration
 
@@ -50,7 +50,7 @@
         C --> D
         E[Screenshots] --> D
     ```
-    **Generated At:** 2026-02-03T18:04:14.810Z
+    **Generated At:** 2026-02-03T22:33:47.519Z
 - **Then** all methods produce rich documentation
 
 ## ✅ doc.code() demonstration
@@ -95,8 +95,8 @@
 ## ✅ doc.runtime.* demonstration
 
 - **Given** setup with runtime values
-    **Timestamp:** 1770141854569
-    _Note:_ Test started at 2026-02-03T18:04:14.569Z
+    **Timestamp:** 1770158027078
+    _Note:_ Test started at 2026-02-03T22:33:47.078Z
     **Browser:** chromium
 - **When** page produces runtime data
     **Page Title:** 
