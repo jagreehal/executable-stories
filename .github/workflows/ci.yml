@@ -8,6 +8,10 @@ on:
     branches:
       - main
 
+permissions:
+  id-token: write # OIDC for auth (e.g. artifact upload, future signing)
+  contents: read
+
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
@@ -23,7 +27,7 @@ jobs:
         run: corepack enable
 
       - name: Install pnpm
-        run: corepack prepare pnpm@latest --activate
+        run: corepack prepare pnpm@10.28.1 --activate
 
       - name: Cache pnpm dependencies
         uses: actions/cache@v4
@@ -35,6 +39,25 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.2.0"
+
+      - name: Build formatters binary
+        if: hashFiles('packages/executable-stories-formatters/package.json') != ''
+        run: cd packages/executable-stories-formatters && pnpm run compile
+
+      - name: Upload formatters binary
+        if: hashFiles('packages/executable-stories-formatters/package.json') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: executable-stories-linux-x64
+          path: packages/executable-stories-formatters/executable-stories
+
+      - name: Install Playwright browsers
+        run: pnpm --filter executable-stories-playwright exec playwright install --with-deps
 
       - name: Quality (build, lint, type-check, test)
         run: pnpm quality
@@ -50,7 +73,7 @@ jobs:
         id: metadata
         uses: dependabot/fetch-metadata@v2
         with:
-          github-token: '${{ secrets.GITHUB_TOKEN }}'
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
 
       - name: Auto-merge Dependabot PRs
         if: steps.metadata.outputs.update-type == 'version-update:semver-patch' || steps.metadata.outputs.update-type == 'version-update:semver-minor'

@@ -1,0 +1,4 @@
+.executable-stories/
+reports/
+*.test
+*.exe

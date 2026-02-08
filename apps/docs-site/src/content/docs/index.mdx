@@ -1,0 +1,235 @@
+---
+title: 'Executable Stories'
+description: Framework-native BDD-style tests with generated docs for Vitest, Jest, Playwright, and Cypress
+template: splash
+hero:
+  tagline: Framework-native BDD-style tests with generated docs for Vitest, Jest, Playwright, and Cypress
+  actions:
+    - text: Get Started (Vitest)
+      link: getting-started/installation-vitest/
+      icon: right-arrow
+    - text: View on GitHub
+      link: https://github.com/jagreehal/executable-stories
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+One source of truth. Code that executes. Docs that do not lie.
+
+## What it does
+
+We **add to** your existing test setup instead of replacing it. You keep your framework’s `describe` / `it` (or `test.describe` / `test`). Inside a test, call **`story.init()`** (or `story.init(task)` / `story.init(testInfo)` for Vitest/Playwright), then use **`story.given`**, **`story.when`**, **`story.then`** to document the scenario. The reporter turns that into Markdown.
+
+- **Framework-native** — Same `describe` / `it` (or `test`), same lifecycle; we only add step labels and doc generation.
+- **Step markers** — `story.given`, `story.when`, `story.then`, `story.and`, `story.but` (and AAA aliases) attach to the **current test**.
+- **Reporter** — Generates Markdown from test metadata; if a test is skipped, failed, or todo, the docs reflect that.
+
+## Install
+
+**Vitest:**
+
+```bash
+pnpm add -D vitest executable-stories-vitest
+```
+
+**Jest:**
+
+```bash
+pnpm add -D executable-stories-jest
+```
+
+**Playwright:**
+
+```bash
+pnpm add -D executable-stories-playwright
+```
+
+**Cypress:**
+
+```bash
+pnpm add -D executable-stories-cypress
+```
+
+## Quick example (Vitest)
+
+Use native `describe` / `it`; call **`story.init(task)`** at the start of the test, then **`story.given`** / **`story.when`** / **`story.then`**:
+
+```typescript
+import { story } from 'executable-stories-vitest';
+import { describe, expect, it } from 'vitest';
+
+describe('Login', () => {
+  it('user logs in', ({ task }) => {
+    story.init(task);
+    story.given('user is on login page');
+    story.when('user submits valid credentials');
+    story.then('user sees the dashboard');
+    expect(true).toBe(true); // or real assertions
+  });
+});
+```
+
+## Quick example (Jest)
+
+Same idea: **`story.init()`** at the start of the test (no task; Jest gets the test name from `expect.getState()`), then **`story.given`** / **`story.when`** / **`story.then`**:
+
+```typescript
+import { expect } from '@jest/globals';
+import { story } from 'executable-stories-jest';
+
+describe('Login', () => {
+  it('user logs in', () => {
+    story.init();
+    story.given('user is on login page');
+    story.when('user submits valid credentials');
+    story.then('user sees the dashboard');
+    expect(true).toBe(true);
+  });
+});
+```
+
+## Quick example (Playwright)
+
+**`story.init(testInfo)`** at the start of the test (pass **`testInfo`** from the callback), then **`story.given`** / **`story.when`** / **`story.then`**. Your test still receives fixtures (e.g. `{ page }`):
+
+```typescript
+import { expect, test } from '@playwright/test';
+import { story } from 'executable-stories-playwright';
+
+test.describe('Login', () => {
+  test('user logs in', async ({ page }, testInfo) => {
+    story.init(testInfo);
+    story.given('user is on login page');
+    story.when('user submits valid credentials');
+    story.then('user sees the dashboard');
+    await expect(page).toHaveURL(/dashboard/);
+  });
+});
+```
+
+## Quick example (Cypress)
+
+Call **`story.init()`** at the start of each test (no task argument; same as Jest), then **`story.given`** / **`story.when`** / **`story.then`**. Story meta is sent from the browser to Node via `cy.task` for the reporter:
+
+```typescript
+import { story } from 'executable-stories-cypress';
+
+describe('Calculator', () => {
+  it('adds two numbers', () => {
+    story.init();
+    story.given('two numbers 5 and 3');
+    const a = 5, b = 3;
+    story.when('I add them together');
+    const result = a + b;
+    story.then('the result is 8');
+    expect(result).toBe(8);
+  });
+});
+```
+
+## Next steps
+
+<CardGrid>
+  <LinkCard
+    title="Installation (Vitest)"
+    description="Install the package and add the reporter"
+    href="getting-started/installation-vitest/"
+  />
+  <LinkCard
+    title="Installation (Jest)"
+    description="Install and configure Jest"
+    href="getting-started/installation-jest/"
+  />
+  <LinkCard
+    title="Installation (Playwright)"
+    description="Install and configure Playwright"
+    href="getting-started/installation-playwright/"
+  />
+  <LinkCard
+    title="Installation (Cypress)"
+    description="Install plugin, support file, and optional reporter"
+    href="getting-started/installation-cypress/"
+  />
+  <LinkCard
+    title="Developer experience"
+    description="Entry point, mental model, modifiers, and framework-native tests per framework"
+    href="guides/developer-experience/"
+  />
+  <LinkCard
+    title="Output modes"
+    description="Colocated, aggregated, or mixed Markdown output and file naming"
+    href="guides/output-modes/"
+  />
+  <LinkCard
+    title="Understanding the report"
+    description="Status icons, headings, and what appears in the generated Markdown"
+    href="guides/understanding-the-report/"
+  />
+  <LinkCard
+    title="Common issues"
+    description="Troubleshooting no Markdown, step errors, and framework gotchas"
+    href="guides/common-issues/"
+  />
+  <LinkCard
+    title="Why not Cucumber?"
+    description="No feature files, no step matching, no world — still Confluence-ready"
+    href="guides/why-not-cucumber/"
+  />
+  <LinkCard
+    title="CI and source links"
+    description="Permalink to source and GitHub Actions job summary"
+    href="guides/ci-and-source-links/"
+  />
+  <LinkCard
+    title="Collating reports"
+    description="Merging JSON or Markdown reports into a single index"
+    href="guides/collating-reports/"
+  />
+  <LinkCard
+    title="Formatting and metadata"
+    description="Title, front-matter, Markdown dialect, filters, sorting, and JSON output"
+    href="guides/formatting-and-metadata/"
+  />
+  <LinkCard
+    title="Converting existing tests"
+    description="Adopt executable-stories without rewriting Vitest, Jest, or Playwright tests"
+    href="guides/converting-vitest/"
+  />
+  <LinkCard
+    title="ESLint plugins"
+    description="Lint rules per framework (e.g. require-task-for-doc-story in Vitest)"
+    href="reference/eslint-plugins/"
+  />
+  <LinkCard
+    title="Formatters API"
+    description="Programmatic report generation (Cucumber JSON, HTML, JUnit, Markdown)"
+    href="reference/formatters-api/"
+  />
+  <LinkCard
+    title="Reference (Vitest)"
+    description="Reporter options and story API"
+    href="reference/vitest-config/"
+  />
+  <LinkCard
+    title="Reference (Jest)"
+    description="Reporter options and story API"
+    href="reference/jest-config/"
+  />
+  <LinkCard
+    title="Reference (Playwright)"
+    description="Reporter options and story API"
+    href="reference/playwright-config/"
+  />
+  <LinkCard
+    title="Reference (Cypress)"
+    description="Reporter options and story API"
+    href="reference/cypress-config/"
+  />
+  <LinkCard
+    title="Recipes"
+    description="Example scenarios with code and generated output"
+    href="recipes/vitest/"
+  />
+</CardGrid>

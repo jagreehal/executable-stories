@@ -1,0 +1,20 @@
+[project]
+name = "pytest-example"
+version = "0.1.0"
+description = "Example app using executable-stories-pytest"
+requires-python = ">=3.12"
+dependencies = [
+    "pytest>=8",
+]
+
+[tool.pytest.ini_options]
+# Plugin is loaded when executable-stories-pytest is installed
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]

@@ -54,3 +54,55 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_CONFIG_PROVENANCE: true
+
+  formatters-binaries:
+    name: Build formatters binaries
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install pnpm
+        run: corepack prepare pnpm@latest --activate
+
+      - name: Cache pnpm dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.pnpm-store
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.2.0"
+
+      - name: Build formatters binaries (multi-platform)
+        working-directory: packages/executable-stories-formatters
+        run: |
+          bun build src/cli.ts --compile --target=bun-linux-x64 --outfile executable-stories-linux-x64
+          bun build src/cli.ts --compile --target=bun-linux-arm64 --outfile executable-stories-linux-arm64
+          bun build src/cli.ts --compile --target=bun-darwin-x64 --outfile executable-stories-darwin-x64
+          bun build src/cli.ts --compile --target=bun-darwin-arm64 --outfile executable-stories-darwin-arm64
+          bun build src/cli.ts --compile --target=bun-windows-x64 --outfile executable-stories-windows-x64
+
+      - name: Upload formatters binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: formatters-binaries
+          path: |
+            packages/executable-stories-formatters/executable-stories-linux-x64
+            packages/executable-stories-formatters/executable-stories-linux-arm64
+            packages/executable-stories-formatters/executable-stories-darwin-x64
+            packages/executable-stories-formatters/executable-stories-darwin-arm64
+            packages/executable-stories-formatters/executable-stories-windows-x64.exe

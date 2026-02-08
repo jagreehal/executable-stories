@@ -1,0 +1,10 @@
+services:
+  workspace:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    platform: linux/amd64
+    volumes:
+      - ..:/work:cached
+    working_dir: /work
+    command: sleep infinity

@@ -1,150 +1,206 @@
 ---
-name: playwright-executable-stories
-description: Write Given/When/Then scenario tests for Playwright with automatic Markdown doc generation. Use when creating BDD-style E2E tests, converting existing Playwright tests to scenario format, or generating user story documentation from browser tests.
-version: 1.0.0
-libraries: ["@playwright/test"]
+name: executable-stories-playwright
+description: Write Given/When/Then story tests for Playwright with automatic Markdown doc generation. Use when creating BDD-style E2E tests or generating user story documentation from browser tests.
+version: 2.0.0
+libraries: ['@playwright/test']
 ---
 
-# playwright-executable-stories
+# executable-stories-playwright
 
-TypeScript-first scenario testing for Playwright. Tests and documentation from the same code.
+TypeScript-first story testing for Playwright. Tests and documentation from the same code.
 
 ## Quick Start
 
 ```ts
-import { scenario } from "playwright-executable-stories";
-import { expect } from "@playwright/test";
+import { expect, test } from '@playwright/test';
+import { story } from 'executable-stories-playwright';
 
-scenario("User logs in", ({ given, when, then }) => {
-  given("user is on login page", async ({ page }) => {
-    await page.goto("/login");
-  });
-  when("user submits valid credentials", async ({ page }) => {
-    await page.fill("[name=email]", "user@example.com");
-    await page.click("button[type=submit]");
-  });
-  then("user sees the dashboard", async ({ page }) => {
+test.describe('User Authentication', () => {
+  test('logs in with valid credentials', async ({ page }, testInfo) => {
+    story.init(testInfo);
+
+    story.given('user is on login page');
+    await page.goto('/login');
+
+    story.when('user submits valid credentials');
+    await page.fill('[name=email]', 'user@example.com');
+    await page.click('button[type=submit]');
+
+    story.then('user sees the dashboard');
     await expect(page).toHaveURL(/\/dashboard/);
   });
 });
 ```
 
-## Core Pattern
-
-- `scenario()` wraps `test.describe()` with story metadata
-- `given/when/then` are `test()` cases with keyword labels
-- Each step is a real Playwright test with fixtures
-- Reporter generates Markdown from test annotations
-
 ## API Reference
 
-### scenario(title, define)
+### story.init(testInfo, options?)
+
+Initialize a story at the start of each test. Required before using other story methods.
 
 ```ts
-scenario("Title", ({ given, when, then, and, doc }) => {
-  // steps here
+test('test name', async ({ page }, testInfo) => {
+  story.init(testInfo);
+  // or with options:
+  story.init(testInfo, {
+    tags: ['smoke', 'auth'],
+    ticket: 'JIRA-123',
+    meta: { priority: 'high' },
+  });
 });
 ```
 
-### scenario(title, options, define)
+### Step Markers
+
+Step markers are documentation-only - they don't wrap code in callbacks.
 
 ```ts
-scenario("Title", { tags: ["smoke"], ticket: "JIRA-123", meta: { priority: "high" } }, ({ given, when, then }) => {
-  // steps here
+story.given('precondition');
+await page.goto('/login');
+// Playwright actions naturally follow step markers
+
+story.when('action occurs');
+await page.click('button');
+
+story.then('expected result');
+await expect(page).toHaveURL('/dashboard');
+```
+
+| Method              | Keyword | Purpose               |
+| ------------------- | ------- | --------------------- |
+| `story.given(text)` | Given   | Precondition/setup    |
+| `story.when(text)`  | When    | Action                |
+| `story.then(text)`  | Then    | Assertion             |
+| `story.and(text)`   | And     | Continuation          |
+| `story.but(text)`   | But     | Negative continuation |
+
+### Step Aliases
+
+```ts
+// AAA Pattern
+story.arrange('setup');
+story.act('action');
+story.assert('check');
+
+// Alternative names
+story.setup('initial state');
+story.context('additional context');
+story.execute('operation');
+story.action('user action');
+story.verify('outcome');
+```
+
+### Inline Docs
+
+Attach documentation directly to steps:
+
+```ts
+story.given('valid credentials', {
+  json: {
+    label: 'Credentials',
+    value: { email: 'test@example.com', password: '***' },
+  },
+  note: 'Password is masked for security',
+});
+
+story.when('payment is processed', {
+  kv: { 'Payment ID': 'pay_123', Amount: '$99.99' },
+});
+
+story.then('order is confirmed', {
+  table: {
+    label: 'Order Summary',
+    columns: ['Item', 'Price'],
+    rows: [['Widget', '$49.99']],
+  },
 });
 ```
 
-### Step Functions
+### Standalone Doc Methods
 
-| Function | Purpose |
-|----------|---------|
-| `given(text, fn)` | Precondition (Given) |
-| `when(text, fn)` | Action (When) |
-| `then(text, fn)` | Assertion (Then) |
-| `and(text, fn)` | Continuation (And) |
-
-**Step callbacks receive Playwright fixtures:**
+Call after a step to attach documentation:
 
 ```ts
-given("user is logged in", async ({ page, context, request }) => {
-  // Access any Playwright fixture
+story.given('an order exists');
+story.json({ label: 'Order', value: { id: 123, items: ['widget'] } });
+
+story.when('payment processed');
+story.kv({ label: 'Payment ID', value: 'pay_123' });
+story.kv({ label: 'Amount', value: '$99.99' });
+
+story.then('confirmation sent');
+story.screenshot({ path: '/screenshots/confirmation.png', alt: 'Email sent' });
+```
+
+| Method                      | Signature                   | Purpose          |
+| --------------------------- | --------------------------- | ---------------- |
+| `story.note(text)`          | `string`                    | Free text note   |
+| `story.tag(names)`          | `string \| string[]`        | Tags             |
+| `story.kv(options)`         | `{ label, value }`          | Key-value pair   |
+| `story.json(options)`       | `{ label, value }`          | JSON code block  |
+| `story.code(options)`       | `{ label, content, lang? }` | Code block       |
+| `story.table(options)`      | `{ label, columns, rows }`  | Markdown table   |
+| `story.link(options)`       | `{ label, url }`            | Hyperlink        |
+| `story.section(options)`    | `{ title, markdown }`       | Markdown section |
+| `story.mermaid(options)`    | `{ code, title? }`          | Mermaid diagram  |
+| `story.screenshot(options)` | `{ path, alt? }`            | Screenshot       |
+| `story.custom(options)`     | `{ type, data }`            | Custom entry     |
+
+### Story-Level Docs
+
+Docs called before any step attach to the story level:
+
+```ts
+test('complex workflow', async ({ page }, testInfo) => {
+  story.init(testInfo);
+
+  // These attach to story level (before steps)
+  story.note('Requires running database');
+  story.link({ label: 'API Docs', url: 'https://docs.example.com' });
+
+  story.given('database is seeded');
+  // ...
 });
 ```
 
-### Step Modifiers
+## Using test.beforeEach
 
 ```ts
-given.skip("not implemented yet");                    // Skip step
-when.only("debug this", async ({ page }) => {});      // Focus mode
-then.todo("will add assertion");                      // Placeholder
-then.fail("expected to fail", async ({ page }) => {}); // Expected failure
-then.slow("heavy operation", async ({ page }) => {}); // 3x timeout
-then.fixme("broken test");                            // Won't run
-```
+test.describe('User Profile', () => {
+  test.beforeEach(async ({ page }, testInfo) => {
+    story.init(testInfo);
+    story.given('user is logged in');
+    await page.goto('/dashboard');
+  });
 
-### AAA Pattern Aliases
+  test('updates email', async ({ page }) => {
+    story.when('user changes email');
+    await page.fill('[name=email]', 'new@example.com');
 
-| Alias | Maps to |
-|-------|---------|
-| `arrange` | given |
-| `act` | when |
-| `assert` | then |
-| `setup` | given |
-| `context` | given |
-| `execute` | when |
-| `action` | when |
-| `verify` | then |
-
-### Scenario Modifiers
-
-```ts
-scenario.skip("Future feature", ({ given, when, then }) => {
-  // Entire scenario skipped but documented
-});
-
-scenario.only("Debug this one", ({ given, when, then }) => {
-  // Only this scenario runs
-});
-
-scenario.fixme("Broken scenario", ({ given, when, then }) => {
-  // All steps skipped
-});
-
-scenario.slow("Slow scenario", ({ given, when, then }) => {
-  // Extended timeout for all steps
+    story.then('email is updated');
+    await expect(page.locator('.success')).toBeVisible();
+  });
 });
 ```
 
-## Doc API
+## Test Modifiers
 
-Attach documentation to steps. Static docs work for skipped steps; runtime docs capture execution values.
-
-### Static Docs (after step declaration)
+Use native Playwright modifiers - they work seamlessly:
 
 ```ts
-scenario("Example", ({ given, when, then, doc }) => {
-  given("precondition", async ({ page }) => {});
-  doc.note("This note appears in docs");
-  doc.kv("User", "admin@example.com");
-  doc.code("Config", { setting: true });
-  doc.json("Response", { status: "ok" });
-  doc.table("Matrix", ["Browser", "Status"], [["Chrome", "Pass"]]);
-  doc.link("Docs", "https://example.com");
-  doc.section("Notes", "- Item 1\n- Item 2");
-  doc.mermaid("graph LR\n  A-->B", "Flow");
-  doc.screenshot("path/to/image.png", "Login form");
+test.skip('not implemented yet', async ({ page }, testInfo) => {
+  story.init(testInfo);
+  // ...
 });
-```
 
-### Runtime Docs (inside step body)
+test.fixme('needs fix', async ({ page }, testInfo) => {
+  story.init(testInfo);
+  // ...
+});
 
-```ts
-when("action", async ({ page }) => {
-  const response = await page.request.post("/api");
-  const data = await response.json();
-  doc.runtime.kv("Status", response.status());
-  doc.runtime.code("Response", data);
-  doc.runtime.screenshot("screenshots/result.png");
+test.only('debug this', async ({ page }, testInfo) => {
+  story.init(testInfo);
+  // ...
 });
 ```
 
@@ -152,132 +208,118 @@ when("action", async ({ page }) => {
 
 ```ts
 // playwright.config.ts
-import { defineConfig, devices } from "@playwright/test";
+import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
-  testDir: ".",
-  reporter: [
-    ["list"],
-    ["playwright-executable-stories/reporter", { output: "docs/user-stories.md" }],
-  ],
-  use: { ...devices["Desktop Chrome"] },
+  testDir: './src',
+  reporter: [['list'], ['executable-stories-playwright/reporter']],
+  use: { ...devices['Desktop Chrome'] },
 });
 ```
 
 ### Reporter Options
 
 ```ts
-["playwright-executable-stories/reporter", {
-  output: "docs/user-stories.md",           // Single file
-  // OR colocated:
-  output: [{ include: "**/*.story.spec.ts", mode: "colocated" }],
-  title: "User Stories",
-  groupBy: "file",                          // "file" | "none"
-  includeStatus: true,                      // Show ✅❌⏩📝
-  markdown: "gfm",                          // "gfm" | "commonmark" | "confluence"
-  enableGithubActionsSummary: true,         // Append to GH Actions summary
-  permalinkBaseUrl: undefined,              // Auto-detected in GitHub Actions
-  ticketUrlTemplate: "https://jira.example.com/browse/{ticket}",
-}]
+[
+  'executable-stories-playwright/reporter',
+  {
+    // Output format selection
+    formats: ['markdown'], // "markdown" | "html" | "junit" | "cucumber-json"
+    outputDir: 'docs', // Output directory
+    outputName: 'user-stories', // Base filename (produces user-stories.md)
+
+    // Output routing
+    output: {
+      mode: 'aggregated', // "aggregated" | "colocated"
+      // colocatedStyle: "mirrored",          // "mirrored" | "adjacent" (when mode: "colocated")
+    },
+
+    // Markdown-specific options
+    markdown: {
+      title: 'User Stories',
+      sortScenarios: 'source', // "alpha" | "source"
+      suiteSeparator: ' - ',
+      includeStatusIcons: true, // Show ✅❌⏩📝
+      includeErrors: true, // Show failure details
+      includeMetadata: true, // Show date/version/git SHA
+    },
+  },
+];
 ```
 
-## Converting Existing Tests
+## Generated Output
 
-### Before (standard Playwright)
+```markdown
+## Calculator
 
-```ts
-import { test, expect } from "@playwright/test";
+### ✅ adds two numbers
 
-test.describe("User authentication", () => {
-  test("should login with valid credentials", async ({ page }) => {
-    await page.goto("/login");
-    await page.fill('[name="email"]', "user@example.com");
-    await page.fill('[name="password"]', "secret");
-    await page.click('button[type="submit"]');
-    await expect(page).toHaveURL(/\/dashboard/);
-  });
-});
+- **Given** two numbers 5 and 3
+- **When** I add them together
+- **Then** the result is 8
+
+### ❌ divides by zero
+
+- **Given** a number 10 and zero
+  > Division by zero should throw an error
+- **When** division is attempted
+- **Then** an error is thrown
+
+**Failure**
+
+    Error: Cannot divide by zero
 ```
-
-### After (playwright-executable-stories)
-
-```ts
-import { scenario } from "playwright-executable-stories";
-import { expect } from "@playwright/test";
-
-scenario("User logs in with valid credentials", ({ given, when, then }) => {
-  given("user is on login page", async ({ page }) => {
-    await page.goto("/login");
-  });
-
-  when("user submits valid credentials", async ({ page }) => {
-    await page.fill('[name="email"]', "user@example.com");
-    await page.fill('[name="password"]', "secret");
-    await page.click('button[type="submit"]');
-  });
-
-  then("user sees the dashboard", async ({ page }) => {
-    await expect(page).toHaveURL(/\/dashboard/);
-  });
-});
-```
-
-## File Naming
-
-- SHOULD: Use `.story.spec.ts` suffix for story tests
-- SHOULD: Place related scenarios in same file
-- MAY: Mix regular tests and scenarios in same project
-
-## Best Practices
-
-- MUST: Use `expect` from `@playwright/test` for assertions
-- MUST: Keep step descriptions in natural language
-- MUST: Always `await` Playwright actions
-- SHOULD: Use present tense for step descriptions
-- SHOULD: One logical action per step
-- SHOULD: Use `doc.runtime.screenshot()` to capture test screenshots in docs
-- NEVER: Put assertions in `given` steps
-- NEVER: Put setup in `then` steps
 
 ## Playwright-Specific Features
 
 ### Using Fixtures
 
-All Playwright fixtures are available in step callbacks:
+All Playwright fixtures are available in the test callback - just use them after step markers:
 
 ```ts
-scenario("API test", ({ given, when, then }) => {
-  given("API is ready", async ({ request }) => {
-    const response = await request.get("/health");
-    expect(response.ok()).toBeTruthy();
-  });
+test('API test', async ({ request }, testInfo) => {
+  story.init(testInfo);
+
+  story.given('API is ready');
+  const response = await request.get('/health');
+  expect(response.ok()).toBeTruthy();
 });
 ```
 
-### Multiple Contexts
+### Capturing Screenshots in Docs
 
 ```ts
-scenario("Multi-user flow", ({ given, when, then }) => {
-  given("two users are logged in", async ({ browser }) => {
-    const user1 = await browser.newContext();
-    const user2 = await browser.newContext();
-    // ...
+test('login flow', async ({ page }, testInfo) => {
+  story.init(testInfo);
+
+  story.given('user is on login page');
+  await page.goto('/login');
+
+  story.when('user fills form');
+  await page.fill('[name="email"]', 'user@example.com');
+
+  // Capture screenshot and add to docs
+  await page.screenshot({ path: 'screenshots/login-form.png' });
+  story.screenshot({
+    path: 'screenshots/login-form.png',
+    alt: 'Login form filled',
   });
+
+  story.then('form is ready to submit');
+  await expect(page.locator('button[type="submit"]')).toBeEnabled();
 });
 ```
 
-## GitHub Actions Integration
+## Best Practices
 
-When running in GitHub Actions, the reporter:
-- Auto-generates source links from `GITHUB_SHA`
-- Appends report to job summary (if `@actions/core` installed)
+- MUST call `story.init(testInfo)` at the start of each test
+- MUST use native Playwright `test.describe`/`test` for full IDE support
+- MUST always `await` Playwright actions
+- SHOULD use `.story.spec.ts` suffix for story tests
+- SHOULD keep step descriptions in natural language
+- NEVER put assertions in `given` steps
+- NEVER put setup in `then` steps
 
-## Generated Output
+## Project context
 
-```markdown
-### ✅ User logs in with valid credentials
-
-- **Given** user is on login page
-- **When** user submits valid credentials
-- **Then** user sees the dashboard
-```
+Repo conventions, ESLint plugins, and verification: see **AGENTS.md** (and **CLAUDE.md** symlink) in the repo root.

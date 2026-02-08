@@ -1,9 +1,0 @@
-node_modules/
-dist/
-docs/user-stories.md
-src/__tests__/fixtures/dist/
-*.tsbuildinfo
-/test-results/
-/playwright-report/
-/blob-report/
-/playwright/.cache/
