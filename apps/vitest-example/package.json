@@ -1,0 +1,30 @@
+{
+  "name": "vitest-example",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "node -e \"const fs=require('fs');const {execSync}=require('child_process');const p=require('path').resolve(process.cwd(),'../../packages/executable-stories-vitest/package.json');if(!fs.existsSync(p)){console.log('Skipping test: executable-stories-vitest not in workspace');process.exit(0);}execSync('vitest run',{stdio:'inherit'});\"",
+    "lint": "eslint .",
+    "report:cli": "pnpm exec executable-stories format reports/raw-run.json --format html,markdown --output-dir reports --output-name executable-stories-cli",
+    "test:report": "pnpm test && pnpm report:cli",
+    "type-check": "node -e \"const fs=require('fs');const {execSync}=require('child_process');const p=require('path').resolve(process.cwd(),'../../packages/executable-stories-vitest/package.json');if(!fs.existsSync(p)){console.log('Skipping type-check: executable-stories-vitest not in workspace');process.exit(0);}execSync('pnpm --filter executable-stories-vitest run build && tsc --noEmit',{stdio:'inherit'});\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "devDependencies": {
+    "executable-stories-formatters": "workspace:*",
+    "@eslint/js": "^9.39.2",
+    "@types/node": "^25.2.1",
+    "eslint": "^9.39.2",
+    "eslint-config-executable-stories": "workspace:*",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-executable-stories-vitest": "workspace:*",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.54.0",
+    "vitest": "^4.0.18",
+    "executable-stories-vitest": "workspace:*"
+  }
+}

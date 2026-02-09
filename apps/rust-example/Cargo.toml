@@ -1,0 +1,16 @@
+[package]
+name = "rust-example"
+version = "0.1.0"
+edition = "2021"
+description = "Example app using executable-stories (Rust)"
+license = "MIT"
+
+[lib]
+name = "rust_example"
+path = "src/lib.rs"
+
+[dependencies]
+
+[dev-dependencies]
+executable-stories = { path = "../../packages/executable-stories-rust" }
+ctor = "0.2"

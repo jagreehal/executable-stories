@@ -1,0 +1,22 @@
+{
+  "name": "executable-stories-monorepo",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "workspace",
+  "workspaceFolder": "/work",
+  "postCreateCommand": "corepack enable && corepack prepare pnpm@10.28.1 --activate && pnpm install && cd /work/packages/executable-stories-junit5 && ./gradlew build publishToMavenLocal",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "redhat.java",
+        "vscjava.vscode-maven",
+        "ms-python.python",
+        "golang.go",
+        "ms-dotnettools.csharp",
+        "rust-lang.rust-analyzer",
+        "esbenp.prettier-vscode",
+        "dbaeumer.vscode-eslint",
+        "fwcd.kotlin"
+      ]
+    }
+  }
+}

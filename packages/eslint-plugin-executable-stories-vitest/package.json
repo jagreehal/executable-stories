@@ -1,0 +1,55 @@
+{
+  "name": "eslint-plugin-executable-stories-vitest",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "ESLint rules for executable-stories-vitest: step context, doc.story in test/it, require task for doc.story(title)",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "type-check": "node -e \"const fs=require('fs');const {execSync}=require('child_process');const p=require('path').resolve(process.cwd(),'../executable-stories-vitest/package.json');if(!fs.existsSync(p)){console.log('Skipping type-check: executable-stories-vitest not in workspace');process.exit(0);}execSync('pnpm --filter executable-stories-vitest run build && tsc --noEmit',{stdio:'inherit'});\"",
+    "test": "vitest run",
+    "test:watch": "vitest watch",
+    "lint": "eslint .",
+    "clean": "rm -rf dist",
+    "quality": "pnpm type-check && pnpm test && pnpm lint"
+  },
+  "keywords": [
+    "eslint",
+    "eslint-plugin",
+    "vitest",
+    "executable-stories",
+    "bdd"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "eslint": ">=9",
+    "eslint-config-executable-stories": "*"
+  },
+  "devDependencies": {
+    "@types/eslint": "^9.6.1",
+    "@types/estree": "^1.0.8",
+    "@types/node": "^25.2.1",
+    "eslint": "^9.39.2",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18",
+    "eslint-config-executable-stories": "workspace:*"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
