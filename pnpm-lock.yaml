@@ -326,10 +326,6 @@ importers:
         version: 4.0.18(@types/node@25.2.3)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)
 
   packages/executable-stories-cypress:
-    dependencies:
-      executable-stories-formatters:
-        specifier: ^0.1.0
-        version: 0.1.0
     devDependencies:
       '@types/node':
         specifier: ^25.2.3
@@ -337,6 +333,9 @@ importers:
       cypress:
         specifier: ^15.10.0
         version: 15.10.0
+      executable-stories-formatters:
+        specifier: workspace:*
+        version: link:../executable-stories-formatters
       tsup:
         specifier: ^8.5.1
         version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
@@ -383,9 +382,6 @@ importers:
 
   packages/executable-stories-jest:
     dependencies:
-      executable-stories-formatters:
-        specifier: ^0.1.0
-        version: 0.1.0
       fast-glob:
         specifier: ^3.3.3
         version: 3.3.3
@@ -399,6 +395,9 @@ importers:
       '@types/node':
         specifier: ^25.2.3
         version: 25.2.3
+      executable-stories-formatters:
+        specifier: workspace:*
+        version: link:../executable-stories-formatters
       jest:
         specifier: ^30.2.0
         version: 30.2.0(@types/node@25.2.3)(ts-node@10.9.2(@types/node@25.2.3)(typescript@5.9.3))
@@ -413,10 +412,6 @@ importers:
         version: 5.9.3
 
   packages/executable-stories-playwright:
-    dependencies:
-      executable-stories-formatters:
-        specifier: ^0.1.0
-        version: 0.1.0
     devDependencies:
       '@playwright/test':
         specifier: ^1.58.1
@@ -424,6 +419,9 @@ importers:
       '@types/node':
         specifier: ^25.2.3
         version: 25.2.3
+      executable-stories-formatters:
+        specifier: workspace:*
+        version: link:../executable-stories-formatters
       tsup:
         specifier: ^8.5.1
         version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
@@ -433,9 +431,6 @@ importers:
 
   packages/executable-stories-vitest:
     dependencies:
-      executable-stories-formatters:
-        specifier: ^0.1.0
-        version: 0.1.0
       fast-glob:
         specifier: ^3.3.3
         version: 3.3.3
@@ -452,6 +447,9 @@ importers:
       eslint-config-executable-stories:
         specifier: workspace:*
         version: link:../eslint-config
+      executable-stories-formatters:
+        specifier: workspace:*
+        version: link:../executable-stories-formatters
       tsup:
         specifier: ^8.5.1
         version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
@@ -3316,11 +3314,6 @@ packages:
   execa@5.1.1:
     resolution: {integrity: sha512-8uSpZZocAZRBAPIEINJj3Lo9HyGitllczc27Eh5YYojjMFMn8yHMDMaUHE2Jqfq05D/wucwI4JGURyXt1vchyg==}
     engines: {node: '>=10'}
-
-  executable-stories-formatters@0.1.0:
-    resolution: {integrity: sha512-ZCbiyObANClHL7Pet6z0GDs6KL78cRqAlKylPThhyZ1UdiRwvCQkVn/JwcPGhW7B+76SAc4YZR64pHrvTtvgsw==}
-    engines: {node: '>=22'}
-    hasBin: true
 
   executable@4.1.1:
     resolution: {integrity: sha512-8iA79xD3uAch729dUG8xaaBBFGaEa0wdD2VkYLFHwlqosEj/jT66AzcreRDSgV7ehnNLBW2WR5jIXwGKjVdTLg==}
@@ -9246,12 +9239,6 @@ snapshots:
       onetime: 5.1.2
       signal-exit: 3.0.7
       strip-final-newline: 2.0.0
-
-  executable-stories-formatters@0.1.0:
-    dependencies:
-      '@cucumber/html-formatter': 23.0.0(@cucumber/messages@32.0.1)
-      '@cucumber/messages': 32.0.1
-      ajv: 8.17.1
 
   executable@4.1.1:
     dependencies:

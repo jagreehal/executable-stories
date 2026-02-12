@@ -41,6 +41,7 @@
     "@types/node": "^25.2.3",
     "@types/picomatch": "^4.0.2",
     "eslint-config-executable-stories": "workspace:*",
+    "executable-stories-formatters": "workspace:*",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"
