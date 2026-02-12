@@ -7,8 +7,8 @@ coverage/
 .env
 .env.test
 *.log
-.executable-stories-jest/
 .jest-story-docs/
+.
 __temp/
 test-results/
 playwright-report/
@@ -22,6 +22,7 @@ docs/user-stories.md
 src/__tests__/fixtures/dist/
 src/__tests__/jest/fixtures/dist/
 tsup.config.bundled_*.mjs
+apps/jest-example/.jest-executable-stories
 ___temp
 
 **/reports/
@@ -49,7 +50,3 @@ htmlcov/
 *.test
 *.exe
 .astro/
-executable-stories
-executable-stories-*
-.executable-stories/
-.jest-executable-stories/

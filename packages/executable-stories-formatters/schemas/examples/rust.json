@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "projectRoot": "/home/ci/myapp",
+  "startedAtMs": 1706745600000,
+  "finishedAtMs": 1706745607000,
+  "meta": {
+    "framework": "rust",
+    "rustVersion": "1.76.0"
+  },
+  "testCases": [
+    {
+      "externalId": "crate::auth::tests::test_successful_login",
+      "title": "Successful login with valid credentials",
+      "titlePath": ["auth", "tests", "Successful login with valid credentials"],
+      "sourceFile": "src/auth.rs",
+      "sourceLine": 120,
+      "status": "pass",
+      "durationMs": 85,
+      "story": {
+        "scenario": "Successful login with valid credentials",
+        "steps": [
+          { "keyword": "Given", "text": "a registered user with email 'alice@example.com'" },
+          { "keyword": "When", "text": "the user submits login with valid credentials" },
+          { "keyword": "Then", "text": "the response status is 200" },
+          { "keyword": "And", "text": "a JWT token is returned" }
+        ],
+        "tags": ["smoke", "auth"],
+        "tickets": ["AUTH-101"],
+        "suitePath": ["auth", "tests"],
+        "sourceOrder": 0
+      },
+      "meta": {
+        "framework": "rust",
+        "frameworkCaseId": "crate::auth::tests::test_successful_login"
+      }
+    },
+    {
+      "externalId": "crate::auth::tests::test_login_invalid_password",
+      "title": "Login with invalid password returns 401",
+      "titlePath": ["auth", "tests", "Login with invalid password returns 401"],
+      "sourceFile": "src/auth.rs",
+      "sourceLine": 145,
+      "status": "fail",
+      "durationMs": 62,
+      "error": {
+        "message": "assertion `left == right` failed\n  left: 500\n right: 401",
+        "stack": "thread 'auth::tests::test_login_invalid_password' panicked at src/auth.rs:158:\nassertion `left == right` failed\n  left: 500\n right: 401\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace"
+      },
+      "meta": {
+        "framework": "rust",
+        "frameworkCaseId": "crate::auth::tests::test_login_invalid_password"
+      }
+    },
+    {
+      "externalId": "crate::auth::tests::test_login_rate_limiting",
+      "title": "Login is rate-limited after 5 failed attempts",
+      "titlePath": ["auth", "tests", "Login is rate-limited after 5 failed attempts"],
+      "sourceFile": "src/auth.rs",
+      "sourceLine": 170,
+      "status": "skip",
+      "durationMs": 0,
+      "meta": {
+        "framework": "rust",
+        "frameworkCaseId": "crate::auth::tests::test_login_rate_limiting",
+        "skipReason": "#[ignore] Rate limit middleware not deployed yet"
+      }
+    },
+    {
+      "externalId": "crate::cart::tests::test_complete_checkout",
+      "title": "Complete checkout with credit card",
+      "titlePath": ["cart", "tests", "Complete checkout with credit card"],
+      "sourceFile": "src/cart.rs",
+      "sourceLine": 88,
+      "status": "pass",
+      "durationMs": 210,
+      "story": {
+        "scenario": "Complete checkout with credit card",
+        "steps": [
+          { "keyword": "Given", "text": "a cart with 2 items totaling $59.98" },
+          { "keyword": "When", "text": "the user submits payment with a test credit card" },
+          { "keyword": "Then", "text": "the order is confirmed" },
+          { "keyword": "And", "text": "a confirmation email is queued" }
+        ],
+        "tags": ["checkout", "payments", "e2e"],
+        "tickets": ["SHOP-200"],
+        "suitePath": ["cart", "tests"],
+        "sourceOrder": 0
+      },
+      "meta": {
+        "framework": "rust",
+        "frameworkCaseId": "crate::cart::tests::test_complete_checkout"
+      }
+    },
+    {
+      "externalId": "crate::cart::tests::test_empty_cart_checkout",
+      "title": "Cannot checkout with an empty cart",
+      "titlePath": ["cart", "tests", "Cannot checkout with an empty cart"],
+      "sourceFile": "src/cart.rs",
+      "sourceLine": 115,
+      "status": "pass",
+      "durationMs": 8,
+      "meta": {
+        "framework": "rust",
+        "frameworkCaseId": "crate::cart::tests::test_empty_cart_checkout"
+      }
+    }
+  ]
+}

@@ -1,0 +1,93 @@
+{
+  "testFilePath": "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-jest/src/__tests__/fixtures/colocated.story.test.ts",
+  "scenarios": [
+    {
+      "scenario": "Calculator adds two numbers",
+      "steps": [
+        {
+          "id": "step-0",
+          "keyword": "Given",
+          "text": "two numbers 5 and 3",
+          "docs": []
+        },
+        {
+          "id": "step-1",
+          "keyword": "When",
+          "text": "they are added",
+          "docs": []
+        },
+        {
+          "id": "step-2",
+          "keyword": "Then",
+          "text": "the result is 8",
+          "docs": []
+        }
+      ],
+      "sourceOrder": 0,
+      "_attachments": []
+    },
+    {
+      "scenario": "Calculator subtracts two numbers",
+      "steps": [
+        {
+          "id": "step-0",
+          "keyword": "Given",
+          "text": "two numbers 10 and 4",
+          "docs": []
+        },
+        {
+          "id": "step-1",
+          "keyword": "When",
+          "text": "the second is subtracted from the first",
+          "docs": []
+        },
+        {
+          "id": "step-2",
+          "keyword": "Then",
+          "text": "the result is 6",
+          "docs": []
+        }
+      ],
+      "sourceOrder": 1,
+      "_attachments": []
+    },
+    {
+      "scenario": "Doc API story with note and tags",
+      "steps": [
+        {
+          "id": "step-0",
+          "keyword": "Given",
+          "text": "precondition",
+          "docs": []
+        },
+        {
+          "id": "step-1",
+          "keyword": "When",
+          "text": "action",
+          "docs": []
+        },
+        {
+          "id": "step-2",
+          "keyword": "Then",
+          "text": "outcome",
+          "docs": []
+        }
+      ],
+      "tags": [
+        "smoke"
+      ],
+      "tickets": [
+        "T-1"
+      ],
+      "sourceOrder": 2,
+      "docs": [
+        {
+          "kind": "note",
+          "text": "This scenario uses doc methods.",
+          "phase": "runtime"
+        }
+      ],
+      "_attachments": []
+    }
+  ]
+}

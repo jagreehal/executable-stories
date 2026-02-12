@@ -1,0 +1,468 @@
+{
+  "schemaVersion": 1,
+  "testCases": [
+    {
+      "status": "pass",
+      "externalId": "tests/test_story_api.py::TestInit::test_creates_context",
+      "title": "test_creates_context",
+      "durationMs": 0.27,
+      "retry": 0,
+      "retries": 0,
+      "sourceFile": "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-pytest/tests/test_story_api.py",
+      "sourceLine": 12
+    },
+    {
+      "status": "pass",
+      "externalId": "tests/test_story_api.py::TestInit::test_no_context_before_init",
+      "title": "test_no_context_before_init",
+      "durationMs": 0.2,
+      "retry": 0,
+      "retries": 0,
+      "sourceFile": "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-pytest/tests/test_story_api.py",
+      "sourceLine": 18
+    },
+    {
+      "status": "pass",
+      "externalId": "tests/test_story_api.py::TestInit::test_tags_and_tickets",
+      "title": "test_tags_and_tickets",
+      "durationMs": 0.21,
+      "retry": 0,
+      "retries": 0,
+      "sourceFile": "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-pytest/tests/test_story_api.py",
+      "sourceLine": 21
+    },
+    {
+      "status": "pass",
+      "externalId": "tests/test_story_api.py::TestInit::test_ticket_list",
+      "title": "test_ticket_list",
+      "durationMs": 0.23,
+      "retry": 0,
+      "retries": 0,
+      "sourceFile": "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-pytest/tests/test_story_api.py",
+      "sourceLine": 27
+    },
+    {
+      "status": "pass",
+      "externalId": "tests/test_story_api.py::TestInit::test_meta_dict",
+      "title": "test_meta_dict",
+      "durationMs": 0.39,
+      "retry": 0,
+      "retries": 0,
+      "sourceFile": "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-pytest/tests/test_story_api.py",
+      "sourceLine": 32
+    },
+    {
+      "status": "pass",
+      "externalId": "tests/test_story_api.py::TestInit::test_clear",
+      "title": "test_clear",
+      "durationMs": 0.24,
+      "retry": 0,
+      "retries": 0,
+      "sourceFile": "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-pytest/tests/test_story_api.py",
+      "sourceLine": 37
+    },
+    {
+      "status": "pass",
+      "externalId": "tests/test_story_api.py::TestSteps::test_given_when_then",
+      "title": "test_given_when_then",
+      "durationMs": 0.22,
+      "retry": 0,
+      "retries": 0,
+      "sourceFile": "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-pytest/tests/test_story_api.py",
+      "sourceLine": 44
+    },
+    {
+      "status": "pass",
+      "externalId": "tests/test_story_api.py::TestSteps::test_and_but",
+      "title": "test_and_but",
+      "durationMs": 0.2,
+      "retry": 0,
+      "retries": 0,
+      "sourceFile": "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-pytest/tests/test_story_api.py",
+      "sourceLine": 55
+    },
+    {
+      "status": "pass",
+      "externalId": "tests/test_story_api.py::TestSteps::test_auto_and_on_repeated_primary_keyword",
+      "title": "test_auto_and_on_repeated_primary_keyword",
+      "durationMs": 0.29,
+      "retry": 0,
+      "retries": 0,
+      "sourceFile": "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-pytest/tests/test_story_api.py",
+      "sourceLine": 64
+    },
+    {
+      "status": "pass",
+      "externalId": "tests/test_story_api.py::TestSteps::test_step_with_mode",
+      "title": "test_step_with_mode",
+      "durationMs": 0.23,
+      "retry": 0,
+      "retries": 0,
+      "sourceFile": "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-pytest/tests/test_story_api.py",
+      "sourceLine": 74
+    },
+    {
+      "status": "pass",
+      "externalId": "tests/test_story_api.py::TestSteps::test_step_before_init_raises",
+      "title": "test_step_before_init_raises",
+      "durationMs": 1.2,
+      "retry": 0,
+      "retries": 0,
+      "sourceFile": "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-pytest/tests/test_story_api.py",
+      "sourceLine": 80
+    },
+    {
+      "status": "pass",
+      "externalId": "tests/test_story_api.py::TestDocMethods::test_note_before_steps_attaches_to_story",
+      "title": "test_note_before_steps_attaches_to_story",
+      "durationMs": 0.24,
+      "retry": 0,
+      "retries": 0,
+      "sourceFile": "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-pytest/tests/test_story_api.py",
+      "sourceLine": 86
+    },
+    {
+      "status": "pass",
+      "externalId": "tests/test_story_api.py::TestDocMethods::test_note_after_step_attaches_to_step",
+      "title": "test_note_after_step_attaches_to_step",
+      "durationMs": 0.25,
+      "retry": 0,
+      "retries": 0,
+      "sourceFile": "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-pytest/tests/test_story_api.py",
+      "sourceLine": 94
+    },
+    {
+      "status": "pass",
+      "externalId": "tests/test_story_api.py::TestDocMethods::test_tag_doc",
+      "title": "test_tag_doc",
+      "durationMs": 0.27,
+      "retry": 0,
+      "retries": 0,
+      "sourceFile": "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-pytest/tests/test_story_api.py",
+      "sourceLine": 103
+    },
+    {
+      "status": "pass",
+      "externalId": "tests/test_story_api.py::TestDocMethods::test_tag_doc_list",
+      "title": "test_tag_doc_list",
+      "durationMs": 0.21,
+      "retry": 0,
+      "retries": 0,
+      "sourceFile": "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-pytest/tests/test_story_api.py",
+      "sourceLine": 109
+    },
+    {
+      "status": "pass",
+      "externalId": "tests/test_story_api.py::TestDocMethods::test_kv_doc",
+      "title": "test_kv_doc",
+      "durationMs": 0.24,
+      "retry": 0,
+      "retries": 0,
+      "sourceFile": "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-pytest/tests/test_story_api.py",
+      "sourceLine": 115
+    },
+    {
+      "status": "pass",
+      "externalId": "tests/test_story_api.py::TestDocMethods::test_json_doc",
+      "title": "test_json_doc",
+      "durationMs": 0.36,
+      "retry": 0,
+      "retries": 0,
+      "sourceFile": "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-pytest/tests/test_story_api.py",
+      "sourceLine": 121
+    },
+    {
+      "status": "pass",
+      "externalId": "tests/test_story_api.py::TestDocMethods::test_code_doc",
+      "title": "test_code_doc",
+      "durationMs": 0.2,
+      "retry": 0,
+      "retries": 0,
+      "sourceFile": "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-pytest/tests/test_story_api.py",
+      "sourceLine": 131
+    },
+    {
+      "status": "pass",
+      "externalId": "tests/test_story_api.py::TestDocMethods::test_code_doc_no_lang",
+      "title": "test_code_doc_no_lang",
+      "durationMs": 0.25,
+      "retry": 0,
+      "retries": 0,
+      "sourceFile": "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-pytest/tests/test_story_api.py",
+      "sourceLine": 144
+    },
+    {
+      "status": "pass",
+      "externalId": "tests/test_story_api.py::TestDocMethods::test_table_doc",
+      "title": "test_table_doc",
+      "durationMs": 0.28,
+      "retry": 0,
+      "retries": 0,
+      "sourceFile": "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-pytest/tests/test_story_api.py",
+      "sourceLine": 151
+    },
+    {
+      "status": "pass",
+      "externalId": "tests/test_story_api.py::TestDocMethods::test_link_doc",
+      "title": "test_link_doc",
+      "durationMs": 0.24,
+      "retry": 0,
+      "retries": 0,
+      "sourceFile": "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-pytest/tests/test_story_api.py",
+      "sourceLine": 160
+    },
+    {
+      "status": "pass",
+      "externalId": "tests/test_story_api.py::TestDocMethods::test_section_doc",
+      "title": "test_section_doc",
+      "durationMs": 0.21,
+      "retry": 0,
+      "retries": 0,
+      "sourceFile": "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-pytest/tests/test_story_api.py",
+      "sourceLine": 167
+    },
+    {
+      "status": "pass",
+      "externalId": "tests/test_story_api.py::TestDocMethods::test_mermaid_doc",
+      "title": "test_mermaid_doc",
+      "durationMs": 0.22,
+      "retry": 0,
+      "retries": 0,
+      "sourceFile": "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-pytest/tests/test_story_api.py",
+      "sourceLine": 174
+    },
+    {
+      "status": "pass",
+      "externalId": "tests/test_story_api.py::TestDocMethods::test_mermaid_no_title",
+      "title": "test_mermaid_no_title",
+      "durationMs": 0.24,
+      "retry": 0,
+      "retries": 0,
+      "sourceFile": "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-pytest/tests/test_story_api.py",
+      "sourceLine": 183
+    },
+    {
+      "status": "pass",
+      "externalId": "tests/test_story_api.py::TestDocMethods::test_screenshot_doc",
+      "title": "test_screenshot_doc",
+      "durationMs": 0.22,
+      "retry": 0,
+      "retries": 0,
+      "sourceFile": "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-pytest/tests/test_story_api.py",
+      "sourceLine": 189
+    },
+    {
+      "status": "pass",
+      "externalId": "tests/test_story_api.py::TestDocMethods::test_screenshot_no_alt",
+      "title": "test_screenshot_no_alt",
+      "durationMs": 0.2,
+      "retry": 0,
+      "retries": 0,
+      "sourceFile": "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-pytest/tests/test_story_api.py",
+      "sourceLine": 198
+    },
+    {
+      "status": "pass",
+      "externalId": "tests/test_story_api.py::TestDocMethods::test_custom_doc",
+      "title": "test_custom_doc",
+      "durationMs": 0.25,
+      "retry": 0,
+      "retries": 0,
+      "sourceFile": "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-pytest/tests/test_story_api.py",
+      "sourceLine": 204
+    },
+    {
+      "status": "pass",
+      "externalId": "tests/test_story_api.py::TestDocMethods::test_doc_before_init_raises",
+      "title": "test_doc_before_init_raises",
+      "durationMs": 0.38,
+      "retry": 0,
+      "retries": 0,
+      "sourceFile": "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-pytest/tests/test_story_api.py",
+      "sourceLine": 216
+    },
+    {
+      "status": "pass",
+      "externalId": "tests/test_story_api.py::TestDocMethods::test_multiple_docs_on_step",
+      "title": "test_multiple_docs_on_step",
+      "durationMs": 0.26,
+      "retry": 0,
+      "retries": 0,
+      "sourceFile": "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-pytest/tests/test_story_api.py",
+      "sourceLine": 220
+    },
+    {
+      "status": "pass",
+      "externalId": "tests/test_story_api.py::TestDocMethods::test_docs_attach_to_latest_step",
+      "title": "test_docs_attach_to_latest_step",
+      "durationMs": 0.22,
+      "retry": 0,
+      "retries": 0,
+      "sourceFile": "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-pytest/tests/test_story_api.py",
+      "sourceLine": 228
+    },
+    {
+      "status": "pass",
+      "externalId": "tests/test_story_api.py::TestDocMethods::test_inline_docs_on_step",
+      "title": "test_inline_docs_on_step",
+      "durationMs": 0.23,
+      "retry": 0,
+      "retries": 0,
+      "sourceFile": "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-pytest/tests/test_story_api.py",
+      "sourceLine": 240
+    },
+    {
+      "status": "pass",
+      "externalId": "tests/test_story_api.py::TestAAAAliases::test_aaa_aliases_produce_correct_keywords",
+      "title": "test_aaa_aliases_produce_correct_keywords",
+      "durationMs": 0.22,
+      "retry": 0,
+      "retries": 0,
+      "sourceFile": "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-pytest/tests/test_story_api.py",
+      "sourceLine": 261
+    },
+    {
+      "status": "pass",
+      "externalId": "tests/test_story_api.py::TestAAAAliases::test_extra_aliases_produce_correct_keywords",
+      "title": "test_extra_aliases_produce_correct_keywords",
+      "durationMs": 0.26,
+      "retry": 0,
+      "retries": 0,
+      "sourceFile": "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-pytest/tests/test_story_api.py",
+      "sourceLine": 272
+    },
+    {
+      "status": "pass",
+      "externalId": "tests/test_story_api.py::TestFn::test_fn_creates_wrapped_step",
+      "title": "test_fn_creates_wrapped_step",
+      "durationMs": 0.24,
+      "retry": 0,
+      "retries": 0,
+      "sourceFile": "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-pytest/tests/test_story_api.py",
+      "sourceLine": 289
+    },
+    {
+      "status": "pass",
+      "externalId": "tests/test_story_api.py::TestFn::test_fn_records_duration",
+      "title": "test_fn_records_duration",
+      "durationMs": 17.42,
+      "retry": 0,
+      "retries": 0,
+      "sourceFile": "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-pytest/tests/test_story_api.py",
+      "sourceLine": 307
+    },
+    {
+      "status": "pass",
+      "externalId": "tests/test_story_api.py::TestFn::test_fn_propagates_exceptions",
+      "title": "test_fn_propagates_exceptions",
+      "durationMs": 0.7,
+      "retry": 0,
+      "retries": 0,
+      "sourceFile": "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-pytest/tests/test_story_api.py",
+      "sourceLine": 313
+    },
+    {
+      "status": "pass",
+      "externalId": "tests/test_story_api.py::TestFn::test_fn_records_duration_on_error",
+      "title": "test_fn_records_duration_on_error",
+      "durationMs": 13.07,
+      "retry": 0,
+      "retries": 0,
+      "sourceFile": "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-pytest/tests/test_story_api.py",
+      "sourceLine": 319
+    },
+    {
+      "status": "pass",
+      "externalId": "tests/test_story_api.py::TestFn::test_fn_auto_and_conversion",
+      "title": "test_fn_auto_and_conversion",
+      "durationMs": 0.24,
+      "retry": 0,
+      "retries": 0,
+      "sourceFile": "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-pytest/tests/test_story_api.py",
+      "sourceLine": 332
+    },
+    {
+      "status": "pass",
+      "externalId": "tests/test_story_api.py::TestFn::test_fn_returns_body_result",
+      "title": "test_fn_returns_body_result",
+      "durationMs": 0.23,
+      "retry": 0,
+      "retries": 0,
+      "sourceFile": "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-pytest/tests/test_story_api.py",
+      "sourceLine": 341
+    },
+    {
+      "status": "pass",
+      "externalId": "tests/test_story_api.py::TestFn::test_fn_integration_with_markers",
+      "title": "test_fn_integration_with_markers",
+      "durationMs": 0.27,
+      "retry": 0,
+      "retries": 0,
+      "sourceFile": "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-pytest/tests/test_story_api.py",
+      "sourceLine": 346
+    },
+    {
+      "status": "pass",
+      "externalId": "tests/test_story_api.py::TestExpect::test_expect_creates_then_step",
+      "title": "test_expect_creates_then_step",
+      "durationMs": 0.21,
+      "retry": 0,
+      "retries": 0,
+      "sourceFile": "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-pytest/tests/test_story_api.py",
+      "sourceLine": 361
+    },
+    {
+      "status": "pass",
+      "externalId": "tests/test_story_api.py::TestExpect::test_expect_propagates_exceptions",
+      "title": "test_expect_propagates_exceptions",
+      "durationMs": 0.57,
+      "retry": 0,
+      "retries": 0,
+      "sourceFile": "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-pytest/tests/test_story_api.py",
+      "sourceLine": 379
+    },
+    {
+      "status": "pass",
+      "externalId": "tests/test_story_api.py::TestExpect::test_expect_returns_body_result",
+      "title": "test_expect_returns_body_result",
+      "durationMs": 0.22,
+      "retry": 0,
+      "retries": 0,
+      "sourceFile": "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-pytest/tests/test_story_api.py",
+      "sourceLine": 385
+    },
+    {
+      "status": "pass",
+      "externalId": "tests/test_story_api.py::TestStepTiming::test_start_timer_end_timer_sets_duration_ms",
+      "title": "test_start_timer_end_timer_sets_duration_ms",
+      "durationMs": 16.53,
+      "retry": 0,
+      "retries": 0,
+      "sourceFile": "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-pytest/tests/test_story_api.py",
+      "sourceLine": 392
+    },
+    {
+      "status": "pass",
+      "externalId": "tests/test_story_api.py::TestStepTiming::test_double_end_timer_noop",
+      "title": "test_double_end_timer_noop",
+      "durationMs": 36.31,
+      "retry": 0,
+      "retries": 0,
+      "sourceFile": "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-pytest/tests/test_story_api.py",
+      "sourceLine": 401
+    },
+    {
+      "status": "pass",
+      "externalId": "tests/test_story_api.py::TestStepTiming::test_orphaned_timer_no_duration",
+      "title": "test_orphaned_timer_no_duration",
+      "durationMs": 0.2,
+      "retry": 0,
+      "retries": 0,
+      "sourceFile": "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-pytest/tests/test_story_api.py",
+      "sourceLine": 413
+    }
+  ],
+  "projectRoot": "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-pytest",
+  "startedAtMs": 1770381593338.48,
+  "finishedAtMs": 1770381593935.76
+}

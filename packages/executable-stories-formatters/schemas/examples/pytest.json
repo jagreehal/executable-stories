@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "projectRoot": "/home/ci/myapp",
+  "startedAtMs": 1706745600000,
+  "finishedAtMs": 1706745614000,
+  "meta": {
+    "framework": "pytest",
+    "pythonVersion": "3.12.1"
+  },
+  "testCases": [
+    {
+      "externalId": "tests/auth/test_login.py::test_successful_login",
+      "title": "Successful login with valid credentials",
+      "titlePath": ["tests", "auth", "test_login", "Successful login with valid credentials"],
+      "sourceFile": "tests/auth/test_login.py",
+      "sourceLine": 15,
+      "status": "pass",
+      "durationMs": 342,
+      "story": {
+        "scenario": "Successful login with valid credentials",
+        "steps": [
+          { "keyword": "Given", "text": "a registered user with email 'alice@example.com'" },
+          { "keyword": "When", "text": "the user submits login with valid credentials" },
+          { "keyword": "Then", "text": "the response status is 200" },
+          { "keyword": "And", "text": "a JWT token is returned" }
+        ],
+        "tags": ["smoke", "auth"],
+        "tickets": ["AUTH-101"],
+        "suitePath": ["tests", "auth", "test_login"],
+        "sourceOrder": 0
+      },
+      "meta": {
+        "framework": "pytest",
+        "frameworkCaseId": "tests/auth/test_login.py::test_successful_login"
+      }
+    },
+    {
+      "externalId": "tests/auth/test_login.py::TestLoginValidation::test_invalid_password",
+      "title": "Login with invalid password shows error",
+      "titlePath": ["tests", "auth", "test_login", "TestLoginValidation", "Login with invalid password shows error"],
+      "sourceFile": "tests/auth/test_login.py",
+      "sourceLine": 42,
+      "status": "fail",
+      "durationMs": 215,
+      "error": {
+        "message": "AssertionError: Expected status 401 but got 500",
+        "stack": "Traceback (most recent call last):\n  File \"tests/auth/test_login.py\", line 58, in test_invalid_password\n    assert response.status_code == 401\nAssertionError: assert 500 == 401"
+      },
+      "meta": {
+        "framework": "pytest",
+        "frameworkCaseId": "tests/auth/test_login.py::TestLoginValidation::test_invalid_password"
+      }
+    },
+    {
+      "externalId": "tests/auth/test_login.py::test_login_rate_limiting",
+      "title": "Login is rate-limited after 5 failed attempts",
+      "titlePath": ["tests", "auth", "test_login", "Login is rate-limited after 5 failed attempts"],
+      "sourceFile": "tests/auth/test_login.py",
+      "sourceLine": 68,
+      "status": "skip",
+      "durationMs": 0,
+      "meta": {
+        "framework": "pytest",
+        "frameworkCaseId": "tests/auth/test_login.py::test_login_rate_limiting",
+        "skipReason": "Rate limit middleware not deployed yet"
+      }
+    },
+    {
+      "externalId": "tests/cart/test_checkout.py::test_checkout_flow",
+      "title": "Complete checkout with credit card",
+      "titlePath": ["tests", "cart", "test_checkout", "Complete checkout with credit card"],
+      "sourceFile": "tests/cart/test_checkout.py",
+      "sourceLine": 10,
+      "status": "pass",
+      "durationMs": 890,
+      "story": {
+        "scenario": "Complete checkout with credit card",
+        "steps": [
+          { "keyword": "Given", "text": "a cart with 2 items totaling $59.98" },
+          { "keyword": "When", "text": "the user submits payment with a test credit card" },
+          { "keyword": "Then", "text": "the order is confirmed" },
+          { "keyword": "And", "text": "a confirmation email is queued" }
+        ],
+        "tags": ["checkout", "payments", "e2e"],
+        "tickets": ["SHOP-200"],
+        "suitePath": ["tests", "cart", "test_checkout"],
+        "sourceOrder": 0
+      },
+      "meta": {
+        "framework": "pytest",
+        "frameworkCaseId": "tests/cart/test_checkout.py::test_checkout_flow"
+      }
+    },
+    {
+      "externalId": "tests/cart/test_checkout.py::test_empty_cart_checkout",
+      "title": "Cannot checkout with an empty cart",
+      "titlePath": ["tests", "cart", "test_checkout", "Cannot checkout with an empty cart"],
+      "sourceFile": "tests/cart/test_checkout.py",
+      "sourceLine": 55,
+      "status": "pass",
+      "durationMs": 32,
+      "meta": {
+        "framework": "pytest",
+        "frameworkCaseId": "tests/cart/test_checkout.py::test_empty_cart_checkout"
+      }
+    }
+  ]
+}

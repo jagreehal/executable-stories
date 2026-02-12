@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "projectRoot": "/home/ci/myapp",
+  "startedAtMs": 1706745600000,
+  "finishedAtMs": 1706745609000,
+  "meta": {
+    "framework": "go",
+    "goVersion": "1.22.0"
+  },
+  "testCases": [
+    {
+      "externalId": "myapp/auth.TestSuccessfulLogin",
+      "title": "Successful login with valid credentials",
+      "titlePath": ["myapp/auth", "TestSuccessfulLogin"],
+      "sourceFile": "auth/auth_test.go",
+      "sourceLine": 18,
+      "status": "pass",
+      "durationMs": 125,
+      "story": {
+        "scenario": "Successful login with valid credentials",
+        "steps": [
+          { "keyword": "Given", "text": "a registered user with email 'alice@example.com'" },
+          { "keyword": "When", "text": "the user submits login with valid credentials" },
+          { "keyword": "Then", "text": "the response status is 200" },
+          { "keyword": "And", "text": "a JWT token is returned" }
+        ],
+        "tags": ["smoke", "auth"],
+        "tickets": ["AUTH-101"],
+        "suitePath": ["myapp/auth"],
+        "sourceOrder": 0
+      },
+      "meta": {
+        "framework": "go",
+        "frameworkCaseId": "myapp/auth.TestSuccessfulLogin"
+      }
+    },
+    {
+      "externalId": "myapp/auth.TestLoginInvalidPassword",
+      "title": "Login with invalid password returns 401",
+      "titlePath": ["myapp/auth", "TestLoginInvalidPassword"],
+      "sourceFile": "auth/auth_test.go",
+      "sourceLine": 45,
+      "status": "fail",
+      "durationMs": 98,
+      "error": {
+        "message": "auth_test.go:58: expected status 401, got 500",
+        "stack": "--- FAIL: TestLoginInvalidPassword (0.098s)\n    auth_test.go:58: expected status 401, got 500"
+      },
+      "meta": {
+        "framework": "go",
+        "frameworkCaseId": "myapp/auth.TestLoginInvalidPassword"
+      }
+    },
+    {
+      "externalId": "myapp/auth.TestLoginRateLimiting",
+      "title": "Login is rate-limited after 5 failed attempts",
+      "titlePath": ["myapp/auth", "TestLoginRateLimiting"],
+      "sourceFile": "auth/auth_test.go",
+      "sourceLine": 72,
+      "status": "skip",
+      "durationMs": 0,
+      "meta": {
+        "framework": "go",
+        "frameworkCaseId": "myapp/auth.TestLoginRateLimiting",
+        "skipReason": "Rate limit middleware not deployed yet"
+      }
+    },
+    {
+      "externalId": "myapp/cart.TestCompleteCheckout",
+      "title": "Complete checkout with credit card",
+      "titlePath": ["myapp/cart", "TestCompleteCheckout"],
+      "sourceFile": "cart/checkout_test.go",
+      "sourceLine": 15,
+      "status": "pass",
+      "durationMs": 340,
+      "story": {
+        "scenario": "Complete checkout with credit card",
+        "steps": [
+          { "keyword": "Given", "text": "a cart with 2 items totaling $59.98" },
+          { "keyword": "When", "text": "the user submits payment with a test credit card" },
+          { "keyword": "Then", "text": "the order is confirmed" },
+          { "keyword": "And", "text": "a confirmation email is queued" }
+        ],
+        "tags": ["checkout", "payments", "e2e"],
+        "tickets": ["SHOP-200"],
+        "suitePath": ["myapp/cart"],
+        "sourceOrder": 0
+      },
+      "meta": {
+        "framework": "go",
+        "frameworkCaseId": "myapp/cart.TestCompleteCheckout"
+      }
+    },
+    {
+      "externalId": "myapp/cart.TestEmptyCartCheckout",
+      "title": "Cannot checkout with an empty cart",
+      "titlePath": ["myapp/cart", "TestEmptyCartCheckout"],
+      "sourceFile": "cart/checkout_test.go",
+      "sourceLine": 48,
+      "status": "pass",
+      "durationMs": 12,
+      "meta": {
+        "framework": "go",
+        "frameworkCaseId": "myapp/cart.TestEmptyCartCheckout"
+      }
+    }
+  ]
+}
