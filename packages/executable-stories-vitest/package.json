@@ -1,0 +1,72 @@
+{
+  "name": "executable-stories-vitest",
+  "version": "2.0.0",
+  "description": "TS-first story/given/when/then helpers for Vitest with Markdown user-story doc generation.",
+  "author": "Jag Reehal <jag@jagreehal.com>",
+  "homepage": "https://github.com/jagreehal/executable-stories#readme",
+  "bugs": {
+    "url": "https://github.com/jagreehal/executable-stories/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jagreehal/executable-stories.git"
+  },
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./reporter": {
+      "types": "./dist/reporter.d.ts",
+      "import": "./dist/reporter.js",
+      "require": "./dist/reporter.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "vitest": ">=4.0.18",
+    "executable-stories-formatters": "^0.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.2.3",
+    "@types/picomatch": "^4.0.2",
+    "eslint-config-executable-stories": "workspace:*",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  },
+  "keywords": [
+    "vitest",
+    "bdd",
+    "gherkin",
+    "user-story",
+    "markdown",
+    "confluence",
+    "scenario",
+    "given",
+    "when",
+    "then"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint .",
+    "clean": "rm -rf dist",
+    "test": "vitest run",
+    "quality": "pnpm type-check && pnpm test && pnpm lint"
+  },
+  "dependencies": {
+    "fast-glob": "^3.3.3",
+    "picomatch": "^4.0.3"
+  }
+}

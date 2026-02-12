@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "projectRoot": "/home/ci/myapp",
+  "startedAtMs": 1706745600000,
+  "finishedAtMs": 1706745615000,
+  "meta": {
+    "framework": "xunit",
+    "dotnetVersion": "8.0.2"
+  },
+  "testCases": [
+    {
+      "externalId": "MyApp.Tests.Auth.LoginTests.SuccessfulLogin_ReturnsToken",
+      "title": "Successful login returns token",
+      "titlePath": ["MyApp.Tests.Auth", "LoginTests", "Successful login returns token"],
+      "sourceFile": "tests/MyApp.Tests/Auth/LoginTests.cs",
+      "sourceLine": 22,
+      "status": "pass",
+      "durationMs": 287,
+      "story": {
+        "scenario": "Successful login returns token",
+        "steps": [
+          { "keyword": "Given", "text": "a registered user with email 'alice@example.com'" },
+          { "keyword": "When", "text": "the user submits login with valid credentials" },
+          { "keyword": "Then", "text": "the response status is 200" },
+          { "keyword": "And", "text": "a JWT token is returned" }
+        ],
+        "tags": ["smoke", "auth"],
+        "tickets": ["AUTH-101"],
+        "suitePath": ["MyApp.Tests.Auth", "LoginTests"],
+        "sourceOrder": 0
+      },
+      "meta": {
+        "framework": "xunit",
+        "frameworkCaseId": "MyApp.Tests.Auth.LoginTests.SuccessfulLogin_ReturnsToken"
+      }
+    },
+    {
+      "externalId": "MyApp.Tests.Auth.LoginTests.InvalidPassword_Returns401",
+      "title": "Invalid password returns 401",
+      "titlePath": ["MyApp.Tests.Auth", "LoginTests", "Invalid password returns 401"],
+      "sourceFile": "tests/MyApp.Tests/Auth/LoginTests.cs",
+      "sourceLine": 48,
+      "status": "fail",
+      "durationMs": 198,
+      "error": {
+        "message": "Xunit.Sdk.EqualException: Assert.Equal() Failure\nExpected: 401\nActual:   500",
+        "stack": "   at MyApp.Tests.Auth.LoginTests.InvalidPassword_Returns401() in /home/ci/myapp/tests/MyApp.Tests/Auth/LoginTests.cs:line 62\n   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)"
+      },
+      "meta": {
+        "framework": "xunit",
+        "frameworkCaseId": "MyApp.Tests.Auth.LoginTests.InvalidPassword_Returns401"
+      }
+    },
+    {
+      "externalId": "MyApp.Tests.Auth.LoginTests.RateLimiting_BlocksAfterFiveAttempts",
+      "title": "Rate limiting blocks after five attempts",
+      "titlePath": ["MyApp.Tests.Auth", "LoginTests", "Rate limiting blocks after five attempts"],
+      "sourceFile": "tests/MyApp.Tests/Auth/LoginTests.cs",
+      "sourceLine": 75,
+      "status": "skip",
+      "durationMs": 0,
+      "meta": {
+        "framework": "xunit",
+        "frameworkCaseId": "MyApp.Tests.Auth.LoginTests.RateLimiting_BlocksAfterFiveAttempts",
+        "skipReason": "[Skip] Rate limit middleware not deployed yet"
+      }
+    },
+    {
+      "externalId": "MyApp.Tests.Cart.CheckoutTests.CompleteCheckout_WithCreditCard",
+      "title": "Complete checkout with credit card",
+      "titlePath": ["MyApp.Tests.Cart", "CheckoutTests", "Complete checkout with credit card"],
+      "sourceFile": "tests/MyApp.Tests/Cart/CheckoutTests.cs",
+      "sourceLine": 16,
+      "status": "pass",
+      "durationMs": 654,
+      "story": {
+        "scenario": "Complete checkout with credit card",
+        "steps": [
+          { "keyword": "Given", "text": "a cart with 2 items totaling $59.98" },
+          { "keyword": "When", "text": "the user submits payment with a test credit card" },
+          { "keyword": "Then", "text": "the order is confirmed" },
+          { "keyword": "And", "text": "a confirmation email is queued" }
+        ],
+        "tags": ["checkout", "payments", "e2e"],
+        "tickets": ["SHOP-200"],
+        "suitePath": ["MyApp.Tests.Cart", "CheckoutTests"],
+        "sourceOrder": 0
+      },
+      "meta": {
+        "framework": "xunit",
+        "frameworkCaseId": "MyApp.Tests.Cart.CheckoutTests.CompleteCheckout_WithCreditCard"
+      }
+    },
+    {
+      "externalId": "MyApp.Tests.Cart.CheckoutTests.EmptyCart_ShouldBlock",
+      "title": "Empty cart should block checkout",
+      "titlePath": ["MyApp.Tests.Cart", "CheckoutTests", "Empty cart should block checkout"],
+      "sourceFile": "tests/MyApp.Tests/Cart/CheckoutTests.cs",
+      "sourceLine": 50,
+      "status": "pass",
+      "durationMs": 38,
+      "meta": {
+        "framework": "xunit",
+        "frameworkCaseId": "MyApp.Tests.Cart.CheckoutTests.EmptyCart_ShouldBlock"
+      }
+    }
+  ]
+}

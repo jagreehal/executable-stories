@@ -81,10 +81,9 @@ describe("Step Aliases", () => {
     expect(data.length).to.be.greaterThan(0);
 
     story.context("sum accumulator is initialized");
-    let sum = 0;
 
     story.execute("sum is calculated");
-    sum = data.reduce((a, b) => a + b, 0);
+    const sum = data.reduce((a, b) => a + b, 0);
 
     story.verify("sum is correct");
     expect(sum).to.equal(15);

@@ -1,0 +1,437 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://executable-stories.dev/schemas/raw-run.schema.json",
+  "title": "RawRun",
+  "description": "Raw test run data from any test framework. Feed this to the executable-stories CLI to generate HTML, Markdown, JUnit XML, and Cucumber JSON reports.",
+  "type": "object",
+  "$ref": "#/$defs/RawRun",
+  "$defs": {
+    "RawRun": {
+      "type": "object",
+      "description": "Top-level raw run containing all test cases and run metadata.",
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "const": 1,
+          "description": "Schema version for forward compatibility. Must be 1."
+        },
+        "testCases": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/RawTestCase" },
+          "description": "All test cases from the run."
+        },
+        "startedAtMs": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Run start time as Unix epoch milliseconds."
+        },
+        "finishedAtMs": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Run finish time as Unix epoch milliseconds."
+        },
+        "projectRoot": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Absolute path to the project root directory. Used for resolving relative attachment paths."
+        },
+        "packageVersion": {
+          "type": "string",
+          "description": "Version of the package under test."
+        },
+        "gitSha": {
+          "type": "string",
+          "description": "Git commit SHA at the time of the run."
+        },
+        "ci": {
+          "$ref": "#/$defs/RawCIInfo"
+        },
+        "meta": {
+          "type": "object",
+          "description": "Arbitrary runner-specific metadata. Escape hatch for data not covered by the schema."
+        }
+      },
+      "required": ["schemaVersion", "testCases", "projectRoot"],
+      "additionalProperties": false
+    },
+    "RawTestCase": {
+      "type": "object",
+      "description": "A single test case result. Only 'status' is required — everything else is optional to support plain unit tests without BDD metadata.",
+      "properties": {
+        "externalId": {
+          "type": "string",
+          "description": "Framework's native test ID (e.g., Jest test path, Playwright test ID)."
+        },
+        "title": {
+          "type": "string",
+          "description": "Human-readable test title/name."
+        },
+        "titlePath": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Full title path from describe/suite blocks down to the test name."
+        },
+        "story": {
+          "$ref": "#/$defs/StoryMeta"
+        },
+        "sourceFile": {
+          "type": "string",
+          "description": "Path to the source file containing this test (relative to projectRoot or absolute)."
+        },
+        "sourceLine": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Line number in the source file (1-based)."
+        },
+        "status": {
+          "$ref": "#/$defs/RawStatus"
+        },
+        "durationMs": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Test duration in milliseconds."
+        },
+        "error": {
+          "type": "object",
+          "description": "Error information if the test failed.",
+          "properties": {
+            "message": {
+              "type": "string",
+              "description": "Error message."
+            },
+            "stack": {
+              "type": "string",
+              "description": "Error stack trace."
+            }
+          },
+          "additionalProperties": false
+        },
+        "stepEvents": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/RawStepEvent" },
+          "description": "Step-level execution events from the framework (if available)."
+        },
+        "attachments": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/RawAttachment" },
+          "description": "Attachments such as screenshots, logs, or other artifacts."
+        },
+        "meta": {
+          "type": "object",
+          "description": "Arbitrary framework-specific metadata. Escape hatch for data not covered by the schema."
+        },
+        "retry": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Retry attempt number (0-based). 0 means first attempt."
+        },
+        "retries": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total number of retries configured for this test."
+        },
+        "projectName": {
+          "type": "string",
+          "description": "Project name (e.g., Playwright project like 'chromium', 'firefox')."
+        }
+      },
+      "required": ["status"],
+      "additionalProperties": false
+    },
+    "RawStatus": {
+      "type": "string",
+      "enum": ["pass", "fail", "skip", "todo", "pending", "timeout", "interrupted", "unknown"],
+      "description": "Permissive test status from any framework. Mapped to canonical status (passed/failed/skipped/pending) during canonicalization."
+    },
+    "StoryMeta": {
+      "type": "object",
+      "description": "BDD story metadata for a test case. Contains the scenario title, steps, tags, and documentation.",
+      "properties": {
+        "scenario": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The scenario title (typically the test name)."
+        },
+        "steps": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/StoryStep" },
+          "description": "BDD steps in this scenario. Can be empty or omitted for progressive enrichment."
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Tags for filtering and categorization (e.g., ['smoke', 'auth'])."
+        },
+        "tickets": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Ticket/issue references for requirements traceability (e.g., ['JIRA-123'])."
+        },
+        "meta": {
+          "type": "object",
+          "description": "User-defined metadata for this story."
+        },
+        "suitePath": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Parent describe/suite names for hierarchical grouping."
+        },
+        "docs": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/DocEntry" },
+          "description": "Story-level documentation entries (before any steps)."
+        },
+        "sourceOrder": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Order in which the story was defined in source (for stable sorting)."
+        }
+      },
+      "required": ["scenario"],
+      "additionalProperties": false
+    },
+    "StoryStep": {
+      "type": "object",
+      "description": "A single BDD step in a scenario.",
+      "properties": {
+        "keyword": {
+          "$ref": "#/$defs/StepKeyword"
+        },
+        "text": {
+          "type": "string",
+          "description": "The step description text."
+        },
+        "mode": {
+          "$ref": "#/$defs/StepMode"
+        },
+        "docs": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/DocEntry" },
+          "description": "Rich documentation entries attached to this step."
+        }
+      },
+      "required": ["keyword", "text"],
+      "additionalProperties": false
+    },
+    "StepKeyword": {
+      "type": "string",
+      "description": "BDD step keyword. Case-insensitive — 'given' and 'Given' are both accepted. Normalized to title case during processing.",
+      "pattern": "^[Gg]iven$|^[Ww]hen$|^[Tt]hen$|^[Aa]nd$|^[Bb]ut$"
+    },
+    "StepMode": {
+      "type": "string",
+      "enum": ["normal", "skip", "only", "todo", "fails", "concurrent"],
+      "description": "Step execution mode for documentation rendering."
+    },
+    "DocPhase": {
+      "type": "string",
+      "enum": ["static", "runtime"],
+      "description": "When the doc entry was added — 'static' at definition time, 'runtime' during execution."
+    },
+    "DocEntry": {
+      "description": "A documentation entry attached to a story or step. Discriminated union on the 'kind' field.",
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "Free-text note.",
+          "properties": {
+            "kind": { "const": "note" },
+            "text": { "type": "string" },
+            "phase": { "$ref": "#/$defs/DocPhase" }
+          },
+          "required": ["kind", "text", "phase"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "Tag(s) for categorization.",
+          "properties": {
+            "kind": { "const": "tag" },
+            "names": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "phase": { "$ref": "#/$defs/DocPhase" }
+          },
+          "required": ["kind", "names", "phase"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "Key-value pair.",
+          "properties": {
+            "kind": { "const": "kv" },
+            "label": { "type": "string" },
+            "value": {},
+            "phase": { "$ref": "#/$defs/DocPhase" }
+          },
+          "required": ["kind", "label", "value", "phase"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "Code block with optional language.",
+          "properties": {
+            "kind": { "const": "code" },
+            "label": { "type": "string" },
+            "content": { "type": "string" },
+            "lang": { "type": "string" },
+            "phase": { "$ref": "#/$defs/DocPhase" }
+          },
+          "required": ["kind", "label", "content", "phase"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "Markdown table.",
+          "properties": {
+            "kind": { "const": "table" },
+            "label": { "type": "string" },
+            "columns": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "rows": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            },
+            "phase": { "$ref": "#/$defs/DocPhase" }
+          },
+          "required": ["kind", "label", "columns", "rows", "phase"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "Hyperlink.",
+          "properties": {
+            "kind": { "const": "link" },
+            "label": { "type": "string" },
+            "url": { "type": "string" },
+            "phase": { "$ref": "#/$defs/DocPhase" }
+          },
+          "required": ["kind", "label", "url", "phase"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "Titled section with markdown content.",
+          "properties": {
+            "kind": { "const": "section" },
+            "title": { "type": "string" },
+            "markdown": { "type": "string" },
+            "phase": { "$ref": "#/$defs/DocPhase" }
+          },
+          "required": ["kind", "title", "markdown", "phase"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "Mermaid diagram.",
+          "properties": {
+            "kind": { "const": "mermaid" },
+            "code": { "type": "string" },
+            "title": { "type": "string" },
+            "phase": { "$ref": "#/$defs/DocPhase" }
+          },
+          "required": ["kind", "code", "phase"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "Screenshot reference.",
+          "properties": {
+            "kind": { "const": "screenshot" },
+            "path": { "type": "string" },
+            "alt": { "type": "string" },
+            "phase": { "$ref": "#/$defs/DocPhase" }
+          },
+          "required": ["kind", "path", "phase"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "Custom documentation entry with arbitrary data.",
+          "properties": {
+            "kind": { "const": "custom" },
+            "type": { "type": "string" },
+            "data": {},
+            "phase": { "$ref": "#/$defs/DocPhase" }
+          },
+          "required": ["kind", "type", "data", "phase"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "RawAttachment": {
+      "type": "object",
+      "description": "A test attachment (screenshot, log, artifact). In the MVP schema, only path-based attachments are supported (no inline base64).",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Human-readable name for the attachment."
+        },
+        "mediaType": {
+          "type": "string",
+          "description": "MIME type (e.g., 'image/png', 'text/plain', 'application/json')."
+        },
+        "path": {
+          "type": "string",
+          "description": "File path (relative to projectRoot or absolute)."
+        }
+      },
+      "required": ["name", "mediaType", "path"],
+      "additionalProperties": false
+    },
+    "RawStepEvent": {
+      "type": "object",
+      "description": "Step-level execution event from the framework. Optional — most frameworks don't provide step-level data.",
+      "properties": {
+        "index": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Step index (0-based)."
+        },
+        "title": {
+          "type": "string",
+          "description": "Step title/description."
+        },
+        "status": {
+          "$ref": "#/$defs/RawStatus"
+        },
+        "durationMs": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Step duration in milliseconds."
+        },
+        "errorMessage": {
+          "type": "string",
+          "description": "Error message if the step failed."
+        }
+      },
+      "additionalProperties": false
+    },
+    "RawCIInfo": {
+      "type": "object",
+      "description": "CI environment information.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "CI provider name (e.g., 'GitHub Actions', 'Jenkins', 'CircleCI')."
+        },
+        "url": {
+          "type": "string",
+          "description": "URL to the CI build/run."
+        },
+        "buildNumber": {
+          "type": "string",
+          "description": "CI build number or run ID."
+        }
+      },
+      "required": ["name"],
+      "additionalProperties": false
+    }
+  }
+}

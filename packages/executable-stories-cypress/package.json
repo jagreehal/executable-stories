@@ -1,0 +1,60 @@
+{
+  "name": "executable-stories-cypress",
+  "version": "2.0.0",
+  "description": "BDD-style executable stories for Cypress with documentation generation",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./support": {
+      "types": "./dist/support.d.ts",
+      "import": "./dist/support.js",
+      "require": "./dist/support.cjs"
+    },
+    "./plugin": {
+      "types": "./dist/plugin.d.ts",
+      "import": "./dist/plugin.js",
+      "require": "./dist/plugin.cjs"
+    },
+    "./reporter": {
+      "types": "./dist/reporter.d.ts",
+      "import": "./dist/reporter.js",
+      "require": "./dist/reporter.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "reporter.cjs"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "cypress run"
+  },
+  "peerDependencies": {
+    "cypress": ">=15.10.0",
+    "executable-stories-formatters": "^0.1.0"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "cypress": "^15.10.0",
+    "@types/node": "^25.2.3",
+    "tsup": "^8.5.1",
+    "typescript": "~5.9.3",
+    "vitest": "^4.0.18"
+  },
+  "keywords": [
+    "cypress",
+    "bdd",
+    "testing",
+    "documentation",
+    "executable-stories"
+  ]
+}

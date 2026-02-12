@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "projectRoot": "/home/ci/myapp",
+  "startedAtMs": 1706745600000,
+  "finishedAtMs": 1706745618000,
+  "meta": {
+    "framework": "junit5",
+    "javaVersion": "21.0.2"
+  },
+  "testCases": [
+    {
+      "externalId": "[engine:junit-jupiter]/[class:com.acme.auth.LoginTest]/[method:testSuccessfulLogin()]",
+      "title": "Successful login with valid credentials",
+      "titlePath": ["com.acme.auth", "LoginTest", "Successful login with valid credentials"],
+      "sourceFile": "src/test/java/com/acme/auth/LoginTest.java",
+      "sourceLine": 24,
+      "status": "pass",
+      "durationMs": 312,
+      "story": {
+        "scenario": "Successful login with valid credentials",
+        "steps": [
+          { "keyword": "Given", "text": "a registered user with email 'alice@example.com'" },
+          { "keyword": "When", "text": "the user submits login with valid credentials" },
+          { "keyword": "Then", "text": "the response status is 200" },
+          { "keyword": "And", "text": "a JWT token is returned" }
+        ],
+        "tags": ["smoke", "auth"],
+        "tickets": ["AUTH-101"],
+        "suitePath": ["com.acme.auth", "LoginTest"],
+        "sourceOrder": 0
+      },
+      "meta": {
+        "framework": "junit5",
+        "frameworkCaseId": "[engine:junit-jupiter]/[class:com.acme.auth.LoginTest]/[method:testSuccessfulLogin()]"
+      }
+    },
+    {
+      "externalId": "[engine:junit-jupiter]/[class:com.acme.auth.LoginTest]/[method:testLoginInvalidPassword()]",
+      "title": "Login with invalid password returns 401",
+      "titlePath": ["com.acme.auth", "LoginTest", "Login with invalid password returns 401"],
+      "sourceFile": "src/test/java/com/acme/auth/LoginTest.java",
+      "sourceLine": 48,
+      "status": "fail",
+      "durationMs": 245,
+      "error": {
+        "message": "org.opentest4j.AssertionFailedError: Expected status 401 but got 500",
+        "stack": "org.opentest4j.AssertionFailedError: Expected status 401 but got 500\n\tat com.acme.auth.LoginTest.testLoginInvalidPassword(LoginTest.java:62)\n\tat java.base/java.lang.reflect.Method.invoke(Method.java:580)"
+      },
+      "meta": {
+        "framework": "junit5",
+        "frameworkCaseId": "[engine:junit-jupiter]/[class:com.acme.auth.LoginTest]/[method:testLoginInvalidPassword()]"
+      }
+    },
+    {
+      "externalId": "[engine:junit-jupiter]/[class:com.acme.auth.LoginTest]/[method:testLoginRateLimiting()]",
+      "title": "Login is rate-limited after 5 failed attempts",
+      "titlePath": ["com.acme.auth", "LoginTest", "Login is rate-limited after 5 failed attempts"],
+      "sourceFile": "src/test/java/com/acme/auth/LoginTest.java",
+      "sourceLine": 75,
+      "status": "skip",
+      "durationMs": 1,
+      "meta": {
+        "framework": "junit5",
+        "frameworkCaseId": "[engine:junit-jupiter]/[class:com.acme.auth.LoginTest]/[method:testLoginRateLimiting()]",
+        "skipReason": "@Disabled: Rate limit middleware not deployed yet"
+      }
+    },
+    {
+      "externalId": "[engine:junit-jupiter]/[class:com.acme.cart.CheckoutTest]/[method:testCompleteCheckout()]",
+      "title": "Complete checkout with credit card",
+      "titlePath": ["com.acme.cart", "CheckoutTest", "Complete checkout with credit card"],
+      "sourceFile": "src/test/java/com/acme/cart/CheckoutTest.java",
+      "sourceLine": 18,
+      "status": "pass",
+      "durationMs": 876,
+      "story": {
+        "scenario": "Complete checkout with credit card",
+        "steps": [
+          { "keyword": "Given", "text": "a cart with 2 items totaling $59.98" },
+          { "keyword": "When", "text": "the user submits payment with a test credit card" },
+          { "keyword": "Then", "text": "the order is confirmed" },
+          { "keyword": "And", "text": "a confirmation email is queued" }
+        ],
+        "tags": ["checkout", "payments", "e2e"],
+        "tickets": ["SHOP-200"],
+        "suitePath": ["com.acme.cart", "CheckoutTest"],
+        "sourceOrder": 0
+      },
+      "meta": {
+        "framework": "junit5",
+        "frameworkCaseId": "[engine:junit-jupiter]/[class:com.acme.cart.CheckoutTest]/[method:testCompleteCheckout()]"
+      }
+    },
+    {
+      "externalId": "[engine:junit-jupiter]/[class:com.acme.cart.CheckoutTest]/[method:testEmptyCartCheckout()]",
+      "title": "Cannot checkout with an empty cart",
+      "titlePath": ["com.acme.cart", "CheckoutTest", "Cannot checkout with an empty cart"],
+      "sourceFile": "src/test/java/com/acme/cart/CheckoutTest.java",
+      "sourceLine": 52,
+      "status": "pass",
+      "durationMs": 45,
+      "meta": {
+        "framework": "junit5",
+        "frameworkCaseId": "[engine:junit-jupiter]/[class:com.acme.cart.CheckoutTest]/[method:testEmptyCartCheckout()]"
+      }
+    }
+  ]
+}

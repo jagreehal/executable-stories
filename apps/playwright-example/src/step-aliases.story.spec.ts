@@ -111,11 +111,10 @@ test.describe('Step Aliases', () => {
 
     // Using context for state establishment
     story.context('sum accumulator is initialized');
-    let sum = 0;
 
     // Using execute for operation
     story.execute('sum is calculated');
-    sum = data.reduce((a, b) => a + b, 0);
+    const sum = data.reduce((a, b) => a + b, 0);
 
     // Using verify for assertion
     story.verify('sum is correct');
