@@ -1,6 +1,6 @@
 {
   "name": "eslint-plugin-executable-stories-playwright",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type": "module",
   "description": "ESLint rules for executable-stories-playwright: step context, doc.story in test/it",
   "main": "./dist/index.cjs",

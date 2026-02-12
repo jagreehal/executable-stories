@@ -1,6 +1,6 @@
 {
   "name": "executable-stories-cypress",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "BDD-style executable stories for Cypress with documentation generation",
   "type": "module",
   "sideEffects": false,
@@ -40,7 +40,7 @@
   },
   "peerDependencies": {
     "cypress": ">=15.10.0",
-    "executable-stories-formatters": "^0.1.0"
+    "executable-stories-formatters": "^0.2.0"
   },
   "dependencies": {},
   "devDependencies": {
