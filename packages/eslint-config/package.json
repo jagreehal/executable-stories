@@ -1,6 +1,6 @@
 {
   "name": "eslint-config-executable-stories",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "description": "Shared ESLint flat config for executable-stories monorepo (awaitly-style base)",
   "type": "module",
