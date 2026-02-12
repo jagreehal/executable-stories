@@ -27,6 +27,11 @@
     "clean": "rm -rf dist",
     "quality": "pnpm type-check && pnpm test && pnpm lint"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jagreehal/executable-stories.git",
+    "directory": "packages/eslint-plugin-executable-stories-jest"
+  },
   "keywords": [
     "eslint",
     "eslint-plugin",
