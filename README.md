@@ -42,7 +42,8 @@ Example apps: [apps/jest-example](./apps/jest-example), [apps/vitest-example](./
 | **Scenario modifiers**            | `story.skip` `story.only`                                                     | `story.skip` `story.only`                                    | `story.skip` `story.only` `story.fixme` `story.slow` | —                                                    |
 | **Output modes**                  | Colocated, aggregated, mixed                                                  | Colocated, aggregated, mixed                                 | Colocated, aggregated, mixed                         | Colocated, aggregated, mixed                         |
 | **Rich step docs** (`doc` API)    | ✅ note, kv, code, table, link, section, mermaid, screenshot, runtime, custom | ✅ same                                                      | ✅ same                                              | ✅ same                                              |
-| **Scenario options**              | `tags`, `meta`, `ticket`                                                      | `tags`, `meta`, `ticket`                                     | `tags`, `meta`, `ticket`                             | `tags`, `meta`, `ticket`                             |
+| **Scenario options**              | `tags`, `meta`, `ticket`, `traceUrlTemplate`                                  | `tags`, `meta`, `ticket`, `traceUrlTemplate`                 | `tags`, `meta`, `ticket`, `traceUrlTemplate`         | `tags`, `meta`, `ticket`                             |
+| **OTel trace link**               | ✅ auto-detect via `@opentelemetry/api`                                       | ✅ same                                                      | ✅ same                                              | — (browser env)                                      |
 | **Attach story to plain it/test** | `doc.story("Title")` inside `test()`                                          | `doc.story("Title", task)` with `it(..., ({ task }) => ...)` | `doc.story("Title")` inside `test()`                 | —                                                    |
 | **AAA aliases**                   | arrange/act/assert, setup/context, etc.                                       | arrange/act/assert, setup/context, etc.                      | arrange/act/assert, setup/context, etc.              | arrange/act/assert, setup/context, etc.              |
 | **CLI collate**                   | ✅                                                                            | ✅                                                           | ✅                                                   | ✅                                                   |
@@ -51,7 +52,9 @@ Example apps: [apps/jest-example](./apps/jest-example), [apps/vitest-example](./
 
 For per-framework behaviour and guarantees (entry point, mental model, modifiers, framework-native attach), see: [Jest — Developer experience](./packages/executable-stories-jest/README.md#developer-experience), [Vitest — Developer experience](./packages/executable-stories-vitest/README.md#developer-experience), [Playwright — Developer experience](./packages/executable-stories-playwright/README.md#developer-experience), [Cypress](./packages/executable-stories-cypress/README.md).
 
-Details and reporter options: see each package’s README.
+Details and reporter options: see each package's README.
+
+**OTel trace link** is also supported in the non-JS adapters: Go (`WithTraceUrlTemplate`), Python (`trace_url_template`), Kotlin/JUnit5 (env var), Rust (`with_trace_url_template`, requires `otel` feature), and C#/xUnit (via built-in `System.Diagnostics.Activity`). All adapters auto-detect an active span and inject trace ID docs bidirectionally. Set `OTEL_TRACE_URL_TEMPLATE` (with `{traceId}` placeholder) to generate clickable trace links in reports.
 
 ## Quick example
 
@@ -116,7 +119,7 @@ For contributor and AI agent guidance (conventions, framework APIs, ESLint plugi
 
 ### Formatters standalone binary
 
-The `executable-stories-formatters` package (CLI for generating reports from test results JSON) supports filtering by source file: use `--include` and `--exclude` glob patterns to limit which test cases appear in reports (see [formatters README](./packages/executable-stories-formatters/README.md#filtering-by-source-file)). The package can be built as a single standalone binary with [Bun](https://bun.sh):
+The `executable-stories-formatters` package (CLI for generating reports from test results JSON) supports filtering by source file: use `--include` and `--exclude` glob patterns to limit which test cases appear in reports (see [formatters README](./packages/executable-stories-formatters/README.md#filtering-by-source-file)). The HTML report highlights step parameters (quoted strings and numbers) for readability. The package can be built as a single standalone binary with [Bun](https://bun.sh):
 
 ```bash
 cd packages/executable-stories-formatters && bun run compile

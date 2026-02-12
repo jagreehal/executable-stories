@@ -9,6 +9,9 @@ description = "pytest plugin for executable-stories BDD documentation"
 requires-python = ">=3.12"
 license = "MIT"
 
+[project.optional-dependencies]
+otel = ["opentelemetry-api>=1.20"]
+
 [project.entry-points.pytest11]
 executable_stories = "executable_stories._plugin"
 

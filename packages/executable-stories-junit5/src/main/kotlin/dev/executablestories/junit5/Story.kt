@@ -17,12 +17,16 @@ class Story private constructor() {
 
         @JvmStatic
         fun init(scenario: String) {
-            CONTEXT.set(StoryContext(scenario))
+            val ctx = StoryContext(scenario)
+            CONTEXT.set(ctx)
+            bridgeOtel(ctx)
         }
 
         @JvmStatic
         fun init(scenario: String, vararg tags: String) {
-            CONTEXT.set(StoryContext(scenario, *tags))
+            val ctx = StoryContext(scenario, *tags)
+            CONTEXT.set(ctx)
+            bridgeOtel(ctx)
         }
 
         // ====================================================================
@@ -311,6 +315,74 @@ class Story private constructor() {
         @JvmStatic
         fun <T> expect(text: String, body: Supplier<T>): T =
             fn("Then", text, body)
+
+        // ====================================================================
+        // OTel Bridge
+        // ====================================================================
+
+        private fun bridgeOtel(ctx: StoryContext) {
+            try {
+                val spanClass = Class.forName("io.opentelemetry.api.trace.Span")
+                val currentMethod = spanClass.getMethod("current")
+                val span = currentMethod.invoke(null) ?: return
+
+                val spanContextMethod = spanClass.getMethod("getSpanContext")
+                val spanContext = spanContextMethod.invoke(span) ?: return
+
+                val spanContextClass = spanContext.javaClass
+                val getTraceId = spanContextClass.getMethod("getTraceId")
+                val getSpanId = spanContextClass.getMethod("getSpanId")
+                val isValid = spanContextClass.getMethod("isValid")
+
+                if (isValid.invoke(spanContext) != true) return
+
+                val traceId = getTraceId.invoke(spanContext) as? String ?: return
+                val spanId = getSpanId.invoke(spanContext) as? String ?: return
+
+                if (traceId == "00000000000000000000000000000000") return
+
+                // OTel -> Story: capture traceId in structured meta
+                ctx.meta["otel"] = mapOf("traceId" to traceId, "spanId" to spanId)
+
+                // OTel -> Story: inject human-readable doc entries
+                ctx.docs.add(DocEntry.kv("Trace ID", traceId))
+
+                val template = System.getenv("OTEL_TRACE_URL_TEMPLATE")
+                if (!template.isNullOrEmpty()) {
+                    val url = template.replace("{traceId}", traceId)
+                    ctx.docs.add(DocEntry.link("View Trace", url))
+                }
+
+                // Story -> OTel: enrich active span with story attributes
+                val setAttributeStr = spanClass.getMethod("setAttribute", String::class.java, String::class.java)
+                setAttributeStr.invoke(span, "story.scenario", ctx.scenario)
+
+                if (ctx.tags.isNotEmpty()) {
+                    // Use AttributeKey<List<String>> for array attributes
+                    try {
+                        val attributeKeyClass = Class.forName("io.opentelemetry.api.common.AttributeKey")
+                        val stringArrayKeyMethod = attributeKeyClass.getMethod("stringArrayKey", String::class.java)
+                        val tagsKey = stringArrayKeyMethod.invoke(null, "story.tags")
+                        val setAttributeKey = spanClass.getMethod("setAttribute", attributeKeyClass, Any::class.java)
+                        setAttributeKey.invoke(span, tagsKey, ctx.tags.toList())
+                    } catch (_: Exception) { /* array attributes not available */ }
+                }
+
+                if (ctx.tickets.isNotEmpty()) {
+                    try {
+                        val attributeKeyClass = Class.forName("io.opentelemetry.api.common.AttributeKey")
+                        val stringArrayKeyMethod = attributeKeyClass.getMethod("stringArrayKey", String::class.java)
+                        val ticketsKey = stringArrayKeyMethod.invoke(null, "story.tickets")
+                        val setAttributeKey = spanClass.getMethod("setAttribute", attributeKeyClass, Any::class.java)
+                        setAttributeKey.invoke(span, ticketsKey, ctx.tickets.toList())
+                    } catch (_: Exception) { /* array attributes not available */ }
+                }
+            } catch (_: ClassNotFoundException) {
+                // OTel API not on classpath - no-op
+            } catch (_: Exception) {
+                // OTel not available - no-op
+            }
+        }
 
         // ====================================================================
         // Internal

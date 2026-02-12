@@ -40,6 +40,7 @@ fn test_raw_run_serialization() {
                 ],
                 tags: Some(vec!["smoke".to_string()]),
                 tickets: None,
+                meta: None,
                 docs: None,
                 source_order: Some(0),
             }),
@@ -154,6 +155,7 @@ fn test_story_meta_with_docs() {
         steps: vec![],
         tags: None,
         tickets: Some(vec!["TICKET-1".to_string()]),
+        meta: None,
         docs: Some(vec![
             DocEntry::note("overview note"),
             DocEntry::link("spec", "https://example.com/spec"),

@@ -198,6 +198,11 @@ export { readPackageVersion } from "./utils/metadata";
 /** @internal */
 export { clearVersionCache } from "./utils/metadata";
 export { detectCI } from "./utils/ci-detect";
+export {
+  tryGetActiveOtelContext,
+  resolveTraceUrl,
+  type OtelTraceContext,
+} from "./utils/otel-detect";
 
 // ============================================================================
 // ReportGenerator Types (fn(args, deps) pattern)
@@ -519,6 +524,7 @@ export class ReportGenerator {
         includeSummaryTable: options.markdown?.includeSummaryTable ?? false,
         permalinkBaseUrl: options.markdown?.permalinkBaseUrl,
         ticketUrlTemplate: options.markdown?.ticketUrlTemplate,
+        traceUrlTemplate: options.markdown?.traceUrlTemplate,
         includeSourceLinks: options.markdown?.includeSourceLinks ?? true,
         customRenderers: options.markdown?.customRenderers,
       },
@@ -671,6 +677,7 @@ export class ReportGenerator {
           includeSummaryTable: this.options.markdown.includeSummaryTable,
           permalinkBaseUrl: this.options.markdown.permalinkBaseUrl,
           ticketUrlTemplate: this.options.markdown.ticketUrlTemplate,
+          traceUrlTemplate: this.options.markdown.traceUrlTemplate,
           includeSourceLinks: this.options.markdown.includeSourceLinks,
           customRenderers: this.options.markdown.customRenderers,
         });

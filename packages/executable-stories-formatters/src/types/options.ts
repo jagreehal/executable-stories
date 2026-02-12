@@ -176,6 +176,8 @@ export interface MarkdownFormatterOptions {
   permalinkBaseUrl?: string;
   /** URL template for ticket links. Use {ticket} as placeholder. E.g., "https://jira.example.com/browse/{ticket}" */
   ticketUrlTemplate?: string;
+  /** URL template for trace links. Use {traceId} as placeholder. E.g., "https://grafana.example.com/explore?traceId={traceId}" */
+  traceUrlTemplate?: string;
   /** Include source links when permalinkBaseUrl is set. Default: true */
   includeSourceLinks?: boolean;
   /** Custom renderers for doc entries */
@@ -247,6 +249,7 @@ export interface ResolvedFormatterOptions {
     includeSummaryTable: boolean;
     permalinkBaseUrl?: string;
     ticketUrlTemplate?: string;
+    traceUrlTemplate?: string;
     includeSourceLinks: boolean;
     customRenderers?: MarkdownRenderers;
   };

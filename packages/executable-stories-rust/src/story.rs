@@ -65,6 +65,8 @@ pub struct Story {
     steps: Vec<StoryStep>,
     tags: Option<Vec<String>>,
     tickets: Option<Vec<String>>,
+    meta: Option<serde_json::Value>,
+    trace_url_template: Option<String>,
     docs: Vec<DocEntry>,
     current_step_index: Option<usize>,
     seen_primary: HashSet<String>,
@@ -80,11 +82,13 @@ pub struct Story {
 impl Story {
     /// Create a new story with the given scenario description.
     pub fn new(scenario: &str) -> Self {
-        Story {
+        let mut story = Story {
             scenario: scenario.to_string(),
             steps: Vec::new(),
             tags: None,
             tickets: None,
+            meta: None,
+            trace_url_template: None,
             docs: Vec::new(),
             current_step_index: None,
             seen_primary: HashSet::new(),
@@ -95,7 +99,9 @@ impl Story {
             attachments: Vec::new(),
             active_timers: HashMap::new(),
             timer_counter: 0,
-        }
+        };
+        story.bridge_otel();
+        story
     }
 
     /// Set tags on the story (consumes and returns self for chaining at creation).
@@ -108,6 +114,58 @@ impl Story {
     pub fn with_tickets(mut self, tickets: &[&str]) -> Self {
         self.tickets = Some(tickets.iter().map(|t| t.to_string()).collect());
         self
+    }
+
+    /// Set the URL template for OTel trace links (uses {traceId} placeholder).
+    /// Also settable via OTEL_TRACE_URL_TEMPLATE env var.
+    pub fn with_trace_url_template(mut self, template: &str) -> Self {
+        self.trace_url_template = Some(template.to_string());
+        self
+    }
+
+    /// OTel bridge: detect active span, flow data bidirectionally.
+    /// This is a no-op when the `otel` feature is not enabled.
+    fn bridge_otel(&mut self) {
+        #[cfg(feature = "otel")]
+        {
+            use opentelemetry::trace::TraceContextExt;
+            let cx = opentelemetry::Context::current();
+            let span_ref = cx.span();
+            let span_ctx = span_ref.span_context();
+
+            if !span_ctx.trace_id().to_string().chars().any(|c| c != '0') {
+                return;
+            }
+
+            let trace_id = span_ctx.trace_id().to_string();
+            let span_id = span_ctx.span_id().to_string();
+
+            // OTel -> Story: capture traceId in structured meta
+            self.meta = Some(serde_json::json!({
+                "otel": { "traceId": &trace_id, "spanId": &span_id }
+            }));
+
+            // OTel -> Story: inject human-readable doc entries
+            self.docs.push(DocEntry::kv("Trace ID", serde_json::json!(trace_id.clone())));
+
+            let template = self.trace_url_template.clone()
+                .or_else(|| std::env::var("OTEL_TRACE_URL_TEMPLATE").ok());
+            if let Some(tmpl) = template {
+                let url = tmpl.replace("{traceId}", &trace_id);
+                self.docs.push(DocEntry::link("View Trace", &url));
+            }
+
+            // Story -> OTel: enrich active span with story attributes
+            use opentelemetry::trace::Span;
+            let span = cx.span();
+            span.set_attribute(opentelemetry::KeyValue::new("story.scenario", self.scenario.clone()));
+            if let Some(ref tags) = self.tags {
+                span.set_attribute(opentelemetry::KeyValue::new("story.tags", format!("{:?}", tags)));
+            }
+            if let Some(ref tickets) = self.tickets {
+                span.set_attribute(opentelemetry::KeyValue::new("story.tickets", format!("{:?}", tickets)));
+            }
+        }
     }
 
     // --- BDD step methods ---
@@ -441,6 +499,7 @@ impl Drop for Story {
                 steps: self.steps.clone(),
                 tags: self.tags.clone(),
                 tickets: self.tickets.clone(),
+                meta: self.meta.clone(),
                 docs: if self.docs.is_empty() {
                     None
                 } else {

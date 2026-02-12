@@ -28,6 +28,8 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { createHash } from "node:crypto";
+import { createRequire } from 'node:module';
+import { tryGetActiveOtelContext, resolveTraceUrl } from 'executable-stories-formatters';
 import type {
   DocEntry,
   StepKeyword,
@@ -318,6 +320,41 @@ function init(options?: StoryOptions): void {
     meta: options?.meta,
     sourceOrder: sourceOrderCounter++,
   };
+
+  // OTel bridge: detect active span, flow data bidirectionally
+  const otelCtx = tryGetActiveOtelContext();
+  if (otelCtx) {
+    // OTel -> Story: capture traceId in structured meta
+    meta.meta = { ...meta.meta, otel: { traceId: otelCtx.traceId, spanId: otelCtx.spanId } };
+
+    // OTel -> Story: inject human-readable doc entries
+    meta.docs = meta.docs ?? [];
+    meta.docs.push({ kind: 'kv', label: 'Trace ID', value: otelCtx.traceId, phase: 'runtime' });
+
+    const template = options?.traceUrlTemplate ?? process.env.OTEL_TRACE_URL_TEMPLATE;
+    const url = resolveTraceUrl(template, otelCtx.traceId);
+    if (url) {
+      meta.docs.push({ kind: 'link', label: 'View Trace', url, phase: 'runtime' });
+    }
+
+    // Story -> OTel: enrich active span with story attributes
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      const reqUrl = import.meta.url
+        ?? (typeof __filename !== 'undefined' ? `file://${__filename}` : undefined);
+      const req = createRequire(reqUrl!);
+      const api = req('@opentelemetry/api');
+      const span = api.trace?.getActiveSpan?.();
+      if (span) {
+        span.setAttribute('story.scenario', testName);
+        if (options?.tags?.length) span.setAttribute('story.tags', options.tags);
+        if (options?.ticket) {
+          const tickets = Array.isArray(options.ticket) ? options.ticket : [options.ticket];
+          span.setAttribute('story.tickets', tickets);
+        }
+      }
+    } catch { /* OTel not available */ }
+  }
 
   // Store in registry for this file
   const existing = storyRegistry.get(testPath);

@@ -15,6 +15,7 @@ import { renderErrorBox } from "./error-box";
 import { renderAttachments } from "./attachments";
 import { renderDocEntry } from "./doc-entries";
 import { renderSteps } from "./steps";
+import { highlightStepParams } from "./step-params";
 import { renderScenario } from "./scenario";
 import { renderFeature } from "./feature";
 import { buildBody } from "./body";
@@ -72,6 +73,8 @@ export function createHtmlFormatter(
     escapeHtml,
     getStatusIcon,
     renderDocs,
+    highlightStepParams: (text: string) =>
+      highlightStepParams(text, { escapeHtml }),
   };
 
   const scenarioDeps = {
@@ -150,6 +153,7 @@ export {
   renderDocScreenshot,
   renderDocCustom,
 } from "./doc-entries";
+export { highlightStepParams } from "./step-params";
 export { renderSteps, renderStep } from "./steps";
 export { renderScenario } from "./scenario";
 export { renderFeature } from "./feature";
@@ -161,6 +165,7 @@ export type { RenderSummaryArgs, RenderSummaryDeps } from "./summary";
 export type { RenderTagBarArgs, RenderTagBarDeps } from "./tag-bar";
 export type { RenderErrorBoxArgs, RenderErrorBoxDeps } from "./error-box";
 export type { RenderAttachmentsArgs, RenderAttachmentsDeps } from "./attachments";
+export type { HighlightStepParamsDeps } from "./step-params";
 export type { RenderStepsArgs, RenderStepsDeps } from "./steps";
 export type { RenderScenarioArgs, RenderScenarioDeps } from "./scenario";
 export type { RenderFeatureArgs, RenderFeatureDeps } from "./feature";

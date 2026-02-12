@@ -72,6 +72,7 @@
   --tag-bg: hsl(145 55% 95%);
   --tag-color: hsl(145 63% 30%);
   --tag-border: hsl(145 55% 85%);
+  --step-param-color: hsl(220 70% 50%);
 
   /* Accordion/Collapsible styling */
   --accordion-header-hover: hsl(0 0% 98%);
@@ -130,6 +131,7 @@
   --tag-bg: hsl(145 35% 14%);
   --tag-color: hsl(145 63% 60%);
   --tag-border: hsl(145 35% 22%);
+  --step-param-color: hsl(220 70% 70%);
 
   /* Accordion/Collapsible styling */
   --accordion-header-hover: hsl(0 0% 11%);
@@ -178,6 +180,7 @@
     --tag-bg: hsl(145 35% 14%);
     --tag-color: hsl(145 63% 60%);
     --tag-border: hsl(145 35% 22%);
+    --step-param-color: hsl(220 70% 70%);
     --accordion-header-hover: hsl(0 0% 11%);
     --accordion-content-bg: hsl(0 0% 7%);
   }
@@ -406,6 +409,98 @@ body {
 .summary-card.pending .value { color: var(--pending); }
 
 /* ============================================================================
+   Tag Filter Bar
+   ============================================================================ */
+.tag-bar {
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.tag-bar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.tag-bar-label {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted-foreground);
+  font-weight: 500;
+}
+
+.tag-bar-clear {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--radius);
+  transition: all 0.15s ease;
+}
+
+.tag-bar-clear:hover {
+  background: var(--muted);
+}
+
+.tag-bar-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.tag-pill {
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.25rem 0.625rem;
+  background: var(--tag-bg);
+  color: var(--tag-color);
+  border: 1px solid var(--tag-border);
+  border-radius: 9999px;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tag-pill:hover {
+  background: var(--success-border);
+}
+
+.tag-pill.active {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-color: var(--primary);
+}
+
+/* ============================================================================
+   Summary Card Status Filter
+   ============================================================================ */
+.summary-card.status-active {
+  box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--ring);
+}
+
+/* ============================================================================
+   Filter Results Counter
+   ============================================================================ */
+.filter-results {
+  text-align: center;
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+  margin-bottom: 1rem;
+  font-weight: 500;
+}
+
+/* ============================================================================
    Feature Sections - shadcn accordion style
    ============================================================================ */
 .feature {
@@ -631,6 +726,12 @@ body {
   color: var(--foreground);
 }
 
+.step-param {
+  font-style: italic;
+  font-weight: 500;
+  color: var(--step-param-color);
+}
+
 .step-duration {
   color: var(--muted-foreground);
   font-size: 0.6875rem;
@@ -792,8 +893,10 @@ body {
     padding: 0;
   }
 
-  .header-actions {
-    display: none;
+  .header-actions,
+  .tag-bar,
+  .filter-results {
+    display: none !important;
   }
 
   .feature,
@@ -1305,6 +1408,132 @@ body {
   font-family: inherit;
   background: none;
 }
+
+/* ============================================================================
+   Trace View - OTel span waterfall
+   ============================================================================ */
+.trace-view {
+  margin-top: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) - 2px);
+  overflow: hidden;
+}
+
+.trace-view-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--card);
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--foreground);
+  transition: background-color 0.15s ease;
+}
+
+.trace-view-header:hover {
+  background: var(--accordion-header-hover);
+}
+
+.trace-view-count {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  padding: 0.125rem 0.5rem;
+  background: var(--success-light);
+  color: var(--success);
+  border: 1px solid var(--success-border);
+  border-radius: 9999px;
+  font-family: var(--font-mono);
+}
+
+.trace-view-content {
+  border-top: 1px solid var(--border);
+  padding: 0.5rem 0.75rem;
+  background: var(--accordion-content-bg);
+}
+
+.trace-view.collapsed .trace-view-content {
+  display: none;
+}
+
+.trace-view-axis {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.625rem;
+  font-family: var(--font-mono);
+  color: var(--muted-foreground);
+  padding-bottom: 0.375rem;
+  margin-bottom: 0.375rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.trace-view-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.1875rem 0;
+  font-size: 0.75rem;
+}
+
+.trace-view-name {
+  width: 35%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--foreground);
+}
+
+.trace-view-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.trace-view-status-ok { background: var(--success); }
+.trace-view-status-error { background: var(--error); }
+.trace-view-status-unset { background: var(--muted-foreground); }
+
+.trace-view-bar-container {
+  flex: 1;
+  position: relative;
+  height: 1.25rem;
+  background: var(--muted);
+  border-radius: 2px;
+}
+
+.trace-view-bar {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  border-radius: 2px;
+  min-width: 2px;
+  display: flex;
+  align-items: center;
+  padding: 0 0.375rem;
+  font-size: 0.625rem;
+  font-family: var(--font-mono);
+  color: white;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.trace-view-bar-ok { background: var(--success); }
+.trace-view-bar-error { background: var(--error); }
+.trace-view-bar-unset { background: var(--muted-foreground); }
+
+@media print {
+  .trace-view.collapsed .trace-view-content {
+    display: block;
+  }
+}
 </style>
 </head>
 <body>
@@ -1318,7 +1547,7 @@ body {
     </header>
     <h2 id="meta-info">Meta info</h2>
 
-<dl class="meta-info"><dt>Started:</dt><dd>2026-02-05T09:14:37.511Z</dd><dt>Duration:</dt><dd>5.00s</dd><dt>Version:</dt><dd>1.0.0</dd><dt>Git:</dt><dd>abc1234</dd><dt>CI:</dt><dd>GitHub Actions</dd></dl>
+<dl class="meta-info"><dt>Started:</dt><dd>2026-02-13T17:42:49.294Z</dd><dt>Duration:</dt><dd>5.00s</dd><dt>Version:</dt><dd>1.0.0</dd><dt>Git:</dt><dd>abc1234</dd><dt>CI:</dt><dd>GitHub Actions</dd></dl>
 
 <h2 id="example-diagram">Example Diagram</h2>
 
@@ -1470,7 +1699,98 @@ console.log(x);</code></pre>
   <span class="step-duration">70ms</span>
 </div></div>
 
-<h2 id="scenario">Scenario</h2>
+<h2 id="steps-with-parameters">Steps with Parameters</h2>
+
+<div class="steps"><div class="step">
+  <span class="step-status status-passed">✓</span>
+  <span class="step-keyword">Given</span>
+  <span class="step-text">user <span class="step-param">"John"</span> is on login page</span>
+  <span class="step-duration">10ms</span>
+</div><div class="step">
+  <span class="step-status status-passed">✓</span>
+  <span class="step-keyword">When</span>
+  <span class="step-text">user enters <span class="step-param">42</span> as quantity</span>
+  <span class="step-duration">50ms</span>
+</div><div class="step">
+  <span class="step-status status-passed">✓</span>
+  <span class="step-keyword">Then</span>
+  <span class="step-text">user sees <span class="step-param">"Dashboard"</span> with <span class="step-param">3</span> notifications</span>
+  <span class="step-duration">70ms</span>
+</div></div>
+
+<h2 id="trace-view">Trace View</h2>
+
+
+<div class="trace-view collapsed">
+  <div class="trace-view-header" role="button" tabindex="0" aria-expanded="false">
+    <span>Spans</span>
+    <span class="trace-view-count">5</span>
+    <span class="chevron">&#9660;</span>
+  </div>
+  <div class="trace-view-content">
+    <div class="trace-view-axis">
+      <span>0ms</span>
+      <span>320ms</span>
+    </div>
+    <div class="trace-view-row" title="http.method=POST&#10;http.url=/api/login&#10;http.status_code=200">
+      <div class="trace-view-name" style="padding-left: 0px">
+        <span class="trace-view-status-dot trace-view-status-ok"></span>
+        HTTP POST /api/login
+      </div>
+      <div class="trace-view-bar-container">
+        <div class="trace-view-bar trace-view-bar-ok" style="left: 0.00%; width: 100.00%">
+          320ms
+        </div>
+      </div>
+    </div>
+    <div class="trace-view-row">
+      <div class="trace-view-name" style="padding-left: 16px">
+        <span class="trace-view-status-dot trace-view-status-ok"></span>
+        auth.middleware
+      </div>
+      <div class="trace-view-bar-container">
+        <div class="trace-view-bar trace-view-bar-ok" style="left: 1.56%; width: 87.50%">
+          280ms
+        </div>
+      </div>
+    </div>
+    <div class="trace-view-row" title="db.system=postgresql&#10;db.statement=SELECT * FROM users WHERE email = $1">
+      <div class="trace-view-name" style="padding-left: 32px">
+        <span class="trace-view-status-dot trace-view-status-ok"></span>
+        db.query SELECT users
+      </div>
+      <div class="trace-view-bar-container">
+        <div class="trace-view-bar trace-view-bar-ok" style="left: 3.13%; width: 46.88%">
+          150ms
+        </div>
+      </div>
+    </div>
+    <div class="trace-view-row" title="cache.hit=false">
+      <div class="trace-view-name" style="padding-left: 32px">
+        <span class="trace-view-status-dot trace-view-status-unset"></span>
+        cache.miss redis
+      </div>
+      <div class="trace-view-bar-container">
+        <div class="trace-view-bar trace-view-bar-unset" style="left: 51.56%; width: 14.06%">
+          45ms
+        </div>
+      </div>
+    </div>
+    <div class="trace-view-row">
+      <div class="trace-view-name" style="padding-left: 16px">
+        <span class="trace-view-status-dot trace-view-status-ok"></span>
+        serialize response
+      </div>
+      <div class="trace-view-bar-container">
+        <div class="trace-view-bar trace-view-bar-ok" style="left: 90.63%; width: 7.81%">
+          25ms
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2 id="scenario">Scenario (with trace view)</h2>
 
 
 <div class="scenario">
@@ -1480,7 +1800,7 @@ console.log(x);</code></pre>
         <span class="status-icon status-passed">✓</span>
         <span class="scenario-name">Sample scenario for design library</span>
       </div>
-      <div class="scenario-meta"><span class="tag">smoke</span><span class="tag">auth</span></div>
+      <div class="scenario-meta"><span class="tag">smoke</span><span class="tag">auth</span><span class="tag trace-tag" title="abc123def456789012345678deadbeef">abc123def4567890…</span></div>
     </div>
     <span class="scenario-duration">0.15s</span>
   </div>
@@ -1513,6 +1833,75 @@ console.log(x);</code></pre>
   screenshot.png
   <img class="attachment-image" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==" alt="screenshot.png" />
 </div><a class="attachment" href="https://example.com/trace.zip">trace.zip</a></div>
+    
+<div class="trace-view collapsed">
+  <div class="trace-view-header" role="button" tabindex="0" aria-expanded="false">
+    <span>Spans</span>
+    <span class="trace-view-count">5</span>
+    <span class="chevron">&#9660;</span>
+  </div>
+  <div class="trace-view-content">
+    <div class="trace-view-axis">
+      <span>0ms</span>
+      <span>320ms</span>
+    </div>
+    <div class="trace-view-row" title="http.method=POST&#10;http.url=/api/login&#10;http.status_code=200">
+      <div class="trace-view-name" style="padding-left: 0px">
+        <span class="trace-view-status-dot trace-view-status-ok"></span>
+        HTTP POST /api/login
+      </div>
+      <div class="trace-view-bar-container">
+        <div class="trace-view-bar trace-view-bar-ok" style="left: 0.00%; width: 100.00%">
+          320ms
+        </div>
+      </div>
+    </div>
+    <div class="trace-view-row">
+      <div class="trace-view-name" style="padding-left: 16px">
+        <span class="trace-view-status-dot trace-view-status-ok"></span>
+        auth.middleware
+      </div>
+      <div class="trace-view-bar-container">
+        <div class="trace-view-bar trace-view-bar-ok" style="left: 1.56%; width: 87.50%">
+          280ms
+        </div>
+      </div>
+    </div>
+    <div class="trace-view-row" title="db.system=postgresql&#10;db.statement=SELECT * FROM users WHERE email = $1">
+      <div class="trace-view-name" style="padding-left: 32px">
+        <span class="trace-view-status-dot trace-view-status-ok"></span>
+        db.query SELECT users
+      </div>
+      <div class="trace-view-bar-container">
+        <div class="trace-view-bar trace-view-bar-ok" style="left: 3.13%; width: 46.88%">
+          150ms
+        </div>
+      </div>
+    </div>
+    <div class="trace-view-row" title="cache.hit=false">
+      <div class="trace-view-name" style="padding-left: 32px">
+        <span class="trace-view-status-dot trace-view-status-unset"></span>
+        cache.miss redis
+      </div>
+      <div class="trace-view-bar-container">
+        <div class="trace-view-bar trace-view-bar-unset" style="left: 51.56%; width: 14.06%">
+          45ms
+        </div>
+      </div>
+    </div>
+    <div class="trace-view-row">
+      <div class="trace-view-name" style="padding-left: 16px">
+        <span class="trace-view-status-dot trace-view-status-ok"></span>
+        serialize response
+      </div>
+      <div class="trace-view-bar-container">
+        <div class="trace-view-bar trace-view-bar-ok" style="left: 90.63%; width: 7.81%">
+          25ms
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
   </div>
 </div>
 
@@ -1541,7 +1930,7 @@ console.log(x);</code></pre>
         <span class="status-icon status-passed">✓</span>
         <span class="scenario-name">Sample scenario for design library</span>
       </div>
-      <div class="scenario-meta"><span class="tag">smoke</span><span class="tag">auth</span></div>
+      <div class="scenario-meta"><span class="tag">smoke</span><span class="tag">auth</span><span class="tag trace-tag" title="abc123def456789012345678deadbeef">abc123def4567890…</span></div>
     </div>
     <span class="scenario-duration">0.15s</span>
   </div>
@@ -1574,6 +1963,75 @@ console.log(x);</code></pre>
   screenshot.png
   <img class="attachment-image" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==" alt="screenshot.png" />
 </div><a class="attachment" href="https://example.com/trace.zip">trace.zip</a></div>
+    
+<div class="trace-view collapsed">
+  <div class="trace-view-header" role="button" tabindex="0" aria-expanded="false">
+    <span>Spans</span>
+    <span class="trace-view-count">5</span>
+    <span class="chevron">&#9660;</span>
+  </div>
+  <div class="trace-view-content">
+    <div class="trace-view-axis">
+      <span>0ms</span>
+      <span>320ms</span>
+    </div>
+    <div class="trace-view-row" title="http.method=POST&#10;http.url=/api/login&#10;http.status_code=200">
+      <div class="trace-view-name" style="padding-left: 0px">
+        <span class="trace-view-status-dot trace-view-status-ok"></span>
+        HTTP POST /api/login
+      </div>
+      <div class="trace-view-bar-container">
+        <div class="trace-view-bar trace-view-bar-ok" style="left: 0.00%; width: 100.00%">
+          320ms
+        </div>
+      </div>
+    </div>
+    <div class="trace-view-row">
+      <div class="trace-view-name" style="padding-left: 16px">
+        <span class="trace-view-status-dot trace-view-status-ok"></span>
+        auth.middleware
+      </div>
+      <div class="trace-view-bar-container">
+        <div class="trace-view-bar trace-view-bar-ok" style="left: 1.56%; width: 87.50%">
+          280ms
+        </div>
+      </div>
+    </div>
+    <div class="trace-view-row" title="db.system=postgresql&#10;db.statement=SELECT * FROM users WHERE email = $1">
+      <div class="trace-view-name" style="padding-left: 32px">
+        <span class="trace-view-status-dot trace-view-status-ok"></span>
+        db.query SELECT users
+      </div>
+      <div class="trace-view-bar-container">
+        <div class="trace-view-bar trace-view-bar-ok" style="left: 3.13%; width: 46.88%">
+          150ms
+        </div>
+      </div>
+    </div>
+    <div class="trace-view-row" title="cache.hit=false">
+      <div class="trace-view-name" style="padding-left: 32px">
+        <span class="trace-view-status-dot trace-view-status-unset"></span>
+        cache.miss redis
+      </div>
+      <div class="trace-view-bar-container">
+        <div class="trace-view-bar trace-view-bar-unset" style="left: 51.56%; width: 14.06%">
+          45ms
+        </div>
+      </div>
+    </div>
+    <div class="trace-view-row">
+      <div class="trace-view-name" style="padding-left: 16px">
+        <span class="trace-view-status-dot trace-view-status-ok"></span>
+        serialize response
+      </div>
+      <div class="trace-view-bar-container">
+        <div class="trace-view-bar trace-view-bar-ok" style="left: 90.63%; width: 7.81%">
+          25ms
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
   </div>
 </div>
   </div>
@@ -1623,50 +2081,162 @@ function initTheme() {
   });
 }
 
+// Filter state
+var activeTags = new Set();
+var activeStatus = null;
+
 // Search functionality
 function initSearch() {
-  const input = document.querySelector('.search-input');
+  var input = document.querySelector('.search-input');
   if (!input) return;
 
-  let debounceTimer;
-  input.addEventListener('input', (e) => {
+  var debounceTimer;
+  input.addEventListener('input', function() {
     clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => {
-      filterScenarios(e.target.value.toLowerCase().trim());
+    debounceTimer = setTimeout(function() {
+      applyAllFilters();
     }, 150);
   });
 
   // Clear search on Escape
-  input.addEventListener('keydown', (e) => {
+  input.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
       e.target.value = '';
-      filterScenarios('');
+      applyAllFilters();
     }
   });
 }
 
-function filterScenarios(query) {
-  const features = document.querySelectorAll('.feature');
+// Tag filter
+function initTagFilter() {
+  document.querySelectorAll('.tag-pill').forEach(function(pill) {
+    pill.addEventListener('click', function() {
+      var tag = pill.dataset.tag;
+      if (activeTags.has(tag)) {
+        activeTags.delete(tag);
+        pill.classList.remove('active');
+      } else {
+        activeTags.add(tag);
+        pill.classList.add('active');
+      }
+      updateClearButton();
+      applyAllFilters();
+    });
+  });
 
-  features.forEach(feature => {
-    const scenarios = feature.querySelectorAll('.scenario');
-    let visibleCount = 0;
+  var clearBtn = document.querySelector('.tag-bar-clear');
+  if (clearBtn) {
+    clearBtn.addEventListener('click', function() {
+      activeTags.clear();
+      document.querySelectorAll('.tag-pill.active').forEach(function(p) { p.classList.remove('active'); });
+      updateClearButton();
+      applyAllFilters();
+    });
+  }
+}
 
-    scenarios.forEach(scenario => {
-      const title = scenario.querySelector('.scenario-title')?.textContent?.toLowerCase() || '';
-      const tags = Array.from(scenario.querySelectorAll('.tag')).map(t => t.textContent.toLowerCase());
-      const steps = Array.from(scenario.querySelectorAll('.step-text')).map(s => s.textContent.toLowerCase());
+function updateClearButton() {
+  var clearBtn = document.querySelector('.tag-bar-clear');
+  if (clearBtn) {
+    clearBtn.style.display = activeTags.size > 0 ? '' : 'none';
+  }
+}
 
-      const matches = !query ||
-        title.includes(query) ||
-        tags.some(t => t.includes(query)) ||
-        steps.some(s => s.includes(query));
+// Status filter (clickable summary cards)
+function initStatusFilter() {
+  document.querySelectorAll('.summary-card').forEach(function(card) {
+    card.style.cursor = 'pointer';
+    if (!card.classList.contains('passed') && !card.classList.contains('failed') && !card.classList.contains('skipped')) {
+      card.addEventListener('click', function() {
+        activeStatus = null;
+        document.querySelectorAll('.summary-card').forEach(function(c) { c.classList.remove('status-active'); });
+        applyAllFilters();
+      });
+      return;
+    }
+    card.addEventListener('click', function() {
+      var status = card.classList.contains('passed') ? 'passed' :
+                   card.classList.contains('failed') ? 'failed' : 'skipped';
+      if (activeStatus === status) {
+        activeStatus = null;
+        card.classList.remove('status-active');
+      } else {
+        activeStatus = status;
+        document.querySelectorAll('.summary-card').forEach(function(c) { c.classList.remove('status-active'); });
+        card.classList.add('status-active');
+      }
+      applyAllFilters();
+    });
+  });
+}
 
-      scenario.style.display = matches ? '' : 'none';
-      if (matches) visibleCount++;
+// Unified filter: composes search + tags + status
+function applyAllFilters() {
+  var searchInput = document.querySelector('.search-input');
+  var searchQuery = searchInput ? searchInput.value.toLowerCase().trim() : '';
+  var features = document.querySelectorAll('.feature');
+  var visibleCount = 0;
+  var totalCount = 0;
+
+  features.forEach(function(feature) {
+    var scenarios = feature.querySelectorAll('.scenario');
+    var featureVisible = 0;
+
+    scenarios.forEach(function(scenario) {
+      totalCount++;
+      var title = (scenario.querySelector('.scenario-title') || {}).textContent || '';
+      title = title.toLowerCase();
+      var tags = Array.from(scenario.querySelectorAll('.scenario-meta .tag')).map(function(t) { return t.textContent.toLowerCase(); });
+      var steps = Array.from(scenario.querySelectorAll('.step-text')).map(function(s) { return s.textContent.toLowerCase(); });
+      var statusEl = scenario.querySelector('.status-icon');
+      var status = statusEl && statusEl.classList.contains('status-passed') ? 'passed' :
+                   statusEl && statusEl.classList.contains('status-failed') ? 'failed' :
+                   statusEl && statusEl.classList.contains('status-skipped') ? 'skipped' : 'pending';
+
+      var matchesSearch = !searchQuery ||
+        title.includes(searchQuery) ||
+        tags.some(function(t) { return t.includes(searchQuery); }) ||
+        steps.some(function(s) { return s.includes(searchQuery); });
+
+      var matchesTags = activeTags.size === 0 ||
+        tags.some(function(t) { return activeTags.has(t); });
+
+      var matchesStatus = !activeStatus ||
+        status === activeStatus ||
+        (activeStatus === 'skipped' && status === 'pending');
+
+      var visible = matchesSearch && matchesTags && matchesStatus;
+      scenario.style.display = visible ? '' : 'none';
+      if (visible) { visibleCount++; featureVisible++; }
     });
 
-    feature.style.display = visibleCount > 0 ? '' : 'none';
+    feature.style.display = featureVisible > 0 ? '' : 'none';
+  });
+
+  updateFilterResults(visibleCount, totalCount);
+}
+
+function updateFilterResults(visible, total) {
+  var el = document.querySelector('.filter-results');
+  if (!el) return;
+  var searchInput = document.querySelector('.search-input');
+  var isFiltering = activeTags.size > 0 || activeStatus ||
+    (searchInput && searchInput.value.trim().length > 0);
+  el.style.display = isFiltering ? '' : 'none';
+  var vc = el.querySelector('.visible-count');
+  var tc = el.querySelector('.total-count');
+  if (vc) vc.textContent = visible;
+  if (tc) tc.textContent = total;
+}
+
+// Keyboard shortcuts
+function initKeyboardShortcuts() {
+  document.addEventListener('keydown', function(e) {
+    if (e.key === '/' && !e.ctrlKey && !e.metaKey && e.target.tagName !== 'INPUT') {
+      e.preventDefault();
+      var input = document.querySelector('.search-input');
+      if (input) input.focus();
+    }
   });
 }
 
@@ -1701,6 +2271,18 @@ function initCollapse() {
       }
     });
   });
+
+  document.querySelectorAll('.trace-view-header').forEach(header => {
+    header.addEventListener('click', () => {
+      toggleCollapse(header, header.closest('.trace-view'));
+    });
+    header.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggleCollapse(header, header.closest('.trace-view'));
+      }
+    });
+  });
 }
 
 function expandAll() {
@@ -1723,6 +2305,9 @@ function collapseAll() {
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   initSearch();
+  initTagFilter();
+  initStatusFilter();
+  initKeyboardShortcuts();
   initCollapse();
 });
 </script>

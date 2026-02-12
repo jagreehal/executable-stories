@@ -43,6 +43,24 @@ export function renderScenario(
     .map((t) => `<span class="tag">${deps.escapeHtml(t)}</span>`)
     .join("");
 
+  // Trace badge from OTel bridge
+  const otelMeta = (tc.story.meta as Record<string, unknown> | undefined)
+    ?.otel as { traceId?: string } | undefined;
+  let traceBadge = "";
+  if (otelMeta?.traceId) {
+    const shortId = otelMeta.traceId.slice(0, 16);
+    // Look for a "View Trace" link in story-level docs for the URL
+    const traceLink = tc.story.docs?.find(
+      (d): d is Extract<typeof d, { kind: "link" }> =>
+        d.kind === "link" && d.label === "View Trace",
+    );
+    if (traceLink) {
+      traceBadge = `<a class="tag trace-tag" href="${deps.escapeHtml(traceLink.url)}" title="${deps.escapeHtml(otelMeta.traceId)}" target="_blank" rel="noopener">${deps.escapeHtml(shortId)}…</a>`;
+    } else {
+      traceBadge = `<span class="tag trace-tag" title="${deps.escapeHtml(otelMeta.traceId)}">${deps.escapeHtml(shortId)}…</span>`;
+    }
+  }
+
   const storyDocs = deps.renderDocs(tc.story.docs, "story-docs");
   const steps = deps.renderSteps(
     { steps: tc.story.steps, stepResults: tc.stepResults },
@@ -78,7 +96,7 @@ export function renderScenario(
         <span class="status-icon ${statusClass}">${statusIcon}</span>
         <span class="scenario-name">${deps.escapeHtml(tc.story.scenario)}</span>
       </div>
-      <div class="scenario-meta">${tags}</div>
+      <div class="scenario-meta">${tags}${traceBadge}</div>
     </div>
     <span class="scenario-duration">${duration}</span>
   </div>

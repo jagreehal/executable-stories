@@ -48,6 +48,8 @@ pub struct StoryMeta {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tickets: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub meta: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub docs: Option<Vec<DocEntry>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub source_order: Option<u32>,

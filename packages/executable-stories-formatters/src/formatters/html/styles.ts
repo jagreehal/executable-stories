@@ -70,6 +70,7 @@ export const CSS_STYLES = `
   --tag-bg: hsl(145 55% 95%);
   --tag-color: hsl(145 63% 30%);
   --tag-border: hsl(145 55% 85%);
+  --step-param-color: hsl(220 70% 50%);
 
   /* Accordion/Collapsible styling */
   --accordion-header-hover: hsl(0 0% 98%);
@@ -128,6 +129,7 @@ export const CSS_STYLES = `
   --tag-bg: hsl(145 35% 14%);
   --tag-color: hsl(145 63% 60%);
   --tag-border: hsl(145 35% 22%);
+  --step-param-color: hsl(220 70% 70%);
 
   /* Accordion/Collapsible styling */
   --accordion-header-hover: hsl(0 0% 11%);
@@ -176,6 +178,7 @@ export const CSS_STYLES = `
     --tag-bg: hsl(145 35% 14%);
     --tag-color: hsl(145 63% 60%);
     --tag-border: hsl(145 35% 22%);
+    --step-param-color: hsl(220 70% 70%);
     --accordion-header-hover: hsl(0 0% 11%);
     --accordion-content-bg: hsl(0 0% 7%);
   }
@@ -719,6 +722,12 @@ body {
 .step-text {
   flex: 1;
   color: var(--foreground);
+}
+
+.step-param {
+  font-style: italic;
+  font-weight: 500;
+  color: var(--step-param-color);
 }
 
 .step-duration {
@@ -1397,4 +1406,5 @@ body {
   font-family: inherit;
   background: none;
 }
+
 `;

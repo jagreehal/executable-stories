@@ -173,6 +173,7 @@ The formatters package provides an **`executable-stories`** CLI for generating r
 
 **HTML report options (all enabled by default):**
 
+- Step text in the HTML report highlights **quoted strings** and **standalone numbers** (step parameter highlighting) for readability.
 - **`--html-no-syntax-highlighting`** — Disable syntax highlighting in HTML.
 - **`--html-no-mermaid`** — Disable Mermaid diagram rendering in HTML.
 - **`--html-no-markdown`** — Disable Markdown parsing in HTML.

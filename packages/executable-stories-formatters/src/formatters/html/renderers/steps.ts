@@ -16,6 +16,7 @@ export interface RenderStepsDeps {
   escapeHtml: (str: string) => string;
   getStatusIcon: (status: import("../../../types/test-result.js").TestStatus) => string;
   renderDocs: (docs: DocEntry[] | undefined, containerClass: string) => string;
+  highlightStepParams?: (text: string) => string;
 }
 
 export function renderStep(
@@ -37,10 +38,14 @@ export function renderStep(
 
   const stepDocs = deps.renderDocs(step.docs, "step-docs");
 
+  const textHtml = deps.highlightStepParams
+    ? deps.highlightStepParams(step.text)
+    : deps.escapeHtml(step.text);
+
   return `<div class="${stepClass}">
   <span class="step-status ${statusClass}">${statusIcon}</span>
   <span class="step-keyword">${deps.escapeHtml(step.keyword)}</span>
-  <span class="step-text">${deps.escapeHtml(step.text)}</span>
+  <span class="step-text">${textHtml}</span>
   <span class="step-duration">${duration}</span>
 </div>${stepDocs}`;
 }

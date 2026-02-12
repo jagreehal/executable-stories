@@ -175,11 +175,11 @@ SUBCOMMANDS
 | `--output-name <name>`       | `test-results` | Base filename                                                 |
 | `--synthesize-stories`       | on             | Synthesize story metadata for plain test results              |
 | `--no-synthesize-stories`    |                | Disable story synthesis (strict mode)                         |
-| `--html-title <title>`       | `Test Results` | HTML report title                                             |
-| `--html-syntax-highlighting` | off            | Enable syntax highlighting in HTML                            |
-| `--html-mermaid`             | off            | Enable Mermaid diagrams in HTML                               |
-| `--html-markdown`            | off            | Enable markdown parsing in HTML                               |
-| `--stdin`                    |                | Read JSON from stdin instead of file                          |
+| `--html-title <title>`           | `Test Results` | HTML report title                                             |
+| `--html-no-syntax-highlighting`  |                | Disable syntax highlighting in HTML (enabled by default)     |
+| `--html-no-mermaid`              |                | Disable Mermaid diagrams in HTML (enabled by default)         |
+| `--html-no-markdown`             |                | Disable markdown parsing in HTML (enabled by default)          |
+| `--stdin`                        |                | Read JSON from stdin instead of file                          |
 | `--json-summary`             | off            | Print machine-parsable JSON summary                           |
 | `--emit-canonical <path>`    |                | Write canonical JSON to given path                            |
 | `--help`                     |                | Show help message                                             |
@@ -206,13 +206,8 @@ executable-stories format run.json --format html,markdown --output-dir reports
 # Pipe from stdin
 cat run.json | executable-stories format --stdin --format html
 
-# Generate with all HTML features enabled
-executable-stories format run.json \
-  --format html \
-  --html-syntax-highlighting \
-  --html-mermaid \
-  --html-markdown \
-  --html-title "Sprint 42 Results"
+# Generate HTML with custom title (syntax highlighting, Mermaid, Markdown are on by default)
+executable-stories format run.json --format html --html-title "Sprint 42 Results"
 
 # Export canonical JSON for debugging
 executable-stories format run.json --emit-canonical canonical.json
