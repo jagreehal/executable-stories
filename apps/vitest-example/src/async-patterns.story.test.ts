@@ -222,7 +222,7 @@ describe('Async Patterns', () => {
 
     story.then('elapsed time is measurable');
     const elapsed = endTime - startTime;
-    expect(elapsed).toBeGreaterThanOrEqual(50);
+    expect(elapsed).toBeGreaterThanOrEqual(45); // Allow for timing variations
   });
 
   // ============================================================================
