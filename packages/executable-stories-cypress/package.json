@@ -51,6 +51,11 @@
     "typescript": "~5.9.3",
     "vitest": "^4.0.18"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jagreehal/executable-stories.git",
+    "directory": "packages/executable-stories-cypress"
+  },
   "keywords": [
     "cypress",
     "bdd",
