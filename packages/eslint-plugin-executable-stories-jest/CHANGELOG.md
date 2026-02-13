@@ -1,5 +1,11 @@
 # eslint-plugin-executable-stories-jest
 
+## 1.1.0
+
+### Minor Changes
+
+- 4df97de: Add or fix `repository.directory` in each package for correct monorepo metadata and deployment (npm, changelog, docs links).
+
 ## 1.0.0
 
 ### Minor Changes
