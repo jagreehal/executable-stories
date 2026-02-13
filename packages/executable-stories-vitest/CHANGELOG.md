@@ -1,5 +1,11 @@
 # executable-stories-vitest
 
+## 3.1.0
+
+### Minor Changes
+
+- 4df97de: Add or fix `repository.directory` in each package for correct monorepo metadata and deployment (npm, changelog, docs links).
+
 ## 3.0.0
 
 ### Patch Changes
