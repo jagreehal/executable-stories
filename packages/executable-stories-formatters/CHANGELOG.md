@@ -1,5 +1,11 @@
 # executable-stories-formatters
 
+## 0.4.0
+
+### Minor Changes
+
+- 68af01a: Add trace view to HTML reports: scenarios can display an OpenTelemetry-style trace waterfall when span data is attached. Formatters gain a trace-view renderer and OTEL types; Playwright and Vitest reporters pass trace/span data into the report.
+
 ## 0.3.0
 
 ### Minor Changes
