@@ -26,6 +26,10 @@ export interface RenderScenarioDeps {
     args: import("./attachments.js").RenderAttachmentsArgs,
     deps: import("./attachments.js").RenderAttachmentsDeps,
   ) => string;
+  renderTraceView: (
+    args: import("./trace-view.js").RenderTraceViewArgs,
+    deps: import("./trace-view.js").RenderTraceViewDeps,
+  ) => string;
   embedScreenshots: boolean;
 }
 
@@ -85,6 +89,11 @@ export function renderScenario(
     },
   );
 
+  const traceView = deps.renderTraceView(
+    { spans: tc.story.otelSpans },
+    { escapeHtml: deps.escapeHtml },
+  );
+
   const collapsedClass = deps.startCollapsed ? " collapsed" : "";
   const ariaExpanded = !deps.startCollapsed;
 
@@ -105,6 +114,7 @@ export function renderScenario(
     ${steps}
     ${error}
     ${attachments}
+    ${traceView}
   </div>
 </div>`;
 }

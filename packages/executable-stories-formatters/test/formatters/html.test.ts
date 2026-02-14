@@ -143,6 +143,17 @@ describe("HtmlFormatter", () => {
       expect(result).toContain("toggleCollapse");
       expect(result).toContain("setAttribute('aria-expanded'");
     });
+
+    it("should include trace views in global expand/collapse controls", () => {
+      const raw = createRawRun();
+      const run = canonicalizeRun(raw);
+      const result = formatter.format(run);
+
+      expect(result).toContain("querySelectorAll('.feature, .scenario, .trace-view')");
+      expect(result).toContain(
+        "querySelector('.feature-header, .scenario-header, .trace-view-header')",
+      );
+    });
   });
 
   describe("scenarios", () => {

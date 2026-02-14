@@ -30,6 +30,7 @@ import {
   type RawStepEvent,
   type FormatterOptions,
   type CoverageSummary,
+  type OtelSpan,
 } from "executable-stories-formatters";
 
 // Re-export types from formatters for convenience
@@ -380,6 +381,21 @@ export default class StoryReporter implements Reporter {
             title: (s as { text: string }).text,
             durationMs: s.durationMs,
           }));
+
+        // Read autotel OTel spans from task.meta.otelSpans
+        const otelSpans = taskMeta?.otelSpans;
+        if (Array.isArray(otelSpans) && otelSpans.length > 0) {
+          const valid = otelSpans.filter(
+            (s: unknown): s is OtelSpan =>
+              s != null &&
+              typeof s === "object" &&
+              typeof (s as Record<string, unknown>).spanId === "string" &&
+              typeof (s as Record<string, unknown>).name === "string",
+          );
+          if (valid.length > 0) {
+            meta.otelSpans = valid;
+          }
+        }
 
         // Retry info from Vitest result
         const retryCount = (result as { retryCount?: number } | undefined)?.retryCount ?? 0;

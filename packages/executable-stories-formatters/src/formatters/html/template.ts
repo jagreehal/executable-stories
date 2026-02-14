@@ -257,17 +257,17 @@ function initCollapse() {
 }
 
 function expandAll() {
-  document.querySelectorAll('.feature, .scenario').forEach(el => {
+  document.querySelectorAll('.feature, .scenario, .trace-view').forEach(el => {
     el.classList.remove('collapsed');
-    const header = el.querySelector('.feature-header, .scenario-header');
+    const header = el.querySelector('.feature-header, .scenario-header, .trace-view-header');
     header?.setAttribute('aria-expanded', 'true');
   });
 }
 
 function collapseAll() {
-  document.querySelectorAll('.feature, .scenario').forEach(el => {
+  document.querySelectorAll('.feature, .scenario, .trace-view').forEach(el => {
     el.classList.add('collapsed');
-    const header = el.querySelector('.feature-header, .scenario-header');
+    const header = el.querySelector('.feature-header, .scenario-header, .trace-view-header');
     header?.setAttribute('aria-expanded', 'false');
   });
 }

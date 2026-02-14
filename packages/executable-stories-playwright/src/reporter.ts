@@ -110,6 +110,30 @@ export default class StoryReporter implements Reporter {
     try {
       const meta: StoryMeta = JSON.parse(storyAnnotation.description);
 
+      // Read autotel OTel spans from annotations
+      const otelSpansAnnotation = test.annotations.find(
+        (a) => a.type === "otel-spans",
+      );
+      if (otelSpansAnnotation?.description) {
+        try {
+          const spans = JSON.parse(otelSpansAnnotation.description);
+          if (Array.isArray(spans) && spans.length > 0) {
+            const valid = spans.filter(
+              (s: unknown) =>
+                s != null &&
+                typeof s === "object" &&
+                typeof (s as Record<string, unknown>).spanId === "string" &&
+                typeof (s as Record<string, unknown>).name === "string",
+            );
+            if (valid.length > 0) {
+              meta.otelSpans = valid;
+            }
+          }
+        } catch {
+          /* ignore parse errors */
+        }
+      }
+
       // Get source file and line for sorting
       const sourceFile = test.location?.file
         ? toRelativePosix(test.location.file, this.projectRoot)
