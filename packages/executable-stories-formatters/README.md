@@ -119,7 +119,7 @@ const generator = new ReportGenerator({
 
 | Format | Description | File Extension |
 | --- | --- | --- |
-| `html` | Interactive HTML report with search and screenshots | `.html` |
+| `html` | Interactive HTML report with search, screenshots, step parameter highlighting (quoted strings and numbers), syntax-highlighted code blocks, Mermaid diagrams, and Markdown in doc sections | `.html` |
 | `markdown` | Markdown user-story documentation | `.md` |
 | `junit` | JUnit XML for CI integration | `.junit.xml` |
 | `cucumber-json` | Cucumber JSON for tooling compatibility | `.cucumber.json` |

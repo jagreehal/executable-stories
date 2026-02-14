@@ -14,6 +14,7 @@ Usage in tests::
 from __future__ import annotations
 
 import json
+import os
 import threading
 import time
 from typing import Any, Callable, TypeVar
@@ -85,6 +86,7 @@ class Story:
         tags: list[str] | None = None,
         ticket: str | list[str] | None = None,
         meta: dict[str, Any] | None = None,
+        trace_url_template: str | None = None,
     ) -> None:
         """Start a new story context for the current test."""
         tickets: list[str] | None = None
@@ -93,6 +95,40 @@ class Story:
         self._local.ctx = _StoryContext(
             scenario, tags=tags, tickets=tickets, meta=meta
         )
+
+        # OTel bridge: detect active span, flow data bidirectionally
+        ctx = self._local.ctx
+        try:
+            from opentelemetry import trace as otel_trace
+
+            span = otel_trace.get_current_span()
+            span_ctx = span.get_span_context()
+            if span_ctx and span_ctx.trace_id and span_ctx.trace_id != 0:
+                trace_id = format(span_ctx.trace_id, '032x')
+                span_id = format(span_ctx.span_id, '016x')
+
+                # OTel -> Story: capture traceId in structured meta
+                ctx.meta["otel"] = {"traceId": trace_id, "spanId": span_id}
+
+                # OTel -> Story: inject human-readable doc entries
+                ctx.docs.append({"kind": "kv", "label": "Trace ID", "value": trace_id, "phase": "runtime"})
+
+                template = trace_url_template or os.environ.get("OTEL_TRACE_URL_TEMPLATE")
+                if template:
+                    url = template.replace("{traceId}", trace_id)
+                    ctx.docs.append({"kind": "link", "label": "View Trace", "url": url, "phase": "runtime"})
+
+                # Story -> OTel: enrich active span with story attributes
+                span.set_attribute("story.scenario", scenario)
+                if tags:
+                    span.set_attribute("story.tags", tags)
+                if ticket:
+                    ticket_list = [ticket] if isinstance(ticket, str) else ticket
+                    span.set_attribute("story.tickets", ticket_list)
+        except ImportError:
+            pass  # opentelemetry not installed
+        except Exception:
+            pass  # OTel not available or no active span
 
     def _get_meta(self) -> dict[str, Any] | None:
         """Return the StoryMeta dict for the current test, or None."""

@@ -60,4 +60,28 @@ describe("renderStep", () => {
     );
     expect(html).toContain("[passed]");
   });
+
+  it("uses highlightStepParams when provided in deps", () => {
+    const highlightStepParams = (text: string) =>
+      text.replace(/\d+/g, '<span class="step-param">$&</span>');
+    const html = renderStep(
+      { keyword: "Given", text: "I have 5 items", docs: undefined },
+      { index: 0, status: "passed", durationMs: 0 },
+      0,
+      { ...deps, highlightStepParams },
+    );
+    expect(html).toContain('<span class="step-param">5</span>');
+    expect(html).toContain('<span class="step-text">');
+  });
+
+  it("falls back to escapeHtml when highlightStepParams is not provided", () => {
+    const html = renderStep(
+      { keyword: "Given", text: "I have 5 items", docs: undefined },
+      { index: 0, status: "passed", durationMs: 0 },
+      0,
+      deps,
+    );
+    expect(html).toContain("I have 5 items");
+    expect(html).not.toContain("step-param");
+  });
 });

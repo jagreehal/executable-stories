@@ -92,6 +92,11 @@ function main() {
         { kind: "note", text: "Story-level note.", phase: "static" },
         { kind: "tag", names: ["smoke", "auth"], phase: "static" },
       ],
+      meta: {
+        otel: {
+          traceId: "abc123def456789012345678deadbeef",
+        },
+      },
     },
     sourceFile: "src/auth/login.test.ts",
     sourceLine: 1,
@@ -329,7 +334,7 @@ function main() {
     ),
   );
 
-  sections.push("<h2 id=\"scenario\">Scenario</h2>");
+  sections.push("<h2 id=\"scenario\">Scenario (with trace badge)</h2>");
   sections.push(renderScenario({ tc: fixtureTc }, scenarioDeps));
 
   sections.push("<h2 id=\"feature\">Feature</h2>");

@@ -37,6 +37,8 @@ export interface MarkdownOptions {
   permalinkBaseUrl?: string;
   /** URL template for ticket links. Use {ticket} as placeholder */
   ticketUrlTemplate?: string;
+  /** URL template for trace links. Use {traceId} as placeholder. E.g. "https://grafana.example.com/explore?traceId={traceId}" */
+  traceUrlTemplate?: string;
   /** Include source links when permalinkBaseUrl is set. Default: true */
   includeSourceLinks?: boolean;
   /** Custom renderers for doc entries */
@@ -58,6 +60,7 @@ type ResolvedMarkdownOptions = {
   includeSummaryTable: boolean;
   permalinkBaseUrl?: string;
   ticketUrlTemplate?: string;
+  traceUrlTemplate?: string;
   includeSourceLinks: boolean;
   customRenderers?: MarkdownRenderers;
 };
@@ -86,6 +89,7 @@ export class MarkdownFormatter {
       includeSummaryTable: options.includeSummaryTable ?? false,
       permalinkBaseUrl: options.permalinkBaseUrl,
       ticketUrlTemplate: options.ticketUrlTemplate,
+      traceUrlTemplate: options.traceUrlTemplate,
       includeSourceLinks: options.includeSourceLinks ?? true,
       customRenderers: options.customRenderers,
     };
@@ -361,6 +365,21 @@ export class MarkdownFormatter {
         meta.push(`Tickets: ${tc.story.tickets.map((t) => `\`${t}\``).join(", ")}`);
       }
     }
+    // Trace context (injected by OTel bridge in story.init())
+    const otelMeta = (tc.story.meta as Record<string, unknown> | undefined)
+      ?.otel as { traceId?: string } | undefined;
+    if (otelMeta?.traceId) {
+      const traceTemplate = this.options.traceUrlTemplate;
+      if (traceTemplate) {
+        const url = traceTemplate.replace(/\{traceId\}/g, otelMeta.traceId);
+        meta.push(
+          `Trace: [${otelMeta.traceId.slice(0, 16)}…](${url})`,
+        );
+      } else {
+        meta.push(`Trace: \`${otelMeta.traceId}\``);
+      }
+    }
+
     if (meta.length > 0) {
       lines.push(meta.join(" | "));
     }

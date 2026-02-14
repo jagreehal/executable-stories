@@ -1,9 +1,14 @@
 package es
 
 import (
+	"context"
 	"fmt"
+	"os"
 	"strings"
 	"time"
+
+	"go.opentelemetry.io/otel/attribute"
+	otelTrace "go.opentelemetry.io/otel/trace"
 )
 
 // TestingT is the subset of *testing.T that the story system needs.
@@ -32,7 +37,8 @@ type S struct {
 	startTime   time.Time
 	sourceOrder int
 	stepCounter int
-	attachments []RawAttachment
+	attachments      []RawAttachment
+	traceUrlTemplate string // URL template with {traceId} placeholder for OTel trace links
 }
 
 // WithTags adds tags to the story.
@@ -61,6 +67,57 @@ func WithMeta(meta map[string]any) Option {
 	}
 }
 
+// WithTraceUrlTemplate sets the URL template for OTel trace links.
+// Uses {traceId} as placeholder. Also settable via OTEL_TRACE_URL_TEMPLATE env var.
+func WithTraceUrlTemplate(template string) Option {
+	return func(s *S) {
+		s.traceUrlTemplate = template
+	}
+}
+
+func resolveTraceUrl(template, traceId string) string {
+	if template == "" {
+		return ""
+	}
+	return strings.ReplaceAll(template, "{traceId}", traceId)
+}
+
+func bridgeOtel(s *S) {
+	span := otelTrace.SpanFromContext(context.Background())
+	sc := span.SpanContext()
+	if !sc.TraceID().IsValid() {
+		return
+	}
+	traceId := sc.TraceID().String()
+	spanId := sc.SpanID().String()
+
+	// OTel -> Story: capture traceId in structured meta
+	if s.meta == nil {
+		s.meta = make(map[string]any)
+	}
+	s.meta["otel"] = map[string]any{"traceId": traceId, "spanId": spanId}
+
+	// OTel -> Story: inject human-readable doc entries
+	s.docs = append(s.docs, kvEntry("Trace ID", traceId))
+
+	template := s.traceUrlTemplate
+	if template == "" {
+		template = os.Getenv("OTEL_TRACE_URL_TEMPLATE")
+	}
+	if url := resolveTraceUrl(template, traceId); url != "" {
+		s.docs = append(s.docs, linkEntry("View Trace", url))
+	}
+
+	// Story -> OTel: enrich active span with story attributes
+	span.SetAttributes(attribute.String("story.scenario", s.scenario))
+	if len(s.tags) > 0 {
+		span.SetAttributes(attribute.StringSlice("story.tags", s.tags))
+	}
+	if len(s.tickets) > 0 {
+		span.SetAttributes(attribute.StringSlice("story.tickets", s.tickets))
+	}
+}
+
 // Init creates a new story for the given test.
 // It records the start time, assigns a source order, and registers a cleanup
 // function to capture the test result and record the test case to the global collector.
@@ -78,6 +135,9 @@ func Init(t TestingT, scenario string, opts ...Option) *S {
 	for _, opt := range opts {
 		opt(s)
 	}
+
+	// OTel bridge: detect active span, flow data bidirectionally
+	bridgeOtel(s)
 
 	t.Cleanup(func() {
 		duration := float64(time.Since(s.startTime).Milliseconds())

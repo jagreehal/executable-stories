@@ -242,6 +242,18 @@ function initCollapse() {
       }
     });
   });
+
+  document.querySelectorAll('.trace-view-header').forEach(header => {
+    header.addEventListener('click', () => {
+      toggleCollapse(header, header.closest('.trace-view'));
+    });
+    header.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggleCollapse(header, header.closest('.trace-view'));
+      }
+    });
+  });
 }
 
 function expandAll() {

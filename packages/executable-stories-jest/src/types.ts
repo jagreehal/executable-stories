@@ -131,4 +131,6 @@ export interface StoryOptions {
   tags?: string[];
   ticket?: string | string[];
   meta?: Record<string, unknown>;
+  /** URL template for OTel trace links. Uses {traceId} placeholder. Also settable via OTEL_TRACE_URL_TEMPLATE env var. */
+  traceUrlTemplate?: string;
 }

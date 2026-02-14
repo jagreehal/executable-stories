@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace ExecutableStories.Xunit;
 
 /// <summary>
@@ -15,7 +17,9 @@ public static class Story
     /// <param name="tags">Optional tags for categorization.</param>
     public static void Init(string scenario, params string[] tags)
     {
-        _context.Value = new StoryContext(scenario, tags);
+        var ctx = new StoryContext(scenario, tags);
+        _context.Value = ctx;
+        BridgeOtel(ctx);
     }
 
     // ========================================================================
@@ -299,6 +303,49 @@ public static class Story
     internal static StoryContext? GetContext() => _context.Value;
 
     internal static void Clear() => _context.Value = null;
+
+    private static void BridgeOtel(StoryContext ctx)
+    {
+        try
+        {
+            var activity = Activity.Current;
+            if (activity == null) return;
+
+            var traceId = activity.TraceId.ToString();
+            var spanId = activity.SpanId.ToString();
+
+            if (string.IsNullOrEmpty(traceId) || traceId == "00000000000000000000000000000000")
+                return;
+
+            // OTel -> Story: capture traceId in structured meta
+            ctx.Meta["otel"] = new Dictionary<string, object>
+            {
+                ["traceId"] = traceId,
+                ["spanId"] = spanId
+            };
+
+            // OTel -> Story: inject human-readable doc entries
+            ctx.Docs.Add(DocEntry.Kv("Trace ID", traceId));
+
+            var template = Environment.GetEnvironmentVariable("OTEL_TRACE_URL_TEMPLATE");
+            if (!string.IsNullOrEmpty(template))
+            {
+                var url = template.Replace("{traceId}", traceId);
+                ctx.Docs.Add(DocEntry.Link("View Trace", url));
+            }
+
+            // Story -> OTel: enrich active Activity with story attributes
+            activity.SetTag("story.scenario", ctx.Scenario);
+            if (ctx.Tags.Count > 0)
+                activity.SetTag("story.tags", string.Join(",", ctx.Tags));
+            if (ctx.Tickets.Count > 0)
+                activity.SetTag("story.tickets", string.Join(",", ctx.Tickets));
+        }
+        catch
+        {
+            // OTel not available - no-op
+        }
+    }
 
     private static void AddStep(string keyword, string text, params DocEntry[]? docs)
     {
