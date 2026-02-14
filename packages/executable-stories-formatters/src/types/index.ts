@@ -13,6 +13,9 @@ export type {
 } from "./story";
 export { STORY_META_KEY } from "./story";
 
+// OTel span types (trace waterfall rendering)
+export type { OtelSpan, OtelAttributeValue } from "./otel";
+
 // Raw types (Layer 1 - Framework Adapters)
 export type {
   RawStatus,

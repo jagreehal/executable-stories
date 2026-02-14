@@ -1076,4 +1076,52 @@ describe('StoryReporter', () => {
       expect(content).toContain('# User Stories');
     });
   });
+
+  describe('otel spans ingestion', () => {
+    it('keeps valid spans even when the first entry is invalid', () => {
+      const reporter = new StoryReporter({});
+      const storyMeta: StoryMeta = {
+        scenario: 'trace scenario',
+        steps: [{ keyword: 'Given', text: 'a step', docs: [] }],
+        sourceOrder: 0,
+      };
+
+      const mockModule: MockTestModule = {
+        moduleId: 'trace.story.test.ts',
+        children: {
+          allTests: () => [
+            {
+              meta: () => ({
+                story: storyMeta,
+                otelSpans: [
+                  null,
+                  {
+                    spanId: 'span-1',
+                    name: 'valid-span',
+                    startTimeMs: 0,
+                    durationMs: 10,
+                    status: 'ok',
+                  },
+                ],
+              }),
+              result: () => ({ state: 'passed' }),
+            },
+          ],
+        },
+      };
+
+      const testCases = (
+        reporter as unknown as {
+          collectTestCases: (
+            modules: ReadonlyArray<MockTestModule>,
+            root: string,
+          ) => Array<{ story: StoryMeta }>;
+        }
+      ).collectTestCases([mockModule], process.cwd());
+
+      expect(testCases[0].story.otelSpans).toBeDefined();
+      expect(testCases[0].story.otelSpans).toHaveLength(1);
+      expect(testCases[0].story.otelSpans?.[0]?.name).toBe('valid-span');
+    });
+  });
 });

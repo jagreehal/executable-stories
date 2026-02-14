@@ -1407,4 +1407,130 @@ body {
   background: none;
 }
 
+/* ============================================================================
+   Trace View - OTel span waterfall
+   ============================================================================ */
+.trace-view {
+  margin-top: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) - 2px);
+  overflow: hidden;
+}
+
+.trace-view-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--card);
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--foreground);
+  transition: background-color 0.15s ease;
+}
+
+.trace-view-header:hover {
+  background: var(--accordion-header-hover);
+}
+
+.trace-view-count {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  padding: 0.125rem 0.5rem;
+  background: var(--success-light);
+  color: var(--success);
+  border: 1px solid var(--success-border);
+  border-radius: 9999px;
+  font-family: var(--font-mono);
+}
+
+.trace-view-content {
+  border-top: 1px solid var(--border);
+  padding: 0.5rem 0.75rem;
+  background: var(--accordion-content-bg);
+}
+
+.trace-view.collapsed .trace-view-content {
+  display: none;
+}
+
+.trace-view-axis {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.625rem;
+  font-family: var(--font-mono);
+  color: var(--muted-foreground);
+  padding-bottom: 0.375rem;
+  margin-bottom: 0.375rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.trace-view-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.1875rem 0;
+  font-size: 0.75rem;
+}
+
+.trace-view-name {
+  width: 35%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--foreground);
+}
+
+.trace-view-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.trace-view-status-ok { background: var(--success); }
+.trace-view-status-error { background: var(--error); }
+.trace-view-status-unset { background: var(--muted-foreground); }
+
+.trace-view-bar-container {
+  flex: 1;
+  position: relative;
+  height: 1.25rem;
+  background: var(--muted);
+  border-radius: 2px;
+}
+
+.trace-view-bar {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  border-radius: 2px;
+  min-width: 2px;
+  display: flex;
+  align-items: center;
+  padding: 0 0.375rem;
+  font-size: 0.625rem;
+  font-family: var(--font-mono);
+  color: white;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.trace-view-bar-ok { background: var(--success); }
+.trace-view-bar-error { background: var(--error); }
+.trace-view-bar-unset { background: var(--muted-foreground); }
+
+@media print {
+  .trace-view.collapsed .trace-view-content {
+    display: block;
+  }
+}
+
 `;

@@ -6,6 +6,8 @@
  * from the same place that defines RawRun (the output contract).
  */
 
+import type { OtelSpan } from "./otel";
+
 // ============================================================================
 // Step Keywords
 // ============================================================================
@@ -85,6 +87,8 @@ export interface StoryMeta {
   docs?: DocEntry[];
   /** Order in which story.init() was called (for source ordering) */
   sourceOrder?: number;
+  /** OTel spans from autotel for trace waterfall rendering */
+  otelSpans?: OtelSpan[];
 }
 
 /** Key used to store StoryMeta in test metadata */

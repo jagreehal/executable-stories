@@ -14,6 +14,7 @@ import { renderSteps } from "../../../../src/formatters/html/renderers/steps";
 import { renderDocEntry } from "../../../../src/formatters/html/renderers/doc-entries";
 import { renderErrorBox } from "../../../../src/formatters/html/renderers/error-box";
 import { renderAttachments } from "../../../../src/formatters/html/renderers/attachments";
+import { renderTraceView } from "../../../../src/formatters/html/renderers/trace-view";
 import { escapeHtml } from "../../../../src/formatters/html/template";
 
 describe("buildBody", () => {
@@ -49,6 +50,8 @@ describe("buildBody", () => {
         escapeHtml,
         embedScreenshots: false,
       }),
+    renderTraceView: (args: { spans: unknown }) =>
+      renderTraceView(args as never, { escapeHtml }),
     embedScreenshots: false,
   };
   const featureDeps = {

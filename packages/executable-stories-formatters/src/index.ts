@@ -56,6 +56,9 @@ export type {
 } from "./types/story";
 export { STORY_META_KEY } from "./types/story";
 
+// OTel span types (trace waterfall rendering)
+export type { OtelSpan, OtelAttributeValue } from "./types/otel";
+
 // Canonical types (Layer 2 output - what formatters accept)
 export type {
   TestStatus,

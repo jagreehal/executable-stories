@@ -17,6 +17,7 @@ import { renderDocEntry } from "./doc-entries";
 import { renderSteps } from "./steps";
 import { highlightStepParams } from "./step-params";
 import { renderScenario } from "./scenario";
+import { renderTraceView } from "./trace-view";
 import { renderFeature } from "./feature";
 import { buildBody } from "./body";
 
@@ -92,6 +93,10 @@ export function createHtmlFormatter(
       args: import("./attachments.js").RenderAttachmentsArgs,
       d: import("./attachments.js").RenderAttachmentsDeps,
     ) => renderAttachments(args, d),
+    renderTraceView: (
+      args: import("./trace-view.js").RenderTraceViewArgs,
+      d: import("./trace-view.js").RenderTraceViewDeps,
+    ) => renderTraceView(args, d),
     embedScreenshots: opts.embedScreenshots,
   };
 
@@ -156,6 +161,7 @@ export {
 export { highlightStepParams } from "./step-params";
 export { renderSteps, renderStep } from "./steps";
 export { renderScenario } from "./scenario";
+export { renderTraceView } from "./trace-view";
 export { renderFeature } from "./feature";
 export { buildBody } from "./body";
 export { getStatusIcon } from "./status";
@@ -168,5 +174,6 @@ export type { RenderAttachmentsArgs, RenderAttachmentsDeps } from "./attachments
 export type { HighlightStepParamsDeps } from "./step-params";
 export type { RenderStepsArgs, RenderStepsDeps } from "./steps";
 export type { RenderScenarioArgs, RenderScenarioDeps } from "./scenario";
+export type { RenderTraceViewArgs, RenderTraceViewDeps } from "./trace-view";
 export type { RenderFeatureArgs, RenderFeatureDeps } from "./feature";
 export type { BuildBodyArgs, BuildBodyDeps } from "./body";
