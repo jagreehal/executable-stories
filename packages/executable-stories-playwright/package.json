@@ -1,6 +1,6 @@
 {
   "name": "executable-stories-playwright",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "description": "BDD-style executable stories for Playwright Test with documentation generation",
   "type": "module",
   "sideEffects": false,
@@ -28,7 +28,7 @@
   },
   "peerDependencies": {
     "@playwright/test": ">=1.58.2",
-    "executable-stories-formatters": "^0.2.0"
+    "executable-stories-formatters": "^0.3.0"
   },
   "dependencies": {},
   "devDependencies": {

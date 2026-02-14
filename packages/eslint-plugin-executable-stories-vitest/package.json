@@ -1,6 +1,6 @@
 {
   "name": "eslint-plugin-executable-stories-vitest",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "type": "module",
   "description": "ESLint rules for executable-stories-vitest: step context, doc.story in test/it, require task for doc.story(title)",
   "main": "./dist/index.cjs",
