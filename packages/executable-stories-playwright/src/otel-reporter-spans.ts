@@ -12,16 +12,19 @@ import { createRequire } from "node:module";
 // Autotel API surface
 // ============================================================================
 
+/** OTel span handle returned from autotel callback */
+export interface AutotelSpan {
+  end: () => void;
+  setStatus: (status: { code: number; message?: string }) => void;
+  setAttribute: (key: string, value: unknown) => void;
+}
+
 /** Minimal autotel API surface we use */
 export interface AutotelApi {
   span: (
     name: string,
-    attributes?: Record<string, unknown>,
-  ) => {
-    end: () => void;
-    setStatus: (status: { code: number; message?: string }) => void;
-    setAttribute: (key: string, value: unknown) => void;
-  };
+    fn: (span: AutotelSpan) => void,
+  ) => void;
   SpanStatusCode: { UNSET: number; ERROR: number };
 }
 
@@ -122,20 +125,21 @@ export function createTestSpan(
   },
   deps: { autotel: AutotelApi },
 ): { endSpan: (status: string, errorMessage?: string) => void } {
-  const attributes: Record<string, unknown> = {
-    "test.name": args.testTitle,
-  };
-  if (args.suitePath?.length) {
-    attributes["test.suite"] = args.suitePath.join(" > ");
-  }
-  if (args.sourceFile) {
-    attributes["code.filepath"] = args.sourceFile;
-  }
-  if (args.sourceLine !== undefined) {
-    attributes["code.lineno"] = args.sourceLine;
-  }
-
-  const span = deps.autotel.span(`test: ${args.testTitle}`, attributes);
+  let captured: AutotelSpan | undefined;
+  deps.autotel.span(`test: ${args.testTitle}`, (s) => {
+    captured = s;
+    s.setAttribute("test.name", args.testTitle);
+    if (args.suitePath?.length) {
+      s.setAttribute("test.suite", args.suitePath.join(" > "));
+    }
+    if (args.sourceFile) {
+      s.setAttribute("code.filepath", args.sourceFile);
+    }
+    if (args.sourceLine !== undefined) {
+      s.setAttribute("code.lineno", args.sourceLine);
+    }
+  });
+  const span = captured!;
 
   return {
     endSpan(status: string, errorMessage?: string) {
@@ -168,14 +172,15 @@ export function createStepSpan(
   },
   deps: { autotel: AutotelApi },
 ): { endSpan: (errorMessage?: string) => void } {
-  const attributes: Record<string, unknown> = {
-    "test.step.name": args.stepTitle,
-  };
-  if (args.stepCategory) {
-    attributes["test.step.category"] = args.stepCategory;
-  }
-
-  const span = deps.autotel.span(`step: ${args.stepTitle}`, attributes);
+  let captured: AutotelSpan | undefined;
+  deps.autotel.span(`step: ${args.stepTitle}`, (s) => {
+    captured = s;
+    s.setAttribute("test.step.name", args.stepTitle);
+    if (args.stepCategory) {
+      s.setAttribute("test.step.category", args.stepCategory);
+    }
+  });
+  const span = captured!;
 
   return {
     endSpan(errorMessage?: string) {
