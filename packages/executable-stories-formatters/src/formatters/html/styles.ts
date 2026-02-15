@@ -1533,4 +1533,19 @@ body {
   }
 }
 
+/* ============================================================================
+   History metric badges
+   ============================================================================ */
+.badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 0.75em; font-weight: 600; margin-left: 4px; vertical-align: middle; }
+.badge-grade { color: #fff; }
+.badge-grade-A { background: var(--success); }
+.badge-grade-B { background: #2196F3; }
+.badge-grade-C { background: #FF9800; }
+.badge-grade-D { background: #f44336; }
+.badge-grade-F { background: #9E0000; }
+.badge-flaky { background: #FF9800; color: #fff; }
+.badge-perf { font-size: 0.7em; }
+.badge-perf-improving { color: var(--success); }
+.badge-perf-regressing { color: var(--error); }
+
 `;

@@ -64,7 +64,37 @@ executable-stories format raw-run.json --include "**/*.Story*.cs" --format html
 
 # Exclude test cases by source file glob
 executable-stories format raw-run.json --exclude "**/obj/**" --format markdown
+
+# With run history (flakiness, stability, performance in HTML)
+executable-stories format run.json --format html --history-file .history/runs.json
+
+# Notify on failure (Slack or Teams; env: SLACK_WEBHOOK_URL / TEAMS_WEBHOOK_URL)
+executable-stories format run.json --format html --notify on-failure --report-url "https://ci.example.com/artifacts/report.html"
 ```
+
+### CI detection
+
+When the CLI runs in a CI environment, it auto-detects the provider from environment variables and attaches branch, commit SHA, PR number, build number, and build URL to the run. The HTML report shows this in a **CI** meta block. Supported providers (first match wins): Azure DevOps (`TF_BUILD`), Buildkite, GitHub Actions, GitLab CI, CircleCI, Jenkins, Travis CI; generic fallback when `CI=true`. No flags required—detection is automatic.
+
+### Notifications
+
+After generating reports, the CLI can send a short summary to Slack, Microsoft Teams, or a generic webhook:
+
+- **Slack** — `--slack-webhook <url>` or `SLACK_WEBHOOK_URL` env. Uses an incoming webhook.
+- **Teams** — `--teams-webhook <url>` or `TEAMS_WEBHOOK_URL` env. Uses an incoming webhook connector.
+- **Generic webhook** — `--webhook-url <url>` (repeatable). Optional `--webhook-header "Key: Value"`, `--webhook-method POST|PUT`, and HMAC-SHA256 signing via `--webhook-hmac-secret`, `--webhook-hmac-header`, `--webhook-hmac-timestamp`.
+
+Control when notifications are sent with **`--notify`**: `always`, `on-failure` (default), or `never`. Use **`--report-url`** to pass a public URL for the report so notification messages can link to it. **`--max-failed-tests`** (default 5) limits how many failed tests are listed in the message.
+
+### Run history
+
+Use **`--history-file <path>`** to persist run history to a JSON file. The CLI updates this file after each run and uses it to compute, for the HTML report:
+
+- **Flakiness** — stable / unstable / flaky from pass/fail history
+- **Stability grade** — A–F from recent pass rate
+- **Performance trend** — improving / stable / regressing from duration history
+
+**`--max-history-runs <n>`** (default 10) caps how many runs are kept per test. Omit `--history-file` to disable history (no file is read or written).
 
 ### Filtering by source file
 
@@ -119,7 +149,7 @@ const generator = new ReportGenerator({
 
 | Format | Description | File Extension |
 | --- | --- | --- |
-| `html` | Interactive HTML report with search, screenshots, step parameter highlighting (quoted strings and numbers), syntax-highlighted code blocks, Mermaid diagrams, and Markdown in doc sections | `.html` |
+| `html` | Interactive HTML report with search, screenshots, step parameter highlighting (quoted strings and numbers), syntax-highlighted code blocks, Mermaid diagrams, Markdown in doc sections, optional CI meta block (branch, commit, build link), and run history (flakiness, stability grade, performance trend when `--history-file` is used) | `.html` |
 | `markdown` | Markdown user-story documentation | `.md` |
 | `junit` | JUnit XML for CI integration | `.junit.xml` |
 | `cucumber-json` | Cucumber JSON for tooling compatibility | `.cucumber.json` |
@@ -195,6 +225,13 @@ interface RawTestCase {
 - `normalizeJestResults(...)` — `adaptJestRun` + `canonicalizeRun` in one call
 - `normalizeVitestResults(...)` — `adaptVitestRun` + `canonicalizeRun` in one call
 - `normalizePlaywrightResults(...)` — `adaptPlaywrightRun` + `canonicalizeRun` in one call
+
+### CI, history, and notifications (programmatic)
+
+- `detectCI(env?)` — Detect CI environment from `process.env` (or provided object); returns `RawCIInfo` or `undefined`. Used by the CLI; also available for custom pipelines.
+- `toCIInfo(raw?)` / `toRawCIInfo(ci?)` — Convert between `RawCIInfo` (transport) and `CIInfo` (canonical display). Types: `CIInfo`, `CIProvider` from `./types/ci`.
+- `loadHistory(args, deps)` / `saveHistory(args, deps)` / `updateHistory(args)` — Read/write run history JSON. Used by the CLI when `--history-file` is set; also usable from custom tooling.
+- `sendNotifications(args, deps)` — Send Slack, Teams, and/or generic webhook notifications. Types: `NotificationSummary`, `NotifyCondition`, `GenericWebhookNotifierOptions`, `WebhookSignerHmac`. Individual senders: `sendSlackNotification`, `sendTeamsNotification`, `sendWebhookNotification`; `signBody` for HMAC signing.
 
 ### Types
 

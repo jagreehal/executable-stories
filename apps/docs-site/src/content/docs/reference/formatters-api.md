@@ -178,4 +178,10 @@ The formatters package provides an **`executable-stories`** CLI for generating r
 - **`--html-no-mermaid`** — Disable Mermaid diagram rendering in HTML.
 - **`--html-no-markdown`** — Disable Markdown parsing in HTML.
 
+**CI detection:** When the CLI runs in a CI environment, it auto-detects the provider (GitHub Actions, GitLab, CircleCI, Azure DevOps, Buildkite, Jenkins, Travis) from environment variables and attaches branch, commit SHA, PR number, and build URL to the run. The HTML report shows this in a **CI** meta block. No flags required.
+
+**Notifications:** After generating reports, the CLI can send a summary to Slack, Microsoft Teams, or a generic webhook. Use **`--slack-webhook`** or **`--teams-webhook`** (or `SLACK_WEBHOOK_URL` / `TEAMS_WEBHOOK_URL` env), or **`--webhook-url`** (repeatable) for a generic HTTP endpoint. **`--notify`** controls when: `always`, `on-failure` (default), or `never`. **`--report-url`** supplies a link to the report in notification messages. Optional HMAC signing: **`--webhook-hmac-secret`**, **`--webhook-hmac-header`**, **`--webhook-hmac-timestamp`**.
+
+**Run history:** Use **`--history-file <path>`** to persist run history to a JSON file. The CLI updates it after each run and uses it to show **flakiness**, **stability grade** (A–F), and **performance trend** in the HTML report. **`--max-history-runs <n>`** (default 10) caps how many runs are kept per test. Omit `--history-file` to disable history.
+
 **Standalone binary:** From the formatters package directory, run `bun run compile` to build a single `executable-stories` binary. CI builds produce platform-specific binaries (e.g. `executable-stories-linux-x64`); the release workflow uploads multi-platform binaries (linux-x64, linux-arm64, darwin-x64, darwin-arm64, windows-x64) as the `formatters-binaries` artifact.

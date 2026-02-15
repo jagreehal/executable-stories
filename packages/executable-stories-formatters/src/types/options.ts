@@ -141,6 +141,30 @@ export interface FormatterOptions {
   /** Markdown specific options */
   markdown?: MarkdownFormatterOptions;
 
+  /** History tracking options */
+  history?: {
+    /** Path to JSON history file (enables tracking) */
+    filePath?: string;
+    /** Max runs to keep in history per test. Default: 10 */
+    maxRuns?: number;
+  };
+
+  /** Notification options */
+  notification?: {
+    /** Slack webhook URL (fallback: SLACK_WEBHOOK_URL env var) */
+    slackWebhookUrl?: string;
+    /** Teams webhook URL (fallback: TEAMS_WEBHOOK_URL env var) */
+    teamsWebhookUrl?: string;
+    /** When to send: "always", "on-failure", "never". Default: "on-failure" */
+    condition?: NotifyCondition;
+    /** URL to link in notifications */
+    reportUrl?: string;
+    /** Max failed tests to show. Default: 5 */
+    maxFailedTests?: number;
+    /** Generic webhook configurations */
+    webhooks?: GenericWebhookNotifierOptions[];
+  };
+
   /** Logger for warnings and info. Default: console */
   logger?: Logger;
 
@@ -186,6 +210,7 @@ export interface MarkdownFormatterOptions {
 
 import type { DocEntry, StoryStep } from "./story";
 import type { TestCaseResult, TestRunResult } from "./test-result";
+import type { NotifyCondition, GenericWebhookNotifierOptions } from "../notifiers/types";
 
 /** Custom renderers for markdown doc entries */
 export interface MarkdownRenderers {

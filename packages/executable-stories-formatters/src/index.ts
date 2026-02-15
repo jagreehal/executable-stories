@@ -208,6 +208,53 @@ export {
 } from "./utils/otel-detect";
 
 // ============================================================================
+// Notifier Exports
+// ============================================================================
+
+export { sendNotifications } from "./notifiers/index";
+export { sendSlackNotification } from "./notifiers/slack";
+export { sendTeamsNotification } from "./notifiers/teams";
+export { sendWebhookNotification } from "./notifiers/webhook";
+export { signBody } from "./notifiers/hmac";
+export { stripAnsi } from "./notifiers/ansi-strip";
+export type { NotificationSummary, NotifyCondition, GenericWebhookNotifierOptions, WebhookSignerHmac, WebhookPayload } from "./notifiers/types";
+
+// ============================================================================
+// CI Type Exports
+// ============================================================================
+
+export type { CIProvider, CIInfo as TypedCIInfo } from "./types/ci";
+export { toCIInfo, toRawCIInfo } from "./types/ci";
+
+// ============================================================================
+// History Exports
+// ============================================================================
+
+export {
+  loadHistory,
+  saveHistory,
+  updateHistory,
+  calculateFlakiness,
+  detectPerformanceTrend,
+  calculateStability,
+  computeTestMetrics,
+  MIN_PERF_SAMPLES,
+  MIN_METRIC_SAMPLES,
+  MIN_FLAKINESS_SAMPLES,
+  hasSufficientHistory,
+} from "./history/index";
+
+export type {
+  HistoryEntry,
+  TestHistory,
+  HistoryStore,
+  StabilityGrade,
+  FlakinessLevel,
+  PerformanceTrend,
+  TestMetrics,
+} from "./history/index";
+
+// ============================================================================
 // ReportGenerator Types (fn(args, deps) pattern)
 // ============================================================================
 

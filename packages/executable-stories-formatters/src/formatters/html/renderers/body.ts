@@ -4,6 +4,7 @@
  */
 
 import type { TestRunResult } from "../../../types/test-result";
+import type { TestMetrics } from "../../../history/types";
 import type { RenderTagBarArgs, RenderTagBarDeps } from "./tag-bar.js";
 
 function groupBy<T, K>(items: T[], keyFn: (item: T) => K): Map<K, T[]> {
@@ -22,6 +23,7 @@ function groupBy<T, K>(items: T[], keyFn: (item: T) => K): Map<K, T[]> {
 
 export interface BuildBodyArgs {
   run: TestRunResult;
+  metricsMap?: Map<string, TestMetrics>;
 }
 
 export interface BuildBodyDeps {
@@ -56,6 +58,10 @@ export function buildBody(args: BuildBodyArgs, deps: BuildBodyDeps): string {
         packageVersion: run.packageVersion,
         gitSha: run.gitSha,
         ciName: run.ci?.name,
+        ciBranch: run.ci?.branch,
+        ciUrl: run.ci?.url,
+        ciCommitSha: run.ci?.commitSha,
+        ciBuildNumber: run.ci?.buildNumber,
       },
       deps.metaDeps,
     ),
@@ -87,7 +93,10 @@ export function buildBody(args: BuildBodyArgs, deps: BuildBodyDeps): string {
   const byFile = groupBy(run.testCases, (tc) => tc.sourceFile);
   for (const [file, testCases] of byFile) {
     parts.push(
-      deps.renderFeature({ file, testCases }, deps.featureDeps),
+      deps.renderFeature(
+        { file, testCases, metricsMap: args.metricsMap },
+        deps.featureDeps,
+      ),
     );
   }
 

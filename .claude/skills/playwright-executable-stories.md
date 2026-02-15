@@ -1,7 +1,7 @@
 ---
 name: executable-stories-playwright
 description: Write Given/When/Then story tests for Playwright with automatic Markdown doc generation. Use when creating BDD-style E2E tests or generating user story documentation from browser tests.
-version: 2.0.0
+version: 2.1.0
 libraries: ['@playwright/test']
 ---
 
@@ -309,6 +309,18 @@ test('login flow', async ({ page }, testInfo) => {
   await expect(page.locator('button[type="submit"]')).toBeEnabled();
 });
 ```
+
+## Formatter CLI (CI, history, notifications)
+
+Reporters write raw JSON consumed by the **executable-stories** formatter CLI. In CI the CLI auto-detects the environment and can send Slack/Teams/webhook notifications and persist run history (`--history-file` for flakiness/stability/performance in HTML). No test code changes—reporter emits CI and run metadata.
+
+## OpenTelemetry spans
+
+When [autotel](https://github.com/jagreehal/autotel) is available, the reporter emits spans for story steps and scenarios (lazy-loaded). Enables trace waterfall in the HTML report. Optional; no API change in tests.
+
+## Framework-native attach (doc.story)
+
+To attach story metadata to a plain `test()`: `test('title', async ({ page }, testInfo) => { doc.story('Scenario title', testInfo); story.init(testInfo); ... });` or `doc.story('Title', (s) => { s.given(...); ... });`. Scenario heading in docs comes from the story title, not the test name.
 
 ## Best Practices
 

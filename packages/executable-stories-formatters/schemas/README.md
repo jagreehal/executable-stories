@@ -169,8 +169,8 @@ SUBCOMMANDS
 
 | Flag                         | Default        | Description                                                   |
 | ---------------------------- | -------------- | ------------------------------------------------------------- |
-| `--format <formats>`         | `html`         | Comma-separated: `html`, `markdown`, `junit`, `cucumber-json` |
-| `--input-type <type>`        | `raw`          | Input type: `raw` or `canonical`                              |
+| `--format <formats>`         | `html`         | Comma-separated: `html`, `markdown`, `junit`, `cucumber-json`, `cucumber-html`, `cucumber-messages` |
+| `--input-type <type>`        | `raw`          | Input type: `raw`, `canonical`, or `ndjson`                   |
 | `--output-dir <dir>`         | `reports`      | Output directory                                              |
 | `--output-name <name>`       | `test-results` | Base filename                                                 |
 | `--synthesize-stories`       | on             | Synthesize story metadata for plain test results              |
@@ -182,6 +182,9 @@ SUBCOMMANDS
 | `--stdin`                        |                | Read JSON from stdin instead of file                          |
 | `--json-summary`             | off            | Print machine-parsable JSON summary                           |
 | `--emit-canonical <path>`    |                | Write canonical JSON to given path                            |
+| **CI**                       |                | Auto-detected from env (GitHub Actions, GitLab, CircleCI, Azure, Buildkite, Jenkins, Travis). No flag; report shows branch, commit, build URL when in CI. |
+| **Notifications**            |                | `--slack-webhook`, `--teams-webhook`, or `--webhook-url` (repeatable); `--notify always\|on-failure\|never` (default `on-failure`); `--report-url`; `--max-failed-tests <n>`. Optional HMAC: `--webhook-hmac-secret`, `--webhook-hmac-header`, `--webhook-hmac-timestamp`. |
+| **History**                  |                | `--history-file <path>` — persist run history for flakiness, stability grade, performance trend in HTML. `--max-history-runs <n>` (default 10). |
 | `--help`                     |                | Show help message                                             |
 
 ### Exit Codes
@@ -211,6 +214,12 @@ executable-stories format run.json --format html --html-title "Sprint 42 Results
 
 # Export canonical JSON for debugging
 executable-stories format run.json --emit-canonical canonical.json
+
+# With run history (flakiness, stability, performance in HTML)
+executable-stories format run.json --format html --history-file .history/runs.json
+
+# Notify on failure (Slack/Teams via env or --slack-webhook / --teams-webhook)
+executable-stories format run.json --format html --notify on-failure --report-url "https://ci.example.com/artifacts/report.html"
 ```
 
 ---
