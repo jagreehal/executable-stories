@@ -89,6 +89,9 @@ export interface CIInfo {
   name: string;
   url?: string;
   buildNumber?: string;
+  branch?: string;
+  commitSha?: string;
+  prNumber?: string;
 }
 
 /** Coverage summary for the test run */

@@ -8,6 +8,10 @@ export interface RenderMetaInfoArgs {
   packageVersion?: string;
   gitSha?: string;
   ciName?: string;
+  ciBranch?: string;
+  ciUrl?: string;
+  ciCommitSha?: string;
+  ciBuildNumber?: string;
 }
 
 export interface RenderMetaInfoDeps {
@@ -37,7 +41,28 @@ export function renderMetaInfo(
   }
 
   if (args.ciName) {
-    items.push(`<dt>CI:</dt><dd>${deps.escapeHtml(args.ciName)}</dd>`);
+    // When URL and build number are present, render build number as a link
+    if (args.ciUrl && args.ciBuildNumber) {
+      items.push(
+        `<dt>CI:</dt><dd>${deps.escapeHtml(args.ciName)} <a href="${deps.escapeHtml(args.ciUrl)}">#${deps.escapeHtml(args.ciBuildNumber)}</a></dd>`,
+      );
+    } else {
+      items.push(`<dt>CI:</dt><dd>${deps.escapeHtml(args.ciName)}</dd>`);
+    }
+  }
+
+  if (args.ciBranch) {
+    items.push(`<dt>Branch:</dt><dd>${deps.escapeHtml(args.ciBranch)}</dd>`);
+  }
+
+  if (args.ciCommitSha) {
+    const shortSha =
+      args.ciCommitSha.length > 7
+        ? args.ciCommitSha.slice(0, 7)
+        : args.ciCommitSha;
+    items.push(
+      `<dt>Commit:</dt><dd title="${deps.escapeHtml(args.ciCommitSha)}">${deps.escapeHtml(shortSha)}</dd>`,
+    );
   }
 
   return `<dl class="meta-info">${items.join("")}</dl>`;

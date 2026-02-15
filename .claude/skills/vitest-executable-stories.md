@@ -1,7 +1,7 @@
 ---
 name: executable-stories-vitest
 description: Write Given/When/Then story tests for Vitest with automatic Markdown doc generation. Use when creating BDD-style tests or generating user story documentation from tests.
-version: 2.0.0
+version: 2.1.0
 libraries: ['vitest']
 ---
 
@@ -310,6 +310,18 @@ describe('Authentication', () => {
   });
 });
 ```
+
+## Formatter CLI (CI, history, notifications)
+
+Reporters write raw JSON that the **executable-stories** formatter CLI consumes. In CI, the CLI auto-detects the environment (GitHub Actions, GitLab, etc.) and can send Slack/Teams/webhook notifications and persist run history. Use `--history-file` when running the CLI to get flakiness, stability grade, and performance trend in the HTML report. No test code changes required—reporter emits CI and run metadata.
+
+## OTel trace waterfall
+
+When [autotel](https://github.com/jagreehal/autotel) is available, the reporter can attach step/scenario spans to `task.meta.otelSpans` for trace waterfall rendering in the HTML report. Optional; no API change in tests.
+
+## Framework-native attach (doc.story)
+
+To attach story metadata to a plain `it()` without `story()`: `it('title', ({ task }) => { doc.story('Scenario title', task); story.init(task); story.given(...); ... });` or `doc.story('Title', (s) => { s.given(...); s.when(...); s.then(...); });`. Scenario heading in docs always comes from the story title, not the `it` name.
 
 ## Best Practices
 

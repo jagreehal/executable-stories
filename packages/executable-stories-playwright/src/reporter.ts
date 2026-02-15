@@ -9,10 +9,18 @@ import type {
   TestCase,
   TestResult,
   FullResult,
+  TestStep,
 } from "@playwright/test/reporter";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import type { StoryMeta } from "executable-stories-formatters";
+import {
+  tryLoadAutotel,
+  shouldInstrumentStep,
+  createTestSpan,
+  createStepSpan,
+  type AutotelApi,
+} from "./otel-reporter-spans.js";
 
 // Import from formatters package
 import {
@@ -21,6 +29,11 @@ import {
   readGitSha,
   readPackageVersion,
   detectCI,
+  sendNotifications,
+  toCIInfo,
+  loadHistory,
+  updateHistory,
+  saveHistory,
   type RawRun,
   type RawTestCase,
   type RawAttachment,
@@ -87,6 +100,15 @@ export default class StoryReporter implements Reporter {
   private packageVersion: string | undefined;
   private gitSha: string | undefined;
   private projectRoot: string = process.cwd();
+  private autotel: AutotelApi | null = null;
+  private testSpans = new Map<
+    string,
+    { endSpan: (status: string, errorMessage?: string) => void }
+  >();
+  private stepSpanStacks = new Map<
+    string,
+    Array<{ endSpan: (errorMessage?: string) => void }>
+  >();
 
   constructor(options: StoryReporterOptions = {}) {
     this.options = options;
@@ -100,9 +122,72 @@ export default class StoryReporter implements Reporter {
       this.packageVersion = readPackageVersion(this.projectRoot);
       this.gitSha = readGitSha(this.projectRoot);
     }
+    this.autotel = tryLoadAutotel();
+  }
+
+  onTestBegin(test: TestCase): void {
+    if (!this.autotel) return;
+    const sourceFile = test.location?.file;
+    const sourceLine = (test.location as { line?: number })?.line;
+    const titlePath = test.titlePath();
+    // titlePath: [projectName, ...describes, testTitle]
+    const suitePath = titlePath.slice(1, -1);
+    const testTitle = titlePath[titlePath.length - 1] ?? test.title;
+
+    const handle = createTestSpan(
+      { testTitle, suitePath, sourceFile, sourceLine },
+      { autotel: this.autotel },
+    );
+    this.testSpans.set(test.id, handle);
+    this.stepSpanStacks.set(test.id, []);
+  }
+
+  onStepBegin(test: TestCase, _result: TestResult, step: TestStep): void {
+    if (!this.autotel) return;
+    if (!shouldInstrumentStep({ category: step.category, title: step.title }))
+      return;
+
+    const handle = createStepSpan(
+      { stepTitle: step.title, stepCategory: step.category },
+      { autotel: this.autotel },
+    );
+    const stack = this.stepSpanStacks.get(test.id);
+    if (stack) {
+      stack.push(handle);
+    }
+  }
+
+  onStepEnd(test: TestCase, _result: TestResult, step: TestStep): void {
+    if (!this.autotel) return;
+    if (!shouldInstrumentStep({ category: step.category, title: step.title }))
+      return;
+
+    const stack = this.stepSpanStacks.get(test.id);
+    if (stack && stack.length > 0) {
+      const handle = stack.pop()!;
+      handle.endSpan(step.error?.message);
+    }
   }
 
   onTestEnd(test: TestCase, result: TestResult): void {
+    // Defensive: unwind leftover step spans (interrupted/crash)
+    if (this.autotel) {
+      const stack = this.stepSpanStacks.get(test.id);
+      if (stack) {
+        while (stack.length > 0) {
+          const handle = stack.pop()!;
+          handle.endSpan("interrupted test");
+        }
+        this.stepSpanStacks.delete(test.id);
+      }
+      // End test span
+      const testHandle = this.testSpans.get(test.id);
+      if (testHandle) {
+        testHandle.endSpan(result.status, result.errors?.[0]?.message);
+        this.testSpans.delete(test.id);
+      }
+    }
+
     // Find story-meta annotation
     const storyAnnotation = test.annotations.find((a) => a.type === "story-meta");
     if (!storyAnnotation?.description) return;
@@ -260,12 +345,50 @@ export default class StoryReporter implements Reporter {
     // Canonicalize
     const canonicalRun = canonicalizeRun(rawRun);
 
-    // Generate reports
+    // 1. Generate reports
     const generator = new ReportGenerator(this.options);
     try {
       await generator.generate(canonicalRun);
     } catch (err) {
       console.error("Failed to generate reports:", err);
+    }
+
+    // 2. Update history (independent of report generation)
+    try {
+      const histOpts = this.options.history;
+      if (histOpts?.filePath) {
+        const historyPath = path.isAbsolute(histOpts.filePath)
+          ? histOpts.filePath
+          : path.join(this.projectRoot, histOpts.filePath);
+        const store = loadHistory(
+          { filePath: historyPath },
+          {
+            readFile: (p: string) => { try { return fs.readFileSync(p, "utf8"); } catch { return undefined; } },
+            logger: console,
+          },
+        );
+        const updated = updateHistory({ store, run: canonicalRun, maxRuns: histOpts.maxRuns ?? 10 });
+        const dir = path.dirname(historyPath);
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        saveHistory(
+          { filePath: historyPath, store: updated },
+          { writeFile: (p: string, c: string) => fs.writeFileSync(p, c, "utf8") },
+        );
+      }
+    } catch (err) {
+      console.error("Failed to update history:", err);
+    }
+
+    // 3. Send notifications (independent of both above)
+    try {
+      if (this.options.notification) {
+        await sendNotifications(
+          { run: canonicalRun, notification: this.options.notification },
+          { fetch: globalThis.fetch, logger: console, toCIInfo },
+        );
+      }
+    } catch (err) {
+      console.error("Failed to send notifications:", err);
     }
   }
 }

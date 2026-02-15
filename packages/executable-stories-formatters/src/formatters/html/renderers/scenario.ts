@@ -4,9 +4,12 @@
 
 import type { DocEntry } from "../../../types/story";
 import type { TestCaseResult } from "../../../types/test-result";
+import type { TestMetrics } from "../../../history/types";
+import { MIN_METRIC_SAMPLES } from "../../../history/sample-policy";
 
 export interface RenderScenarioArgs {
   tc: TestCaseResult;
+  metrics?: TestMetrics;
 }
 
 export interface RenderScenarioDeps {
@@ -65,6 +68,23 @@ export function renderScenario(
     }
   }
 
+  // History metric badges
+  let metricBadges = "";
+  const { metrics } = args;
+  if (metrics && metrics.sampleSize >= MIN_METRIC_SAMPLES) {
+    const grade = metrics.stabilityGrade;
+    metricBadges += `<span class="badge badge-grade badge-grade-${grade}" title="Pass rate: ${(metrics.passRate * 100).toFixed(0)}% (${metrics.sampleSize} runs)">${grade}</span>`;
+
+    if (metrics.flakinessLevel !== "stable") {
+      metricBadges += `<span class="badge badge-flaky">${metrics.flakinessLevel}</span>`;
+    }
+
+    if (metrics.performanceTrend !== "stable") {
+      const arrow = metrics.performanceTrend === "improving" ? "\u2191" : "\u2193";
+      metricBadges += `<span class="badge badge-perf badge-perf-${metrics.performanceTrend}">${arrow} ${metrics.performanceTrend}</span>`;
+    }
+  }
+
   const storyDocs = deps.renderDocs(tc.story.docs, "story-docs");
   const steps = deps.renderSteps(
     { steps: tc.story.steps, stepResults: tc.stepResults },
@@ -105,7 +125,7 @@ export function renderScenario(
         <span class="status-icon ${statusClass}">${statusIcon}</span>
         <span class="scenario-name">${deps.escapeHtml(tc.story.scenario)}</span>
       </div>
-      <div class="scenario-meta">${tags}${traceBadge}</div>
+      <div class="scenario-meta">${tags}${traceBadge}${metricBadges}</div>
     </div>
     <span class="scenario-duration">${duration}</span>
   </div>

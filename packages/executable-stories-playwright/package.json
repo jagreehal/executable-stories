@@ -28,7 +28,13 @@
   },
   "peerDependencies": {
     "@playwright/test": ">=1.58.2",
-    "executable-stories-formatters": "^0.4.0"
+    "executable-stories-formatters": "^0.4.0",
+    "autotel": ">=0.1.0"
+  },
+  "peerDependenciesMeta": {
+    "autotel": {
+      "optional": true
+    }
   },
   "dependencies": {},
   "devDependencies": {

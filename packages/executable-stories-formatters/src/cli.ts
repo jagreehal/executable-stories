@@ -20,6 +20,11 @@ import { assertValidRun } from "./converters/acl/validate";
 import { ReportGenerator } from "./index";
 import { parseNdjson } from "./converters/ndjson-parser";
 import type { OutputFormat } from "./types/options";
+import { sendNotifications } from "./notifiers/index";
+import { toCIInfo } from "./types/ci";
+import type { NotifyCondition, GenericWebhookNotifierOptions, WebhookSignerHmac } from "./notifiers/types";
+import { loadHistory, saveHistory, updateHistory, computeTestMetrics } from "./history/index";
+import type { TestMetrics } from "./history/types";
 
 // ============================================================================
 // Exit Codes
@@ -72,6 +77,26 @@ OPTIONS
   --emit-canonical <path>       Write canonical JSON to given path
   --help                        Show this help message
 
+NOTIFICATIONS
+  --slack-webhook <url>         Slack incoming webhook URL (fallback: SLACK_WEBHOOK_URL env var)
+  --teams-webhook <url>         Teams incoming webhook URL (fallback: TEAMS_WEBHOOK_URL env var)
+  --notify <condition>          When to send: always, on-failure, never (default: on-failure)
+  --report-url <url>            URL to link in notification messages
+  --max-failed-tests <n>        Max failed tests to show in notifications (default: 5)
+
+GENERIC WEBHOOK
+  --webhook-url <url>            Generic webhook URL (repeatable for multiple endpoints)
+  --webhook-header <Key: Value>  Custom request header (repeatable)
+  --webhook-method <POST|PUT>    HTTP method (default: POST)
+  --webhook-hmac-secret <s>      HMAC-SHA256 signing secret
+  --webhook-hmac-header <name>   Signature header name (default: X-Signature)
+  --webhook-hmac-timestamp       Include timestamp in HMAC signing
+  Note: all --webhook-url entries share the same method/headers/signing options.
+
+HISTORY
+  --history-file <path>         Path to JSON history file (enables tracking)
+  --max-history-runs <n>        Max runs to keep in history per test (default: 10)
+
 EXIT CODES
   0  Success
   1  Schema validation failure
@@ -97,6 +122,19 @@ interface CliArgs {
   htmlNoMarkdown: boolean;
   jsonSummary: boolean;
   emitCanonical?: string;
+  slackWebhook?: string;
+  teamsWebhook?: string;
+  notify: NotifyCondition;
+  reportUrl?: string;
+  maxFailedTests: number;
+  historyFile?: string;
+  maxHistoryRuns: number;
+  webhookUrls: string[];
+  webhookHeaders: Record<string, string>;
+  webhookMethod: "POST" | "PUT";
+  webhookHmacSecret?: string;
+  webhookHmacHeader: string;
+  webhookHmacTimestamp: boolean;
 }
 
 function parseCliArgs(argv: string[]): CliArgs {
@@ -133,6 +171,19 @@ function parseCliArgs(argv: string[]): CliArgs {
       stdin: { type: "boolean", default: false },
       "json-summary": { type: "boolean", default: false },
       "emit-canonical": { type: "string" },
+      "slack-webhook": { type: "string" },
+      "teams-webhook": { type: "string" },
+      notify: { type: "string", default: "on-failure" },
+      "report-url": { type: "string" },
+      "max-failed-tests": { type: "string" },
+      "history-file": { type: "string" },
+      "max-history-runs": { type: "string" },
+      "webhook-url": { type: "string", multiple: true },
+      "webhook-header": { type: "string", multiple: true },
+      "webhook-method": { type: "string" },
+      "webhook-hmac-secret": { type: "string" },
+      "webhook-hmac-header": { type: "string" },
+      "webhook-hmac-timestamp": { type: "boolean", default: false },
       help: { type: "boolean", default: false },
     },
     allowPositionals: true,
@@ -174,6 +225,67 @@ function parseCliArgs(argv: string[]): CliArgs {
   const parseGlobs = (v: string | undefined): string[] =>
     v ? v.split(",").map((s) => s.trim()).filter(Boolean) : [];
 
+  // Validate --notify
+  const notifyValue = values.notify as string;
+  const validNotifyConditions = new Set(["always", "on-failure", "never"]);
+  if (!validNotifyConditions.has(notifyValue)) {
+    console.error(`Error: --notify must be "always", "on-failure", or "never", got "${notifyValue}".`);
+    process.exit(EXIT_USAGE);
+  }
+
+  // Parse --max-failed-tests
+  const maxFailedTestsStr = values["max-failed-tests"] as string | undefined;
+  const maxFailedTests = maxFailedTestsStr ? parseInt(maxFailedTestsStr, 10) : 5;
+  if (maxFailedTestsStr && (isNaN(maxFailedTests) || maxFailedTests < 0)) {
+    console.error(`Error: --max-failed-tests must be a non-negative integer, got "${maxFailedTestsStr}".`);
+    process.exit(EXIT_USAGE);
+  }
+
+  // Slack/Teams webhook: CLI flag (env fallback is handled inside sendNotifications)
+  const slackWebhook = values["slack-webhook"] as string | undefined;
+  const teamsWebhook = values["teams-webhook"] as string | undefined;
+
+  // Parse --webhook-url (repeatable)
+  const webhookUrls = (values["webhook-url"] as string[] | undefined) ?? [];
+
+  // Parse --webhook-header (repeatable) "Key: Value"
+  const webhookHeaders: Record<string, string> = {};
+  const rawHeaders = (values["webhook-header"] as string[] | undefined) ?? [];
+  for (const h of rawHeaders) {
+    const colonIdx = h.indexOf(":");
+    if (colonIdx <= 0) {
+      console.error(`Warning: ignoring invalid --webhook-header "${h}" (expected "Key: Value")`);
+      continue;
+    }
+    const key = h.slice(0, colonIdx).trim();
+    const value = h.slice(colonIdx + 1).trim();
+    if (!key) {
+      console.error(`Warning: ignoring --webhook-header with empty key`);
+      continue;
+    }
+    webhookHeaders[key] = value;
+  }
+
+  // Parse --webhook-method
+  const webhookMethodRaw = values["webhook-method"] as string | undefined;
+  let webhookMethod: "POST" | "PUT" = "POST";
+  if (webhookMethodRaw) {
+    const upper = webhookMethodRaw.toUpperCase();
+    if (upper !== "POST" && upper !== "PUT") {
+      console.error(`Error: --webhook-method must be "POST" or "PUT", got "${webhookMethodRaw}".`);
+      process.exit(EXIT_USAGE);
+    }
+    webhookMethod = upper as "POST" | "PUT";
+  }
+
+  // Parse --max-history-runs
+  const maxHistoryRunsStr = values["max-history-runs"] as string | undefined;
+  const maxHistoryRuns = maxHistoryRunsStr ? parseInt(maxHistoryRunsStr, 10) : 10;
+  if (maxHistoryRunsStr && (isNaN(maxHistoryRuns) || maxHistoryRuns < 1)) {
+    console.error(`Error: --max-history-runs must be a positive integer, got "${maxHistoryRunsStr}".`);
+    process.exit(EXIT_USAGE);
+  }
+
   return {
     subcommand: subcommand as "format" | "validate",
     inputFile,
@@ -191,6 +303,19 @@ function parseCliArgs(argv: string[]): CliArgs {
     htmlNoMarkdown: values["html-no-markdown"] as boolean,
     jsonSummary: values["json-summary"] as boolean,
     emitCanonical: values["emit-canonical"] as string | undefined,
+    slackWebhook,
+    teamsWebhook,
+    notify: notifyValue as NotifyCondition,
+    reportUrl: values["report-url"] as string | undefined,
+    maxFailedTests,
+    historyFile: values["history-file"] as string | undefined,
+    maxHistoryRuns,
+    webhookUrls,
+    webhookHeaders,
+    webhookMethod,
+    webhookHmacSecret: values["webhook-hmac-secret"] as string | undefined,
+    webhookHmacHeader: (values["webhook-hmac-header"] as string | undefined) ?? "X-Signature",
+    webhookHmacTimestamp: values["webhook-hmac-timestamp"] as boolean,
   };
 }
 
@@ -292,6 +417,8 @@ async function main() {
 
     try {
       const result = await generateReports(run, args);
+      await dispatchNotifications(run, args);
+      runHistoryPipeline(run, args);
       printResult(result, args, startMs);
       process.exit(EXIT_SUCCESS);
     } catch (err) {
@@ -362,6 +489,8 @@ async function main() {
 
     try {
       const result = await generateReports(run, args);
+      await dispatchNotifications(run, args);
+      runHistoryPipeline(run, args);
       printResult(result, args, startMs);
       process.exit(EXIT_SUCCESS);
     } catch (err) {
@@ -433,12 +562,114 @@ async function main() {
   // 6. Generate reports
   try {
     const result = await generateReports(canonical, args, droppedMissingStory);
+    await dispatchNotifications(canonical, args);
+    runHistoryPipeline(canonical, args);
     printResult(result, args, startMs, droppedMissingStory);
     process.exit(EXIT_SUCCESS);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`Generation failed: ${msg}`);
     process.exit(EXIT_GENERATION);
+  }
+}
+
+// ============================================================================
+// Notifications
+// ============================================================================
+
+async function dispatchNotifications(run: any, args: CliArgs): Promise<void> {
+  // Build generic webhook configs from CLI flags
+  const webhooks: GenericWebhookNotifierOptions[] = args.webhookUrls.map((url) => {
+    const opts: GenericWebhookNotifierOptions = { url };
+    if (Object.keys(args.webhookHeaders).length > 0) {
+      opts.headers = { ...args.webhookHeaders };
+    }
+    if (args.webhookMethod !== "POST") {
+      opts.method = args.webhookMethod;
+    }
+    if (args.webhookHmacSecret) {
+      const signer: WebhookSignerHmac = {
+        type: "hmac-sha256",
+        secret: args.webhookHmacSecret,
+        header: args.webhookHmacHeader,
+      };
+      if (args.webhookHmacTimestamp) {
+        signer.includeTimestamp = true;
+      }
+      opts.signer = signer;
+    }
+    return opts;
+  });
+
+  await sendNotifications(
+    {
+      run,
+      notification: {
+        slackWebhookUrl: args.slackWebhook,
+        teamsWebhookUrl: args.teamsWebhook,
+        condition: args.notify,
+        reportUrl: args.reportUrl,
+        maxFailedTests: args.maxFailedTests,
+        webhooks: webhooks.length > 0 ? webhooks : undefined,
+      },
+    },
+    {
+      fetch: globalThis.fetch,
+      logger: console,
+      toCIInfo,
+    },
+  );
+}
+
+// ============================================================================
+// History Pipeline
+// ============================================================================
+
+function runHistoryPipeline(run: any, args: CliArgs): void {
+  if (!args.historyFile) return;
+
+  const historyPath = path.resolve(args.historyFile);
+
+  // Load existing history
+  const store = loadHistory(
+    { filePath: historyPath },
+    {
+      readFile: (p: string) => {
+        try {
+          return fs.readFileSync(p, "utf8");
+        } catch {
+          return undefined;
+        }
+      },
+      logger: console,
+    },
+  );
+
+  // Update history with current run
+  const updated = updateHistory({
+    store,
+    run,
+    maxRuns: args.maxHistoryRuns,
+  });
+
+  // Save updated history
+  const dir = path.dirname(historyPath);
+  fs.mkdirSync(dir, { recursive: true });
+  saveHistory(
+    { filePath: historyPath, store: updated },
+    { writeFile: (p: string, content: string) => fs.writeFileSync(p, content, "utf8") },
+  );
+
+  // Compute metrics (log summary for CLI users)
+  let metricsCount = 0;
+  for (const testId of Object.keys(updated.tests)) {
+    const history = updated.tests[testId];
+    if (history.entries.length >= 3) {
+      metricsCount++;
+    }
+  }
+  if (metricsCount > 0) {
+    console.error(`History updated: ${historyPath} (${Object.keys(updated.tests).length} tests tracked)`);
   }
 }
 

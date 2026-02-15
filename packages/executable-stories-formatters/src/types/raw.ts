@@ -95,8 +95,16 @@ export interface RawTestCase {
 /** CI environment info */
 export interface RawCIInfo {
   name: string;
+  /** Typed provider key (stable identifier) */
+  provider?: import("./ci").CIProvider;
   url?: string;
   buildNumber?: string;
+  /** Git branch name */
+  branch?: string;
+  /** Git commit SHA */
+  commitSha?: string;
+  /** Pull/merge request number */
+  prNumber?: string;
 }
 
 /** Raw run - all framework data gathered */

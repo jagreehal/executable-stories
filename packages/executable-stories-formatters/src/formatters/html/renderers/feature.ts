@@ -3,10 +3,12 @@
  */
 
 import type { TestCaseResult } from "../../../types/test-result";
+import type { TestMetrics } from "../../../history/types";
 
 export interface RenderFeatureArgs {
   file: string;
   testCases: TestCaseResult[];
+  metricsMap?: Map<string, TestMetrics>;
 }
 
 export interface RenderFeatureDeps {
@@ -42,7 +44,12 @@ export function renderFeature(
   const ariaExpanded = !deps.startCollapsed;
 
   const scenarios = testCases
-    .map((tc) => deps.renderScenario({ tc }, deps.scenarioDeps))
+    .map((tc) =>
+      deps.renderScenario(
+        { tc, metrics: args.metricsMap?.get(tc.id) },
+        deps.scenarioDeps,
+      ),
+    )
     .join("\n");
 
   return `

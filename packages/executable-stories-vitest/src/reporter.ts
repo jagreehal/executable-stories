@@ -24,6 +24,11 @@ import {
   readGitSha,
   readPackageVersion,
   detectCI,
+  sendNotifications,
+  toCIInfo,
+  loadHistory,
+  updateHistory,
+  saveHistory,
   type RawRun,
   type RawTestCase,
   type RawAttachment,
@@ -273,7 +278,7 @@ export default class StoryReporter implements Reporter {
       canonicalRun.coverage = toCoverageSummary(this.coverageData);
     }
 
-    // Generate reports
+    // 1. Generate reports
     const generator = new ReportGenerator(this.options);
     try {
       const results = await generator.generate(canonicalRun);
@@ -290,6 +295,44 @@ export default class StoryReporter implements Reporter {
       }
     } catch (err) {
       console.error("Failed to generate reports:", err);
+    }
+
+    // 2. Update history (independent of report generation)
+    try {
+      const histOpts = this.options.history;
+      if (histOpts?.filePath) {
+        const historyPath = path.isAbsolute(histOpts.filePath)
+          ? histOpts.filePath
+          : path.join(root, histOpts.filePath);
+        const store = loadHistory(
+          { filePath: historyPath },
+          {
+            readFile: (p: string) => { try { return fs.readFileSync(p, "utf8"); } catch { return undefined; } },
+            logger: console,
+          },
+        );
+        const updated = updateHistory({ store, run: canonicalRun, maxRuns: histOpts.maxRuns ?? 10 });
+        const dir = path.dirname(historyPath);
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        saveHistory(
+          { filePath: historyPath, store: updated },
+          { writeFile: (p: string, c: string) => fs.writeFileSync(p, c, "utf8") },
+        );
+      }
+    } catch (err) {
+      console.error("Failed to update history:", err);
+    }
+
+    // 3. Send notifications (independent of both above)
+    try {
+      if (this.options.notification) {
+        await sendNotifications(
+          { run: canonicalRun, notification: this.options.notification },
+          { fetch: globalThis.fetch, logger: console, toCIInfo },
+        );
+      }
+    } catch (err) {
+      console.error("Failed to send notifications:", err);
     }
   }
 
