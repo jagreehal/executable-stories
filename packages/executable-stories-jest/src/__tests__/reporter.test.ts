@@ -20,27 +20,31 @@ describe("StoryReporter", () => {
     await fs.rm(artifactsDir, { recursive: true, force: true }).catch(() => {});
   });
 
-  it("writes aggregated report with title, scenario headers, and steps when Jest runs story tests", async () => {
-    const result = runJest(fixtureConfig, {
-      GITHUB_ACTIONS: undefined,
-      GITHUB_SHA: undefined,
-    });
+  it(
+    "writes aggregated report with title, scenario headers, and steps when Jest runs story tests",
+    async () => {
+      const result = runJest(fixtureConfig, {
+        GITHUB_ACTIONS: undefined,
+        GITHUB_SHA: undefined,
+      });
 
-    if (result.stderr?.length) console.log(result.stderr);
-    expect(result.status).toBe(0);
+      if (result.stderr?.length) console.log(result.stderr);
+      expect(result.status).toBe(0);
 
-    const raw = await fs.readFile(outputPath, "utf-8");
+      const raw = await fs.readFile(outputPath, "utf-8");
 
-    expect(raw).toContain("# User Stories");
-    expect(raw).toMatch(/## .*colocated\.story\.test/);
-    expect(raw).toContain("**Given** two numbers 5 and 3");
-    expect(raw).toContain("**When** they are added");
-    expect(raw).toContain("**Then** the result is 8");
-    expect(raw).toContain("**Given** two numbers 10 and 4");
-    expect(raw).toContain("**Then** the result is 6");
-    expect(raw).toContain("story with note and tags");
-    expect(raw).toContain("> This scenario uses doc methods.");
-    expect(raw).toMatch(/\bTags:.*smoke/);
-    expect(raw).toMatch(/\bTickets:.*T-1/);
-  });
+      expect(raw).toContain("# User Stories");
+      expect(raw).toMatch(/## .*colocated\.story\.test/);
+      expect(raw).toContain("**Given** two numbers 5 and 3");
+      expect(raw).toContain("**When** they are added");
+      expect(raw).toContain("**Then** the result is 8");
+      expect(raw).toContain("**Given** two numbers 10 and 4");
+      expect(raw).toContain("**Then** the result is 6");
+      expect(raw).toContain("story with note and tags");
+      expect(raw).toContain("> This scenario uses doc methods.");
+      expect(raw).toMatch(/\bTags:.*smoke/);
+      expect(raw).toMatch(/\bTickets:.*T-1/);
+    },
+    20_000,
+  );
 });

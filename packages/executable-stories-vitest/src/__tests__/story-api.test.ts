@@ -188,7 +188,7 @@ describe("story step aliases", () => {
 
     const meta = getStoryMeta(task);
     expect(meta.steps[0].keyword).toBe("Given");
-    expect(meta.steps[1].keyword).toBe("Given");
+    expect(meta.steps[1].keyword).toBe("And");
   });
 
   it("execute/action are aliases for When", ({ task }) => {
@@ -198,7 +198,7 @@ describe("story step aliases", () => {
 
     const meta = getStoryMeta(task);
     expect(meta.steps[0].keyword).toBe("When");
-    expect(meta.steps[1].keyword).toBe("When");
+    expect(meta.steps[1].keyword).toBe("And");
   });
 
   it("verify is alias for Then", ({ task }) => {
@@ -1271,6 +1271,48 @@ describe("story.fn() - step wrapper", () => {
     const result = story.fn("Given", "setup", () => {});
     expect(result).toBeUndefined();
   });
+
+  it("auto-converts repeated primary keywords for story.fn, including with markers", ({ task }) => {
+    story.init(task);
+
+    story.fn("Given", "first precondition", () => 1);
+    story.given("second precondition marker-only");
+    story.fn("When", "first action", () => "a");
+    story.when("second action marker-only");
+    story.fn("Then", "first assertion", () => true);
+    story.then("second assertion marker-only");
+
+    const meta = getStoryMeta(task);
+    expect(meta.steps.map((s) => s.keyword)).toEqual([
+      "Given",
+      "And",
+      "When",
+      "And",
+      "Then",
+      "And",
+    ]);
+  });
+
+  it("auto-converts repeated primary keywords when using story.fn only", ({ task }) => {
+    story.init(task);
+
+    story.fn("Given", "first precondition", () => 1);
+    story.fn("Given", "second precondition", () => 2);
+    story.fn("When", "first action", () => "a");
+    story.fn("When", "second action", () => "b");
+    story.fn("Then", "first assertion", () => true);
+    story.fn("Then", "second assertion", () => true);
+
+    const meta = getStoryMeta(task);
+    expect(meta.steps.map((s) => s.keyword)).toEqual([
+      "Given",
+      "And",
+      "When",
+      "And",
+      "Then",
+      "And",
+    ]);
+  });
 });
 
 describe("story.expect() - Then wrapper", () => {
@@ -1339,7 +1381,7 @@ describe("story.expect() - Then wrapper", () => {
 
     const meta = getStoryMeta(task);
     expect(meta.steps).toHaveLength(3);
-    expect(meta.steps[0].wrapped).toBeUndefined(); // marker
+    expect(meta.steps[0].wrapped).toBeUndefined();
     expect(meta.steps[1].wrapped).toBe(true); // fn
     expect(meta.steps[2].wrapped).toBe(true); // expect
   });
@@ -1479,5 +1521,166 @@ describe("real-world example scenarios", () => {
     expect(meta.steps[0].docs).toHaveLength(1); // json
     expect(meta.steps[1].docs).toHaveLength(2); // 2x kv
     expect(meta.steps[2].docs).toHaveLength(1); // table
+  });
+});
+
+describe("step callbacks", () => {
+  it("sync callback returns value and records wrapped + durationMs", ({ task }) => {
+    story.init(task);
+    const result = story.given("two numbers", () => ({ a: 5, b: 3 }));
+
+    expect(result).toEqual({ a: 5, b: 3 });
+
+    const meta = getStoryMeta(task);
+    expect(meta.steps).toHaveLength(1);
+    expect(meta.steps[0]).toMatchObject({
+      keyword: "Given",
+      text: "two numbers",
+      wrapped: true,
+    });
+    expect(meta.steps[0].durationMs).toBeTypeOf("number");
+    expect(meta.steps[0].durationMs).toBeGreaterThanOrEqual(0);
+  });
+
+  it("async callback returns value via await", async ({ task }) => {
+    story.init(task);
+    const result = await story.when("I fetch data", async () => {
+      return 42;
+    });
+
+    expect(result).toBe(42);
+
+    const meta = getStoryMeta(task);
+    expect(meta.steps[0]).toMatchObject({
+      keyword: "When",
+      text: "I fetch data",
+      wrapped: true,
+    });
+    expect(meta.steps[0].durationMs).toBeTypeOf("number");
+  });
+
+  it("void callback returns undefined", ({ task }) => {
+    story.init(task);
+    const result = story.then("check passes", () => {
+      expect(true).toBe(true);
+    });
+
+    expect(result).toBeUndefined();
+
+    const meta = getStoryMeta(task);
+    expect(meta.steps[0].wrapped).toBe(true);
+  });
+
+  it("error in callback re-throws, step still recorded", ({ task }) => {
+    story.init(task);
+
+    expect(() =>
+      story.when("failing action", () => {
+        throw new Error("boom");
+      }),
+    ).toThrow("boom");
+
+    const meta = getStoryMeta(task);
+    expect(meta.steps).toHaveLength(1);
+    expect(meta.steps[0].keyword).toBe("When");
+    expect(meta.steps[0].wrapped).toBe(true);
+    expect(meta.steps[0].durationMs).toBeTypeOf("number");
+  });
+
+  it("backward compat: marker-only still works (no wrapped)", ({ task }) => {
+    story.init(task);
+    story.given("a precondition");
+
+    const meta = getStoryMeta(task);
+    expect(meta.steps[0].keyword).toBe("Given");
+    expect(meta.steps[0].wrapped).toBeUndefined();
+    expect(meta.steps[0].durationMs).toBeUndefined();
+  });
+
+  it("backward compat: inline docs still work", ({ task }) => {
+    story.init(task);
+    story.given("valid credentials", {
+      note: "Session cookie is set",
+    });
+
+    const meta = getStoryMeta(task);
+    expect(meta.steps[0].wrapped).toBeUndefined();
+    expect(meta.steps[0].docs).toHaveLength(1);
+    expect(meta.steps[0].docs![0].kind).toBe("note");
+  });
+
+  it("integration: mixed markers, callbacks, and docs in one scenario", ({ task }) => {
+    story.init(task);
+
+    story.given("user is logged in");
+    const data = story.when("user submits form", () => ({ id: 1 }));
+    story.then("response is valid", () => {
+      expect(data.id).toBe(1);
+    });
+    story.and("confirmation appears");
+
+    const meta = getStoryMeta(task);
+    expect(meta.steps).toHaveLength(4);
+    expect(meta.steps[0].wrapped).toBeUndefined();
+    expect(meta.steps[1].wrapped).toBe(true);
+    expect(meta.steps[2].wrapped).toBe(true);
+    expect(meta.steps[3].wrapped).toBeUndefined();
+  });
+
+  it("works with all step keywords", ({ task }) => {
+    story.init(task);
+
+    story.given("setup", () => {});
+    story.when("action", () => {});
+    story.then("check", () => {});
+    story.and("more", () => {});
+    story.but("not this", () => {});
+
+    const meta = getStoryMeta(task);
+    expect(meta.steps).toHaveLength(5);
+    expect(meta.steps.every((s) => s.wrapped === true)).toBe(true);
+    expect(meta.steps.map((s) => s.keyword)).toEqual(["Given", "When", "Then", "And", "But"]);
+  });
+
+  it("auto-converts repeated primary callback keywords to And", ({ task }) => {
+    story.init(task);
+
+    story.given("first precondition", () => 1);
+    story.given("second precondition", () => 2);
+    story.when("first action", () => "a");
+    story.when("second action", () => "b");
+    story.then("first assertion", () => true);
+    story.then("second assertion", () => true);
+
+    const meta = getStoryMeta(task);
+    expect(meta.steps.map((s) => s.keyword)).toEqual([
+      "Given",
+      "And",
+      "When",
+      "And",
+      "Then",
+      "And",
+    ]);
+  });
+
+  it("auto-converts repeated primary keywords across callback and marker styles", ({ task }) => {
+    story.init(task);
+
+    story.given("first precondition", () => 1);
+    story.given("second precondition marker-only");
+    story.when("first action", () => "a");
+    story.when("second action marker-only");
+    story.then("first assertion", () => true);
+    story.then("second assertion marker-only");
+
+    const meta = getStoryMeta(task);
+    expect(meta.steps.map((s) => s.keyword)).toEqual([
+      "Given",
+      "And",
+      "When",
+      "And",
+      "Then",
+      "And",
+    ]);
   });
 });

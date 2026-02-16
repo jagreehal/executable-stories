@@ -97,6 +97,8 @@ export interface StoryOptions {
   meta?: Record<string, unknown>;
   /** URL template for OTel trace links. Uses {traceId} placeholder. Also settable via OTEL_TRACE_URL_TEMPLATE env var. */
   traceUrlTemplate?: string;
+  /** Playwright fixtures (first argument of the test callback). When set, step callbacks receive this as their first argument. */
+  fixtures?: unknown;
 }
 
 /** Options for story.attach(). */

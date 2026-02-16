@@ -5,6 +5,11 @@
  * and attaches it to testInfo.annotations for the reporter to consume.
  */
 import { test, expect } from "@playwright/test";
+import { spawnSync } from "node:child_process";
+import * as fs from "node:fs";
+import * as path from "node:path";
+import { fileURLToPath } from "node:url";
+import * as executableStories from "../index";
 import { story } from "../story-api";
 import type { StoryMeta } from "../types";
 
@@ -16,6 +21,129 @@ function getStoryMeta(testInfo: { annotations: Array<{ type: string; description
   if (!annotation?.description) return undefined;
   return JSON.parse(annotation.description);
 }
+
+const packageRoot = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../..",
+);
+
+test.describe("public API surface", () => {
+  test("exports top-level step helpers", () => {
+    expect(typeof executableStories.given).toBe("function");
+    expect(typeof executableStories.when).toBe("function");
+    expect(typeof executableStories.then).toBe("function");
+    expect(typeof executableStories.and).toBe("function");
+    expect(typeof executableStories.but).toBe("function");
+  });
+});
+
+test.describe("type contracts", () => {
+  test("fixture-aware step callback usage compiles", () => {
+    const fixtureTypecheckFile = path.join(
+      packageRoot,
+      "tmp-fixture-callback-contract.ts",
+    );
+
+    fs.writeFileSync(
+      fixtureTypecheckFile,
+      [
+        "import { story } from './src/index';",
+        "import type { TestInfo } from '@playwright/test';",
+        "",
+        "declare const testInfo: TestInfo;",
+        "declare const page: unknown;",
+        "",
+        "story.init({ page }, testInfo);",
+        "story.given('fixture step', async ({ page }) => {",
+        "  void page;",
+        "});",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+
+    try {
+      const tscResult = spawnSync(
+        "pnpm",
+        [
+          "exec",
+          "tsc",
+          "--noEmit",
+          "--pretty",
+          "false",
+          "--target",
+          "ES2022",
+          "--module",
+          "ESNext",
+          "--moduleResolution",
+          "Bundler",
+          "--esModuleInterop",
+          "--skipLibCheck",
+          fixtureTypecheckFile,
+        ],
+        { cwd: packageRoot, encoding: "utf8" },
+      );
+
+      expect(tscResult.status).toBe(0);
+      expect(tscResult.stdout).toBe("");
+    } finally {
+      fs.unlinkSync(fixtureTypecheckFile);
+    }
+  });
+
+  test("README fixture callback example compiles in strict TypeScript", () => {
+    const fixtureTypecheckFile = path.join(
+      packageRoot,
+      "tmp-fixture-callback-strict-contract.ts",
+    );
+
+    fs.writeFileSync(
+      fixtureTypecheckFile,
+      [
+        "import { story } from './src/index';",
+        "import type { TestInfo } from '@playwright/test';",
+        "",
+        "declare const testInfo: TestInfo;",
+        "declare const page: { goto(url: string): Promise<void> };",
+        "",
+        "story.init({ page }, testInfo);",
+        "story.given('user is on login page', async ({ page }) => {",
+        "  await page.goto('/login');",
+        "});",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+
+    try {
+      const tscResult = spawnSync(
+        "pnpm",
+        [
+          "exec",
+          "tsc",
+          "--noEmit",
+          "--pretty",
+          "false",
+          "--target",
+          "ES2022",
+          "--module",
+          "ESNext",
+          "--moduleResolution",
+          "Bundler",
+          "--strict",
+          "--esModuleInterop",
+          "--skipLibCheck",
+          fixtureTypecheckFile,
+        ],
+        { cwd: packageRoot, encoding: "utf8" },
+      );
+
+      expect(tscResult.status).toBe(0);
+    } finally {
+      fs.unlinkSync(fixtureTypecheckFile);
+    }
+  });
+});
 
 test.describe("story.init()", () => {
   test("creates StoryMeta from testInfo.title", async ({}, testInfo) => {
@@ -162,7 +290,7 @@ test.describe("story step aliases", () => {
 
     const meta = getStoryMeta(testInfo);
     expect(meta!.steps[0].keyword).toBe("Given");
-    expect(meta!.steps[1].keyword).toBe("Given");
+    expect(meta!.steps[1].keyword).toBe("And");
   });
 
   test("execute/action are aliases for When", async ({}, testInfo) => {
@@ -172,7 +300,7 @@ test.describe("story step aliases", () => {
 
     const meta = getStoryMeta(testInfo);
     expect(meta!.steps[0].keyword).toBe("When");
-    expect(meta!.steps[1].keyword).toBe("When");
+    expect(meta!.steps[1].keyword).toBe("And");
   });
 
   test("verify is alias for Then", async ({}, testInfo) => {
@@ -507,6 +635,48 @@ test.describe("story.fn() - step wrapper", () => {
     expect(steps[1].wrapped).toBe(true);
     expect(steps[2].wrapped).toBe(true);
   });
+
+  test("auto-converts repeated primary keywords for story.fn, including with markers", async ({}, testInfo) => {
+    story.init(testInfo);
+
+    story.fn("Given", "first precondition", () => 1);
+    story.given("second precondition marker-only");
+    story.fn("When", "first action", () => "a");
+    story.when("second action marker-only");
+    story.fn("Then", "first assertion", () => true);
+    story.then("second assertion marker-only");
+
+    const meta = getStoryMeta(testInfo);
+    expect(meta!.steps.map((step) => step.keyword)).toEqual([
+      "Given",
+      "And",
+      "When",
+      "And",
+      "Then",
+      "And",
+    ]);
+  });
+
+  test("auto-converts repeated primary keywords when using story.fn only", async ({}, testInfo) => {
+    story.init(testInfo);
+
+    story.fn("Given", "first precondition", () => 1);
+    story.fn("Given", "second precondition", () => 2);
+    story.fn("When", "first action", () => "a");
+    story.fn("When", "second action", () => "b");
+    story.fn("Then", "first assertion", () => true);
+    story.fn("Then", "second assertion", () => true);
+
+    const meta = getStoryMeta(testInfo);
+    expect(meta!.steps.map((step) => step.keyword)).toEqual([
+      "Given",
+      "And",
+      "When",
+      "And",
+      "Then",
+      "And",
+    ]);
+  });
 });
 
 test.describe("story.expect() - Then wrapper", () => {
@@ -557,5 +727,188 @@ test.describe("describe and nested describe behavior", () => {
         expect(meta!.suitePath).toContain("Basic Operations");
       });
     });
+  });
+});
+
+test.describe("step callbacks", () => {
+  test("README contract: step callbacks do not receive fixtures when only story.init(testInfo) is called", async ({ page }, testInfo) => {
+    story.init(testInfo);
+
+    await story.when("callback without fixtures", async (fixtures: { page?: unknown } | undefined) => {
+      expect(fixtures).toBeUndefined();
+    });
+  });
+
+  test("passes Playwright fixtures into step callback body without extra init options", async ({ page }, testInfo) => {
+    story.init({ page }, testInfo);
+
+    await story.when("fixture-aware callback via default init", async (fixtures: { page?: unknown }) => {
+      expect(fixtures).toBeDefined();
+      expect(fixtures.page).toBe(page);
+    });
+  });
+
+  test("passes Playwright fixtures into step callback body", async ({ page }, testInfo) => {
+    story.init(testInfo, { fixtures: { page } });
+
+    await story.when("fixture-aware callback", async (fixtures: { page?: unknown }) => {
+      expect(fixtures).toBeDefined();
+      expect(fixtures.page).toBe(page);
+    });
+
+    const meta = getStoryMeta(testInfo);
+    expect(meta!.steps[0].wrapped).toBe(true);
+  });
+
+  test("sync callback returns value and records wrapped + durationMs", async ({}, testInfo) => {
+    story.init(testInfo);
+    const result = story.given("two numbers", () => ({ a: 5, b: 3 }));
+
+    expect(result).toEqual({ a: 5, b: 3 });
+
+    const meta = getStoryMeta(testInfo);
+    expect(meta!.steps).toHaveLength(1);
+    expect(meta!.steps[0]).toMatchObject({
+      keyword: "Given",
+      text: "two numbers",
+      wrapped: true,
+    });
+    expect(typeof (meta!.steps[0] as { durationMs?: number }).durationMs).toBe("number");
+  });
+
+  test("async callback returns value via await", async ({}, testInfo) => {
+    story.init(testInfo);
+    const result = await story.when("I fetch data", async () => 42);
+
+    expect(result).toBe(42);
+
+    const meta = getStoryMeta(testInfo);
+    expect(meta!.steps[0]).toMatchObject({
+      keyword: "When",
+      text: "I fetch data",
+      wrapped: true,
+    });
+    expect(typeof (meta!.steps[0] as { durationMs?: number }).durationMs).toBe("number");
+  });
+
+  test("void callback returns undefined", async ({}, testInfo) => {
+    story.init(testInfo);
+    const result = story.then("check passes", () => {
+      expect(true).toBe(true);
+    });
+
+    expect(result).toBeUndefined();
+
+    const meta = getStoryMeta(testInfo);
+    const step = meta!.steps[0] as { wrapped?: boolean };
+    expect(step.wrapped).toBe(true);
+  });
+
+  test("error in callback re-throws, step still recorded", async ({}, testInfo) => {
+    story.init(testInfo);
+
+    expect(() =>
+      story.when("failing action", () => {
+        throw new Error("boom");
+      }),
+    ).toThrow("boom");
+
+    const meta = getStoryMeta(testInfo);
+    expect(meta!.steps).toHaveLength(1);
+    expect(meta!.steps[0].keyword).toBe("When");
+    expect((meta!.steps[0] as { wrapped?: boolean }).wrapped).toBe(true);
+    expect(typeof (meta!.steps[0] as { durationMs?: number }).durationMs).toBe("number");
+  });
+
+  test("backward compat: marker-only still works (no wrapped)", async ({}, testInfo) => {
+    story.init(testInfo);
+    story.given("a precondition");
+
+    const meta = getStoryMeta(testInfo);
+    expect(meta!.steps[0].keyword).toBe("Given");
+    expect((meta!.steps[0] as { wrapped?: boolean }).wrapped).toBeUndefined();
+    expect((meta!.steps[0] as { durationMs?: number }).durationMs).toBeUndefined();
+  });
+
+  test("backward compat: inline docs still work", async ({}, testInfo) => {
+    story.init(testInfo);
+    story.given("valid credentials", {
+      note: "Session cookie is set",
+    });
+
+    const meta = getStoryMeta(testInfo);
+    expect((meta!.steps[0] as { wrapped?: boolean }).wrapped).toBeUndefined();
+    expect(meta!.steps[0].docs).toHaveLength(1);
+    expect(meta!.steps[0].docs![0].kind).toBe("note");
+  });
+
+  test("integration: mixed markers, callbacks, and docs in one scenario", async ({}, testInfo) => {
+    story.init(testInfo);
+
+    story.given("user is logged in");
+    const data = story.when("user submits form", () => ({ id: 1 }));
+    story.then("response is valid", () => { expect(data.id).toBe(1); });
+    story.and("confirmation appears");
+
+    const meta = getStoryMeta(testInfo);
+    const steps = meta!.steps as Array<{ wrapped?: boolean }>;
+    expect(steps).toHaveLength(4);
+    expect(steps[0].wrapped).toBeUndefined();
+    expect(steps[1].wrapped).toBe(true);
+    expect(steps[2].wrapped).toBe(true);
+    expect(steps[3].wrapped).toBeUndefined();
+  });
+
+  test("syncs annotation after callback completes", async ({}, testInfo) => {
+    story.init(testInfo);
+    story.given("step with callback", () => 5);
+
+    const annotation = testInfo.annotations.find((a) => a.type === "story-meta");
+    const meta = JSON.parse(annotation!.description!);
+    expect(meta.steps).toHaveLength(1);
+    expect(meta.steps[0].wrapped).toBe(true);
+    expect(typeof meta.steps[0].durationMs).toBe("number");
+  });
+
+  test("auto-converts repeated primary callback keywords to And", async ({}, testInfo) => {
+    story.init(testInfo);
+
+    story.given("first precondition", () => 1);
+    story.given("second precondition", () => 2);
+    story.when("first action", () => "a");
+    story.when("second action", () => "b");
+    story.then("first assertion", () => true);
+    story.then("second assertion", () => true);
+
+    const meta = getStoryMeta(testInfo);
+    expect(meta!.steps.map((step) => step.keyword)).toEqual([
+      "Given",
+      "And",
+      "When",
+      "And",
+      "Then",
+      "And",
+    ]);
+  });
+
+  test("auto-converts repeated primary keywords across callback and marker styles", async ({}, testInfo) => {
+    story.init(testInfo);
+
+    story.given("first precondition", () => 1);
+    story.given("second precondition marker-only");
+    story.when("first action", () => "a");
+    story.when("second action marker-only");
+    story.then("first assertion", () => true);
+    story.then("second assertion marker-only");
+
+    const meta = getStoryMeta(testInfo);
+    expect(meta!.steps.map((step) => step.keyword)).toEqual([
+      "Given",
+      "And",
+      "When",
+      "And",
+      "Then",
+      "And",
+    ]);
   });
 });

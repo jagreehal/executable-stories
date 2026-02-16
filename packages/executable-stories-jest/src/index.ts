@@ -26,8 +26,16 @@
  */
 
 // Story API
-export { story } from "./story-api";
+import { story } from "./story-api";
+export { story };
 export type { Story } from "./story-api";
+
+// Top-level step helpers (framework contract)
+export const given = story.given;
+export const when = story.when;
+export const then = story.then;
+export const and = story.and;
+export const but = story.but;
 
 // Re-export types
 export type {
