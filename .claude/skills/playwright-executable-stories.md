@@ -1,7 +1,7 @@
 ---
 name: executable-stories-playwright
 description: Write Given/When/Then story tests for Playwright with automatic Markdown doc generation. Use when creating BDD-style E2E tests or generating user story documentation from browser tests.
-version: 2.1.0
+version: 2.2.0
 libraries: ['@playwright/test']
 ---
 
@@ -34,30 +34,29 @@ test.describe('User Authentication', () => {
 
 ## API Reference
 
-### story.init(testInfo, options?)
+### story.init(testInfo, options?) / story.init(fixtures, testInfo)
 
 Initialize a story at the start of each test. Required before using other story methods.
+
+- `story.init(testInfo)` — no fixtures; step callbacks receive no argument.
+- `story.init(fixtures, testInfo)` or `story.init(testInfo, { fixtures })` — step callbacks receive fixtures as first argument (e.g. `story.given('...', async ({ page }) => { await page.goto('/'); });`).
 
 ```ts
 test('test name', async ({ page }, testInfo) => {
   story.init(testInfo);
-  // or with options:
-  story.init(testInfo, {
-    tags: ['smoke', 'auth'],
-    ticket: 'JIRA-123',
-    meta: { priority: 'high' },
-  });
+  // or with fixtures for step callbacks:
+  story.init({ page }, testInfo);
+  // or: story.init(testInfo, { tags: ['smoke'], fixtures: { page } });
 });
 ```
 
-### Step Markers
+### Step Markers (marker-only or optional callback)
 
-Step markers are documentation-only - they don't wrap code in callbacks.
+**Marker-only:** Pass text (and optionally inline StoryDocs). Code follows the marker.
 
 ```ts
 story.given('precondition');
 await page.goto('/login');
-// Playwright actions naturally follow step markers
 
 story.when('action occurs');
 await page.click('button');
@@ -66,13 +65,22 @@ story.then('expected result');
 await expect(page).toHaveURL('/dashboard');
 ```
 
-| Method              | Keyword | Purpose               |
-| ------------------- | ------- | --------------------- |
-| `story.given(text)` | Given   | Precondition/setup    |
-| `story.when(text)`  | When    | Action                |
-| `story.then(text)`  | Then    | Assertion             |
-| `story.and(text)`   | And     | Continuation          |
-| `story.but(text)`   | But     | Negative continuation |
+**Optional callback:** Second argument can be a function. Step is recorded, then callback runs. Return value is passed through; if Promise, use `await story.when('...', async () => { ... })`. With `story.init({ page }, testInfo)`, the callback receives fixtures: `story.given('...', async ({ page }) => { await page.goto('/'); });`. Step gets `wrapped: true` and `durationMs`.
+
+```ts
+story.init({ page }, testInfo);
+story.given('user is on login page', async ({ page }) => { await page.goto('/login'); });
+await story.when('user submits', async ({ page }) => { await page.click('button[type=submit]'); });
+story.then('dashboard is visible', () => { expect(true).toBe(true); });
+```
+
+| Method                              | Keyword | Purpose               |
+| ----------------------------------- | ------- | --------------------- |
+| `story.given(text)` / `(text, fn?)` | Given   | Precondition/setup    |
+| `story.when(text)` / `(text, fn?)`  | When    | Action                |
+| `story.then(text)` / `(text, fn?)` | Then    | Assertion             |
+| `story.and(text)` / `(text, fn?)`  | And     | Continuation          |
+| `story.but(text)` / `(text, fn?)`  | But     | Negative continuation |
 
 ### Step Aliases
 

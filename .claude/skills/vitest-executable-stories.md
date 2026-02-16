@@ -1,7 +1,7 @@
 ---
 name: executable-stories-vitest
 description: Write Given/When/Then story tests for Vitest with automatic Markdown doc generation. Use when creating BDD-style tests or generating user story documentation from tests.
-version: 2.1.0
+version: 2.2.0
 libraries: ['vitest']
 ---
 
@@ -49,9 +49,9 @@ it('test name', ({ task }) => {
 });
 ```
 
-### Step Markers
+### Step Markers (marker-only or optional callback)
 
-Step markers are documentation-only - they don't wrap code in callbacks.
+**Marker-only:** Pass text (and optionally inline StoryDocs). Code lives on the next lines.
 
 ```ts
 story.given('precondition');
@@ -61,17 +61,24 @@ story.when('action occurs');
 // action code here
 
 story.then('expected result');
-// assertion code here
 expect(result).toBe(expected);
 ```
 
-| Method              | Keyword | Purpose               |
-| ------------------- | ------- | --------------------- |
-| `story.given(text)` | Given   | Precondition/setup    |
-| `story.when(text)`  | When    | Action                |
-| `story.then(text)`  | Then    | Assertion             |
-| `story.and(text)`   | And     | Continuation          |
-| `story.but(text)`   | But     | Negative continuation |
+**Optional callback:** Second argument can be a function. The step is recorded first, then the callback runs. Return value is passed through; if it's a Promise, return it so `await story.when('...', async () => { ... })` works. Step gets `wrapped: true` and `durationMs`.
+
+```ts
+story.given('two numbers', () => ({ a: 5, b: 3 }));
+const data = story.when('I fetch', async () => (await fetch('/api')).json());
+story.then('result is valid', () => { expect(data).toBeDefined(); });
+```
+
+| Method                              | Keyword | Purpose               |
+| ----------------------------------- | ------- | --------------------- |
+| `story.given(text)` / `(text, fn?)` | Given   | Precondition/setup    |
+| `story.when(text)` / `(text, fn?)` | When    | Action                |
+| `story.then(text)` / `(text, fn?)` | Then    | Assertion             |
+| `story.and(text)` / `(text, fn?)`  | And     | Continuation          |
+| `story.but(text)` / `(text, fn?)`  | But     | Negative continuation |
 
 ### Step Aliases
 
