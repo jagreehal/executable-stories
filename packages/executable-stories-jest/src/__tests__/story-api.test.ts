@@ -6,6 +6,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { tmpdir } from "node:os";
 import { describe, it, expect, beforeAll, afterEach } from "@jest/globals";
+import * as executableStories from "../index";
 import { story, _internal } from "../story-api";
 
 const testOutputDir = path.join(
@@ -35,6 +36,16 @@ function getLastScenario(): { scenario: string; steps: unknown[]; docs?: unknown
 }
 
 describe("story API", () => {
+  describe("public API surface", () => {
+    it("exports top-level step helpers", () => {
+      expect(typeof executableStories.given).toBe("function");
+      expect(typeof executableStories.when).toBe("function");
+      expect(typeof executableStories.then).toBe("function");
+      expect(typeof executableStories.and).toBe("function");
+      expect(typeof executableStories.but).toBe("function");
+    });
+  });
+
   beforeAll(() => {
     process.env.JEST_STORY_DOCS_DIR = testOutputDir;
     process.env.JEST_WORKER_ID = "0";
@@ -124,7 +135,7 @@ describe("story API", () => {
 
       const s = getLastScenario();
       const steps = s!.steps as Array<{ keyword: string; text: string }>;
-      expect(steps.map((st) => st.keyword)).toEqual(["Given", "Given", "When", "Then", "But"]);
+      expect(steps.map((st) => st.keyword)).toEqual(["Given", "And", "When", "Then", "But"]);
     });
   });
 
@@ -314,6 +325,52 @@ describe("story API", () => {
       expect(steps[1].wrapped).toBe(true);
       expect(steps[2].wrapped).toBe(true);
     });
+
+    it("auto-converts repeated primary keywords for story.fn, including with markers", () => {
+      story.init();
+
+      story.fn("Given", "first precondition", () => 1);
+      story.given("second precondition marker-only");
+      story.fn("When", "first action", () => "a");
+      story.when("second action marker-only");
+      story.fn("Then", "first assertion", () => true);
+      story.then("second assertion marker-only");
+      _internal.flushStories();
+
+      const s = getLastScenario();
+      const steps = s!.steps as Array<{ keyword: string }>;
+      expect(steps.map((step) => step.keyword)).toEqual([
+        "Given",
+        "And",
+        "When",
+        "And",
+        "Then",
+        "And",
+      ]);
+    });
+
+    it("auto-converts repeated primary keywords when using story.fn only", () => {
+      story.init();
+
+      story.fn("Given", "first precondition", () => 1);
+      story.fn("Given", "second precondition", () => 2);
+      story.fn("When", "first action", () => "a");
+      story.fn("When", "second action", () => "b");
+      story.fn("Then", "first assertion", () => true);
+      story.fn("Then", "second assertion", () => true);
+      _internal.flushStories();
+
+      const s = getLastScenario();
+      const steps = s!.steps as Array<{ keyword: string }>;
+      expect(steps.map((step) => step.keyword)).toEqual([
+        "Given",
+        "And",
+        "When",
+        "And",
+        "Then",
+        "And",
+      ]);
+    });
   });
 
   describe("story.expect() - Then wrapper", () => {
@@ -346,6 +403,156 @@ describe("story API", () => {
       const s = getLastScenario();
       const step = (s!.steps as Array<{ durationMs?: number }>)[0];
       expect(typeof step.durationMs).toBe("number");
+    });
+  });
+
+  describe("step callbacks", () => {
+    it("sync callback returns value and records wrapped + durationMs", () => {
+      story.init();
+      const result = story.given("two numbers", () => ({ a: 5, b: 3 }));
+      _internal.flushStories();
+
+      expect(result).toEqual({ a: 5, b: 3 });
+
+      const s = getLastScenario();
+      const step = (s!.steps as Array<{ keyword: string; text: string; wrapped?: boolean; durationMs?: number }>)[0];
+      expect(step.keyword).toBe("Given");
+      expect(step.text).toBe("two numbers");
+      expect(step.wrapped).toBe(true);
+      expect(typeof step.durationMs).toBe("number");
+    });
+
+    it("async callback returns value via await", async () => {
+      story.init();
+      const result = await story.when("I fetch data", async () => 42);
+      _internal.flushStories();
+
+      expect(result).toBe(42);
+
+      const s = getLastScenario();
+      const step = (s!.steps as Array<{ keyword: string; wrapped?: boolean; durationMs?: number }>)[0];
+      expect(step.keyword).toBe("When");
+      expect(step.wrapped).toBe(true);
+      expect(typeof step.durationMs).toBe("number");
+    });
+
+    it("void callback returns undefined", () => {
+      story.init();
+      const result = story.then("check passes", () => {
+        expect(true).toBe(true);
+      });
+      _internal.flushStories();
+
+      expect(result).toBeUndefined();
+
+      const s = getLastScenario();
+      const step = (s!.steps as Array<{ wrapped?: boolean }>)[0];
+      expect(step.wrapped).toBe(true);
+    });
+
+    it("error in callback re-throws, step still recorded", () => {
+      story.init();
+      expect(() =>
+        story.when("failing action", () => {
+          throw new Error("boom");
+        }),
+      ).toThrow("boom");
+      _internal.flushStories();
+
+      const s = getLastScenario();
+      expect(s!.steps).toHaveLength(1);
+      const step = (s!.steps as Array<{ keyword: string; wrapped?: boolean; durationMs?: number }>)[0];
+      expect(step.keyword).toBe("When");
+      expect(step.wrapped).toBe(true);
+      expect(typeof step.durationMs).toBe("number");
+    });
+
+    it("backward compat: marker-only still works (no wrapped)", () => {
+      story.init();
+      story.given("a precondition");
+      _internal.flushStories();
+
+      const s = getLastScenario();
+      const step = (s!.steps as Array<{ wrapped?: boolean; durationMs?: number }>)[0];
+      expect(step.wrapped).toBeUndefined();
+      expect(step.durationMs).toBeUndefined();
+    });
+
+    it("backward compat: inline docs still work", () => {
+      story.init();
+      story.given("valid credentials", {
+        note: "Session cookie is set",
+      });
+      _internal.flushStories();
+
+      const s = getLastScenario();
+      const step = (s!.steps as Array<{ wrapped?: boolean; docs?: Array<{ kind: string }> }>)[0];
+      expect(step.wrapped).toBeUndefined();
+      expect(step.docs).toHaveLength(1);
+      expect(step.docs![0].kind).toBe("note");
+    });
+
+    it("integration: mixed markers, callbacks, and docs in one scenario", () => {
+      story.init();
+      story.given("user is logged in");
+      const data = story.when("user submits form", () => ({ id: 1 }));
+      story.then("response is valid", () => { expect(data.id).toBe(1); });
+      story.and("confirmation appears");
+      _internal.flushStories();
+
+      const s = getLastScenario();
+      const steps = s!.steps as Array<{ wrapped?: boolean }>;
+      expect(steps).toHaveLength(4);
+      expect(steps[0].wrapped).toBeUndefined();
+      expect(steps[1].wrapped).toBe(true);
+      expect(steps[2].wrapped).toBe(true);
+      expect(steps[3].wrapped).toBeUndefined();
+    });
+
+    it("auto-converts repeated primary callback keywords to And", () => {
+      story.init();
+
+      story.given("first precondition", () => 1);
+      story.given("second precondition", () => 2);
+      story.when("first action", () => "a");
+      story.when("second action", () => "b");
+      story.then("first assertion", () => true);
+      story.then("second assertion", () => true);
+      _internal.flushStories();
+
+      const s = getLastScenario();
+      const steps = s!.steps as Array<{ keyword: string }>;
+      expect(steps.map((step) => step.keyword)).toEqual([
+        "Given",
+        "And",
+        "When",
+        "And",
+        "Then",
+        "And",
+      ]);
+    });
+
+    it("auto-converts repeated primary keywords across callback and marker styles", () => {
+      story.init();
+
+      story.given("first precondition", () => 1);
+      story.given("second precondition marker-only");
+      story.when("first action", () => "a");
+      story.when("second action marker-only");
+      story.then("first assertion", () => true);
+      story.then("second assertion marker-only");
+      _internal.flushStories();
+
+      const s = getLastScenario();
+      const steps = s!.steps as Array<{ keyword: string }>;
+      expect(steps.map((step) => step.keyword)).toEqual([
+        "Given",
+        "And",
+        "When",
+        "And",
+        "Then",
+        "And",
+      ]);
     });
   });
 });

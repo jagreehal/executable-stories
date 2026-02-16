@@ -27,7 +27,7 @@
  */
 
 import { createRequire } from 'node:module';
-import type { TestInfo } from '@playwright/test';
+import type { TestInfo, PlaywrightTestArgs, PlaywrightTestOptions } from '@playwright/test';
 import {
   tryGetActiveOtelContext,
   resolveTraceUrl,
@@ -69,6 +69,9 @@ export type {
 // Internal types
 // ============================================================================
 
+/** Fixture type for step callbacks: Playwright test args + options; custom extend() fixtures as unknown. */
+type PlaywrightFixtures = PlaywrightTestArgs & PlaywrightTestOptions & Record<string, unknown>;
+
 interface TimerEntry {
   start: number;
   stepIndex?: number;
@@ -83,6 +86,7 @@ interface StoryContext {
   attachments: ScopedAttachment[];
   activeTimers: Map<number, TimerEntry>;
   timerCounter: number;
+  fixtures?: Record<string, unknown>;
 }
 
 // ============================================================================
@@ -239,25 +243,90 @@ function extractSuitePath(testInfo: TestInfo): string[] | undefined {
 // ============================================================================
 
 function createStepMarker(keyword: StepKeyword) {
-  return function stepMarker(text: string, docs?: StoryDocs): void {
+  function stepMarker(text: string, docs?: StoryDocs): void;
+  function stepMarker<T>(text: string, body: (fixtures: PlaywrightFixtures) => T): T;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function stepMarker<T>(text: string, docsOrBody?: StoryDocs | ((...args: any[]) => T)): T | void {
     const ctx = getContext();
+    const isCallback = typeof docsOrBody === 'function';
+
+    const resolvedKeyword: StepKeyword =
+      (keyword === 'Given' || keyword === 'When' || keyword === 'Then') &&
+      ctx.meta.steps.some((s) => s.keyword === keyword)
+        ? 'And'
+        : keyword;
+
     const step: StoryStep = {
       id: `step-${ctx.stepCounter++}`,
-      keyword,
+      keyword: resolvedKeyword,
       text,
-      docs: docs ? convertStoryDocsToEntries(docs) : [],
+      docs: (!isCallback && docsOrBody) ? convertStoryDocsToEntries(docsOrBody) : [],
+      ...(isCallback ? { wrapped: true } : {}),
     };
+
     ctx.meta.steps.push(step);
     ctx.currentStep = step;
     syncAnnotationToTest();
-  };
+
+    if (!isCallback) return;
+
+    const body = docsOrBody as (fixtures?: PlaywrightFixtures) => T;
+    const start = performance.now();
+
+    try {
+      const result = ctx.fixtures !== undefined ? body(ctx.fixtures as PlaywrightFixtures) : body();
+      if (result instanceof Promise) {
+        return result.then(
+          (val) => { step.durationMs = performance.now() - start; syncAnnotationToTest(); return val; },
+          (err) => { step.durationMs = performance.now() - start; syncAnnotationToTest(); throw err; },
+        ) as T;
+      }
+      step.durationMs = performance.now() - start;
+      syncAnnotationToTest();
+      return result;
+    } catch (err) {
+      step.durationMs = performance.now() - start;
+      syncAnnotationToTest();
+      throw err;
+    }
+  }
+  return stepMarker;
 }
 
 // ============================================================================
 // story.init() - Playwright-specific
 // ============================================================================
 
-function init(testInfo: TestInfo, options?: StoryOptions): void {
+function isTestInfo(x: unknown): x is TestInfo {
+  return (
+    typeof x === 'object' &&
+    x !== null &&
+    'title' in x &&
+    'annotations' in x &&
+    Array.isArray((x as TestInfo).annotations)
+  );
+}
+
+/** init(testInfo) or init(fixtures, testInfo) or init(testInfo, { fixtures }). */
+function init(
+  first: TestInfo | unknown,
+  second?: StoryOptions | TestInfo,
+  third?: StoryOptions,
+): void {
+  let testInfo: TestInfo;
+  let options: StoryOptions | undefined;
+  let fixtures: unknown;
+
+  if (second !== undefined && isTestInfo(second)) {
+    fixtures = first;
+    testInfo = second;
+    options = third;
+  } else {
+    testInfo = first as TestInfo;
+    options = second;
+    fixtures = options?.fixtures;
+  }
+
   const meta: StoryMeta = {
     scenario: testInfo.title,
     steps: [],
@@ -315,6 +384,7 @@ function init(testInfo: TestInfo, options?: StoryOptions): void {
     attachments: [],
     activeTimers: new Map(),
     timerCounter: 0,
+    fixtures: fixtures as Record<string, unknown> | undefined,
   };
   activeTestInfo = testInfo;
 }
@@ -341,11 +411,18 @@ function syncAnnotationToTest(): void {
  * Wrap a function as a step with timing and error capture.
  * Records the step with `wrapped: true` and `durationMs`.
  */
-function fn<T>(keyword: StepKeyword, text: string, body: () => T): T {
+function fn<T>(keyword: StepKeyword, text: string, body: (fixtures: PlaywrightFixtures) => T): T;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+function fn<T>(keyword: StepKeyword, text: string, body: (...args: any[]) => T): T {
   const ctx = getContext();
+  const resolvedKeyword: StepKeyword =
+    (keyword === 'Given' || keyword === 'When' || keyword === 'Then') &&
+    ctx.meta.steps.some((s) => s.keyword === keyword)
+      ? 'And'
+      : keyword;
   const step: StoryStep = {
     id: `step-${ctx.stepCounter++}`,
-    keyword,
+    keyword: resolvedKeyword,
     text,
     docs: [],
     wrapped: true,
@@ -356,7 +433,7 @@ function fn<T>(keyword: StepKeyword, text: string, body: () => T): T {
 
   const start = performance.now();
   try {
-    const result = body();
+    const result = ctx.fixtures !== undefined ? body(ctx.fixtures as PlaywrightFixtures) : body();
     if (result instanceof Promise) {
       return result.then(
         (val) => {

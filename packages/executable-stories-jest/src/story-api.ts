@@ -270,19 +270,50 @@ function attachDoc(entry: DocEntry): void {
 // ============================================================================
 
 function createStepMarker(keyword: StepKeyword) {
-  return function stepMarker(text: string, docs?: StoryDocs): void {
+  function stepMarker(text: string, docs?: StoryDocs): void;
+  function stepMarker<T>(text: string, body: () => T): T;
+  function stepMarker<T>(text: string, docsOrBody?: StoryDocs | (() => T)): T | void {
     const ctx = getContext();
+    const isCallback = typeof docsOrBody === 'function';
+
+    const resolvedKeyword: StepKeyword =
+      (keyword === 'Given' || keyword === 'When' || keyword === 'Then') &&
+      ctx.meta.steps.some((s) => s.keyword === keyword)
+        ? 'And'
+        : keyword;
 
     const step: StoryStep = {
       id: `step-${ctx.stepCounter++}`,
-      keyword,
+      keyword: resolvedKeyword,
       text,
-      docs: docs ? convertStoryDocsToEntries(docs) : [],
+      docs: (!isCallback && docsOrBody) ? convertStoryDocsToEntries(docsOrBody) : [],
+      ...(isCallback ? { wrapped: true } : {}),
     };
 
     ctx.meta.steps.push(step);
     ctx.currentStep = step;
-  };
+
+    if (!isCallback) return;
+
+    const body = docsOrBody as () => T;
+    const start = performance.now();
+
+    try {
+      const result = body();
+      if (result instanceof Promise) {
+        return result.then(
+          (val) => { step.durationMs = performance.now() - start; return val; },
+          (err) => { step.durationMs = performance.now() - start; throw err; },
+        ) as T;
+      }
+      step.durationMs = performance.now() - start;
+      return result;
+    } catch (err) {
+      step.durationMs = performance.now() - start;
+      throw err;
+    }
+  }
+  return stepMarker;
 }
 
 // ============================================================================
@@ -405,10 +436,15 @@ function init(options?: StoryOptions): void {
  */
 function fn<T>(keyword: StepKeyword, text: string, body: () => T): T {
   const ctx = getContext();
+  const resolvedKeyword: StepKeyword =
+    (keyword === 'Given' || keyword === 'When' || keyword === 'Then') &&
+    ctx.meta.steps.some((s) => s.keyword === keyword)
+      ? 'And'
+      : keyword;
 
   const step: StoryStep = {
     id: `step-${ctx.stepCounter++}`,
-    keyword,
+    keyword: resolvedKeyword,
     text,
     docs: [],
     wrapped: true,

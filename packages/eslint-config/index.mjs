@@ -29,6 +29,19 @@ export default tseslint.config(
           varsIgnorePattern: '^_',
         },
       ],
+      // No dynamic import() - use static imports for predictable bundling and tree-shaking
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'ImportExpression',
+          message: 'Dynamic import() is not allowed. Use static import instead.',
+        },
+      ],
     },
+  },
+  // Exceptions: reporter (optional @actions/core), error-handling tests (isolated module load)
+  {
+    files: ['**/reporter.ts', '**/__tests__/error-handling.test.ts'],
+    rules: { 'no-restricted-syntax': 'off' },
   },
 );

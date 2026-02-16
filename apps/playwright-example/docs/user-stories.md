@@ -2,9 +2,9 @@
 
 | Key | Value |
 | --- | --- |
-| Date | 2026-02-15T11:03:44.753Z |
+| Date | 2026-02-16T20:29:08.868Z |
 | Version | 1.0.0 |
-| Git SHA | 4287233 |
+| Git SHA | 4bb161c |
 
 ## src/all-doc-api.story.spec.ts
 
@@ -349,23 +349,23 @@ erDiagram
 - **When** when action without callback
 - **Then** then assertion without callback
 - **And** and additional step without callback
-- **Given** arrange context without callback
-- **When** act action without callback
-- **Then** assert with callback
-- **Given** setup context without callback
-- **Given** context setup without callback
-- **When** execute action without callback
-- **When** action execute without callback
-- **Then** verify with callback
+- **And** arrange context without callback
+- **And** act action without callback
+- **And** assert with callback
+- **And** setup context without callback
+- **And** context setup without callback
+- **And** execute action without callback
+- **And** action execute without callback
+- **And** verify with callback
 
 ### ✅ Multiple steps become And
 
 - **Given** first given
-- **Given** second given becomes And
+- **And** second given becomes And
 - **When** first when
-- **When** second when becomes And
+- **And** second when becomes And
 - **Then** first then
-- **Then** second then becomes And
+- **And** second then becomes And
 
 ### ✅ Story with metadata
 Tags: `api`, `smoke` | Tickets: `JIRA-123`
@@ -411,10 +411,10 @@ Tags: `api`, `smoke` | Tickets: `JIRA-123`
 
 > Setup and teardown can be async for database connections, etc.
 - **Given** database connection is established
-- **Given** transaction is started
+- **And** transaction is started
 - **When** data is saved
 - **Then** transaction can be committed
-- **Then** connection is still open for cleanup
+- **And** connection is still open for cleanup
 
 ### ✅ Error handling in async steps
 
@@ -450,10 +450,10 @@ Tags: `api`, `smoke` | Tickets: `JIRA-123`
 `async`
 - **Given** API client is configured
 - **When** GET request is made
-- **When** POST request is made
+- **And** POST request is made
 - **Then** GET response is valid
-- **Then** POST response is valid
-- **Then** both responses have timestamps
+- **And** POST response is valid
+- **And** both responses have timestamps
 
 ### ✅ Async steps with runtime documentation
 
@@ -876,9 +876,9 @@ This story demonstrates:
 > Using Jest's toThrow matcher for clean error assertions
 - **Given** functions that throw different errors
 - **Then** toThrow matches any error
-- **Then** toThrow matches specific message
-- **Then** toThrow matches error type
-- **Then** toThrow matches with regex
+- **And** toThrow matches specific message
+- **And** toThrow matches error type
+- **And** toThrow matches with regex
 
 ### ✅ Documenting error scenarios
 
@@ -894,8 +894,8 @@ This story demonstrates:
     ```
     
 - **When** empty input is validated
-- **When** short input is validated
-- **When** valid input is validated
+- **And** short input is validated
+- **And** valid input is validated
 - **Then** all error cases are documented
     **Error Scenarios**
     
@@ -911,7 +911,7 @@ This story demonstrates:
 > Testing errors in async operations
 - **Given** an async function that can fail
 - **When** async error is caught with try/catch
-- **When** async error is caught with rejects
+- **And** async error is caught with rejects
 - **Then** successful async operation works
 
 ### ✅ Testing custom error types
@@ -932,7 +932,7 @@ This story demonstrates:
     ```
     
 - **When** validation error is thrown
-- **When** network error is thrown
+- **And** network error is thrown
 - **Then** custom errors are properly typed
 
 ### ✅ Error recovery and fallback patterns
@@ -940,7 +940,7 @@ This story demonstrates:
 > Testing graceful degradation and recovery
 - **Given** a safe wrapper function
 - **When** successful operation is wrapped
-- **When** failing operation is wrapped
+- **And** failing operation is wrapped
 - **Then** errors are handled gracefully
     **Error Handling Patterns**
     
@@ -979,22 +979,22 @@ This story demonstrates:
 
 > Steps without callbacks are valid for documentation purposes
 - **Given** user is logged in
-- **Given** user has admin role
+- **And** user has admin role
 - **When** admin panel is accessed
 - **Then** admin features are visible
-- **Then** audit log is updated
+- **And** audit log is updated
 
 ### ✅ Using Playwright expect in story steps
 
 > All Playwright expect work normally in story steps
 - **Given** a user object
 - **Then** toBe works
-- **Then** toEqual works for objects
-- **Then** toContain works for arrays
-- **Then** toMatch works for strings
-- **Then** toHaveLength works
-- **Then** toHaveProperty works
-- **Then** toBeDefined and toBeTruthy work
+- **And** toEqual works for objects
+- **And** toContain works for arrays
+- **And** toMatch works for strings
+- **And** toHaveLength works
+- **And** toHaveProperty works
+- **And** toBeDefined and toBeTruthy work
 
 ### ✅ Framework-native test with full doc API
 
@@ -1054,8 +1054,8 @@ This story demonstrates:
 ### ✅ User logs in successfully
 
 - **Given** the user account exists
-- **Given** the user is on the login page
-- **Given** the account is active
+- **And** the user is on the login page
+- **And** the account is active
 - **When** the user submits valid credentials
 - **Then** the user should see the dashboard
 
@@ -1063,7 +1063,7 @@ This story demonstrates:
 
 - **Given** the user is logged in
 - **When** the user navigates to settings
-- **When** the user changes their display name
+- **And** the user changes their display name
 - **Then** the changes should be saved
 
 ### ✅ Successful order confirmation
@@ -1071,22 +1071,22 @@ This story demonstrates:
 - **Given** the user has items in cart
 - **When** the user completes checkout
 - **Then** the order should be created
-- **Then** a confirmation email should be sent
-- **Then** the inventory should be updated
+- **And** a confirmation email should be sent
+- **And** the inventory should be updated
 
 ### ✅ Complex user journey
 
 - **Given** the user account exists
-- **Given** the user has admin privileges
+- **And** the user has admin privileges
 - **When** the user logs in
-- **When** the user navigates to admin panel
+- **And** the user navigates to admin panel
 - **Then** the admin dashboard should load
-- **Then** the user count should be displayed
+- **And** the user count should be displayed
 
 ### ✅ Login blocked for suspended user
 
 - **Given** the user account exists
-- **Given** the account is suspended
+- **And** the account is suspended
 - **When** the user submits valid credentials
 - **Then** the user should see an error message
 - **But** the user should not be logged in
@@ -1155,17 +1155,17 @@ This story demonstrates:
 ### ✅ Change email address
 
 - **Given** the user account exists
-- **Given** the user is logged in
+- **And** the user is logged in
 - **When** the user updates their email to 'new@example.com'
 - **Then** a verification email should be sent
 
 ### ✅ Change password
 
 - **Given** the user account exists
-- **Given** the user is logged in
+- **And** the user is logged in
 - **When** the user updates their password
 - **Then** the old sessions should be invalidated
-- **Then** a confirmation email should be sent
+- **And** a confirmation email should be sent
 
 ### ✅ Login error: Invalid credentials
 
@@ -1255,7 +1255,7 @@ This story demonstrates:
 ### ✅ Partial success scenario
 
 - **Given** the user has multiple items in cart
-- **Given** one item is out of stock
+- **And** one item is out of stock
 - **When** the user attempts to checkout
 - **Then** the available items should be ordered
 - **But** the out of stock item should be removed
@@ -1266,7 +1266,7 @@ This story demonstrates:
 Tags: `feature-flag`, `premium` | Tickets: `JIRA-456`
 
 - **Given** the user has a premium subscription
-- **Given** the early access feature is enabled
+- **And** the early access feature is enabled
 - **When** the user logs in
 - **Then** the user should see early access features
 
@@ -1315,19 +1315,19 @@ Tags: `feature-flag`, `premium` | Tickets: `JIRA-456`
 ### ✅ Complete e-commerce checkout flow
 
 - **Given** the user is logged in
-- **Given** the user has items in cart
-- **Given** the user has a saved address
-- **Given** the user has a valid payment method
+- **And** the user has items in cart
+- **And** the user has a saved address
+- **And** the user has a valid payment method
 - **When** the user proceeds to checkout
-- **When** the user confirms the shipping address
-- **When** the user selects standard shipping
-- **When** the user confirms the payment method
-- **When** the user places the order
+- **And** the user confirms the shipping address
+- **And** the user selects standard shipping
+- **And** the user confirms the payment method
+- **And** the user places the order
 - **Then** the order should be created
-- **Then** the payment should be authorized
-- **Then** the inventory should be reserved
-- **Then** a confirmation email should be sent
-- **Then** the order should appear in order history
+- **And** the payment should be authorized
+- **And** the inventory should be reserved
+- **And** a confirmation email should be sent
+- **And** the order should appear in order history
 
 ### ✅ API endpoint documentation
 
@@ -1423,13 +1423,13 @@ Tags: `feature-flag`, `premium` | Tickets: `JIRA-456`
 ### ✅ Multi-step process
 
 - **Given** step one is complete
-- **Given** step two is complete
-- **Given** step three is complete
+- **And** step two is complete
+- **And** step three is complete
 - **When** the process continues
-- **When** additional processing occurs
+- **And** additional processing occurs
 - **Then** result one is correct
-- **Then** result two is correct
-- **Then** result three is correct
+- **And** result two is correct
+- **And** result three is correct
 
 ### ✅ User registration flow
 
@@ -1446,17 +1446,17 @@ Tags: `feature-flag`, `premium` | Tickets: `JIRA-456`
     ```
 - **When** the user submits valid information
 - **Then** the account should be created
-- **Then** a verification email should be sent
+- **And** a verification email should be sent
 
 ### ✅ Complete keyword demonstration
 
 - **Given** a given step
-- **Given** another given step
+- **And** another given step
 - **And** an explicit and step
 - **When** a when step
-- **When** another when step
+- **And** another when step
 - **Then** a then step
-- **Then** another then step
+- **And** another then step
 - **But** a but step
 - **And** a final and step
 
@@ -1483,7 +1483,7 @@ Tags: `feature-flag`, `premium` | Tickets: `JIRA-456`
     | A | 2 | $10 |
     | B | 1 | $20 |
     
-- **Given** a 10% discount is applied
+- **And** a 10% discount is applied
 - **When** the total is calculated
 - **Then** the total should be $36
 
@@ -1492,32 +1492,32 @@ Tags: `feature-flag`, `premium` | Tickets: `JIRA-456`
 ### ✅ Eligible customer gets discount
 
 - **Given** the customer is eligible for discounts
-- **Given** the customer has items worth $100
+- **And** the customer has items worth $100
 - **When** the customer checks out
 - **Then** a 10% discount should be applied
-- **Then** the total should be $90
+- **And** the total should be $90
 
 ### ✅ Ineligible customer does not get discount
 
 - **Given** the customer is not eligible for discounts
-- **Given** the customer has items worth $100
+- **And** the customer has items worth $100
 - **When** the customer checks out
 - **Then** no discount should be applied
-- **Then** the total should be $100
+- **And** the total should be $100
 
 ### Rule: Authenticated users can manage their data
 
 ### ✅ User can view their profile
 
 - **Given** the user is authenticated
-- **Given** the user session is valid
+- **And** the user session is valid
 - **When** the user navigates to profile page
 - **Then** the profile information should be displayed
 
 ### ✅ User can update their profile
 
 - **Given** the user is authenticated
-- **Given** the user session is valid
+- **And** the user session is valid
 - **When** the user updates their profile
 - **Then** the changes should be saved
 - **And** a success message should be shown
@@ -1587,9 +1587,9 @@ graph LR
 - **When** steps are recorded
 - **Then** generated doc contains note, table, kv, json, code, link, section, mermaid, screenshot, custom
 - **And** step keywords given/when/then/and appear
-- **Given** arrange alias works
-- **When** act alias works
-- **Then** assert alias works
+- **And** arrange alias works
+- **And** act alias works
+- **And** assert alias works
 
 ## src/new-apis.story.spec.ts
 
@@ -1599,7 +1599,7 @@ graph LR
 ### ✅ Optional step callback demo
 
 - **Given** two numbers 1 and 2
-- **Given** we are about to add
+- **And** we are about to add
 - **When** add is called
 - **Then** the result is 3
 
@@ -1641,8 +1641,8 @@ graph LR
 ### ✅ User logs in successfully
 
 - **Given** the user account exists
-- **Given** the user is on the login page
-- **Given** the account is active
+- **And** the user is on the login page
+- **And** the account is active
 - **When** the user submits valid credentials
 - **Then** the user should see the dashboard
 
@@ -1650,8 +1650,8 @@ graph LR
 
 - **Given** the user is logged in
 - **When** the user changes their display name
-- **When** the user changes their time zone
-- **When** the user saves the profile
+- **And** the user changes their time zone
+- **And** the user saves the profile
 - **Then** the profile should show the updated details
 
 ### ✅ Checkout calculates totals
@@ -1659,23 +1659,23 @@ graph LR
 - **Given** the cart has 2 items
 - **When** the user proceeds to checkout
 - **Then** the subtotal should be $40.00
-- **Then** the tax should be $4.00
-- **Then** the total should be $44.00
+- **And** the tax should be $4.00
+- **And** the total should be $44.00
 
 ### ✅ Password reset flow
 
 - **Given** the user account exists
-- **Given** the user has a verified email
+- **And** the user has a verified email
 - **When** the user requests a password reset
-- **When** the user opens the reset email link
-- **When** the user sets a new password
+- **And** the user opens the reset email link
+- **And** the user sets a new password
 - **Then** the user should be able to log in with the new password
-- **Then** the old password should no longer work
+- **And** the old password should no longer work
 
 ### ✅ Login blocked for suspended user
 
 - **Given** the user account exists
-- **Given** the account is suspended
+- **And** the account is suspended
 - **When** the user submits valid credentials
 - **Then** the user should see an error message
 - **But** the user should not be logged in
@@ -1713,8 +1713,8 @@ graph LR
     
 - **When** shipping options are calculated
 - **Then** the available options should include "Standard"
-- **Then** the available options should include "Express"
-- **Then** the estimated delivery date should be shown
+- **And** the available options should include "Express"
+- **And** the estimated delivery date should be shown
 
 ### ✅ API accepts a JSON payload
 
@@ -1731,7 +1731,7 @@ graph LR
     
 - **When** the client sends the request
 - **Then** the response status should be 200
-- **Then** the response body should include "token"
+- **And** the response body should include "token"
 
 ### ✅ Import XML invoice
 
@@ -1748,7 +1748,7 @@ graph LR
     
 - **When** the user imports the invoice
 - **Then** the invoice should be saved
-- **Then** the invoice total should be 42.50 USD
+- **And** the invoice total should be 42.50 USD
 
 ### ✅ Login errors: Invalid credentials (user@example.com)
 
@@ -1771,18 +1771,18 @@ graph LR
 ### ✅ Tax calculation by region: CA
 
 - **Given** the cart subtotal is 100.00
-- **Given** the shipping region is "CA"
+- **And** the shipping region is "CA"
 - **When** taxes are calculated
 - **Then** the tax should be 8.25
-- **Then** the total should be 108.25
+- **And** the total should be 108.25
 
 ### ✅ Tax calculation by region: NY
 
 - **Given** the cart subtotal is 100.00
-- **Given** the shipping region is "NY"
+- **And** the shipping region is "NY"
 - **When** taxes are calculated
 - **Then** the tax should be 8.00
-- **Then** the total should be 108.00
+- **And** the total should be 108.00
 
 ### ✅ Create users from table input: a@example.com
 
@@ -1812,18 +1812,18 @@ graph LR
 
 - **Given** the user has items in the cart
 - **When** the user enters shipping information
-- **When** the user selects a delivery option
-- **When** the user enters payment information
-- **When** the user confirms the order
+- **And** the user selects a delivery option
+- **And** the user enters payment information
+- **And** the user confirms the order
 - **Then** the order should be created
-- **Then** a confirmation email should be sent
+- **And** a confirmation email should be sent
 
 ### ✅ Payment declined
 
 - **Given** the user is on the checkout page
 - **When** the user submits a declined card
 - **Then** the payment should be declined
-- **Then** the user should see "Payment failed"
+- **And** the user should see "Payment failed"
 - **But** the order should not be created
 
 ### ✅ Login works
@@ -1859,12 +1859,12 @@ Tags: `auth`, `smoke`
     
 - **When** the system starts
 - **Then** the flag "new_checkout_ui" should be enabled for "web"
-- **Then** the flag "strict_rate_limiting" should be disabled for "api"
+- **And** the flag "strict_rate_limiting" should be disabled for "api"
 
 ### ✅ Guest checkout allowed
 
 - **Given** the user is on the checkout page
-- **Given** the user is not logged in
+- **And** the user is not logged in
     > But guest checkout is enabled
 - **When** the user submits an order as a guest
 - **Then** the order should be created
@@ -1874,34 +1874,34 @@ Tags: `auth`, `smoke`
 - **Given** the user is logged in
 - **When** the user logs out
 - **Then** the session cookie should be cleared
-- **Then** the auth token should be revoked
-- **Then** the user should be redirected to the login page
+- **And** the auth token should be revoked
+- **And** the user should be redirected to the login page
 
 ### ✅ Document status changes
 
 - **Given** a document exists with status "draft"
 - **When** the user submits the document
 - **Then** the document status should change to "submitted"
-- **Then** an audit log entry should be created
+- **And** an audit log entry should be created
 
 ### ✅ Shipping eligibility: US -> yes
 
 - **Given** the cart total is 10
-- **Given** the destination country is "US"
+- **And** the destination country is "US"
 - **When** shipping eligibility is checked
 - **Then** shipping should be "yes"
 
 ### ✅ Shipping eligibility: CA -> yes
 
 - **Given** the cart total is 10
-- **Given** the destination country is "CA"
+- **And** the destination country is "CA"
 - **When** shipping eligibility is checked
 - **Then** shipping should be "yes"
 
 ### ✅ Shipping eligibility: CU -> no
 
 - **Given** the cart total is 10
-- **Given** the destination country is "CU"
+- **And** the destination country is "CU"
 - **When** shipping eligibility is checked
 - **Then** shipping should be "no"
 
@@ -1918,7 +1918,7 @@ Tags: `auth`, `smoke`
     
 - **When** the user previews the markdown
 - **Then** the preview should show a heading "Title"
-- **Then** the preview should show a list with 2 items
+- **And** the preview should show a list with 2 items
 
 ### ✅ Search results show highlights
 
@@ -2009,22 +2009,22 @@ Tags: `auth`, `smoke`
     
 - **When** the import job runs
 - **Then** the users should exist
-- **Then** welcome emails should be sent
+- **And** welcome emails should be sent
 
 ### Feature: Account settings
 
 ### ✅ Change email address
 
 - **Given** the user account exists
-- **Given** the user is logged in
+- **And** the user is logged in
 - **When** the user updates their email to "new@example.com"
 - **Then** a verification email should be sent
-- **Then** the email status should be "pending verification"
+- **And** the email status should be "pending verification"
 
 ### ✅ Change password
 
 - **Given** the user account exists
-- **Given** the user is logged in
+- **And** the user is logged in
 - **When** the user changes their password
 - **Then** the user should be able to log in with the new password
 
@@ -2048,10 +2048,10 @@ Tags: `auth`, `smoke`
 Tags: `db`, `smoke`
 
 - **Given** the database is seeded
-- **Given** the API is running
+- **And** the API is running
 - **When** the client creates an order
 - **Then** the response status should be 201
-- **Then** the order should exist in the database
+- **And** the order should exist in the database
 
 ## src/screenshot-in-report.story.spec.ts
 
@@ -2078,27 +2078,27 @@ Tags: `db`, `smoke`
 > Classic testing pattern using arrange/act/assert aliases
 `aaa-pattern`
 - **Given** calculator is initialized
-- **Given** input values are prepared
+- **And** input values are prepared
 - **When** addition is performed
 - **Then** result equals expected value
-- **Then** result is a number
+- **And** result is a number
 
 ### ✅ Setup-Execute-Verify Pattern
 
 > Alternative naming using setup/execute/verify
 `sev-pattern`
 - **Given** service is configured
-- **Given** dependencies are mocked
+- **And** dependencies are mocked
 - **When** service processes input
 - **Then** output is transformed correctly
-- **Then** output is not empty
+- **And** output is not empty
 
 ### ✅ Context-Action Pattern
 
 > Using context to establish state and action for operations
 `context-action`
 - **Given** user context is established
-- **Given** permissions are set
+- **And** permissions are set
 - **When** user performs privileged operation
 - **Then** operation succeeds
 
@@ -2107,22 +2107,22 @@ Tags: `db`, `smoke`
 > Different aliases can be combined in the same story
 `mixed`
 - **Given** initial data exists
-- **Given** data is validated
-- **Given** sum accumulator is initialized
+- **And** data is validated
+- **And** sum accumulator is initialized
 - **When** sum is calculated
 - **Then** sum is correct
-- **Then** sum is positive
+- **And** sum is positive
 
 ### ✅ User registration flow using aliases
 
 > Realistic example using arrange/act/assert pattern
 `user-flow` `registration`
 - **Given** valid user data is prepared
-- **Given** email is unique in the system
+- **And** email is unique in the system
 - **When** registration is submitted
 - **Then** registration succeeds
-- **Then** user ID is generated
-- **Then** no error is returned
+- **And** user ID is generated
+- **And** no error is returned
 
 ### ✅ All alias styles comparison
 
@@ -2140,16 +2140,55 @@ Tags: `db`, `smoke`
 - **Given** BDD given step
 - **When** BDD when step
 - **Then** BDD then step
-- **Given** AAA arrange step
-- **When** AAA act step
-- **Then** AAA assert step
-- **Given** alternative setup step
-- **When** alternative execute step
-- **Then** alternative verify step
-- **Given** alternative context step
-- **When** alternative action step
+- **And** AAA arrange step
+- **And** AAA act step
+- **And** AAA assert step
+- **And** alternative setup step
+- **And** alternative execute step
+- **And** alternative verify step
+- **And** alternative context step
+- **And** alternative action step
 - **And** continuation step
 - **But** negative case step
+
+## src/step-callbacks.story.spec.ts
+
+### Step Callbacks
+
+### ✅ Calculator adds two numbers using step callbacks
+
+- **Given** number a is 5
+- **And** number b is 3
+- **When** the numbers are added
+- **Then** the result is 8
+
+### ✅ Mixed markers and step callbacks
+
+- **Given** the calculator is ready
+- **When** we multiply 7 by 6
+- **Then** the result is 42
+- **And** the result is a positive number
+
+### ✅ Async step callbacks with timing
+
+- **Given** data fetched asynchronously
+- **When** async addition is performed
+- **Then** the async result is 8
+
+### ✅ Step callbacks with inline docs still use marker-only
+
+- **Given** valid credentials
+    **Credentials**
+    
+    ```json
+    {
+      "email": "user@example.com"
+    }
+    ```
+    
+- **When** login is attempted
+- **Then** user is authenticated
+- **But** rate limit is not exceeded
 
 ## src/story-options.story.spec.ts
 
@@ -2303,7 +2342,7 @@ Tickets: `MIN-001`
 ### ✅ Calculator adds two numbers using fn and expect
 
 - **Given** number a is 5
-- **Given** number b is 3
+- **And** number b is 3
 - **When** the numbers are added
 - **Then** the result is 8
 
