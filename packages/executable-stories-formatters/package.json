@@ -63,7 +63,7 @@
   "dependencies": {
     "@cucumber/html-formatter": "^23.0.0",
     "@cucumber/messages": "^32.0.1",
-    "ajv": "^8.17.1"
+    "ajv": "^8.18.0"
   },
   "devDependencies": {
     "@faker-js/faker": "^10.3.0",
