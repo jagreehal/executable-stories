@@ -1,5 +1,12 @@
 # executable-stories-formatters
 
+## 0.6.0
+
+### Minor Changes
+
+- 1dc53b3: - **ESLint plugins (Jest, Playwright, Vitest):** Use `context.sourceCode` instead of deprecated `context.getSourceCode()` for ESLint 9 compatibility.
+  - **Dependency updates** across packages and example apps.
+
 ## 0.5.0
 
 ### Minor Changes
