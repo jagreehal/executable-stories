@@ -1,5 +1,12 @@
 # eslint-plugin-executable-stories-playwright
 
+## 2.1.0
+
+### Minor Changes
+
+- 1dc53b3: - **ESLint plugins (Jest, Playwright, Vitest):** Use `context.sourceCode` instead of deprecated `context.getSourceCode()` for ESLint 9 compatibility.
+  - **Dependency updates** across packages and example apps.
+
 ## 2.0.0
 
 ### Patch Changes
