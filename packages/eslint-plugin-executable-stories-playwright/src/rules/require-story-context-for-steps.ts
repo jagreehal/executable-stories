@@ -87,7 +87,7 @@ function insideStoryCallback(
   node: CallExpression,
   context: Rule.RuleContext,
 ): boolean {
-  const ancestors = context.getSourceCode().getAncestors(node);
+  const ancestors = context.sourceCode.getAncestors(node);
   const functionAncestors = new Set(ancestors.filter(isFunction));
 
   for (const ancestor of ancestors) {
@@ -127,7 +127,7 @@ const rule: Rule.RuleModule = {
     }> = [];
 
     function getContainingFunctionName(node: CallExpression): string | null {
-      const ancestors = context.getSourceCode().getAncestors(node);
+      const ancestors = context.sourceCode.getAncestors(node);
       for (let i = ancestors.length - 1; i >= 0; i--) {
         const ancestor = ancestors[i];
         if (ancestor.type === 'FunctionDeclaration' && ancestor.id) {
