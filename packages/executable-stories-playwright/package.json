@@ -30,7 +30,7 @@
   "peerDependencies": {
     "@playwright/test": ">=1.58.2",
     "executable-stories-formatters": "^0.5.0",
-    "autotel": ">=0.1.0"
+    "autotel": ">=2.20.0"
   },
   "peerDependenciesMeta": {
     "autotel": {
@@ -40,8 +40,8 @@
   "dependencies": {},
   "devDependencies": {
     "@opentelemetry/api": "^1.9.0",
-    "@playwright/test": "^1.58.1",
-    "@types/node": "^25.2.3",
+    "@playwright/test": "^1.58.2",
+    "@types/node": "^25.3.0",
     "executable-stories-formatters": "workspace:*",
     "tsup": "^8.5.1",
     "typescript": "~5.9.3"

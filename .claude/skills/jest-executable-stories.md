@@ -278,6 +278,14 @@ executable-stories-jest writes metadata to `.executable-stories-jest/` during te
 - NEVER put assertions in `given` steps
 - NEVER put setup in `then` steps
 
+## Formatting (when writing or citing)
+
+- **Code and symbols:** Use backticks for file paths, directory names, function names, class names, and inline code (e.g. `story.given`, `vitest.config.ts`).
+- **Emphasis:** Use **bold** for key terms when emphasizing (e.g. **MUST**, **SHOULD**).
+- **Citing code from the repo:** Use the standard citation format with line range and path: ```startLine:endLine:filepath``` (e.g. ```12:15:packages/executable-stories-jest/src/reporter.ts```).
+- **Math (if ever needed):** Inline math `\( ... \)`, block math `\[ ... \]`.
+- **Valid markdown:** Ensure output is valid markdown (no broken backticks or brackets).
+
 ## Project context
 
 Repo conventions, ESLint plugins, and verification: see **AGENTS.md** (and **CLAUDE.md** symlink) in the repo root.
