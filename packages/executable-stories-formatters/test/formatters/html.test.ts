@@ -287,7 +287,7 @@ describe("HtmlFormatter", () => {
       const run = canonicalizeRun(raw);
       const result = formatter.format(run);
 
-      expect(result).toContain('class="tag-bar"');
+      expect(result).toContain('class="tag-bar tag-bar-collapsed"');
       expect(result).toContain('class="tag-pill"');
       expect(result).toContain("Filter by tag");
     });

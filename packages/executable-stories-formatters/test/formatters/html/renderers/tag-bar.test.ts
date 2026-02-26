@@ -37,7 +37,7 @@ describe("renderTagBar", () => {
     const html = renderTagBar({ tags: ["smoke"], totalScenarios: 1 }, deps);
 
     expect(html).toContain('class="tag-bar-clear"');
-    expect(html).toContain("Clear</button>");
+    expect(html).toContain("Clear all</button>");
   });
 
   it("includes data-tag attributes matching tag text", () => {
@@ -58,15 +58,71 @@ describe("renderTagBar", () => {
   it("includes tag-bar container with label", () => {
     const html = renderTagBar({ tags: ["smoke"], totalScenarios: 1 }, deps);
 
-    expect(html).toContain('class="tag-bar"');
+    expect(html).toContain('class="tag-bar tag-bar-collapsed"');
     expect(html).toContain('class="tag-bar-label"');
     expect(html).toContain("Filter by tag");
   });
 
-  it("uses button elements for pills", () => {
+  it("uses button elements for pills with aria-pressed", () => {
     const html = renderTagBar({ tags: ["a", "b"], totalScenarios: 2 }, deps);
 
-    const pillMatches = html.match(/<button type="button" class="tag-pill"/g);
+    const pillMatches = html.match(/<button type="button" class="tag-pill" /g);
     expect(pillMatches).toHaveLength(2);
+  });
+
+  it("renders toggle button with aria-expanded and aria-controls", () => {
+    const html = renderTagBar({ tags: ["smoke"], totalScenarios: 1 }, deps);
+
+    expect(html).toContain('aria-expanded="false"');
+    expect(html).toContain('aria-controls="tag-pills-region"');
+    expect(html).toContain('class="tag-bar-toggle"');
+  });
+
+  it("renders pills container with id, role, and aria-label", () => {
+    const html = renderTagBar({ tags: ["smoke"], totalScenarios: 1 }, deps);
+
+    expect(html).toContain('id="tag-pills-region"');
+    expect(html).toContain('role="group"');
+    expect(html).toContain('aria-label="Tag filters"');
+  });
+
+  it("renders tag pills with aria-pressed attribute", () => {
+    const html = renderTagBar({ tags: ["smoke", "auth"], totalScenarios: 2 }, deps);
+
+    const pressedMatches = html.match(/aria-pressed="false"/g);
+    expect(pressedMatches).toHaveLength(2);
+  });
+
+  it("renders selected count badge with aria-live", () => {
+    const html = renderTagBar({ tags: ["smoke"], totalScenarios: 1 }, deps);
+
+    expect(html).toContain('class="tag-bar-count"');
+    expect(html).toContain('aria-live="polite"');
+  });
+
+  it("renders chevron icon in toggle button", () => {
+    const html = renderTagBar({ tags: ["smoke"], totalScenarios: 1 }, deps);
+
+    expect(html).toContain('class="tag-bar-chevron"');
+  });
+
+  it("renders clear button with aria-label", () => {
+    const html = renderTagBar({ tags: ["smoke"], totalScenarios: 1 }, deps);
+
+    expect(html).toContain('aria-label="Clear all tag filters"');
+    expect(html).toContain("Clear all</button>");
+  });
+
+  it("renders filter-results with aria-live", () => {
+    const html = renderTagBar({ tags: ["smoke"], totalScenarios: 5 }, deps);
+
+    expect(html).toContain('aria-live="polite"');
+    expect(html).toContain('class="filter-results"');
+  });
+
+  it("renders tag-bar with collapsed class by default", () => {
+    const html = renderTagBar({ tags: ["smoke"], totalScenarios: 1 }, deps);
+
+    expect(html).toContain('class="tag-bar tag-bar-collapsed"');
   });
 });
