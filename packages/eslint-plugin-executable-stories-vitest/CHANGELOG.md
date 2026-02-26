@@ -1,5 +1,11 @@
 # eslint-plugin-executable-stories-vitest
 
+## 2.1.1
+
+### Patch Changes
+
+- 43572f6: Updated tag html display
+
 ## 2.1.0
 
 ### Minor Changes

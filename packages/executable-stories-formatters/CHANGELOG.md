@@ -1,5 +1,11 @@
 # executable-stories-formatters
 
+## 0.6.1
+
+### Patch Changes
+
+- 43572f6: Updated tag html display
+
 ## 0.6.0
 
 ### Minor Changes
