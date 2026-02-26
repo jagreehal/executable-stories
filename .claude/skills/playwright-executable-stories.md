@@ -322,9 +322,15 @@ test('login flow', async ({ page }, testInfo) => {
 
 Reporters write raw JSON consumed by the **executable-stories** formatter CLI. In CI the CLI auto-detects the environment and can send Slack/Teams/webhook notifications and persist run history (`--history-file` for flakiness/stability/performance in HTML). No test code changes—reporter emits CI and run metadata.
 
-## OpenTelemetry spans
+## OpenTelemetry (autotel): traces in the HTML report
 
-When [autotel](https://github.com/jagreehal/autotel) is available, the reporter emits spans for story steps and scenarios (lazy-loaded). Enables trace waterfall in the HTML report. Optional; no API change in tests.
+The HTML report **renders a trace waterfall inside the report** — span tree with names, parent/child, and timing — when span data is present. No test code changes beyond normal `story.init(testInfo)`; supply the data and enable HTML output.
+
+**Traces/spans in the HTML view**  
+Include `formats: ['markdown', 'html']` in reporter options. When [autotel](https://github.com/jagreehal/autotel) is available (optional peer `>=2.21.0`), the reporter creates test/step spans and reads serialized spans from the `otel-spans` annotation (e.g. from autotel's Playwright integration). The formatter then draws the span waterfall in the HTML report. Autotel is lazy-loaded.
+
+**Optional: trace ID and link to external APM**  
+When an OTel span is active, story-api injects a trace ID badge; for a clickable "View Trace" link to Grafana/Jaeger/etc., set `traceUrlTemplate` in `story.init(testInfo, { ... })` or `OTEL_TRACE_URL_TEMPLATE` with a `{traceId}` placeholder.
 
 ## Framework-native attach (doc.story)
 

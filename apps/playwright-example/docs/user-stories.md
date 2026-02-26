@@ -2,9 +2,9 @@
 
 | Key | Value |
 | --- | --- |
-| Date | 2026-02-23T21:35:34.016Z |
+| Date | 2026-02-26T19:59:01.713Z |
 | Version | 1.0.0 |
-| Git SHA | 38ffa0a |
+| Git SHA | 51c7184 |
 
 ## src/all-doc-api.story.spec.ts
 

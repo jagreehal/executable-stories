@@ -287,7 +287,8 @@ describe("HtmlFormatter", () => {
       const run = canonicalizeRun(raw);
       const result = formatter.format(run);
 
-      expect(result).toContain('class="tag-bar"');
+      expect(result).toContain('class="tag-bar tag-bar-collapsed"');
+      expect(result).toContain('aria-expanded="false"');
       expect(result).toContain('class="tag-pill"');
       expect(result).toContain("Filter by tag");
     });
@@ -330,6 +331,7 @@ describe("HtmlFormatter", () => {
       expect(result).toContain("initTagFilter");
       expect(result).toContain("activeTags");
       expect(result).toContain("applyAllFilters");
+      expect(result).toContain("updateTagBarState");
     });
 
     it("should include status filter JavaScript", () => {

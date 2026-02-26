@@ -80,36 +80,55 @@ function initSearch() {
 
 // Tag filter
 function initTagFilter() {
+  var toggleBtn = document.querySelector('.tag-bar-toggle');
+  var tagBar = document.querySelector('.tag-bar');
+  if (toggleBtn && tagBar) {
+    toggleBtn.addEventListener('click', function() {
+      var isCollapsed = tagBar.classList.toggle('tag-bar-collapsed');
+      toggleBtn.setAttribute('aria-expanded', String(!isCollapsed));
+    });
+  }
+
   document.querySelectorAll('.tag-pill').forEach(function(pill) {
     pill.addEventListener('click', function() {
       var tag = pill.dataset.tag;
       if (activeTags.has(tag)) {
         activeTags.delete(tag);
         pill.classList.remove('active');
+        pill.setAttribute('aria-pressed', 'false');
       } else {
         activeTags.add(tag);
         pill.classList.add('active');
+        pill.setAttribute('aria-pressed', 'true');
       }
-      updateClearButton();
+      updateTagBarState();
       applyAllFilters();
     });
   });
 
   var clearBtn = document.querySelector('.tag-bar-clear');
   if (clearBtn) {
-    clearBtn.addEventListener('click', function() {
+    clearBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
       activeTags.clear();
-      document.querySelectorAll('.tag-pill.active').forEach(function(p) { p.classList.remove('active'); });
-      updateClearButton();
+      document.querySelectorAll('.tag-pill.active').forEach(function(p) {
+        p.classList.remove('active');
+        p.setAttribute('aria-pressed', 'false');
+      });
+      updateTagBarState();
       applyAllFilters();
     });
   }
 }
 
-function updateClearButton() {
+function updateTagBarState() {
   var clearBtn = document.querySelector('.tag-bar-clear');
+  var countBadge = document.querySelector('.tag-bar-count');
   if (clearBtn) {
     clearBtn.style.display = activeTags.size > 0 ? '' : 'none';
+  }
+  if (countBadge) {
+    countBadge.textContent = activeTags.size > 0 ? activeTags.size + ' selected' : '';
   }
 }
 
