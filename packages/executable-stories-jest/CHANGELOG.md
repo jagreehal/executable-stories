@@ -1,5 +1,13 @@
 # executable-stories-jest
 
+## 7.0.1
+
+### Patch Changes
+
+- 43572f6: Updated tag html display
+- Updated dependencies [43572f6]
+  - executable-stories-formatters@0.6.1
+
 ## 7.0.0
 
 ### Minor Changes
