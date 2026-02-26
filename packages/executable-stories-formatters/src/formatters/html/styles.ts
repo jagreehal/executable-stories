@@ -424,7 +424,24 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.5rem;
+}
+
+.tag-bar-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+}
+
+.tag-bar-toggle:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: var(--radius);
 }
 
 .tag-bar-label {
@@ -435,26 +452,58 @@ body {
   font-weight: 500;
 }
 
+.tag-bar-count {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.tag-bar-chevron {
+  color: var(--muted-foreground);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.tag-bar-collapsed .tag-bar-chevron {
+  transform: rotate(0deg);
+}
+
+.tag-bar:not(.tag-bar-collapsed) .tag-bar-chevron {
+  transform: rotate(180deg);
+}
+
 .tag-bar-clear {
   font-size: 0.75rem;
   font-weight: 500;
-  color: var(--primary);
-  background: none;
-  border: none;
+  color: var(--destructive, #dc2626);
+  background: var(--destructive-light, #fef2f2);
+  border: 1px solid var(--destructive-border, #fecaca);
   cursor: pointer;
-  padding: 0.125rem 0.5rem;
+  padding: 0.25rem 0.75rem;
   border-radius: var(--radius);
   transition: all 0.15s ease;
 }
 
 .tag-bar-clear:hover {
-  background: var(--muted);
+  background: var(--destructive-border, #fecaca);
+}
+
+.tag-bar-clear:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
 }
 
 .tag-bar-pills {
   display: flex;
   flex-wrap: wrap;
   gap: 0.375rem;
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: 0.5rem;
+}
+
+.tag-bar-collapsed .tag-bar-pills {
+  display: none;
 }
 
 .tag-pill {
@@ -472,6 +521,11 @@ body {
 
 .tag-pill:hover {
   background: var(--success-border);
+}
+
+.tag-pill:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
 }
 
 .tag-pill.active {
