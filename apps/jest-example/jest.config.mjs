@@ -27,8 +27,8 @@ export default {
         // =================================================================
         // Available formats: "markdown", "html", "junit", "cucumber-json"
         // Default: ["cucumber-json"]
-        formats: ['markdown'],
-        // formats: ["markdown", "html"],
+        formats: ['markdown', 'html'],
+        // formats: ["markdown", "html", "junit", "cucumber-json"],
         // formats: ["markdown", "html", "junit", "cucumber-json"],
 
         // =================================================================

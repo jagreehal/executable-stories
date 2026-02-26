@@ -24,6 +24,7 @@ src/__tests__/jest/fixtures/dist/
 tsup.config.bundled_*.mjs
 apps/jest-example/.jest-executable-stories
 ___temp
+**/docs
 
 **/reports/
 .pnpm-store
