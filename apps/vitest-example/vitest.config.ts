@@ -1,4 +1,5 @@
 import { StoryReporter } from 'executable-stories-vitest/reporter';
+import type { Reporter } from 'vitest/node';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
@@ -122,7 +123,7 @@ export default defineConfig({
         // =================================================================
         // Append report to GitHub Actions job summary (when GITHUB_ACTIONS env)
         // enableGithubActionsSummary: true,
-      }),
+      }) as unknown as Reporter,
     ],
   },
 });

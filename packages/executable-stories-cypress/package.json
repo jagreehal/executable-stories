@@ -39,13 +39,13 @@
     "test:e2e": "cypress run"
   },
   "peerDependencies": {
-    "cypress": ">=15.10.0",
+    "cypress": ">=15.11.0",
     "executable-stories-formatters": "^0.6.0"
   },
   "dependencies": {},
   "devDependencies": {
     "cypress": "^15.10.0",
-    "@types/node": "^25.3.0",
+    "@types/node": "^25.3.2",
     "executable-stories-formatters": "workspace:*",
     "tsup": "^8.5.1",
     "typescript": "~5.9.3",
