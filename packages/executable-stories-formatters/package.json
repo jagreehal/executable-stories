@@ -62,7 +62,7 @@
   },
   "dependencies": {
     "@cucumber/html-formatter": "^23.0.0",
-    "@cucumber/messages": "^32.0.1",
+    "@cucumber/messages": "^32.2.0",
     "ajv": "^8.18.0"
   },
   "devDependencies": {
