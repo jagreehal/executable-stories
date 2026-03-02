@@ -48,7 +48,7 @@
     "@types/eslint": "^9.6.1",
     "@types/estree": "^1.0.8",
     "@types/node": "^25.3.2",
-    "eslint": "^10.0.1",
+    "eslint": "^10.0.2",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18",
