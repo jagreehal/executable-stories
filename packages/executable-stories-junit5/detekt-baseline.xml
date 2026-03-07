@@ -1,0 +1,21 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>CyclomaticComplexMethod:StoryTestExecutionListener.kt$StoryTestExecutionListener$private fun detectCI(): Map&lt;String, Any?&gt;?</ID>
+    <ID>FunctionNaming:Story.kt$Story.Companion$@JvmStatic @JvmName("when") fun `when`( text: String, vararg docs: DocEntry, )</ID>
+    <ID>FunctionNaming:Story.kt$Story.Companion$@JvmStatic @JvmName("when") fun `when`(text: String)</ID>
+    <ID>LongParameterList:StoryContext.kt$StoryContext$( name: String, mediaType: String, path: String?, body: String?, encoding: String?, charset: String?, fileName: String?, )</ID>
+    <ID>MagicNumber:Story.kt$Story.Companion$1_000_000.0</ID>
+    <ID>MagicNumber:StoryContext.kt$StoryContext$1_000_000.0</ID>
+    <ID>MagicNumber:StoryTestExecutionListener.kt$StoryTestExecutionListener$1_000_000.0</ID>
+    <ID>PrintStackTrace:StoryTestExecutionListener.kt$StoryTestExecutionListener$e</ID>
+    <ID>ReturnCount:Story.kt$Story.Companion$private fun bridgeOtel(ctx: StoryContext)</ID>
+    <ID>ReturnCount:StoryTestExecutionListener.kt$StoryTestExecutionListener$private fun detectCI(): Map&lt;String, Any?&gt;?</ID>
+    <ID>SwallowedException:DocEntry.kt$DocEntry.Companion$e: com.fasterxml.jackson.core.JsonProcessingException</ID>
+    <ID>TooGenericExceptionThrown:StoryApiTest.kt$StoryApiTest$throw RuntimeException("boom")</ID>
+    <ID>TooGenericExceptionThrown:StoryApiTest.kt$StoryApiTest$throw RuntimeException(e)</ID>
+    <ID>TooManyFunctions:DocEntry.kt$DocEntry$Companion</ID>
+    <ID>TooManyFunctions:Story.kt$Story$Companion</ID>
+  </CurrentIssues>
+</SmellBaseline>

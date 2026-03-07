@@ -3,7 +3,7 @@ import rootConfig from "../../eslint.config.mjs";
 export default [
   ...rootConfig,
   {
-    ignores: ["dist/**"],
+    ignores: ["dist/**", "bin/**"],
   },
   {
     files: ["tests/**"],

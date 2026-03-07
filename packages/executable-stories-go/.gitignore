@@ -1,0 +1,5 @@
+# Coverage and lint artifacts
+coverage.out
+coverage.html
+*.coverprofile
+golangci-lint.cache

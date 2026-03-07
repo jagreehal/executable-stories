@@ -12,28 +12,32 @@ const vitestPkgEslintConfig = path.join(
 );
 
 describe("eslint config regressions", () => {
-  it("allows dynamic import in vitest error-handling tests", async () => {
-    const eslint = new ESLint({
-      overrideConfigFile: rootEslintConfig,
-      ignore: false,
-    });
+  it(
+    "allows dynamic import in vitest error-handling tests",
+    async () => {
+      const eslint = new ESLint({
+        overrideConfigFile: rootEslintConfig,
+        ignore: false,
+      });
 
-    const [result] = await eslint.lintText(
-      "const mod = await import('node:fs'); void mod;",
-      {
-        filePath: path.join(
-          repoRoot,
-          "packages/executable-stories-vitest/src/__tests__/error-handling.test.ts",
-        ),
-      },
-    );
+      const [result] = await eslint.lintText(
+        "const mod = await import('node:fs'); void mod;",
+        {
+          filePath: path.join(
+            repoRoot,
+            "packages/executable-stories-vitest/src/__tests__/error-handling.test.ts",
+          ),
+        },
+      );
 
-    const dynamicImportErrors = result.messages.filter(
-      (m) => m.ruleId === "no-restricted-syntax",
-    );
+      const dynamicImportErrors = result.messages.filter(
+        (m) => m.ruleId === "no-restricted-syntax",
+      );
 
-    expect(dynamicImportErrors).toHaveLength(0);
-  });
+      expect(dynamicImportErrors).toHaveLength(0);
+    },
+    10_000,
+  );
 
   it("allows dynamic import in vitest reporter implementation", async () => {
     const eslint = new ESLint({

@@ -1,7 +1,7 @@
 use std::sync::Mutex;
 
 use crate::json_writer;
-use crate::types::*;
+use crate::types::{RawCIInfo, RawRun, RawTestCase};
 
 static COLLECTED: Mutex<Vec<RawTestCase>> = Mutex::new(Vec::new());
 static ORDER_SEQ: Mutex<u32> = Mutex::new(0);
@@ -31,7 +31,7 @@ fn detect_ci() -> Option<RawCIInfo> {
             std::env::var("GITHUB_REPOSITORY"),
             std::env::var("GITHUB_RUN_ID"),
         ) {
-            (Ok(s), Ok(r), Ok(id)) => Some(format!("{}/{}/actions/runs/{}", s, r, id)),
+            (Ok(s), Ok(r), Ok(id)) => Some(format!("{s}/{r}/actions/runs/{id}")),
             _ => None,
         };
         return Some(RawCIInfo {
@@ -69,11 +69,7 @@ fn detect_ci() -> Option<RawCIInfo> {
         });
     }
     if std::env::var("CI").as_deref() == Ok("true") {
-        return Some(RawCIInfo {
-            name: "ci".to_string(),
-            build_number: None,
-            url: None,
-        });
+        return Some(RawCIInfo { name: "ci".to_string(), build_number: None, url: None });
     }
     None
 }
@@ -84,6 +80,11 @@ fn detect_ci() -> Option<RawCIInfo> {
 /// defaulting to `.executable-stories/raw-run.json`.
 ///
 /// Call this at the end of your test suite.
+///
+/// # Panics
+///
+/// Panics if writing the JSON file fails (e.g. permission or I/O error).
+#[allow(clippy::missing_panics_doc)]
 pub fn write_results() {
     let cases = get_all();
     if cases.is_empty() {
@@ -93,9 +94,7 @@ pub fn write_results() {
     let output = std::env::var("EXECUTABLE_STORIES_OUTPUT")
         .unwrap_or_else(|_| ".executable-stories/raw-run.json".to_string());
 
-    let cwd = std::env::current_dir()
-        .map(|p| p.to_string_lossy().to_string())
-        .unwrap_or_default();
+    let cwd = std::env::current_dir().map(|p| p.to_string_lossy().to_string()).unwrap_or_default();
 
     let run = RawRun {
         schema_version: 1,
@@ -110,6 +109,7 @@ pub fn write_results() {
 }
 
 /// Reset the collector state. Useful for testing.
+#[allow(dead_code)]
 pub fn reset() {
     COLLECTED.lock().unwrap().clear();
     *ORDER_SEQ.lock().unwrap() = 0;

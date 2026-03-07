@@ -1,0 +1,37 @@
+import { Linter } from "eslint";
+import { describe, expect, it } from "vitest";
+import { story } from "executable-stories-vitest";
+import plugin from "../src/index.js";
+
+describe("ESLint Plugin: executable-stories-playwright", () => {
+  it("loads and exposes the recommended config with all rules", ({ task }) => {
+    story.init(task);
+
+    story.given("the playwright ESLint plugin is imported");
+    const linter = new Linter({ configType: "flat" });
+
+    story.when("the recommended config is applied");
+    const config = [
+      {
+        plugins: {
+          "executable-stories-playwright": plugin,
+        },
+        rules: {
+          "executable-stories-playwright/require-story-context-for-steps":
+            "error" as const,
+          "executable-stories-playwright/require-test-context-for-doc-story":
+            "error" as const,
+        },
+      },
+    ];
+
+    story.then("valid code produces no lint errors");
+    const messages = linter.verify("const x = 1;", config);
+    expect(messages).toHaveLength(0);
+
+    story.and("the plugin exposes two rules");
+    expect(Object.keys(plugin.rules!)).toHaveLength(2);
+    expect(plugin.rules).toHaveProperty("require-story-context-for-steps");
+    expect(plugin.rules).toHaveProperty("require-test-context-for-doc-story");
+  });
+});

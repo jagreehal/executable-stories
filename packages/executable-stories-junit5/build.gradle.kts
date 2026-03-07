@@ -1,6 +1,8 @@
 plugins {
     kotlin("jvm") version "2.1.0"
     `maven-publish`
+    id("org.jlleitschuh.gradle.ktlint") version "14.1.0"
+    id("io.gitlab.arturbosch.detekt") version "1.23.8"
 }
 
 publishing {
@@ -42,4 +44,15 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+}
+
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+    compilerOptions {
+        allWarningsAsErrors.set(true)
+    }
+}
+
+detekt {
+    buildUponDefaultConfig = true
+    baseline = file("detekt-baseline.xml")
 }

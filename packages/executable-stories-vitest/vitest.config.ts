@@ -4,8 +4,8 @@ import { StoryReporter } from "./dist/reporter.js";
 export default defineConfig({
   test: {
     exclude: [
+      "**/node_modules/**",
       "**/__tests__/fixtures/**",
-      "**/node_modules/@cucumber/**",
     ],
     reporters: ["default", new StoryReporter({ output: "docs/user-stories.md" })],
   },

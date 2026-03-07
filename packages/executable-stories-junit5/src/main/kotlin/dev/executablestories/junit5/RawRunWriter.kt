@@ -9,17 +9,20 @@ import java.nio.file.Files
 import java.nio.file.Path
 
 class RawRunWriter private constructor() {
-
     companion object {
-        private val MAPPER: ObjectMapper = ObjectMapper().apply {
-            registerKotlinModule()
-            enable(SerializationFeature.INDENT_OUTPUT)
-            setSerializationInclusion(JsonInclude.Include.NON_NULL)
-        }
+        private val MAPPER: ObjectMapper =
+            ObjectMapper().apply {
+                registerKotlinModule()
+                enable(SerializationFeature.INDENT_OUTPUT)
+                setSerializationInclusion(JsonInclude.Include.NON_NULL)
+            }
 
         @JvmStatic
         @Throws(IOException::class)
-        fun writeRawRun(run: Map<String, Any?>, outputPath: Path) {
+        fun writeRawRun(
+            run: Map<String, Any?>,
+            outputPath: Path,
+        ) {
             val parent = outputPath.parent
             if (parent != null) {
                 Files.createDirectories(parent)

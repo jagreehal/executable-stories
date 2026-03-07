@@ -21,17 +21,20 @@ class TestInit:
     def test_tags_and_tickets(self, fresh_story: Story):
         fresh_story.init("Test", tags=["smoke"], ticket="JIRA-1")
         meta = fresh_story._get_meta()
+        assert meta is not None
         assert meta["tags"] == ["smoke"]
         assert meta["tickets"] == ["JIRA-1"]
 
     def test_ticket_list(self, fresh_story: Story):
         fresh_story.init("Test", ticket=["A-1", "B-2"])
         meta = fresh_story._get_meta()
+        assert meta is not None
         assert meta["tickets"] == ["A-1", "B-2"]
 
     def test_meta_dict(self, fresh_story: Story):
         fresh_story.init("Test", meta={"priority": "high"})
         meta = fresh_story._get_meta()
+        assert meta is not None
         assert meta["meta"] == {"priority": "high"}
 
     def test_clear(self, fresh_story: Story):
@@ -47,6 +50,7 @@ class TestSteps:
         fresh_story.when("they submit credentials")
         fresh_story.then("they see the dashboard")
         meta = fresh_story._get_meta()
+        assert meta is not None
         assert len(meta["steps"]) == 3
         assert meta["steps"][0]["keyword"] == "Given" and meta["steps"][0]["text"] == "a registered user"
         assert meta["steps"][1]["keyword"] == "When" and meta["steps"][1]["text"] == "they submit credentials"
@@ -58,6 +62,7 @@ class TestSteps:
         fresh_story.and_("more setup")
         fresh_story.but("not this")
         meta = fresh_story._get_meta()
+        assert meta is not None
         assert meta["steps"][1]["keyword"] == "And"
         assert meta["steps"][2]["keyword"] == "But"
 
@@ -67,6 +72,7 @@ class TestSteps:
         fresh_story.when("a when in between")
         fresh_story.given("second given")
         meta = fresh_story._get_meta()
+        assert meta is not None
         assert meta["steps"][0]["keyword"] == "Given"
         assert meta["steps"][1]["keyword"] == "When"
         assert meta["steps"][2]["keyword"] == "And"
@@ -75,6 +81,7 @@ class TestSteps:
         fresh_story.init("Test")
         fresh_story.given("something", mode="skip")
         meta = fresh_story._get_meta()
+        assert meta is not None
         assert meta["steps"][0]["mode"] == "skip"
 
     def test_step_before_init_raises(self, fresh_story: Story):
@@ -87,6 +94,7 @@ class TestDocMethods:
         fresh_story.init("Test")
         fresh_story.note("A note")
         meta = fresh_story._get_meta()
+        assert meta is not None
         assert len(meta["docs"]) == 1
         assert meta["docs"][0] == {"kind": "note", "text": "A note", "phase": "runtime"}
         assert "steps" not in meta
@@ -96,6 +104,7 @@ class TestDocMethods:
         fresh_story.given("setup")
         fresh_story.note("Detail about setup")
         meta = fresh_story._get_meta()
+        assert meta is not None
         assert "docs" not in meta  # no story-level docs
         assert len(meta["steps"][0]["docs"]) == 1
         assert meta["steps"][0]["docs"][0]["kind"] == "note"
@@ -104,24 +113,28 @@ class TestDocMethods:
         fresh_story.init("Test")
         fresh_story.tag("important")
         meta = fresh_story._get_meta()
+        assert meta is not None
         assert meta["docs"][0] == {"kind": "tag", "names": ["important"], "phase": "runtime"}
 
     def test_tag_doc_list(self, fresh_story: Story):
         fresh_story.init("Test")
         fresh_story.tag(["a", "b"])
         meta = fresh_story._get_meta()
+        assert meta is not None
         assert meta["docs"][0]["names"] == ["a", "b"]
 
     def test_kv_doc(self, fresh_story: Story):
         fresh_story.init("Test")
         fresh_story.kv("user", "alice")
         meta = fresh_story._get_meta()
+        assert meta is not None
         assert meta["docs"][0] == {"kind": "kv", "label": "user", "value": "alice", "phase": "runtime"}
 
     def test_json_doc(self, fresh_story: Story):
         fresh_story.init("Test")
         fresh_story.json("payload", {"key": "value"})
         meta = fresh_story._get_meta()
+        assert meta is not None
         doc = meta["docs"][0]
         assert doc["kind"] == "code"
         assert doc["lang"] == "json"
@@ -132,6 +145,7 @@ class TestDocMethods:
         fresh_story.init("Test")
         fresh_story.code("snippet", "print('hi')", lang="python")
         meta = fresh_story._get_meta()
+        assert meta is not None
         doc = meta["docs"][0]
         assert doc == {
             "kind": "code",
@@ -145,6 +159,7 @@ class TestDocMethods:
         fresh_story.init("Test")
         fresh_story.code("snippet", "x = 1")
         meta = fresh_story._get_meta()
+        assert meta is not None
         doc = meta["docs"][0]
         assert "lang" not in doc
 
@@ -152,6 +167,7 @@ class TestDocMethods:
         fresh_story.init("Test")
         fresh_story.table("Users", ["name", "age"], [["Alice", "30"]])
         meta = fresh_story._get_meta()
+        assert meta is not None
         doc = meta["docs"][0]
         assert doc["kind"] == "table"
         assert doc["columns"] == ["name", "age"]
@@ -161,6 +177,7 @@ class TestDocMethods:
         fresh_story.init("Test")
         fresh_story.link("Docs", "https://example.com")
         meta = fresh_story._get_meta()
+        assert meta is not None
         assert meta["docs"][0]["kind"] == "link"
         assert meta["docs"][0]["url"] == "https://example.com"
 
@@ -168,6 +185,7 @@ class TestDocMethods:
         fresh_story.init("Test")
         fresh_story.section("Details", "Some **markdown**")
         meta = fresh_story._get_meta()
+        assert meta is not None
         assert meta["docs"][0]["kind"] == "section"
         assert meta["docs"][0]["markdown"] == "Some **markdown**"
 
@@ -175,6 +193,7 @@ class TestDocMethods:
         fresh_story.init("Test")
         fresh_story.mermaid("graph TD; A-->B", title="Flow")
         meta = fresh_story._get_meta()
+        assert meta is not None
         doc = meta["docs"][0]
         assert doc["kind"] == "mermaid"
         assert doc["code"] == "graph TD; A-->B"
@@ -184,12 +203,14 @@ class TestDocMethods:
         fresh_story.init("Test")
         fresh_story.mermaid("graph TD; A-->B")
         meta = fresh_story._get_meta()
+        assert meta is not None
         assert "title" not in meta["docs"][0]
 
     def test_screenshot_doc(self, fresh_story: Story):
         fresh_story.init("Test")
         fresh_story.screenshot("/tmp/shot.png", alt="Login page")
         meta = fresh_story._get_meta()
+        assert meta is not None
         doc = meta["docs"][0]
         assert doc["kind"] == "screenshot"
         assert doc["path"] == "/tmp/shot.png"
@@ -199,12 +220,14 @@ class TestDocMethods:
         fresh_story.init("Test")
         fresh_story.screenshot("/tmp/shot.png")
         meta = fresh_story._get_meta()
+        assert meta is not None
         assert "alt" not in meta["docs"][0]
 
     def test_custom_doc(self, fresh_story: Story):
         fresh_story.init("Test")
         fresh_story.custom("widget", {"color": "red"})
         meta = fresh_story._get_meta()
+        assert meta is not None
         doc = meta["docs"][0]
         assert doc == {
             "kind": "custom",
@@ -223,6 +246,7 @@ class TestDocMethods:
         fresh_story.note("first")
         fresh_story.kv("key", "val")
         meta = fresh_story._get_meta()
+        assert meta is not None
         assert len(meta["steps"][0]["docs"]) == 2
 
     def test_docs_attach_to_latest_step(self, fresh_story: Story):
@@ -232,6 +256,7 @@ class TestDocMethods:
         fresh_story.when("step 2")
         fresh_story.note("for step 2")
         meta = fresh_story._get_meta()
+        assert meta is not None
         assert len(meta["steps"][0]["docs"]) == 1
         assert meta["steps"][0]["docs"][0]["text"] == "for step 1"
         assert len(meta["steps"][1]["docs"]) == 1
@@ -249,6 +274,7 @@ class TestDocMethods:
             ],
         )
         meta = fresh_story._get_meta()
+        assert meta is not None
         assert len(meta["steps"][0]["docs"]) == 1
         assert meta["steps"][0]["docs"][0]["kind"] == "note"
         assert meta["steps"][0]["docs"][0]["text"] == "a note"
@@ -264,6 +290,7 @@ class TestAAAAliases:
         fresh_story.act("perform action")
         fresh_story.assert_("check result")
         meta = fresh_story._get_meta()
+        assert meta is not None
         assert len(meta["steps"]) == 3
         assert meta["steps"][0]["keyword"] == "Given"
         assert meta["steps"][1]["keyword"] == "When"
@@ -277,6 +304,7 @@ class TestAAAAliases:
         fresh_story.action("another action")
         fresh_story.verify("the outcome")
         meta = fresh_story._get_meta()
+        assert meta is not None
         assert len(meta["steps"]) == 5
         assert meta["steps"][0]["keyword"] == "Given"
         assert meta["steps"][1]["keyword"] == "And"
@@ -297,6 +325,7 @@ class TestFn:
         fresh_story.fn("Given", "a wrapped precondition", body)
         assert called
         meta = fresh_story._get_meta()
+        assert meta is not None
         assert len(meta["steps"]) == 1
         step = meta["steps"][0]
         assert step["keyword"] == "Given"
@@ -308,6 +337,7 @@ class TestFn:
         fresh_story.init("fn duration")
         fresh_story.fn("When", "I wait briefly", lambda: time.sleep(0.015))
         meta = fresh_story._get_meta()
+        assert meta is not None
         assert meta["steps"][0]["durationMs"] >= 10
 
     def test_fn_propagates_exceptions(self, fresh_story: Story):
@@ -327,6 +357,7 @@ class TestFn:
             fresh_story.fn("Then", "it fails", failing_body)
 
         meta = fresh_story._get_meta()
+        assert meta is not None
         assert meta["steps"][0]["durationMs"] >= 5
 
     def test_fn_auto_and_conversion(self, fresh_story: Story):
@@ -334,6 +365,7 @@ class TestFn:
         fresh_story.given("a text-only step")
         fresh_story.fn("Given", "a wrapped step", lambda: None)
         meta = fresh_story._get_meta()
+        assert meta is not None
         assert meta["steps"][0]["keyword"] == "Given"
         assert meta["steps"][1]["keyword"] == "And"
         assert meta["steps"][1].get("wrapped") is True
@@ -350,6 +382,7 @@ class TestFn:
         fresh_story.then("a text-only assertion")
         fresh_story.fn("Then", "the wrapped assertion", lambda: None)
         meta = fresh_story._get_meta()
+        assert meta is not None
         assert len(meta["steps"]) == 4
         assert meta["steps"][0].get("wrapped") is None or meta["steps"][0].get("wrapped") is False
         assert meta["steps"][1].get("wrapped") is True
@@ -369,6 +402,7 @@ class TestExpect:
         fresh_story.expect("the result is correct", body)
         assert called
         meta = fresh_story._get_meta()
+        assert meta is not None
         assert len(meta["steps"]) == 1
         step = meta["steps"][0]
         assert step["keyword"] == "Then"
@@ -396,6 +430,7 @@ class TestStepTiming:
         time.sleep(0.015)  # 15ms
         fresh_story.end_timer(token)
         meta = fresh_story._get_meta()
+        assert meta is not None
         assert meta["steps"][0]["durationMs"] >= 10
 
     def test_double_end_timer_noop(self, fresh_story: Story):
@@ -404,10 +439,14 @@ class TestStepTiming:
         token = fresh_story.start_timer()
         time.sleep(0.01)
         fresh_story.end_timer(token)
-        first = fresh_story._get_meta()["steps"][0]["durationMs"]
+        meta1 = fresh_story._get_meta()
+        assert meta1 is not None
+        first = meta1["steps"][0]["durationMs"]
         time.sleep(0.02)
         fresh_story.end_timer(token)  # no-op
-        second = fresh_story._get_meta()["steps"][0]["durationMs"]
+        meta2 = fresh_story._get_meta()
+        assert meta2 is not None
+        second = meta2["steps"][0]["durationMs"]
         assert first == second
 
     def test_orphaned_timer_no_duration(self, fresh_story: Story):
@@ -415,4 +454,5 @@ class TestStepTiming:
         fresh_story.given("a step")
         fresh_story.start_timer()
         meta = fresh_story._get_meta()
+        assert meta is not None
         assert "durationMs" not in meta["steps"][0]

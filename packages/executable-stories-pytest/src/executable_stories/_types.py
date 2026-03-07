@@ -6,8 +6,7 @@ At runtime everything is just dicts serialized to JSON.
 
 from __future__ import annotations
 
-from typing import Any, TypedDict, NotRequired
-
+from typing import Any, NotRequired, TypedDict
 
 # ── DocEntry variants ──────────────────────────────────────────────
 
@@ -83,18 +82,7 @@ class CustomDoc(TypedDict):
 
 
 # Union of all doc entry types
-DocEntry = (
-    NoteDoc
-    | TagDoc
-    | KvDoc
-    | CodeDoc
-    | TableDoc
-    | LinkDoc
-    | SectionDoc
-    | MermaidDoc
-    | ScreenshotDoc
-    | CustomDoc
-)
+DocEntry = NoteDoc | TagDoc | KvDoc | CodeDoc | TableDoc | LinkDoc | SectionDoc | MermaidDoc | ScreenshotDoc | CustomDoc
 
 
 # ── Attachment ────────────────────────────────────────────────────

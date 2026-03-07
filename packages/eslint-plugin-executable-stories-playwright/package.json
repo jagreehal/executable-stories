@@ -16,7 +16,9 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "skills",
+    "README.md",
+    "bin"
   ],
   "scripts": {
     "build": "tsup",
@@ -49,12 +51,16 @@
     "@types/estree": "^1.0.8",
     "@types/node": "^25.3.2",
     "eslint": "^10.0.1",
+    "eslint-config-executable-stories": "workspace:*",
+    "executable-stories-vitest": "workspace:*",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
-    "vitest": "^4.0.18",
-    "eslint-config-executable-stories": "workspace:*"
+    "vitest": "^4.0.18"
   },
   "engines": {
     "node": ">=22"
+  },
+  "bin": {
+    "intent": "./bin/intent.js"
   }
 }

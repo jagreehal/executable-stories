@@ -25,18 +25,18 @@ type Option func(*S)
 
 // S represents a story attached to a single test.
 type S struct {
-	scenario    string
-	steps       []StoryStep
-	tags        []string
-	tickets     []string
-	meta        map[string]any
-	docs        []DocEntry // story-level docs
-	currentStep *StoryStep
-	seenPrimary map[string]bool // tracks seen primary keywords for auto-and conversion
-	t           TestingT
-	startTime   time.Time
-	sourceOrder int
-	stepCounter int
+	scenario         string
+	steps            []StoryStep
+	tags             []string
+	tickets          []string
+	meta             map[string]any
+	docs             []DocEntry // story-level docs
+	currentStep      *StoryStep
+	seenPrimary      map[string]bool // tracks seen primary keywords for auto-and conversion
+	t                TestingT
+	startTime        time.Time
+	sourceOrder      int
+	stepCounter      int
 	attachments      []RawAttachment
 	traceUrlTemplate string // URL template with {traceId} placeholder for OTel trace links
 }
@@ -362,4 +362,3 @@ func (s *S) AttachInline(name, mediaType, body, encoding string) *S {
 	s.attachments = append(s.attachments, a)
 	return s
 }
-

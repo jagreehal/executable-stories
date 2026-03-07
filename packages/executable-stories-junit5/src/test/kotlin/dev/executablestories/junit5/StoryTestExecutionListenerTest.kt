@@ -1,17 +1,17 @@
 package dev.executablestories.junit5
 
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.platform.engine.TestExecutionResult
-import org.junit.jupiter.api.Assertions.assertEquals
 
 class StoryTestExecutionListenerTest {
-
     @Test
     fun statusMappingUsesSchemaValues() {
-        val method = StoryTestExecutionListener::class.java.getDeclaredMethod(
-            "mapStatus",
-            TestExecutionResult.Status::class.java
-        )
+        val method =
+            StoryTestExecutionListener::class.java.getDeclaredMethod(
+                "mapStatus",
+                TestExecutionResult.Status::class.java,
+            )
         method.isAccessible = true
 
         assertEquals("pass", method.invoke(null, TestExecutionResult.Status.SUCCESSFUL))

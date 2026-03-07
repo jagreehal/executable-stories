@@ -1,11 +1,12 @@
 package dev.executablestories.junit5
 
 import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.Assertions.*
 
 class IntegrationTest {
-
     @AfterEach
     fun tearDown() {
         Story.clear()
@@ -22,10 +23,13 @@ class IntegrationTest {
         Story.kv("cartItems", 3)
 
         Story.`when`("the user proceeds to checkout")
-        Story.json("Checkout Payload", mapOf(
-            "items" to 3,
-            "total" to 99.99
-        ))
+        Story.json(
+            "Checkout Payload",
+            mapOf(
+                "items" to 3,
+                "total" to 99.99,
+            ),
+        )
 
         Story.and("enters payment information")
         Story.code("Card Token", "tok_visa_4242", "text")
@@ -41,14 +45,14 @@ class IntegrationTest {
             arrayOf(
                 arrayOf("To", "user@example.com"),
                 arrayOf("Subject", "Order Confirmed"),
-                arrayOf("Template", "order-confirmation")
-            )
+                arrayOf("Template", "order-confirmation"),
+            ),
         )
 
         Story.but("the inventory is not yet decremented")
         Story.mermaid(
             "sequenceDiagram\n  User->>Checkout: Submit\n  Checkout->>Payment: Charge\n  Payment-->>Checkout: OK",
-            "Checkout Flow"
+            "Checkout Flow",
         )
         Story.screenshot("/tmp/order-confirmation.png", "Order confirmation page")
         Story.custom("timing", mapOf("checkoutMs" to 450))

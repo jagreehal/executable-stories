@@ -7,7 +7,6 @@ import java.util.function.Supplier
  * Uses ThreadLocal to maintain per-test story state.
  */
 class Story private constructor() {
-
     companion object {
         private val CONTEXT = ThreadLocal<StoryContext>()
 
@@ -23,7 +22,10 @@ class Story private constructor() {
         }
 
         @JvmStatic
-        fun init(scenario: String, vararg tags: String) {
+        fun init(
+            scenario: String,
+            vararg tags: String,
+        ) {
             val ctx = StoryContext(scenario, *tags)
             CONTEXT.set(ctx)
             bridgeOtel(ctx)
@@ -39,7 +41,10 @@ class Story private constructor() {
         }
 
         @JvmStatic
-        fun given(text: String, vararg docs: DocEntry) {
+        fun given(
+            text: String,
+            vararg docs: DocEntry,
+        ) {
             requireContext().addStep("Given", text, *docs)
         }
 
@@ -51,7 +56,10 @@ class Story private constructor() {
 
         @JvmStatic
         @JvmName("when")
-        fun `when`(text: String, vararg docs: DocEntry) {
+        fun `when`(
+            text: String,
+            vararg docs: DocEntry,
+        ) {
             requireContext().addStep("When", text, *docs)
         }
 
@@ -61,7 +69,10 @@ class Story private constructor() {
         }
 
         @JvmStatic
-        fun then(text: String, vararg docs: DocEntry) {
+        fun then(
+            text: String,
+            vararg docs: DocEntry,
+        ) {
             requireContext().addStep("Then", text, *docs)
         }
 
@@ -71,7 +82,10 @@ class Story private constructor() {
         }
 
         @JvmStatic
-        fun and(text: String, vararg docs: DocEntry) {
+        fun and(
+            text: String,
+            vararg docs: DocEntry,
+        ) {
             requireContext().addStep("And", text, *docs)
         }
 
@@ -81,7 +95,10 @@ class Story private constructor() {
         }
 
         @JvmStatic
-        fun but(text: String, vararg docs: DocEntry) {
+        fun but(
+            text: String,
+            vararg docs: DocEntry,
+        ) {
             requireContext().addStep("But", text, *docs)
         }
 
@@ -95,7 +112,10 @@ class Story private constructor() {
         }
 
         @JvmStatic
-        fun arrange(text: String, vararg docs: DocEntry) {
+        fun arrange(
+            text: String,
+            vararg docs: DocEntry,
+        ) {
             requireContext().addStep("Given", text, *docs)
         }
 
@@ -105,7 +125,10 @@ class Story private constructor() {
         }
 
         @JvmStatic
-        fun act(text: String, vararg docs: DocEntry) {
+        fun act(
+            text: String,
+            vararg docs: DocEntry,
+        ) {
             requireContext().addStep("When", text, *docs)
         }
 
@@ -115,7 +138,10 @@ class Story private constructor() {
         }
 
         @JvmStatic
-        fun assertThat(text: String, vararg docs: DocEntry) {
+        fun assertThat(
+            text: String,
+            vararg docs: DocEntry,
+        ) {
             requireContext().addStep("Then", text, *docs)
         }
 
@@ -129,7 +155,10 @@ class Story private constructor() {
         }
 
         @JvmStatic
-        fun setup(text: String, vararg docs: DocEntry) {
+        fun setup(
+            text: String,
+            vararg docs: DocEntry,
+        ) {
             requireContext().addStep("Given", text, *docs)
         }
 
@@ -139,7 +168,10 @@ class Story private constructor() {
         }
 
         @JvmStatic
-        fun context(text: String, vararg docs: DocEntry) {
+        fun context(
+            text: String,
+            vararg docs: DocEntry,
+        ) {
             requireContext().addStep("Given", text, *docs)
         }
 
@@ -149,7 +181,10 @@ class Story private constructor() {
         }
 
         @JvmStatic
-        fun execute(text: String, vararg docs: DocEntry) {
+        fun execute(
+            text: String,
+            vararg docs: DocEntry,
+        ) {
             requireContext().addStep("When", text, *docs)
         }
 
@@ -159,7 +194,10 @@ class Story private constructor() {
         }
 
         @JvmStatic
-        fun action(text: String, vararg docs: DocEntry) {
+        fun action(
+            text: String,
+            vararg docs: DocEntry,
+        ) {
             requireContext().addStep("When", text, *docs)
         }
 
@@ -169,7 +207,10 @@ class Story private constructor() {
         }
 
         @JvmStatic
-        fun verify(text: String, vararg docs: DocEntry) {
+        fun verify(
+            text: String,
+            vararg docs: DocEntry,
+        ) {
             requireContext().addStep("Then", text, *docs)
         }
 
@@ -188,37 +229,60 @@ class Story private constructor() {
         }
 
         @JvmStatic
-        fun kv(label: String, value: Any?) {
+        fun kv(
+            label: String,
+            value: Any?,
+        ) {
             requireContext().addDoc(DocEntry.kv(label, value))
         }
 
         @JvmStatic
-        fun json(label: String, value: Any?) {
+        fun json(
+            label: String,
+            value: Any?,
+        ) {
             requireContext().addDoc(DocEntry.json(label, value))
         }
 
         @JvmStatic
-        fun code(label: String, content: String) {
+        fun code(
+            label: String,
+            content: String,
+        ) {
             requireContext().addDoc(DocEntry.code(label, content, null))
         }
 
         @JvmStatic
-        fun code(label: String, content: String, lang: String) {
+        fun code(
+            label: String,
+            content: String,
+            lang: String,
+        ) {
             requireContext().addDoc(DocEntry.code(label, content, lang))
         }
 
         @JvmStatic
-        fun table(label: String, columns: Array<String>, rows: Array<Array<String>>) {
+        fun table(
+            label: String,
+            columns: Array<String>,
+            rows: Array<Array<String>>,
+        ) {
             requireContext().addDoc(DocEntry.table(label, columns, rows))
         }
 
         @JvmStatic
-        fun link(label: String, url: String) {
+        fun link(
+            label: String,
+            url: String,
+        ) {
             requireContext().addDoc(DocEntry.link(label, url))
         }
 
         @JvmStatic
-        fun section(title: String, markdown: String) {
+        fun section(
+            title: String,
+            markdown: String,
+        ) {
             requireContext().addDoc(DocEntry.section(title, markdown))
         }
 
@@ -228,7 +292,10 @@ class Story private constructor() {
         }
 
         @JvmStatic
-        fun mermaid(code: String, title: String) {
+        fun mermaid(
+            code: String,
+            title: String,
+        ) {
             requireContext().addDoc(DocEntry.mermaid(code, title))
         }
 
@@ -238,12 +305,18 @@ class Story private constructor() {
         }
 
         @JvmStatic
-        fun screenshot(path: String, alt: String) {
+        fun screenshot(
+            path: String,
+            alt: String,
+        ) {
             requireContext().addDoc(DocEntry.screenshot(path, alt))
         }
 
         @JvmStatic
-        fun custom(type: String, data: Any?) {
+        fun custom(
+            type: String,
+            data: Any?,
+        ) {
             requireContext().addDoc(DocEntry.custom(type, data))
         }
 
@@ -252,12 +325,21 @@ class Story private constructor() {
         // ====================================================================
 
         @JvmStatic
-        fun attach(name: String, mediaType: String, path: String) {
+        fun attach(
+            name: String,
+            mediaType: String,
+            path: String,
+        ) {
             requireContext().addAttachment(name, mediaType, path, null, null, null, null)
         }
 
         @JvmStatic
-        fun attachInline(name: String, mediaType: String, body: String, encoding: String) {
+        fun attachInline(
+            name: String,
+            mediaType: String,
+            body: String,
+            encoding: String,
+        ) {
             requireContext().addAttachment(name, mediaType, null, body, encoding, null, null)
         }
 
@@ -278,7 +360,11 @@ class Story private constructor() {
         // ====================================================================
 
         @JvmStatic
-        fun fn(keyword: String, text: String, body: Runnable) {
+        fun fn(
+            keyword: String,
+            text: String,
+            body: Runnable,
+        ) {
             val ctx = requireContext()
             ctx.addStep(keyword, text)
             val step = ctx.currentStep!!
@@ -293,7 +379,11 @@ class Story private constructor() {
         }
 
         @JvmStatic
-        fun <T> fn(keyword: String, text: String, body: Supplier<T>): T {
+        fun <T> fn(
+            keyword: String,
+            text: String,
+            body: Supplier<T>,
+        ): T {
             val ctx = requireContext()
             ctx.addStep(keyword, text)
             val step = ctx.currentStep!!
@@ -308,13 +398,18 @@ class Story private constructor() {
         }
 
         @JvmStatic
-        fun expect(text: String, body: Runnable) {
+        fun expect(
+            text: String,
+            body: Runnable,
+        ) {
             fn("Then", text, body)
         }
 
         @JvmStatic
-        fun <T> expect(text: String, body: Supplier<T>): T =
-            fn("Then", text, body)
+        fun <T> expect(
+            text: String,
+            body: Supplier<T>,
+        ): T = fn("Then", text, body)
 
         // ====================================================================
         // OTel Bridge
@@ -365,7 +460,9 @@ class Story private constructor() {
                         val tagsKey = stringArrayKeyMethod.invoke(null, "story.tags")
                         val setAttributeKey = spanClass.getMethod("setAttribute", attributeKeyClass, Any::class.java)
                         setAttributeKey.invoke(span, tagsKey, ctx.tags.toList())
-                    } catch (_: Exception) { /* array attributes not available */ }
+                    } catch (_: Exception) {
+                        // array attributes not available
+                    }
                 }
 
                 if (ctx.tickets.isNotEmpty()) {
@@ -375,7 +472,9 @@ class Story private constructor() {
                         val ticketsKey = stringArrayKeyMethod.invoke(null, "story.tickets")
                         val setAttributeKey = spanClass.getMethod("setAttribute", attributeKeyClass, Any::class.java)
                         setAttributeKey.invoke(span, ticketsKey, ctx.tickets.toList())
-                    } catch (_: Exception) { /* array attributes not available */ }
+                    } catch (_: Exception) {
+                        // array attributes not available
+                    }
                 }
             } catch (_: ClassNotFoundException) {
                 // OTel API not on classpath - no-op
@@ -399,7 +498,7 @@ class Story private constructor() {
         private fun requireContext(): StoryContext =
             CONTEXT.get() ?: throw IllegalStateException(
                 "Story.init() must be called before using Story step/doc methods. " +
-                    "Did you forget to call Story.init(\"scenario name\") at the start of your test?"
+                    "Did you forget to call Story.init(\"scenario name\") at the start of your test?",
             )
     }
 }

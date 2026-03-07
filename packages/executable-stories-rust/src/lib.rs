@@ -1,3 +1,5 @@
+#![warn(clippy::all, clippy::pedantic)]
+
 mod collector;
 mod doc_entry;
 mod json_writer;
