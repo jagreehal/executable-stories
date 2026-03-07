@@ -1,5 +1,13 @@
 # executable-stories-playwright
 
+## 7.0.2
+
+### Patch Changes
+
+- dcf42c1: Add lint and type-check configuration across ESLint plugins and framework packages; align build/test tooling and add skills and quality checks for non-JS packages (Go, JUnit5, pytest, Rust, xunit).
+- Updated dependencies [dcf42c1]
+  - executable-stories-formatters@0.6.2
+
 ## 7.0.1
 
 ### Patch Changes

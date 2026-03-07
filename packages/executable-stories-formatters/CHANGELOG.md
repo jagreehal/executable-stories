@@ -1,5 +1,11 @@
 # executable-stories-formatters
 
+## 0.6.2
+
+### Patch Changes
+
+- dcf42c1: Add lint and type-check configuration across ESLint plugins and framework packages; align build/test tooling and add skills and quality checks for non-JS packages (Go, JUnit5, pytest, Rust, xunit).
+
 ## 0.6.1
 
 ### Patch Changes

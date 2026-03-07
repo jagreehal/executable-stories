@@ -1,5 +1,11 @@
 # eslint-plugin-executable-stories-jest
 
+## 2.1.2
+
+### Patch Changes
+
+- dcf42c1: Add lint and type-check configuration across ESLint plugins and framework packages; align build/test tooling and add skills and quality checks for non-JS packages (Go, JUnit5, pytest, Rust, xunit).
+
 ## 2.1.1
 
 ### Patch Changes
