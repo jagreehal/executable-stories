@@ -25,28 +25,19 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install intent CLI
-        run: npm install -g @tanstack/intent
-
       - name: Find and validate skills
         run: |
-          # Find all directories containing SKILL.md files
-          SKILLS_DIR=""
-          if [ -d "skills" ]; then
-            SKILLS_DIR="skills"
-          elif [ -d "packages" ]; then
-            # Monorepo — find skills/ under packages
+          # Monorepo: validate each package's skills/ (prefer over root skills/)
+          if [ -d "packages" ]; then
             for dir in packages/*/skills; do
               if [ -d "$dir" ]; then
                 echo "Validating $dir..."
-                intent validate "$dir"
+                npx @tanstack/intent@latest validate "$dir"
               fi
             done
-            exit 0
-          fi
-
-          if [ -n "$SKILLS_DIR" ]; then
-            intent validate "$SKILLS_DIR"
+          elif [ -d "skills" ]; then
+            echo "Validating skills..."
+            npx @tanstack/intent@latest validate "skills"
           else
             echo "No skills/ directory found — skipping validation."
           fi
