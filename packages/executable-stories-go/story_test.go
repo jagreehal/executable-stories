@@ -13,10 +13,10 @@ type mockT struct {
 	cleanups []func()
 }
 
-func (m *mockT) Name() string    { return m.name }
-func (m *mockT) Failed() bool    { return m.failed }
-func (m *mockT) Skipped() bool   { return m.skipped }
-func (m *mockT) Helper()         {}
+func (m *mockT) Name() string     { return m.name }
+func (m *mockT) Failed() bool     { return m.failed }
+func (m *mockT) Skipped() bool    { return m.skipped }
+func (m *mockT) Helper()          {}
 func (m *mockT) Cleanup(f func()) { m.cleanups = append(m.cleanups, f) }
 
 // runCleanups executes all registered cleanup functions in LIFO order (matching Go's behavior).

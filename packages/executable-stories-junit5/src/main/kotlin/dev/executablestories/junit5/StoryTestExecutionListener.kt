@@ -11,7 +11,6 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 
 class StoryTestExecutionListener : TestExecutionListener {
-
     private var startedAtMs: Long = 0
     private val testCases: MutableList<Map<String, Any?>> = CopyOnWriteArrayList()
     private val testStartTimes: ConcurrentHashMap<String, Long> = ConcurrentHashMap()
@@ -26,7 +25,10 @@ class StoryTestExecutionListener : TestExecutionListener {
         }
     }
 
-    override fun executionFinished(testIdentifier: TestIdentifier, testExecutionResult: TestExecutionResult) {
+    override fun executionFinished(
+        testIdentifier: TestIdentifier,
+        testExecutionResult: TestExecutionResult,
+    ) {
         if (!testIdentifier.isTest) return
 
         val context = Story.getContext()
@@ -99,11 +101,12 @@ class StoryTestExecutionListener : TestExecutionListener {
         }
 
         val outputEnv = System.getenv("EXECUTABLE_STORIES_OUTPUT")
-        val outputPath = if (!outputEnv.isNullOrBlank()) {
-            Path.of(outputEnv)
-        } else {
-            Path.of(System.getProperty("user.dir"), ".executable-stories", "raw-run.json")
-        }
+        val outputPath =
+            if (!outputEnv.isNullOrBlank()) {
+                Path.of(outputEnv)
+            } else {
+                Path.of(System.getProperty("user.dir"), ".executable-stories", "raw-run.json")
+            }
 
         try {
             RawRunWriter.writeRawRun(rawRun, outputPath)
@@ -166,10 +169,11 @@ class StoryTestExecutionListener : TestExecutionListener {
 
     companion object {
         @JvmStatic
-        private fun mapStatus(status: TestExecutionResult.Status): String = when (status) {
-            TestExecutionResult.Status.SUCCESSFUL -> "pass"
-            TestExecutionResult.Status.FAILED -> "fail"
-            TestExecutionResult.Status.ABORTED -> "skip"
-        }
+        private fun mapStatus(status: TestExecutionResult.Status): String =
+            when (status) {
+                TestExecutionResult.Status.SUCCESSFUL -> "pass"
+                TestExecutionResult.Status.FAILED -> "fail"
+                TestExecutionResult.Status.ABORTED -> "skip"
+            }
     }
 }

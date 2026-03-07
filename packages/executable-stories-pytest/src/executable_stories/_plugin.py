@@ -16,7 +16,6 @@ from executable_stories._collector import _collector
 from executable_stories._json_writer import write_raw_run
 from executable_stories._story_api import story
 
-
 # ── CI detection ──────────────────────────────────────────────────
 
 
@@ -171,11 +170,13 @@ def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo[None]) ->
         if "steps" in story_meta:
             for i, step in enumerate(story_meta["steps"]):
                 if "durationMs" in step:
-                    step_events.append({
-                        "index": i,
-                        "title": step["text"],
-                        "durationMs": step["durationMs"],
-                    })
+                    step_events.append(
+                        {
+                            "index": i,
+                            "title": step["text"],
+                            "durationMs": step["durationMs"],
+                        }
+                    )
         if step_events:
             test_case["stepEvents"] = step_events
 
@@ -203,7 +204,7 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
     raw_run: dict[str, Any] = {
         "schemaVersion": 1,
         "testCases": test_cases,
-        "projectRoot": str(session.config.rootdir),
+        "projectRoot": str(session.config.rootdir),  # type: ignore[attr-defined]
         "startedAtMs": round(_started_at_ms, 2),
         "finishedAtMs": round(finished_at_ms, 2),
     }
@@ -214,7 +215,7 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
 
     output_path = os.environ.get(
         "EXECUTABLE_STORIES_OUTPUT",
-        os.path.join(str(session.config.rootdir), ".executable-stories", "raw-run.json"),
+        os.path.join(str(session.config.rootdir), ".executable-stories", "raw-run.json"),  # type: ignore[attr-defined]
     )
 
     write_raw_run(raw_run, output_path)

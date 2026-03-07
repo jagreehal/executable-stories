@@ -15,19 +15,19 @@ type RawRun struct {
 
 // RawTestCase represents a single test case in the run.
 type RawTestCase struct {
-	ExternalID  string           `json:"externalId,omitempty"`
-	Title       string           `json:"title,omitempty"`
-	TitlePath   []string         `json:"titlePath,omitempty"`
-	Story       *StoryMeta       `json:"story,omitempty"`
-	SourceFile  string           `json:"sourceFile,omitempty"`
-	Status      string           `json:"status"`
-	DurationMs  *float64         `json:"durationMs,omitempty"`
-	Error       *RawError        `json:"error,omitempty"`
-	Meta        map[string]any   `json:"meta,omitempty"`
-	Retry       int              `json:"retry"`
-	Retries     int              `json:"retries"`
-	Attachments []RawAttachment  `json:"attachments,omitempty"`
-	StepEvents  []RawStepEvent   `json:"stepEvents,omitempty"`
+	ExternalID  string          `json:"externalId,omitempty"`
+	Title       string          `json:"title,omitempty"`
+	TitlePath   []string        `json:"titlePath,omitempty"`
+	Story       *StoryMeta      `json:"story,omitempty"`
+	SourceFile  string          `json:"sourceFile,omitempty"`
+	Status      string          `json:"status"`
+	DurationMs  *float64        `json:"durationMs,omitempty"`
+	Error       *RawError       `json:"error,omitempty"`
+	Meta        map[string]any  `json:"meta,omitempty"`
+	Retry       int             `json:"retry"`
+	Retries     int             `json:"retries"`
+	Attachments []RawAttachment `json:"attachments,omitempty"`
+	StepEvents  []RawStepEvent  `json:"stepEvents,omitempty"`
 }
 
 // StoryMeta contains the BDD story information for a test case.

@@ -25,7 +25,9 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "skills",
+    "bin"
   ],
   "scripts": {
     "build": "tsup",
@@ -61,5 +63,8 @@
     "testing",
     "documentation",
     "executable-stories"
-  ]
+  ],
+  "bin": {
+    "intent": "./bin/intent.js"
+  }
 }

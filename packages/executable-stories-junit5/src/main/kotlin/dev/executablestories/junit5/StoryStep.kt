@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonInclude
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 class StoryStep() {
-
     var id: String? = null
     var keyword: String? = null
     var text: String? = null

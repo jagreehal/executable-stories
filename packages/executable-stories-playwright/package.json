@@ -20,7 +20,9 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "skills",
+    "README.md",
+    "bin"
   ],
   "scripts": {
     "build": "tsup",
@@ -57,5 +59,8 @@
     "testing",
     "documentation",
     "executable-stories"
-  ]
+  ],
+  "bin": {
+    "intent": "./bin/intent.js"
+  }
 }

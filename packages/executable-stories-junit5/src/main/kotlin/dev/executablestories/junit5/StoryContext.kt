@@ -2,13 +2,14 @@ package dev.executablestories.junit5
 
 import java.util.concurrent.atomic.AtomicInteger
 
-class StoryContext(val scenario: String) {
-
+class StoryContext(
+    val scenario: String,
+) {
     private class TimerEntry(
         val startNanos: Long,
         val stepIndex: Int?,
         val stepId: String?,
-        var consumed: Boolean = false
+        var consumed: Boolean = false,
     )
 
     val steps: MutableList<StoryStep> = mutableListOf()
@@ -32,11 +33,18 @@ class StoryContext(val scenario: String) {
         this.tags.addAll(tags.toList())
     }
 
-    fun addStep(keyword: String, text: String) {
+    fun addStep(
+        keyword: String,
+        text: String,
+    ) {
         addStep(keyword, text, null)
     }
 
-    fun addStep(keyword: String, text: String, vararg docs: DocEntry?) {
+    fun addStep(
+        keyword: String,
+        text: String,
+        vararg docs: DocEntry?,
+    ) {
         var effectiveKeyword = keyword
         if (isPrimary(keyword)) {
             if (!seenPrimaryKeywords.add(keyword)) {
@@ -70,7 +78,7 @@ class StoryContext(val scenario: String) {
         body: String?,
         encoding: String?,
         charset: String?,
-        fileName: String?
+        fileName: String?,
     ) {
         val a = LinkedHashMap<String, Any?>()
         a["name"] = name
@@ -90,15 +98,16 @@ class StoryContext(val scenario: String) {
 
     fun getAttachments(): List<Map<String, Any?>> = attachments
 
-    fun toStoryMeta(): StoryMeta = StoryMeta().apply {
-        scenario = this@StoryContext.scenario
-        steps = if (this@StoryContext.steps.isEmpty()) null else ArrayList(this@StoryContext.steps)
-        tags = if (this@StoryContext.tags.isEmpty()) null else ArrayList(this@StoryContext.tags)
-        tickets = if (this@StoryContext.tickets.isEmpty()) null else ArrayList(this@StoryContext.tickets)
-        meta = if (this@StoryContext.meta.isEmpty()) null else LinkedHashMap(this@StoryContext.meta)
-        docs = if (this@StoryContext.docs.isEmpty()) null else ArrayList(this@StoryContext.docs)
-        sourceOrder = this@StoryContext.sourceOrder
-    }
+    fun toStoryMeta(): StoryMeta =
+        StoryMeta().apply {
+            scenario = this@StoryContext.scenario
+            steps = if (this@StoryContext.steps.isEmpty()) null else ArrayList(this@StoryContext.steps)
+            tags = if (this@StoryContext.tags.isEmpty()) null else ArrayList(this@StoryContext.tags)
+            tickets = if (this@StoryContext.tickets.isEmpty()) null else ArrayList(this@StoryContext.tickets)
+            meta = if (this@StoryContext.meta.isEmpty()) null else LinkedHashMap(this@StoryContext.meta)
+            docs = if (this@StoryContext.docs.isEmpty()) null else ArrayList(this@StoryContext.docs)
+            sourceOrder = this@StoryContext.sourceOrder
+        }
 
     fun startTimer(): Int {
         val token = timerCounter++
@@ -134,6 +143,5 @@ class StoryContext(val scenario: String) {
         }
     }
 
-    private fun isPrimary(keyword: String): Boolean =
-        keyword == "Given" || keyword == "When" || keyword == "Then"
+    private fun isPrimary(keyword: String): Boolean = keyword == "Given" || keyword == "When" || keyword == "Then"
 }

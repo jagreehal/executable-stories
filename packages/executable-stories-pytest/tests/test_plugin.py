@@ -6,7 +6,6 @@ import pathlib
 
 import pytest
 
-
 pytest_plugins = ["pytester"]
 
 # Common args to disable conflicting third-party plugins in the subprocess
@@ -81,9 +80,7 @@ class TestPluginOutput:
         output_path = pytester.path / ".executable-stories" / "raw-run.json"
         raw_run = json.loads(output_path.read_text())
 
-        story_test = next(
-            tc for tc in raw_run["testCases"] if tc["title"] == "test_with_story"
-        )
+        story_test = next(tc for tc in raw_run["testCases"] if tc["title"] == "test_with_story")
         assert "story" in story_test
         story_meta = story_test["story"]
         assert story_meta["scenario"] == "User adds item to cart"
@@ -100,9 +97,7 @@ class TestPluginOutput:
         output_path = pytester.path / ".executable-stories" / "raw-run.json"
         raw_run = json.loads(output_path.read_text())
 
-        plain_test = next(
-            tc for tc in raw_run["testCases"] if tc["title"] == "test_without_story"
-        )
+        plain_test = next(tc for tc in raw_run["testCases"] if tc["title"] == "test_without_story")
         assert "story" not in plain_test
 
     def test_error_info_on_failure(self, pytester, sample_test_file):
@@ -113,17 +108,17 @@ class TestPluginOutput:
         output_path = pytester.path / ".executable-stories" / "raw-run.json"
         raw_run = json.loads(output_path.read_text())
 
-        failed_test = next(
-            tc for tc in raw_run["testCases"] if tc["title"] == "test_failing"
-        )
+        failed_test = next(tc for tc in raw_run["testCases"] if tc["title"] == "test_failing")
         assert "error" in failed_test
         assert "message" in failed_test["error"]
 
     def test_custom_output_path(self, pytester, tmp_path, monkeypatch):
-        pytester.makepyfile(test_simple="""
+        pytester.makepyfile(
+            test_simple="""
 def test_pass():
     assert True
-""")
+"""
+        )
 
         custom_path = str(tmp_path / "custom-output.json")
         monkeypatch.setenv("EXECUTABLE_STORIES_OUTPUT", custom_path)
@@ -143,7 +138,8 @@ def test_pass():
 
     def test_step_events_in_output_when_steps_have_duration(self, pytester):
         """When a test uses start_timer/end_timer, stepEvents appears in the test case."""
-        pytester.makepyfile(test_timed="""
+        pytester.makepyfile(
+            test_timed="""
 from executable_stories import story
 import time
 
@@ -155,7 +151,8 @@ def test_with_timed_step():
     story.end_timer(token)
     story.then("second step")
     assert True
-""")
+"""
+        )
         pytester.runpytest_subprocess(*_DISABLE_PLUGINS)
 
         output_path = pytester.path / ".executable-stories" / "raw-run.json"

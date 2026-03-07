@@ -109,10 +109,7 @@ fn test_camel_case_field_names() {
 
 #[test]
 fn test_optional_fields_omitted_when_none() {
-    let tc = RawTestCase {
-        status: "pass".to_string(),
-        ..Default::default()
-    };
+    let tc = RawTestCase { status: "pass".to_string(), ..Default::default() };
 
     let json = serde_json::to_value(&tc).unwrap();
     let obj = json.as_object().unwrap();
@@ -189,9 +186,7 @@ fn test_json_write_roundtrip() {
         ci: None,
     };
 
-    let output_path = std::env::temp_dir()
-        .join("executable-stories-test")
-        .join("roundtrip.json");
+    let output_path = std::env::temp_dir().join("executable-stories-test").join("roundtrip.json");
     let output_str = output_path.to_string_lossy().to_string();
 
     executable_stories::write_raw_run_to_path(&run, &output_str).unwrap();

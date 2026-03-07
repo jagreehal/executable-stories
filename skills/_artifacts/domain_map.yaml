@@ -1,0 +1,359 @@
+# Domain Map — executable-stories monorepo
+# Generated from: CLAUDE.md, docs-site, source code, existing tests
+# Status: reviewed
+
+library:
+  name: executable-stories
+  description: >
+    Framework-native BDD story testing. Tests are source of truth, docs derived
+    from test registration and results. Not Cucumber — no Gherkin parser, no
+    world object, no step matching.
+  repository: https://github.com/jagreehal/executable-stories
+  version: "2.1.1"
+  monorepo: true
+  packages:
+    - packages/executable-stories-vitest
+    - packages/executable-stories-jest
+    - packages/executable-stories-playwright
+    - packages/executable-stories-cypress
+    - packages/executable-stories-formatters
+    - packages/eslint-plugin-executable-stories-vitest
+    - packages/eslint-plugin-executable-stories-jest
+    - packages/eslint-plugin-executable-stories-playwright
+
+domains:
+  - slug: story-api
+    name: Story API
+    description: >
+      BDD step recording (given/when/then/and/but) plus doc entries
+      (json, kv, code, table, link, section, mermaid, screenshot, note, tag).
+      Each framework adapter has a slightly different init pattern.
+    packages:
+      - packages/executable-stories-vitest
+      - packages/executable-stories-jest
+      - packages/executable-stories-playwright
+      - packages/executable-stories-cypress
+
+  - slug: reporter-setup
+    name: Reporter & Doc Generation
+    description: >
+      Configuring framework-specific reporters/plugins that capture story
+      metadata at test-run time and produce output files (markdown, HTML, etc.).
+    packages:
+      - packages/executable-stories-vitest
+      - packages/executable-stories-jest
+      - packages/executable-stories-playwright
+      - packages/executable-stories-cypress
+
+  - slug: converting-tests
+    name: Converting Existing Tests
+    description: >
+      Patterns for incrementally adopting executable-stories in an existing
+      test suite without rewriting everything at once.
+    packages:
+      - packages/executable-stories-vitest
+      - packages/executable-stories-jest
+      - packages/executable-stories-playwright
+      - packages/executable-stories-cypress
+
+  - slug: formatters
+    name: Formatters & CLI
+    description: >
+      The executable-stories CLI and programmatic API for transforming
+      RawRun JSON into 6 output formats. Pipeline: RawRun → canonicalize →
+      formatters.
+    packages:
+      - packages/executable-stories-formatters
+
+  - slug: eslint
+    name: ESLint Rules
+    description: >
+      Per-framework ESLint plugins that enforce correct story API usage
+      (init before steps, task/testInfo parameter, etc.).
+    packages:
+      - packages/eslint-plugin-executable-stories-vitest
+      - packages/eslint-plugin-executable-stories-jest
+      - packages/eslint-plugin-executable-stories-playwright
+
+skills:
+  # --- Vitest (3 skills) ---
+  - slug: vitest-story-api
+    name: "Vitest: Story API"
+    domain: story-api
+    package: packages/executable-stories-vitest
+    type: core
+    description: >
+      Write BDD stories in Vitest using callback-only API. story.init(task)
+      with ({ task }) destructuring. Steps: given/when/then/and/but. Doc
+      entries: json, kv, code, table, link, section, mermaid, note, tag.
+      Auto-And keyword conversion. No top-level then export.
+    sources:
+      - "jagreehal/executable-stories:packages/executable-stories-vitest/src/story-api.ts"
+      - "jagreehal/executable-stories:apps/docs-site/src/content/docs/vitest/vitest-story-api.md"
+      - "jagreehal/executable-stories:apps/docs-site/src/content/docs/core-api.md"
+
+  - slug: vitest-reporter-setup
+    name: "Vitest: Reporter Setup"
+    domain: reporter-setup
+    package: packages/executable-stories-vitest
+    type: core
+    description: >
+      Configure StoryReporter in vitest.config.ts. Import from
+      executable-stories-vitest/reporter subpath. Output formats, directory,
+      naming. Integration with vitest reporters array.
+    sources:
+      - "jagreehal/executable-stories:packages/executable-stories-vitest/src/reporter.ts"
+      - "jagreehal/executable-stories:apps/docs-site/src/content/docs/vitest/vitest-config.md"
+
+  - slug: vitest-converting-tests
+    name: "Vitest: Converting Existing Tests"
+    domain: converting-tests
+    package: packages/executable-stories-vitest
+    type: lifecycle
+    description: >
+      Incrementally adopt executable-stories in Vitest. Add story metadata to
+      existing it/test blocks. Use doc.story for framework-native tests.
+      File naming conventions (.story.test.ts).
+    sources:
+      - "jagreehal/executable-stories:apps/docs-site/src/content/docs/guides/converting-vitest.md"
+
+  # --- Jest (3 skills) ---
+  - slug: jest-story-api
+    name: "Jest: Story API"
+    domain: story-api
+    package: packages/executable-stories-jest
+    type: core
+    description: >
+      Write BDD stories in Jest using top-level exports. Import given, when,
+      then, and, but directly. story.init() takes no arguments. Auto-And
+      keyword conversion. Suite path from expect.getState().currentTestName.
+    sources:
+      - "jagreehal/executable-stories:packages/executable-stories-jest/src/index.ts"
+      - "jagreehal/executable-stories:apps/docs-site/src/content/docs/guides/converting-jest.md"
+
+  - slug: jest-reporter-setup
+    name: "Jest: Reporter Setup"
+    domain: reporter-setup
+    package: packages/executable-stories-jest
+    type: core
+    description: >
+      Configure Jest custom reporter for executable-stories. jest.config
+      reporters array. Output formats and directory configuration.
+    sources:
+      - "jagreehal/executable-stories:packages/executable-stories-jest/src/reporter.ts"
+
+  - slug: jest-converting-tests
+    name: "Jest: Converting Existing Tests"
+    domain: converting-tests
+    package: packages/executable-stories-jest
+    type: lifecycle
+    description: >
+      Incrementally adopt executable-stories in Jest. Add story metadata to
+      existing test blocks. Top-level imports, no task destructuring needed.
+      File naming conventions (.story.test.ts).
+    sources:
+      - "jagreehal/executable-stories:apps/docs-site/src/content/docs/guides/converting-jest.md"
+
+  # --- Playwright (3 skills) ---
+  - slug: playwright-story-api
+    name: "Playwright: Story API"
+    domain: story-api
+    package: packages/executable-stories-playwright
+    type: core
+    description: >
+      Write BDD stories in Playwright using top-level exports with TestInfo.
+      story.init(testInfo). Async steps with fixtures ({ page }). Steps:
+      given/when/then/and/but. Doc entries including screenshot.
+    sources:
+      - "jagreehal/executable-stories:packages/executable-stories-playwright/src/index.ts"
+      - "jagreehal/executable-stories:apps/docs-site/src/content/docs/playwright/playwright-story-api.md"
+
+  - slug: playwright-reporter-setup
+    name: "Playwright: Reporter Setup"
+    domain: reporter-setup
+    package: packages/executable-stories-playwright
+    type: core
+    description: >
+      Configure Playwright custom reporter for executable-stories.
+      playwright.config.ts reporter array. Output formats and directory.
+    sources:
+      - "jagreehal/executable-stories:packages/executable-stories-playwright/src/reporter.ts"
+
+  - slug: playwright-converting-tests
+    name: "Playwright: Converting Existing Tests"
+    domain: converting-tests
+    package: packages/executable-stories-playwright
+    type: lifecycle
+    description: >
+      Incrementally adopt executable-stories in Playwright. Add story metadata
+      to existing spec blocks. File naming conventions (.story.spec.ts).
+    sources:
+      - "jagreehal/executable-stories:apps/docs-site/src/content/docs/guides/converting-playwright.md"
+
+  # --- Cypress (3 skills) ---
+  - slug: cypress-story-api
+    name: "Cypress: Story API"
+    domain: story-api
+    package: packages/executable-stories-cypress
+    type: core
+    description: >
+      Write BDD stories in Cypress using custom commands. cy.given, cy.when,
+      cy.then, cy.and, cy.but. Story init via Cypress hooks. Doc entries
+      via cy.doc commands.
+    sources:
+      - "jagreehal/executable-stories:packages/executable-stories-cypress/src/index.ts"
+
+  - slug: cypress-reporter-setup
+    name: "Cypress: Reporter Setup"
+    domain: reporter-setup
+    package: packages/executable-stories-cypress
+    type: core
+    description: >
+      Configure Cypress plugin for executable-stories. cypress.config.ts
+      setupNodeEvents. Output formats and directory.
+    sources:
+      - "jagreehal/executable-stories:packages/executable-stories-cypress/src/plugin.ts"
+
+  - slug: cypress-converting-tests
+    name: "Cypress: Converting Existing Tests"
+    domain: converting-tests
+    package: packages/executable-stories-cypress
+    type: lifecycle
+    description: >
+      Incrementally adopt executable-stories in Cypress. Add story metadata
+      to existing cy.ts spec files. File naming (.story.cy.ts).
+    sources:
+      - "jagreehal/executable-stories:apps/docs-site/src/content/docs/guides/converting-cypress.md"
+
+  # --- Formatters (1 skill) ---
+  - slug: formatters-cli
+    name: "Formatters CLI & API"
+    domain: formatters
+    package: packages/executable-stories-formatters
+    type: core
+    description: >
+      executable-stories CLI with format and validate subcommands. Pipeline:
+      RawRun JSON → canonicalizeRun → formatters. 6 output formats: HTML,
+      Markdown, JUnit, Cucumber JSON/HTML/Messages. fn(args, deps) pattern.
+      Exit codes 0-4. Programmatic ReportGenerator API.
+    sources:
+      - "jagreehal/executable-stories:packages/executable-stories-formatters/src/cli.ts"
+      - "jagreehal/executable-stories:packages/executable-stories-formatters/src/index.ts"
+      - "jagreehal/executable-stories:apps/docs-site/src/content/docs/formatters/formatters-api.md"
+
+  # --- ESLint Plugins (3 skills, 1 each) ---
+  - slug: eslint-vitest-rules
+    name: "ESLint Plugin: Vitest Rules"
+    domain: eslint
+    package: packages/eslint-plugin-executable-stories-vitest
+    type: core
+    description: >
+      ESLint flat config plugin for executable-stories-vitest. Three rules:
+      require-task-for-story-init, require-test-context-for-story-init,
+      require-init-before-steps. Recommended config setup.
+    sources:
+      - "jagreehal/executable-stories:packages/eslint-plugin-executable-stories-vitest/src/index.ts"
+
+  - slug: eslint-jest-rules
+    name: "ESLint Plugin: Jest Rules"
+    domain: eslint
+    package: packages/eslint-plugin-executable-stories-jest
+    type: core
+    description: >
+      ESLint flat config plugin for executable-stories-jest. Two rules:
+      require-story-context-for-steps, require-test-context-for-doc-story.
+      Recommended config setup.
+    sources:
+      - "jagreehal/executable-stories:packages/eslint-plugin-executable-stories-jest/src/index.ts"
+
+  - slug: eslint-playwright-rules
+    name: "ESLint Plugin: Playwright Rules"
+    domain: eslint
+    package: packages/eslint-plugin-executable-stories-playwright
+    type: core
+    description: >
+      ESLint flat config plugin for executable-stories-playwright. Two rules:
+      require-story-context-for-steps, require-test-context-for-doc-story.
+      Recommended config setup.
+    sources:
+      - "jagreehal/executable-stories:packages/eslint-plugin-executable-stories-playwright/src/index.ts"
+
+failure_modes:
+  # Story API failures (apply to all adapters)
+  - id: fm-missing-init
+    skills: [vitest-story-api, jest-story-api, playwright-story-api, cypress-story-api]
+    priority: CRITICAL
+    summary: "Calling steps without story.init() — no metadata captured"
+    status: active
+
+  - id: fm-vitest-top-level-then
+    skills: [vitest-story-api]
+    priority: CRITICAL
+    summary: "Importing top-level then from vitest package breaks await import()"
+    status: active
+
+  - id: fm-vitest-missing-task
+    skills: [vitest-story-api]
+    priority: HIGH
+    summary: "story.init() without passing task — metadata not linked to test"
+    status: active
+
+  - id: fm-auto-and-confusion
+    skills: [vitest-story-api, jest-story-api, playwright-story-api, cypress-story-api]
+    priority: MEDIUM
+    summary: "Expecting but() to auto-convert to And — but always renders But"
+    status: active
+
+  - id: fm-wrong-file-extension
+    skills: [vitest-converting-tests, jest-converting-tests, playwright-converting-tests, cypress-converting-tests]
+    priority: HIGH
+    summary: "Using wrong file extension — reporter won't pick up story metadata"
+    status: active
+
+  # Reporter failures
+  - id: fm-reporter-string-shorthand
+    skills: [vitest-reporter-setup]
+    priority: HIGH
+    summary: "Passing string to StoryReporter instead of OutputConfig object"
+    status: active
+
+  - id: fm-reporter-wrong-import
+    skills: [vitest-reporter-setup]
+    priority: HIGH
+    summary: "Importing StoryReporter from main entry instead of /reporter subpath"
+    status: active
+
+  # Formatters failures
+  - id: fm-raw-run-schema
+    skills: [formatters-cli]
+    priority: HIGH
+    summary: "Invalid RawRun JSON passed to CLI — exit code 1 with no useful message"
+    status: active
+
+  - id: fm-canonicalize-null-story
+    skills: [formatters-cli]
+    priority: MEDIUM
+    summary: "Tests without story metadata silently filtered by canonicalizeRun"
+    status: active
+
+  # ESLint failures
+  - id: fm-eslint-legacy-config
+    skills: [eslint-vitest-rules, eslint-jest-rules, eslint-playwright-rules]
+    priority: HIGH
+    summary: "Using legacy .eslintrc config instead of flat config — plugin won't load"
+    status: active
+
+tensions: []
+
+cross_references:
+  - from: vitest-story-api
+    to: vitest-reporter-setup
+    reason: "Stories need reporter to produce output"
+  - from: vitest-story-api
+    to: eslint-vitest-rules
+    reason: "ESLint enforces correct story.init() usage"
+  - from: formatters-cli
+    to: vitest-reporter-setup
+    reason: "Reporter produces RawRun that CLI consumes"
+
+compositions: []

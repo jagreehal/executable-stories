@@ -1,0 +1,283 @@
+# skills/_artifacts/skill_tree.yaml
+library:
+  name: executable-stories
+  version: "2.1.1"
+  repository: "https://github.com/jagreehal/executable-stories"
+  description: "Framework-native BDD story testing — tests are source of truth, docs derived from test results"
+generated_from:
+  domain_map: "skills/_artifacts/domain_map.yaml"
+  skill_spec: "skills/_artifacts/skill_spec.md"
+generated_at: "2026-03-07T00:00:00.000Z"
+
+skills:
+  # --- Vitest ---
+  - name: "Vitest: Story API"
+    slug: vitest-story-api
+    type: core
+    domain: story-api
+    path: "skills/vitest-story-api/SKILL.md"
+    package: "packages/executable-stories-vitest"
+    description: >
+      Write BDD stories in Vitest. Callback-only API: story.init(task) with
+      ({ task }) destructuring. Steps: given/when/then/and/but. Doc entries:
+      json, kv, code, table, link, section, mermaid, note, tag. Auto-And
+      conversion. No top-level then export (thenable issue).
+    requires: []
+    sources:
+      - "jagreehal/executable-stories:packages/executable-stories-vitest/src/story-api.ts"
+      - "jagreehal/executable-stories:apps/docs-site/src/content/docs/vitest/vitest-story-api.md"
+      - "jagreehal/executable-stories:apps/docs-site/src/content/docs/core-api.md"
+    subsystems: []
+    references: []
+
+  - name: "Vitest: Reporter Setup"
+    slug: vitest-reporter-setup
+    type: core
+    domain: reporter-setup
+    path: "skills/vitest-reporter-setup/SKILL.md"
+    package: "packages/executable-stories-vitest"
+    description: >
+      Configure StoryReporter in vitest.config.ts. Import from
+      executable-stories-vitest/reporter subpath. OutputConfig object with
+      formats, outputDir, outputName. Integration with vitest reporters array.
+    requires: []
+    sources:
+      - "jagreehal/executable-stories:packages/executable-stories-vitest/src/reporter.ts"
+      - "jagreehal/executable-stories:apps/docs-site/src/content/docs/vitest/vitest-config.md"
+    subsystems: []
+    references: []
+
+  - name: "Vitest: Converting Existing Tests"
+    slug: vitest-converting-tests
+    type: lifecycle
+    domain: converting-tests
+    path: "skills/vitest-converting-tests/SKILL.md"
+    package: "packages/executable-stories-vitest"
+    description: >
+      Incrementally adopt executable-stories in Vitest. Add story metadata to
+      existing it/test blocks using doc.story(). File naming .story.test.ts.
+      Framework-native approach — no rewrite needed.
+    requires:
+      - vitest-story-api
+    sources:
+      - "jagreehal/executable-stories:apps/docs-site/src/content/docs/guides/converting-vitest.md"
+    subsystems: []
+    references: []
+
+  # --- Jest ---
+  - name: "Jest: Story API"
+    slug: jest-story-api
+    type: core
+    domain: story-api
+    path: "skills/jest-story-api/SKILL.md"
+    package: "packages/executable-stories-jest"
+    description: >
+      Write BDD stories in Jest. Top-level exports: import { given, when,
+      then, and, but } from executable-stories-jest. story.init() no args.
+      Auto-And keyword conversion. Suite path from currentTestName.
+    requires: []
+    sources:
+      - "jagreehal/executable-stories:packages/executable-stories-jest/src/index.ts"
+      - "jagreehal/executable-stories:apps/docs-site/src/content/docs/guides/converting-jest.md"
+    subsystems: []
+    references: []
+
+  - name: "Jest: Reporter Setup"
+    slug: jest-reporter-setup
+    type: core
+    domain: reporter-setup
+    path: "skills/jest-reporter-setup/SKILL.md"
+    package: "packages/executable-stories-jest"
+    description: >
+      Configure Jest custom reporter for executable-stories. jest.config
+      reporters array. Output formats and directory configuration.
+    requires: []
+    sources:
+      - "jagreehal/executable-stories:packages/executable-stories-jest/src/reporter.ts"
+    subsystems: []
+    references: []
+
+  - name: "Jest: Converting Existing Tests"
+    slug: jest-converting-tests
+    type: lifecycle
+    domain: converting-tests
+    path: "skills/jest-converting-tests/SKILL.md"
+    package: "packages/executable-stories-jest"
+    description: >
+      Incrementally adopt executable-stories in Jest. Add story metadata to
+      existing test blocks. Top-level imports, no task destructuring. File
+      naming .story.test.ts.
+    requires:
+      - jest-story-api
+    sources:
+      - "jagreehal/executable-stories:apps/docs-site/src/content/docs/guides/converting-jest.md"
+    subsystems: []
+    references: []
+
+  # --- Playwright ---
+  - name: "Playwright: Story API"
+    slug: playwright-story-api
+    type: core
+    domain: story-api
+    path: "skills/playwright-story-api/SKILL.md"
+    package: "packages/executable-stories-playwright"
+    description: >
+      Write BDD stories in Playwright. Top-level exports with TestInfo:
+      story.init(testInfo). Async steps with fixtures ({ page }). Steps:
+      given/when/then/and/but. Doc entries including screenshot({ path }).
+    requires: []
+    sources:
+      - "jagreehal/executable-stories:packages/executable-stories-playwright/src/index.ts"
+      - "jagreehal/executable-stories:apps/docs-site/src/content/docs/playwright/playwright-story-api.md"
+    subsystems: []
+    references: []
+
+  - name: "Playwright: Reporter Setup"
+    slug: playwright-reporter-setup
+    type: core
+    domain: reporter-setup
+    path: "skills/playwright-reporter-setup/SKILL.md"
+    package: "packages/executable-stories-playwright"
+    description: >
+      Configure Playwright custom reporter for executable-stories.
+      playwright.config.ts reporter array. Output formats and directory.
+    requires: []
+    sources:
+      - "jagreehal/executable-stories:packages/executable-stories-playwright/src/reporter.ts"
+    subsystems: []
+    references: []
+
+  - name: "Playwright: Converting Existing Tests"
+    slug: playwright-converting-tests
+    type: lifecycle
+    domain: converting-tests
+    path: "skills/playwright-converting-tests/SKILL.md"
+    package: "packages/executable-stories-playwright"
+    description: >
+      Incrementally adopt executable-stories in Playwright. Add story metadata
+      to existing spec blocks. File naming .story.spec.ts. TestInfo from
+      test callback.
+    requires:
+      - playwright-story-api
+    sources:
+      - "jagreehal/executable-stories:apps/docs-site/src/content/docs/guides/converting-playwright.md"
+    subsystems: []
+    references: []
+
+  # --- Cypress ---
+  - name: "Cypress: Story API"
+    slug: cypress-story-api
+    type: core
+    domain: story-api
+    path: "skills/cypress-story-api/SKILL.md"
+    package: "packages/executable-stories-cypress"
+    description: >
+      Write BDD stories in Cypress. Custom commands: cy.given, cy.when,
+      cy.then, cy.and, cy.but. Story init via Cypress hooks. Doc entries
+      via cy.doc commands.
+    requires: []
+    sources:
+      - "jagreehal/executable-stories:packages/executable-stories-cypress/src/index.ts"
+    subsystems: []
+    references: []
+
+  - name: "Cypress: Reporter Setup"
+    slug: cypress-reporter-setup
+    type: core
+    domain: reporter-setup
+    path: "skills/cypress-reporter-setup/SKILL.md"
+    package: "packages/executable-stories-cypress"
+    description: >
+      Configure Cypress plugin for executable-stories. cypress.config.ts
+      setupNodeEvents. Output formats and directory.
+    requires: []
+    sources:
+      - "jagreehal/executable-stories:packages/executable-stories-cypress/src/plugin.ts"
+    subsystems: []
+    references: []
+
+  - name: "Cypress: Converting Existing Tests"
+    slug: cypress-converting-tests
+    type: lifecycle
+    domain: converting-tests
+    path: "skills/cypress-converting-tests/SKILL.md"
+    package: "packages/executable-stories-cypress"
+    description: >
+      Incrementally adopt executable-stories in Cypress. Add story metadata
+      to existing cy.ts spec files. File naming .story.cy.ts.
+    requires:
+      - cypress-story-api
+    sources:
+      - "jagreehal/executable-stories:apps/docs-site/src/content/docs/guides/converting-cypress.md"
+    subsystems: []
+    references: []
+
+  # --- Formatters ---
+  - name: "Formatters CLI & API"
+    slug: formatters-cli
+    type: core
+    domain: formatters
+    path: "skills/formatters-cli/SKILL.md"
+    package: "packages/executable-stories-formatters"
+    description: >
+      executable-stories CLI: format and validate subcommands. Pipeline:
+      RawRun JSON → canonicalizeRun() → formatters. 6 output formats: HTML,
+      Markdown, JUnit, Cucumber JSON/HTML/Messages. fn(args, deps) dependency
+      injection. Exit codes 0=success, 1=schema, 2=canonical, 3=generation,
+      4=usage. Programmatic ReportGenerator API.
+    requires: []
+    sources:
+      - "jagreehal/executable-stories:packages/executable-stories-formatters/src/cli.ts"
+      - "jagreehal/executable-stories:packages/executable-stories-formatters/src/index.ts"
+      - "jagreehal/executable-stories:apps/docs-site/src/content/docs/formatters/formatters-api.md"
+    subsystems: []
+    references: []
+
+  # --- ESLint Plugins ---
+  - name: "ESLint Plugin: Vitest Rules"
+    slug: eslint-vitest-rules
+    type: core
+    domain: eslint
+    path: "skills/eslint-vitest-rules/SKILL.md"
+    package: "packages/eslint-plugin-executable-stories-vitest"
+    description: >
+      ESLint flat config plugin for executable-stories-vitest. Three rules:
+      require-task-for-story-init, require-test-context-for-story-init,
+      require-init-before-steps. Flat config setup with recommended preset.
+    requires: []
+    sources:
+      - "jagreehal/executable-stories:packages/eslint-plugin-executable-stories-vitest/src/index.ts"
+    subsystems: []
+    references: []
+
+  - name: "ESLint Plugin: Jest Rules"
+    slug: eslint-jest-rules
+    type: core
+    domain: eslint
+    path: "skills/eslint-jest-rules/SKILL.md"
+    package: "packages/eslint-plugin-executable-stories-jest"
+    description: >
+      ESLint flat config plugin for executable-stories-jest. Two rules:
+      require-story-context-for-steps, require-test-context-for-doc-story.
+      Flat config setup with recommended preset.
+    requires: []
+    sources:
+      - "jagreehal/executable-stories:packages/eslint-plugin-executable-stories-jest/src/index.ts"
+    subsystems: []
+    references: []
+
+  - name: "ESLint Plugin: Playwright Rules"
+    slug: eslint-playwright-rules
+    type: core
+    domain: eslint
+    path: "skills/eslint-playwright-rules/SKILL.md"
+    package: "packages/eslint-plugin-executable-stories-playwright"
+    description: >
+      ESLint flat config plugin for executable-stories-playwright. Two rules:
+      require-story-context-for-steps, require-test-context-for-doc-story.
+      Flat config setup with recommended preset.
+    requires: []
+    sources:
+      - "jagreehal/executable-stories:packages/eslint-plugin-executable-stories-playwright/src/index.ts"
+    subsystems: []
+    references: []

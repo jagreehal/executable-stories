@@ -3,7 +3,7 @@
   "dockerComposeFile": "docker-compose.yml",
   "service": "workspace",
   "workspaceFolder": "/work",
-  "postCreateCommand": "corepack enable && corepack prepare pnpm@10.28.1 --activate && pnpm install && cd /work/packages/executable-stories-junit5 && ./gradlew build publishToMavenLocal",
+  "postCreateCommand": "corepack enable && corepack prepare pnpm@10.28.1 --activate && pnpm install && cd /work/packages/executable-stories-junit5 && ./gradlew build publishToMavenLocal && (cd /work/packages/executable-stories-xunit && make check)",
   "customizations": {
     "vscode": {
       "extensions": [

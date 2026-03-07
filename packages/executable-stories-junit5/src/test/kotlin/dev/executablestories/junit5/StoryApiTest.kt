@@ -1,12 +1,15 @@
 package dev.executablestories.junit5
 
 import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.Assertions.*
 
 class StoryApiTest {
-
     @BeforeEach
     fun setUp() {
         Story.clear()
@@ -183,7 +186,7 @@ class StoryApiTest {
         Story.table(
             "Users",
             arrayOf("Name", "Role"),
-            arrayOf(arrayOf("Alice", "Admin"), arrayOf("Bob", "User"))
+            arrayOf(arrayOf("Alice", "Admin"), arrayOf("Bob", "User")),
         )
 
         val step = Story.getContext()!!.steps[0]
@@ -416,13 +419,17 @@ class StoryApiTest {
     @Test
     fun fnRecordsDuration() {
         Story.init("fn duration")
-        Story.fn("When", "I wait briefly", Runnable {
-            try {
-                Thread.sleep(15)
-            } catch (e: InterruptedException) {
-                throw RuntimeException(e)
-            }
-        })
+        Story.fn(
+            "When",
+            "I wait briefly",
+            Runnable {
+                try {
+                    Thread.sleep(15)
+                } catch (e: InterruptedException) {
+                    throw RuntimeException(e)
+                }
+            },
+        )
 
         val step = Story.getContext()!!.steps[0]
         assertNotNull(step.durationMs)

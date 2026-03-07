@@ -3,6 +3,6 @@ import baseConfig from "eslint-config-executable-stories";
 export default [
   ...baseConfig,
   {
-    ignores: ["dist/**", "*.story.docs.md"],
+    ignores: ["dist/**", "bin/**", "*.story.docs.md"],
   },
 ];

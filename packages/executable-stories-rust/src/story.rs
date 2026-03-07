@@ -4,43 +4,54 @@ use serde::Serialize;
 
 use crate::collector;
 use crate::doc_entry::DocEntry;
-use crate::types::*;
+use crate::types::{RawAttachment, RawStepEvent, RawTestCase, StoryMeta, StoryStep};
 
 /// Inline documentation for a step. Chain after a step method: `story.given("text").with_docs(vec![StepDoc::note("a note")])`.
 #[derive(Clone)]
 pub struct StepDoc(pub(crate) DocEntry);
 
 impl StepDoc {
+    #[must_use]
     pub fn note(text: &str) -> Self {
         StepDoc(DocEntry::note(text))
     }
+    #[must_use]
     pub fn tag(names: &[&str]) -> Self {
         StepDoc(DocEntry::tag(names))
     }
+    #[must_use]
     pub fn kv(label: &str, value: serde_json::Value) -> Self {
         StepDoc(DocEntry::kv(label, value))
     }
+    #[must_use]
     pub fn json_doc(label: &str, value: &impl Serialize) -> Self {
         StepDoc(DocEntry::json_doc(label, value))
     }
+    #[must_use]
     pub fn code(label: &str, content: &str, lang: Option<&str>) -> Self {
         StepDoc(DocEntry::code(label, content, lang))
     }
+    #[must_use]
     pub fn table(label: &str, columns: &[&str], rows: &[&[&str]]) -> Self {
         StepDoc(DocEntry::table(label, columns, rows))
     }
+    #[must_use]
     pub fn link(label: &str, url: &str) -> Self {
         StepDoc(DocEntry::link(label, url))
     }
+    #[must_use]
     pub fn section(title: &str, markdown: &str) -> Self {
         StepDoc(DocEntry::section(title, markdown))
     }
+    #[must_use]
     pub fn mermaid(code: &str, title: Option<&str>) -> Self {
         StepDoc(DocEntry::mermaid(code, title))
     }
+    #[must_use]
     pub fn screenshot(path: &str, alt: Option<&str>) -> Self {
         StepDoc(DocEntry::screenshot(path, alt))
     }
+    #[must_use]
     pub fn custom(type_name: &str, data: serde_json::Value) -> Self {
         StepDoc(DocEntry::custom(type_name, data))
     }
@@ -56,7 +67,7 @@ struct TimerEntry {
     consumed: bool,
 }
 
-/// A BDD story builder that captures steps and emits a RawTestCase on drop.
+/// A BDD story builder that captures steps and emits a `RawTestCase` on drop.
 ///
 /// Call `.pass()` before the story goes out of scope to mark the test as passed.
 /// If `.pass()` is not called, the test case will be recorded with status `"fail"`.
@@ -81,6 +92,7 @@ pub struct Story {
 
 impl Story {
     /// Create a new story with the given scenario description.
+    #[must_use]
     pub fn new(scenario: &str) -> Self {
         let mut story = Story {
             scenario: scenario.to_string(),
@@ -105,30 +117,34 @@ impl Story {
     }
 
     /// Set tags on the story (consumes and returns self for chaining at creation).
+    #[must_use]
     pub fn with_tags(mut self, tags: &[&str]) -> Self {
-        self.tags = Some(tags.iter().map(|t| t.to_string()).collect());
+        self.tags = Some(tags.iter().map(std::string::ToString::to_string).collect());
         self
     }
 
     /// Set tickets on the story (consumes and returns self for chaining at creation).
+    #[must_use]
     pub fn with_tickets(mut self, tickets: &[&str]) -> Self {
-        self.tickets = Some(tickets.iter().map(|t| t.to_string()).collect());
+        self.tickets = Some(tickets.iter().map(std::string::ToString::to_string).collect());
         self
     }
 
-    /// Set the URL template for OTel trace links (uses {traceId} placeholder).
-    /// Also settable via OTEL_TRACE_URL_TEMPLATE env var.
+    /// Set the URL template for `OTel` trace links (uses {traceId} placeholder).
+    /// Also settable via `OTEL_TRACE_URL_TEMPLATE` env var.
+    #[must_use]
     pub fn with_trace_url_template(mut self, template: &str) -> Self {
         self.trace_url_template = Some(template.to_string());
         self
     }
 
-    /// OTel bridge: detect active span, flow data bidirectionally.
+    /// `OTel` bridge: detect active span, flow data bidirectionally.
     /// This is a no-op when the `otel` feature is not enabled.
     fn bridge_otel(&mut self) {
         #[cfg(feature = "otel")]
         {
-            use opentelemetry::trace::TraceContextExt;
+            #[allow(unused_imports)]
+            use opentelemetry::trace::{Span, TraceContextExt};
             let cx = opentelemetry::Context::current();
             let span_ref = cx.span();
             let span_ctx = span_ref.span_context();
@@ -148,7 +164,9 @@ impl Story {
             // OTel -> Story: inject human-readable doc entries
             self.docs.push(DocEntry::kv("Trace ID", serde_json::json!(trace_id.clone())));
 
-            let template = self.trace_url_template.clone()
+            let template = self
+                .trace_url_template
+                .clone()
                 .or_else(|| std::env::var("OTEL_TRACE_URL_TEMPLATE").ok());
             if let Some(tmpl) = template {
                 let url = tmpl.replace("{traceId}", &trace_id);
@@ -156,14 +174,19 @@ impl Story {
             }
 
             // Story -> OTel: enrich active span with story attributes
-            use opentelemetry::trace::Span;
             let span = cx.span();
-            span.set_attribute(opentelemetry::KeyValue::new("story.scenario", self.scenario.clone()));
+            span.set_attribute(opentelemetry::KeyValue::new(
+                "story.scenario",
+                self.scenario.clone(),
+            ));
             if let Some(ref tags) = self.tags {
-                span.set_attribute(opentelemetry::KeyValue::new("story.tags", format!("{:?}", tags)));
+                span.set_attribute(opentelemetry::KeyValue::new("story.tags", format!("{tags:?}")));
             }
             if let Some(ref tickets) = self.tickets {
-                span.set_attribute(opentelemetry::KeyValue::new("story.tickets", format!("{:?}", tickets)));
+                span.set_attribute(opentelemetry::KeyValue::new(
+                    "story.tickets",
+                    format!("{tickets:?}"),
+                ));
             }
         }
     }
@@ -174,10 +197,10 @@ impl Story {
         // Auto-And: repeated primary keywords render as "And"
         let effective = match keyword {
             "Given" | "When" | "Then" => {
-                if !self.seen_primary.insert(keyword.to_string()) {
-                    "And"
-                } else {
+                if self.seen_primary.insert(keyword.to_string()) {
                     keyword
+                } else {
+                    "And"
                 }
             }
             _ => keyword,
@@ -234,7 +257,7 @@ impl Story {
         self.add_step("When", text)
     }
 
-    /// Add an Assert step (alias for Then). Uses assert_that because assert! is a macro.
+    /// Add an Assert step (alias for Then). Uses `assert_that` because assert! is a macro.
     pub fn assert_that(&mut self, text: &str) -> &mut Self {
         self.add_step("Then", text)
     }
@@ -279,7 +302,7 @@ impl Story {
 
     // --- Step timing ---
 
-    /// Start a high-resolution timer tied to the current step. Returns a token to pass to end_timer().
+    /// Start a high-resolution timer tied to the current step. Returns a token to pass to `end_timer()`.
     pub fn start_timer(&mut self) -> usize {
         let token = self.timer_counter;
         self.timer_counter += 1;
@@ -293,7 +316,7 @@ impl Story {
         token
     }
 
-    /// Stop the timer and record duration_ms on the step that was active when start_timer() was called. Double-end is a no-op.
+    /// Stop the timer and record `duration_ms` on the step that was active when `start_timer()` was called. Double-end is a no-op.
     pub fn end_timer(&mut self, token: usize) {
         let entry = match self.active_timers.get_mut(&token) {
             Some(e) if !e.consumed => e,
@@ -309,7 +332,8 @@ impl Story {
                 step.duration_ms = Some(duration_ms);
             }
         } else if let Some(id) = step_id {
-            if let Some(step) = self.steps.iter_mut().find(|s| s.id.as_deref() == Some(id.as_str())) {
+            if let Some(step) = self.steps.iter_mut().find(|s| s.id.as_deref() == Some(id.as_str()))
+            {
                 step.duration_ms = Some(duration_ms);
             }
         }
@@ -445,7 +469,13 @@ impl Story {
     }
 
     /// Attach an inline (body-based) attachment to the story.
-    pub fn attach_inline(&mut self, name: &str, media_type: &str, body: &str, encoding: &str) -> &mut Self {
+    pub fn attach_inline(
+        &mut self,
+        name: &str,
+        media_type: &str,
+        body: &str,
+        encoding: &str,
+    ) -> &mut Self {
         let mut a = RawAttachment {
             name: name.to_string(),
             media_type: media_type.to_string(),
@@ -500,17 +530,17 @@ impl Drop for Story {
                 tags: self.tags.clone(),
                 tickets: self.tickets.clone(),
                 meta: self.meta.clone(),
-                docs: if self.docs.is_empty() {
-                    None
-                } else {
-                    Some(self.docs.clone())
-                },
+                docs: if self.docs.is_empty() { None } else { Some(self.docs.clone()) },
                 source_order: self.source_order,
             }),
             duration_ms: Some(duration),
             retry: 0,
             retries: 0,
-            attachments: if self.attachments.is_empty() { None } else { Some(self.attachments.clone()) },
+            attachments: if self.attachments.is_empty() {
+                None
+            } else {
+                Some(self.attachments.clone())
+            },
             step_events: if step_events.is_empty() { None } else { Some(step_events) },
             ..Default::default()
         };
@@ -567,9 +597,7 @@ mod tests {
     #[test]
     fn with_docs_attaches_to_step() {
         let mut story = Story::new("With docs");
-        story
-            .given("a step")
-            .with_docs(vec![StepDoc::note("a note"), StepDoc::tag(&["smoke"])]);
+        story.given("a step").with_docs(vec![StepDoc::note("a note"), StepDoc::tag(&["smoke"])]);
 
         assert_eq!(story.steps.len(), 1);
         let docs = story.steps[0].docs.as_ref().unwrap();
@@ -592,7 +620,7 @@ mod tests {
 
         assert_eq!(story.steps.len(), 1);
         let d = story.steps[0].duration_ms.unwrap();
-        assert!(d >= 10.0, "duration_ms should be >= 10, got {}", d);
+        assert!(d >= 10.0, "duration_ms should be >= 10, got {d}");
     }
 
     #[test]
@@ -634,7 +662,7 @@ mod tests {
         story.pass();
 
         let d = story.steps[0].duration_ms.unwrap();
-        assert!(d >= 10.0, "duration_ms should be >= 10, got {}", d);
+        assert!(d >= 10.0, "duration_ms should be >= 10, got {d}");
     }
 
     #[test]

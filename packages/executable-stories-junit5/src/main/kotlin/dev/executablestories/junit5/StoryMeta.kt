@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonInclude
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 class StoryMeta {
-
     var scenario: String? = null
     var steps: List<StoryStep>? = null
     var tags: List<String>? = null

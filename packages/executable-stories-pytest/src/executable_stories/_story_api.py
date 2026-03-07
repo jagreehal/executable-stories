@@ -92,20 +92,18 @@ class Story:
         tickets: list[str] | None = None
         if ticket is not None:
             tickets = [ticket] if isinstance(ticket, str) else list(ticket)
-        self._local.ctx = _StoryContext(
-            scenario, tags=tags, tickets=tickets, meta=meta
-        )
+        self._local.ctx = _StoryContext(scenario, tags=tags, tickets=tickets, meta=meta)
 
         # OTel bridge: detect active span, flow data bidirectionally
         ctx = self._local.ctx
         try:
-            from opentelemetry import trace as otel_trace
+            from opentelemetry import trace as otel_trace  # type: ignore[import-not-found]
 
             span = otel_trace.get_current_span()
             span_ctx = span.get_span_context()
             if span_ctx and span_ctx.trace_id and span_ctx.trace_id != 0:
-                trace_id = format(span_ctx.trace_id, '032x')
-                span_id = format(span_ctx.span_id, '016x')
+                trace_id = format(span_ctx.trace_id, "032x")
+                span_id = format(span_ctx.span_id, "016x")
 
                 # OTel -> Story: capture traceId in structured meta
                 ctx.meta["otel"] = {"traceId": trace_id, "spanId": span_id}
@@ -181,9 +179,7 @@ class Story:
     ) -> None:
         ctx = self._ctx
         if ctx is None:
-            raise RuntimeError(
-                f"story.{keyword.lower()}() called before story.init()"
-            )
+            raise RuntimeError(f"story.{keyword.lower()}() called before story.init()")
         # Auto-And: repeated primary keywords render as "And"
         if keyword in ("Given", "When", "Then"):
             if keyword in ctx.seen_primary_keywords:
@@ -390,13 +386,15 @@ class Story:
 
     def json(self, label: str, value: Any) -> None:
         """Add a JSON code block (serialized with indent=2)."""
-        self._attach_doc({
-            "kind": "code",
-            "label": label,
-            "content": json.dumps(value, indent=2),
-            "lang": "json",
-            "phase": "runtime",
-        })
+        self._attach_doc(
+            {
+                "kind": "code",
+                "label": label,
+                "content": json.dumps(value, indent=2),
+                "lang": "json",
+                "phase": "runtime",
+            }
+        )
 
     def code(self, label: str, content: str, *, lang: str | None = None) -> None:
         """Add a code block."""
@@ -412,13 +410,15 @@ class Story:
 
     def table(self, label: str, columns: list[str], rows: list[list[str]]) -> None:
         """Add a table."""
-        self._attach_doc({
-            "kind": "table",
-            "label": label,
-            "columns": columns,
-            "rows": rows,
-            "phase": "runtime",
-        })
+        self._attach_doc(
+            {
+                "kind": "table",
+                "label": label,
+                "columns": columns,
+                "rows": rows,
+                "phase": "runtime",
+            }
+        )
 
     def link(self, label: str, url: str) -> None:
         """Add a hyperlink."""
@@ -426,12 +426,14 @@ class Story:
 
     def section(self, title: str, markdown: str) -> None:
         """Add a titled markdown section."""
-        self._attach_doc({
-            "kind": "section",
-            "title": title,
-            "markdown": markdown,
-            "phase": "runtime",
-        })
+        self._attach_doc(
+            {
+                "kind": "section",
+                "title": title,
+                "markdown": markdown,
+                "phase": "runtime",
+            }
+        )
 
     def mermaid(self, code: str, *, title: str | None = None) -> None:
         """Add a Mermaid diagram."""
@@ -449,12 +451,14 @@ class Story:
 
     def custom(self, type: str, data: Any) -> None:
         """Add a custom doc entry."""
-        self._attach_doc({
-            "kind": "custom",
-            "type": type,
-            "data": data,
-            "phase": "runtime",
-        })
+        self._attach_doc(
+            {
+                "kind": "custom",
+                "type": type,
+                "data": data,
+                "phase": "runtime",
+            }
+        )
 
 
 # Module-level singleton

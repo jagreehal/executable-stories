@@ -216,3 +216,28 @@ Use this when you want a framework-native test (e.g. `it("adds two numbers", () 
 - App tests are integration/example tests demonstrating the story API
 - Cypress tests are excluded from `pnpm quality` (run separately)
 - Tests in `packages/` use Vitest; `apps/jest-example` uses Jest
+
+<!-- intent-skills:start -->
+## Agent Skills
+
+When working in these areas, load the linked skill file into context for accurate, versioned guidance.
+
+| Task | Skill |
+|------|-------|
+| Writing Vitest story tests | `packages/executable-stories-vitest/skills/vitest-story-api/SKILL.md` |
+| Configuring Vitest StoryReporter | `packages/executable-stories-vitest/skills/vitest-reporter-setup/SKILL.md` |
+| Converting existing Vitest tests | `packages/executable-stories-vitest/skills/vitest-converting-tests/SKILL.md` |
+| Writing Jest story tests | `packages/executable-stories-jest/skills/jest-story-api/SKILL.md` |
+| Configuring Jest reporter | `packages/executable-stories-jest/skills/jest-reporter-setup/SKILL.md` |
+| Converting existing Jest tests | `packages/executable-stories-jest/skills/jest-converting-tests/SKILL.md` |
+| Writing Playwright story tests | `packages/executable-stories-playwright/skills/playwright-story-api/SKILL.md` |
+| Configuring Playwright reporter | `packages/executable-stories-playwright/skills/playwright-reporter-setup/SKILL.md` |
+| Converting existing Playwright tests | `packages/executable-stories-playwright/skills/playwright-converting-tests/SKILL.md` |
+| Writing Cypress story tests | `packages/executable-stories-cypress/skills/cypress-story-api/SKILL.md` |
+| Configuring Cypress reporter | `packages/executable-stories-cypress/skills/cypress-reporter-setup/SKILL.md` |
+| Converting existing Cypress tests | `packages/executable-stories-cypress/skills/cypress-converting-tests/SKILL.md` |
+| Using the CLI or formatters API | `packages/executable-stories-formatters/skills/formatters-cli/SKILL.md` |
+| Setting up Vitest ESLint rules | `packages/eslint-plugin-executable-stories-vitest/skills/eslint-vitest-rules/SKILL.md` |
+| Setting up Jest ESLint rules | `packages/eslint-plugin-executable-stories-jest/skills/eslint-jest-rules/SKILL.md` |
+| Setting up Playwright ESLint rules | `packages/eslint-plugin-executable-stories-playwright/skills/eslint-playwright-rules/SKILL.md` |
+<!-- intent-skills:end -->

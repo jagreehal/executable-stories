@@ -24,6 +24,7 @@ impl DocEntry {
     }
 
     /// A simple text note.
+    #[must_use]
     pub fn note(text: &str) -> Self {
         let mut map = Self::base();
         map.insert("kind".to_string(), serde_json::Value::String("note".to_string()));
@@ -32,18 +33,18 @@ impl DocEntry {
     }
 
     /// Tag annotation with one or more tag names.
+    #[must_use]
     pub fn tag(names: &[&str]) -> Self {
         let mut map = Self::base();
         map.insert("kind".to_string(), serde_json::Value::String("tag".to_string()));
-        let values: Vec<serde_json::Value> = names
-            .iter()
-            .map(|n| serde_json::Value::String(n.to_string()))
-            .collect();
+        let values: Vec<serde_json::Value> =
+            names.iter().map(|n| serde_json::Value::String((*n).to_string())).collect();
         map.insert("names".to_string(), serde_json::Value::Array(values));
         DocEntry(map)
     }
 
     /// A key-value pair.
+    #[must_use]
     pub fn kv(label: &str, value: serde_json::Value) -> Self {
         let mut map = Self::base();
         map.insert("kind".to_string(), serde_json::Value::String("kv".to_string()));
@@ -53,14 +54,12 @@ impl DocEntry {
     }
 
     /// A code block with optional language.
+    #[must_use]
     pub fn code(label: &str, content: &str, lang: Option<&str>) -> Self {
         let mut map = Self::base();
         map.insert("kind".to_string(), serde_json::Value::String("code".to_string()));
         map.insert("label".to_string(), serde_json::Value::String(label.to_string()));
-        map.insert(
-            "content".to_string(),
-            serde_json::Value::String(content.to_string()),
-        );
+        map.insert("content".to_string(), serde_json::Value::String(content.to_string()));
         if let Some(l) = lang {
             map.insert("lang".to_string(), serde_json::Value::String(l.to_string()));
         }
@@ -74,24 +73,21 @@ impl DocEntry {
     }
 
     /// A table with columns and rows.
+    #[must_use]
     pub fn table(label: &str, columns: &[&str], rows: &[&[&str]]) -> Self {
         let mut map = Self::base();
         map.insert("kind".to_string(), serde_json::Value::String("table".to_string()));
         map.insert("label".to_string(), serde_json::Value::String(label.to_string()));
 
-        let col_values: Vec<serde_json::Value> = columns
-            .iter()
-            .map(|c| serde_json::Value::String(c.to_string()))
-            .collect();
+        let col_values: Vec<serde_json::Value> =
+            columns.iter().map(|c| serde_json::Value::String((*c).to_string())).collect();
         map.insert("columns".to_string(), serde_json::Value::Array(col_values));
 
         let row_values: Vec<serde_json::Value> = rows
             .iter()
             .map(|row| {
-                let cells: Vec<serde_json::Value> = row
-                    .iter()
-                    .map(|c| serde_json::Value::String(c.to_string()))
-                    .collect();
+                let cells: Vec<serde_json::Value> =
+                    row.iter().map(|c| serde_json::Value::String((*c).to_string())).collect();
                 serde_json::Value::Array(cells)
             })
             .collect();
@@ -100,6 +96,7 @@ impl DocEntry {
     }
 
     /// A hyperlink.
+    #[must_use]
     pub fn link(label: &str, url: &str) -> Self {
         let mut map = Self::base();
         map.insert("kind".to_string(), serde_json::Value::String("link".to_string()));
@@ -109,18 +106,17 @@ impl DocEntry {
     }
 
     /// A markdown section.
+    #[must_use]
     pub fn section(title: &str, markdown: &str) -> Self {
         let mut map = Self::base();
         map.insert("kind".to_string(), serde_json::Value::String("section".to_string()));
         map.insert("title".to_string(), serde_json::Value::String(title.to_string()));
-        map.insert(
-            "markdown".to_string(),
-            serde_json::Value::String(markdown.to_string()),
-        );
+        map.insert("markdown".to_string(), serde_json::Value::String(markdown.to_string()));
         DocEntry(map)
     }
 
     /// A mermaid diagram.
+    #[must_use]
     pub fn mermaid(code: &str, title: Option<&str>) -> Self {
         let mut map = Self::base();
         map.insert("kind".to_string(), serde_json::Value::String("mermaid".to_string()));
@@ -132,12 +128,10 @@ impl DocEntry {
     }
 
     /// A screenshot reference.
+    #[must_use]
     pub fn screenshot(path: &str, alt: Option<&str>) -> Self {
         let mut map = Self::base();
-        map.insert(
-            "kind".to_string(),
-            serde_json::Value::String("screenshot".to_string()),
-        );
+        map.insert("kind".to_string(), serde_json::Value::String("screenshot".to_string()));
         map.insert("path".to_string(), serde_json::Value::String(path.to_string()));
         if let Some(a) = alt {
             map.insert("alt".to_string(), serde_json::Value::String(a.to_string()));
@@ -146,16 +140,11 @@ impl DocEntry {
     }
 
     /// A custom doc entry with arbitrary type and data.
+    #[must_use]
     pub fn custom(type_name: &str, data: serde_json::Value) -> Self {
         let mut map = Self::base();
-        map.insert(
-            "kind".to_string(),
-            serde_json::Value::String("custom".to_string()),
-        );
-        map.insert(
-            "type".to_string(),
-            serde_json::Value::String(type_name.to_string()),
-        );
+        map.insert("kind".to_string(), serde_json::Value::String("custom".to_string()));
+        map.insert("type".to_string(), serde_json::Value::String(type_name.to_string()));
         map.insert("data".to_string(), data);
         DocEntry(map)
     }

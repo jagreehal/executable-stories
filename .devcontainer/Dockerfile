@@ -22,3 +22,8 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
 ENV BUN_INSTALL=/usr/local/bun
 RUN curl -fsSL https://bun.sh/install | bash \
   && ln -s /usr/local/bun/bin/bun /usr/local/bin/bun
+
+# .NET 8 SDK for executable-stories-xunit (distro-agnostic install)
+ENV DOTNET_ROOT=/usr/share/dotnet
+RUN curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin --channel 8.0 --install-dir /usr/share/dotnet \
+  && ln -sf /usr/share/dotnet/dotnet /usr/local/bin/dotnet

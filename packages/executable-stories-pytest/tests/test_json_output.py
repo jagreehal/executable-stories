@@ -84,9 +84,7 @@ class TestOutputSchema:
                             {
                                 "keyword": "When",
                                 "text": "they log in",
-                                "docs": [
-                                    {"kind": "note", "text": "via form", "phase": "runtime"}
-                                ],
+                                "docs": [{"kind": "note", "text": "via form", "phase": "runtime"}],
                             },
                             {"keyword": "Then", "text": "they see dashboard"},
                         ],
@@ -94,9 +92,7 @@ class TestOutputSchema:
                         "tickets": ["JIRA-100"],
                         "meta": {"priority": "high"},
                         "suitePath": ["Authentication"],
-                        "docs": [
-                            {"kind": "note", "text": "top-level note", "phase": "runtime"}
-                        ],
+                        "docs": [{"kind": "note", "text": "top-level note", "phase": "runtime"}],
                     },
                     "sourceFile": "tests/test_login.py",
                     "sourceLine": 10,
