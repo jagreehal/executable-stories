@@ -46,7 +46,7 @@
   },
   "dependencies": {},
   "devDependencies": {
-    "cypress": "^15.10.0",
+    "cypress": "^15.11.0",
     "@types/node": "^25.3.2",
     "executable-stories-formatters": "workspace:*",
     "tsup": "^8.5.1",
