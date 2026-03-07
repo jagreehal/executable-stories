@@ -11,11 +11,7 @@
     "declaration": true,
     "declarationMap": true,
     "outDir": "./dist",
-    "rootDir": ".",
-    "paths": {
-      "executable-stories-vitest": ["../executable-stories-vitest/dist/index.d.ts"],
-      "executable-stories-vitest/*": ["../executable-stories-vitest/dist/*"]
-    }
+    "rootDir": "."
   },
   "include": ["src/**/*.ts", "tests/**/*.ts"],
   "exclude": ["node_modules", "dist"]
