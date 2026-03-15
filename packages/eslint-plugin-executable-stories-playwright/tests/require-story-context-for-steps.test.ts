@@ -79,6 +79,20 @@ describe('require-story-context-for-steps', () => {
     expect(messages).toHaveLength(0);
   });
 
+  it('allows bare step calls in function with story.init()', () => {
+    const code = `
+      import { story, given, when, then } from "executable-stories-playwright";
+      test("test", async ({}, testInfo) => {
+        story.init(testInfo);
+        given("a user", async () => {});
+        when("they sign in", async () => {});
+        then("they see the dashboard", async () => {});
+      });
+    `;
+    const messages = linter.verify(code, config);
+    expect(messages).toHaveLength(0);
+  });
+
   it('reports step call outside story callback', () => {
     const code = `
       import { given } from "executable-stories-playwright";
@@ -89,5 +103,16 @@ describe('require-story-context-for-steps', () => {
     expect(messages[0].ruleId).toBe(
       'executable-stories-playwright/require-story-context-for-steps',
     );
+  });
+
+  it('reports bare step calls without story.init() or story() callback', () => {
+    const code = `
+      import { story, given } from "executable-stories-playwright";
+      test("test", async ({}, testInfo) => {
+        given("a user", async () => {});
+      });
+    `;
+    const messages = linter.verify(code, config);
+    expect(messages).toHaveLength(1);
   });
 });

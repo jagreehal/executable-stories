@@ -130,10 +130,12 @@ it('Import XML invoice', () => {
 });
 
 // 10) Background for shared preconditions
+/* eslint-disable executable-stories-jest/require-init-before-steps -- background helper called from tests with story.init() */
 const accountBackground = () => {
   story.given('the user account exists');
   story.given('the user is logged in');
 };
+/* eslint-enable executable-stories-jest/require-init-before-steps */
 
 describe('Feature: Account settings', () => {
   it('Change email address', () => {

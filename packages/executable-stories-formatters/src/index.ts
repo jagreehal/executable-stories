@@ -25,8 +25,10 @@ import type {
   Logger,
   WriteFile,
   CanonicalizeOptions,
+  SortTestCasesMode,
 } from "./types/options";
 import type { RawRun } from "./types/raw";
+import type { RunDiffResult } from "./types/compare";
 
 import { canonicalizeRun } from "./converters/acl/index";
 import { CucumberJsonFormatter } from "./formatters/cucumber-json";
@@ -35,6 +37,10 @@ import { JUnitFormatter } from "./formatters/junit-xml";
 import { MarkdownFormatter } from "./formatters/markdown";
 import { CucumberMessagesFormatter } from "./formatters/cucumber-messages/index";
 import { CucumberHtmlFormatter } from "./formatters/cucumber-html";
+import { diffRuns } from "./compare/index";
+import { RunDiffHtmlFormatter } from "./formatters/run-diff-html";
+import { RunDiffMarkdownFormatter } from "./formatters/run-diff-markdown";
+import { matchesPattern, selectTestCases } from "./select-test-cases";
 
 // Import adapters for convenience functions
 import { adaptJestRun } from "./converters/adapters/jest";
@@ -109,7 +115,22 @@ export type {
   MarkdownRenderers,
   FormatterOptions,
   ResolvedFormatterOptions,
+  SortTestCasesMode,
 } from "./types/options";
+export type {
+  ScenarioChangeKind,
+  ScenarioChangeFlags,
+  ScenarioSnapshot,
+  ScenarioDiff,
+  RunDiffSummary,
+  RunDiffResult,
+  CompareFormat,
+  CompareFormatterOptions,
+} from "./types/compare";
+
+// Theme types
+export type { HtmlTheme, HtmlThemeName } from "./formatters/html/themes/index";
+export { resolveTheme, getAvailableThemes } from "./formatters/html/themes/index";
 
 // ============================================================================
 // ACL Exports
@@ -173,6 +194,16 @@ export {
   CucumberHtmlFormatter,
   type CucumberHtmlOptions,
 } from "./formatters/cucumber-html";
+
+export {
+  RunDiffHtmlFormatter,
+  type RunDiffHtmlOptions,
+} from "./formatters/run-diff-html";
+
+export {
+  RunDiffMarkdownFormatter,
+  type RunDiffMarkdownOptions,
+} from "./formatters/run-diff-markdown";
 
 // ============================================================================
 // NDJSON Parser (compat path: NDJSON → TestRunResult)
@@ -255,6 +286,13 @@ export type {
 } from "./history/index";
 
 // ============================================================================
+// List Scenarios
+// ============================================================================
+
+export { listScenarios } from "./list-scenarios";
+export type { ListScenariosArgs, ListScenariosDeps } from "./list-scenarios";
+
+// ============================================================================
 // ReportGenerator Types (fn(args, deps) pattern)
 // ============================================================================
 
@@ -277,6 +315,11 @@ export interface GenerateDeps {
 /** Result of generate function: Map of format to array of file paths */
 export type GenerateResult = Map<OutputFormat, string[]>;
 
+export interface GenerateCompareResult {
+  files: string[];
+  diff: RunDiffResult;
+}
+
 /** Extension map for output formats */
 const FORMAT_EXTENSIONS: Record<OutputFormat, string> = {
   markdown: ".md",
@@ -298,26 +341,6 @@ const TEST_EXTENSIONS = [
 // ============================================================================
 
 /**
- * Check if a pattern matches a source file using simple glob matching.
- * Supports: **, *, and literal matching.
- */
-function matchesPattern(pattern: string, sourceFile: string): boolean {
-  // Normalize both to forward slashes
-  const normalizedPattern = pattern.replace(/\\/g, "/");
-  const normalizedFile = sourceFile.replace(/\\/g, "/");
-
-  // Convert glob pattern to regex
-  const regexStr = normalizedPattern
-    .replace(/[.+^${}()|[\]\\]/g, "\\$&") // Escape special regex chars except * and ?
-    .replace(/\*\*/g, "{{GLOBSTAR}}")     // Protect **
-    .replace(/\*/g, "[^/]*")              // * matches anything except /
-    .replace(/{{GLOBSTAR}}/g, ".*");      // ** matches anything including /
-
-  const regex = new RegExp(`^${regexStr}$`);
-  return regex.test(normalizedFile);
-}
-
-/**
  * Find the first matching rule for a source file.
  */
 function findMatchingRule(
@@ -330,42 +353,6 @@ function findMatchingRule(
     }
   }
   return undefined;
-}
-
-/**
- * Filter test cases by include/exclude glob patterns on sourceFile.
- * Uses same glob semantics as output rules (** and *).
- */
-function filterTestCasesByGlobs(
-  testCases: TestCaseResult[],
-  include: string[],
-  exclude: string[],
-  logger: Logger
-): TestCaseResult[] {
-  if (include.length === 0 && exclude.length === 0) return testCases;
-
-  const filtered: TestCaseResult[] = [];
-  for (const tc of testCases) {
-    const sourceFile = tc.sourceFile.replace(/\\/g, "/");
-
-    if (include.length > 0) {
-      const included = include.some((p) => matchesPattern(p, sourceFile));
-      if (!included) continue;
-    }
-    if (exclude.length > 0) {
-      const excluded = exclude.some((p) => matchesPattern(p, sourceFile));
-      if (excluded) continue;
-    }
-    filtered.push(tc);
-  }
-
-  const dropped = testCases.length - filtered.length;
-  if (dropped > 0) {
-    logger.warn(
-      `Filtered ${dropped} test case(s) by include/exclude globs (${filtered.length} included)`
-    );
-  }
-  return filtered;
 }
 
 /**
@@ -384,13 +371,15 @@ function computeOutputPath(
   mode: OutputMode,
   colocatedStyle: ColocatedStyle,
   baseOutputDir: string,
-  outputName: string
+  outputName: string,
+  outputNameSuffix?: string
 ): string {
   const ext = FORMAT_EXTENSIONS[format];
+  const effectiveName = outputName + (outputNameSuffix ?? "");
 
   if (mode === "aggregated") {
     // Aggregated: single file in outputDir
-    return toPosix(path.join(baseOutputDir, `${outputName}${ext}`));
+    return toPosix(path.join(baseOutputDir, `${effectiveName}${ext}`));
   }
 
   // Colocated mode - normalize source file to posix first
@@ -406,7 +395,7 @@ function computeOutputPath(
     }
   }
 
-  const fileName = `${baseName}.${outputName}${ext}`;
+  const fileName = `${baseName}.${effectiveName}${ext}`;
 
   if (colocatedStyle === "adjacent") {
     // Adjacent: write next to source file (ignores outputDir)
@@ -424,7 +413,8 @@ function groupTestCasesByOutput(
   testCases: TestCaseResult[],
   format: OutputFormat,
   options: ResolvedFormatterOptions,
-  logger: Logger
+  logger: Logger,
+  outputNameSuffix?: string
 ): Map<string, TestCaseResult[]> {
   const groups = new Map<string, TestCaseResult[]>();
   const rules = options.output.rules;
@@ -480,7 +470,8 @@ function groupTestCasesByOutput(
       effectiveMode,
       colocatedStyle,
       outputDir,
-      outputName
+      outputName,
+      outputNameSuffix
     );
 
     const existing = groups.get(outputPath);
@@ -528,9 +519,13 @@ export class ReportGenerator {
     return {
       include: options.include ?? [],
       exclude: options.exclude ?? [],
+      includeTags: options.includeTags ?? [],
+      excludeTags: options.excludeTags ?? [],
       formats: options.formats ?? ["cucumber-json"],
       outputDir: options.outputDir ?? "reports",
       outputName: options.outputName ?? "test-results",
+      outputNameTimestamp: options.outputNameTimestamp ?? false,
+      sortTestCases: options.sortTestCases ?? "none",
       output: {
         mode: options.output?.mode ?? "aggregated",
         colocatedStyle: options.output?.colocatedStyle ?? "mirrored",
@@ -555,6 +550,8 @@ export class ReportGenerator {
         syntaxHighlighting: options.html?.syntaxHighlighting ?? true,
         mermaidEnabled: options.html?.mermaidEnabled ?? true,
         markdownEnabled: options.html?.markdownEnabled ?? true,
+        permalinkBaseUrl: options.html?.permalinkBaseUrl,
+        theme: options.html?.theme ?? "default",
       },
       junit: {
         suiteName: options.junit?.suiteName ?? "Test Suite",
@@ -588,12 +585,18 @@ export class ReportGenerator {
    * @returns Map of output format to generated file paths
    */
   async generate(run: TestRunResult): Promise<GenerateResult> {
-    const testCases = filterTestCasesByGlobs(
-      run.testCases,
-      this.options.include,
-      this.options.exclude,
-      this.deps.logger
+    const testCases = selectTestCases(
+      {
+        testCases: run.testCases,
+        include: this.options.include,
+        exclude: this.options.exclude,
+        includeTags: this.options.includeTags,
+        excludeTags: this.options.excludeTags,
+        sortTestCases: this.options.sortTestCases,
+      },
+      { logger: this.deps.logger }
     );
+
     const filteredRun: TestRunResult = { ...run, testCases };
 
     const results: GenerateResult = new Map();
@@ -613,18 +616,24 @@ export class ReportGenerator {
     run: TestRunResult,
     format: OutputFormat
   ): Promise<string[]> {
+    const outputNameSuffix = this.options.outputNameTimestamp
+      ? `-${Math.floor(run.startedAtMs / 1000)}`
+      : undefined;
+
     // Group test cases by output path
     const groups = groupTestCasesByOutput(
       run.testCases,
       format,
       this.options,
-      this.deps.logger
+      this.deps.logger,
+      outputNameSuffix
     );
 
     // Handle empty runs in aggregated mode - write a single empty file
     if (groups.size === 0 && this.options.output.mode === "aggregated") {
       const ext = FORMAT_EXTENSIONS[format];
-      const outputPath = toPosix(path.join(this.options.outputDir, `${this.options.outputName}${ext}`));
+      const effectiveName = this.options.outputName + (outputNameSuffix ?? "");
+      const outputPath = toPosix(path.join(this.options.outputDir, `${effectiveName}${ext}`));
       const content = await this.formatContent(run, format);
       const dir = path.dirname(outputPath);
       await fsPromises.mkdir(dir, { recursive: true });
@@ -671,6 +680,7 @@ export class ReportGenerator {
       case "html": {
         const formatter = new HtmlFormatter({
           title: this.options.html.title,
+          theme: this.options.html.theme,
           darkMode: this.options.html.darkMode,
           searchable: this.options.html.searchable,
           startCollapsed: this.options.html.startCollapsed,
@@ -678,6 +688,7 @@ export class ReportGenerator {
           syntaxHighlighting: this.options.html.syntaxHighlighting,
           mermaidEnabled: this.options.html.mermaidEnabled,
           markdownEnabled: this.options.html.markdownEnabled,
+          permalinkBaseUrl: this.options.html.permalinkBaseUrl,
         });
         return formatter.format(run);
       }
@@ -751,6 +762,38 @@ export function createReportGenerator(
 ): ReportGenerator {
   return new ReportGenerator(options, deps);
 }
+
+export async function generateRunComparison(args: {
+  baseline: TestRunResult;
+  current: TestRunResult;
+  formats: Array<"html" | "markdown">;
+  outputDir?: string;
+  outputName?: string;
+  title?: string;
+}): Promise<GenerateCompareResult> {
+  const outputDir = args.outputDir ?? "reports";
+  const outputName = args.outputName ?? "test-results-diff";
+  const diff = diffRuns(args.baseline, args.current);
+  const files: string[] = [];
+
+  await fsPromises.mkdir(outputDir, { recursive: true });
+
+  for (const format of args.formats) {
+    const ext = format === "html" ? ".html" : ".md";
+    const outputPath = toPosix(path.join(outputDir, `${outputName}${ext}`));
+    const content =
+      format === "html"
+        ? new RunDiffHtmlFormatter({ title: args.title }).format(diff)
+        : new RunDiffMarkdownFormatter({ title: args.title }).format(diff);
+    await fsPromises.writeFile(outputPath, content, "utf8");
+    files.push(outputPath);
+  }
+
+  return { files, diff };
+}
+
+export { diffRuns } from "./compare/index";
+export { createPrCommentSummary } from "./compare/index";
 
 // ============================================================================
 // Convenience Functions

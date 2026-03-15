@@ -1,8 +1,10 @@
 import type { ESLint, Linter } from 'eslint';
+import requireInitBeforeSteps from './rules/require-init-before-steps.js';
 import requireStoryContextForSteps from './rules/require-story-context-for-steps.js';
 import requireTestContextForDocStory from './rules/require-test-context-for-doc-story.js';
 
 const rules = {
+  'require-init-before-steps': requireInitBeforeSteps,
   'require-story-context-for-steps': requireStoryContextForSteps,
   'require-test-context-for-doc-story': requireTestContextForDocStory,
 };
@@ -14,6 +16,7 @@ const configs: Record<string, Linter.Config[]> = {
         'executable-stories-jest': { rules },
       },
       rules: {
+        'executable-stories-jest/require-init-before-steps': 'error',
         'executable-stories-jest/require-story-context-for-steps': 'error',
         'executable-stories-jest/require-test-context-for-doc-story': 'error',
       },

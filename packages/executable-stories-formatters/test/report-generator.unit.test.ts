@@ -298,6 +298,222 @@ describe("ReportGenerator", () => {
       expect(paths).toHaveLength(1);
       expect(paths[0]).toBe("reports/test-results.md");
     });
+
+    it("appends run timestamp to output filename when outputNameTimestamp is true", async () => {
+      const deps = createMockDeps();
+      const generator = new ReportGenerator(
+        {
+          formats: ["markdown"],
+          outputDir: "reports",
+          outputName: "test-results",
+          outputNameTimestamp: true,
+          output: { mode: "aggregated" },
+        },
+        deps
+      );
+
+      // 1739123456000 ms -> UTC seconds 1739123456
+      const rawRun = stubs.rawRun({
+        startedAtMs: 1739123456000,
+        finishedAtMs: 1739123456100,
+        testCases: [stubs.rawTestCase()],
+      });
+      const run = canonicalizeRun(rawRun);
+
+      const result = await generator.generate(run);
+
+      expect(result.get("markdown")).toHaveLength(1);
+      expect(result.get("markdown")![0]).toBe("reports/test-results-1739123456.md");
+      expect(deps.writeFile).toHaveBeenCalledWith(
+        "reports/test-results-1739123456.md",
+        expect.stringContaining("# User Stories")
+      );
+    });
+
+    it("uses timestamped path for empty aggregated run when outputNameTimestamp is true", async () => {
+      const deps = createMockDeps();
+      const generator = new ReportGenerator(
+        {
+          formats: ["markdown"],
+          outputDir: "reports",
+          outputName: "test-results",
+          outputNameTimestamp: true,
+          output: { mode: "aggregated" },
+        },
+        deps
+      );
+
+      const rawRun = stubs.rawRun({
+        startedAtMs: 1739123456000,
+        finishedAtMs: 1739123456100,
+        testCases: [],
+      });
+      const run = canonicalizeRun(rawRun);
+
+      const result = await generator.generate(run);
+
+      expect(result.get("markdown")).toHaveLength(1);
+      expect(result.get("markdown")![0]).toBe("reports/test-results-1739123456.md");
+    });
+
+    it("appends same timestamp to colocated filenames when outputNameTimestamp is true", async () => {
+      const deps = createMockDeps();
+      const generator = new ReportGenerator(
+        {
+          formats: ["markdown"],
+          outputDir: "reports",
+          outputName: "docs",
+          outputNameTimestamp: true,
+          output: { mode: "colocated", colocatedStyle: "mirrored" },
+        },
+        deps
+      );
+
+      const rawRun = stubs.rawRun({
+        startedAtMs: 1739123456000,
+        finishedAtMs: 1739123456100,
+        testCases: [
+          stubs.rawTestCase({ sourceFile: "src/auth/login.test.ts" }),
+          stubs.rawTestCase({ sourceFile: "src/dashboard/stats.test.ts" }),
+        ],
+      });
+      const run = canonicalizeRun(rawRun);
+
+      const result = await generator.generate(run);
+
+      const paths = result.get("markdown")!;
+      expect(paths).toHaveLength(2);
+      expect(paths).toContain("reports/src/auth/login.docs-1739123456.md");
+      expect(paths).toContain("reports/src/dashboard/stats.docs-1739123456.md");
+    });
+
+    it("sorts test cases by id when sortTestCases is id (deterministic output)", async () => {
+      const deps = createMockDeps();
+      const generator = new ReportGenerator(
+        {
+          formats: ["markdown"],
+          outputDir: "reports",
+          outputName: "test-results",
+          sortTestCases: "id",
+          output: { mode: "aggregated" },
+        },
+        deps
+      );
+
+      const rawRun = stubs.rawRun({
+        testCases: [
+          stubs.rawTestCase({
+            sourceFile: "src/z.test.ts",
+            story: stubs.storyMeta({ scenario: "Zebra scenario" }),
+          }),
+          stubs.rawTestCase({
+            sourceFile: "src/a.test.ts",
+            story: stubs.storyMeta({ scenario: "Alpha scenario" }),
+          }),
+        ],
+      });
+      const run = canonicalizeRun(rawRun);
+
+      await generator.generate(run);
+      const firstCall = (deps.writeFile as ReturnType<typeof vi.fn>).mock.calls.find(
+        (c: [string, string]) => c[0].endsWith(".md")
+      )!;
+      const content1 = firstCall[1];
+
+      vi.mocked(deps.writeFile).mockClear();
+      await generator.generate(run);
+      const secondCall = (deps.writeFile as ReturnType<typeof vi.fn>).mock.calls.find(
+        (c: [string, string]) => c[0].endsWith(".md")
+      )!;
+      const content2 = secondCall[1];
+
+      expect(content1).toBe(content2);
+    });
+
+    it("sorts test cases by source (file, line) when sortTestCases is source", async () => {
+      const deps = createMockDeps();
+      const generator = new ReportGenerator(
+        {
+          formats: ["markdown"],
+          outputDir: "reports",
+          outputName: "test-results",
+          sortTestCases: "source",
+          output: { mode: "aggregated" },
+        },
+        deps
+      );
+
+      const rawRun = stubs.rawRun({
+        testCases: [
+          stubs.rawTestCase({
+            sourceFile: "src/same.test.ts",
+            sourceLine: 20,
+            story: stubs.storyMeta({ scenario: "Second in file" }),
+          }),
+          stubs.rawTestCase({
+            sourceFile: "src/same.test.ts",
+            sourceLine: 10,
+            story: stubs.storyMeta({ scenario: "First in file" }),
+          }),
+        ],
+      });
+      const run = canonicalizeRun(rawRun);
+
+      await generator.generate(run);
+
+      const markdownCall = (deps.writeFile as ReturnType<typeof vi.fn>).mock.calls.find(
+        (c: [string, string]) => c[0].endsWith(".md")
+      )!;
+      const content = markdownCall[1];
+      const firstPos = content.indexOf("First in file");
+      const secondPos = content.indexOf("Second in file");
+      expect(firstPos).toBeGreaterThan(-1);
+      expect(secondPos).toBeGreaterThan(-1);
+      expect(firstPos).toBeLessThan(secondPos);
+    });
+
+    it("preserves incoming order when sortTestCases is none", async () => {
+      const deps = createMockDeps();
+      const generator = new ReportGenerator(
+        {
+          formats: ["html"],
+          outputDir: "reports",
+          outputName: "test-results",
+          sortTestCases: "none",
+          output: { mode: "aggregated" },
+        },
+        deps
+      );
+
+      const rawRun = stubs.rawRun({
+        testCases: [
+          stubs.rawTestCase({
+            sourceFile: "src/same.test.ts",
+            sourceLine: 20,
+            story: stubs.storyMeta({ scenario: "Second" }),
+          }),
+          stubs.rawTestCase({
+            sourceFile: "src/same.test.ts",
+            sourceLine: 10,
+            story: stubs.storyMeta({ scenario: "First" }),
+          }),
+        ],
+      });
+      const run = canonicalizeRun(rawRun);
+
+      await generator.generate(run);
+
+      const htmlCall = (deps.writeFile as ReturnType<typeof vi.fn>).mock.calls.find(
+        (c: [string, string]) => c[0].endsWith(".html")
+      )!;
+      const content = htmlCall[1];
+      // With "none", order is unchanged: Second then First (as in raw run). HTML does not re-sort.
+      const secondPos = content.indexOf("Second");
+      const firstPos = content.indexOf("First");
+      expect(secondPos).toBeGreaterThan(-1);
+      expect(firstPos).toBeGreaterThan(-1);
+      expect(secondPos).toBeLessThan(firstPos);
+    });
   });
 
   describe("rule matching", () => {
@@ -514,5 +730,158 @@ describe("createReportGenerator factory", () => {
     await generator.generate(run);
 
     expect(mockWriteFile).toHaveBeenCalled();
+  });
+
+  // ==========================================================================
+  // Tag-based include/exclude filtering
+  // ==========================================================================
+
+  describe("tag filtering", () => {
+    it("filters test cases by includeTags", async () => {
+      const deps = createMockDeps();
+      const generator = new ReportGenerator(
+        {
+          formats: ["markdown"],
+          outputDir: "reports",
+          outputName: "test-results",
+          includeTags: ["smoke"],
+          output: { mode: "aggregated" },
+        },
+        deps
+      );
+
+      const rawRun = stubs.rawRun({
+        testCases: [
+          stubs.rawTestCase({
+            sourceFile: "src/auth/login.test.ts",
+            story: stubs.storyMeta({ scenario: "Login test", tags: ["smoke", "auth"] }),
+          }),
+          stubs.rawTestCase({
+            sourceFile: "src/dashboard/stats.test.ts",
+            story: stubs.storyMeta({ scenario: "Stats test", tags: ["regression"] }),
+          }),
+        ],
+      });
+      const run = canonicalizeRun(rawRun);
+
+      await generator.generate(run);
+
+      expect(deps.logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining("Filtered 1 test case(s) by include/exclude tags (1 included)")
+      );
+      const markdownCall = (deps.writeFile as ReturnType<typeof vi.fn>).mock.calls.find(
+        (c: [string, string]) => c[0].endsWith(".md")
+      );
+      expect(markdownCall![1]).toContain("Login test");
+      expect(markdownCall![1]).not.toContain("Stats test");
+    });
+
+    it("filters test cases by excludeTags", async () => {
+      const deps = createMockDeps();
+      const generator = new ReportGenerator(
+        {
+          formats: ["markdown"],
+          outputDir: "reports",
+          outputName: "test-results",
+          excludeTags: ["wip"],
+          output: { mode: "aggregated" },
+        },
+        deps
+      );
+
+      const rawRun = stubs.rawRun({
+        testCases: [
+          stubs.rawTestCase({
+            sourceFile: "src/auth/login.test.ts",
+            story: stubs.storyMeta({ scenario: "Login test", tags: ["smoke"] }),
+          }),
+          stubs.rawTestCase({
+            sourceFile: "src/wip/draft.test.ts",
+            story: stubs.storyMeta({ scenario: "Draft test", tags: ["wip"] }),
+          }),
+        ],
+      });
+      const run = canonicalizeRun(rawRun);
+
+      await generator.generate(run);
+
+      expect(deps.logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining("Filtered 1 test case(s) by include/exclude tags (1 included)")
+      );
+      const markdownCall = (deps.writeFile as ReturnType<typeof vi.fn>).mock.calls.find(
+        (c: [string, string]) => c[0].endsWith(".md")
+      );
+      expect(markdownCall![1]).toContain("Login test");
+      expect(markdownCall![1]).not.toContain("Draft test");
+    });
+
+    it("excludeTags wins over includeTags", async () => {
+      const deps = createMockDeps();
+      const generator = new ReportGenerator(
+        {
+          formats: ["markdown"],
+          outputDir: "reports",
+          outputName: "test-results",
+          includeTags: ["smoke"],
+          excludeTags: ["flaky"],
+          output: { mode: "aggregated" },
+        },
+        deps
+      );
+
+      const rawRun = stubs.rawRun({
+        testCases: [
+          stubs.rawTestCase({
+            sourceFile: "src/auth/login.test.ts",
+            story: stubs.storyMeta({ scenario: "Stable smoke", tags: ["smoke"] }),
+          }),
+          stubs.rawTestCase({
+            sourceFile: "src/auth/flaky.test.ts",
+            story: stubs.storyMeta({ scenario: "Flaky smoke", tags: ["smoke", "flaky"] }),
+          }),
+        ],
+      });
+      const run = canonicalizeRun(rawRun);
+
+      await generator.generate(run);
+
+      const markdownCall = (deps.writeFile as ReturnType<typeof vi.fn>).mock.calls.find(
+        (c: [string, string]) => c[0].endsWith(".md")
+      );
+      expect(markdownCall![1]).toContain("Stable smoke");
+      expect(markdownCall![1]).not.toContain("Flaky smoke");
+    });
+
+    it("does not filter when tags are empty", async () => {
+      const deps = createMockDeps();
+      const generator = new ReportGenerator(
+        {
+          formats: ["markdown"],
+          outputDir: "reports",
+          outputName: "test-results",
+          includeTags: [],
+          excludeTags: [],
+          output: { mode: "aggregated" },
+        },
+        deps
+      );
+
+      const rawRun = stubs.rawRun({
+        testCases: [
+          stubs.rawTestCase({ sourceFile: "src/a.test.ts" }),
+          stubs.rawTestCase({ sourceFile: "src/b.test.ts" }),
+        ],
+      });
+      const run = canonicalizeRun(rawRun);
+
+      await generator.generate(run);
+
+      // No warning about tag filtering
+      const warnCalls = (deps.logger.warn as ReturnType<typeof vi.fn>).mock.calls;
+      const tagFilterWarns = warnCalls.filter(
+        (c: [string]) => c[0].includes("include/exclude tags")
+      );
+      expect(tagFilterWarns).toHaveLength(0);
+    });
   });
 });

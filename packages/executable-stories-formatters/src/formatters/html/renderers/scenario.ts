@@ -34,6 +34,7 @@ export interface RenderScenarioDeps {
     deps: import("./trace-view.js").RenderTraceViewDeps,
   ) => string;
   embedScreenshots: boolean;
+  permalinkBaseUrl?: string;
 }
 
 export function renderScenario(
@@ -114,18 +115,27 @@ export function renderScenario(
     { escapeHtml: deps.escapeHtml },
   );
 
+  // Source permalink
+  let sourceLink = "";
+  if (deps.permalinkBaseUrl && tc.sourceFile && tc.sourceFile !== "unknown") {
+    const fragment = tc.sourceLine > 0 ? `#L${tc.sourceLine}` : "";
+    const href = `${deps.permalinkBaseUrl}/${tc.sourceFile}${fragment}`;
+    const label = `${tc.sourceFile}${tc.sourceLine > 0 ? `:${tc.sourceLine}` : ""}`;
+    sourceLink = `<a class="source-link" href="${deps.escapeHtml(href)}" target="_blank" rel="noopener">${deps.escapeHtml(label)}</a>`;
+  }
+
   const collapsedClass = deps.startCollapsed ? " collapsed" : "";
   const ariaExpanded = !deps.startCollapsed;
 
   return `
-<div class="scenario${collapsedClass}">
+<div class="scenario${collapsedClass}" id="scenario-${tc.id}">
   <div class="scenario-header" role="button" tabindex="0" aria-expanded="${ariaExpanded}">
     <div class="scenario-info">
       <div class="scenario-title">
         <span class="status-icon ${statusClass}">${statusIcon}</span>
         <span class="scenario-name">${deps.escapeHtml(tc.story.scenario)}</span>
       </div>
-      <div class="scenario-meta">${tags}${traceBadge}${metricBadges}</div>
+      <div class="scenario-meta">${tags}${sourceLink}${traceBadge}${metricBadges}</div>
     </div>
     <span class="scenario-duration">${duration}</span>
   </div>

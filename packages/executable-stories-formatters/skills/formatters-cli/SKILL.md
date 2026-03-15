@@ -36,6 +36,12 @@ executable-stories format raw-run.json --format html,markdown,junit
 # Read from stdin
 cat raw-run.json | executable-stories format --stdin --format markdown
 
+# Compare two canonical runs for review-friendly output
+executable-stories compare baseline.json current.json \
+  --input-type canonical \
+  --format html,markdown \
+  --output-name review-diff
+
 # Validate JSON against schema
 executable-stories validate raw-run.json
 ```
@@ -55,6 +61,8 @@ const generator = new ReportGenerator({
   formats: ["markdown", "html"],
   outputDir: "docs",
   outputName: "user-stories",
+  outputNameTimestamp: true,   // optional: unique filenames per run (e.g. user-stories-1739123456.md)
+  sortTestCases: "id",        // optional: stable order for diff-friendly reports
 });
 
 const outputs = await generator.generate(canonical);
@@ -99,6 +107,8 @@ const cucumberJson = new CucumberJsonFormatter().formatToString(canonical);
 --format html,markdown,junit,cucumber-json,cucumber-html,cucumber-messages
 --output-dir reports          # Base directory (default: reports)
 --output-name test-results    # Base filename (default: test-results)
+--output-name-timestamp       # Append run timestamp (UTC seconds) to filename for before/after diffs
+--sort-test-cases id|source|none  # Deterministic scenario order (default: none). Use id for diff-friendly output
 --input-type raw              # raw | canonical | ndjson
 
 # Filtering
@@ -137,6 +147,35 @@ const result = validateCanonicalRun(canonical);
 // Throws if invalid
 assertValidRun(canonical);
 ```
+
+### Before/after diffs (evolution of tests)
+
+To compare reports across runs (e.g. in CI or locally), use timestamped filenames and deterministic ordering so diffs show real changes instead of random reordering from parallel test execution:
+
+```bash
+executable-stories format raw-run.json --format markdown,html \
+  --output-name-timestamp \
+  --sort-test-cases id
+```
+
+- `--output-name-timestamp`: appends run start time in UTC seconds (e.g. `test-results-1739123456.md`), so each run produces a unique, chronologically sortable file.
+- `--sort-test-cases id`: sorts scenarios by deterministic id (hash of source file + scenario name) so report content order is stable across runs.
+
+Programmatic: set `outputNameTimestamp: true` and `sortTestCases: "id"` (or `"source"` for file/line order) on `FormatterOptions`.
+
+For first-class run comparisons, use the dedicated compare subcommand:
+
+```bash
+executable-stories compare baseline.json current.json \
+  --input-type canonical \
+  --format html,markdown \
+  --output-dir reports \
+  --output-name test-results-diff
+```
+
+- Generates a standalone HTML review report with filter chips for `Regressed`, `Fixed`, `Added`, `Removed`, and `Changed`.
+- Generates Markdown with per-scenario before/after summaries for PR discussion or artifact storage.
+- Use canonical input when you already persist prior runs; raw and ndjson inputs are also supported as long as both files use the same `--input-type`.
 
 ### Notifications
 

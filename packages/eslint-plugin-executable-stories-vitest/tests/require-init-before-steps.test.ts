@@ -86,6 +86,19 @@ describe('require-init-before-steps', () => {
       const messages = linter.verify(code, config);
       expect(messages).toHaveLength(0);
     });
+
+    it('allows story.fn and story.expect after story.init', () => {
+      const code = `
+        import { story } from "executable-stories-vitest";
+        it("test", ({ task }) => {
+          story.init(task);
+          story.fn("Given", "something", () => {});
+          story.expect("result is correct", () => { expect(1).toBe(1); });
+        });
+      `;
+      const messages = linter.verify(code, config);
+      expect(messages).toHaveLength(0);
+    });
   });
 
   describe('invalid cases', () => {
@@ -145,6 +158,28 @@ describe('require-init-before-steps', () => {
         });
         it("test2", ({ task }) => {
           story.given("invalid - no init here");
+        });
+      `;
+      const messages = linter.verify(code, config);
+      expect(messages).toHaveLength(1);
+    });
+
+    it('reports story.fn without story.init', () => {
+      const code = `
+        import { story } from "executable-stories-vitest";
+        it("test", ({ task }) => {
+          story.fn("Given", "something", () => {});
+        });
+      `;
+      const messages = linter.verify(code, config);
+      expect(messages).toHaveLength(1);
+    });
+
+    it('reports story.expect without story.init', () => {
+      const code = `
+        import { story } from "executable-stories-vitest";
+        it("test", ({ task }) => {
+          story.expect("result", () => {});
         });
       `;
       const messages = linter.verify(code, config);

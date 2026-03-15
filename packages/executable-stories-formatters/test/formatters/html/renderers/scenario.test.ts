@@ -1,0 +1,82 @@
+import { describe, it, expect, beforeEach } from "vitest";
+import { renderScenario } from "../../../../src/formatters/html/renderers/scenario";
+import { escapeHtml } from "../../../../src/formatters/html/template";
+import { stubs } from "../../../stubs";
+
+const baseDeps = {
+  escapeHtml,
+  getStatusIcon: (status: string) => (status === "passed" ? "\u2705" : "\u274C"),
+  startCollapsed: false,
+  renderSteps: () => "",
+  renderDocs: () => "",
+  renderErrorBox: () => "",
+  renderAttachments: () => "",
+  renderTraceView: () => "",
+  embedScreenshots: true,
+};
+
+describe("renderScenario", () => {
+  beforeEach(() => {
+    stubs.setFakerSeed(42);
+  });
+
+  it("renders scenario with id attribute", () => {
+    const tc = stubs.testCaseResult({
+      id: "abc123def",
+      story: stubs.storyMeta({ scenario: "Test scenario", tags: [] }),
+      tags: [],
+    });
+
+    const result = renderScenario({ tc }, baseDeps);
+
+    expect(result).toContain('id="scenario-abc123def"');
+  });
+
+  it("renders source permalink when permalinkBaseUrl is set", () => {
+    const tc = stubs.testCaseResult({
+      id: "abc123",
+      sourceFile: "src/auth/login.test.ts",
+      sourceLine: 42,
+      story: stubs.storyMeta({ scenario: "Login test", tags: [] }),
+      tags: [],
+    });
+
+    const result = renderScenario(
+      { tc },
+      { ...baseDeps, permalinkBaseUrl: "https://github.com/org/repo/blob/main" },
+    );
+
+    expect(result).toContain('href="https://github.com/org/repo/blob/main/src/auth/login.test.ts#L42"');
+    expect(result).toContain('class="source-link"');
+    expect(result).toContain("src/auth/login.test.ts:42");
+  });
+
+  it("does not render source link without permalinkBaseUrl", () => {
+    const tc = stubs.testCaseResult({
+      sourceFile: "src/auth/login.test.ts",
+      sourceLine: 42,
+      story: stubs.storyMeta({ scenario: "Login test", tags: [] }),
+      tags: [],
+    });
+
+    const result = renderScenario({ tc }, baseDeps);
+
+    expect(result).not.toContain("source-link");
+  });
+
+  it("does not render source link when sourceFile is unknown", () => {
+    const tc = stubs.testCaseResult({
+      sourceFile: "unknown",
+      sourceLine: 0,
+      story: stubs.storyMeta({ scenario: "Unknown test", tags: [] }),
+      tags: [],
+    });
+
+    const result = renderScenario(
+      { tc },
+      { ...baseDeps, permalinkBaseUrl: "https://github.com/org/repo/blob/main" },
+    );
+
+    expect(result).not.toContain("source-link");
+  });
+});

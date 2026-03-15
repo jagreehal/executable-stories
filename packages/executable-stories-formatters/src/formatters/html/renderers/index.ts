@@ -7,6 +7,8 @@ import type { DocEntry } from "../../../types/story";
 import type { TestRunResult } from "../../../types/test-result";
 import { escapeHtml, generateHtmlTemplate } from "../template";
 import { CSS_STYLES } from "../styles";
+import type { HtmlTheme } from "../themes/types.js";
+import { resolveTheme } from "../themes/index.js";
 import { getStatusIcon } from "./status";
 import { renderMetaInfo } from "./meta";
 import { renderSummary } from "./summary";
@@ -20,6 +22,7 @@ import { renderScenario } from "./scenario";
 import { renderTraceView } from "./trace-view";
 import { renderFeature } from "./feature";
 import { buildBody } from "./body";
+import { renderFailureSummary } from "./failure-summary";
 
 /** Options for HTML formatting (subset used by createHtmlFormatter) */
 export interface HtmlFormatterOptions {
@@ -31,6 +34,9 @@ export interface HtmlFormatterOptions {
   syntaxHighlighting?: boolean;
   mermaidEnabled?: boolean;
   markdownEnabled?: boolean;
+  permalinkBaseUrl?: string;
+  /** Theme name or custom theme object. Default: "default" */
+  theme?: string | HtmlTheme;
 }
 
 function normalizeOptions(options: HtmlFormatterOptions = {}) {
@@ -43,6 +49,8 @@ function normalizeOptions(options: HtmlFormatterOptions = {}) {
     syntaxHighlighting: options.syntaxHighlighting ?? true,
     mermaidEnabled: options.mermaidEnabled ?? true,
     markdownEnabled: options.markdownEnabled ?? true,
+    permalinkBaseUrl: options.permalinkBaseUrl,
+    theme: options.theme ?? "default",
   };
 }
 
@@ -98,6 +106,7 @@ export function createHtmlFormatter(
       d: import("./trace-view.js").RenderTraceViewDeps,
     ) => renderTraceView(args, d),
     embedScreenshots: opts.embedScreenshots,
+    permalinkBaseUrl: opts.permalinkBaseUrl,
   };
 
   const featureDeps = {
@@ -115,18 +124,24 @@ export function createHtmlFormatter(
     renderSummary,
     renderTagBar,
     renderFeature,
+    renderFailureSummary,
     metaDeps: { escapeHtml },
     summaryDeps: {},
     tagBarDeps,
     featureDeps,
+    failureSummaryDeps: { escapeHtml },
   };
+
+  const theme = resolveTheme(opts.theme);
 
   return {
     format(run: TestRunResult): string {
-      const body = buildBody({ run }, bodyDeps);
-      return generateHtmlTemplate(
+      const bodyFn = theme.buildBody ?? buildBody;
+      const body = bodyFn({ run }, bodyDeps);
+      const templateFn = theme.generateTemplate ?? generateHtmlTemplate;
+      return templateFn(
         opts.title,
-        CSS_STYLES,
+        theme.css,
         body,
         {
           includeSearch: opts.searchable,
@@ -134,6 +149,8 @@ export function createHtmlFormatter(
           syntaxHighlighting: opts.syntaxHighlighting,
           mermaidEnabled: opts.mermaidEnabled,
           markdownEnabled: opts.markdownEnabled,
+          additionalJs: theme.additionalJs,
+          additionalImports: theme.additionalImports,
         },
       );
     },
@@ -164,6 +181,7 @@ export { renderScenario } from "./scenario";
 export { renderTraceView } from "./trace-view";
 export { renderFeature } from "./feature";
 export { buildBody } from "./body";
+export { renderFailureSummary } from "./failure-summary";
 export { getStatusIcon } from "./status";
 export type { DocEntryDeps } from "./doc-entries";
 export type { RenderMetaInfoArgs, RenderMetaInfoDeps } from "./meta";
@@ -177,3 +195,4 @@ export type { RenderScenarioArgs, RenderScenarioDeps } from "./scenario";
 export type { RenderTraceViewArgs, RenderTraceViewDeps } from "./trace-view";
 export type { RenderFeatureArgs, RenderFeatureDeps } from "./feature";
 export type { BuildBodyArgs, BuildBodyDeps } from "./body";
+export type { RenderFailureSummaryArgs, RenderFailureSummaryDeps } from "./failure-summary";

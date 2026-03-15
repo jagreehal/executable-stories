@@ -84,7 +84,10 @@ test.describe("type contracts", () => {
         { cwd: packageRoot, encoding: "utf8" },
       );
 
-      expect(tscResult.status).toBe(0);
+      expect(
+        tscResult.status,
+        `tsc failed:\n${tscResult.stdout}\n${tscResult.stderr}`,
+      ).toBe(0);
       expect(tscResult.stdout).toBe("");
     } finally {
       fs.unlinkSync(fixtureTypecheckFile);
@@ -95,6 +98,10 @@ test.describe("type contracts", () => {
     const fixtureTypecheckFile = path.join(
       packageRoot,
       "tmp-fixture-callback-strict-contract.ts",
+    );
+    const fixtureTsconfigFile = path.join(
+      packageRoot,
+      "tmp-fixture-tsconfig.json",
     );
 
     fs.writeFileSync(
@@ -115,32 +122,52 @@ test.describe("type contracts", () => {
       "utf8",
     );
 
+    // Use a tsconfig that extends the project config so workspace deps resolve.
+    // Only include the fixture file (tsc follows imports automatically).
+    // Exclude reporter.ts which has extra transitive deps not needed here.
+    fs.writeFileSync(
+      fixtureTsconfigFile,
+      JSON.stringify({
+        extends: "./tsconfig.json",
+        compilerOptions: {
+          strict: true,
+          noEmit: true,
+          rootDir: "..",
+          baseUrl: ".",
+          paths: {
+            "executable-stories-formatters": [
+              "../executable-stories-formatters/src/index.ts",
+            ],
+          },
+        },
+        include: [fixtureTypecheckFile],
+        exclude: ["node_modules", "dist", "src/__tests__", "src/reporter.ts"],
+      }),
+      "utf8",
+    );
+
     try {
       const tscResult = spawnSync(
         "pnpm",
         [
           "exec",
           "tsc",
-          "--noEmit",
+          "--project",
+          fixtureTsconfigFile,
           "--pretty",
           "false",
-          "--target",
-          "ES2022",
-          "--module",
-          "ESNext",
-          "--moduleResolution",
-          "Bundler",
-          "--strict",
-          "--esModuleInterop",
-          "--skipLibCheck",
-          fixtureTypecheckFile,
         ],
         { cwd: packageRoot, encoding: "utf8" },
       );
 
-      expect(tscResult.status).toBe(0);
+      expect(
+        tscResult.status,
+        `tsc failed:\n${tscResult.stdout}\n${tscResult.stderr}`,
+      ).toBe(0);
     } finally {
       fs.unlinkSync(fixtureTypecheckFile);
+      if (fs.existsSync(fixtureTsconfigFile))
+        fs.unlinkSync(fixtureTsconfigFile);
     }
   });
 });

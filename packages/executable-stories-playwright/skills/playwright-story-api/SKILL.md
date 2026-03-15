@@ -205,3 +205,32 @@ test("my test", async ({ page }, testInfo) => {
 Steps called before `init()` are silently dropped because no story context exists.
 
 Source: packages/eslint-plugin-executable-stories-playwright/src/rules/require-story-context-for-steps.ts
+
+## Parameterized Scenarios (Scenario Outline equivalent)
+
+Use Playwright's data-driven pattern with `story()` to produce one scenario per data row — the framework-native replacement for Cucumber's Scenario Outline + Examples.
+
+```ts
+import { test } from "@playwright/test";
+import { story, given, when, then } from "executable-stories-playwright";
+
+const cases = [
+  { input: 1, expected: 2 },
+  { input: 2, expected: 4 },
+  { input: 3, expected: 6 },
+];
+
+for (const { input, expected } of cases) {
+  test(`doubles ${input} to ${expected}`, async ({ page }) => {
+    story(`Doubles ${input} to ${expected}`);
+    given(`the input is ${input}`);
+    when("the doubler runs");
+    then(`the result is ${expected}`);
+    // ... assertions
+  });
+}
+```
+
+Each iteration produces a separate scenario in the generated report. Use interpolated titles so each scenario has a distinct, descriptive name.
+
+Note: Playwright does not have `it.each` — use a `for...of` loop instead.

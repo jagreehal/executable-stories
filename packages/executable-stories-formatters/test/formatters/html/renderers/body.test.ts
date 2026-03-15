@@ -15,6 +15,7 @@ import { renderDocEntry } from "../../../../src/formatters/html/renderers/doc-en
 import { renderErrorBox } from "../../../../src/formatters/html/renderers/error-box";
 import { renderAttachments } from "../../../../src/formatters/html/renderers/attachments";
 import { renderTraceView } from "../../../../src/formatters/html/renderers/trace-view";
+import { renderFailureSummary } from "../../../../src/formatters/html/renderers/failure-summary";
 import { escapeHtml } from "../../../../src/formatters/html/template";
 
 describe("buildBody", () => {
@@ -67,10 +68,12 @@ describe("buildBody", () => {
     renderSummary,
     renderTagBar,
     renderFeature,
+    renderFailureSummary,
     metaDeps: { escapeHtml },
     summaryDeps: {},
     tagBarDeps,
     featureDeps,
+    failureSummaryDeps: { escapeHtml },
   };
 
   it("includes meta info and summary", () => {

@@ -23,6 +23,7 @@ namespace ExecutableStories.Xunit
         public int SourceOrder { get; } = Interlocked.Increment(ref _orderCounter) - 1;
         public long StartedTicks { get; } = System.Diagnostics.Stopwatch.GetTimestamp();
         public StoryStep? CurrentStep { get; set; }
+        public string? TraceUrlTemplate { get; set; }
         private readonly HashSet<string> _seenPrimary = [];
         private int _stepCounter;
         private readonly List<Dictionary<string, object?>> _attachments = [];

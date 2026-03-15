@@ -363,6 +363,69 @@ describe("HtmlFormatter", () => {
     });
   });
 
+  describe("detail level toggle", () => {
+    it("should include data-detail-level attribute on html element", () => {
+      const raw = createRawRun();
+      const run = canonicalizeRun(raw);
+      const result = formatter.format(run);
+
+      expect(result).toContain('data-detail-level="full"');
+    });
+
+    it("should include detail toggle button", () => {
+      const raw = createRawRun();
+      const run = canonicalizeRun(raw);
+      const result = formatter.format(run);
+
+      expect(result).toContain('class="detail-toggle"');
+      expect(result).toContain("toggleDetailLevel");
+    });
+
+    it("should include detail toggle JavaScript", () => {
+      const raw = createRawRun();
+      const run = canonicalizeRun(raw);
+      const result = formatter.format(run);
+
+      expect(result).toContain("activeDetailLevel");
+      expect(result).toContain("initDetailLevel");
+      expect(result).toContain("toggleDetailLevel");
+      expect(result).toContain("updateDetailToggle");
+    });
+
+    it("should include CSS for hiding docs in minimal mode", () => {
+      const raw = createRawRun();
+      const run = canonicalizeRun(raw);
+      const result = formatter.format(run);
+
+      expect(result).toContain('[data-detail-level="minimal"] .story-docs');
+      expect(result).toContain('[data-detail-level="minimal"] .step-docs');
+    });
+  });
+
+  describe("shareable URL state", () => {
+    it("should include URL state sync JavaScript", () => {
+      const raw = createRawRun();
+      const run = canonicalizeRun(raw);
+      const result = formatter.format(run);
+
+      expect(result).toContain("readUrlState");
+      expect(result).toContain("writeUrlState");
+      expect(result).toContain("history.replaceState");
+    });
+
+    it("should call readUrlState before applyAllFilters on init", () => {
+      const raw = createRawRun();
+      const run = canonicalizeRun(raw);
+      const result = formatter.format(run);
+
+      const readPos = result.indexOf("readUrlState();");
+      const applyPos = result.lastIndexOf("applyAllFilters();");
+      expect(readPos).toBeGreaterThan(-1);
+      expect(applyPos).toBeGreaterThan(-1);
+      expect(readPos).toBeLessThan(applyPos);
+    });
+  });
+
   describe("meta info", () => {
     it("should include run metadata", () => {
       const raw = createRawRun();

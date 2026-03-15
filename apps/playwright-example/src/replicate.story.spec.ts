@@ -130,10 +130,12 @@ test('Import XML invoice', async ({}, testInfo) => {
 });
 
 // 10) Background for shared preconditions
+/* eslint-disable executable-stories-playwright/require-init-before-steps -- background helper called from tests with story.init() */
 const accountBackground = async () => {
   story.given('the user account exists');
   story.given('the user is logged in');
 };
+/* eslint-enable executable-stories-playwright/require-init-before-steps */
 
 test.describe('Feature: Account settings', () => {
   test('Change email address', async ({}, testInfo) => {

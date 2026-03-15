@@ -6,6 +6,7 @@
 import type { TestRunResult } from "../../../types/test-result";
 import type { TestMetrics } from "../../../history/types";
 import type { RenderTagBarArgs, RenderTagBarDeps } from "./tag-bar.js";
+import type { RenderFailureSummaryArgs, RenderFailureSummaryDeps } from "./failure-summary.js";
 
 function groupBy<T, K>(items: T[], keyFn: (item: T) => K): Map<K, T[]> {
   const map = new Map<K, T[]>();
@@ -40,10 +41,15 @@ export interface BuildBodyDeps {
     args: import("./feature.js").RenderFeatureArgs,
     deps: import("./feature.js").RenderFeatureDeps,
   ) => string;
+  renderFailureSummary: (
+    args: RenderFailureSummaryArgs,
+    deps: RenderFailureSummaryDeps,
+  ) => string;
   metaDeps: import("./meta.js").RenderMetaInfoDeps;
   summaryDeps: import("./summary.js").RenderSummaryDeps;
   tagBarDeps: RenderTagBarDeps;
   featureDeps: import("./feature.js").RenderFeatureDeps;
+  failureSummaryDeps: RenderFailureSummaryDeps;
 }
 
 export function buildBody(args: BuildBodyArgs, deps: BuildBodyDeps): string {
@@ -89,6 +95,16 @@ export function buildBody(args: BuildBodyArgs, deps: BuildBodyDeps): string {
       deps.tagBarDeps,
     ),
   );
+
+  const failedCases = run.testCases.filter((tc) => tc.status === "failed");
+  if (failedCases.length > 0) {
+    parts.push(
+      deps.renderFailureSummary(
+        { failedCases },
+        deps.failureSummaryDeps,
+      ),
+    );
+  }
 
   const byFile = groupBy(run.testCases, (tc) => tc.sourceFile);
   for (const [file, testCases] of byFile) {

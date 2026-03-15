@@ -2,6 +2,7 @@ import baseConfig from 'eslint-config-executable-stories';
 import playwrightExecutableStories from 'eslint-plugin-executable-stories-playwright';
 
 export default [
+  { ignores: ['src/**/*.js'] },
   ...baseConfig,
   {
     languageOptions: {

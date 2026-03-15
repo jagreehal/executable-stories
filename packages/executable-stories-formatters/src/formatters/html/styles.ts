@@ -1602,4 +1602,90 @@ body {
 .badge-perf-improving { color: var(--success); }
 .badge-perf-regressing { color: var(--error); }
 
+/* Failure summary */
+.failure-summary {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--error);
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--error) 8%, transparent);
+}
+.failure-summary-header {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--error);
+  margin-bottom: 0.5rem;
+}
+.failure-summary-note {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  margin-bottom: 0.5rem;
+}
+.failure-summary-note code {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+.failure-summary ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.failure-summary li a {
+  font-size: 0.8125rem;
+  color: var(--foreground);
+  text-decoration: none;
+}
+.failure-summary li a:hover {
+  text-decoration: underline;
+  color: var(--error);
+}
+
+/* Source permalink */
+.source-link {
+  font-size: 0.6875rem;
+  color: var(--muted-foreground);
+  text-decoration: none;
+  font-family: var(--font-mono);
+}
+.source-link:hover {
+  text-decoration: underline;
+  color: var(--foreground);
+}
+
+/* ============================================================================
+   Detail Level Toggle
+   ============================================================================ */
+.detail-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--background);
+  cursor: pointer;
+  color: var(--foreground);
+  font-size: 1rem;
+  transition: all 0.15s ease;
+}
+
+.detail-toggle:hover {
+  background: var(--accent);
+  border-color: var(--border);
+}
+
+.detail-toggle:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--ring);
+}
+
+[data-detail-level="minimal"] .story-docs,
+[data-detail-level="minimal"] .step-docs {
+  display: none;
+}
+
 `;

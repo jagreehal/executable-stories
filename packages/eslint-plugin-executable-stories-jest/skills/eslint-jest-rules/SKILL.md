@@ -1,10 +1,11 @@
 ---
 name: eslint-jest-rules
 description: >
-  ESLint flat config plugin for executable-stories-jest. Two rules:
-  require-story-context-for-steps (steps must be inside story callback),
+  ESLint flat config plugin for executable-stories-jest. Three rules:
+  require-init-before-steps (init before given/when/then),
+  require-story-context-for-steps (steps must be inside story callback or story.init scope),
   require-test-context-for-doc-story (doc.story must be inside test/it).
-  Recommended config enables both at error level.
+  Recommended config enables all at error level.
 type: core
 library: eslint-plugin-executable-stories-jest
 library_version: "0.1.0"
@@ -21,7 +22,7 @@ sources:
 import jestStories from "eslint-plugin-executable-stories-jest";
 
 export default [
-  // Option A: Use recommended config
+  // Option A: Use recommended config (enables all rules at error)
   ...jestStories.configs.recommended,
 
   // Option B: Manual configuration
@@ -30,6 +31,7 @@ export default [
       "executable-stories-jest": jestStories,
     },
     rules: {
+      "executable-stories-jest/require-init-before-steps": "error",
       "executable-stories-jest/require-story-context-for-steps": "error",
       "executable-stories-jest/require-test-context-for-doc-story": "error",
     },
@@ -39,20 +41,47 @@ export default [
 
 ## Core Patterns
 
-### Rule: require-story-context-for-steps
+### Rule: require-init-before-steps
 
-Ensures step functions (`given`, `when`, `then`, `and`, `but` and aliases) are called inside a `story()` or `doc.story(..., callback)`.
+Ensures `story.init()` is called before any step markers.
 
 ```typescript
 // Fails lint
 it("my test", () => {
-  given("something"); // Error: must be inside story() or doc.story()
+  story.given("something", () => {}); // Error: story.init() must be called first
+  story.init();
 });
 
 // Passes lint
 it("my test", () => {
   story.init();
-  story.given("something");
+  story.given("something", () => {});
+});
+```
+
+Detects all step methods: `given`, `when`, `then`, `and`, `but`, `arrange`, `act`, `assert`, `setup`, `context`, `execute`, `action`, `verify`, `fn`, `expect`.
+
+### Rule: require-story-context-for-steps
+
+Ensures bare step functions (`given`, `when`, `then`, `and`, `but` and aliases) are called inside a `story()` callback, `doc.story(..., callback)`, or a function that has `story.init()`.
+
+```typescript
+// Fails lint
+it("my test", () => {
+  given("something", () => {}); // Error: must be inside story() or story.init() scope
+});
+
+// Passes lint — inside story() callback
+story("Login", () => {
+  given("a user", () => {});
+  when("they sign in", () => {});
+  then("they see the dashboard", () => {});
+});
+
+// Passes lint — story.init() in same scope
+it("my test", () => {
+  story.init();
+  given("a user", () => {});
 });
 ```
 
@@ -107,5 +136,31 @@ export default [...jestStories.configs.recommended];
 ```
 
 This plugin only supports ESLint 9 flat config.
+
+Source: packages/eslint-plugin-executable-stories-jest/src/index.ts
+
+### MEDIUM Not scoping rules to story test files
+
+```typescript
+// eslint.config.mjs
+import jestStories from "eslint-plugin-executable-stories-jest";
+
+export default [
+  {
+    // Scope to story test files only
+    files: ["**/*.story.test.ts", "**/*.story.spec.ts"],
+    plugins: {
+      "executable-stories-jest": jestStories,
+    },
+    rules: {
+      "executable-stories-jest/require-init-before-steps": "error",
+      "executable-stories-jest/require-story-context-for-steps": "error",
+      "executable-stories-jest/require-test-context-for-doc-story": "error",
+    },
+  },
+];
+```
+
+Scoping avoids false positives on non-story test files that don't use the story API.
 
 Source: packages/eslint-plugin-executable-stories-jest/src/index.ts

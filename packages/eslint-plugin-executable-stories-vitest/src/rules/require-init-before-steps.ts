@@ -30,6 +30,8 @@ const STEP_NAMES = new Set([
   'execute',
   'action',
   'verify',
+  'fn',
+  'expect',
 ]);
 
 function isFunction(node: Node): boolean {

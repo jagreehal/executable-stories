@@ -59,6 +59,17 @@ function isStoryCall(node: CallExpression): boolean {
   );
 }
 
+function isStoryInitCall(node: CallExpression): boolean {
+  const { callee } = node;
+  if (callee.type !== 'MemberExpression') return false;
+  return (
+    callee.object.type === 'Identifier' &&
+    callee.object.name === 'story' &&
+    callee.property.type === 'Identifier' &&
+    callee.property.name === 'init'
+  );
+}
+
 function isDocStoryCall(node: CallExpression): boolean {
   const { callee } = node;
   if (callee.type !== 'MemberExpression') return false;
@@ -121,10 +132,23 @@ const rule: Rule.RuleModule = {
     let hasV1Import = false;
     const namedFunctions = new Map<string, Node>();
     const storyCallbackNames = new Set<string>();
+    // Track functions that contain story.init() calls
+    const functionsWithInit = new WeakSet<Node>();
     const pendingStepCalls: Array<{
       node: CallExpression;
+      containingFunction: Node | null;
       containingFunctionName: string | null;
     }> = [];
+
+    function getContainingFunction(node: CallExpression): Node | null {
+      const ancestors = context.sourceCode.getAncestors(node);
+      for (let i = ancestors.length - 1; i >= 0; i--) {
+        if (isFunctionNode(ancestors[i]) || isFunction(ancestors[i])) {
+          return ancestors[i];
+        }
+      }
+      return null;
+    }
 
     function getContainingFunctionName(node: CallExpression): string | null {
       const ancestors = context.sourceCode.getAncestors(node);
@@ -186,6 +210,15 @@ const rule: Rule.RuleModule = {
       CallExpression(node: CallExpression) {
         if (!hasV1Import) return;
 
+        // Track story.init() calls and their containing functions
+        if (isStoryInitCall(node)) {
+          const containingFunction = getContainingFunction(node);
+          if (containingFunction) {
+            functionsWithInit.add(containingFunction);
+          }
+          return;
+        }
+
         if (isStoryCall(node) || isDocStoryCall(node)) {
           for (const arg of node.arguments) {
             if (arg.type === 'Identifier') {
@@ -205,15 +238,21 @@ const rule: Rule.RuleModule = {
         if (!isStepCall(node)) return;
         if (insideStoryCallback(node, context)) return;
 
+        const containingFunction = getContainingFunction(node);
         const containingFunctionName = getContainingFunctionName(node);
-        pendingStepCalls.push({ node, containingFunctionName });
+        pendingStepCalls.push({ node, containingFunction, containingFunctionName });
       },
       'Program:exit'() {
-        for (const { node, containingFunctionName } of pendingStepCalls) {
+        for (const { node, containingFunction, containingFunctionName } of pendingStepCalls) {
+          // Allow if inside a named function passed to story()/doc.story()
           if (
             containingFunctionName &&
             storyCallbackNames.has(containingFunctionName)
           ) {
+            continue;
+          }
+          // Allow if inside a function that has story.init()
+          if (containingFunction && functionsWithInit.has(containingFunction)) {
             continue;
           }
           context.report({ node, messageId: 'requireStory' });

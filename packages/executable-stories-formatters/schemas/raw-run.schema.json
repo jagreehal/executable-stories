@@ -208,6 +208,19 @@
           "type": "array",
           "items": { "$ref": "#/$defs/DocEntry" },
           "description": "Rich documentation entries attached to this step."
+        },
+        "id": {
+          "type": "string",
+          "description": "Unique step identifier within the scenario (e.g., 'step-0')."
+        },
+        "wrapped": {
+          "type": "boolean",
+          "description": "Whether this step wraps a function call (Fn/Expect pattern)."
+        },
+        "durationMs": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Step-level duration in milliseconds (from startTimer/endTimer)."
         }
       },
       "required": ["keyword", "text"],

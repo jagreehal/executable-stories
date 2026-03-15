@@ -8,6 +8,8 @@
 import type { TestRunResult } from "../../types/test-result";
 import { createHtmlFormatter } from "./renderers/index";
 
+import type { HtmlTheme } from "./themes/types";
+
 /** Options for HTML formatting */
 export interface HtmlOptions {
   /** Report title. Default: "Test Results" */
@@ -26,6 +28,10 @@ export interface HtmlOptions {
   mermaidEnabled?: boolean;
   /** Enable Markdown parsing for section doc entries (via marked.js CDN). Default: true */
   markdownEnabled?: boolean;
+  /** Base URL for source permalinks. E.g., "https://github.com/user/repo/blob/main" */
+  permalinkBaseUrl?: string;
+  /** Theme name or custom theme object. Default: "default" */
+  theme?: string | HtmlTheme;
 }
 
 /**
@@ -82,6 +88,9 @@ export {
   renderStep,
   renderScenario,
   renderFeature,
+  renderFailureSummary,
   buildBody,
   getStatusIcon,
 } from "./renderers/index";
+export type { HtmlTheme, HtmlThemeName } from "./themes/index";
+export { resolveTheme, getAvailableThemes } from "./themes/index";

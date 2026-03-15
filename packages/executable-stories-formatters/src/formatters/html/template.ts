@@ -55,6 +55,7 @@ const JS_CORE = `
 // Filter state
 var activeTags = new Set();
 var activeStatus = null;
+var activeDetailLevel = 'full';
 
 // Search functionality
 function initSearch() {
@@ -204,6 +205,7 @@ function applyAllFilters() {
   });
 
   updateFilterResults(visibleCount, totalCount);
+  writeUrlState();
 }
 
 function updateFilterResults(visible, total) {
@@ -290,6 +292,79 @@ function collapseAll() {
     header?.setAttribute('aria-expanded', 'false');
   });
 }
+
+// Detail level toggle
+function toggleDetailLevel() {
+  activeDetailLevel = activeDetailLevel === 'full' ? 'minimal' : 'full';
+  document.documentElement.setAttribute('data-detail-level', activeDetailLevel);
+  updateDetailToggle();
+  writeUrlState();
+}
+
+function updateDetailToggle() {
+  var btn = document.querySelector('.detail-toggle');
+  if (btn) {
+    btn.textContent = activeDetailLevel === 'full' ? '\\ud83d\\udccb' : '\\ud83d\\udcc4';
+    btn.setAttribute('aria-label', activeDetailLevel === 'full' ? 'Hide documentation (minimal)' : 'Show documentation (full)');
+    btn.title = activeDetailLevel === 'full' ? 'Showing full detail' : 'Showing minimal detail';
+  }
+}
+
+function initDetailLevel() {
+  updateDetailToggle();
+}
+
+// URL state sync for shareable URLs
+function readUrlState() {
+  var params = new URLSearchParams(window.location.search);
+
+  var search = params.get('search');
+  if (search) {
+    var input = document.querySelector('.search-input');
+    if (input) input.value = search;
+  }
+
+  var tags = params.get('tags');
+  if (tags) {
+    tags.split(',').forEach(function(tag) {
+      var pill = document.querySelector('.tag-pill[data-tag="' + tag + '"]');
+      if (pill) {
+        activeTags.add(tag);
+        pill.classList.add('active');
+        pill.setAttribute('aria-pressed', 'true');
+      }
+    });
+    updateTagBarState();
+  }
+
+  var status = params.get('status');
+  if (status && ['passed', 'failed', 'skipped'].indexOf(status) !== -1) {
+    activeStatus = status;
+    var card = document.querySelector('.summary-card.' + status);
+    if (card) card.classList.add('status-active');
+  }
+
+  var detail = params.get('detail');
+  if (detail === 'minimal' || detail === 'full') {
+    activeDetailLevel = detail;
+    document.documentElement.setAttribute('data-detail-level', detail);
+    updateDetailToggle();
+  }
+}
+
+function writeUrlState() {
+  var params = new URLSearchParams();
+  var input = document.querySelector('.search-input');
+  var search = input ? input.value.trim() : '';
+  if (search) params.set('search', search);
+  if (activeTags.size > 0) params.set('tags', Array.from(activeTags).sort().join(','));
+  if (activeStatus) params.set('status', activeStatus);
+  if (activeDetailLevel !== 'full') params.set('detail', activeDetailLevel);
+
+  var qs = params.toString();
+  var url = window.location.pathname + (qs ? '?' + qs : '');
+  history.replaceState(null, '', url);
+}
 `;
 
 /** Options for HTML template generation */
@@ -299,6 +374,10 @@ export interface HtmlTemplateOptions {
   syntaxHighlighting?: boolean;
   mermaidEnabled?: boolean;
   markdownEnabled?: boolean;
+  /** Additional inline JS injected after core JS (used by themes). */
+  additionalJs?: string;
+  /** Additional ESM import statements for CDN libraries (used by themes). */
+  additionalImports?: string[];
 }
 
 /** JavaScript for markdown parsing (used as a function body string in the ESM module) */
@@ -336,11 +415,14 @@ function generateScript(options: HtmlTemplateOptions): string {
   if (options.includeDarkMode) {
     initCalls.push('initTheme();');
   }
+  initCalls.push('readUrlState();');
   initCalls.push('initSearch();');
   initCalls.push('initTagFilter();');
   initCalls.push('initStatusFilter();');
   initCalls.push('initKeyboardShortcuts();');
   initCalls.push('initCollapse();');
+  initCalls.push('initDetailLevel();');
+  initCalls.push('applyAllFilters();');
 
   const initScript = `
 // Initialize on load
@@ -351,6 +433,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let script = options.includeDarkMode ? JS_THEME : '';
   script += JS_CORE;
+  if (options.additionalJs) {
+    script += options.additionalJs;
+  }
   script += initScript;
 
   return script;
@@ -375,6 +460,10 @@ function generateEsmScript(options: HtmlTemplateOptions): string {
   if (options.markdownEnabled) {
     imports.push('import { marked } from "https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js";');
     initCalls.push('parseMarkdownSections(marked);');
+  }
+
+  if (options.additionalImports) {
+    imports.push(...options.additionalImports);
   }
 
   if (imports.length === 0) return '';
@@ -422,7 +511,7 @@ export function generateHtmlTemplate(
   const esmScriptHtml = generateEsmScript(options);
 
   return `<!DOCTYPE html>
-<html lang="en"${themeAttr}>
+<html lang="en"${themeAttr} data-detail-level="full">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -436,6 +525,7 @@ export function generateHtmlTemplate(
       <h1>${escapeHtml(title)}</h1>
       <div class="header-actions">
         ${includeSearch ? '<input type="text" class="search-input" placeholder="Search scenarios..." aria-label="Search scenarios">' : ''}
+        <button type="button" class="detail-toggle" onclick="toggleDetailLevel()" aria-label="Toggle detail level" title="Toggle documentation detail"></button>
         ${includeDarkMode ? '<button type="button" class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme"></button>' : ''}
       </div>
     </header>

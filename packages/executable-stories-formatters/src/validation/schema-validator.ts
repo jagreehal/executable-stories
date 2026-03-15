@@ -6,10 +6,7 @@
  */
 
 import Ajv from "ajv/dist/2020.js";
-import { createRequire } from "node:module";
-
-const require = createRequire(import.meta.url);
-const schema = require("../../schemas/raw-run.schema.json");
+import schema from "../../schemas/raw-run.schema.json" with { type: "json" };
 
 /** Validation result with JSON-path-based error messages */
 export interface SchemaValidationResult {
