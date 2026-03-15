@@ -23,6 +23,14 @@ type TestingT interface {
 // Option configures a story during Init.
 type Option func(*S)
 
+// timerEntry tracks a running timer started by StartTimer.
+type timerEntry struct {
+	start     time.Time
+	stepIndex *int
+	stepID    string
+	consumed  bool
+}
+
 // S represents a story attached to a single test.
 type S struct {
 	scenario         string
@@ -39,6 +47,8 @@ type S struct {
 	stepCounter      int
 	attachments      []RawAttachment
 	traceUrlTemplate string // URL template with {traceId} placeholder for OTel trace links
+	activeTimers     map[int]*timerEntry
+	timerCounter     int
 }
 
 // WithTags adds tags to the story.
@@ -125,11 +135,12 @@ func Init(t TestingT, scenario string, opts ...Option) *S {
 	t.Helper()
 
 	s := &S{
-		scenario:    scenario,
-		t:           t,
-		startTime:   time.Now(),
-		sourceOrder: nextOrder(),
-		seenPrimary: make(map[string]bool),
+		scenario:     scenario,
+		t:            t,
+		startTime:    time.Now(),
+		sourceOrder:  nextOrder(),
+		seenPrimary:  make(map[string]bool),
+		activeTimers: make(map[int]*timerEntry),
 	}
 
 	for _, opt := range opts {
@@ -225,6 +236,48 @@ func (s *S) And(text string) *S {
 // But adds a "But" step to the story.
 func (s *S) But(text string) *S {
 	return s.addStep("But", text)
+}
+
+// StartTimer begins a high-resolution timer tied to the current step.
+// Returns a token to pass to EndTimer.
+func (s *S) StartTimer() int {
+	token := s.timerCounter
+	s.timerCounter++
+
+	entry := &timerEntry{
+		start: time.Now(),
+	}
+	if s.currentStep != nil {
+		idx := len(s.steps) - 1
+		entry.stepIndex = &idx
+		entry.stepID = s.currentStep.ID
+	}
+	s.activeTimers[token] = entry
+	return token
+}
+
+// EndTimer stops the timer identified by token and records DurationMs
+// on the step that was active when StartTimer was called.
+// Double-end is a no-op.
+func (s *S) EndTimer(token int) {
+	entry, ok := s.activeTimers[token]
+	if !ok || entry.consumed {
+		return
+	}
+	entry.consumed = true
+	durationMs := float64(time.Since(entry.start).Milliseconds())
+
+	// Try to find the step by index first, then by ID
+	if entry.stepIndex != nil && *entry.stepIndex < len(s.steps) {
+		s.steps[*entry.stepIndex].DurationMs = &durationMs
+	} else if entry.stepID != "" {
+		for i := range s.steps {
+			if s.steps[i].ID == entry.stepID {
+				s.steps[i].DurationMs = &durationMs
+				break
+			}
+		}
+	}
 }
 
 // Fn wraps a function body as a step with timing capture.

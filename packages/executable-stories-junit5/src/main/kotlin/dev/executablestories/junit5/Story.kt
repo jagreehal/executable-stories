@@ -31,6 +31,11 @@ class Story private constructor() {
             bridgeOtel(ctx)
         }
 
+        @JvmStatic
+        fun withTraceUrlTemplate(template: String) {
+            requireContext().traceUrlTemplate = template
+        }
+
         // ====================================================================
         // Step methods
         // ====================================================================
@@ -442,7 +447,7 @@ class Story private constructor() {
                 // OTel -> Story: inject human-readable doc entries
                 ctx.docs.add(DocEntry.kv("Trace ID", traceId))
 
-                val template = System.getenv("OTEL_TRACE_URL_TEMPLATE")
+                val template = ctx.traceUrlTemplate ?: System.getenv("OTEL_TRACE_URL_TEMPLATE")
                 if (!template.isNullOrEmpty()) {
                     val url = template.replace("{traceId}", traceId)
                     ctx.docs.add(DocEntry.link("View Trace", url))
@@ -453,33 +458,33 @@ class Story private constructor() {
                 setAttributeStr.invoke(span, "story.scenario", ctx.scenario)
 
                 if (ctx.tags.isNotEmpty()) {
-                    // Use AttributeKey<List<String>> for array attributes
-                    try {
-                        val attributeKeyClass = Class.forName("io.opentelemetry.api.common.AttributeKey")
-                        val stringArrayKeyMethod = attributeKeyClass.getMethod("stringArrayKey", String::class.java)
-                        val tagsKey = stringArrayKeyMethod.invoke(null, "story.tags")
-                        val setAttributeKey = spanClass.getMethod("setAttribute", attributeKeyClass, Any::class.java)
-                        setAttributeKey.invoke(span, tagsKey, ctx.tags.toList())
-                    } catch (_: Exception) {
-                        // array attributes not available
-                    }
+                    setOtelArrayAttribute(spanClass, span, "story.tags", ctx.tags.toList())
                 }
 
                 if (ctx.tickets.isNotEmpty()) {
-                    try {
-                        val attributeKeyClass = Class.forName("io.opentelemetry.api.common.AttributeKey")
-                        val stringArrayKeyMethod = attributeKeyClass.getMethod("stringArrayKey", String::class.java)
-                        val ticketsKey = stringArrayKeyMethod.invoke(null, "story.tickets")
-                        val setAttributeKey = spanClass.getMethod("setAttribute", attributeKeyClass, Any::class.java)
-                        setAttributeKey.invoke(span, ticketsKey, ctx.tickets.toList())
-                    } catch (_: Exception) {
-                        // array attributes not available
-                    }
+                    setOtelArrayAttribute(spanClass, span, "story.tickets", ctx.tickets.toList())
                 }
             } catch (_: ClassNotFoundException) {
                 // OTel API not on classpath - no-op
             } catch (_: Exception) {
                 // OTel not available - no-op
+            }
+        }
+
+        private fun setOtelArrayAttribute(
+            spanClass: Class<*>,
+            span: Any,
+            key: String,
+            values: List<String>,
+        ) {
+            try {
+                val attributeKeyClass = Class.forName("io.opentelemetry.api.common.AttributeKey")
+                val stringArrayKeyMethod = attributeKeyClass.getMethod("stringArrayKey", String::class.java)
+                val attrKey = stringArrayKeyMethod.invoke(null, key)
+                val setAttributeKey = spanClass.getMethod("setAttribute", attributeKeyClass, Any::class.java)
+                setAttributeKey.invoke(span, attrKey, values)
+            } catch (_: Exception) {
+                // array attributes not available
             }
         }
 

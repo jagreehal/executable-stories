@@ -15,16 +15,25 @@ import * as path from "node:path";
 
 import { validateRawRun } from "./validation/schema-validator";
 import { synthesizeStories } from "./converters/synthesize";
-import { canonicalizeRun } from "./converters/acl/index";
+import { canonicalizeRun } from "./converters/acl";
 import { assertValidRun } from "./converters/acl/validate";
-import { ReportGenerator } from "./index";
+// eslint-disable-next-line no-restricted-imports -- ReportGenerator and compare helpers currently live in the package entrypoint.
+import {
+  ReportGenerator,
+  createPrCommentSummary,
+  generateRunComparison,
+} from "./index.js";
 import { parseNdjson } from "./converters/ndjson-parser";
 import type { OutputFormat } from "./types/options";
-import { sendNotifications } from "./notifiers/index";
+import { sendNotifications } from "./notifiers";
 import { toCIInfo } from "./types/ci";
 import type { NotifyCondition, GenericWebhookNotifierOptions, WebhookSignerHmac } from "./notifiers/types";
-import { loadHistory, saveHistory, updateHistory, computeTestMetrics } from "./history/index";
-import type { TestMetrics } from "./history/types";
+import { loadHistory, saveHistory, updateHistory } from "./history";
+import { pickAutoBaseline } from "./compare/auto-baseline";
+import { listScenarios } from "./list-scenarios";
+import { selectTestCases } from "./select-test-cases";
+import type { RawRun } from "./types/raw";
+import type { TestRunResult } from "./types/test-result";
 
 // ============================================================================
 // Exit Codes
@@ -46,11 +55,15 @@ executable-stories — Generate reports from test results JSON.
 USAGE
   executable-stories format <file> [options]
   executable-stories format --stdin [options]
+  executable-stories compare <baseline-file> <current-file> [options]
+  executable-stories list <file> [options]
   executable-stories validate <file>
   executable-stories validate --stdin
 
 SUBCOMMANDS
   format     Read raw test results and generate reports
+  compare    Compare two runs and generate a diff report
+  list       List scenarios from a test run (text table or JSON)
   validate   Validate a JSON file against the schema (no output generated)
 
 OPTIONS
@@ -64,18 +77,37 @@ OPTIONS
   --input-type <type>           Input type: raw, canonical, or ndjson (default: raw)
   --output-dir <dir>            Output directory (default: reports)
   --output-name <name>          Base filename (default: test-results)
+  --output-name-timestamp       Append run timestamp (UTC seconds) to output filename for before/after diffs
+  --sort-test-cases <mode>      Sort scenarios deterministically: id, source, none (default: none)
   --include <globs>             Comma-separated globs to include test cases by sourceFile (e.g. "**/*.Story*.cs")
   --exclude <globs>             Comma-separated globs to exclude test cases by sourceFile (e.g. "**/obj/**")
+  --include-tags <tags>         Comma-separated tags to include test cases (any match)
+  --exclude-tags <tags>         Comma-separated tags to exclude test cases (any match)
   --synthesize-stories          Synthesize story metadata for plain test results (default)
   --no-synthesize-stories       Disable story synthesis (strict mode)
   --html-title <title>          HTML report title (default: Test Results)
+  --html-theme <name>           HTML theme (default, corporate, terminal, minimal, dashboard, playful)
   --html-no-syntax-highlighting Disable syntax highlighting in HTML (enabled by default)
   --html-no-mermaid             Disable mermaid diagrams in HTML (enabled by default)
   --html-no-markdown            Disable markdown parsing in HTML (enabled by default)
+  --html-permalink-base-url <url> Base URL for source permalinks in HTML (e.g. "https://github.com/org/repo/blob/main")
   --stdin                       Read JSON from stdin instead of file
   --json-summary                Print machine-parsable JSON summary
+  --baseline <path|auto>        Compare baseline file, or auto-pick a prior run for compare
+  --baseline-dir <dir>          Directory to scan when --baseline auto is used
+  --pr-summary                  Print a PR-friendly markdown summary after compare
+  --pr-summary-file <path>      Write the PR-friendly markdown summary to a file
   --emit-canonical <path>       Write canonical JSON to given path
   --help                        Show this help message
+
+LIST
+  list prints one scenario per line (text by default, JSON with --json-summary)
+  list supports --include-tags, --exclude-tags for filtering
+  list supports --input-type and --stdin
+
+COMPARE
+  compare supports --format html,markdown
+  compare uses the same --input-type for both baseline and current files
 
 NOTIFICATIONS
   --slack-webhook <url>         Slack incoming webhook URL (fallback: SLACK_WEBHOOK_URL env var)
@@ -106,20 +138,30 @@ EXIT CODES
 `.trim();
 
 interface CliArgs {
-  subcommand: "format" | "validate";
+  subcommand: "format" | "compare" | "list" | "validate";
   inputFile?: string;
+  baselineFile?: string;
+  currentFile?: string;
+  baselineMode: "explicit" | "auto";
+  baselineDir?: string;
   stdin: boolean;
   formats: OutputFormat[];
   inputType: "raw" | "canonical" | "ndjson";
   outputDir: string;
   outputName: string;
+  outputNameTimestamp: boolean;
+  sortTestCases: "id" | "source" | "none";
   include: string[];
   exclude: string[];
+  includeTags: string[];
+  excludeTags: string[];
   synthesizeStories: boolean;
   htmlTitle: string;
+  htmlTheme: string;
   htmlNoSyntaxHighlighting: boolean;
   htmlNoMermaid: boolean;
   htmlNoMarkdown: boolean;
+  htmlPermalinkBaseUrl?: string;
   jsonSummary: boolean;
   emitCanonical?: string;
   slackWebhook?: string;
@@ -135,6 +177,8 @@ interface CliArgs {
   webhookHmacSecret?: string;
   webhookHmacHeader: string;
   webhookHmacTimestamp: boolean;
+  prSummary: boolean;
+  prSummaryFile?: string;
 }
 
 function parseCliArgs(argv: string[]): CliArgs {
@@ -147,8 +191,8 @@ function parseCliArgs(argv: string[]): CliArgs {
   }
 
   const subcommand = args[0];
-  if (subcommand !== "format" && subcommand !== "validate") {
-    console.error(`Unknown subcommand: "${subcommand}". Use "format" or "validate".`);
+  if (subcommand !== "format" && subcommand !== "compare" && subcommand !== "list" && subcommand !== "validate") {
+    console.error(`Unknown subcommand: "${subcommand}". Use "format", "compare", "list", or "validate".`);
     process.exit(EXIT_USAGE);
   }
 
@@ -157,17 +201,25 @@ function parseCliArgs(argv: string[]): CliArgs {
     args: args.slice(1),
     options: {
       format: { type: "string", default: "html" },
+      baseline: { type: "string" },
+      "baseline-dir": { type: "string" },
       "input-type": { type: "string", default: "raw" },
       "output-dir": { type: "string", default: "reports" },
       "output-name": { type: "string", default: "test-results" },
+      "output-name-timestamp": { type: "boolean", default: false },
+      "sort-test-cases": { type: "string", default: "none" },
       include: { type: "string" },
       exclude: { type: "string" },
+      "include-tags": { type: "string" },
+      "exclude-tags": { type: "string" },
       "synthesize-stories": { type: "boolean", default: true },
       "no-synthesize-stories": { type: "boolean", default: false },
       "html-title": { type: "string", default: "Test Results" },
+      "html-theme": { type: "string", default: "default" },
       "html-no-syntax-highlighting": { type: "boolean", default: false },
       "html-no-mermaid": { type: "boolean", default: false },
       "html-no-markdown": { type: "boolean", default: false },
+      "html-permalink-base-url": { type: "string" },
       stdin: { type: "boolean", default: false },
       "json-summary": { type: "boolean", default: false },
       "emit-canonical": { type: "string" },
@@ -184,6 +236,8 @@ function parseCliArgs(argv: string[]): CliArgs {
       "webhook-hmac-secret": { type: "string" },
       "webhook-hmac-header": { type: "string" },
       "webhook-hmac-timestamp": { type: "boolean", default: false },
+      "pr-summary": { type: "boolean", default: false },
+      "pr-summary-file": { type: "string" },
       help: { type: "boolean", default: false },
     },
     allowPositionals: true,
@@ -195,10 +249,45 @@ function parseCliArgs(argv: string[]): CliArgs {
     process.exit(EXIT_SUCCESS);
   }
 
-  const inputFile = positionals[0];
   const useStdin = values.stdin as boolean;
+  const baselineValue = values.baseline as string | undefined;
+  const baselineMode = baselineValue === "auto" ? "auto" : "explicit";
+  const inputFile = subcommand === "compare" ? undefined : positionals[0];
+  const baselineFile =
+    subcommand === "compare"
+      ? baselineMode === "auto"
+        ? baselineValue && baselineValue !== "auto"
+          ? baselineValue
+          : positionals.length > 1
+            ? positionals[0]
+            : undefined
+        : baselineValue && baselineValue !== "auto"
+          ? baselineValue
+          : positionals.length > 1
+            ? positionals[0]
+            : undefined
+      : undefined;
+  const currentFile =
+    subcommand === "compare"
+      ? positionals.length > 1
+        ? positionals[1]
+        : positionals[0]
+      : undefined;
 
-  if (!useStdin && !inputFile) {
+  if (subcommand === "compare") {
+    if (useStdin) {
+      console.error("Error: compare does not support --stdin. Pass baseline and current files.");
+      process.exit(EXIT_USAGE);
+    }
+    if (!currentFile) {
+      console.error("Error: compare requires <current-file>, and either <baseline-file> or --baseline auto.");
+      process.exit(EXIT_USAGE);
+    }
+    if (baselineMode === "explicit" && !baselineFile) {
+      console.error("Error: compare requires <baseline-file> and <current-file>, or use --baseline auto.");
+      process.exit(EXIT_USAGE);
+    }
+  } else if (!useStdin && !inputFile) {
     console.error("Error: No input file specified. Use a positional argument or --stdin.");
     process.exit(EXIT_USAGE);
   }
@@ -218,6 +307,14 @@ function parseCliArgs(argv: string[]): CliArgs {
       console.error(`Error: Unknown format "${f}". Valid: html, markdown, junit, cucumber-json, cucumber-messages, cucumber-html.`);
       process.exit(EXIT_USAGE);
     }
+  }
+
+  // Validate --html-theme
+  const htmlTheme = values["html-theme"] as string;
+  const validThemes = new Set(["default", "corporate", "terminal", "minimal", "dashboard", "playful"]);
+  if (!validThemes.has(htmlTheme)) {
+    console.error(`Error: Unknown theme "${htmlTheme}". Valid: ${[...validThemes].join(", ")}.`);
+    process.exit(EXIT_USAGE);
   }
 
   const noSynthesize = values["no-synthesize-stories"] as boolean;
@@ -286,21 +383,38 @@ function parseCliArgs(argv: string[]): CliArgs {
     process.exit(EXIT_USAGE);
   }
 
+  const sortTestCasesRaw = values["sort-test-cases"] as string;
+  const validSortModes = new Set(["id", "source", "none"]);
+  if (!validSortModes.has(sortTestCasesRaw)) {
+    console.error(`Error: --sort-test-cases must be id, source, or none, got "${sortTestCasesRaw}".`);
+    process.exit(EXIT_USAGE);
+  }
+
   return {
-    subcommand: subcommand as "format" | "validate",
+    subcommand: subcommand as "format" | "compare" | "list" | "validate",
     inputFile,
+    baselineFile,
+    currentFile,
+    baselineMode,
+    baselineDir: values["baseline-dir"] as string | undefined,
     stdin: useStdin,
     formats,
     inputType: inputType as "raw" | "canonical" | "ndjson",
     outputDir: values["output-dir"] as string,
     outputName: values["output-name"] as string,
+    outputNameTimestamp: values["output-name-timestamp"] as boolean,
+    sortTestCases: sortTestCasesRaw as "id" | "source" | "none",
     include: parseGlobs(values.include as string | undefined),
     exclude: parseGlobs(values.exclude as string | undefined),
+    includeTags: parseGlobs(values["include-tags"] as string | undefined),
+    excludeTags: parseGlobs(values["exclude-tags"] as string | undefined),
     synthesizeStories: !noSynthesize,
     htmlTitle: values["html-title"] as string,
+    htmlTheme: values["html-theme"] as string,
     htmlNoSyntaxHighlighting: values["html-no-syntax-highlighting"] as boolean,
     htmlNoMermaid: values["html-no-mermaid"] as boolean,
     htmlNoMarkdown: values["html-no-markdown"] as boolean,
+    htmlPermalinkBaseUrl: values["html-permalink-base-url"] as string | undefined,
     jsonSummary: values["json-summary"] as boolean,
     emitCanonical: values["emit-canonical"] as string | undefined,
     slackWebhook,
@@ -316,6 +430,8 @@ function parseCliArgs(argv: string[]): CliArgs {
     webhookHmacSecret: values["webhook-hmac-secret"] as string | undefined,
     webhookHmacHeader: (values["webhook-hmac-header"] as string | undefined) ?? "X-Signature",
     webhookHmacTimestamp: values["webhook-hmac-timestamp"] as boolean,
+    prSummary: values["pr-summary"] as boolean,
+    prSummaryFile: values["pr-summary-file"] as string | undefined,
   };
 }
 
@@ -333,6 +449,15 @@ async function readInput(args: CliArgs): Promise<string> {
     process.exit(EXIT_USAGE);
   }
   return fs.readFileSync(filePath, "utf8");
+}
+
+function readFileInput(filePath: string): string {
+  const resolved = path.resolve(filePath);
+  if (!fs.existsSync(resolved)) {
+    console.error(`Error: File not found: ${resolved}`);
+    process.exit(EXIT_USAGE);
+  }
+  return fs.readFileSync(resolved, "utf8");
 }
 
 function readStdin(): Promise<string> {
@@ -359,6 +484,194 @@ function parseJson(text: string): unknown {
   }
 }
 
+function tryParseJson(text: string): unknown | undefined {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return undefined;
+  }
+}
+
+function normalizeRunFromJsonData(data: unknown, args: CliArgs): {
+  run: TestRunResult;
+  droppedMissingStory: number;
+} {
+  if (args.inputType === "canonical") {
+    try {
+      assertValidRun(data as TestRunResult);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`Canonical validation failed:\n${msg}`);
+      process.exit(EXIT_CANONICAL_VALIDATION);
+    }
+
+    return { run: data as TestRunResult, droppedMissingStory: 0 };
+  }
+
+  const obj = data as Record<string, unknown>;
+  if (obj.schemaVersion !== 1) {
+    console.error(`Unsupported schemaVersion ${obj.schemaVersion}. Supported: 1.`);
+    process.exit(EXIT_SCHEMA_VALIDATION);
+  }
+
+  const schemaResult = validateRawRun(data);
+  if (!schemaResult.valid) {
+    console.error("Schema validation failed:");
+    for (const err of schemaResult.errors) {
+      console.error(`  ${err}`);
+    }
+    process.exit(EXIT_SCHEMA_VALIDATION);
+  }
+
+  let raw = data as RawRun;
+  let droppedMissingStory = 0;
+
+  if (args.synthesizeStories) {
+    raw = synthesizeStories(raw);
+  } else {
+    const before = raw.testCases.length;
+    const withStory = raw.testCases.filter((tc) => tc.story != null).length;
+    droppedMissingStory = before - withStory;
+  }
+
+  const canonical = canonicalizeRun(raw);
+  try {
+    assertValidRun(canonical);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`Canonical validation failed:\n${msg}`);
+    process.exit(EXIT_CANONICAL_VALIDATION);
+  }
+
+  return { run: canonical, droppedMissingStory };
+}
+
+function normalizeRunFromText(text: string, args: CliArgs): {
+  run: TestRunResult;
+  droppedMissingStory: number;
+} {
+  if (args.inputType === "ndjson") {
+    try {
+      return { run: parseNdjson(text), droppedMissingStory: 0 };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`NDJSON parse failed: ${msg}`);
+      process.exit(EXIT_SCHEMA_VALIDATION);
+    }
+  }
+
+  return normalizeRunFromJsonData(parseJson(text), args);
+}
+
+function applySelection(run: TestRunResult, args: CliArgs): TestRunResult {
+  const testCases = selectTestCases(
+    {
+      testCases: run.testCases,
+      include: args.include,
+      exclude: args.exclude,
+      includeTags: args.includeTags,
+      excludeTags: args.excludeTags,
+      sortTestCases: args.sortTestCases,
+    },
+    { logger: console }
+  );
+
+  return { ...run, testCases };
+}
+
+function tryNormalizeRunFromText(
+  text: string,
+  args: CliArgs
+): TestRunResult | undefined {
+  if (args.inputType === "ndjson") {
+    try {
+      return parseNdjson(text);
+    } catch {
+      return undefined;
+    }
+  }
+
+  const data = tryParseJson(text);
+  if (data === undefined) return undefined;
+
+  if (args.inputType === "canonical") {
+    try {
+      assertValidRun(data as TestRunResult);
+      return data as TestRunResult;
+    } catch {
+      return undefined;
+    }
+  }
+
+  const obj = data as Record<string, unknown>;
+  if (obj.schemaVersion !== 1) return undefined;
+
+  const schemaResult = validateRawRun(data);
+  if (!schemaResult.valid) return undefined;
+
+  let raw = data as RawRun;
+  if (args.synthesizeStories) {
+    raw = synthesizeStories(raw);
+  }
+
+  const canonical = canonicalizeRun(raw);
+  try {
+    assertValidRun(canonical);
+    return canonical;
+  } catch {
+    return undefined;
+  }
+}
+
+function listBaselineCandidates(currentFile: string, args: CliArgs): string[] {
+  const baselineDir = path.resolve(args.baselineDir ?? path.dirname(currentFile));
+  const currentResolved = path.resolve(currentFile);
+
+  if (!fs.existsSync(baselineDir)) {
+    console.error(`Error: baseline directory not found: ${baselineDir}`);
+    process.exit(EXIT_USAGE);
+  }
+
+  const entries = fs.readdirSync(baselineDir, { withFileTypes: true });
+  return entries
+    .filter((entry) => entry.isFile())
+    .map((entry) => path.join(baselineDir, entry.name))
+    .filter((candidate) => path.resolve(candidate) !== currentResolved)
+    .filter((candidate) =>
+      args.inputType === "ndjson" ? candidate.endsWith(".ndjson") : candidate.endsWith(".json")
+    );
+}
+
+function resolveBaselineAuto(
+  currentFile: string,
+  currentRun: TestRunResult,
+  args: CliArgs
+): string {
+  const candidates = listBaselineCandidates(currentFile, args);
+  const comparable: Array<{ file: string; run: TestRunResult }> = [];
+
+  for (const candidate of candidates) {
+    const run = tryNormalizeRunFromText(fs.readFileSync(candidate, "utf8"), args);
+    if (run) {
+      comparable.push({ file: candidate, run });
+    }
+  }
+
+  if (comparable.length === 0) {
+    console.error(
+      `Error: no compatible baseline files found in ${path.resolve(args.baselineDir ?? path.dirname(currentFile))}.`
+    );
+    process.exit(EXIT_USAGE);
+  }
+
+  const picked = pickAutoBaseline(currentRun, comparable);
+  if (!picked) {
+    console.error("Error: unable to choose an automatic baseline.");
+    process.exit(EXIT_USAGE);
+  }
+  return picked.file;
+}
+
 // ============================================================================
 // Main
 // ============================================================================
@@ -366,6 +679,38 @@ function parseJson(text: string): unknown {
 async function main() {
   const args = parseCliArgs(process.argv);
   const startMs = Date.now();
+
+  if (args.subcommand === "compare") {
+    const currentText = readFileInput(args.currentFile!);
+    const current = applySelection(normalizeRunFromText(currentText, args).run, args);
+    const baselineFile =
+      args.baselineMode === "auto"
+        ? resolveBaselineAuto(args.currentFile!, current, args)
+        : args.baselineFile!;
+    const baselineText = readFileInput(baselineFile);
+    const baseline = applySelection(normalizeRunFromText(baselineText, args).run, args);
+
+    try {
+      const result = await generateCompareReports(baseline, current, baselineFile, args);
+      printCompareResult(result, args, startMs);
+      process.exit(EXIT_SUCCESS);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`Comparison failed: ${msg}`);
+      process.exit(EXIT_GENERATION);
+    }
+  }
+
+  if (args.subcommand === "list") {
+    const text = await readInput(args);
+    const run = applySelection(normalizeRunFromText(text, args).run, args);
+
+    // Use --json-summary to get JSON output for list command
+    const outputFormat: "text" | "json" = args.jsonSummary ? "json" : "text";
+    const output = listScenarios({ testCases: run.testCases, format: outputFormat }, {});
+    console.log(output);
+    process.exit(EXIT_SUCCESS);
+  }
 
   // Read input
   const text = await readInput(args);
@@ -434,7 +779,7 @@ async function main() {
     // Validate-only mode
     if (args.inputType === "canonical") {
       try {
-        assertValidRun(data as any);
+        assertValidRun(data as TestRunResult);
         console.log("Valid canonical TestRunResult.");
         process.exit(EXIT_SUCCESS);
       } catch (err) {
@@ -471,14 +816,14 @@ async function main() {
   if (args.inputType === "canonical") {
     // Skip schema validation, go straight to canonical validation
     try {
-      assertValidRun(data as any);
+      assertValidRun(data as TestRunResult);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error(`Canonical validation failed:\n${msg}`);
       process.exit(EXIT_CANONICAL_VALIDATION);
     }
 
-    const run = data as any;
+    const run = data as TestRunResult;
 
     // Emit canonical if requested
     if (args.emitCanonical) {
@@ -521,7 +866,7 @@ async function main() {
   }
 
   // 3. Synthesize stories (optional)
-  let raw = data as any;
+  let raw = data as RawRun;
   let droppedMissingStory = 0;
 
   if (args.synthesizeStories) {
@@ -530,7 +875,7 @@ async function main() {
     // Count and warn about dropped test cases
     const before = raw.testCases.length;
     const withStory = raw.testCases.filter(
-      (tc: any) => tc.story != null
+      (tc) => tc.story != null
     ).length;
     droppedMissingStory = before - withStory;
     if (droppedMissingStory > 0) {
@@ -577,7 +922,7 @@ async function main() {
 // Notifications
 // ============================================================================
 
-async function dispatchNotifications(run: any, args: CliArgs): Promise<void> {
+async function dispatchNotifications(run: TestRunResult, args: CliArgs): Promise<void> {
   // Build generic webhook configs from CLI flags
   const webhooks: GenericWebhookNotifierOptions[] = args.webhookUrls.map((url) => {
     const opts: GenericWebhookNotifierOptions = { url };
@@ -625,7 +970,7 @@ async function dispatchNotifications(run: any, args: CliArgs): Promise<void> {
 // History Pipeline
 // ============================================================================
 
-function runHistoryPipeline(run: any, args: CliArgs): void {
+function runHistoryPipeline(run: TestRunResult, args: CliArgs): void {
   if (!args.historyFile) return;
 
   const historyPath = path.resolve(args.historyFile);
@@ -682,22 +1027,42 @@ interface CliResult {
   counts: { passed: number; failed: number; skipped: number; pending: number };
 }
 
+interface CompareCliResult {
+  files: string[];
+  baselineFile: string;
+  summary: {
+    added: number;
+    removed: number;
+    changed: number;
+    regressed: number;
+    fixed: number;
+    unchanged: number;
+  };
+  prSummary?: string;
+}
+
 async function generateReports(
-  run: any,
+  run: TestRunResult,
   args: CliArgs,
   _droppedMissingStory = 0
 ): Promise<CliResult> {
   const generator = new ReportGenerator({
     include: args.include,
     exclude: args.exclude,
+    includeTags: args.includeTags,
+    excludeTags: args.excludeTags,
     formats: args.formats,
     outputDir: args.outputDir,
     outputName: args.outputName,
+    outputNameTimestamp: args.outputNameTimestamp,
+    sortTestCases: args.sortTestCases,
     html: {
       title: args.htmlTitle,
+      theme: args.htmlTheme,
       syntaxHighlighting: !args.htmlNoSyntaxHighlighting,
       mermaidEnabled: !args.htmlNoMermaid,
       markdownEnabled: !args.htmlNoMarkdown,
+      permalinkBaseUrl: args.htmlPermalinkBaseUrl,
     },
   });
 
@@ -719,6 +1084,39 @@ async function generateReports(
   }
 
   return { files, counts };
+}
+
+async function generateCompareReports(
+  baseline: TestRunResult,
+  current: TestRunResult,
+  baselineFile: string,
+  args: CliArgs
+): Promise<CompareCliResult> {
+  const unsupportedCompareFormats = args.formats.filter(
+    (format) => format !== "html" && format !== "markdown"
+  );
+  if (unsupportedCompareFormats.length > 0) {
+    throw new Error(
+      `compare supports only "html" and "markdown" formats (unsupported: ${unsupportedCompareFormats.join(", ")})`
+    );
+  }
+  const compareFormats = args.formats as ("html" | "markdown")[];
+
+  const result = await generateRunComparison({
+    baseline,
+    current,
+    formats: compareFormats,
+    outputDir: args.outputDir,
+    outputName: args.outputName,
+    title: args.htmlTitle,
+  });
+
+  return {
+    files: result.files,
+    baselineFile,
+    summary: result.diff.summary,
+    prSummary: args.prSummary || args.prSummaryFile ? createPrCommentSummary(result.diff) : undefined,
+  };
 }
 
 function printResult(
@@ -743,6 +1141,46 @@ function printResult(
     for (const f of result.files) {
       console.log(f);
     }
+  }
+}
+
+function printCompareResult(
+  result: CompareCliResult,
+  args: CliArgs,
+  startMs: number
+) {
+  const durationMs = Date.now() - startMs;
+
+  if (result.prSummary && args.prSummaryFile) {
+    const outputPath = path.resolve(args.prSummaryFile);
+    fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+    fs.writeFileSync(outputPath, result.prSummary, "utf8");
+  }
+
+  if (args.jsonSummary) {
+    console.log(
+      JSON.stringify(
+        {
+          files: result.files,
+          baselineFile: result.baselineFile,
+          diff: result.summary,
+          prSummary: result.prSummary,
+          durationMs,
+        },
+        null,
+        2
+      )
+    );
+    return;
+  }
+
+  for (const f of result.files) {
+    console.log(f);
+  }
+  console.log(`baseline: ${result.baselineFile}`);
+  if (result.prSummary && args.prSummary) {
+    console.log("");
+    console.log(result.prSummary);
   }
 }
 

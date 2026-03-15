@@ -7,7 +7,7 @@
     "test": "node -e \"const fs=require('fs');const {execSync}=require('child_process');const p=require('path').resolve(process.cwd(),'../../packages/executable-stories-playwright/package.json');if(!fs.existsSync(p)){console.log('Skipping test: executable-stories-playwright not in workspace');process.exit(0);}execSync('playwright test',{stdio:'inherit'});\"",
     "test:ui": "playwright test --ui",
     "lint": "eslint .",
-    "type-check": "node -e \"const fs=require('fs');const {execSync}=require('child_process');const p=require('path').resolve(process.cwd(),'../../packages/executable-stories-playwright/package.json');if(!fs.existsSync(p)){console.log('Skipping type-check: executable-stories-playwright not in workspace');process.exit(0);}execSync('tsc --noEmit',{stdio:'inherit'});\""
+    "type-check": "node -e \"const fs=require('fs');const {execSync}=require('child_process');const p=require('path').resolve(process.cwd(),'../../packages/executable-stories-playwright/package.json');if(!fs.existsSync(p)){console.log('Skipping type-check: executable-stories-playwright not in workspace');process.exit(0);}execSync('pnpm --filter executable-stories-playwright run build && tsc --noEmit',{stdio:'inherit'});\""
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",

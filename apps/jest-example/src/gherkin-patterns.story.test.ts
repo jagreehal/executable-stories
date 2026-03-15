@@ -142,10 +142,12 @@ it('System parses XML configuration', () => {
 // =============================================================================
 // Pattern 10: Background (shared setup via helper)
 // =============================================================================
+/* eslint-disable executable-stories-jest/require-init-before-steps -- background helper called from tests with story.init() */
 const loggedInBackground = () => {
   story.given('the user account exists');
   story.given('the user is logged in');
 };
+/* eslint-enable executable-stories-jest/require-init-before-steps */
 
 it('Change email address', () => {
   story.init();
@@ -496,10 +498,12 @@ it('User registration flow', () => {
 // =============================================================================
 // Pattern 27: Background + Rule (combined patterns)
 // =============================================================================
+/* eslint-disable executable-stories-jest/require-init-before-steps -- background helper called from tests with story.init() */
 const authenticatedUserBackground = () => {
   story.given('the user is authenticated');
   story.given('the user session is valid');
 };
+/* eslint-enable executable-stories-jest/require-init-before-steps */
 
 describe('Rule: Authenticated users can manage their data', () => {
   it('User can view their profile', () => {

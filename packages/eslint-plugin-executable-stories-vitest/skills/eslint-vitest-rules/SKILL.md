@@ -96,7 +96,7 @@ it("my test", ({ task }) => {
 });
 ```
 
-Detects all step methods: `given`, `when`, `then`, `and`, `but`, `arrange`, `act`, `assert`, `setup`, `context`, `execute`, `action`, `verify`.
+Detects all step methods: `given`, `when`, `then`, `and`, `but`, `arrange`, `act`, `assert`, `setup`, `context`, `execute`, `action`, `verify`, `fn`, `expect`.
 
 ## Common Mistakes
 

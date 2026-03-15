@@ -51,3 +51,4 @@ htmlcov/
 *.test
 *.exe
 .astro/
+solo.yml

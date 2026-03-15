@@ -59,7 +59,9 @@ For per-framework behaviour and guarantees (entry point, mental model, modifiers
 
 Details and reporter options: see each package's README.
 
-**OTel trace link** is also supported in the non-JS adapters: Go (`WithTraceUrlTemplate`), Python (`trace_url_template`), Kotlin/JUnit5 (env var), Rust (`with_trace_url_template`, requires `otel` feature), and C#/xUnit (via built-in `System.Diagnostics.Activity`). All adapters auto-detect an active span and inject trace ID docs bidirectionally. Set `OTEL_TRACE_URL_TEMPLATE` (with `{traceId}` placeholder) to generate clickable trace links in reports.
+**OTel trace link** is also supported in the non-JS adapters: Go (`WithTraceUrlTemplate`), Python (`trace_url_template`), Kotlin/JUnit5 (`traceUrlTemplate` parameter or env var), Rust (`with_trace_url_template`, requires `otel` feature), and C#/xUnit (`Story.WithTraceUrlTemplate()` or env var). All adapters auto-detect an active span and inject trace ID docs bidirectionally. Set `OTEL_TRACE_URL_TEMPLATE` (with `{traceId}` placeholder) to generate clickable trace links in reports.
+
+**Step timing** (`startTimer`/`endTimer`) is supported in all non-JS adapters: Go (`s.StartTimer()`/`s.EndTimer(token)`), Python (`story.start_timer()`/`story.end_timer(token)`), Kotlin/JUnit5 (`Story.startTimer()`/`Story.endTimer(token)`), Rust (`story.start_timer()`/`story.end_timer(token)`), and C#/xUnit (`Story.StartTimer()`/`Story.EndTimer(token)`). The JS adapters record step timing automatically via `story.fn()` / `story.expect()` wrappers and step callbacks.
 
 ## Quick example
 

@@ -341,6 +341,26 @@ namespace ExecutableStories.Xunit
         }
 
         // ========================================================================
+        // Step Timing
+        // ========================================================================
+
+        /// <summary>
+        /// Start a high-resolution timer tied to the current step. Returns a token to pass to EndTimer.
+        /// </summary>
+        public static int StartTimer()
+        {
+            return RequireContext().StartTimer();
+        }
+
+        /// <summary>
+        /// Stop the timer and record durationMs on the step that was active when StartTimer() was called. Double-end is a no-op.
+        /// </summary>
+        public static void EndTimer(int token)
+        {
+            RequireContext().EndTimer(token);
+        }
+
+        // ========================================================================
         // Wrapped Step Execution
         // ========================================================================
 
@@ -408,6 +428,15 @@ namespace ExecutableStories.Xunit
         // Internal
         // ========================================================================
 
+        /// <summary>
+        /// Set a URL template for trace links. Use {traceId} as placeholder.
+        /// Takes precedence over the OTEL_TRACE_URL_TEMPLATE environment variable.
+        /// </summary>
+        public static void WithTraceUrlTemplate(string template)
+        {
+            RequireContext().TraceUrlTemplate = template;
+        }
+
         internal static StoryContext? GetContext()
         {
             return _context.Value;
@@ -446,7 +475,7 @@ namespace ExecutableStories.Xunit
                 // OTel -> Story: inject human-readable doc entries
                 ctx.Docs.Add(DocEntry.Kv("Trace ID", traceId));
 
-                var template = Environment.GetEnvironmentVariable("OTEL_TRACE_URL_TEMPLATE");
+                var template = ctx.TraceUrlTemplate ?? Environment.GetEnvironmentVariable("OTEL_TRACE_URL_TEMPLATE");
                 if (!string.IsNullOrEmpty(template))
                 {
                     var url = template.Replace("{traceId}", traceId);

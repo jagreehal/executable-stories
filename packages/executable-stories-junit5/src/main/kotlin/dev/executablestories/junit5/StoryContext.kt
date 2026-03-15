@@ -19,6 +19,8 @@ class StoryContext(
     val docs: MutableList<DocEntry> = mutableListOf()
     val sourceOrder: Int = ORDER_COUNTER.getAndIncrement()
 
+    var traceUrlTemplate: String? = null
+
     var currentStep: StoryStep? = null
         private set
 

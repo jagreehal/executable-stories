@@ -7,20 +7,13 @@ set -e
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 RAW_RUN="$ROOT/apps/junit5-example/.executable-stories/raw-run.json"
 
+# shellcheck source=lib/validate-raw-run.sh
+source "$ROOT/scripts/lib/validate-raw-run.sh"
+
 echo "[verify-junit5] Building executable-stories-junit5..."
 cd "$ROOT/packages/executable-stories-junit5" && ./gradlew build publishToMavenLocal
 
 echo "[verify-junit5] Running junit5-example tests..."
 cd "$ROOT/apps/junit5-example" && ./gradlew test
 
-if [ ! -f "$RAW_RUN" ]; then
-  echo "[verify-junit5] ERROR: $RAW_RUN not found" >&2
-  exit 1
-fi
-
-if ! grep -q '"testCases"' "$RAW_RUN" && ! grep -q '"schemaVersion"' "$RAW_RUN"; then
-  echo "[verify-junit5] ERROR: $RAW_RUN does not contain expected structure (testCases/schemaVersion)" >&2
-  exit 1
-fi
-
-echo "[verify-junit5] OK: raw-run.json exists and has expected structure"
+validate_raw_run "$RAW_RUN" "verify-junit5"

@@ -37,12 +37,12 @@
     "bin"
   ],
   "peerDependencies": {
-    "vitest": ">=4.0.18",
+    "vitest": ">=4.1.0",
     "executable-stories-formatters": "^0.6.2"
   },
   "devDependencies": {
     "@opentelemetry/api": "^1.9.0",
-    "@types/node": "^25.3.2",
+    "@types/node": "^25.5.0",
     "@types/picomatch": "^4.0.2",
     "eslint-config-executable-stories": "workspace:*",
     "executable-stories-formatters": "workspace:*",

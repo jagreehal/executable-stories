@@ -223,6 +223,20 @@ namespace ExecutableStories.Xunit.Tests
             Assert.True(ctx.Steps[0].DurationMs >= 10);
         }
 
+        [Fact]
+        public void StaticStartTimerEndTimerRecordsDuration()
+        {
+            Story.Init("Static timer test");
+            Story.Given("a timed step");
+            var token = Story.StartTimer();
+            Thread.Sleep(15);
+            Story.EndTimer(token);
+
+            StoryStep step = Story.GetContext()!.Steps[0];
+            _ = Assert.NotNull(step.DurationMs);
+            Assert.True(step.DurationMs >= 10, $"Expected >= 10ms, got {step.DurationMs}");
+        }
+
         // ========================================================================
         // Step methods throw without Init
         // ========================================================================

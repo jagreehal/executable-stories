@@ -585,4 +585,25 @@ class StoryApiTest {
         assertEquals("first", stepEvents[0]["title"])
         assertEquals("third", stepEvents[1]["title"])
     }
+
+    // ========================================================================
+    // traceUrlTemplate tests
+    // ========================================================================
+
+    @Test
+    fun withTraceUrlTemplateSetsOnContext() {
+        Story.init("Trace template test")
+        Story.withTraceUrlTemplate("https://tempo.example.com/trace/{traceId}")
+
+        val ctx = Story.getContext()!!
+        assertEquals("https://tempo.example.com/trace/{traceId}", ctx.traceUrlTemplate)
+    }
+
+    @Test
+    fun traceUrlTemplateDefaultsToNull() {
+        Story.init("No template")
+
+        val ctx = Story.getContext()!!
+        assertNull(ctx.traceUrlTemplate)
+    }
 }

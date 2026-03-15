@@ -236,8 +236,14 @@ When working in these areas, load the linked skill file into context for accurat
 | Writing Cypress story tests | `packages/executable-stories-cypress/skills/cypress-story-api/SKILL.md` |
 | Configuring Cypress reporter | `packages/executable-stories-cypress/skills/cypress-reporter-setup/SKILL.md` |
 | Converting existing Cypress tests | `packages/executable-stories-cypress/skills/cypress-converting-tests/SKILL.md` |
+| Writing Go story tests | `packages/executable-stories-go/skills/go-story-api/SKILL.md` |
+| Writing JUnit 5 (Kotlin) story tests | `packages/executable-stories-junit5/skills/junit5-story-api/SKILL.md` |
+| Writing Rust story tests | `packages/executable-stories-rust/skills/rust-story-api/SKILL.md` |
+| Writing xUnit (C#) story tests | `packages/executable-stories-xunit/skills/xunit-story-api/SKILL.md` |
+| Writing pytest story tests | `packages/executable-stories-pytest/skills/pytest-story-api/SKILL.md` |
 | Using the CLI or formatters API | `packages/executable-stories-formatters/skills/formatters-cli/SKILL.md` |
 | Setting up Vitest ESLint rules | `packages/eslint-plugin-executable-stories-vitest/skills/eslint-vitest-rules/SKILL.md` |
 | Setting up Jest ESLint rules | `packages/eslint-plugin-executable-stories-jest/skills/eslint-jest-rules/SKILL.md` |
 | Setting up Playwright ESLint rules | `packages/eslint-plugin-executable-stories-playwright/skills/eslint-playwright-rules/SKILL.md` |
+| Writing well-structured story tests (BDD Discovery & OOPSI) | `.claude/skills/bdd-discovery-oopsi.md` |
 <!-- intent-skills:end -->

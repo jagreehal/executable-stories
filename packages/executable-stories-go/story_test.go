@@ -3,6 +3,7 @@ package es
 import (
 	"encoding/json"
 	"testing"
+	"time"
 )
 
 // mockT implements TestingT for unit testing.
@@ -581,6 +582,62 @@ func TestFnIntegrationWithMarkers(t *testing.T) {
 	}
 	if !s.steps[3].Wrapped {
 		t.Error("expected step 3 (Expect Then) to be wrapped")
+	}
+}
+
+func TestStartTimerEndTimer(t *testing.T) {
+	reset()
+
+	mt := &mockT{name: "TestTimer"}
+	s := Init(mt, "timer test")
+
+	s.Given("a step to time")
+	token := s.StartTimer()
+	time.Sleep(15 * time.Millisecond)
+	s.EndTimer(token)
+
+	if s.steps[0].DurationMs == nil {
+		t.Fatal("expected DurationMs to be set on the step")
+	}
+	if *s.steps[0].DurationMs < 10 {
+		t.Errorf("expected DurationMs >= 10, got %f", *s.steps[0].DurationMs)
+	}
+}
+
+func TestEndTimerDoubleEndIsNoop(t *testing.T) {
+	reset()
+
+	mt := &mockT{name: "TestDoubleEnd"}
+	s := Init(mt, "double end timer")
+
+	s.Given("a step")
+	token := s.StartTimer()
+	time.Sleep(15 * time.Millisecond)
+	s.EndTimer(token)
+
+	first := *s.steps[0].DurationMs
+
+	// Second end should be a no-op
+	time.Sleep(10 * time.Millisecond)
+	s.EndTimer(token)
+
+	if *s.steps[0].DurationMs != first {
+		t.Errorf("expected DurationMs to remain %f after double-end, got %f", first, *s.steps[0].DurationMs)
+	}
+}
+
+func TestEndTimerInvalidTokenIsNoop(t *testing.T) {
+	reset()
+
+	mt := &mockT{name: "TestInvalidToken"}
+	s := Init(mt, "invalid token")
+
+	s.Given("a step")
+	// Should not panic with an invalid token
+	s.EndTimer(999)
+
+	if s.steps[0].DurationMs != nil {
+		t.Error("expected DurationMs to remain nil for invalid token")
 	}
 }
 

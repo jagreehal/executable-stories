@@ -32,6 +32,9 @@ export interface CanonicalizeOptions {
 /** Output format for report generation */
 export type OutputFormat = "cucumber-json" | "cucumber-messages" | "cucumber-html" | "html" | "junit" | "markdown";
 
+/** Sort order for test cases in reports (deterministic for diff-friendly output) */
+export type SortTestCasesMode = "id" | "source" | "none";
+
 /** Output mode for report routing */
 export type OutputMode = "aggregated" | "colocated";
 
@@ -80,6 +83,10 @@ export interface FormatterOptions {
   include?: string[];
   /** Glob patterns to exclude test cases by sourceFile (forward slashes). Applied after include. */
   exclude?: string[];
+  /** Tags to include test cases (any match). If empty, all are considered. */
+  includeTags?: string[];
+  /** Tags to exclude test cases (any match). Applied after includeTags. */
+  excludeTags?: string[];
   /** Output formats to generate. Default: ["cucumber-json"] */
   formats?: OutputFormat[];
 
@@ -88,6 +95,12 @@ export interface FormatterOptions {
 
   /** Base filename (without extension). Default: "test-results" */
   outputName?: string;
+
+  /** Append run timestamp (UTC seconds) to output filename for before/after diffs. Default: false */
+  outputNameTimestamp?: boolean;
+
+  /** Sort test cases deterministically so report content order is stable across runs. Default: "none" */
+  sortTestCases?: SortTestCasesMode;
 
   /** Output routing configuration */
   output?: OutputConfig;
@@ -116,6 +129,10 @@ export interface FormatterOptions {
     mermaidEnabled?: boolean;
     /** Enable Markdown parsing for section doc entries (via marked.js CDN). Default: true */
     markdownEnabled?: boolean;
+    /** Base URL for source permalinks. E.g., "https://github.com/user/repo/blob/main" */
+    permalinkBaseUrl?: string;
+    /** Theme name. Default: "default". Available: default, corporate, terminal, minimal, dashboard, playful */
+    theme?: string;
   };
 
   /** JUnit XML specific options */
@@ -228,9 +245,13 @@ export interface MarkdownRenderers {
 export interface ResolvedFormatterOptions {
   include: string[];
   exclude: string[];
+  includeTags: string[];
+  excludeTags: string[];
   formats: OutputFormat[];
   outputDir: string;
   outputName: string;
+  outputNameTimestamp: boolean;
+  sortTestCases: SortTestCasesMode;
   output: {
     mode: OutputMode;
     colocatedStyle: ColocatedStyle;
@@ -255,6 +276,8 @@ export interface ResolvedFormatterOptions {
     syntaxHighlighting: boolean;
     mermaidEnabled: boolean;
     markdownEnabled: boolean;
+    permalinkBaseUrl?: string;
+    theme: string;
   };
   junit: {
     suiteName: string;

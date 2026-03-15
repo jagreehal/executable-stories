@@ -17,6 +17,7 @@ describe("ESLint Plugin: executable-stories-jest", () => {
           "executable-stories-jest": plugin,
         },
         rules: {
+          "executable-stories-jest/require-init-before-steps": "error" as const,
           "executable-stories-jest/require-story-context-for-steps":
             "error" as const,
           "executable-stories-jest/require-test-context-for-doc-story":
@@ -29,8 +30,9 @@ describe("ESLint Plugin: executable-stories-jest", () => {
     const messages = linter.verify("const x = 1;", config);
     expect(messages).toHaveLength(0);
 
-    story.and("the plugin exposes two rules");
-    expect(Object.keys(plugin.rules!)).toHaveLength(2);
+    story.and("the plugin exposes three rules");
+    expect(Object.keys(plugin.rules!)).toHaveLength(3);
+    expect(plugin.rules).toHaveProperty("require-init-before-steps");
     expect(plugin.rules).toHaveProperty("require-story-context-for-steps");
     expect(plugin.rules).toHaveProperty("require-test-context-for-doc-story");
   });

@@ -1,10 +1,11 @@
 ---
 name: eslint-playwright-rules
 description: >
-  ESLint flat config plugin for executable-stories-playwright. Two rules:
-  require-story-context-for-steps (steps must be inside story callback),
+  ESLint flat config plugin for executable-stories-playwright. Three rules:
+  require-init-before-steps (init before given/when/then),
+  require-story-context-for-steps (steps must be inside story callback or story.init scope),
   require-test-context-for-doc-story (doc.story must be inside test()).
-  Recommended config enables both at error level. Detects Playwright
+  Recommended config enables all at error level. Detects Playwright
   modifiers: only, skip, fixme, fail, slow.
 type: core
 library: eslint-plugin-executable-stories-playwright
@@ -22,7 +23,7 @@ sources:
 import playwrightStories from "eslint-plugin-executable-stories-playwright";
 
 export default [
-  // Option A: Use recommended config
+  // Option A: Use recommended config (enables all rules at error)
   ...playwrightStories.configs.recommended,
 
   // Option B: Manual configuration
@@ -31,6 +32,7 @@ export default [
       "executable-stories-playwright": playwrightStories,
     },
     rules: {
+      "executable-stories-playwright/require-init-before-steps": "error",
       "executable-stories-playwright/require-story-context-for-steps": "error",
       "executable-stories-playwright/require-test-context-for-doc-story": "error",
     },
@@ -40,20 +42,47 @@ export default [
 
 ## Core Patterns
 
-### Rule: require-story-context-for-steps
+### Rule: require-init-before-steps
 
-Ensures step functions (`given`, `when`, `then`, `and`, `but` and aliases) are called inside a `story()` or `doc.story(..., callback)`.
+Ensures `story.init(testInfo)` is called before any step markers.
 
 ```typescript
 // Fails lint
 test("my test", async ({ page }, testInfo) => {
-  given("something"); // Error: must be inside story() or doc.story()
+  story.given("something", async () => {}); // Error: story.init(testInfo) must be called first
+  story.init(testInfo);
 });
 
 // Passes lint
 test("my test", async ({ page }, testInfo) => {
   story.init(testInfo);
-  story.given("something");
+  story.given("something", async () => {});
+});
+```
+
+Detects all step methods: `given`, `when`, `then`, `and`, `but`, `arrange`, `act`, `assert`, `setup`, `context`, `execute`, `action`, `verify`, `fn`, `expect`.
+
+### Rule: require-story-context-for-steps
+
+Ensures bare step functions (`given`, `when`, `then`, `and`, `but` and aliases) are called inside a `story()` callback, `doc.story(..., callback)`, or a function that has `story.init()`.
+
+```typescript
+// Fails lint
+test("my test", async ({ page }, testInfo) => {
+  given("something", async () => {}); // Error: must be inside story() or story.init() scope
+});
+
+// Passes lint — inside story() callback
+story("Login", () => {
+  given("a user", async () => {});
+  when("they sign in", async () => {});
+  then("they see the dashboard", async () => {});
+});
+
+// Passes lint — story.init() in same scope
+test("my test", async ({ page }, testInfo) => {
+  story.init(testInfo);
+  given("a user", async () => {});
 });
 ```
 
@@ -103,5 +132,31 @@ export default [...playwrightStories.configs.recommended];
 ```
 
 This plugin only supports ESLint 9 flat config.
+
+Source: packages/eslint-plugin-executable-stories-playwright/src/index.ts
+
+### MEDIUM Not scoping rules to story test files
+
+```typescript
+// eslint.config.mjs
+import playwrightStories from "eslint-plugin-executable-stories-playwright";
+
+export default [
+  {
+    // Scope to story test files only
+    files: ["**/*.story.spec.ts", "**/*.story.test.ts"],
+    plugins: {
+      "executable-stories-playwright": playwrightStories,
+    },
+    rules: {
+      "executable-stories-playwright/require-init-before-steps": "error",
+      "executable-stories-playwright/require-story-context-for-steps": "error",
+      "executable-stories-playwright/require-test-context-for-doc-story": "error",
+    },
+  },
+];
+```
+
+Scoping avoids false positives on non-story test files that don't use the story API.
 
 Source: packages/eslint-plugin-executable-stories-playwright/src/index.ts

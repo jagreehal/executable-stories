@@ -214,3 +214,30 @@ Source: packages/eslint-plugin-executable-stories-vitest/src/rules/require-init-
 
 See also: vitest-reporter-setup/SKILL.md — Stories need a reporter to produce output
 See also: eslint-vitest-rules/SKILL.md — ESLint enforces correct story.init() usage
+
+## Parameterized Scenarios (Scenario Outline equivalent)
+
+Use Vitest's `it.each` with `story()` to produce one scenario per data row — the framework-native replacement for Cucumber's Scenario Outline + Examples.
+
+```ts
+import { story } from "executable-stories-vitest";
+
+const cases = [
+  { input: 1, expected: 2 },
+  { input: 2, expected: 4 },
+  { input: 3, expected: 6 },
+];
+
+describe("Doubling", () => {
+  it.each(cases)("doubles $input to $expected", ({ input, expected }) => {
+    story(`Doubles ${input} to ${expected}`, (s) => {
+      s.given(`the input is ${input}`);
+      s.when("the doubler runs");
+      s.then(`the result is ${expected}`);
+      expect(input * 2).toBe(expected);
+    });
+  });
+});
+```
+
+Each iteration produces a separate scenario in the generated report. Use interpolated titles so each scenario has a distinct, descriptive name.
