@@ -1,5 +1,14 @@
 # executable-stories-vitest
 
+## 8.0.0
+
+### Patch Changes
+
+- 4a285ef: - **formatters:** Add `--html-theme` with six built-in themes (default, corporate, terminal, minimal, dashboard, playful). Add run-diff formatters (HTML and Markdown) for comparing baseline vs current runs, plus `diffRuns`, `listScenarios`, and `selectTestCases` APIs. Add failure-summary renderer in HTML report.
+  - **playwright, vitest, jest:** Align story API and reporter output with formatters (themes, run-diff, scenario listing).
+- Updated dependencies [4a285ef]
+  - executable-stories-formatters@0.7.0
+
 ## 7.0.2
 
 ### Patch Changes
