@@ -5,7 +5,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { tmpdir } from "node:os";
-import { describe, it, expect, beforeAll, afterEach } from "@jest/globals";
+import { describe, it, expect, beforeAll, afterEach, jest } from "@jest/globals";
 import * as executableStories from "../index";
 import { story, _internal } from "../story-api";
 
@@ -260,6 +260,42 @@ describe("story API", () => {
       expect(s!.docs).toContainEqual(
         expect.objectContaining({ kind: "custom", type: "my-type", data: { foo: "bar" } })
       );
+    });
+
+    it("keeps attached spans isolated when multiple stories share the same scenario title", () => {
+      const getStateSpy = jest.spyOn(expect, "getState");
+      const sharedState = {
+        currentTestName: "duplicate scenario",
+        testPath: "/virtual/duplicate-scenarios.story.test.ts",
+      };
+
+      getStateSpy.mockReturnValue(sharedState as ReturnType<typeof expect.getState>);
+
+      story.init();
+      story.attachSpans([{ spanId: "span-1", name: "first span" }]);
+      _internal.clearContext();
+
+      story.init();
+      story.attachSpans([{ spanId: "span-2", name: "second span" }]);
+      _internal.flushStories();
+
+      getStateSpy.mockRestore();
+
+      const duplicateReport = readFlushedReports().find(
+        (report) => report.testFilePath === sharedState.testPath,
+      );
+      const scenarios = duplicateReport?.scenarios as Array<{
+        scenario: string;
+        _otelSpans?: Array<{ spanId: string; name: string }>;
+      }>;
+
+      expect(scenarios).toHaveLength(2);
+      expect(scenarios[0]?._otelSpans).toEqual([
+        { spanId: "span-1", name: "first span" },
+      ]);
+      expect(scenarios[1]?._otelSpans).toEqual([
+        { spanId: "span-2", name: "second span" },
+      ]);
     });
   });
 

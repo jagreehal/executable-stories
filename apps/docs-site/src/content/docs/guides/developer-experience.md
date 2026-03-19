@@ -3,7 +3,7 @@ title: Developer experience
 description: How executable-stories fits into each framework — entry point, mental model, and modifiers
 ---
 
-We aim for a **seamless native experience** in each framework. You keep your existing `describe` / `it` (or `test.describe` / `test`); we add **`story.init()`** and **`story.given`** / **`story.when`** / **`story.then`** so the reporter can generate Markdown. Same lifecycle, same reporting; no extra runner or "world" object.
+We aim for a **seamless native experience** in each framework. You keep your existing `describe` / `it` (or `test.describe` / `test`); we add **`story.init()`** and **`story.given`** / **`story.when`** / **`story.then`** so reporters can generate shareable output. Same lifecycle, same reporting hooks, no extra runner, and no world object.
 
 ## Conventions
 
@@ -12,12 +12,13 @@ We aim for a **seamless native experience** in each framework. You keep your exi
 ## Jest
 
 - **Entry point:** Import `story` from `executable-stories-jest` and `expect` from `@jest/globals`. Use **native** `describe()` and `it()`. At the start of each test that should appear in the report, call **`story.init()`** (no arguments; Jest gets the test name from `expect.getState()`), then **`story.given`**, **`story.when`**, **`story.then`** (and **`story.and`**, **`story.but`**).
+- **Top-level helpers:** Jest also exports `given`, `when`, `then`, `and`, and `but` if you prefer that style after `story.init()`.
 - **Mental model:** You are writing normal Jest tests with step labels. One test = one scenario; the scenario title in the report is the **it name**. Tests appear in Jest's reporter and respect `-t`, `--watch`, and other Jest options.
 - **Modifiers:** Use Jest's own: `it.skip`, `it.only`, `it.todo`, etc. No custom step semantics.
 - **Suite path in docs:** A `## Suite name` heading appears only when Jest's `currentTestName` contains `" > "` (e.g. "Describe title > test name"). With the default Jest setup this is often not the case, so docs are flat unless you configure test name formatting.
 - **Reporter:** Add the Story reporter to `reporters` with options such as `formats`, `outputDir`, `outputName`, and `output: { mode: 'aggregated' }`. See [Jest reporter options](/reference/jest-config/). Also add `setupFilesAfterEnv: ['executable-stories-jest/setup']`.
 
-**What we guarantee:** Your describe/it stay as-is; we only add the `story` object and the reporter. The only intentional difference is how we group scenarios in the generated Markdown (by file and test name).
+**What we guarantee:** Your describe/it stay as-is; we only add the `story` object and the reporter. The only intentional difference is how we group scenarios in Markdown output (by file and test name).
 
 ## Vitest
 
@@ -65,6 +66,8 @@ Your main `vitest.config.ts` keeps the `StoryReporter` for normal `vitest run`. 
 ## Playwright
 
 - **Entry point:** Import `story` from `executable-stories-playwright` and `test`, `expect` from `@playwright/test`. Use **native** `test.describe()` and `test()`. At the start of each test, call **`story.init(testInfo)`** (pass **`testInfo`** from the test callback: `test('...', async ({ page }, testInfo) => { ... })`), then **`story.given`**, **`story.when`**, **`story.then`**. Your test still receives fixtures (e.g. `{ page }`) for browser actions.
+- **Top-level helpers:** Playwright also exports `given`, `when`, `then`, `and`, and `but`.
+- **Fixture-aware callbacks:** If you want step callbacks to receive fixtures, initialize with `story.init({ page }, testInfo)` or `story.init(testInfo, { fixtures: { page } })`.
 - **Mental model:** Same as Jest/Vitest: one test = one scenario; the scenario title is the **test name**. Fixtures (e.g. `page`, `context`, `browser`) work exactly as in any Playwright test.
 - **Modifiers:** Playwright uses **`.fail`** (expected failure), not `.fails`. Use `test.skip`, `test.only`, `test.fixme`, `test.todo`, `test.fail`, `test.slow` on the test. We follow Playwright's naming.
 - **Suite path in docs:** Comes from `test.describe()` nesting via Playwright's title path.
@@ -81,3 +84,7 @@ Your main `vitest.config.ts` keeps the `StoryReporter` for normal `vitest run`. 
 - **Reporter:** Use the Mocha reporter (`--reporter executable-stories-cypress/reporter`) or the Module API: after `cypress.run()`, call `buildRawRunFromCypressResult(result, options)` then `generateReportsFromRawRun(rawRun, options)` from `executable-stories-cypress/reporter`. Options match the formatters' `FormatterOptions`.
 
 **What we guarantee:** Native describe/it, same story API as Jest (no task/testInfo). The only intentional difference is that story meta is sent from the browser to Node via `cy.task` for report generation.
+
+## Wider repo scope
+
+The monorepo also includes adapters for Go, pytest, JUnit 5, Rust, and xUnit. This site documents the JavaScript packages in detail because they share the Starlight setup and reporter UX; see [Other adapters](/reference/other-adapters/) for the rest of the repo surface.

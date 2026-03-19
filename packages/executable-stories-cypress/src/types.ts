@@ -41,6 +41,7 @@ export interface RecordMetaPayload {
   titlePath: string[];
   meta: StoryMeta;
   attachments?: ScopedAttachment[];
+  otelSpans?: ReadonlyArray<Record<string, unknown>>;
 }
 
 /** All inline doc options that can be passed to step markers. */

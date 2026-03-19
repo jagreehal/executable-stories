@@ -3,7 +3,7 @@ title: Converting existing Vitest tests
 description: Step-by-step guide from plain it() to story.init() and step markers
 ---
 
-This guide teaches executable-stories patterns **one concept at a time**. We start from plain Vitest tests and add story structure and generated docs without throwing away existing tests.
+This guide teaches executable-stories patterns **one concept at a time**. We start from plain Vitest tests and add story structure and generated report output without throwing away existing tests.
 
 ## Part 1: Baseline
 
@@ -22,11 +22,11 @@ it('subtraction works', () => {
 });
 ```
 
-**Why this is the baseline:** Tests pass and give confidence, but no user-story docs are generated and stakeholders don't see readable Given/When/Then. The next steps add both.
+**Why this is the baseline:** Tests pass and give confidence, but no user-story output is generated and stakeholders don't see readable Given/When/Then. The next steps add both.
 
 ## Part 2: Add story.init() and step markers
 
-Keep your **native `describe` / `it`**. At the start of each test that should appear in the report, call **`story.init(task)`** (with **`task`** from the callback). Then use **`story.given`**, **`story.when`**, **`story.then`** to mark steps. The **scenario title** in the generated docs is the **test name** (the first argument to `it()`).
+Keep your **native `describe` / `it`**. At the start of each test that should appear in the report, call **`story.init(task)`** (with **`task`** from the callback). Then use **`story.given`**, **`story.when`**, **`story.then`** to mark steps. The **scenario title** in Markdown output is the **test name** (the first argument to `it()`).
 
 ```typescript
 import { story } from 'executable-stories-vitest';
@@ -71,7 +71,7 @@ it('Calculator subtracts two numbers', ({ task }) => {
 
 ## Part 4: Full patterns
 
-Use **`story.note`**, **`story.json`**, **`story.table`**, etc. after steps (or before any step for story-level docs) for rich docs in the generated Markdown.
+Use **`story.note`**, **`story.json`**, **`story.table`**, etc. after steps (or before any step for story-level docs) for rich details in Markdown output.
 
 ```typescript
 import { story } from 'executable-stories-vitest';
@@ -92,7 +92,7 @@ describe('Calculator', () => {
     story.init(task);
     story.given('two numbers 1 and 2');
     story.note(
-      'Using small numbers; the note appears in the generated Markdown.',
+      'Using small numbers; the note appears in the Markdown output.',
     );
     story.when('they are added');
     story.then('the result is 3');
@@ -103,7 +103,7 @@ describe('Calculator', () => {
 
 ## Runnable example
 
-The full refactor guide lives in the example app. Run it and open the generated docs:
+The full refactor guide lives in the example app. Run it and open the generated output:
 
 - **Source:** [apps/vitest-example/src/refactor-guide.story.test.ts](https://github.com/jagreehal/executable-stories/blob/main/apps/vitest-example/src/refactor-guide.story.test.ts)
 - **Run:** `pnpm test` in `apps/vitest-example` (or `npx vitest run`)

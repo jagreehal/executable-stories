@@ -7,9 +7,9 @@ There is one ESLint plugin per framework. Use the plugin for your test runner to
 
 | Framework  | Package                                       | Rules                                                                                             |
 | ---------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| Jest       | `eslint-plugin-executable-stories-jest`       | _(none)_                                                                                          |
+| Jest       | `eslint-plugin-executable-stories-jest`       | `require-init-before-steps`, `require-story-context-for-steps`, `require-test-context-for-doc-story` |
 | Vitest     | `eslint-plugin-executable-stories-vitest`     | `require-task-for-story-init`, `require-test-context-for-story-init`, `require-init-before-steps` |
-| Playwright | `eslint-plugin-executable-stories-playwright` | `require-story-context-for-steps`, `require-test-context-for-doc-story`                           |
+| Playwright | `eslint-plugin-executable-stories-playwright` | `require-init-before-steps`, `require-story-context-for-steps`, `require-test-context-for-doc-story` |
 
 Requires ESLint 9+ (flat config).
 
@@ -62,9 +62,15 @@ export default [
 ];
 ```
 
-**Jest** — same pattern; spread `configs.recommended` or add the plugin. Jest has no rules but exports config for future use.
+**Jest** — same pattern; spread `configs.recommended` or add the plugin. Jest now ships three rules:
 
-**Playwright** — spread the recommended config to enable the two rules:
+```javascript
+import jestExecutableStories from 'eslint-plugin-executable-stories-jest';
+
+export default [...jestExecutableStories.configs.recommended];
+```
+
+**Playwright** — spread the recommended config to enable the three rules:
 
 ```javascript
 import playwrightExecutableStories from 'eslint-plugin-executable-stories-playwright';
@@ -83,12 +89,27 @@ export default [
       'executable-stories-playwright': playwrightExecutableStories,
     },
     rules: {
+      'executable-stories-playwright/require-init-before-steps': 'error',
       'executable-stories-playwright/require-story-context-for-steps': 'error',
       'executable-stories-playwright/require-test-context-for-doc-story': 'error',
     },
   },
 ];
 ```
+
+## Jest rules
+
+### require-init-before-steps
+
+`story.init()` must run before `story.given`, `story.when`, `story.then`, and the doc methods in the same Jest test.
+
+### require-story-context-for-steps
+
+Legacy top-level step helpers (`given`, `when`, `then`, `and`, `but` and aliases) must only be called from an allowed story context.
+
+### require-test-context-for-doc-story
+
+If you use `doc.story(title)` in a framework-native test, it must be inside a `test()` or `it()` callback.
 
 ## Vitest rules
 
@@ -140,6 +161,10 @@ it('my test', ({ task }) => {
 ```
 
 ## Playwright rules
+
+### require-init-before-steps
+
+`story.init(testInfo)` must run before `story.given`, `story.when`, `story.then`, and doc methods in the same test.
 
 ### require-story-context-for-steps
 

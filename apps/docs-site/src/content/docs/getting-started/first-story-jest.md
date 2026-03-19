@@ -1,6 +1,6 @@
 ---
 title: First Story (Jest)
-description: Write your first Jest scenario and see the generated docs
+description: Write your first Jest scenario and see the generated report output
 ---
 
 ## Write a story
@@ -33,7 +33,7 @@ pnpm jest
 
 ## Generated output
 
-The reporter writes Markdown to your configured path (e.g. `docs/user-stories.md`). For the story above, the output looks like:
+The reporter writes to your configured formats and paths. For Markdown output (for example `docs/user-stories.md`), the story above looks like:
 
 ```markdown
 ### User logs in successfully

@@ -23,15 +23,16 @@ export default defineConfig({
 
 ## Options reference
 
-The reporter uses `FormatterOptions` from `executable-stories-formatters`. All options are optional. When you pass no options, the formatters package defaults apply (e.g. `formats: ["cucumber-json"]`, `outputDir: "reports"`). To get Markdown written to `docs/user-stories.md`, pass options explicitly as in the examples below.
+The reporter uses `FormatterOptions` from `executable-stories-formatters`. All options are optional. When you pass no options, the formatters package defaults apply (for example `formats: ["cucumber-json"]`, `outputDir: "reports"`). To get Markdown written to `docs/user-stories.md`, pass options explicitly as in the examples below.
 
 ### Output configuration
 
 | Option       | Type             | Default                  | Description                                                           |
 | ------------ | ---------------- | ------------------------ | --------------------------------------------------------------------- |
-| `formats`    | `OutputFormat[]` | `["cucumber-json"]`      | Output formats: `"markdown"`, `"html"`, `"junit"`, `"cucumber-json"`. |
+| `formats`    | `OutputFormat[]` | `["cucumber-json"]`      | Output formats: `"markdown"`, `"html"`, `"junit"`, `"cucumber-json"`, `"cucumber-messages"`, `"cucumber-html"`. |
 | `outputDir`  | `string`         | `"reports"`              | Base directory for output files.                                      |
 | `outputName` | `string`         | `"test-results"`         | Base filename (without extension).                                    |
+| `outputNameTimestamp` | `boolean` | `false`                | Append a UTC timestamp suffix to the output filename.                 |
 | `output`     | `OutputConfig`   | `{ mode: "aggregated" }` | Output routing configuration.                                         |
 
 ### OutputConfig
@@ -58,6 +59,17 @@ Nested under `markdown`:
 | `includeSummaryTable` | `boolean`               | `false`          | Add summary statistics table.                                 |
 | `permalinkBaseUrl`    | `string`                | —                | Base URL for source links (e.g. GitHub blob).                 |
 | `ticketUrlTemplate`   | `string`                | —                | URL template for ticket links. Use `{ticket}` as placeholder. |
+| `traceUrlTemplate`    | `string`                | —                | URL template for trace links. Use `{traceId}` as placeholder. |
+| `includeSourceLinks`  | `boolean`               | `true`           | Include source links when `permalinkBaseUrl` is set.          |
+
+### Filtering, history, and notifications
+
+Top-level `FormatterOptions` also support:
+
+- `include` / `exclude` for filtering by `sourceFile`
+- `includeTags` / `excludeTags` for filtering by story tags
+- `history.filePath` and `history.maxRuns` for HTML flakiness, stability, and performance trends
+- `notification.*` for Slack, Teams, and generic webhook notifications
 
 ### Other format options
 
@@ -72,6 +84,7 @@ Nested under `markdown`:
 | Option                       | Type      | Default | Description                                          |
 | ---------------------------- | --------- | ------- | ---------------------------------------------------- |
 | `enableGithubActionsSummary` | `boolean` | `true`  | When `GITHUB_ACTIONS`, append report to job summary. |
+| `rawRunPath`                 | `string`  | —       | Write the raw run JSON to disk for later CLI use.    |
 
 ## Examples
 

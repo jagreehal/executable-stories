@@ -12,4 +12,5 @@ class StoryMeta {
     var suitePath: List<String>? = null
     var docs: List<DocEntry>? = null
     var sourceOrder: Int? = null
+    var otelSpans: List<Any>? = null
 }

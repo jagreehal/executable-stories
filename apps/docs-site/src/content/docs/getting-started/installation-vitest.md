@@ -6,13 +6,13 @@ description: Install Vitest and executable-stories-vitest and add the reporter
 ## Install the packages
 
 ```bash
-pnpm add -D vitest executable-stories-vitest
+pnpm add -D vitest executable-stories-vitest executable-stories-formatters
 ```
 
 Or with npm:
 
 ```bash
-npm install -D vitest executable-stories-vitest
+npm install -D vitest executable-stories-vitest executable-stories-formatters
 ```
 
 ## Add the reporter
@@ -42,6 +42,6 @@ The Markdown file is generated after the test run.
 
 ## Next
 
-[First Story (Vitest)](/getting-started/first-story-vitest/) — write your first scenario and see the generated docs.
+[First Story (Vitest)](/getting-started/first-story-vitest/) — write your first scenario and see the generated output.
 
 [Vitest reporter options](/reference/vitest-config/) — all configuration options.

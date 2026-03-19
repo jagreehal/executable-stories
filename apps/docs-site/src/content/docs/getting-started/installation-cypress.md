@@ -53,6 +53,6 @@ Options match the formatters’ `FormatterOptions` (e.g. `formats`, `outputDir`,
 
 ## Next
 
-[First Story (Cypress)](/getting-started/first-story-cypress/) — write your first scenario and see the generated docs.
+[First Story (Cypress)](/getting-started/first-story-cypress/) — write your first scenario and see the generated output.
 
 [Cypress reporter options](/reference/cypress-config/) — all configuration options.

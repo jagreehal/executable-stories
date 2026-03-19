@@ -49,6 +49,7 @@ type S struct {
 	traceUrlTemplate string // URL template with {traceId} placeholder for OTel trace links
 	activeTimers     map[int]*timerEntry
 	timerCounter     int
+	otelSpans        []any
 }
 
 // WithTags adds tags to the story.
@@ -169,6 +170,7 @@ func Init(t TestingT, scenario string, opts ...Option) *S {
 			Meta:        s.meta,
 			Docs:        s.docs,
 			SourceOrder: &order,
+			OtelSpans:   s.otelSpans,
 		}
 
 		tc := RawTestCase{
@@ -413,5 +415,12 @@ func (s *S) AttachInline(name, mediaType, body, encoding string) *S {
 		a.StepID = &s.currentStep.ID
 	}
 	s.attachments = append(s.attachments, a)
+	return s
+}
+
+// AttachSpans attaches OTel spans to the story for trace waterfall rendering in HTML reports.
+// Accepts any slice of span-like objects (structurally compatible with autotel's SerializedSpan).
+func (s *S) AttachSpans(spans []any) *S {
+	s.otelSpans = spans
 	return s
 }

@@ -79,6 +79,7 @@ interface StoryContext {
   timerCounter: number;
   specRelative: string;
   titlePath: string[];
+  otelSpans?: ReadonlyArray<Record<string, unknown>>;
 }
 
 // ============================================================================
@@ -320,6 +321,7 @@ export function getAndClearMeta(): RecordMetaPayload | null {
     titlePath: activeContext.titlePath,
     meta: activeContext.meta,
     attachments: activeContext.attachments.length > 0 ? activeContext.attachments : undefined,
+    otelSpans: activeContext.otelSpans,
   };
   activeContext = null;
   return payload;
@@ -467,6 +469,12 @@ export const story = {
       stepIndex: stepIndex !== undefined && stepIndex >= 0 ? stepIndex : undefined,
       stepId: ctx.currentStep?.id,
     });
+  },
+
+  // OTel span attachment
+  attachSpans(spans: ReadonlyArray<Record<string, unknown>>): void {
+    const ctx = getContext();
+    ctx.otelSpans = spans;
   },
 
   // Step timing

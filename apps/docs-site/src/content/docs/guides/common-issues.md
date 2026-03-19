@@ -1,9 +1,9 @@
 ---
 title: Common issues
-description: Troubleshooting no Markdown, step errors, and framework-specific gotchas
+description: Troubleshooting missing reports, step errors, and framework-specific gotchas
 ---
 
-## No Markdown generated
+## No report generated
 
 **Check:**
 
@@ -81,4 +81,4 @@ Story structure is captured as the test runs (when you call `story.init` and the
 - Use the framework’s modifiers on the **test**: `it.skip("...", () => { ... })`, `it.todo("...", () => { ... })`, etc., so the scenario still appears in the report with the right status.
 - **Doc methods** (`story.note`, `story.kv`, etc.) are attached to the current step or story and appear in the report when that test runs. If the test is skipped, the scenario may show with no steps or minimal content depending on reporter behavior.
 
-If you see a scenario in the report with no steps or missing doc content, check that the test ran and that `story.init()` and step markers are executed.
+If you see a scenario in the report with no steps or missing doc content, check that the test ran and that `story.init()` and step markers were actually executed.

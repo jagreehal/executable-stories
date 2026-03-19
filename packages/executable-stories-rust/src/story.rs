@@ -88,6 +88,7 @@ pub struct Story {
     attachments: Vec<RawAttachment>,
     active_timers: HashMap<usize, TimerEntry>,
     timer_counter: usize,
+    otel_spans: Option<Vec<serde_json::Value>>,
 }
 
 impl Story {
@@ -111,6 +112,7 @@ impl Story {
             attachments: Vec::new(),
             active_timers: HashMap::new(),
             timer_counter: 0,
+            otel_spans: None,
         };
         story.bridge_otel();
         story
@@ -496,6 +498,12 @@ impl Story {
         self
     }
 
+    /// Attach OTel spans for trace waterfall rendering in HTML reports.
+    pub fn attach_spans(&mut self, spans: Vec<serde_json::Value>) -> &mut Self {
+        self.otel_spans = Some(spans);
+        self
+    }
+
     /// Mark the story as passed. Must be called before the story goes out of scope.
     pub fn pass(&mut self) {
         self.passed = true;
@@ -532,6 +540,7 @@ impl Drop for Story {
                 meta: self.meta.clone(),
                 docs: if self.docs.is_empty() { None } else { Some(self.docs.clone()) },
                 source_order: self.source_order,
+                otel_spans: self.otel_spans.clone(),
             }),
             duration_ms: Some(duration),
             retry: 0,

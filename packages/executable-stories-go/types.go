@@ -40,6 +40,7 @@ type StoryMeta struct {
 	SuitePath   []string       `json:"suitePath,omitempty"`
 	Docs        []DocEntry     `json:"docs,omitempty"`
 	SourceOrder *int           `json:"sourceOrder,omitempty"`
+	OtelSpans   []any          `json:"otelSpans,omitempty"`
 }
 
 // StoryStep represents a single BDD step (Given/When/Then/And/But).

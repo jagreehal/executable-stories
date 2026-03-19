@@ -6,13 +6,13 @@ description: Install Playwright and executable-stories-playwright and add the re
 ## Install the packages
 
 ```bash
-pnpm add -D @playwright/test executable-stories-playwright
+pnpm add -D @playwright/test executable-stories-playwright executable-stories-formatters
 ```
 
 Or with npm:
 
 ```bash
-npm install -D @playwright/test executable-stories-playwright
+npm install -D @playwright/test executable-stories-playwright executable-stories-formatters
 ```
 
 ## Add the reporter

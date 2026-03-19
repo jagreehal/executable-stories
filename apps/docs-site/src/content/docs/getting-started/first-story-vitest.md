@@ -1,6 +1,6 @@
 ---
 title: First Story (Vitest)
-description: Write your first Vitest scenario and see the generated docs
+description: Write your first Vitest scenario and see the generated report output
 ---
 
 ## Write a story
@@ -33,7 +33,7 @@ pnpm vitest run
 
 ## Generated output
 
-The reporter writes Markdown to `docs/user-stories.md` (or your configured path). For the story above, the output looks like:
+The reporter writes to your configured formats and paths. For Markdown output (for example `docs/user-stories.md`), the story above looks like:
 
 ```markdown
 ### User logs in successfully
