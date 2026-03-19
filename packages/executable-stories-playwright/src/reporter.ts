@@ -235,7 +235,7 @@ export default class StoryReporter implements Reporter {
       }
 
       // Map Playwright result.attachments → RawAttachment[]
-      const attachments: RawAttachment[] = (result.attachments ?? []).map((a) => {
+      const allAttachments: RawAttachment[] = (result.attachments ?? []).map((a) => {
         let body: string | undefined;
         let encoding: "BASE64" | "IDENTITY" | undefined;
         if (a.body !== undefined) {
@@ -255,6 +255,11 @@ export default class StoryReporter implements Reporter {
           encoding,
         };
       });
+
+      // Deduplicate video attachments by name — Playwright may attach
+      // multiple video files per test (e.g. video.webm and video-1.webm).
+      // Keep only the last video attachment per name, which is the real recording.
+      const attachments = deduplicateVideoAttachments(allAttachments);
 
       // Extract step events (timing) from story steps
       const stepEvents: RawStepEvent[] = meta.steps
@@ -391,4 +396,33 @@ export default class StoryReporter implements Reporter {
       console.error("Failed to send notifications:", err);
     }
   }
+}
+
+/**
+ * Deduplicate video attachments by name.
+ *
+ * Playwright with `video: "on"` may produce multiple video files per test
+ * in the output directory (e.g. `video.webm` and `video-1.webm`), attaching
+ * all of them to the test result. This leads to duplicate videos in reports.
+ *
+ * For each unique video attachment name, keep only the last occurrence —
+ * Playwright appends the real recording after any stubs.
+ * Non-video attachments are always preserved.
+ */
+export function deduplicateVideoAttachments(
+  attachments: RawAttachment[],
+): RawAttachment[] {
+  // Find the last index for each video attachment name
+  const lastVideoIndex = new Map<string, number>();
+  for (let i = 0; i < attachments.length; i++) {
+    if (attachments[i].mediaType.startsWith("video/")) {
+      lastVideoIndex.set(attachments[i].name, i);
+    }
+  }
+
+  // Keep non-video attachments and only the last video per name
+  return attachments.filter((att, i) => {
+    if (!att.mediaType.startsWith("video/")) return true;
+    return lastVideoIndex.get(att.name) === i;
+  });
 }
