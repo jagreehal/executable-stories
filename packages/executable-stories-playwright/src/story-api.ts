@@ -579,6 +579,23 @@ export const story = {
   // Attachments
   attach: playwrightAttach,
 
+  // OTel span attachment
+  attachSpans(spans: ReadonlyArray<Record<string, unknown>>): void {
+    if (!activeTestInfo) return;
+    const existing = activeTestInfo.annotations.find(
+      (a) => a.type === 'story-otel-spans',
+    );
+    const description = JSON.stringify(spans);
+    if (existing) {
+      existing.description = description;
+    } else {
+      activeTestInfo.annotations.push({
+        type: 'story-otel-spans',
+        description,
+      });
+    }
+  },
+
   // Step timing
   startTimer(): number {
     const ctx = getContext();

@@ -1,9 +1,9 @@
 ---
 title: Understanding the report
-description: Status icons, headings, and what the generated Markdown means
+description: Status icons, headings, and what the generated report means
 ---
 
-The reporter turns story metadata and test results into Markdown. Each scenario gets a **status icon** and optional headings and source links.
+The reporter turns story metadata and test results into Markdown and HTML. Each scenario gets a **status icon** and optional headings, metadata, and source links.
 
 ## Scenario status icons
 
@@ -26,7 +26,7 @@ You can override with `scenarioHeadingLevel` / `storyHeadingLevel` in reporter o
 
 ## What appears in the report
 
-- **Scenario title** — When you set a story title (e.g. via `doc.story("Title", task)` or `doc.story("Title", callback)` in Vitest/Playwright), the **scenario heading** (the line with the status icon) is that story title. When you only use `story.init()` with no story title, the heading is derived from the test (e.g. the it/test name). To control the displayed scenario title in framework-native tests, use `doc.story("Title", ...)` — see [Developer experience](/guides/developer-experience/) for attaching a story to a plain `it()`/`test()`.
+- **Scenario title** — The scenario heading normally comes from the test title used with `story.init(...)`. If you attach explicit story metadata in a framework-native pattern, that story title is what the report renders.
 - **Steps** — Each `story.given` / `story.when` / `story.then` (and `story.and`, `story.but`) as a bullet. Framework modifiers (skip/todo/fails etc.) are reflected in the step label (e.g. _(skipped)_, _(todo)_).
 - **Tags and options** — If you pass `{ tags: [...], meta: {...} }` to `story.init(..., options)`, they can be included (see reporter options).
 - **Step documentation** — Notes, key-value pairs, code blocks, tables, and links added via `story.note`, `story.json`, `story.table`, etc. appear under the corresponding step.

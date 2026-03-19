@@ -39,6 +39,7 @@ class _StoryContext:
         "_current_step",
         "active_timers",
         "timer_counter",
+        "otel_spans",
     )
 
     def __init__(
@@ -62,6 +63,7 @@ class _StoryContext:
         self._current_step: dict[str, Any] | None = None
         self.active_timers: dict[int, dict[str, Any]] = {}
         self.timer_counter: int = 0
+        self.otel_spans: list[dict[str, Any]] | None = None
 
 
 class Story:
@@ -147,6 +149,8 @@ class Story:
             result["suitePath"] = list(ctx.suite_path)
         if ctx.docs:
             result["docs"] = list(ctx.docs)
+        if ctx.otel_spans:
+            result["otelSpans"] = ctx.otel_spans
         return result
 
     def _get_attachments(self) -> list[dict[str, Any]]:
@@ -352,6 +356,12 @@ class Story:
             a["stepIndex"] = idx
             a["stepId"] = ctx._current_step.get("id")
         ctx.attachments.append(a)
+        return self
+
+    def attach_spans(self, spans: list[dict[str, Any]]) -> "Story":
+        """Attach OTel spans for trace waterfall rendering in HTML reports."""
+        ctx = self._require_context()
+        ctx.otel_spans = spans
         return self
 
     # ── doc helpers ────────────────────────────────────────────────

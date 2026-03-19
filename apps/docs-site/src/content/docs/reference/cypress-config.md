@@ -13,7 +13,7 @@ When Cypress runs, it uses Mocha under the hood. You can pass the executable-sto
 cypress run --reporter executable-stories-cypress/reporter --reporter-options outputDir=docs,outputName=user-stories
 ```
 
-Reporter options match **FormatterOptions** from `executable-stories-formatters`. See [Vitest reporter options](/reference/vitest-config/) for the full option list (output configuration, markdown options, html, junit, etc.).
+Reporter options match **FormatterOptions** from `executable-stories-formatters`. See [Vitest reporter options](/reference/vitest-config/) for the full option list (output configuration, filtering, markdown options, html, junit, history, notifications, and more).
 
 ## Module API
 
@@ -36,15 +36,16 @@ await generateReportsFromRawRun(rawRun, {
 });
 ```
 
-Options are the same **FormatterOptions** used by the other framework reporters: `formats`, `outputDir`, `outputName`, `output`, `markdown`, `html`, `junit`, `cucumberJson`, etc.
+Options are the same **FormatterOptions** used by the other framework reporters: `formats`, `outputDir`, `outputName`, `output`, `markdown`, `html`, `junit`, `cucumberJson`, `cucumberMessages`, `history`, `notification`, and so on.
 
 ## Options reference
 
 | Option       | Type             | Default                  | Description                                                           |
 | ------------ | ---------------- | ------------------------ | --------------------------------------------------------------------- |
-| `formats`    | `OutputFormat[]` | `["cucumber-json"]`      | Output formats: `"markdown"`, `"html"`, `"junit"`, `"cucumber-json"`. |
+| `formats`    | `OutputFormat[]` | `["cucumber-json"]`      | Output formats: `"markdown"`, `"html"`, `"junit"`, `"cucumber-json"`, `"cucumber-messages"`, `"cucumber-html"`. |
 | `outputDir`  | `string`         | `"reports"`              | Base directory for output files.                                      |
 | `outputName` | `string`         | `"test-results"`         | Base filename (without extension).                                    |
+| `outputNameTimestamp` | `boolean` | `false`                | Append a UTC timestamp suffix to the output filename.                 |
 | `output`     | `OutputConfig`   | `{ mode: "aggregated" }` | Output routing configuration.                                         |
 
 For **OutputConfig**, **markdown**, **html**, and other nested options, see [Vitest reporter options](/reference/vitest-config/).

@@ -341,6 +341,18 @@ namespace ExecutableStories.Xunit
         }
 
         // ========================================================================
+        // OTel Span Attachment
+        // ========================================================================
+
+        /// <summary>
+        /// Attach OTel spans for trace waterfall rendering in HTML reports.
+        /// </summary>
+        public static void AttachSpans(List<object> spans)
+        {
+            RequireContext().OtelSpans = spans;
+        }
+
+        // ========================================================================
         // Step Timing
         // ========================================================================
 

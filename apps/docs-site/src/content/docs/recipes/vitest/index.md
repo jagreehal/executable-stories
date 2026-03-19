@@ -4,7 +4,7 @@ description: Example scenarios with Vitest code and generated output
 slug: recipes/vitest
 ---
 
-Each recipe shows how to implement a scenario in **Vitest** with `executable-stories-vitest` and the **generated Markdown** the reporter produces. You use **native** `describe` / `it` and the **`story`** object: call **`story.init(task)`** at the start of each test (with **`task`** from `it('...', ({ task }) => { ... })`), then **`story.given`**, **`story.when`**, **`story.then`** (and **`story.and`**, **`story.but`**). Code is from the [vitest-example](https://github.com/jagreehal/executable-stories/tree/main/apps/vitest-example) app.
+Each recipe shows how to implement a scenario in **Vitest** with `executable-stories-vitest` and the Markdown output the reporter produces. You use **native** `describe` / `it` and the **`story`** object: call **`story.init(task)`** at the start of each test (with **`task`** from `it('...', ({ task }) => { ... })`), then **`story.given`**, **`story.when`**, **`story.then`** (and **`story.and`**, **`story.but`**). Code is from the [vitest-example](https://github.com/jagreehal/executable-stories/tree/main/apps/vitest-example) app.
 
 ## Recipe list
 

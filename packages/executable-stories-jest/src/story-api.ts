@@ -86,6 +86,10 @@ interface StoryContext {
   activeTimers: Map<number, TimerEntry>;
   /** Monotonic timer token counter */
   timerCounter: number;
+  /** Test file path for registry lookups */
+  testPath: string;
+  /** Index into the storyRegistry array for this scenario */
+  scenarioIndex: number;
 }
 
 // ============================================================================
@@ -104,8 +108,11 @@ declare global {
 /** Stories collected during test execution, keyed by test file path */
 const storyRegistry: Map<string, StoryMeta[]> = globalThis.__jestExecutableStoriesRegistry ??= new Map();
 
-/** Attachments collected per story, keyed by test file path → scenario name → attachments */
-const attachmentRegistry = new Map<string, Map<string, ScopedAttachment[]>>();
+/** Attachments collected per story, keyed by test file path → scenario index → attachments */
+const attachmentRegistry = new Map<string, Map<number, ScopedAttachment[]>>();
+
+/** OTel spans collected per story, keyed by test file path → scenario index → spans */
+const otelSpansRegistry = new Map<string, Map<number, ReadonlyArray<Record<string, unknown>>>>();
 
 /** Track if we've registered the process exit handler */
 let exitHandlerRegistered = globalThis.__jestExecutableStoriesExitHandler ?? false;
@@ -130,11 +137,13 @@ function flushStories(): void {
     const baseName = testFilePath === "unknown" ? "unknown" : path.basename(testFilePath);
     const outFile = path.join(outputDir, `${baseName}.${hash}.json`);
 
-    // Include attachments per scenario
+    // Include attachments and otelSpans per scenario (keyed by index, not name)
     const fileAttachments = attachmentRegistry.get(testFilePath);
-    const scenariosWithAttachments = scenarios.map((s) => ({
+    const fileOtelSpans = otelSpansRegistry.get(testFilePath);
+    const scenariosWithAttachments = scenarios.map((s, i) => ({
       ...s,
-      _attachments: fileAttachments?.get(s.scenario) ?? [],
+      _attachments: fileAttachments?.get(i) ?? [],
+      ...(fileOtelSpans?.get(i) ? { _otelSpans: fileOtelSpans.get(i) } : {}),
     }));
 
     const payload = { testFilePath, scenarios: scenariosWithAttachments };
@@ -142,6 +151,7 @@ function flushStories(): void {
   }
   storyRegistry.clear();
   attachmentRegistry.clear();
+  otelSpansRegistry.clear();
 }
 
 /** Register process exit handler to flush stories (once per worker) */
@@ -389,9 +399,12 @@ function init(options?: StoryOptions): void {
 
   // Store in registry for this file
   const existing = storyRegistry.get(testPath);
+  let scenarioIndex: number;
   if (existing) {
+    scenarioIndex = existing.length;
     existing.push(meta);
   } else {
+    scenarioIndex = 0;
     storyRegistry.set(testPath, [meta]);
   }
 
@@ -406,13 +419,15 @@ function init(options?: StoryOptions): void {
     attachments: [],
     activeTimers: new Map(),
     timerCounter: 0,
+    testPath,
+    scenarioIndex,
   };
 
-  // Link attachments to the registry for this test file + scenario
+  // Link attachments to the registry for this test file + scenario index
   if (!attachmentRegistry.has(testPath)) {
     attachmentRegistry.set(testPath, new Map());
   }
-  attachmentRegistry.get(testPath)!.set(meta.scenario, activeContext.attachments);
+  attachmentRegistry.get(testPath)!.set(scenarioIndex, activeContext.attachments);
 }
 
 // ============================================================================
@@ -603,6 +618,15 @@ export const story = {
       stepIndex: stepIndex !== undefined && stepIndex >= 0 ? stepIndex : undefined,
       stepId: ctx.currentStep?.id,
     });
+  },
+
+  // OTel span attachment
+  attachSpans(spans: ReadonlyArray<Record<string, unknown>>): void {
+    const ctx = getContext();
+    if (!otelSpansRegistry.has(ctx.testPath)) {
+      otelSpansRegistry.set(ctx.testPath, new Map());
+    }
+    otelSpansRegistry.get(ctx.testPath)!.set(ctx.scenarioIndex, spans);
   },
 
   // Step wrappers

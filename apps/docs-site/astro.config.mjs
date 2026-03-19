@@ -18,7 +18,7 @@ export default defineConfig({
     starlight({
       title: 'Executable Stories',
       description:
-        'Framework-native BDD-style tests with generated docs for Vitest, Jest, Playwright, and Cypress.',
+        'Framework-native BDD-style tests with generated reports for Vitest, Jest, Playwright, and Cypress.',
       head: [
         {
           tag: 'base',
@@ -79,6 +79,7 @@ export default defineConfig({
           label: 'Reference',
           items: [
             { label: 'Core types & constants', slug: 'reference/core-api' },
+            { label: 'Other adapters', slug: 'reference/other-adapters' },
             { label: 'Formatters API', slug: 'reference/formatters-api' },
             { label: 'ESLint plugins', slug: 'reference/eslint-plugins' },
             { label: 'Vitest reporter options', slug: 'reference/vitest-config' },

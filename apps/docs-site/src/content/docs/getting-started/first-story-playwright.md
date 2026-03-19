@@ -1,6 +1,6 @@
 ---
 title: First Story (Playwright)
-description: Write your first Playwright scenario and see the generated docs
+description: Write your first Playwright scenario and see the generated report output
 ---
 
 ## Write a story
@@ -29,7 +29,7 @@ test.describe('Login', () => {
 });
 ```
 
-Use **`story.init(testInfo)`** at the start of the test (pass **`testInfo`** from the test callback), then **`story.given`**, **`story.when`**, **`story.then`** to mark steps. Your test still receives Playwright fixtures (e.g. `{ page }`) for browser actions.
+Use **`story.init(testInfo)`** at the start of the test (pass **`testInfo`** from the test callback), then **`story.given`**, **`story.when`**, **`story.then`** to mark steps. If you want step callbacks to receive fixtures, initialize with **`story.init({ page }, testInfo)`** instead.
 
 ## Run tests
 
@@ -39,7 +39,7 @@ pnpm playwright test
 
 ## Generated output
 
-The reporter writes Markdown to your configured path (e.g. `docs/user-stories.md`). For the story above, the output looks like:
+The reporter writes to your configured formats and paths. For Markdown output (for example `docs/user-stories.md`), the story above looks like:
 
 ```markdown
 ### User logs in successfully

@@ -3,7 +3,13 @@ title: Jest story & doc API
 description: story.init(), story.given/when/then, StoryOptions, and doc API for executable-stories-jest
 ---
 
-Jest uses the same **story.init() + story.\*** pattern as Vitest and Playwright. Call **`story.init([options])`** at the start of each test (no task argument; Jest gets the test name from `expect.getState()`), then use **`story.given`**, **`story.when`**, **`story.then`**, and doc methods on the **`story`** object.
+Jest uses the same **story.init() + story.\*** pattern as the other JavaScript adapters. Call **`story.init([options])`** at the start of each test (no task argument; Jest gets the test name from `expect.getState()`), then use **`story.given`**, **`story.when`**, **`story.then`**, and doc methods on the **`story`** object.
+
+Jest also exports top-level **`given`**, **`when`**, **`then`**, **`and`**, and **`but`** helpers:
+
+```typescript
+import { story, given, when, then } from 'executable-stories-jest';
+```
 
 ## story.init([options])
 
@@ -11,7 +17,7 @@ Initializes a story for the current test. Must be called at the start of each te
 
 | Item        | Description                                                                |
 | ----------- | -------------------------------------------------------------------------- |
-| **options** | Optional `StoryOptions`: `tags`, `ticket`, `meta`.                         |
+| **options** | Optional `StoryOptions`: `tags`, `ticket`, `meta`, `traceUrlTemplate`.     |
 | **Example** | `it('adds two numbers', () => { story.init(); story.given('...'); ... });` |
 
 **Example with options:**
@@ -21,6 +27,7 @@ it('admin deletes user', () => {
   story.init({
     tags: ['admin', 'destructive'],
     ticket: 'JIRA-456',
+    traceUrlTemplate: 'https://grafana.example.com/explore?traceId={traceId}',
   });
   story.given('the admin is logged in');
   story.when('the admin deletes the user');
@@ -59,4 +66,4 @@ describe('Calculator', () => {
 
 ## StoryOptions
 
-Same as Vitest: `tags`, `ticket`, `meta`. See [Vitest story & doc API](/reference/vitest-story-api/) for detailed doc method descriptions and inline-doc examples.
+Same as Vitest: `tags`, `ticket`, `meta`, `traceUrlTemplate`. See [Vitest story & doc API](/reference/vitest-story-api/) for detailed doc method descriptions and inline-doc examples.

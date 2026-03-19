@@ -38,5 +38,9 @@ namespace ExecutableStories.Xunit
         [JsonPropertyName("sourceOrder")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public int? SourceOrder { get; set; }
+
+        [JsonPropertyName("otelSpans")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public List<object>? OtelSpans { get; set; }
     }
 }

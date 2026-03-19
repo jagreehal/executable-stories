@@ -6,13 +6,13 @@ description: Install Jest and executable-stories-jest and add the reporter
 ## Install the packages
 
 ```bash
-pnpm add -D jest executable-stories-jest
+pnpm add -D jest executable-stories-jest executable-stories-formatters
 ```
 
 Or with npm:
 
 ```bash
-npm install -D jest executable-stories-jest
+npm install -D jest executable-stories-jest executable-stories-formatters
 ```
 
 ## Add the reporter

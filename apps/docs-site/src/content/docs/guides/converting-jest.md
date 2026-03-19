@@ -3,7 +3,7 @@ title: Converting existing Jest tests
 description: Step-by-step guide from plain test() to story.init() and step markers
 ---
 
-This guide teaches executable-stories patterns **one concept at a time**. We start from plain Jest tests and add story structure and generated docs without throwing away existing tests.
+This guide teaches executable-stories patterns **one concept at a time**. We start from plain Jest tests and add story structure and generated report output without throwing away existing tests.
 
 ## Part 1: Baseline
 
@@ -22,11 +22,11 @@ test('subtraction works', () => {
 });
 ```
 
-**Why this is the baseline:** Tests pass and give confidence, but no user-story docs are generated and stakeholders don't see readable Given/When/Then. The next steps add both.
+**Why this is the baseline:** Tests pass and give confidence, but no user-story output is generated and stakeholders don't see readable Given/When/Then. The next steps add both.
 
 ## Part 2: Add story.init() and step markers
 
-Keep your **native `describe` / `test`** (or `it`). At the start of each test that should appear in the report, call **`story.init()`** (no task; Jest gets the test name from `expect.getState()`). Then use **`story.given`**, **`story.when`**, **`story.then`** to mark steps. The **scenario title** in the generated docs is the **test name**.
+Keep your **native `describe` / `test`** (or `it`). At the start of each test that should appear in the report, call **`story.init()`** (no task; Jest gets the test name from `expect.getState()`). Then use **`story.given`**, **`story.when`**, **`story.then`** to mark steps. The **scenario title** in Markdown output is the **test name**.
 
 ```typescript
 import { describe, expect, test } from '@jest/globals';
@@ -71,7 +71,7 @@ test('Calculator subtracts two numbers', () => {
 
 ## Part 4: Full patterns
 
-Use **`story.note`**, **`story.json`**, **`story.table`**, etc. after steps for rich docs in the generated Markdown.
+Use **`story.note`**, **`story.json`**, **`story.table`**, etc. after steps for rich details in Markdown output.
 
 ```typescript
 import { describe, expect, test } from '@jest/globals';
@@ -92,7 +92,7 @@ describe('Calculator', () => {
     story.init();
     story.given('two numbers 1 and 2');
     story.note(
-      'Using small numbers; the note appears in the generated Markdown.',
+      'Using small numbers; the note appears in the Markdown output.',
     );
     story.when('they are added');
     story.then('the result is 3');
@@ -103,7 +103,7 @@ describe('Calculator', () => {
 
 ## Runnable example
 
-The full refactor guide lives in the example app. Run it and open the generated docs:
+The full refactor guide lives in the example app. Run it and open the generated output:
 
 - **Source:** [apps/jest-example/src/refactor-guide.story.test.ts](https://github.com/jagreehal/executable-stories/blob/main/apps/jest-example/src/refactor-guide.story.test.ts)
 - **Run:** `pnpm test` in `apps/jest-example` (or `npx jest`)

@@ -3,7 +3,7 @@ title: Vitest story & doc API
 description: story.init(), story.given/when/then, StoryOptions, and doc methods for executable-stories-vitest
 ---
 
-Vitest uses a **native describe/it** pattern: you call **`story.init(task)`** at the start of each test, then use **`story.given`**, **`story.when`**, **`story.then`**, and doc methods on the **`story`** object. There is no callback-based `story(title, define)` and no top-level `then` export (to avoid thenable issues).
+Vitest uses a **native describe/it** pattern: call **`story.init(task)`** at the start of each test, then use **`story.given`**, **`story.when`**, **`story.then`**, and doc methods on the **`story`** object. Vitest intentionally does **not** export top-level step helpers because a top-level `then` export can break tooling that treats module namespaces as thenables.
 
 ## story.init(task, [options])
 
@@ -12,7 +12,7 @@ Initializes a story for the current test. Must be called at the start of each te
 | Item        | Description                                                                            |
 | ----------- | -------------------------------------------------------------------------------------- |
 | **task**    | The Vitest task from `it('...', ({ task }) => { ... })`.                               |
-| **options** | Optional `StoryOptions`: `tags`, `ticket`, `meta`.                                     |
+| **options** | Optional `StoryOptions`: `tags`, `ticket`, `meta`, `traceUrlTemplate`.                 |
 | **Example** | `it('adds two numbers', ({ task }) => { story.init(task); story.given('...'); ... });` |
 
 **Example with options:**
@@ -135,6 +135,7 @@ it('login with credentials', ({ task }) => {
 | `tags`   | `string[]`                | —       | Tags for filtering and categorizing (e.g. `["smoke", "auth"]`). |
 | `ticket` | `string \| string[]`      | —       | Ticket/issue reference(s) for requirements traceability.        |
 | `meta`   | `Record<string, unknown>` | —       | Arbitrary user-defined metadata.                                |
+| `traceUrlTemplate` | `string`         | —       | Trace URL template using `{traceId}`. Also supported via `OTEL_TRACE_URL_TEMPLATE`. |
 
 ## Reporter
 
@@ -155,4 +156,6 @@ See [Vitest reporter options](/reference/vitest-config/) for all options.
 
 ## Types
 
-Export from `executable-stories-vitest`: `StoryMeta`, `StoryStep`, `DocEntry`, `StepKeyword`, `StoryDocs`, `StoryOptions`, `VitestTask`, `VitestSuite`, `StepMode`, `DocPhase`, `StoryDocs`. Reporter types from `executable-stories-vitest/reporter`: `StoryReporterOptions`, `OutputRule`, `CustomDocRenderer`.
+Exported from `executable-stories-vitest`: `story`, `StoryMeta`, `StoryStep`, `DocEntry`, `StepKeyword`, `StoryDocs`, `StoryOptions`, `VitestTask`, `VitestSuite`, `StepMode`, `DocPhase`, `STORY_META_KEY`.
+
+Reporter types come from `executable-stories-vitest/reporter`, including `StoryReporterOptions`, `OutputFormat`, `OutputMode`, `ColocatedStyle`, `OutputRule`, and `FormatterOptions`.

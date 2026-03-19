@@ -29,6 +29,7 @@ namespace ExecutableStories.Xunit
         private readonly List<Dictionary<string, object?>> _attachments = [];
         private readonly Dictionary<int, TimerEntry> _activeTimers = [];
         private int _timerCounter;
+        public List<object>? OtelSpans { get; set; }
 
         public StoryContext(string scenario, params string[] tags) : this(scenario)
         {
@@ -146,7 +147,8 @@ namespace ExecutableStories.Xunit
                 Tickets = Tickets.Count > 0 ? new List<string>(Tickets) : null,
                 Meta = Meta.Count > 0 ? new Dictionary<string, object>(Meta) : null,
                 Docs = Docs.Count > 0 ? new List<DocEntry>(Docs) : null,
-                SourceOrder = SourceOrder
+                SourceOrder = SourceOrder,
+                OtelSpans = OtelSpans
             };
         }
 

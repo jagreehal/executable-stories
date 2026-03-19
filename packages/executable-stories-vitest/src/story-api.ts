@@ -823,6 +823,34 @@ function storyExpect<T>(text: string, body: () => T): T {
 }
 
 // ============================================================================
+// Span attachment: story.attachSpans()
+// ============================================================================
+
+/**
+ * Attach OTel spans to the current test so the StoryReporter renders them
+ * as a trace waterfall in HTML reports.
+ *
+ * Accepts any array of objects with at least `spanId` and `name` fields.
+ * Structurally compatible with autotel's `SerializedSpan` and the
+ * `OtelSpan` type from executable-stories-formatters.
+ *
+ * @example
+ * ```ts
+ * import { serializeSpan } from 'autotel/test-span-collector';
+ *
+ * // After running code that creates spans:
+ * const spans = exporter.getFinishedSpans().map(serializeSpan);
+ * story.attachSpans(spans);
+ * ```
+ */
+function attachSpans(spans: ReadonlyArray<Record<string, unknown>>): void {
+  const ctx = getContext();
+  if (ctx.taskMeta) {
+    ctx.taskMeta.otelSpans = spans;
+  }
+}
+
+// ============================================================================
 // Export story object
 // ============================================================================
 
@@ -890,6 +918,9 @@ export const story = {
 
   // Attachments
   attach,
+
+  // OTel span attachment
+  attachSpans,
 
   // Step wrappers
   fn,

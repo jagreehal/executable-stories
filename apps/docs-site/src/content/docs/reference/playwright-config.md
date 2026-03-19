@@ -23,16 +23,18 @@ export default defineConfig({
 
 ## Options reference
 
-The reporter uses `FormatterOptions` from `executable-stories-formatters`. Same options as [Vitest reporter options](/reference/vitest-config/).
+The reporter uses `FormatterOptions` from `executable-stories-formatters`. Same core options as [Vitest reporter options](/reference/vitest-config/).
 
 ### Output configuration
 
 | Option       | Type             | Default                  | Description                                                           |
 | ------------ | ---------------- | ------------------------ | --------------------------------------------------------------------- |
-| `formats`    | `OutputFormat[]` | `["cucumber-json"]`      | Output formats: `"markdown"`, `"html"`, `"junit"`, `"cucumber-json"`. |
+| `formats`    | `OutputFormat[]` | `["cucumber-json"]`      | Output formats: `"markdown"`, `"html"`, `"junit"`, `"cucumber-json"`, `"cucumber-messages"`, `"cucumber-html"`. |
 | `outputDir`  | `string`         | `"reports"`              | Base directory for output files.                                      |
 | `outputName` | `string`         | `"test-results"`         | Base filename (without extension).                                    |
+| `outputNameTimestamp` | `boolean` | `false`                | Append a UTC timestamp suffix to the output filename.                 |
 | `output`     | `OutputConfig`   | `{ mode: "aggregated" }` | Output routing configuration.                                         |
+| `rawRunPath` | `string`         | —                        | Write the raw run JSON to disk for later CLI use.                     |
 
 ### OutputConfig
 
@@ -45,6 +47,8 @@ The reporter uses `FormatterOptions` from `executable-stories-formatters`. Same 
 ### Markdown options
 
 Nested under `markdown`. See [Vitest config](/reference/vitest-config/#markdown-options) for full list.
+
+The same top-level filtering, history, and notification options are also available in Playwright reporter config.
 
 ## Examples
 

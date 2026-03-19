@@ -3,7 +3,7 @@ title: Converting existing Playwright tests
 description: Step-by-step guide from plain test() to story.init() and step markers
 ---
 
-This guide teaches executable-stories patterns **one concept at a time**. We start from plain Playwright tests and add story structure and generated docs without throwing away existing tests.
+This guide teaches executable-stories patterns **one concept at a time**. We start from plain Playwright tests and add story structure and generated report output without throwing away existing tests.
 
 ## Part 1: Baseline
 
@@ -22,11 +22,11 @@ test('subtraction works', async () => {
 });
 ```
 
-**Why this is the baseline:** Tests pass and give confidence, but no user-story docs are generated and stakeholders don't see readable Given/When/Then. The next steps add both.
+**Why this is the baseline:** Tests pass and give confidence, but no user-story output is generated and stakeholders don't see readable Given/When/Then. The next steps add both.
 
 ## Part 2: Add story.init() and step markers
 
-Keep your **native `test.describe` / `test`**. At the start of each test that should appear in the report, call **`story.init(testInfo)`** (pass **`testInfo`** from the test callback). Then use **`story.given`**, **`story.when`**, **`story.then`** to mark steps. The **scenario title** in the generated docs is the **test name**. Your test still receives Playwright fixtures (e.g. `{ page }`) for browser actions.
+Keep your **native `test.describe` / `test`**. At the start of each test that should appear in the report, call **`story.init(testInfo)`** (pass **`testInfo`** from the test callback). Then use **`story.given`**, **`story.when`**, **`story.then`** to mark steps. The **scenario title** in Markdown output is the **test name**. Your test still receives Playwright fixtures (e.g. `{ page }`) for browser actions.
 
 ```typescript
 import { expect, test } from '@playwright/test';
@@ -34,7 +34,7 @@ import { story } from 'executable-stories-playwright';
 import { add } from './calculator.js';
 
 test.describe('Calculator', () => {
-  test('Calculator adds two numbers', async ({ task }, testInfo) => {
+  test('Calculator adds two numbers', async ({}, testInfo) => {
     story.init(testInfo);
 
     story.given('two numbers 2 and 3');
@@ -61,7 +61,7 @@ import { expect, test } from '@playwright/test';
 import { story } from 'executable-stories-playwright';
 import { subtract } from './calculator.js';
 
-test('Calculator subtracts two numbers', async ({ task }, testInfo) => {
+test('Calculator subtracts two numbers', async ({}, testInfo) => {
   story.init(testInfo);
   expect(subtract(10, 4)).toBe(6);
 });
@@ -71,7 +71,7 @@ test('Calculator subtracts two numbers', async ({ task }, testInfo) => {
 
 ## Part 4: Full patterns
 
-Use **`story.note`**, **`story.json`**, **`story.table`**, etc. after steps for rich docs in the generated Markdown. In E2E tests, use fixtures in the test body: `await page.goto("/login")`, etc.
+Use **`story.note`**, **`story.json`**, **`story.table`**, etc. after steps for rich details in Markdown output. In E2E tests, use fixtures in the test body, or initialize with `story.init({ page }, testInfo)` when step callbacks need them.
 
 ```typescript
 import { expect, test } from '@playwright/test';
@@ -79,7 +79,7 @@ import { story } from 'executable-stories-playwright';
 import { add, multiply } from './calculator.js';
 
 test.describe('Calculator', () => {
-  test('Calculator multiplies two numbers', async ({ task }, testInfo) => {
+  test('Calculator multiplies two numbers', async ({}, testInfo) => {
     story.init(testInfo);
     story.given('two numbers 7 and 6');
     story.when('they are multiplied');
@@ -88,11 +88,11 @@ test.describe('Calculator', () => {
     expect(result).toBe(42);
   });
 
-  test('Calculator adds with a note', async ({ task }, testInfo) => {
+  test('Calculator adds with a note', async ({}, testInfo) => {
     story.init(testInfo);
     story.given('two numbers 1 and 2');
     story.note(
-      'Using small numbers; the note appears in the generated Markdown.',
+      'Using small numbers; the note appears in the Markdown output.',
     );
     story.when('they are added');
     story.then('the result is 3');
@@ -103,7 +103,7 @@ test.describe('Calculator', () => {
 
 ## Runnable example
 
-The full refactor guide lives in the example app. Run it and open the generated docs:
+The full refactor guide lives in the example app. Run it and open the generated output:
 
 - **Source:** [apps/playwright-example/src/refactor-guide.story.spec.ts](https://github.com/jagreehal/executable-stories/blob/main/apps/playwright-example/src/refactor-guide.story.spec.ts)
 - **Run:** `pnpm test` in `apps/playwright-example` (or `npx playwright test`)

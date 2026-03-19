@@ -30,6 +30,7 @@ class StoryContext(
 
     private val activeTimers: MutableMap<Int, TimerEntry> = mutableMapOf()
     private var timerCounter = 0
+    var otelSpans: List<Any>? = null
 
     constructor(scenario: String, vararg tags: String) : this(scenario) {
         this.tags.addAll(tags.toList())
@@ -109,6 +110,7 @@ class StoryContext(
             meta = if (this@StoryContext.meta.isEmpty()) null else LinkedHashMap(this@StoryContext.meta)
             docs = if (this@StoryContext.docs.isEmpty()) null else ArrayList(this@StoryContext.docs)
             sourceOrder = this@StoryContext.sourceOrder
+            otelSpans = this@StoryContext.otelSpans
         }
 
     fun startTimer(): Int {

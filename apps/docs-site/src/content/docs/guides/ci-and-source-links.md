@@ -45,7 +45,7 @@ So source links can work in GitHub Actions **without** any config. To disable so
 
 ## GitHub Actions job summary
 
-When **`enableGithubActionsSummary`** is `true` (default) and **`process.env.GITHUB_ACTIONS === 'true'`**, the reporter **appends** the generated Markdown to the GitHub Actions **job summary**. The report then appears on the workflow run page.
+When **`enableGithubActionsSummary`** is `true` (default) and **`process.env.GITHUB_ACTIONS === 'true'`**, the reporter appends the Markdown report to the GitHub Actions job summary. The report then appears on the workflow run page.
 
 - If **`@actions/core`** is available (installed in the repo), the reporter uses it to append to the job summary.
 - If `@actions/core` is not available, the reporter skips the summary and still writes the Markdown file(s).

@@ -1,6 +1,6 @@
 ---
 title: First Story (Cypress)
-description: Write your first Cypress scenario and see the generated docs
+description: Write your first Cypress scenario and see the generated report output
 ---
 
 ## Write a story
@@ -42,7 +42,7 @@ pnpm cypress open
 
 ## Generated output
 
-If you configured the reporter (see [Installation (Cypress)](/getting-started/installation-cypress/)), Markdown or other formats are written to your configured path. For the story above, the output looks like:
+If you configured the reporter (see [Installation (Cypress)](/getting-started/installation-cypress/)), reports are written to your configured formats and paths. For Markdown output, the story above looks like:
 
 ```markdown
 ### Adds two numbers
