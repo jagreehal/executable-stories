@@ -15,6 +15,7 @@ playwright-report/
 playwright/.cache/
 .playwright/
 screenshots/
+!apps/docs-site/public/screenshots/
 cypress/videos/
 cypress/screenshots/
 .cypress/
@@ -59,3 +60,4 @@ skills-lock.json
 .superpowers
 **/*/.executable-stories
 .worktrees/
+.playwright-cli

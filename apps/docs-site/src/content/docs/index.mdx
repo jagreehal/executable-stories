@@ -1,244 +1,1083 @@
 ---
 title: 'Executable Stories'
-description: Framework-native BDD-style tests with generated reports for Vitest, Jest, Playwright, and Cypress
+description: Tests that document. Reports that convince. Framework-native story tests for Vitest, Jest, Playwright, Cypress, and Ruby.
 template: splash
 hero:
-  tagline: Framework-native BDD-style tests with generated reports for Vitest, Jest, Playwright, and Cypress
-  actions:
-    - text: Get Started (Vitest)
-      link: getting-started/installation-vitest/
-      icon: right-arrow
-    - text: View on GitHub
-      link: https://github.com/jagreehal/executable-stories
-      icon: external
-      variant: minimal
+  tagline: ""
+  actions: []
 ---
 
-import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+import BeforeAfter from '../../components/BeforeAfter.astro';
 
-One source of truth. Code that executes. Reports that do not lie.
+{/* ── Hero ── */}
 
-## What it does
+<div class="hero-custom not-content">
+  <div class="hero-custom__text">
+    <div class="hero-custom__badge">Open Source BDD Framework</div>
+    <h1 class="hero-custom__title">Tests that document.<br/>Reports that convince.</h1>
+    <p class="hero-custom__subtitle">Write BDD stories inside your test framework. Generate living documentation your whole team can read.</p>
+    <ul class="hero-custom__bullets">
+      <li>No Gherkin files</li>
+      <li>No step matching</li>
+      <li>No separate runtime</li>
+    </ul>
+    <div class="hero-custom__actions">
+      <a href="getting-started/installation-vitest/" class="hero-btn hero-btn--primary">Get Started</a>
+      <a href="https://github.com/jagreehal/executable-stories" class="hero-btn hero-btn--secondary">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" class="hero-btn__icon"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+      </a>
+    </div>
+    <div class="hero-custom__stack">
+      <div class="hero-custom__stack-row">
+        <span class="hero-custom__stack-label">Test frameworks</span>
+        <div class="hero-custom__frameworks">
+          <a href="getting-started/installation-vitest/" class="hero-custom__fw-tag"><img src="icons/Vite.js.svg" alt="" class="fw-icon" />Vitest</a>
+          <a href="getting-started/installation-jest/" class="hero-custom__fw-tag"><img src="icons/Jest.svg" alt="" class="fw-icon" />Jest</a>
+          <a href="getting-started/installation-playwright/" class="hero-custom__fw-tag"><img src="icons/Playwright.svg" alt="" class="fw-icon" />Playwright</a>
+          <a href="getting-started/installation-cypress/" class="hero-custom__fw-tag"><img src="icons/Cypress.svg" alt="" class="fw-icon" />Cypress</a>
+        </div>
+      </div>
+      <div class="hero-custom__stack-row">
+        <span class="hero-custom__stack-label">Language adapters</span>
+        <div class="hero-custom__frameworks">
+          <a href="getting-started/installation-go/" class="hero-custom__fw-tag"><img src="icons/Go.svg" alt="" class="fw-icon" />Go</a>
+          <a href="getting-started/installation-pytest/" class="hero-custom__fw-tag"><img src="icons/Python.svg" alt="" class="fw-icon" />Python</a>
+          <a href="getting-started/installation-ruby/" class="hero-custom__fw-tag"><img src="icons/Ruby.svg" alt="" class="fw-icon" />Ruby</a>
+          <a href="getting-started/installation-rust/" class="hero-custom__fw-tag"><img src="icons/Rust.svg" alt="" class="fw-icon" />Rust</a>
+          <a href="getting-started/installation-junit5/" class="hero-custom__fw-tag"><img src="icons/Java.svg" alt="" class="fw-icon" />Kotlin</a>
+          <a href="getting-started/installation-xunit/" class="hero-custom__fw-tag"><img src="icons/NET.svg" alt="" class="fw-icon" />C#</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="hero-custom__image">
+    <div class="hero-custom__browser">
+      <div class="hero-custom__browser-bar">
+        <span class="hero-custom__dot hero-custom__dot--red"></span>
+        <span class="hero-custom__dot hero-custom__dot--yellow"></span>
+        <span class="hero-custom__dot hero-custom__dot--green"></span>
+        <span class="hero-custom__browser-title">report.html</span>
+      </div>
+      <img src="screenshots/hero-report.png" alt="Executable Stories HTML report showing passed scenarios with Given/When/Then steps, code blocks, and searchable tags" />
+    </div>
+  </div>
+</div>
 
-We **add to** your existing test setup instead of replacing it. You keep your framework’s `describe` / `it` (or `test.describe` / `test`). Inside a test, call **`story.init()`** (or `story.init(task)` / `story.init(testInfo)` for Vitest/Playwright), then use **`story.given`**, **`story.when`**, **`story.then`** to document the scenario. Reporters and the formatter CLI turn that into Markdown, HTML, JUnit XML, Cucumber JSON, Cucumber Messages, and Cucumber HTML.
+{/* ── Before / After ── */}
 
-- **Framework-native** — Same `describe` / `it` (or `test`), same lifecycle; we only add step labels and doc generation.
-- **Step markers** — `story.given`, `story.when`, `story.then`, `story.and`, `story.but` (and AAA aliases) attach to the **current test**.
-- **Reporter** — Generates reports from test metadata; if a test is skipped, failed, or todo, the output reflects that.
+<div class="section-break" />
 
-## Install
+<div class="section-header not-content">
+  <h2 class="section-header__title">From terminal noise to team documentation</h2>
+  <p class="section-header__sub">Same test run. Completely different audience.</p>
+</div>
 
-**Vitest:**
+<BeforeAfter
+  beforeLabel="Terminal output"
+  afterLabel="Generated report"
+  beforeImage="screenshots/terminal-output.png"
+  afterImage="screenshots/report-output.png"
+  beforeAlt="Raw Vitest terminal output — dense, unstructured"
+  afterAlt="Same test data rendered as a clean, searchable HTML report"
+/>
 
-```bash
-pnpm add -D vitest executable-stories-vitest executable-stories-formatters
-```
+{/* ── How it works ── */}
 
-**Jest:**
+<div class="section-break" />
 
-```bash
-pnpm add -D executable-stories-jest executable-stories-formatters
-```
+<div class="section-header not-content">
+  <h2 class="section-header__title">Write. Run. Share.</h2>
+    <p class="section-header__sub">Three steps from test code to stakeholder-ready documentation.</p>
+</div>
 
-**Playwright:**
-
-```bash
-pnpm add -D executable-stories-playwright executable-stories-formatters
-```
-
-**Cypress:**
-
-```bash
-pnpm add -D executable-stories-cypress
-```
-
-## Quick example (Vitest)
-
-Use native `describe` / `it`; call **`story.init(task)`** at the start of the test, then **`story.given`** / **`story.when`** / **`story.then`**:
+<div class="workflow not-content">
+  <div class="workflow__row">
+    <div class="workflow__meta">
+      <span class="workflow__num">1</span>
+      <span class="workflow__label">Write stories in your tests</span>
+    </div>
+    <div class="workflow__content">
 
 ```typescript
-import { story } from 'executable-stories-vitest';
-import { describe, expect, it } from 'vitest';
-
-describe('Login', () => {
-  it('user logs in', ({ task }) => {
-    story.init(task);
-    story.given('user is on login page');
-    story.when('user submits valid credentials');
-    story.then('user sees the dashboard');
-    expect(true).toBe(true); // or real assertions
-  });
+story.init(task, { ticket: 'PAY-2847' });
+story.given('a cart with 3 items');
+story.when('the payment is submitted');
+story.then('a receipt is generated');
+story.table({
+  label: 'Receipt breakdown',
+  columns: ['Item', 'Qty', 'Total'],
+  rows: [['Widget Pro', '2', '178.00']],
 });
 ```
 
-## Quick example (Jest)
+  </div>
+  </div>
+  <div class="workflow__row">
+    <div class="workflow__meta">
+      <span class="workflow__num">2</span>
+      <span class="workflow__label">Run your tests</span>
+    </div>
+    <div class="workflow__content">
 
-Same idea: **`story.init()`** at the start of the test (no task; Jest gets the test name from `expect.getState()`). Jest also exports top-level **`given`**, **`when`**, **`then`**, **`and`**, and **`but`** helpers if you prefer them:
+```bash
+vitest run
+npx executable-stories format --html --markdown
+```
 
+  </div>
+  </div>
+  <div class="workflow__row">
+    <div class="workflow__meta">
+      <span class="workflow__num">3</span>
+      <span class="workflow__label">Share the report</span>
+    </div>
+    <div class="workflow__content">
+      <img src="screenshots/report-output.png" alt="Generated HTML report" class="workflow__img" />
+    </div>
+  </div>
+</div>
+
+{/* ── Features ── */}
+
+<div class="section-break" />
+
+<div class="section-header not-content">
+  <h2 class="section-header__title">Rich documentation from a single method call</h2>
+  <p class="section-header__sub">No separate files. No templates. Every doc entry is one line in your test.</p>
+</div>
+
+<div class="feature-bento not-content">
+  <a href="guides/formatting-and-metadata/" class="feature-tile feature-tile--wide">
+    <img src="screenshots/feature-mermaid.png" alt="Mermaid diagram in report" loading="lazy" decoding="async" class="feature-tile__img" />
+    <div class="feature-tile__body">
+      <div class="feature-tile__name">Mermaid diagrams</div>
+      <div class="feature-tile__desc">Sequence diagrams, flowcharts, and ER diagrams rendered live in the report.</div>
+    </div>
+  </a>
+  <a href="guides/formatting-and-metadata/" class="feature-tile">
+    <img src="screenshots/feature-code.png" alt="Syntax-highlighted code in report" loading="lazy" decoding="async" class="feature-tile__img" />
+    <div class="feature-tile__body">
+      <div class="feature-tile__name">Code blocks</div>
+      <div class="feature-tile__desc">Syntax-highlighted TypeScript, SQL, YAML, or any language.</div>
+    </div>
+  </a>
+  <a href="guides/formatting-and-metadata/" class="feature-tile">
+    <img src="screenshots/feature-tables.png" alt="Table data in report" loading="lazy" decoding="async" class="feature-tile__img" />
+    <div class="feature-tile__body">
+      <div class="feature-tile__name">Tables and JSON</div>
+      <div class="feature-tile__desc">Structured data, key-value pairs, and JSON objects.</div>
+    </div>
+  </a>
+  <a href="guides/formatting-and-metadata/" class="feature-tile feature-tile--wide">
+    <img src="screenshots/feature-tickets.png" alt="JIRA ticket badge in report" loading="lazy" decoding="async" class="feature-tile__img" />
+    <div class="feature-tile__body">
+      <div class="feature-tile__name">Ticket linking</div>
+      <div class="feature-tile__desc">Connect scenarios to JIRA, Linear, or any issue tracker.</div>
+    </div>
+  </a>
+  <a href="guides/formatting-and-metadata/" class="feature-tile feature-tile--wide">
+    <img src="screenshots/feature-traces.png" alt="OpenTelemetry trace waterfall" loading="lazy" decoding="async" class="feature-tile__img" />
+    <div class="feature-tile__body">
+      <div class="feature-tile__name">OTel traces</div>
+      <div class="feature-tile__desc">Waterfall view of OpenTelemetry spans with durations.</div>
+    </div>
+  </a>
+  <a href="reference/themes/" class="feature-tile">
+    <img src="screenshots/feature-search.png" alt="Report search and filter UI" loading="lazy" decoding="async" class="feature-tile__img" />
+    <div class="feature-tile__body">
+      <div class="feature-tile__name">Search and filter</div>
+      <div class="feature-tile__desc">Full-text search, tag filters, keyboard shortcuts.</div>
+    </div>
+  </a>
+</div>
+
+{/* ── Diff Reports ── */}
+
+<div class="section-break" />
+
+<div class="diff-section not-content">
+  <div class="diff-section__text">
+    <h2 class="diff-section__title">Compare runs across sprints</h2>
+    <p class="diff-section__desc">Generate diff reports to spot regressions, track fixes, and see what changed between any two test runs.</p>
+    <div class="diff-section__features">
+      <div class="diff-section__feature">
+        <span class="diff-section__tag diff-section__tag--red">Regressed</span>
+        <span>Tests that started failing</span>
+      </div>
+      <div class="diff-section__feature">
+        <span class="diff-section__tag diff-section__tag--green">Fixed</span>
+        <span>Tests that were repaired</span>
+      </div>
+      <div class="diff-section__feature">
+        <span class="diff-section__tag diff-section__tag--blue">Changed</span>
+        <span>Duration or status shifts</span>
+      </div>
+    </div>
+  </div>
+  <div class="diff-section__image">
+    <img src="screenshots/diff-report-dark.png" alt="Sprint comparison diff report showing regressions, fixes, and changes" loading="lazy" decoding="async" />
+  </div>
+</div>
+
+{/* ── Themes ── */}
+
+<div class="section-break" />
+
+<div class="section-header not-content">
+  <h2 class="section-header__title">6 themes, light and dark</h2>
+  <p class="section-header__sub">Set with <code>--html-theme</code>. Every theme supports automatic dark mode.</p>
+</div>
+
+<div class="theme-showcase not-content">
+  <a href="reference/themes/" class="theme-card theme-card--featured">
+    <div class="theme-card__images">
+      <img src="screenshots/theme-default-light.png" alt="Default theme, light" loading="lazy" decoding="async" />
+      <img src="screenshots/theme-default-dark.png" alt="Default theme, dark" loading="lazy" decoding="async" />
+    </div>
+    <div class="theme-card__info">
+      <span class="theme-card__label">Default</span>
+      <span class="theme-card__desc">Clean, modern design with cucumber green accent</span>
+    </div>
+  </a>
+  <div class="theme-supporting">
+    <a href="reference/themes/" class="theme-card">
+      <div class="theme-card__images">
+        <img src="screenshots/theme-terminal-light.png" alt="Terminal theme, light" loading="lazy" decoding="async" />
+        <img src="screenshots/theme-terminal-dark.png" alt="Terminal theme, dark" loading="lazy" decoding="async" />
+      </div>
+      <span class="theme-card__label">Terminal</span>
+    </a>
+    <a href="reference/themes/" class="theme-card">
+      <div class="theme-card__images">
+        <img src="screenshots/theme-corporate-light.png" alt="Corporate theme, light" loading="lazy" decoding="async" />
+        <img src="screenshots/theme-corporate-dark.png" alt="Corporate theme, dark" loading="lazy" decoding="async" />
+      </div>
+      <span class="theme-card__label">Corporate</span>
+    </a>
+    <a href="reference/themes/" class="theme-card">
+      <div class="theme-card__images">
+        <img src="screenshots/theme-dashboard-light.png" alt="Dashboard theme, light" loading="lazy" decoding="async" />
+        <img src="screenshots/theme-dashboard-dark.png" alt="Dashboard theme, dark" loading="lazy" decoding="async" />
+      </div>
+      <span class="theme-card__label">Dashboard</span>
+    </a>
+    <a href="reference/themes/" class="theme-card">
+      <div class="theme-card__images">
+        <img src="screenshots/theme-minimal-light.png" alt="Minimal theme, light" loading="lazy" decoding="async" />
+        <img src="screenshots/theme-minimal-dark.png" alt="Minimal theme, dark" loading="lazy" decoding="async" />
+      </div>
+      <span class="theme-card__label">Minimal</span>
+    </a>
+    <a href="reference/themes/" class="theme-card">
+      <div class="theme-card__images">
+        <img src="screenshots/theme-playful-light.png" alt="Playful theme, light" loading="lazy" decoding="async" />
+        <img src="screenshots/theme-playful-dark.png" alt="Playful theme, dark" loading="lazy" decoding="async" />
+      </div>
+      <span class="theme-card__label">Playful</span>
+    </a>
+  </div>
+</div>
+
+{/* ── Your stack ── */}
+
+<div class="section-break" />
+
+<div class="section-header not-content">
+  <h2 class="section-header__title">Native to your framework</h2>
+  <p class="section-header__sub">Same API across frameworks. Same report output. 10 languages supported.</p>
+</div>
+
+<div class="stack-section not-content">
+  <div class="stack-section__code">
+
+<Tabs>
+  <TabItem label="Vitest">
 ```typescript
-import { expect } from '@jest/globals';
+import { story, doc } from 'executable-stories-vitest';
+
+it('user logs in', ({ task }) => {
+  const s = story.init(task);
+  s.given('a registered user');
+  s.when('they submit valid credentials');
+  s.then('they see the dashboard');
+  s.json({ label: 'Session', value: { role: 'admin' } });
+});
+```
+  </TabItem>
+  <TabItem label="Jest">
+```typescript
 import { story, given, when, then } from 'executable-stories-jest';
 
-describe('Login', () => {
-  it('user logs in', () => {
-    story.init();
-    given('user is on login page');
-    when('user submits valid credentials');
-    then('user sees the dashboard');
-    expect(true).toBe(true);
-  });
+it('user logs in', () => {
+  story.init();
+  given('a registered user');
+  when('they submit valid credentials');
+  then('they see the dashboard');
+  story.json({ label: 'Session', value: { role: 'admin' } });
 });
 ```
-
-## Quick example (Playwright)
-
-**`story.init(testInfo)`** at the start of the test (pass **`testInfo`** from the callback), then **`story.given`** / **`story.when`** / **`story.then`**. If you want step callbacks to receive fixtures, call **`story.init({ page }, testInfo)`** instead:
-
+  </TabItem>
+  <TabItem label="Playwright">
 ```typescript
-import { expect, test } from '@playwright/test';
-import { story } from 'executable-stories-playwright';
+import { story, given, when, then } from 'executable-stories-playwright';
 
-test.describe('Login', () => {
-  test('user logs in', async ({ page }, testInfo) => {
-    story.init(testInfo);
-    story.given('user is on login page');
-    story.when('user submits valid credentials');
-    story.then('user sees the dashboard');
-    await expect(page).toHaveURL(/dashboard/);
-  });
+test('user logs in', async ({ page }, testInfo) => {
+  story.init(testInfo);
+  given('a registered user');
+  when('they submit valid credentials');
+  then('they see the dashboard');
 });
 ```
-
-## Quick example (Cypress)
-
-Call **`story.init()`** at the start of each test (no task argument; same as Jest), then **`story.given`** / **`story.when`** / **`story.then`**. Story meta is sent from the browser to Node via `cy.task` for the reporter:
-
+  </TabItem>
+  <TabItem label="Cypress">
 ```typescript
-import { story } from 'executable-stories-cypress';
+import { story, given, when, then } from 'executable-stories-cypress';
 
-describe('Calculator', () => {
-  it('adds two numbers', () => {
-    story.init();
-    story.given('two numbers 5 and 3');
-    const a = 5, b = 3;
-    story.when('I add them together');
-    const result = a + b;
-    story.then('the result is 8');
-    expect(result).toBe(8);
-  });
+it('user logs in', () => {
+  story.init();
+  given('a registered user');
+  when('they submit valid credentials');
+  then('they see the dashboard');
 });
 ```
+  </TabItem>
+</Tabs>
 
-## Next steps
+  </div>
+  <div class="stack-section__formats">
+    <h3 class="stack-section__heading">Output formats</h3>
+    <div class="format-list">
+      <span class="format-tag"><code>.html</code> HTML Report</span>
+      <span class="format-tag"><code>.md</code> Markdown</span>
+      <span class="format-tag"><code>.junit.xml</code> JUnit XML</span>
+      <span class="format-tag"><code>.cucumber.json</code> Cucumber JSON</span>
+      <span class="format-tag"><code>.html</code> Cucumber HTML</span>
+      <span class="format-tag"><code>.ndjson</code> Cucumber Messages</span>
+    </div>
+    <h3 class="stack-section__heading stack-section__heading--langs">Also available</h3>
+    <div class="lang-grid">
+      <span class="lang-tag"><img src="icons/Go.svg" alt="" class="lang-icon" />Go</span>
+      <span class="lang-tag"><img src="icons/Python.svg" alt="" class="lang-icon" />Python</span>
+      <span class="lang-tag"><img src="icons/Ruby.svg" alt="" class="lang-icon" />Ruby</span>
+      <span class="lang-tag"><img src="icons/Rust.svg" alt="" class="lang-icon" />Rust</span>
+      <span class="lang-tag"><img src="icons/Java.svg" alt="" class="lang-icon" />Kotlin</span>
+      <span class="lang-tag"><img src="icons/NET.svg" alt="" class="lang-icon" />C#</span>
+    </div>
+  </div>
+</div>
 
-## Beyond JavaScript
+{/* ── CTA ── */}
 
-This repo also ships adapters and example apps for Go, pytest, JUnit 5, Rust, and xUnit. The setup guides on this site focus on the JavaScript packages; see [Other adapters](/reference/other-adapters/) for the wider repo surface area.
+<div class="section-break" />
 
-<CardGrid>
-  <LinkCard
-    title="Installation (Vitest)"
-    description="Install the package and add the reporter"
-    href="getting-started/installation-vitest/"
-  />
-  <LinkCard
-    title="Installation (Jest)"
-    description="Install and configure Jest"
-    href="getting-started/installation-jest/"
-  />
-  <LinkCard
-    title="Installation (Playwright)"
-    description="Install and configure Playwright"
-    href="getting-started/installation-playwright/"
-  />
-  <LinkCard
-    title="Installation (Cypress)"
-    description="Install plugin, support file, and optional reporter"
-    href="getting-started/installation-cypress/"
-  />
-  <LinkCard
-    title="Developer experience"
-    description="Entry point, mental model, modifiers, and framework-native tests per framework"
-    href="guides/developer-experience/"
-  />
-  <LinkCard
-    title="Output modes"
-    description="Colocated, aggregated, or mixed Markdown output and file naming"
-    href="guides/output-modes/"
-  />
-  <LinkCard
-    title="Understanding the report"
-    description="Status icons, headings, and what appears in generated reports"
-    href="guides/understanding-the-report/"
-  />
-  <LinkCard
-    title="Common issues"
-    description="Troubleshooting missing reports, step errors, and framework gotchas"
-    href="guides/common-issues/"
-  />
-  <LinkCard
-    title="Why not Cucumber?"
-    description="No feature files, no step matching, no world — still Confluence-ready"
-    href="guides/why-not-cucumber/"
-  />
-  <LinkCard
-    title="CI and source links"
-    description="Permalink to source and GitHub Actions job summary"
-    href="guides/ci-and-source-links/"
-  />
-  <LinkCard
-    title="Collating reports"
-    description="Merging JSON or Markdown reports into a single index"
-    href="guides/collating-reports/"
-  />
-  <LinkCard
-    title="Formatting and metadata"
-    description="Title, front-matter, Markdown dialect, filters, sorting, and JSON output"
-    href="guides/formatting-and-metadata/"
-  />
-  <LinkCard
-    title="Converting existing tests"
-    description="Adopt executable-stories without rewriting Vitest, Jest, or Playwright tests"
-    href="guides/converting-vitest/"
-  />
-  <LinkCard
-    title="ESLint plugins"
-    description="Lint rules per framework for init order, story context, and doc usage"
-    href="reference/eslint-plugins/"
-  />
-  <LinkCard
-    title="Formatters API"
-    description="Programmatic report generation, CLI formats, notifications, and history"
-    href="reference/formatters-api/"
-  />
-  <LinkCard
-    title="Other adapters"
-    description="Go, pytest, JUnit 5, Rust, and xUnit packages in this repo"
-    href="reference/other-adapters/"
-  />
-  <LinkCard
-    title="Reference (Vitest)"
-    description="Reporter options and story API"
-    href="reference/vitest-config/"
-  />
-  <LinkCard
-    title="Reference (Jest)"
-    description="Reporter options and story API"
-    href="reference/jest-config/"
-  />
-  <LinkCard
-    title="Reference (Playwright)"
-    description="Reporter options and story API"
-    href="reference/playwright-config/"
-  />
-  <LinkCard
-    title="Reference (Cypress)"
-    description="Reporter options and story API"
-    href="reference/cypress-config/"
-  />
-  <LinkCard
-    title="Recipes"
-    description="Example scenarios with code and generated output"
-    href="recipes/vitest/"
-  />
-</CardGrid>
+<div class="cta not-content">
+  <h2 class="cta__title">Get started in under a minute</h2>
+  <p class="cta__desc">Install the adapter and formatter, then write your first story.</p>
+
+  <Tabs>
+    <TabItem label="pnpm">
+```bash
+pnpm add -D executable-stories-vitest executable-stories-formatters
+```
+    </TabItem>
+    <TabItem label="npm">
+```bash
+npm install -D executable-stories-vitest executable-stories-formatters
+```
+    </TabItem>
+    <TabItem label="yarn">
+```bash
+yarn add -D executable-stories-vitest executable-stories-formatters
+```
+    </TabItem>
+    <TabItem label="gem">
+```bash
+gem install executable-stories-ruby
+```
+    </TabItem>
+  </Tabs>
+
+  <div class="cta__links">
+    <a href="getting-started/first-story-vitest/" class="hero-btn hero-btn--primary">Write your first story</a>
+    <a href="guides/why-not-cucumber/" class="hero-btn hero-btn--secondary">Why not Cucumber?</a>
+  </div>
+</div>
+
+<style>
+{`
+  /* Hide Starlight default hero */
+  .hero { display: none !important; }
+
+  /* ── Hero ── */
+  .hero-custom {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: 3rem;
+    align-items: center;
+    padding: 5rem 0 3rem;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .hero-custom__badge {
+    display: inline-flex;
+    padding: 0.25rem 0.75rem;
+    border-radius: 100px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    background: var(--sl-color-accent-low);
+    color: var(--sl-color-accent);
+    border: 1px solid rgba(64, 145, 108, 0.2);
+    margin-bottom: 1.25rem;
+    width: fit-content;
+  }
+
+  .hero-custom__title {
+    font-size: clamp(2.25rem, 5vw, 3.5rem);
+    font-weight: 700;
+    line-height: 1.06;
+    letter-spacing: -0.035em;
+    color: var(--sl-color-white);
+    margin-bottom: 1.25rem;
+  }
+
+  .hero-custom__subtitle {
+    font-size: 1.125rem;
+    color: var(--sl-color-gray-3);
+    line-height: 1.6;
+    max-width: 44ch;
+    margin-bottom: 1rem;
+  }
+
+  .hero-custom__bullets {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 2rem 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+  }
+
+  .hero-custom__bullets li {
+    font-size: 0.875rem;
+    color: var(--sl-color-gray-3);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .hero-custom__bullets li::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--sl-color-accent);
+    flex-shrink: 0;
+  }
+
+  .hero-custom__actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+  }
+
+  .hero-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1.5rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: transform 100ms ease, opacity 200ms cubic-bezier(0.16, 1, 0.3, 1), background 200ms cubic-bezier(0.16, 1, 0.3, 1), border-color 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .hero-btn:active { transform: translateY(1px); }
+
+  .hero-btn__icon {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
+
+  .hero-btn--primary {
+    background: var(--sl-color-accent);
+    color: var(--sl-color-black);
+    font-weight: 600;
+  }
+
+  .hero-btn--primary:hover { opacity: 0.9; }
+
+  .hero-btn--secondary {
+    border: 1px solid var(--sl-color-gray-4);
+    color: var(--sl-color-text);
+  }
+
+  .hero-btn--secondary:hover { border-color: var(--sl-color-text); }
+
+  .hero-btn--ghost {
+    color: var(--sl-color-text);
+    border: 1px solid transparent;
+  }
+
+  .hero-btn--ghost:hover {
+    border-color: var(--sl-color-gray-4);
+  }
+
+  .hero-custom__stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+  }
+
+  .hero-custom__stack-row {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+  }
+
+  .hero-custom__stack-label {
+    font-size: 0.6875rem;
+    color: var(--sl-color-gray-3);
+    min-width: 100px;
+    text-align: right;
+    opacity: 0.7;
+    letter-spacing: 0.01em;
+  }
+
+  .hero-custom__frameworks {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .hero-custom__fw-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.75rem;
+    font-family: var(--sl-font-mono);
+    color: var(--sl-color-gray-3);
+    background: var(--sl-color-gray-6);
+    padding: 0.25rem 0.6rem;
+    border-radius: 0.25rem;
+    border: 1px solid var(--sl-color-hairline);
+    text-decoration: none;
+    transition: border-color 200ms cubic-bezier(0.16, 1, 0.3, 1), color 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  a.hero-custom__fw-tag:hover {
+    border-color: var(--sl-color-accent);
+    color: var(--sl-color-accent);
+  }
+
+  .fw-icon {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
+
+  .lang-icon {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+  }
+
+
+  /* Browser chrome wrapper */
+  .hero-custom__browser {
+    border-radius: 0.75rem;
+    border: 1px solid var(--sl-color-gray-4);
+    overflow: hidden;
+    box-shadow: 0 24px 64px rgba(27, 67, 50, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  }
+
+  .hero-custom__browser-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.625rem 0.875rem;
+    background: var(--sl-color-gray-6);
+    border-bottom: 1px solid var(--sl-color-hairline);
+  }
+
+  .hero-custom__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  .hero-custom__dot--red { background: #ff5f57; }
+  .hero-custom__dot--yellow { background: #febc2e; }
+  .hero-custom__dot--green { background: #28c840; }
+
+  .hero-custom__browser-title {
+    margin-left: 0.5rem;
+    font-size: 0.6875rem;
+    font-family: var(--sl-font-mono);
+    color: var(--sl-color-gray-3);
+  }
+
+  .hero-custom__browser img {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  @media (max-width: 768px) {
+    .hero-custom { grid-template-columns: 1fr; padding: 2.5rem 0; gap: 2rem; }
+    .hero-custom__stack-row { flex-direction: column; align-items: flex-start; gap: 0.375rem; }
+    .hero-custom__stack-label { text-align: left; min-width: unset; }
+  }
+
+  /* ── Shared ── */
+  .section-break {
+    height: 1px;
+    background: var(--sl-color-hairline);
+    margin: 4rem auto;
+    max-width: 1200px;
+  }
+
+  .section-header {
+    max-width: 1200px;
+    margin: 0 auto 1.5rem;
+  }
+
+  .section-header__title {
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    color: var(--sl-color-white);
+    margin-bottom: 0.375rem;
+  }
+
+  .section-header__sub {
+    font-size: 0.9375rem;
+    color: var(--sl-color-gray-3);
+    max-width: 55ch;
+  }
+
+  .section-header__sub code {
+    font-size: 0.8125rem;
+    background: var(--sl-color-bg-inline-code);
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.25rem;
+  }
+
+  /* ── Workflow ── */
+  .workflow {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .workflow__row {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 1.5rem;
+    align-items: start;
+    border: 1px solid var(--sl-color-gray-4);
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    transition: border-color 200ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .workflow__row:hover {
+    border-color: var(--sl-color-accent);
+    box-shadow: 0 4px 16px rgba(45, 106, 79, 0.06);
+  }
+
+  .workflow__meta {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding-top: 0.5rem;
+  }
+
+  .workflow__num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 50%;
+    background: var(--sl-color-accent);
+    color: var(--sl-color-black);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  .workflow__label {
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--sl-color-white);
+  }
+
+  .workflow__content { overflow: hidden; }
+
+  .workflow__img {
+    width: 100%;
+    max-height: 280px;
+    object-fit: cover;
+    object-position: top left;
+    border-radius: 0.5rem;
+    border: 1px solid var(--sl-color-gray-4);
+  }
+
+  @media (max-width: 768px) {
+    .workflow__row { grid-template-columns: 1fr; gap: 0.75rem; }
+  }
+
+  /* ── Feature bento (asymmetric zig-zag) ── */
+  .feature-bento {
+    display: grid;
+    grid-template-columns: 7fr 5fr;
+    gap: 1rem;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .feature-tile {
+    border: 1px solid var(--sl-color-gray-4);
+    border-radius: 0.75rem;
+    overflow: hidden;
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    transition: border-color 200ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 200ms cubic-bezier(0.16, 1, 0.3, 1), transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .feature-tile:hover {
+    border-color: var(--sl-color-accent);
+    box-shadow: 0 8px 32px rgba(45, 106, 79, 0.08);
+    transform: translateY(-2px);
+  }
+
+  .feature-tile:active {
+    transform: translateY(0);
+    transition-duration: 80ms;
+  }
+
+  /* Zig-zag: odd rows = wide left, even rows = wide right */
+  .feature-tile--wide:nth-of-type(1) { grid-column: 1; }
+  .feature-tile:nth-of-type(2) { grid-column: 2; }
+  .feature-tile:nth-of-type(3) { grid-column: 1; }
+  .feature-tile--wide:nth-of-type(4) { grid-column: 2; }
+  .feature-tile--wide:nth-of-type(5) { grid-column: 1; }
+  .feature-tile:nth-of-type(6) { grid-column: 2; }
+
+  .feature-tile__img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    object-position: top left;
+    display: block;
+    border-bottom: 1px solid var(--sl-color-gray-4);
+  }
+
+  .feature-tile--wide .feature-tile__img {
+    height: 220px;
+  }
+
+  .feature-tile__body {
+    padding: 1rem 1.25rem 1.25rem;
+  }
+
+  .feature-tile__name {
+    font-weight: 600;
+    font-size: 0.9375rem;
+    letter-spacing: -0.01em;
+    margin-bottom: 0.25rem;
+    color: var(--sl-color-white);
+  }
+
+  .feature-tile__desc {
+    font-size: 0.8125rem;
+    color: var(--sl-color-gray-3);
+    line-height: 1.5;
+  }
+
+  @media (max-width: 768px) {
+    .feature-bento { grid-template-columns: 1fr; }
+    .feature-tile, .feature-tile--wide { grid-column: 1 !important; }
+  }
+
+  /* ── Diff Section ── */
+  .diff-section {
+    display: grid;
+    grid-template-columns: 1fr 1.4fr;
+    gap: 3rem;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .diff-section__title {
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    color: var(--sl-color-white);
+    margin-bottom: 0.5rem;
+  }
+
+  .diff-section__desc {
+    font-size: 0.9375rem;
+    color: var(--sl-color-gray-3);
+    line-height: 1.6;
+    max-width: 40ch;
+    margin-bottom: 1.5rem;
+  }
+
+  .diff-section__features {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+  }
+
+  .diff-section__feature {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    font-size: 0.8125rem;
+    color: var(--sl-color-gray-3);
+  }
+
+  .diff-section__tag {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.25rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    flex-shrink: 0;
+    min-width: 70px;
+    text-align: center;
+  }
+
+  .diff-section__tag--red {
+    background: rgba(239, 68, 68, 0.12);
+    color: #ef4444;
+  }
+
+  .diff-section__tag--green {
+    background: rgba(34, 197, 94, 0.12);
+    color: #22c55e;
+  }
+
+  .diff-section__tag--blue {
+    background: rgba(59, 130, 246, 0.12);
+    color: #3b82f6;
+  }
+
+  .diff-section__image img {
+    width: 100%;
+    height: auto;
+    border-radius: 0.75rem;
+    border: 1px solid var(--sl-color-gray-4);
+    box-shadow: 0 16px 48px rgba(27, 67, 50, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  }
+
+  @media (max-width: 768px) {
+    .diff-section { grid-template-columns: 1fr; gap: 1.5rem; }
+  }
+
+  /* ── Themes (featured + supporting) ── */
+  .theme-showcase {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 1.25rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    align-items: start;
+  }
+
+  .theme-supporting {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  /* Single-column last item when 5 supporting themes */
+  .theme-supporting .theme-card:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .theme-card {
+    border: 1px solid var(--sl-color-gray-4);
+    border-radius: 0.75rem;
+    overflow: hidden;
+    transition: border-color 200ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 200ms cubic-bezier(0.16, 1, 0.3, 1), transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+    text-decoration: none;
+    color: inherit;
+    display: block;
+  }
+
+  .theme-card:hover {
+    border-color: var(--sl-color-accent);
+    box-shadow: 0 8px 24px rgba(45, 106, 79, 0.08);
+    transform: translateY(-2px);
+  }
+
+  .theme-card:active {
+    transform: translateY(0);
+    transition-duration: 80ms;
+  }
+
+  .theme-card--featured .theme-card__images {
+    aspect-ratio: 16 / 9;
+  }
+
+  .theme-card__images {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--sl-color-gray-4);
+    aspect-ratio: 16 / 6;
+    overflow: hidden;
+  }
+
+  .theme-card__images img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top left;
+    display: block;
+  }
+
+  .theme-card__info {
+    padding: 0.75rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+  }
+
+  .theme-card__info .theme-card__label {
+    padding: 0;
+  }
+
+  .theme-card__desc {
+    font-size: 0.75rem;
+    color: var(--sl-color-gray-3);
+  }
+
+  .theme-card__label {
+    display: block;
+    padding: 0.5rem 0.875rem;
+    font-weight: 600;
+    font-size: 0.8125rem;
+    letter-spacing: -0.01em;
+    color: var(--sl-color-white);
+  }
+
+  @media (max-width: 768px) {
+    .theme-showcase { grid-template-columns: 1fr; }
+    .theme-supporting { grid-template-columns: 1fr; }
+    .theme-supporting .theme-card:last-child { grid-column: 1; }
+  }
+
+  /* ── Stack section ── */
+  .stack-section {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 2rem;
+    align-items: start;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .stack-section__heading {
+    font-weight: 600;
+    font-size: 0.875rem;
+    letter-spacing: -0.01em;
+    margin-bottom: 0.75rem;
+    color: var(--sl-color-white);
+  }
+
+  .stack-section__heading--langs {
+    margin-top: 1.5rem;
+  }
+
+  .format-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .format-tag {
+    font-size: 0.8125rem;
+    color: var(--sl-color-text);
+    line-height: 1.4;
+  }
+
+  .format-tag code {
+    font-size: 0.75rem;
+    font-family: var(--sl-font-mono);
+    color: var(--sl-color-text-accent);
+    font-weight: 500;
+    background: var(--sl-color-accent-low);
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.25rem;
+    margin-right: 0.375rem;
+  }
+
+  .lang-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .lang-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.75rem;
+    font-family: var(--sl-font-mono);
+    padding: 0.3rem 0.625rem;
+    border-radius: 0.25rem;
+    background: var(--sl-color-gray-6);
+    color: var(--sl-color-gray-3);
+    border: 1px solid var(--sl-color-hairline);
+  }
+
+  @media (max-width: 768px) {
+    .stack-section { grid-template-columns: 1fr; }
+  }
+
+  /* ── CTA ── */
+  .cta {
+    max-width: 560px;
+    margin: 0 auto;
+    text-align: center;
+    padding-bottom: 5rem;
+  }
+
+  .cta__title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    margin-bottom: 0.5rem;
+    color: var(--sl-color-white);
+  }
+
+  .cta__desc {
+    font-size: 0.9375rem;
+    color: var(--sl-color-gray-3);
+    margin-bottom: 1.5rem;
+  }
+
+  .cta__links {
+    display: flex;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+  }
+`}
+</style>

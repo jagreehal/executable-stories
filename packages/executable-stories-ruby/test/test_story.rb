@@ -394,6 +394,7 @@ class TestStory < Minitest::Test
     assert_equal "fail", tc.status
     assert_equal "custom title", tc.title
     assert_equal ["MySuite", "MyTest", "record test"], tc.title_path
+    assert_equal ["MySuite", "MyTest"], tc.story.suite_path
     assert_equal "test/example.rb", tc.source_file
     assert_equal 42.5, tc.duration_ms
     assert_equal "expected 5, got 3", tc.error.message
@@ -729,5 +730,88 @@ class TestMinitestPlugin < Minitest::Test
     assert File.exist?(output_path), "expected #{output_path} to exist\nstdout:\n#{stdout}\nstderr:\n#{stderr}"
 
     JSON.parse(File.read(output_path))
+  end
+end
+
+class TestRSpecAdapter < Minitest::Test
+  def setup
+    @tmpdir = Dir.mktmpdir("executable_stories_rspec")
+  end
+
+  def teardown
+    FileUtils.rm_rf(@tmpdir) if @tmpdir
+  end
+
+  def test_rspec_plugin_writes_raw_run_that_formats_cleanly
+    package_root = File.expand_path("..", __dir__)
+    lib_path = File.join(package_root, "lib")
+    rspec_executable = File.join(Gem.bindir, "rspec")
+    spec_path = File.join(@tmpdir, "calculator_spec.rb")
+    output_path = File.join(@tmpdir, "raw-run.json")
+
+    File.write(
+      spec_path,
+      <<~RUBY
+        require "executable_stories/rspec"
+
+        ExecutableStories::RSpecPlugin.install!
+
+        RSpec.describe "Arithmetic" do
+          story "adds two numbers", tags: %w[smoke math], meta: { "component" => "calculator" } do |s|
+            s.given("two numbers 5 and 3")
+            a = 5
+            b = 3
+
+            s.when("they are added")
+            result = a + b
+
+            s.then("the result is 8")
+            expect(result).to eq(8)
+
+            s.note("calculation complete")
+          end
+
+          story "skips unavailable scenario", skip: "not ready" do |s|
+            s.given("this block is never executed")
+          end
+        end
+      RUBY
+    )
+
+    stdout = nil
+    stderr = nil
+    status = nil
+
+    Dir.chdir(package_root) do
+      stdout, stderr, status = Open3.capture3(
+        { "EXECUTABLE_STORIES_OUTPUT" => output_path },
+        RbConfig.ruby, "-I", lib_path, rspec_executable, "--format", "progress", spec_path
+      )
+    end
+
+    assert status.success?, "RSpec run failed:\nSTDOUT:\n#{stdout}\nSTDERR:\n#{stderr}"
+    assert File.exist?(output_path), "expected #{output_path} to exist\nSTDOUT:\n#{stdout}\nSTDERR:\n#{stderr}"
+
+    raw = JSON.parse(File.read(output_path))
+    assert_equal 1, raw["schemaVersion"]
+    assert_equal 2, raw["testCases"].length
+
+    pass_case = raw["testCases"].find { |tc| tc["status"] == "pass" }
+    skip_case = raw["testCases"].find { |tc| tc["status"] == "skip" }
+
+    refute_nil pass_case
+    refute_nil skip_case
+
+    assert_equal ["Arithmetic", "adds two numbers"], pass_case["titlePath"]
+    assert_equal ["Arithmetic"], pass_case["story"]["suitePath"]
+    assert_equal %w[smoke math], pass_case["story"]["tags"]
+    assert_equal "calculator", pass_case["story"]["meta"]["component"]
+    assert_operator pass_case["sourceLine"], :>, 0
+    assert_equal 3, pass_case["story"]["steps"].length
+    assert_equal "note", pass_case["story"]["steps"][2]["docs"][0]["kind"]
+
+    assert_equal ["Arithmetic", "skips unavailable scenario"], skip_case["titlePath"]
+    assert_operator skip_case["sourceLine"], :>, 0
+    assert_equal [], skip_case["story"]["steps"]
   end
 end

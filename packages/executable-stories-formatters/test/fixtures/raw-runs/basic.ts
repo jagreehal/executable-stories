@@ -145,3 +145,68 @@ export function createMultiFileRun(): RawRun {
     ],
   });
 }
+
+/** Create a raw run that mirrors the Ruby RSpec adapter output */
+export function createRspecRawRun(): RawRun {
+  return createRawRun({
+    testCases: [
+      createTestCase({
+        title: "adds two numbers",
+        titlePath: ["Arithmetic", "adds two numbers"],
+        story: createStory({
+          scenario: "adds two numbers",
+          suitePath: ["Arithmetic"],
+          tags: ["smoke", "math"],
+          meta: {
+            component: "calculator",
+            rspec: {
+              fullDescription: "Arithmetic adds two numbers",
+              description: "adds two numbers",
+              filePath: "/project/spec/calculator_spec.rb",
+              lineNumber: 4,
+              scopedId: "1:1",
+            },
+          },
+          steps: [
+            { keyword: "Given", text: "two numbers 5 and 3" },
+            { keyword: "When", text: "they are added" },
+            {
+              keyword: "Then",
+              text: "the result is 8",
+              docs: [
+                { kind: "note", text: "calculation complete", phase: "runtime" },
+              ],
+            },
+          ],
+        }),
+        sourceFile: "/project/spec/calculator_spec.rb",
+        sourceLine: 4,
+        status: "pass",
+        durationMs: 12,
+      }),
+      createTestCase({
+        title: "skips unavailable scenario",
+        titlePath: ["Arithmetic", "skips unavailable scenario"],
+        story: createStory({
+          scenario: "skips unavailable scenario",
+          suitePath: ["Arithmetic"],
+          tags: [],
+          meta: {
+            rspec: {
+              fullDescription: "Arithmetic skips unavailable scenario",
+              description: "skips unavailable scenario",
+              filePath: "/project/spec/calculator_spec.rb",
+              lineNumber: 16,
+              scopedId: "1:2",
+            },
+          },
+          steps: [],
+        }),
+        sourceFile: "/project/spec/calculator_spec.rb",
+        sourceLine: 16,
+        status: "skip",
+        durationMs: 0,
+      }),
+    ],
+  });
+}

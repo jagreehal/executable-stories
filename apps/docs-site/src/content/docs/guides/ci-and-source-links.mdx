@@ -3,7 +3,9 @@ title: CI and source links
 description: Permalink to source and GitHub Actions job summary
 ---
 
-The reporter can add **source links** to each scenario (e.g. “Source: [file](url)”) and, in GitHub Actions, append the report to the **job summary**.
+import ReportScreenshot from '../../../components/ReportScreenshot.astro';
+
+The reporter can add **source links** to each scenario (e.g. "Source: [file](url)") and, in GitHub Actions, append the report to the **job summary**.
 
 ## Permalink to source
 
@@ -42,6 +44,12 @@ If **`permalinkBaseUrl`** is **not** set and **`GITHUB_ACTIONS`** is set, the re
 - and the project root
 
 So source links can work in GitHub Actions **without** any config. To disable source links, set `includeSourceLinks: false` in the reporter options.
+
+<ReportScreenshot
+  src="screenshots/feature-tickets.png"
+  alt="Report showing ticket badges and source file links"
+  caption="Ticket badges link to your issue tracker; source links go to the exact file on GitHub"
+/>
 
 ## GitHub Actions job summary
 

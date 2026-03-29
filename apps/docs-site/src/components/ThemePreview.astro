@@ -1,0 +1,97 @@
+---
+interface Props {
+  basePath?: string;
+}
+
+const { basePath = '/screenshots' } = Astro.props;
+
+const themes = [
+  { name: 'default', label: 'Default', description: 'Clean, modern design with cucumber green accent' },
+  { name: 'corporate', label: 'Corporate', description: 'Editorial style with sidebar navigation and serif typography' },
+  { name: 'terminal', label: 'Terminal', description: 'Monospace retro terminal aesthetic' },
+  { name: 'minimal', label: 'Minimal', description: 'Stripped-down, content-focused design' },
+  { name: 'dashboard', label: 'Dashboard', description: 'Data-oriented layout for metrics-heavy reports' },
+  { name: 'playful', label: 'Playful', description: 'Stylized with decorative touches' },
+];
+---
+
+<div class="theme-preview">
+  <div class="theme-preview__grid">
+    {themes.map((theme) => (
+      <div class="theme-preview__card">
+        <div class="theme-preview__images">
+          <img
+            src={`${basePath}/theme-${theme.name}-light.png`}
+            alt={`${theme.label} theme, light mode`}
+            loading="lazy"
+            decoding="async"
+            class="theme-preview__img theme-preview__img--light"
+          />
+          <img
+            src={`${basePath}/theme-${theme.name}-dark.png`}
+            alt={`${theme.label} theme, dark mode`}
+            loading="lazy"
+            decoding="async"
+            class="theme-preview__img theme-preview__img--dark"
+          />
+        </div>
+        <div class="theme-preview__info">
+          <span class="theme-preview__name">{theme.label}</span>
+          <span class="theme-preview__desc">{theme.description}</span>
+        </div>
+      </div>
+    ))}
+  </div>
+</div>
+
+<style>
+  .theme-preview__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin: 1.5rem 0;
+  }
+
+  .theme-preview__card {
+    border: 1px solid var(--sl-color-gray-2);
+    border-radius: 0.75rem;
+    overflow: hidden;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+  }
+
+  .theme-preview__card:hover {
+    border-color: var(--sl-color-accent);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  }
+
+  .theme-preview__images {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--sl-color-gray-2);
+  }
+
+  .theme-preview__img {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  .theme-preview__info {
+    padding: 0.75rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .theme-preview__name {
+    font-weight: 600;
+    font-size: 0.875rem;
+    letter-spacing: -0.01em;
+  }
+
+  .theme-preview__desc {
+    font-size: 0.75rem;
+    color: var(--sl-color-gray-4);
+  }
+</style>

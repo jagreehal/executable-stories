@@ -87,4 +87,4 @@ Your main `vitest.config.ts` keeps the `StoryReporter` for normal `vitest run`. 
 
 ## Wider repo scope
 
-The monorepo also includes adapters for Go, pytest, JUnit 5, Rust, and xUnit. This site documents the JavaScript packages in detail because they share the Starlight setup and reporter UX; see [Other adapters](/reference/other-adapters/) for the rest of the repo surface.
+The monorepo also includes adapters for Go, pytest, JUnit 5, Ruby, Rust, and xUnit. This site documents the JavaScript packages in detail because they share the Starlight setup and reporter UX; see [Other adapters](/reference/other-adapters/) for the rest of the repo surface.

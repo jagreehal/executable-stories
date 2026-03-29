@@ -1,0 +1,109 @@
+---
+interface Props {
+  beforeLabel?: string;
+  afterLabel?: string;
+  beforeImage?: string;
+  afterImage?: string;
+  beforeAlt?: string;
+  afterAlt?: string;
+}
+
+const {
+  beforeLabel = 'Before',
+  afterLabel = 'After',
+  beforeImage,
+  afterImage,
+  beforeAlt = 'Before',
+  afterAlt = 'After',
+} = Astro.props;
+---
+
+<div class="before-after not-content">
+  <div class="before-after__panel before-after__panel--before">
+    <div class="before-after__label">{beforeLabel}</div>
+    <div class="before-after__img-wrap">
+      {beforeImage ? (
+        <img src={beforeImage} alt={beforeAlt} loading="lazy" decoding="async" />
+      ) : (
+        <div class="before-after__slot">
+          <slot name="before" />
+        </div>
+      )}
+    </div>
+  </div>
+  <div class="before-after__panel before-after__panel--after">
+    <div class="before-after__label">{afterLabel}</div>
+    <div class="before-after__img-wrap">
+      {afterImage ? (
+        <img src={afterImage} alt={afterAlt} loading="lazy" decoding="async" />
+      ) : (
+        <div class="before-after__slot">
+          <slot name="after" />
+        </div>
+      )}
+    </div>
+  </div>
+</div>
+
+<style>
+  .before-after {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin: 2rem auto;
+    max-width: 1200px;
+    align-items: start;
+  }
+
+  .before-after__panel {
+    border-radius: 0.75rem;
+    overflow: hidden;
+    border: 1px solid var(--sl-color-gray-4);
+  }
+
+  .before-after__panel--before .before-after__label {
+    background: var(--sl-color-gray-6);
+    color: var(--sl-color-gray-3);
+  }
+
+  .before-after__panel--after .before-after__label {
+    background: var(--sl-color-accent-low);
+    color: var(--sl-color-accent);
+  }
+
+  .before-after__label {
+    padding: 0.5rem 1rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .before-after__img-wrap {
+    height: 320px;
+    overflow: hidden;
+  }
+
+  .before-after__img-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top left;
+    display: block;
+  }
+
+  .before-after__slot {
+    padding: 1rem;
+    height: 100%;
+  }
+
+  @media (max-width: 768px) {
+    .before-after {
+      grid-template-columns: 1fr;
+    }
+
+    .before-after__img-wrap {
+      height: 240px;
+    }
+  }
+</style>
