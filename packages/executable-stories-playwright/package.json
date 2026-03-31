@@ -39,13 +39,12 @@
     }
   },
   "dependencies": {
-    "executable-stories-formatters": "^0.7.2"
+    "executable-stories-formatters": "workspace:*"
   },
   "devDependencies": {
     "@opentelemetry/api": "^1.9.0",
     "@playwright/test": "^1.58.2",
     "@types/node": "^25.5.0",
-    "executable-stories-formatters": "workspace:*",
     "tsup": "^8.5.1",
     "typescript": "~5.9.3"
   },

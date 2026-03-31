@@ -40,6 +40,7 @@
     "vitest": ">=4.1.0"
   },
   "dependencies": {
+    "executable-stories-formatters": "workspace:*",
     "fast-glob": "^3.3.3",
     "picomatch": "^4.0.3"
   },
@@ -48,7 +49,6 @@
     "@types/node": "^25.5.0",
     "@types/picomatch": "^4.0.2",
     "eslint-config-executable-stories": "workspace:*",
-    "executable-stories-formatters": "workspace:*",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"

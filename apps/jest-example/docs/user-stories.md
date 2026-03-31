@@ -2,246 +2,9 @@
 
 | Key | Value |
 | --- | --- |
-| Date | 2026-03-31T22:56:58.563Z |
+| Date | 2026-04-01T07:05:06.489Z |
 | Version | 1.0.0 |
-| Git SHA | 8c0de99 |
-
-## src/async-patterns.story.test.ts
-
-### ✅ Basic async/await in steps
-
-> Steps can be async functions using async/await syntax
-- **Given** user ID is known
-- **When** user data is fetched
-- **Then** user data is available
-
-### ✅ Parallel async operations with Promise.all
-
-> Multiple async operations can run in parallel using Promise.all
-- **Given** user is authenticated
-- **When** user data and orders are fetched in parallel
-- **Then** all data is available
-- **And** total order value is calculated
-
-### ✅ Sequential async operations
-
-> Some operations must be sequential due to dependencies
-- **Given** nothing is loaded yet
-- **When** user is fetched first
-- **And** then orders are fetched using user ID
-- **Then** both user and orders are available
-
-### ✅ Async setup and teardown pattern
-
-> Setup and teardown can be async for database connections, etc.
-- **Given** database connection is established
-- **And** transaction is started
-- **When** data is saved
-- **Then** transaction can be committed
-- **And** connection is still open for cleanup
-
-### ✅ Error handling in async steps
-
-> Async errors should be properly caught and handled
-- **Given** an async operation that might fail
-- **When** the operation fails
-- **Then** error is caught and can be asserted
-
-### ✅ Working with timeouts and delays
-
-> Async operations can include deliberate delays for timing
-- **Given** timer starts
-- **When** operation with delay completes
-- **Then** elapsed time is measurable
-
-### ✅ Async iteration over collections
-
-> Processing collections asynchronously
-- **Given** a collection of items
-- **When** items are processed asynchronously
-- **Then** all items are processed
-
-### ✅ Parallel iteration with Promise.all and map
-
-> Processing all items in parallel for better performance
-- **Given** a collection of numbers
-- **When** items are processed in parallel
-- **Then** all items are doubled
-
-### ✅ Real-world async API test pattern
-
-> Simulates a complete async API test scenario
-`async`
-- **Given** API client is configured
-- **When** GET request is made
-- **And** POST request is made
-- **Then** GET response is valid
-- **And** POST response is valid
-- **And** both responses have timestamps
-
-### ✅ Async steps with runtime documentation
-
-> Runtime docs capture async operation results
-- **Given** async operation is prepared
-- **When** async data is fetched
-- **Then** runtime docs contain async results
-
-## src/error-scenarios.story.test.ts
-
-### ✅ Error Scenarios Testing thrown errors with try/catch
-
-> Traditional try/catch pattern for error testing
-- **Given** a function that will throw
-- **When** the function is called in try/catch
-- **Then** error is caught
-- **And** error message is correct
-- **And** error is an instance of Error
-
-### ✅ Error Scenarios Testing errors with Jest toThrow
-
-> Using Jest's toThrow matcher for clean error assertions
-- **Given** functions that throw different errors
-- **Then** toThrow matches any error
-- **And** toThrow matches specific message
-- **And** toThrow matches error type
-- **And** toThrow matches with regex
-
-### ✅ Error Scenarios Documenting error scenarios
-
-> Error scenarios should be well documented
-`error-documentation`
-- **Given** a validation function
-    **Validation Rules**
-    
-    ```markdown
-    - Input is required
-    - Minimum length: 3
-    - Maximum length: 100
-    ```
-    
-- **When** empty input is validated
-- **And** short input is validated
-- **And** valid input is validated
-- **Then** all error cases are documented
-    **Error Scenarios**
-    
-    | Input | Expected Errors |
-    | --- | --- |
-    | (empty) | Input is required, Input too short |
-    | ab | Input too short |
-    | valid input | None |
-    
-
-### ✅ Error Scenarios Async error handling patterns
-
-> Testing errors in async operations
-- **Given** an async function that can fail
-- **When** async error is caught with try/catch
-- **And** async error is caught with rejects
-- **Then** successful async operation works
-
-### ✅ Error Scenarios Testing custom error types
-
-> Testing application-specific error classes
-- **Given** custom error classes exist
-    **Error Classes**
-    
-    ```typescript
-    class ValidationError extends Error {
-      field: string;
-      code: string;
-    }
-    
-    class NetworkError extends Error {
-      statusCode: number;
-    }
-    ```
-    
-- **When** validation error is thrown
-- **And** network error is thrown
-- **Then** custom errors are properly typed
-
-### ✅ Error Scenarios Error recovery and fallback patterns
-
-> Testing graceful degradation and recovery
-- **Given** a safe wrapper function
-- **When** successful operation is wrapped
-- **And** failing operation is wrapped
-- **Then** errors are handled gracefully
-    **Error Handling Patterns**
-    
-    | Pattern | Use Case |
-    | --- | --- |
-    | try/catch | Runtime error capture |
-    | toThrow | Error assertion |
-    | Result type | Graceful degradation |
-    
-
-## src/calculator.story.test.ts
-
-### ✅ Calculator Calculator adds two numbers
-
-- **Given** two numbers 5 and 3
-- **When** the numbers are added
-- **Then** the result is 8
-
-### ✅ Calculator Calculator subtracts two numbers
-
-- **Given** two numbers 10 and 4
-- **When** the second is subtracted from the first
-- **Then** the result is 6
-
-### ✅ Calculator Calculator multiplies two numbers
-
-- **Given** two numbers 7 and 6
-- **When** the numbers are multiplied
-- **Then** the result is 42
-
-### ✅ Calculator Calculator divides two numbers
-
-- **Given** two numbers 20 and 4
-- **When** the first is divided by the second
-- **Then** the result is 5
-
-### ✅ Calculator Calculator throws error on division by zero
-
-> Division by zero should throw an error
-- **Given** a number 10 and zero
-- **When** division is attempted
-- **Then** an error is thrown
-
-## src/wrapped-steps.story.test.ts
-
-### ✅ Wrapped Steps (fn/expect) Calculator adds two numbers using fn and expect
-
-- **Given** number a is 5
-- **And** number b is 3
-- **When** the numbers are added
-- **Then** the result is 8
-
-### ✅ Wrapped Steps (fn/expect) Calculator subtracts using fn with timing
-
-- **Given** two numbers 10 and 4
-- **When** the second is subtracted from the first
-- **Then** the result is 6
-
-### ✅ Wrapped Steps (fn/expect) Calculator division by zero captured in fn
-
-- **Given** a number 10 and zero
-- **Then** division by zero throws an error
-
-### ✅ Wrapped Steps (fn/expect) Mixed markers and wrapped steps
-
-- **Given** the calculator is ready
-- **When** we multiply 7 by 6
-- **Then** the result is 42
-- **And** the result is a positive number
-
-### ✅ Wrapped Steps (fn/expect) Async fn wraps async operations with timing
-
-- **Given** data fetched asynchronously
-- **When** async addition is performed
-- **Then** the async result is 8
+| Git SHA | 450a4dd |
 
 ## src/all-doc-api.story.test.ts
 
@@ -575,43 +338,6 @@ erDiagram
     ```
 - **Then** all methods work together
 
-## src/step-callbacks.story.test.ts
-
-### ✅ Step Callbacks Calculator adds two numbers using step callbacks
-
-- **Given** number a is 5
-- **And** number b is 3
-- **When** the numbers are added
-- **Then** the result is 8
-
-### ✅ Step Callbacks Mixed markers and step callbacks
-
-- **Given** the calculator is ready
-- **When** we multiply 7 by 6
-- **Then** the result is 42
-- **And** the result is a positive number
-
-### ✅ Step Callbacks Async step callbacks with timing
-
-- **Given** data fetched asynchronously
-- **When** async addition is performed
-- **Then** the async result is 8
-
-### ✅ Step Callbacks Step callbacks with inline docs still use marker-only
-
-- **Given** valid credentials
-    **Credentials**
-    
-    ```json
-    {
-      "email": "user@example.com"
-    }
-    ```
-    
-- **When** login is attempted
-- **Then** user is authenticated
-- **But** rate limit is not exceeded
-
 ## src/api-variations.story.test.ts
 
 ### ✅ Framework native with doc.story
@@ -655,6 +381,119 @@ Tags: `api`, `smoke` | Tickets: `JIRA-123`
 - **Given** context
     - **key:** value
 - **Then** assertion
+
+## src/async-patterns.story.test.ts
+
+### ✅ Basic async/await in steps
+
+> Steps can be async functions using async/await syntax
+- **Given** user ID is known
+- **When** user data is fetched
+- **Then** user data is available
+
+### ✅ Parallel async operations with Promise.all
+
+> Multiple async operations can run in parallel using Promise.all
+- **Given** user is authenticated
+- **When** user data and orders are fetched in parallel
+- **Then** all data is available
+- **And** total order value is calculated
+
+### ✅ Sequential async operations
+
+> Some operations must be sequential due to dependencies
+- **Given** nothing is loaded yet
+- **When** user is fetched first
+- **And** then orders are fetched using user ID
+- **Then** both user and orders are available
+
+### ✅ Async setup and teardown pattern
+
+> Setup and teardown can be async for database connections, etc.
+- **Given** database connection is established
+- **And** transaction is started
+- **When** data is saved
+- **Then** transaction can be committed
+- **And** connection is still open for cleanup
+
+### ✅ Error handling in async steps
+
+> Async errors should be properly caught and handled
+- **Given** an async operation that might fail
+- **When** the operation fails
+- **Then** error is caught and can be asserted
+
+### ✅ Working with timeouts and delays
+
+> Async operations can include deliberate delays for timing
+- **Given** timer starts
+- **When** operation with delay completes
+- **Then** elapsed time is measurable
+
+### ✅ Async iteration over collections
+
+> Processing collections asynchronously
+- **Given** a collection of items
+- **When** items are processed asynchronously
+- **Then** all items are processed
+
+### ✅ Parallel iteration with Promise.all and map
+
+> Processing all items in parallel for better performance
+- **Given** a collection of numbers
+- **When** items are processed in parallel
+- **Then** all items are doubled
+
+### ✅ Real-world async API test pattern
+
+> Simulates a complete async API test scenario
+`async`
+- **Given** API client is configured
+- **When** GET request is made
+- **And** POST request is made
+- **Then** GET response is valid
+- **And** POST response is valid
+- **And** both responses have timestamps
+
+### ✅ Async steps with runtime documentation
+
+> Runtime docs capture async operation results
+- **Given** async operation is prepared
+- **When** async data is fetched
+- **Then** runtime docs contain async results
+
+## src/calculator.story.test.ts
+
+### ✅ Calculator Calculator adds two numbers
+
+- **Given** two numbers 5 and 3
+- **When** the numbers are added
+- **Then** the result is 8
+
+### ✅ Calculator Calculator subtracts two numbers
+
+- **Given** two numbers 10 and 4
+- **When** the second is subtracted from the first
+- **Then** the result is 6
+
+### ✅ Calculator Calculator multiplies two numbers
+
+- **Given** two numbers 7 and 6
+- **When** the numbers are multiplied
+- **Then** the result is 42
+
+### ✅ Calculator Calculator divides two numbers
+
+- **Given** two numbers 20 and 4
+- **When** the first is divided by the second
+- **Then** the result is 5
+
+### ✅ Calculator Calculator throws error on division by zero
+
+> Division by zero should throw an error
+- **Given** a number 10 and zero
+- **When** division is attempted
+- **Then** an error is thrown
 
 ## src/complex-data.story.test.ts
 
@@ -1016,6 +855,97 @@ This story demonstrates:
 - **Given** all documentation types are used
 - **Then** comprehensive documentation is generated
 
+## src/error-scenarios.story.test.ts
+
+### ✅ Error Scenarios Testing thrown errors with try/catch
+
+> Traditional try/catch pattern for error testing
+- **Given** a function that will throw
+- **When** the function is called in try/catch
+- **Then** error is caught
+- **And** error message is correct
+- **And** error is an instance of Error
+
+### ✅ Error Scenarios Testing errors with Jest toThrow
+
+> Using Jest's toThrow matcher for clean error assertions
+- **Given** functions that throw different errors
+- **Then** toThrow matches any error
+- **And** toThrow matches specific message
+- **And** toThrow matches error type
+- **And** toThrow matches with regex
+
+### ✅ Error Scenarios Documenting error scenarios
+
+> Error scenarios should be well documented
+`error-documentation`
+- **Given** a validation function
+    **Validation Rules**
+    
+    ```markdown
+    - Input is required
+    - Minimum length: 3
+    - Maximum length: 100
+    ```
+    
+- **When** empty input is validated
+- **And** short input is validated
+- **And** valid input is validated
+- **Then** all error cases are documented
+    **Error Scenarios**
+    
+    | Input | Expected Errors |
+    | --- | --- |
+    | (empty) | Input is required, Input too short |
+    | ab | Input too short |
+    | valid input | None |
+    
+
+### ✅ Error Scenarios Async error handling patterns
+
+> Testing errors in async operations
+- **Given** an async function that can fail
+- **When** async error is caught with try/catch
+- **And** async error is caught with rejects
+- **Then** successful async operation works
+
+### ✅ Error Scenarios Testing custom error types
+
+> Testing application-specific error classes
+- **Given** custom error classes exist
+    **Error Classes**
+    
+    ```typescript
+    class ValidationError extends Error {
+      field: string;
+      code: string;
+    }
+    
+    class NetworkError extends Error {
+      statusCode: number;
+    }
+    ```
+    
+- **When** validation error is thrown
+- **And** network error is thrown
+- **Then** custom errors are properly typed
+
+### ✅ Error Scenarios Error recovery and fallback patterns
+
+> Testing graceful degradation and recovery
+- **Given** a safe wrapper function
+- **When** successful operation is wrapped
+- **And** failing operation is wrapped
+- **Then** errors are handled gracefully
+    **Error Handling Patterns**
+    
+    | Pattern | Use Case |
+    | --- | --- |
+    | try/catch | Runtime error capture |
+    | toThrow | Error assertion |
+    | Result type | Graceful degradation |
+    
+
 ## src/framework-native.story.test.ts
 
 ### ✅ Framework-native test with doc.story()
@@ -1118,231 +1048,6 @@ This story demonstrates:
 | doc.json() | Yes |
 | doc.table() | Yes |
 
-
-## src/story-options.story.test.ts
-
-### ✅ Story with single tag
-Tags: `smoke`
-
-> Single tag for basic categorization
-- **Given** a tagged story
-- **When** tests are filtered
-- **Then** this story matches the 'smoke' tag
-
-### ✅ Story with multiple tags
-Tags: `critical`, `regression`, `smoke`
-
-> Multiple tags for flexible filtering
-- **Given** a story with multiple tags
-- **When** tests are filtered by any tag
-- **Then** this story matches multiple filters
-
-### ✅ Story with feature tags
-Tags: `feature:auth`, `feature:login`
-
-> Tags can use prefixes for organization
-- **Given** a story tagged by feature
-- **Then** feature filtering is possible
-
-### ✅ Story with single ticket
-Tickets: `JIRA-123`
-
-> Links story to a single issue tracker ticket
-- **Given** a story linked to JIRA-123
-- **When** documentation is generated
-- **Then** ticket reference appears in docs
-
-### ✅ Story with multiple tickets
-Tickets: `JIRA-123`, `JIRA-456`, `JIRA-789`
-
-> Story can be linked to multiple tickets
-- **Given** a story linked to multiple tickets
-- **When** requirements are tracked
-- **Then** all ticket references are documented
-
-### ✅ Story with different ticket formats
-Tickets: `JIRA-123`, `GH-456`, `BUG-789`
-
-> Different ticket systems can be referenced
-- **Given** tickets from JIRA, GitHub, and bug tracker
-- **Then** all formats are supported
-
-### ✅ Story with simple metadata
-
-> Custom metadata attached to story
-- **Given** a story with custom metadata
-- **Then** metadata is available in reports
-
-### ✅ Story with complex metadata
-
-> Metadata can contain nested structures and arrays
-- **Given** a story with rich metadata
-- **When** reports are generated
-- **Then** all metadata is preserved
-
-### ✅ Story with all options combined
-Tags: `critical`, `feature:checkout`, `smoke` | Tickets: `PROJ-456`
-
-> All story options used together
-- **Given** a fully configured story
-- **When** documentation is generated
-- **Then** all options appear in output
-
-### ✅ Complete story configuration example
-Tags: `api`, `feature:user-management` | Tickets: `EPIC-100`, `STORY-201`, `TASK-302`
-
-> Comprehensive example with realistic metadata
-`documentation-example`
-- **Given** complete story configuration
-- **When** documentation is generated
-- **Then** rich metadata enables advanced reporting
-
-### ✅ Story options combined with doc API
-Tags: `api`, `comprehensive` | Tickets: `DOC-789`
-
-> Story options and doc API complement each other
-`additional-tag`
-- **Additional Key:** Additional Value
-**Options vs Doc API**
-
-| Aspect | Story Options | Doc API |
-| --- | --- | --- |
-| When Set | Declaration time | Anytime |
-| Structure | Fixed schema | Flexible |
-| Use Case | Filtering/Reporting | Rich docs |
-
-- **Given** story with options and doc methods
-- **When** both are used
-- **Then** they work together seamlessly
-
-### ✅ Login feature - happy path
-Tags: `auth`, `login`, `smoke` | Tickets: `AUTH-001`
-
-- **Given** user is on login page
-- **When** user enters valid credentials
-- **Then** user is logged in successfully
-
-### ✅ Login feature - invalid password
-Tags: `auth`, `login`, `negative`, `regression` | Tickets: `AUTH-001`, `AUTH-015`
-
-- **Given** user is on login page
-- **When** user enters invalid password
-- **Then** error message is displayed
-
-### ✅ Payment processing
-Tags: `checkout`, `critical`, `payment` | Tickets: `PAY-100`
-
-> Payment tests require special handling
-- **Given** user has items in cart
-- **When** user completes payment
-- **Then** payment is processed successfully
-
-### ✅ Story with empty tags array
-
-- **Given** story with empty tags
-- **Then** story still works
-
-### ✅ Story with empty meta object
-
-- **Given** story with empty meta
-- **Then** story still works
-
-### ✅ Story with only tags
-Tags: `minimal`
-
-- **Given** story with only tags option
-- **Then** other options are optional
-
-### ✅ Story with only ticket
-Tickets: `MIN-001`
-
-- **Given** story with only ticket option
-- **Then** other options are optional
-
-### ✅ Story with only meta
-
-- **Given** story with only meta option
-- **Then** other options are optional
-
-## src/step-aliases.story.test.ts
-
-### ✅ Step Aliases AAA Pattern: Arrange-Act-Assert
-
-> Classic testing pattern using arrange/act/assert aliases
-`aaa-pattern`
-- **Given** calculator is initialized
-- **And** input values are prepared
-- **When** addition is performed
-- **Then** result equals expected value
-- **And** result is a number
-
-### ✅ Step Aliases Setup-Execute-Verify Pattern
-
-> Alternative naming using setup/execute/verify
-`sev-pattern`
-- **Given** service is configured
-- **And** dependencies are mocked
-- **When** service processes input
-- **Then** output is transformed correctly
-- **And** output is not empty
-
-### ✅ Step Aliases Context-Action Pattern
-
-> Using context to establish state and action for operations
-`context-action`
-- **Given** user context is established
-- **And** permissions are set
-- **When** user performs privileged operation
-- **Then** operation succeeds
-
-### ✅ Step Aliases Mixed pattern usage
-
-> Different aliases can be combined in the same story
-`mixed`
-- **Given** initial data exists
-- **And** data is validated
-- **And** sum accumulator is initialized
-- **When** sum is calculated
-- **Then** sum is correct
-- **And** sum is positive
-
-### ✅ Step Aliases User registration flow using aliases
-
-> Realistic example using arrange/act/assert pattern
-`user-flow` `registration`
-- **Given** valid user data is prepared
-- **And** email is unique in the system
-- **When** registration is submitted
-- **Then** registration succeeds
-- **And** user ID is generated
-- **And** no error is returned
-
-### ✅ Step Aliases All alias styles comparison
-
-> Comparison of all available step function aliases
-**Step Function Aliases**
-
-| Purpose | BDD Style | AAA Pattern | Alternative 1 | Alternative 2 |
-| --- | --- | --- | --- | --- |
-| Setup/Context | given | arrange | setup | context |
-| Action/Execute | when | act | execute | action |
-| Verify/Assert | then | assert | verify | - |
-| Continue | and | - | - | - |
-| Negative | but | - | - | - |
-
-- **Given** BDD given step
-- **When** BDD when step
-- **Then** BDD then step
-- **And** AAA arrange step
-- **And** AAA act step
-- **And** AAA assert step
-- **And** alternative setup step
-- **And** alternative execute step
-- **And** alternative verify step
-- **And** alternative context step
-- **And** alternative action step
-- **And** continuation step
-- **But** negative case step
 
 ## src/gherkin-patterns.story.test.ts
 
@@ -1813,45 +1518,6 @@ Tags: `feature-flag`, `premium` | Tickets: `JIRA-456`
 - **When** the total is calculated
 - **Then** the total should be $36
 
-## src/new-apis.story.test.ts
-
-### ✅ Calculator sum (framework native)
-
-
-### ✅ Optional step demo (steps are markers only) Optional step callback demo
-
-- **Given** two numbers 1 and 2
-- **And** we are about to add
-- **When** add is called
-- **Then** the result is 3
-
-## src/refactor-guide.story.test.ts
-
-### ✅ Part 2: Introduce story (it + story.init) Calculator adds two numbers
-
-- **Given** two numbers 2 and 3
-- **When** they are added
-- **Then** the result is 5
-
-### ✅ Part 3: Framework-native with story.init() Step 2 — Keep test(), add story.init(): existing test appears in docs
-
-
-### ✅ Part 4: Full patterns Calculator multiplies two numbers
-
-- **Given** two numbers 7 and 6
-- **When** they are multiplied
-- **Then** the result is 42
-
-### ✅ Part 4: Full patterns Step 3b — Framework-native test with story.init() in the same describe
-
-
-### ✅ Part 4: Full patterns Calculator adds with a note
-
-> Using small numbers; the note appears in the generated Markdown.
-- **Given** two numbers 1 and 2
-- **When** they are added
-- **Then** the result is 3
-
 ## src/kitchen-sink.story.test.ts
 
 ### ✅ Kitchen sink – every story API method
@@ -1919,6 +1585,45 @@ graph LR
 - **And** arrange alias works
 - **And** act alias works
 - **And** assert alias works
+
+## src/new-apis.story.test.ts
+
+### ✅ Calculator sum (framework native)
+
+
+### ✅ Optional step demo (steps are markers only) Optional step callback demo
+
+- **Given** two numbers 1 and 2
+- **And** we are about to add
+- **When** add is called
+- **Then** the result is 3
+
+## src/refactor-guide.story.test.ts
+
+### ✅ Part 2: Introduce story (it + story.init) Calculator adds two numbers
+
+- **Given** two numbers 2 and 3
+- **When** they are added
+- **Then** the result is 5
+
+### ✅ Part 3: Framework-native with story.init() Step 2 — Keep test(), add story.init(): existing test appears in docs
+
+
+### ✅ Part 4: Full patterns Calculator multiplies two numbers
+
+- **Given** two numbers 7 and 6
+- **When** they are multiplied
+- **Then** the result is 42
+
+### ✅ Part 4: Full patterns Step 3b — Framework-native test with story.init() in the same describe
+
+
+### ✅ Part 4: Full patterns Calculator adds with a note
+
+> Using small numbers; the note appears in the generated Markdown.
+- **Given** two numbers 1 and 2
+- **When** they are added
+- **Then** the result is 3
 
 ## src/replicate.story.test.ts
 
@@ -2330,3 +2035,298 @@ Tags: `db`, `smoke`
 - **When** the import job runs
 - **Then** the users should exist
 - **And** welcome emails should be sent
+
+## src/step-aliases.story.test.ts
+
+### ✅ Step Aliases AAA Pattern: Arrange-Act-Assert
+
+> Classic testing pattern using arrange/act/assert aliases
+`aaa-pattern`
+- **Given** calculator is initialized
+- **And** input values are prepared
+- **When** addition is performed
+- **Then** result equals expected value
+- **And** result is a number
+
+### ✅ Step Aliases Setup-Execute-Verify Pattern
+
+> Alternative naming using setup/execute/verify
+`sev-pattern`
+- **Given** service is configured
+- **And** dependencies are mocked
+- **When** service processes input
+- **Then** output is transformed correctly
+- **And** output is not empty
+
+### ✅ Step Aliases Context-Action Pattern
+
+> Using context to establish state and action for operations
+`context-action`
+- **Given** user context is established
+- **And** permissions are set
+- **When** user performs privileged operation
+- **Then** operation succeeds
+
+### ✅ Step Aliases Mixed pattern usage
+
+> Different aliases can be combined in the same story
+`mixed`
+- **Given** initial data exists
+- **And** data is validated
+- **And** sum accumulator is initialized
+- **When** sum is calculated
+- **Then** sum is correct
+- **And** sum is positive
+
+### ✅ Step Aliases User registration flow using aliases
+
+> Realistic example using arrange/act/assert pattern
+`user-flow` `registration`
+- **Given** valid user data is prepared
+- **And** email is unique in the system
+- **When** registration is submitted
+- **Then** registration succeeds
+- **And** user ID is generated
+- **And** no error is returned
+
+### ✅ Step Aliases All alias styles comparison
+
+> Comparison of all available step function aliases
+**Step Function Aliases**
+
+| Purpose | BDD Style | AAA Pattern | Alternative 1 | Alternative 2 |
+| --- | --- | --- | --- | --- |
+| Setup/Context | given | arrange | setup | context |
+| Action/Execute | when | act | execute | action |
+| Verify/Assert | then | assert | verify | - |
+| Continue | and | - | - | - |
+| Negative | but | - | - | - |
+
+- **Given** BDD given step
+- **When** BDD when step
+- **Then** BDD then step
+- **And** AAA arrange step
+- **And** AAA act step
+- **And** AAA assert step
+- **And** alternative setup step
+- **And** alternative execute step
+- **And** alternative verify step
+- **And** alternative context step
+- **And** alternative action step
+- **And** continuation step
+- **But** negative case step
+
+## src/step-callbacks.story.test.ts
+
+### ✅ Step Callbacks Calculator adds two numbers using step callbacks
+
+- **Given** number a is 5
+- **And** number b is 3
+- **When** the numbers are added
+- **Then** the result is 8
+
+### ✅ Step Callbacks Mixed markers and step callbacks
+
+- **Given** the calculator is ready
+- **When** we multiply 7 by 6
+- **Then** the result is 42
+- **And** the result is a positive number
+
+### ✅ Step Callbacks Async step callbacks with timing
+
+- **Given** data fetched asynchronously
+- **When** async addition is performed
+- **Then** the async result is 8
+
+### ✅ Step Callbacks Step callbacks with inline docs still use marker-only
+
+- **Given** valid credentials
+    **Credentials**
+    
+    ```json
+    {
+      "email": "user@example.com"
+    }
+    ```
+    
+- **When** login is attempted
+- **Then** user is authenticated
+- **But** rate limit is not exceeded
+
+## src/story-options.story.test.ts
+
+### ✅ Story with single tag
+Tags: `smoke`
+
+> Single tag for basic categorization
+- **Given** a tagged story
+- **When** tests are filtered
+- **Then** this story matches the 'smoke' tag
+
+### ✅ Story with multiple tags
+Tags: `critical`, `regression`, `smoke`
+
+> Multiple tags for flexible filtering
+- **Given** a story with multiple tags
+- **When** tests are filtered by any tag
+- **Then** this story matches multiple filters
+
+### ✅ Story with feature tags
+Tags: `feature:auth`, `feature:login`
+
+> Tags can use prefixes for organization
+- **Given** a story tagged by feature
+- **Then** feature filtering is possible
+
+### ✅ Story with single ticket
+Tickets: `JIRA-123`
+
+> Links story to a single issue tracker ticket
+- **Given** a story linked to JIRA-123
+- **When** documentation is generated
+- **Then** ticket reference appears in docs
+
+### ✅ Story with multiple tickets
+Tickets: `JIRA-123`, `JIRA-456`, `JIRA-789`
+
+> Story can be linked to multiple tickets
+- **Given** a story linked to multiple tickets
+- **When** requirements are tracked
+- **Then** all ticket references are documented
+
+### ✅ Story with different ticket formats
+Tickets: `JIRA-123`, `GH-456`, `BUG-789`
+
+> Different ticket systems can be referenced
+- **Given** tickets from JIRA, GitHub, and bug tracker
+- **Then** all formats are supported
+
+### ✅ Story with simple metadata
+
+> Custom metadata attached to story
+- **Given** a story with custom metadata
+- **Then** metadata is available in reports
+
+### ✅ Story with complex metadata
+
+> Metadata can contain nested structures and arrays
+- **Given** a story with rich metadata
+- **When** reports are generated
+- **Then** all metadata is preserved
+
+### ✅ Story with all options combined
+Tags: `critical`, `feature:checkout`, `smoke` | Tickets: `PROJ-456`
+
+> All story options used together
+- **Given** a fully configured story
+- **When** documentation is generated
+- **Then** all options appear in output
+
+### ✅ Complete story configuration example
+Tags: `api`, `feature:user-management` | Tickets: `EPIC-100`, `STORY-201`, `TASK-302`
+
+> Comprehensive example with realistic metadata
+`documentation-example`
+- **Given** complete story configuration
+- **When** documentation is generated
+- **Then** rich metadata enables advanced reporting
+
+### ✅ Story options combined with doc API
+Tags: `api`, `comprehensive` | Tickets: `DOC-789`
+
+> Story options and doc API complement each other
+`additional-tag`
+- **Additional Key:** Additional Value
+**Options vs Doc API**
+
+| Aspect | Story Options | Doc API |
+| --- | --- | --- |
+| When Set | Declaration time | Anytime |
+| Structure | Fixed schema | Flexible |
+| Use Case | Filtering/Reporting | Rich docs |
+
+- **Given** story with options and doc methods
+- **When** both are used
+- **Then** they work together seamlessly
+
+### ✅ Login feature - happy path
+Tags: `auth`, `login`, `smoke` | Tickets: `AUTH-001`
+
+- **Given** user is on login page
+- **When** user enters valid credentials
+- **Then** user is logged in successfully
+
+### ✅ Login feature - invalid password
+Tags: `auth`, `login`, `negative`, `regression` | Tickets: `AUTH-001`, `AUTH-015`
+
+- **Given** user is on login page
+- **When** user enters invalid password
+- **Then** error message is displayed
+
+### ✅ Payment processing
+Tags: `checkout`, `critical`, `payment` | Tickets: `PAY-100`
+
+> Payment tests require special handling
+- **Given** user has items in cart
+- **When** user completes payment
+- **Then** payment is processed successfully
+
+### ✅ Story with empty tags array
+
+- **Given** story with empty tags
+- **Then** story still works
+
+### ✅ Story with empty meta object
+
+- **Given** story with empty meta
+- **Then** story still works
+
+### ✅ Story with only tags
+Tags: `minimal`
+
+- **Given** story with only tags option
+- **Then** other options are optional
+
+### ✅ Story with only ticket
+Tickets: `MIN-001`
+
+- **Given** story with only ticket option
+- **Then** other options are optional
+
+### ✅ Story with only meta
+
+- **Given** story with only meta option
+- **Then** other options are optional
+
+## src/wrapped-steps.story.test.ts
+
+### ✅ Wrapped Steps (fn/expect) Calculator adds two numbers using fn and expect
+
+- **Given** number a is 5
+- **And** number b is 3
+- **When** the numbers are added
+- **Then** the result is 8
+
+### ✅ Wrapped Steps (fn/expect) Calculator subtracts using fn with timing
+
+- **Given** two numbers 10 and 4
+- **When** the second is subtracted from the first
+- **Then** the result is 6
+
+### ✅ Wrapped Steps (fn/expect) Calculator division by zero captured in fn
+
+- **Given** a number 10 and zero
+- **Then** division by zero throws an error
+
+### ✅ Wrapped Steps (fn/expect) Mixed markers and wrapped steps
+
+- **Given** the calculator is ready
+- **When** we multiply 7 by 6
+- **Then** the result is 42
+- **And** the result is a positive number
+
+### ✅ Wrapped Steps (fn/expect) Async fn wraps async operations with timing
+
+- **Given** data fetched asynchronously
+- **When** async addition is performed
+- **Then** the async result is 8

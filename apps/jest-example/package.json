@@ -4,7 +4,7 @@
   "description": "Jest executable-stories example (file link to monorepo package)",
   "type": "module",
   "scripts": {
-    "test": "node -e \"const fs=require('fs');const {execSync}=require('child_process');const p=require('path').resolve(process.cwd(),'../../packages/executable-stories-jest/package.json');if(!fs.existsSync(p)){console.log('Skipping test: executable-stories-jest not in workspace');process.exit(0);}execSync('node --experimental-vm-modules node_modules/jest/bin/jest.js',{stdio:'inherit'});\"",
+    "test": "node -e \"const fs=require('fs');const {execSync}=require('child_process');const p=require('path').resolve(process.cwd(),'../../packages/executable-stories-jest/package.json');if(!fs.existsSync(p)){console.log('Skipping test: executable-stories-jest not in workspace');process.exit(0);}execSync('node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand',{stdio:'inherit'});\"",
     "lint": "eslint .",
     "type-check": "node -e \"const fs=require('fs');const {execSync}=require('child_process');const p=require('path').resolve(process.cwd(),'../../packages/executable-stories-jest/package.json');if(!fs.existsSync(p)){console.log('Skipping type-check: executable-stories-jest not in workspace');process.exit(0);}execSync('pnpm --filter executable-stories-jest run build && tsc --noEmit',{stdio:'inherit'});\""
   },
@@ -17,7 +17,6 @@
     "eslint-config-executable-stories": "workspace:*",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-executable-stories-jest": "workspace:*",
-    "executable-stories-formatters": "workspace:*",
     "executable-stories-jest": "workspace:*",
     "jest": "^30.2.0",
     "ts-jest": "^29.4.6",
