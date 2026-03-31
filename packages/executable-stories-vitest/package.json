@@ -1,6 +1,6 @@
 {
   "name": "executable-stories-vitest",
-  "version": "8.1.0",
+  "version": "8.1.1",
   "description": "TS-first story/given/when/then helpers for Vitest with Markdown user-story doc generation.",
   "author": "Jag Reehal <jag@jagreehal.com>",
   "homepage": "https://github.com/jagreehal/executable-stories#readme",
@@ -38,7 +38,7 @@
   ],
   "peerDependencies": {
     "vitest": ">=4.1.0",
-    "executable-stories-formatters": "^0.7.0"
+    "executable-stories-formatters": "^0.7.1"
   },
   "devDependencies": {
     "@opentelemetry/api": "^1.9.0",

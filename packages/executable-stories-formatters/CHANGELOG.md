@@ -1,5 +1,11 @@
 # executable-stories-formatters
 
+## 0.7.1
+
+### Patch Changes
+
+- cda1ba6: Added story groupings
+
 ## 0.7.0
 
 ### Minor Changes
