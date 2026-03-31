@@ -1,5 +1,13 @@
 # executable-stories-jest
 
+## 8.1.1
+
+### Patch Changes
+
+- cda1ba6: Added story groupings
+- Updated dependencies [cda1ba6]
+  - executable-stories-formatters@0.7.1
+
 ## 8.1.0
 
 ### Minor Changes

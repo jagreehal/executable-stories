@@ -1,6 +1,6 @@
 {
   "name": "executable-stories-jest",
-  "version": "8.1.0",
+  "version": "8.1.1",
   "description": "BDD-style executable stories for Jest with documentation generation",
   "type": "module",
   "sideEffects": false,
@@ -36,7 +36,7 @@
   },
   "peerDependencies": {
     "jest": ">=30.3.0",
-    "executable-stories-formatters": "^0.7.0"
+    "executable-stories-formatters": "^0.7.1"
   },
   "dependencies": {
     "fast-glob": "^3.3.3"
