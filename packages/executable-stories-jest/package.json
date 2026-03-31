@@ -35,10 +35,10 @@
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.config.mjs --passWithNoTests"
   },
   "peerDependencies": {
-    "jest": ">=30.3.0",
-    "executable-stories-formatters": "^0.7.1"
+    "jest": ">=30.3.0"
   },
   "dependencies": {
+    "executable-stories-formatters": "^0.7.1",
     "fast-glob": "^3.3.3"
   },
   "devDependencies": {

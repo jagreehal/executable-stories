@@ -640,7 +640,7 @@ describe('Rule: Authenticated users can manage their data', () => {
 });
 
 // =============================================================================
-// Pattern 28: Scenario with skip/todo modifiers - use it.skip/it.todo
+// Pattern 28: Feature under development
 // =============================================================================
 it('Feature under development', ({ task }) => {
   story.init(task);
@@ -649,16 +649,6 @@ it('Feature under development', ({ task }) => {
   story.when('the user accesses the new feature');
 
   story.then('the feature should work correctly');
-  expect(true).toBe(true);
-});
-
-it.skip('Temporarily disabled test (use it.skip)', ({ task }) => {
-  story.init(task);
-  story.given('some precondition');
-
-  story.when('some action');
-
-  story.then('some expected result');
   expect(true).toBe(true);
 });
 

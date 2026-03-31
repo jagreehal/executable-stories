@@ -7,8 +7,7 @@
  * - Async error handling
  * - Custom error types
  *
- * Note: The .fails modifier is not available; use try/catch or expect().rejects for expected failures.
- * Use try/catch or expect().toThrow() patterns instead.
+ * Note: Use try/catch or expect().toThrow() patterns for expected failures.
  */
 import { expect, test } from '@playwright/test';
 import { story } from 'executable-stories-playwright';
@@ -74,19 +73,6 @@ test.describe('Error Scenarios', () => {
 
     story.then('toThrow matches with regex');
     expect(throwingFunction).toThrow(/Expected.*message/);
-  });
-
-  // ============================================================================
-  // .fails modifier is not supported - this section shows the try/catch alternative
-  // ============================================================================
-
-  test.skip('Expected failures with .fails modifier (use try/catch or toThrow instead)', async ({}, testInfo) => {
-    story.init(testInfo);
-    story.note(
-      'Step-level .fails is not supported; use try/catch or expect().rejects.',
-    );
-    story.note('Use try/catch or expect().toThrow() patterns instead');
-    expect(true).toBe(true);
   });
 
   // ============================================================================
@@ -256,18 +242,6 @@ class NetworkError extends Error {
 
     story.then('custom errors are properly typed');
     expect(true).toBe(true);
-  });
-
-  // ============================================================================
-  // Skipped Story - use test.skip for whole test
-  // ============================================================================
-
-  test.skip('Entire story skipped for maintenance', async ({}, testInfo) => {
-    story.init(testInfo);
-    story.note('This story is skipped during maintenance');
-
-    story.given("this won't run");
-    throw new Error('Should not execute');
   });
 
   // ============================================================================

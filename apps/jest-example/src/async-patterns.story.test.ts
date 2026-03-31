@@ -166,15 +166,6 @@ it('Error handling in async steps', async () => {
   expect(error?.message).toBe('Network error');
 });
 
-it.skip('Expected async failure with .fails modifier (no step.fails; use try/catch or expect().rejects)', async () => {
-  story.init();
-  story.note('The .fails modifier works with async steps');
-  story.given('setup for failing operation');
-  story.when('async operation throws');
-  await delay(5);
-  throw new Error('Expected async error');
-});
-
 // ============================================================================
 // Timeouts and Delays
 // ============================================================================

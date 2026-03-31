@@ -1,7 +1,6 @@
 /**
  * Comprehensive API variations test for Vitest.
  * describe/it + story.init(task) + story.given/when/then (markers only).
- * Skipped: steps object, step prefix, step modifiers (no step-level .skip/.todo).
  */
 import { story } from 'executable-stories-vitest';
 import { expect, it, test } from 'vitest';
@@ -31,28 +30,7 @@ it('Optional callbacks for all step keywords', ({ task }) => {
   expect(true).toBe(true);
 });
 
-// 3. steps object style — no steps/step object; use story.given/when/then
-it.skip('Using steps object (no steps callback param; use story.given/when/then)', ({
-  task,
-}) => {
-  story.init(task);
-  story.given('context via steps param');
-  story.when('action via steps param');
-  story.then('assertion via steps param');
-  expect(true).toBe(true);
-});
-
-it.skip('Using step prefix (no step.* alias; use story.given/when/then)', ({
-  task,
-}) => {
-  story.init(task);
-  story.given('context via step prefix');
-  story.when('action via step prefix');
-  story.then('assertion via step prefix');
-  expect(true).toBe(true);
-});
-
-// 4. Multiple steps → And
+// 3. Multiple steps → And
 it('Multiple steps become And', ({ task }) => {
   story.init(task);
   story.given('first given');
@@ -65,17 +43,7 @@ it('Multiple steps become And', ({ task }) => {
   expect(true).toBe(true);
 });
 
-// 5. Step modifiers — no step-level .skip/.todo; use it.skip/it.todo for whole test
-it.skip('Step modifiers (no step.skip/step.todo; use it.skip/it.todo for whole test)', ({
-  task,
-}) => {
-  story.init(task);
-  story.given('normal step');
-  story.then('final assertion');
-  expect(true).toBe(true);
-});
-
-// 6. Story with metadata
+// 4. Story with metadata
 it('Story with metadata', ({ task }) => {
   story.init(task, { tags: ['smoke', 'api'], ticket: 'JIRA-123' });
   story.given('context');
@@ -83,7 +51,7 @@ it('Story with metadata', ({ task }) => {
   expect(true).toBe(true);
 });
 
-// 7. story.note(), story.tag(), story.kv()
+// 5. story.note(), story.tag(), story.kv()
 it('Story with notes and tags', ({ task }) => {
   story.init(task);
   story.note('This is a note about the story');

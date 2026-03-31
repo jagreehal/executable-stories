@@ -75,26 +75,6 @@ describe('Calculator operations - mixed patterns', () => {
   });
 });
 
-// ============================================================================
-// steps/step object — no steps callback param
-// ============================================================================
-
-it.skip('Using steps parameter object (no callback param; use story.given/when/then)', () => {
-  story.init();
-  story.given('initial value');
-  story.when('value is doubled');
-  story.then('value equals 20');
-  expect(20).toBe(20);
-});
-
-it.skip('Using step prefix (no step.*; use story.given/when/then)', () => {
-  story.init();
-  story.given('message is set');
-  story.when('message is appended');
-  story.then('message is complete');
-  expect('Hello, World!').toBe('Hello, World!');
-});
-
 it('Using story object from module', () => {
   story.init();
   story.note('Module-level story object for global access');
@@ -237,17 +217,6 @@ test('Framework-native test with full doc API', () => {
   });
   const result = add(100, 200);
   expect(result).toBe(300);
-});
-
-// ============================================================================
-// Edge Cases
-// ============================================================================
-
-it.skip('Story with no steps (story.init() requires at least test name; doc-only scenario not replicated)', () => {
-  story.init();
-  story.note('A story can exist with only documentation');
-  story.tag('edge-case');
-  story.kv({ label: 'Has Steps', value: false });
 });
 
 test('Framework-native test without doc.story()', () => {

@@ -25,18 +25,6 @@ describe('All Modifiers', () => {
     expect(true).toBe(true);
   });
 
-  it.skip('Skipped step example (entire test skipped with it.skip)', ({
-    task,
-  }) => {
-    story.init(task);
-    story.note('This entire test is skipped');
-
-    story.given('a skipped precondition');
-    story.when('a skipped action');
-    story.then('a skipped assertion');
-    expect(true).toBe(false); // Would fail but test is skipped
-  });
-
   // ============================================================================
   // Todo Modifier - use it.todo instead of step.todo
   // ============================================================================
@@ -105,24 +93,6 @@ describe('All Modifiers', () => {
   });
 
   // ============================================================================
-  // Concurrent Modifier - step-level .concurrent not supported
-  // ============================================================================
-
-  it.skip('Concurrent modifier demonstration (no step.concurrent - use Promise.all)', ({
-    task,
-  }) => {
-    story.init(task);
-    story.note('Step-level .concurrent is not supported.');
-    story.note('Use Promise.all for parallel operations instead');
-    story.tag(['concurrent', 'vitest']);
-
-    story.given('setup for concurrent steps');
-    story.when('concurrent actions would run');
-    story.then('all concurrent actions complete');
-    expect(true).toBe(true);
-  });
-
-  // ============================================================================
   // Combined Modifiers in Different Scenarios
   // ============================================================================
 
@@ -141,20 +111,6 @@ describe('All Modifiers', () => {
 
     story.but('no sensitive data is exposed');
     expect(true).toBe(true);
-  });
-
-  // ============================================================================
-  // Story-level modifiers - use it.skip/it.todo
-  // ============================================================================
-
-  it.skip('Entirely skipped story (use it.skip)', ({ task }) => {
-    story.init(task);
-    story.note('This entire story is skipped');
-
-    story.given('this will not run');
-    story.when('this will not run either');
-    story.then('and this definitely will not run');
-    expect(false).toBe(true); // Would fail but story is skipped
   });
 
   // ============================================================================

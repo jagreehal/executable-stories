@@ -5,9 +5,6 @@
  * - AAA Pattern: story.arrange, story.act, story.assert
  * - Alternative: story.setup, story.execute, story.verify
  * - Context/Action: story.context, story.action
- *
- * Note: Step modifiers (.skip, .todo, .fails) are not available; use it.skip/it.todo for whole test.
- * Use it.skip() or it.todo() for the whole test instead.
  */
 import { describe, expect, it } from '@jest/globals';
 import { story } from 'executable-stories-jest';
@@ -123,23 +120,6 @@ describe('Step Aliases', () => {
     // Using assert for additional check
     story.assert('sum is positive');
     expect(sum).toBeGreaterThan(0);
-  });
-
-  // ============================================================================
-  // Aliases with Modifiers - step-level modifiers not supported
-  // ============================================================================
-
-  it.skip('Aliases support all modifiers (no step.skip/todo/fails - use it.skip/it.todo)', () => {
-    story.init();
-    story.note(
-      'Step-level modifiers (.skip, .todo, .fails) are not supported; use it.skip/it.todo for whole test.',
-    );
-    story.note('Use it.skip() or it.todo() for the whole test instead');
-
-    story.arrange('normal arrangement');
-    story.act('normal action');
-    story.assert('normal assertion');
-    expect(true).toBe(true);
   });
 
   // ============================================================================

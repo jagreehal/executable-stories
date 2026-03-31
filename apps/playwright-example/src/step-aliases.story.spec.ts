@@ -6,8 +6,7 @@
  * - Alternative: story.setup, story.execute, story.verify
  * - Context/Action: story.context, story.action
  *
- * Note: Step modifiers (.skip, .todo, .fails) are not available; use test.skip/test.todo for whole test.
- * Use test.skip() or it.todo() for the whole test instead.
+ * Note: Use test.skip() or test.fixme() for the whole test when needed.
  */
 import { expect, test } from '@playwright/test';
 import { story } from 'executable-stories-playwright';
@@ -123,23 +122,6 @@ test.describe('Step Aliases', () => {
     // Using assert for additional check
     story.assert('sum is positive');
     expect(sum).toBeGreaterThan(0);
-  });
-
-  // ============================================================================
-  // Aliases with Modifiers - step-level modifiers not supported
-  // ============================================================================
-
-  test.skip('Aliases support all modifiers (no step.skip/todo/fails - use test.skip/test.todo)', async ({}, testInfo) => {
-    story.init(testInfo);
-    story.note(
-      'Step-level modifiers (.skip, .todo, .fails) are not supported; use test.skip/test.todo for whole test.',
-    );
-    story.note('Use test.skip() or it.todo() for the whole test instead');
-
-    story.arrange('normal arrangement');
-    story.act('normal action');
-    story.assert('normal assertion');
-    expect(true).toBe(true);
   });
 
   // ============================================================================

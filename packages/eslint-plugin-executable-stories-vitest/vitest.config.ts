@@ -1,6 +1,9 @@
 import * as path from "node:path";
+import { createRequire } from "node:module";
 import { defineConfig } from "vitest/config";
-import { StoryReporter } from "../executable-stories-vitest/dist/reporter.js";
+
+const require = createRequire(import.meta.url);
+const { StoryReporter } = require("../executable-stories-vitest/dist/reporter.cjs");
 
 const vitestPkg = path.resolve(__dirname, "../executable-stories-vitest");
 

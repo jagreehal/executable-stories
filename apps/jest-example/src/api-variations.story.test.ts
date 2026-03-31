@@ -31,23 +31,6 @@ it('Optional callbacks for all step keywords', () => {
   expect(true).toBe(true);
 });
 
-// 3. steps object style — no steps/step object; use story.given/when/then
-it.skip('Using steps object (no steps callback param; use story.given/when/then)', () => {
-  story.init();
-  story.given('context via steps param');
-  story.when('action via steps param');
-  story.then('assertion via steps param');
-  expect(true).toBe(true);
-});
-
-it.skip('Using step prefix (no step.* alias; use story.given/when/then)', () => {
-  story.init();
-  story.given('context via step prefix');
-  story.when('action via step prefix');
-  story.then('assertion via step prefix');
-  expect(true).toBe(true);
-});
-
 // 4. Multiple steps → And
 it('Multiple steps become And', () => {
   story.init();
@@ -61,15 +44,7 @@ it('Multiple steps become And', () => {
   expect(true).toBe(true);
 });
 
-// 5. Step modifiers — no step-level .skip/.todo; use it.skip/it.todo for whole test
-it.skip('Step modifiers (no step.skip/step.todo; use it.skip/it.todo for whole test)', () => {
-  story.init();
-  story.given('normal step');
-  story.then('final assertion');
-  expect(true).toBe(true);
-});
-
-// 6. Story with metadata
+// 5. Story with metadata
 it('Story with metadata', () => {
   story.init({ tags: ['smoke', 'api'], ticket: 'JIRA-123' });
   story.given('context');
