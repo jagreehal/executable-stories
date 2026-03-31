@@ -8,9 +8,6 @@
  * - Async setup and teardown
  * - Error handling in async
  * - Timeouts and delays
- *
- * Note: Step modifiers (.fails, .concurrent) are not available; use it.skip/it.todo for whole test.
- * Use try/catch or expect().rejects patterns for error testing.
  */
 import { story } from 'executable-stories-vitest';
 import { describe, expect, it } from 'vitest';
@@ -97,19 +94,6 @@ describe('Async Patterns', () => {
   });
 
   // ============================================================================
-  // Concurrent Steps - step-level .concurrent not supported
-  // ============================================================================
-
-  it.skip('Concurrent steps with .concurrent modifier (no step.concurrent)', async ({
-    task,
-  }) => {
-    story.init(task);
-    story.note('Step-level .concurrent is not supported.');
-    story.note('Use Promise.all for parallel operations instead');
-    expect(true).toBe(true);
-  });
-
-  // ============================================================================
   // Sequential Async Operations
   // ============================================================================
 
@@ -192,17 +176,6 @@ describe('Async Patterns', () => {
     story.then('error is caught and can be asserted');
     expect(error).not.toBeNull();
     expect(error?.message).toBe('Network error');
-  });
-
-  it.skip('Expected async failure with .fails modifier (use try/catch or rejects instead)', async ({
-    task,
-  }) => {
-    story.init(task);
-    story.note(
-      'Step-level .fails is not supported; use try/catch or expect().rejects.',
-    );
-    story.note('Use try/catch or expect().rejects.toThrow() patterns instead');
-    expect(true).toBe(true);
   });
 
   // ============================================================================

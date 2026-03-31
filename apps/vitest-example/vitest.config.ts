@@ -1,6 +1,9 @@
-import { StoryReporter } from 'executable-stories-vitest/reporter';
+import { createRequire } from 'node:module';
 import type { Reporter } from 'vitest/node';
 import { defineConfig } from 'vitest/config';
+
+const require = createRequire(import.meta.url);
+const { StoryReporter } = require('executable-stories-vitest/reporter');
 
 export default defineConfig({
   test: {

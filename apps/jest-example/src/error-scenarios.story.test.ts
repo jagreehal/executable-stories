@@ -77,19 +77,6 @@ describe('Error Scenarios', () => {
   });
 
   // ============================================================================
-  // .fails modifier is not supported - this section shows the try/catch alternative
-  // ============================================================================
-
-  it.skip('Expected failures with .fails modifier (use try/catch or toThrow instead)', () => {
-    story.init();
-    story.note(
-      'Step-level .fails is not supported; use try/catch or expect().rejects.',
-    );
-    story.note('Use try/catch or expect().toThrow() patterns instead');
-    expect(true).toBe(true);
-  });
-
-  // ============================================================================
   // Error Documentation
   // ============================================================================
 
@@ -256,18 +243,6 @@ class NetworkError extends Error {
 
     story.then('custom errors are properly typed');
     expect(true).toBe(true);
-  });
-
-  // ============================================================================
-  // Skipped Story - use it.skip for whole test
-  // ============================================================================
-
-  it.skip('Entire story skipped for maintenance', () => {
-    story.init();
-    story.note('This story is skipped during maintenance');
-
-    story.given("this won't run");
-    throw new Error('Should not execute');
   });
 
   // ============================================================================

@@ -356,6 +356,10 @@ importers:
         version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@25.5.0)(vite@7.3.1(@types/node@25.5.0)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
 
   packages/executable-stories-cypress:
+    dependencies:
+      executable-stories-formatters:
+        specifier: ^0.7.1
+        version: 0.7.1
     devDependencies:
       '@types/node':
         specifier: ^25.5.0
@@ -363,9 +367,6 @@ importers:
       cypress:
         specifier: ^15.12.0
         version: 15.12.0
-      executable-stories-formatters:
-        specifier: workspace:*
-        version: link:../executable-stories-formatters
       tsup:
         specifier: ^8.5.1
         version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.2)
@@ -412,6 +413,9 @@ importers:
 
   packages/executable-stories-jest:
     dependencies:
+      executable-stories-formatters:
+        specifier: ^0.7.1
+        version: 0.7.1
       fast-glob:
         specifier: ^3.3.3
         version: 3.3.3
@@ -428,9 +432,6 @@ importers:
       '@types/node':
         specifier: ^25.5.0
         version: 25.5.0
-      executable-stories-formatters:
-        specifier: workspace:*
-        version: link:../executable-stories-formatters
       jest:
         specifier: ^30.2.0
         version: 30.2.0(@types/node@25.5.0)(ts-node@10.9.2(@types/node@25.5.0)(typescript@5.9.3))
@@ -449,6 +450,9 @@ importers:
       autotel:
         specifier: '>=2.24.0'
         version: 2.24.0(@opentelemetry/exporter-logs-otlp-grpc@0.213.0(@opentelemetry/api@1.9.0))(@opentelemetry/exporter-logs-otlp-http@0.213.0(@opentelemetry/api@1.9.0))(@opentelemetry/exporter-metrics-otlp-grpc@0.213.0(@opentelemetry/api@1.9.0))(@opentelemetry/exporter-trace-otlp-grpc@0.213.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-logs@0.213.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-node@2.6.0(@opentelemetry/api@1.9.0))(yaml@2.8.2)
+      executable-stories-formatters:
+        specifier: ^0.7.1
+        version: 0.7.1
     devDependencies:
       '@opentelemetry/api':
         specifier: ^1.9.0
@@ -459,9 +463,6 @@ importers:
       '@types/node':
         specifier: ^25.5.0
         version: 25.5.0
-      executable-stories-formatters:
-        specifier: workspace:*
-        version: link:../executable-stories-formatters
       tsup:
         specifier: ^8.5.1
         version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.2)
@@ -3788,6 +3789,11 @@ packages:
   execa@5.1.1:
     resolution: {integrity: sha512-8uSpZZocAZRBAPIEINJj3Lo9HyGitllczc27Eh5YYojjMFMn8yHMDMaUHE2Jqfq05D/wucwI4JGURyXt1vchyg==}
     engines: {node: '>=10'}
+
+  executable-stories-formatters@0.7.1:
+    resolution: {integrity: sha512-3tLhm68tDUiKcPKr5r+gMSEJo+fuH7eZ6+PezlzdKC11sn+4gIMvWCLMT6aT8Sp7Ci+i9D0M86IcQsw8YHORtQ==}
+    engines: {node: '>=22'}
+    hasBin: true
 
   executable@4.1.1:
     resolution: {integrity: sha512-8iA79xD3uAch729dUG8xaaBBFGaEa0wdD2VkYLFHwlqosEj/jT66AzcreRDSgV7ehnNLBW2WR5jIXwGKjVdTLg==}
@@ -10490,6 +10496,12 @@ snapshots:
       onetime: 5.1.2
       signal-exit: 3.0.7
       strip-final-newline: 2.0.0
+
+  executable-stories-formatters@0.7.1:
+    dependencies:
+      '@cucumber/html-formatter': 23.0.0(@cucumber/messages@32.2.0)
+      '@cucumber/messages': 32.2.0
+      ajv: 8.18.0
 
   executable@4.1.1:
     dependencies:

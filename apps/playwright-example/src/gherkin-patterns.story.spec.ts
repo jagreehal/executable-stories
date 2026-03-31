@@ -526,24 +526,7 @@ test.describe('Rule: Authenticated users can manage their data', () => {
 });
 
 // =============================================================================
-// Pattern 28: Scenario with skip/todo modifiers — no step-level .todo/.skip
-// =============================================================================
-test.skip('Feature under development (step-level .todo not available; use it.todo for whole test)', async ({}, testInfo) => {
-  story.init(testInfo);
-  story.given('the new feature flag is enabled');
-  story.when('the user accesses the new feature');
-  story.then('the feature should work correctly');
-});
-
-test.skip('Temporarily disabled test (use it.skip for whole test)', async ({}, testInfo) => {
-  story.init(testInfo);
-  story.given('some precondition');
-  story.when('some action');
-  story.then('some expected result');
-});
-
-// =============================================================================
-// Pattern 29: All keywords in sequence
+// Pattern 28: All keywords in sequence
 // =============================================================================
 test('Complete keyword demonstration', async ({}, testInfo) => {
   story.init(testInfo);

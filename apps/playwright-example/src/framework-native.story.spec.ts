@@ -56,22 +56,6 @@ test.describe('Calculator operations - mixed patterns', () => {
   });
 });
 
-test.skip('Using steps parameter object (no callback param; use story.given/when/then)', async ({}, testInfo) => {
-  story.init(testInfo);
-  story.given('initial value');
-  story.when('value is doubled');
-  story.then('value equals 20');
-  expect(20).toBe(20);
-});
-
-test.skip('Using step prefix (no step.*; use story.given/when/then)', async ({}, testInfo) => {
-  story.init(testInfo);
-  story.given('message is set');
-  story.when('message is appended');
-  story.then('message is complete');
-  expect('Hello, World!').toBe('Hello, World!');
-});
-
 test('Using story object from module', async ({}, testInfo) => {
   story.init(testInfo);
   story.note('Module-level story object for global access');

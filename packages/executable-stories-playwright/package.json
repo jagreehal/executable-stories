@@ -31,7 +31,6 @@
   },
   "peerDependencies": {
     "@playwright/test": ">=1.58.2",
-    "executable-stories-formatters": "^0.7.1",
     "autotel": ">=2.24.0"
   },
   "peerDependenciesMeta": {
@@ -39,7 +38,9 @@
       "optional": true
     }
   },
-  "dependencies": {},
+  "dependencies": {
+    "executable-stories-formatters": "^0.7.1"
+  },
   "devDependencies": {
     "@opentelemetry/api": "^1.9.0",
     "@playwright/test": "^1.58.2",
