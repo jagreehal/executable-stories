@@ -1,6 +1,6 @@
 {
   "name": "executable-stories-playwright",
-  "version": "8.1.1",
+  "version": "8.1.2",
   "description": "BDD-style executable stories for Playwright Test with documentation generation",
   "type": "module",
   "sideEffects": false,
@@ -39,7 +39,7 @@
     }
   },
   "dependencies": {
-    "executable-stories-formatters": "^0.7.1"
+    "executable-stories-formatters": "^0.7.2"
   },
   "devDependencies": {
     "@opentelemetry/api": "^1.9.0",

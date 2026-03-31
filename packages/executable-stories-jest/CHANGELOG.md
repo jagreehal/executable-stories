@@ -1,5 +1,17 @@
 # executable-stories-jest
 
+## 8.1.2
+
+### Patch Changes
+
+- 046fd1a: fix: use createRequire for StoryReporter in vitest configs to avoid Vite bundling @cucumber/html-formatter CJS code
+  - Move executable-stories-formatters from peerDependencies to dependencies in all JS adapters
+  - Fix "Dynamic require of fs is not supported" in all vitest.config.ts files
+  - Remove skipped tests documenting unsupported features in jest, vitest, and playwright examples
+
+- Updated dependencies [046fd1a]
+  - executable-stories-formatters@0.7.2
+
 ## 8.1.1
 
 ### Patch Changes
