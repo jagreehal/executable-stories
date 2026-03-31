@@ -56,14 +56,14 @@ describe("story.init()", () => {
     story.init(task, { ticket: "JIRA-123" });
 
     const meta = getStoryMeta(task);
-    expect(meta.tickets).toEqual(["JIRA-123"]);
+    expect(meta.tickets).toEqual([{ id: "JIRA-123" }]);
   });
 
   it("accepts options with multiple tickets", ({ task }) => {
     story.init(task, { ticket: ["JIRA-123", "JIRA-456"] });
 
     const meta = getStoryMeta(task);
-    expect(meta.tickets).toEqual(["JIRA-123", "JIRA-456"]);
+    expect(meta.tickets).toEqual([{ id: "JIRA-123" }, { id: "JIRA-456" }]);
   });
 
   it("accepts options with meta", ({ task }) => {
@@ -990,7 +990,7 @@ describe("Gherkin patterns with story.init + story.*", () => {
 
     const meta = getStoryMeta(task);
     expect(meta.tags).toEqual(["premium", "feature-flag"]);
-    expect(meta.tickets).toEqual(["JIRA-456"]);
+    expect(meta.tickets).toEqual([{ id: "JIRA-456" }]);
   });
 
   /**
@@ -1516,7 +1516,7 @@ describe("real-world example scenarios", () => {
 
     const meta = getStoryMeta(task);
     expect(meta.tags).toEqual(["e2e", "orders"]);
-    expect(meta.tickets).toEqual(["SHOP-789"]);
+    expect(meta.tickets).toEqual([{ id: "SHOP-789" }]);
     expect(meta.docs).toHaveLength(2); // note + link
     expect(meta.steps[0].docs).toHaveLength(1); // json
     expect(meta.steps[1].docs).toHaveLength(2); // 2x kv
@@ -1682,5 +1682,188 @@ describe("step callbacks", () => {
       "Then",
       "And",
     ]);
+  });
+});
+
+describe("doc methods return DocEntry (Task 10)", () => {
+  it("note() returns its DocEntry", ({ task }) => {
+    story.init(task);
+    story.given("precondition");
+    const entry = story.note("important note");
+
+    expect(entry).toEqual({
+      kind: "note",
+      text: "important note",
+      phase: "runtime",
+    });
+  });
+
+  it("kv() returns its DocEntry", ({ task }) => {
+    story.init(task);
+    story.given("precondition");
+    const entry = story.kv({ label: "ID", value: "abc" });
+
+    expect(entry).toEqual({
+      kind: "kv",
+      label: "ID",
+      value: "abc",
+      phase: "runtime",
+    });
+  });
+
+  it("json() returns its DocEntry", ({ task }) => {
+    story.init(task);
+    story.given("precondition");
+    const entry = story.json({ label: "Data", value: { x: 1 } });
+
+    expect(entry.kind).toBe("code");
+    expect((entry as { lang?: string }).lang).toBe("json");
+  });
+
+  it("note() with children attaches them and deduplicates", ({ task }) => {
+    story.init(task);
+    story.given("precondition");
+
+    const child1 = story.kv({ label: "A", value: 1 });
+    const child2 = story.kv({ label: "B", value: 2 });
+    const parent = story.note("parent note", [child1, child2]);
+
+    expect(parent.children).toHaveLength(2);
+    expect(parent.children).toEqual([child1, child2]);
+
+    // Children should be deduplicated from step-level flat docs
+    const meta = getStoryMeta(task);
+    const stepDocs = meta.steps[0].docs!;
+    // stepDocs should contain only the parent (children removed from flat array)
+    expect(stepDocs).toHaveLength(1);
+    expect(stepDocs[0]).toBe(parent);
+  });
+
+  it("recursive children work (nested nesting)", ({ task }) => {
+    story.init(task);
+    story.given("precondition");
+
+    const grandchild = story.kv({ label: "Inner", value: "deep" });
+    const child = story.note("mid-level", [grandchild]);
+    const parent = story.section({ title: "Top", markdown: "root" }, [child]);
+
+    expect(parent.children).toHaveLength(1);
+    expect(parent.children![0]).toBe(child);
+    expect(child.children).toHaveLength(1);
+    expect(child.children![0]).toBe(grandchild);
+
+    // Only parent should remain in step docs flat array
+    const meta = getStoryMeta(task);
+    const stepDocs = meta.steps[0].docs!;
+    expect(stepDocs).toHaveLength(1);
+    expect(stepDocs[0]).toBe(parent);
+  });
+
+  it("children deduplication works at story-level (before any step)", ({ task }) => {
+    story.init(task);
+
+    const child = story.kv({ label: "Key", value: "val" });
+    const parent = story.note("story-level parent", [child]);
+
+    const meta = getStoryMeta(task);
+    expect(meta.docs).toHaveLength(1);
+    expect(meta.docs![0]).toBe(parent);
+    expect(parent.children).toEqual([child]);
+  });
+
+  it("reparents children out of earlier steps when a later doc method nests them", ({ task }) => {
+    story.init(task);
+    story.given("first step");
+    const child = story.note("shared child");
+
+    story.when("second step");
+    const parent = story.note("parent note", [child]);
+
+    const meta = getStoryMeta(task);
+    expect(meta.steps[0].docs).toEqual([]);
+    expect(meta.steps[1].docs).toEqual([parent]);
+    expect(parent.children).toEqual([child]);
+  });
+});
+
+describe("step markers accept DocEntry[] children (Task 11)", () => {
+  it("given() accepts DocEntry[] as second param", ({ task }) => {
+    story.init(task);
+
+    const child1 = story.kv({ label: "User", value: "alice" });
+    const child2 = story.note("note about user");
+
+    // Now attach as children to a step
+    story.given("a user exists", [child1, child2]);
+
+    const meta = getStoryMeta(task);
+    // The given step should have child1 and child2 as its docs
+    const givenStep = meta.steps[meta.steps.length - 1];
+    expect(givenStep.keyword).toBe("Given");
+    expect(givenStep.text).toBe("a user exists");
+    expect(givenStep.docs).toContain(child1);
+    expect(givenStep.docs).toContain(child2);
+  });
+
+  it("when() accepts DocEntry[] and deduplicates from story-level", ({ task }) => {
+    story.init(task);
+
+    // Create children at story-level (before any step... but we need currentStep null)
+    // Actually, let's create at step-level to test cross-step dedup
+    story.given("setup");
+    const child = story.kv({ label: "Amount", value: "$50" });
+
+    // child is on the Given step. Now pass it as children to When step.
+    story.when("payment processed", [child]);
+
+    const meta = getStoryMeta(task);
+    // child should be removed from Given step docs
+    expect(meta.steps[0].docs).toHaveLength(0);
+    // child should be on When step
+    expect(meta.steps[1].docs).toContain(child);
+  });
+});
+
+describe("ticket normalization for objects (Task 12)", () => {
+  it("normalizes string ticket to { id } object", ({ task }) => {
+    story.init(task, { ticket: "JIRA-123" });
+
+    const meta = getStoryMeta(task);
+    expect(meta.tickets).toEqual([{ id: "JIRA-123" }]);
+  });
+
+  it("normalizes object ticket with id and url", ({ task }) => {
+    story.init(task, {
+      ticket: { id: "PAY-1042", url: "https://jira.example.com/browse/PAY-1042" },
+    });
+
+    const meta = getStoryMeta(task);
+    expect(meta.tickets).toEqual([
+      { id: "PAY-1042", url: "https://jira.example.com/browse/PAY-1042" },
+    ]);
+  });
+
+  it("normalizes mixed array of strings and objects", ({ task }) => {
+    story.init(task, {
+      ticket: [
+        "JIRA-123",
+        { id: "PAY-1042", url: "https://jira.example.com/browse/PAY-1042" },
+        "BUG-999",
+      ],
+    });
+
+    const meta = getStoryMeta(task);
+    expect(meta.tickets).toEqual([
+      { id: "JIRA-123" },
+      { id: "PAY-1042", url: "https://jira.example.com/browse/PAY-1042" },
+      { id: "BUG-999" },
+    ]);
+  });
+
+  it("returns undefined when no ticket provided", ({ task }) => {
+    story.init(task);
+
+    const meta = getStoryMeta(task);
+    expect(meta.tickets).toBeUndefined();
   });
 });

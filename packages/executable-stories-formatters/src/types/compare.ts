@@ -1,4 +1,4 @@
-import type { DocEntry, StoryStep } from "./story";
+import type { DocEntry, NormalizedTicket, StoryStep } from "./story";
 import type { Attachment, TestCaseResult, TestRunResult, TestStatus } from "./test-result";
 
 export type ScenarioChangeKind =
@@ -33,7 +33,7 @@ export interface ScenarioSnapshot {
   titlePath: string[];
   steps: StoryStep[];
   docs: DocEntry[];
-  tickets: string[];
+  tickets: NormalizedTicket[];
   attachments: Attachment[];
   errorMessage?: string;
 }

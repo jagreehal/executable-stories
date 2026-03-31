@@ -1,5 +1,7 @@
 package dev.executablestories.junit5
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -605,5 +607,187 @@ class StoryApiTest {
 
         val ctx = Story.getContext()!!
         assertNull(ctx.traceUrlTemplate)
+    }
+
+    // ========================================================================
+    // DocEntry children tests
+    // ========================================================================
+
+    @Test
+    fun docEntryWithChildrenSerializesCorrectly() {
+        val child1 = DocEntry.note("child note")
+        val child2 = DocEntry.kv("key", "value")
+        val parent = DocEntry.note("parent note", listOf(child1, child2))
+
+        assertEquals("note", parent.kind)
+        assertEquals("parent note", parent["text"])
+
+        @Suppress("UNCHECKED_CAST")
+        val children = parent["children"] as List<DocEntry>
+        assertEquals(2, children.size)
+        assertEquals("note", children[0].kind)
+        assertEquals("kv", children[1].kind)
+
+        // Verify Jackson serialization
+        val mapper = ObjectMapper().registerKotlinModule()
+        val json = mapper.writeValueAsString(parent)
+        assertTrue(json.contains("\"children\""), "JSON should contain children key")
+        assertTrue(json.contains("child note"), "JSON should contain child note text")
+    }
+
+    @Test
+    fun docEntryWithoutChildrenOmitsField() {
+        val entry = DocEntry.note("no children")
+        assertNull(entry["children"], "children should be null when not provided")
+
+        val mapper = ObjectMapper().registerKotlinModule()
+        val json = mapper.writeValueAsString(entry)
+        assertTrue(!json.contains("\"children\""), "JSON should not contain children key when empty")
+    }
+
+    @Test
+    fun docEntryChildrenOnAllKinds() {
+        val child = DocEntry.note("child")
+        val children = listOf(child)
+
+        // Test children on each factory method
+        assertNotNull(DocEntry.note("text", children)["children"])
+        assertNotNull(DocEntry.tag(listOf("t"), children)["children"])
+        assertNotNull(DocEntry.kv("k", "v", children)["children"])
+        assertNotNull(DocEntry.code("l", "c", null, children)["children"])
+        assertNotNull(DocEntry.json("l", "{}", children)["children"])
+        assertNotNull(
+            DocEntry.table("l", arrayOf("c"), arrayOf(arrayOf("r")), children)["children"],
+        )
+        assertNotNull(DocEntry.link("l", "u", children)["children"])
+        assertNotNull(DocEntry.section("t", "md", children)["children"])
+        assertNotNull(DocEntry.mermaid("code", null, children)["children"])
+        assertNotNull(DocEntry.screenshot("p", null, children)["children"])
+        assertNotNull(DocEntry.custom("t", null, children)["children"])
+    }
+
+    @Test
+    fun docChildrenReparentAcrossSteps() {
+        Story.init("Reparent children")
+        Story.given("first step")
+        val child = Story.note("shared child")
+        Story.`when`("second step")
+
+        val parent = DocEntry.note("parent note", listOf(child))
+        Story.getContext()!!.addDoc(parent)
+
+        val ctx = Story.getContext()!!
+        assertTrue(ctx.steps[0].docs.isNullOrEmpty())
+        assertEquals(listOf(parent), ctx.steps[1].docs)
+    }
+
+    // ========================================================================
+    // Ticket object tests
+    // ========================================================================
+
+    @Test
+    fun ticketWithIdOnly() {
+        Story.init("Ticket id-only test")
+        Story.ticket("PROJ-123")
+
+        val ctx = Story.getContext()!!
+        assertEquals(1, ctx.tickets.size)
+        assertEquals("PROJ-123", ctx.tickets[0].id)
+        assertNull(ctx.tickets[0].url)
+    }
+
+    @Test
+    fun ticketWithIdAndUrl() {
+        Story.init("Ticket with URL test")
+        Story.ticket("PROJ-456", "https://jira.example.com/PROJ-456")
+
+        val ctx = Story.getContext()!!
+        assertEquals(1, ctx.tickets.size)
+        assertEquals("PROJ-456", ctx.tickets[0].id)
+        assertEquals("https://jira.example.com/PROJ-456", ctx.tickets[0].url)
+    }
+
+    @Test
+    fun ticketObjectSerializesCorrectly() {
+        val mapper = ObjectMapper().registerKotlinModule()
+
+        val ticketWithUrl = Ticket("PROJ-1", "https://example.com/1")
+        val json1 = mapper.writeValueAsString(ticketWithUrl)
+        assertTrue(json1.contains("\"id\""), "JSON should contain id")
+        assertTrue(json1.contains("\"url\""), "JSON should contain url")
+        assertTrue(json1.contains("PROJ-1"))
+        assertTrue(json1.contains("https://example.com/1"))
+
+        val ticketNoUrl = Ticket("PROJ-2")
+        val json2 = mapper.writeValueAsString(ticketNoUrl)
+        assertTrue(json2.contains("\"id\""), "JSON should contain id")
+        assertTrue(!json2.contains("\"url\""), "JSON should omit null url")
+    }
+
+    @Test
+    fun ticketObjectPassedDirectly() {
+        Story.init("Ticket object test")
+        Story.ticket(Ticket("PROJ-789", "https://example.com/789"))
+
+        val ctx = Story.getContext()!!
+        assertEquals(1, ctx.tickets.size)
+        assertEquals("PROJ-789", ctx.tickets[0].id)
+        assertEquals("https://example.com/789", ctx.tickets[0].url)
+    }
+
+    @Test
+    fun ticketsInStoryMeta() {
+        Story.init("Ticket meta test")
+        Story.ticket("T-1")
+        Story.ticket("T-2", "https://example.com/T-2")
+
+        val meta = Story.getContext()!!.toStoryMeta()
+        assertNotNull(meta.tickets)
+        assertEquals(2, meta.tickets!!.size)
+        assertEquals("T-1", meta.tickets!![0].id)
+        assertNull(meta.tickets!![0].url)
+        assertEquals("T-2", meta.tickets!![1].id)
+        assertEquals("https://example.com/T-2", meta.tickets!![1].url)
+    }
+
+    // ========================================================================
+    // Doc methods return DocEntry tests
+    // ========================================================================
+
+    @Test
+    fun docMethodsReturnDocEntry() {
+        Story.init("Return DocEntry test")
+        Story.given("a step")
+
+        val noteEntry = Story.note("a note")
+        assertEquals("note", noteEntry.kind)
+        assertEquals("a note", noteEntry["text"])
+
+        val kvEntry = Story.kv("key", "value")
+        assertEquals("kv", kvEntry.kind)
+
+        val linkEntry = Story.link("label", "https://example.com")
+        assertEquals("link", linkEntry.kind)
+
+        val codeEntry = Story.code("label", "content", "kotlin")
+        assertEquals("code", codeEntry.kind)
+
+        val sectionEntry = Story.section("title", "markdown")
+        assertEquals("section", sectionEntry.kind)
+
+        val mermaidEntry = Story.mermaid("graph TD;")
+        assertEquals("mermaid", mermaidEntry.kind)
+
+        val screenshotEntry = Story.screenshot("/tmp/img.png")
+        assertEquals("screenshot", screenshotEntry.kind)
+
+        val customEntry = Story.custom("myType", mapOf("a" to 1))
+        assertEquals("custom", customEntry.kind)
+
+        val jsonEntry = Story.json("data", mapOf("x" to 1))
+        assertEquals("code", jsonEntry.kind)
+
+        val tagEntry = Story.tag("smoke")
+        assertEquals("tag", tagEntry.kind)
     }
 }

@@ -30,6 +30,8 @@ export interface HtmlOptions {
   markdownEnabled?: boolean;
   /** Base URL for source permalinks. E.g., "https://github.com/user/repo/blob/main" */
   permalinkBaseUrl?: string;
+  /** URL template for ticket links. Use {ticket} as placeholder. E.g., "https://jira.example.com/browse/{ticket}" */
+  ticketUrlTemplate?: string;
   /** Theme name or custom theme object. Default: "default" */
   theme?: string | HtmlTheme;
 }

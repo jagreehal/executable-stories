@@ -224,37 +224,47 @@ class Story private constructor() {
         // ====================================================================
 
         @JvmStatic
-        fun note(text: String) {
-            requireContext().addDoc(DocEntry.note(text))
+        fun note(text: String): DocEntry {
+            val entry = DocEntry.note(text)
+            requireContext().addDoc(entry)
+            return entry
         }
 
         @JvmStatic
-        fun tag(vararg names: String) {
-            requireContext().addDoc(DocEntry.tag(*names))
+        fun tag(vararg names: String): DocEntry {
+            val entry = DocEntry.tag(*names)
+            requireContext().addDoc(entry)
+            return entry
         }
 
         @JvmStatic
         fun kv(
             label: String,
             value: Any?,
-        ) {
-            requireContext().addDoc(DocEntry.kv(label, value))
+        ): DocEntry {
+            val entry = DocEntry.kv(label, value)
+            requireContext().addDoc(entry)
+            return entry
         }
 
         @JvmStatic
         fun json(
             label: String,
             value: Any?,
-        ) {
-            requireContext().addDoc(DocEntry.json(label, value))
+        ): DocEntry {
+            val entry = DocEntry.json(label, value)
+            requireContext().addDoc(entry)
+            return entry
         }
 
         @JvmStatic
         fun code(
             label: String,
             content: String,
-        ) {
-            requireContext().addDoc(DocEntry.code(label, content, null))
+        ): DocEntry {
+            val entry = DocEntry.code(label, content, null)
+            requireContext().addDoc(entry)
+            return entry
         }
 
         @JvmStatic
@@ -262,8 +272,10 @@ class Story private constructor() {
             label: String,
             content: String,
             lang: String,
-        ) {
-            requireContext().addDoc(DocEntry.code(label, content, lang))
+        ): DocEntry {
+            val entry = DocEntry.code(label, content, lang)
+            requireContext().addDoc(entry)
+            return entry
         }
 
         @JvmStatic
@@ -271,58 +283,96 @@ class Story private constructor() {
             label: String,
             columns: Array<String>,
             rows: Array<Array<String>>,
-        ) {
-            requireContext().addDoc(DocEntry.table(label, columns, rows))
+        ): DocEntry {
+            val entry = DocEntry.table(label, columns, rows)
+            requireContext().addDoc(entry)
+            return entry
         }
 
         @JvmStatic
         fun link(
             label: String,
             url: String,
-        ) {
-            requireContext().addDoc(DocEntry.link(label, url))
+        ): DocEntry {
+            val entry = DocEntry.link(label, url)
+            requireContext().addDoc(entry)
+            return entry
         }
 
         @JvmStatic
         fun section(
             title: String,
             markdown: String,
-        ) {
-            requireContext().addDoc(DocEntry.section(title, markdown))
+        ): DocEntry {
+            val entry = DocEntry.section(title, markdown)
+            requireContext().addDoc(entry)
+            return entry
         }
 
         @JvmStatic
-        fun mermaid(code: String) {
-            requireContext().addDoc(DocEntry.mermaid(code, null))
+        fun mermaid(code: String): DocEntry {
+            val entry = DocEntry.mermaid(code, null)
+            requireContext().addDoc(entry)
+            return entry
         }
 
         @JvmStatic
         fun mermaid(
             code: String,
             title: String,
-        ) {
-            requireContext().addDoc(DocEntry.mermaid(code, title))
+        ): DocEntry {
+            val entry = DocEntry.mermaid(code, title)
+            requireContext().addDoc(entry)
+            return entry
         }
 
         @JvmStatic
-        fun screenshot(path: String) {
-            requireContext().addDoc(DocEntry.screenshot(path, null))
+        fun screenshot(path: String): DocEntry {
+            val entry = DocEntry.screenshot(path, null)
+            requireContext().addDoc(entry)
+            return entry
         }
 
         @JvmStatic
         fun screenshot(
             path: String,
             alt: String,
-        ) {
-            requireContext().addDoc(DocEntry.screenshot(path, alt))
+        ): DocEntry {
+            val entry = DocEntry.screenshot(path, alt)
+            requireContext().addDoc(entry)
+            return entry
         }
 
         @JvmStatic
         fun custom(
             type: String,
             data: Any?,
+        ): DocEntry {
+            val entry = DocEntry.custom(type, data)
+            requireContext().addDoc(entry)
+            return entry
+        }
+
+        // ====================================================================
+        // Ticket methods
+        // ====================================================================
+
+        @JvmStatic
+        fun ticket(id: String) {
+            requireContext().tickets.add(Ticket(id))
+        }
+
+        @JvmStatic
+        fun ticket(
+            id: String,
+            url: String,
         ) {
-            requireContext().addDoc(DocEntry.custom(type, data))
+            requireContext().tickets.add(Ticket(id, url))
+        }
+
+        @JvmStatic
+        fun ticket(ticket: Ticket) {
+            requireContext().tickets.add(ticket)
         }
 
         // ====================================================================
@@ -471,7 +521,7 @@ class Story private constructor() {
                 }
 
                 if (ctx.tickets.isNotEmpty()) {
-                    setOtelArrayAttribute(spanClass, span, "story.tickets", ctx.tickets.toList())
+                    setOtelArrayAttribute(spanClass, span, "story.tickets", ctx.tickets.map { it.id })
                 }
             } catch (_: ClassNotFoundException) {
                 // OTel API not on classpath - no-op

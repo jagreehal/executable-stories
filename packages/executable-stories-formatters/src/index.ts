@@ -41,6 +41,7 @@ import { diffRuns } from "./compare/index";
 import { RunDiffHtmlFormatter } from "./formatters/run-diff-html";
 import { RunDiffMarkdownFormatter } from "./formatters/run-diff-markdown";
 import { matchesPattern, selectTestCases } from "./select-test-cases";
+import { bundleAssets } from "./bundler/bundle-assets";
 
 // Import adapters for convenience functions
 import { adaptJestRun } from "./converters/adapters/jest";
@@ -59,6 +60,7 @@ export type {
   DocEntry,
   StoryStep,
   StoryMeta,
+  NormalizedTicket,
 } from "./types/story";
 export { STORY_META_KEY } from "./types/story";
 
@@ -551,6 +553,7 @@ export class ReportGenerator {
         mermaidEnabled: options.html?.mermaidEnabled ?? true,
         markdownEnabled: options.html?.markdownEnabled ?? true,
         permalinkBaseUrl: options.html?.permalinkBaseUrl,
+        ticketUrlTemplate: options.html?.ticketUrlTemplate,
         theme: options.html?.theme ?? "default",
       },
       junit: {
@@ -575,6 +578,8 @@ export class ReportGenerator {
         includeSourceLinks: options.markdown?.includeSourceLinks ?? true,
         customRenderers: options.markdown?.customRenderers,
       },
+      assetMode: options.assetMode ?? "none",
+      allowMissingAssets: options.allowMissingAssets ?? false,
     };
   }
 
@@ -604,6 +609,17 @@ export class ReportGenerator {
     for (const format of this.options.formats) {
       const paths = await this.generateFormat(filteredRun, format);
       results.set(format, paths);
+    }
+
+    if (this.options.assetMode === "copy") {
+      const htmlPaths = results.get("html");
+      if (htmlPaths) {
+        for (const htmlPath of htmlPaths) {
+          bundleAssets(htmlPath, {
+            allowMissing: this.options.allowMissingAssets,
+          });
+        }
+      }
     }
 
     return results;
@@ -689,6 +705,7 @@ export class ReportGenerator {
           mermaidEnabled: this.options.html.mermaidEnabled,
           markdownEnabled: this.options.html.markdownEnabled,
           permalinkBaseUrl: this.options.html.permalinkBaseUrl,
+          ticketUrlTemplate: this.options.html.ticketUrlTemplate,
         });
         return formatter.format(run);
       }
@@ -801,6 +818,13 @@ export { createPrCommentSummary } from "./compare/index";
 
 // Re-export adapters
 export { adaptJestRun, adaptVitestRun, adaptPlaywrightRun };
+
+// ============================================================================
+// Bundler Exports
+// ============================================================================
+
+export { bundleAssets } from "./bundler/bundle-assets";
+export type { BundleOptions, BundleResult } from "./bundler/bundle-assets";
 
 // Re-export adapter types
 export type {

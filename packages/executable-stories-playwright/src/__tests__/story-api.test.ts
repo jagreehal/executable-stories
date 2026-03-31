@@ -193,14 +193,14 @@ test.describe("story.init()", () => {
     story.init(testInfo, { ticket: "JIRA-123" });
 
     const meta = getStoryMeta(testInfo);
-    expect(meta!.tickets).toEqual(["JIRA-123"]);
+    expect(meta!.tickets).toEqual([{ id: "JIRA-123" }]);
   });
 
   test("accepts options with multiple tickets", async ({}, testInfo) => {
     story.init(testInfo, { ticket: ["JIRA-123", "JIRA-456"] });
 
     const meta = getStoryMeta(testInfo);
-    expect(meta!.tickets).toEqual(["JIRA-123", "JIRA-456"]);
+    expect(meta!.tickets).toEqual([{ id: "JIRA-123" }, { id: "JIRA-456" }]);
   });
 
   test("accepts options with meta", async ({}, testInfo) => {
@@ -937,5 +937,187 @@ test.describe("step callbacks", () => {
       "Then",
       "And",
     ]);
+  });
+});
+
+test.describe("doc methods return DocEntry (Task 14)", () => {
+  test("note() returns its DocEntry", async ({}, testInfo) => {
+    story.init(testInfo);
+    story.given("precondition");
+    const entry = story.note("important note");
+
+    expect(entry).toEqual({
+      kind: "note",
+      text: "important note",
+      phase: "runtime",
+    });
+  });
+
+  test("kv() returns its DocEntry", async ({}, testInfo) => {
+    story.init(testInfo);
+    story.given("precondition");
+    const entry = story.kv({ label: "ID", value: "abc" });
+
+    expect(entry).toEqual({
+      kind: "kv",
+      label: "ID",
+      value: "abc",
+      phase: "runtime",
+    });
+  });
+
+  test("json() returns its DocEntry", async ({}, testInfo) => {
+    story.init(testInfo);
+    story.given("precondition");
+    const entry = story.json({ label: "Data", value: { x: 1 } });
+
+    expect(entry.kind).toBe("code");
+    expect((entry as { lang?: string }).lang).toBe("json");
+  });
+
+  test("note() with children attaches them and deduplicates", async ({}, testInfo) => {
+    story.init(testInfo);
+    story.given("precondition");
+
+    const child1 = story.kv({ label: "A", value: 1 });
+    const child2 = story.kv({ label: "B", value: 2 });
+    const parent = story.note("parent note", [child1, child2]);
+
+    expect(parent.children).toHaveLength(2);
+    expect(parent.children).toEqual([child1, child2]);
+
+    // Children should be deduplicated from step-level flat docs
+    const meta = getStoryMeta(testInfo);
+    const stepDocs = meta!.steps[0].docs!;
+    // stepDocs should contain only the parent (children removed from flat array)
+    expect(stepDocs).toHaveLength(1);
+    expect(stepDocs[0]).toMatchObject({ kind: "note", text: "parent note" });
+  });
+
+  test("recursive children work (nested nesting)", async ({}, testInfo) => {
+    story.init(testInfo);
+    story.given("precondition");
+
+    const grandchild = story.kv({ label: "Inner", value: "deep" });
+    const child = story.note("mid-level", [grandchild]);
+    const parent = story.section({ title: "Top", markdown: "root" }, [child]);
+
+    expect(parent.children).toHaveLength(1);
+    expect(parent.children![0]).toMatchObject({ kind: "note", text: "mid-level" });
+    expect(child.children).toHaveLength(1);
+    expect(child.children![0]).toMatchObject({ kind: "kv", label: "Inner" });
+
+    // Only parent should remain in step docs flat array
+    const meta = getStoryMeta(testInfo);
+    const stepDocs = meta!.steps[0].docs!;
+    expect(stepDocs).toHaveLength(1);
+    expect(stepDocs[0]).toMatchObject({ kind: "section", title: "Top" });
+  });
+
+  test("children deduplication works at story-level (before any step)", async ({}, testInfo) => {
+    story.init(testInfo);
+
+    const child = story.kv({ label: "Key", value: "val" });
+    const parent = story.note("story-level parent", [child]);
+
+    const meta = getStoryMeta(testInfo);
+    expect(meta!.docs).toHaveLength(1);
+    expect(meta!.docs![0]).toMatchObject({ kind: "note", text: "story-level parent" });
+    expect(parent.children).toEqual([child]);
+  });
+
+  test("reparents children out of earlier steps when a later doc method nests them", async ({}, testInfo) => {
+    story.init(testInfo);
+    story.given("first step");
+    const child = story.note("shared child");
+
+    story.when("second step");
+    const parent = story.note("parent note", [child]);
+
+    const meta = getStoryMeta(testInfo);
+    expect(meta!.steps[0].docs).toEqual([]);
+    expect(meta!.steps[1].docs).toEqual([parent]);
+    expect(parent.children).toEqual([child]);
+  });
+});
+
+test.describe("step markers accept DocEntry[] children (Task 14)", () => {
+  test("given() accepts DocEntry[] as second param", async ({}, testInfo) => {
+    story.init(testInfo);
+
+    const child1 = story.kv({ label: "User", value: "alice" });
+    const child2 = story.note("note about user");
+
+    // Now attach as children to a step — note: since no step before, these go to story-level
+    // then given() with children should deduplicate from story-level
+    story.given("a user exists", [child1, child2]);
+
+    const meta = getStoryMeta(testInfo);
+    const givenStep = meta!.steps[0];
+    expect(givenStep.keyword).toBe("Given");
+    expect(givenStep.text).toBe("a user exists");
+    expect(givenStep.docs).toHaveLength(2);
+    // story-level docs should be empty (deduplicated)
+    expect(meta!.docs ?? []).toHaveLength(0);
+  });
+
+  test("when() accepts DocEntry[] and deduplicates from earlier step", async ({}, testInfo) => {
+    story.init(testInfo);
+
+    story.given("setup");
+    const child = story.kv({ label: "Amount", value: "$50" });
+
+    // child is on the Given step. Now pass it as children to When step.
+    story.when("payment processed", [child]);
+
+    const meta = getStoryMeta(testInfo);
+    // child should be removed from Given step docs
+    expect(meta!.steps[0].docs).toHaveLength(0);
+    // child should be on When step
+    expect(meta!.steps[1].docs).toHaveLength(1);
+  });
+});
+
+test.describe("ticket normalization for objects (Task 14)", () => {
+  test("normalizes string ticket to { id } object", async ({}, testInfo) => {
+    story.init(testInfo, { ticket: "JIRA-123" });
+
+    const meta = getStoryMeta(testInfo);
+    expect(meta!.tickets).toEqual([{ id: "JIRA-123" }]);
+  });
+
+  test("normalizes object ticket with id and url", async ({}, testInfo) => {
+    story.init(testInfo, {
+      ticket: { id: "PAY-1042", url: "https://jira.example.com/browse/PAY-1042" },
+    });
+
+    const meta = getStoryMeta(testInfo);
+    expect(meta!.tickets).toEqual([
+      { id: "PAY-1042", url: "https://jira.example.com/browse/PAY-1042" },
+    ]);
+  });
+
+  test("normalizes mixed array of strings and objects", async ({}, testInfo) => {
+    story.init(testInfo, {
+      ticket: [
+        "JIRA-123",
+        { id: "PAY-1042", url: "https://jira.example.com/browse/PAY-1042" },
+        "BUG-999",
+      ],
+    });
+
+    const meta = getStoryMeta(testInfo);
+    expect(meta!.tickets).toEqual([
+      { id: "JIRA-123" },
+      { id: "PAY-1042", url: "https://jira.example.com/browse/PAY-1042" },
+      { id: "BUG-999" },
+    ]);
+  });
+
+  test("returns undefined when no ticket provided", async ({}, testInfo) => {
+    story.init(testInfo);
+
+    const meta = getStoryMeta(testInfo);
+    expect(meta!.tickets).toBeUndefined();
   });
 });

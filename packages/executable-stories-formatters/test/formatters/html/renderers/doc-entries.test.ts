@@ -180,3 +180,51 @@ describe("renderDocEntry", () => {
     expect(html).toContain("Note");
   });
 });
+
+describe("children rendering", () => {
+  it("renders children inside doc-children container", () => {
+    const html = renderDocEntry(
+      {
+        kind: "note",
+        text: "Parent",
+        phase: "static",
+        children: [{ kind: "note", text: "Child", phase: "static" }],
+      },
+      baseDeps,
+    );
+    expect(html).toContain("doc-children");
+    expect(html).toContain("Child");
+  });
+
+  it("renders no children container when children absent", () => {
+    const html = renderDocEntry(
+      { kind: "note", text: "No kids", phase: "static" },
+      baseDeps,
+    );
+    expect(html).not.toContain("doc-children");
+  });
+
+  it("renders recursive children (2 levels of doc-children)", () => {
+    const html = renderDocEntry(
+      {
+        kind: "note",
+        text: "Root",
+        phase: "static",
+        children: [
+          {
+            kind: "note",
+            text: "Level 1",
+            phase: "static",
+            children: [
+              { kind: "note", text: "Level 2", phase: "static" },
+            ],
+          },
+        ],
+      },
+      baseDeps,
+    );
+    const matches = html.match(/doc-children/g);
+    expect(matches).toHaveLength(2);
+    expect(html).toContain("Level 2");
+  });
+});

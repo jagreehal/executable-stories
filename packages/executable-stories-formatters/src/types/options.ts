@@ -131,6 +131,8 @@ export interface FormatterOptions {
     markdownEnabled?: boolean;
     /** Base URL for source permalinks. E.g., "https://github.com/user/repo/blob/main" */
     permalinkBaseUrl?: string;
+    /** URL template for ticket links. Use {ticket} as placeholder. E.g., "https://jira.example.com/browse/{ticket}" */
+    ticketUrlTemplate?: string;
     /** Theme name. Default: "default". Available: default, corporate, terminal, minimal, dashboard, playful */
     theme?: string;
   };
@@ -181,6 +183,12 @@ export interface FormatterOptions {
     /** Generic webhook configurations */
     webhooks?: GenericWebhookNotifierOptions[];
   };
+
+  /** Asset bundling mode. "none" = no asset copying, "copy" = copy referenced assets next to HTML. Default: "none" */
+  assetMode?: "none" | "copy";
+
+  /** When true, warn on missing assets instead of throwing. Default: false */
+  allowMissingAssets?: boolean;
 
   /** Logger for warnings and info. Default: console */
   logger?: Logger;
@@ -277,6 +285,7 @@ export interface ResolvedFormatterOptions {
     mermaidEnabled: boolean;
     markdownEnabled: boolean;
     permalinkBaseUrl?: string;
+    ticketUrlTemplate?: string;
     theme: string;
   };
   junit: {
@@ -301,4 +310,6 @@ export interface ResolvedFormatterOptions {
     includeSourceLinks: boolean;
     customRenderers?: MarkdownRenderers;
   };
+  assetMode: "none" | "copy";
+  allowMissingAssets: boolean;
 }

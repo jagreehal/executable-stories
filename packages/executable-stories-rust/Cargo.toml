@@ -5,6 +5,10 @@ edition = "2021"
 rust-version = "1.75"
 description = "BDD story documentation for Rust tests"
 license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/jagreehal/executable-stories"
+repository = "https://github.com/jagreehal/executable-stories.git"
+documentation = "https://github.com/jagreehal/executable-stories#readme"
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }

@@ -93,7 +93,7 @@ export function createStoryMeta(overrides: Partial<StoryMeta> = {}): StoryMeta {
     scenario: faker.lorem.sentence(),
     steps: createBddSteps(),
     tags: [faker.word.noun(), faker.word.noun()],
-    tickets: [`JIRA-${faker.number.int({ min: 100, max: 999 })}`],
+    tickets: [{ id: `JIRA-${faker.number.int({ min: 100, max: 999 })}` }],
     suitePath: [faker.word.noun()],
     sourceOrder: faker.number.int({ min: 1, max: 100 }),
     ...overrides,

@@ -134,7 +134,7 @@ function renderScenarioCard(scenario: ScenarioDiff): string {
                   <dd>${escapeHtml(before.errorMessage ?? "") || "&nbsp;"}</dd>
                   ${scenario.flags.steps ? `<dt>Steps</dt><dd>${formatSteps(before.steps)}</dd>` : ""}
                   ${scenario.flags.docs ? `<dt>Docs</dt><dd>${formatDocs(before.docs)}</dd>` : ""}
-                  ${scenario.flags.tickets ? `<dt>Tickets</dt><dd>${escapeHtml(before.tickets.join(", ")) || "&nbsp;"}</dd>` : ""}
+                  ${scenario.flags.tickets ? `<dt>Tickets</dt><dd>${escapeHtml(before.tickets.map(t => t.id).join(", ")) || "&nbsp;"}</dd>` : ""}
                 </dl>
               </section>
               <section>
@@ -148,7 +148,7 @@ function renderScenarioCard(scenario: ScenarioDiff): string {
                   <dd>${escapeHtml(after.errorMessage ?? "") || "&nbsp;"}</dd>
                   ${scenario.flags.steps ? `<dt>Steps</dt><dd>${formatSteps(after.steps)}</dd>` : ""}
                   ${scenario.flags.docs ? `<dt>Docs</dt><dd>${formatDocs(after.docs)}</dd>` : ""}
-                  ${scenario.flags.tickets ? `<dt>Tickets</dt><dd>${escapeHtml(after.tickets.join(", ")) || "&nbsp;"}</dd>` : ""}
+                  ${scenario.flags.tickets ? `<dt>Tickets</dt><dd>${escapeHtml(after.tickets.map(t => t.id).join(", ")) || "&nbsp;"}</dd>` : ""}
                 </dl>
               </section>
             </div>`
@@ -163,7 +163,7 @@ function renderScenarioCard(scenario: ScenarioDiff): string {
               return `<div class="snapshot-detail">
                 <dl>
                   ${hasTags ? `<dt>Tags</dt><dd>${escapeHtml(snapshot.tags.join(", "))}</dd>` : ""}
-                  ${hasTickets ? `<dt>Tickets</dt><dd>${escapeHtml(snapshot.tickets.join(", "))}</dd>` : ""}
+                  ${hasTickets ? `<dt>Tickets</dt><dd>${escapeHtml(snapshot.tickets.map(t => t.id).join(", "))}</dd>` : ""}
                   ${hasSteps ? `<dt>Steps</dt><dd>${formatSteps(snapshot.steps)}</dd>` : ""}
                   ${hasDocs ? `<dt>Docs</dt><dd>${formatDocs(snapshot.docs)}</dd>` : ""}
                 </dl>

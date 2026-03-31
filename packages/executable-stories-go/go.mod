@@ -1,4 +1,4 @@
-module github.com/anthropics/executable-stories/packages/executable-stories-go
+module github.com/jagreehal/executable-stories/packages/executable-stories-go
 
 go 1.22.0
 

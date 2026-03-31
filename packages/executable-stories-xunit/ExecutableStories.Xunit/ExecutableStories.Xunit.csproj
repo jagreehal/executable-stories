@@ -4,6 +4,15 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
+    <PackageId>ExecutableStories.Xunit</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>Jag Reehal</Authors>
+    <Description>xUnit adapter for executable-stories BDD documentation.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/jagreehal/executable-stories</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/jagreehal/executable-stories.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <AnalysisLevel>latest</AnalysisLevel>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
@@ -16,5 +25,8 @@
   <ItemGroup>
     <PackageReference Include="xunit.runner.utility" Version="2.9.3" />
     <PackageReference Include="xunit.abstractions" Version="2.0.3" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\README.md" Pack="true" PackagePath="\" Link="README.md" />
   </ItemGroup>
 </Project>

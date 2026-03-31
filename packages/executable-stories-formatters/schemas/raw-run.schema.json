@@ -164,8 +164,21 @@
         },
         "tickets": {
           "type": "array",
-          "items": { "type": "string" },
-          "description": "Ticket/issue references for requirements traceability (e.g., ['JIRA-123'])."
+          "items": {
+            "oneOf": [
+              { "type": "string" },
+              {
+                "type": "object",
+                "properties": {
+                  "id": { "type": "string" },
+                  "url": { "type": "string" }
+                },
+                "required": ["id"],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "description": "Ticket/issue references. Each item is either a string ID or an object with id and optional url."
         },
         "meta": {
           "type": "object",
@@ -250,7 +263,8 @@
           "properties": {
             "kind": { "const": "note" },
             "text": { "type": "string" },
-            "phase": { "$ref": "#/$defs/DocPhase" }
+            "phase": { "$ref": "#/$defs/DocPhase" },
+            "children": { "type": "array", "items": { "$ref": "#/$defs/DocEntry" }, "description": "Nested child doc entries for grouping." }
           },
           "required": ["kind", "text", "phase"],
           "additionalProperties": false
@@ -264,7 +278,8 @@
               "type": "array",
               "items": { "type": "string" }
             },
-            "phase": { "$ref": "#/$defs/DocPhase" }
+            "phase": { "$ref": "#/$defs/DocPhase" },
+            "children": { "type": "array", "items": { "$ref": "#/$defs/DocEntry" }, "description": "Nested child doc entries for grouping." }
           },
           "required": ["kind", "names", "phase"],
           "additionalProperties": false
@@ -276,7 +291,8 @@
             "kind": { "const": "kv" },
             "label": { "type": "string" },
             "value": {},
-            "phase": { "$ref": "#/$defs/DocPhase" }
+            "phase": { "$ref": "#/$defs/DocPhase" },
+            "children": { "type": "array", "items": { "$ref": "#/$defs/DocEntry" }, "description": "Nested child doc entries for grouping." }
           },
           "required": ["kind", "label", "value", "phase"],
           "additionalProperties": false
@@ -289,7 +305,8 @@
             "label": { "type": "string" },
             "content": { "type": "string" },
             "lang": { "type": "string" },
-            "phase": { "$ref": "#/$defs/DocPhase" }
+            "phase": { "$ref": "#/$defs/DocPhase" },
+            "children": { "type": "array", "items": { "$ref": "#/$defs/DocEntry" }, "description": "Nested child doc entries for grouping." }
           },
           "required": ["kind", "label", "content", "phase"],
           "additionalProperties": false
@@ -311,7 +328,8 @@
                 "items": { "type": "string" }
               }
             },
-            "phase": { "$ref": "#/$defs/DocPhase" }
+            "phase": { "$ref": "#/$defs/DocPhase" },
+            "children": { "type": "array", "items": { "$ref": "#/$defs/DocEntry" }, "description": "Nested child doc entries for grouping." }
           },
           "required": ["kind", "label", "columns", "rows", "phase"],
           "additionalProperties": false
@@ -323,7 +341,8 @@
             "kind": { "const": "link" },
             "label": { "type": "string" },
             "url": { "type": "string" },
-            "phase": { "$ref": "#/$defs/DocPhase" }
+            "phase": { "$ref": "#/$defs/DocPhase" },
+            "children": { "type": "array", "items": { "$ref": "#/$defs/DocEntry" }, "description": "Nested child doc entries for grouping." }
           },
           "required": ["kind", "label", "url", "phase"],
           "additionalProperties": false
@@ -335,7 +354,8 @@
             "kind": { "const": "section" },
             "title": { "type": "string" },
             "markdown": { "type": "string" },
-            "phase": { "$ref": "#/$defs/DocPhase" }
+            "phase": { "$ref": "#/$defs/DocPhase" },
+            "children": { "type": "array", "items": { "$ref": "#/$defs/DocEntry" }, "description": "Nested child doc entries for grouping." }
           },
           "required": ["kind", "title", "markdown", "phase"],
           "additionalProperties": false
@@ -347,7 +367,8 @@
             "kind": { "const": "mermaid" },
             "code": { "type": "string" },
             "title": { "type": "string" },
-            "phase": { "$ref": "#/$defs/DocPhase" }
+            "phase": { "$ref": "#/$defs/DocPhase" },
+            "children": { "type": "array", "items": { "$ref": "#/$defs/DocEntry" }, "description": "Nested child doc entries for grouping." }
           },
           "required": ["kind", "code", "phase"],
           "additionalProperties": false
@@ -359,7 +380,8 @@
             "kind": { "const": "screenshot" },
             "path": { "type": "string" },
             "alt": { "type": "string" },
-            "phase": { "$ref": "#/$defs/DocPhase" }
+            "phase": { "$ref": "#/$defs/DocPhase" },
+            "children": { "type": "array", "items": { "$ref": "#/$defs/DocEntry" }, "description": "Nested child doc entries for grouping." }
           },
           "required": ["kind", "path", "phase"],
           "additionalProperties": false
@@ -371,7 +393,8 @@
             "kind": { "const": "custom" },
             "type": { "type": "string" },
             "data": {},
-            "phase": { "$ref": "#/$defs/DocPhase" }
+            "phase": { "$ref": "#/$defs/DocPhase" },
+            "children": { "type": "array", "items": { "$ref": "#/$defs/DocEntry" }, "description": "Nested child doc entries for grouping." }
           },
           "required": ["kind", "type", "data", "phase"],
           "additionalProperties": false

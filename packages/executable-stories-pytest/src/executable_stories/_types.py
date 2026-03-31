@@ -15,12 +15,14 @@ class NoteDoc(TypedDict):
     kind: str  # "note"
     text: str
     phase: str  # "static" | "runtime"
+    children: NotRequired[list["DocEntry"]]
 
 
 class TagDoc(TypedDict):
     kind: str  # "tag"
     names: list[str]
     phase: str
+    children: NotRequired[list["DocEntry"]]
 
 
 class KvDoc(TypedDict):
@@ -28,6 +30,7 @@ class KvDoc(TypedDict):
     label: str
     value: Any
     phase: str
+    children: NotRequired[list["DocEntry"]]
 
 
 class CodeDoc(TypedDict):
@@ -36,6 +39,7 @@ class CodeDoc(TypedDict):
     content: str
     phase: str
     lang: NotRequired[str]
+    children: NotRequired[list["DocEntry"]]
 
 
 class TableDoc(TypedDict):
@@ -44,6 +48,7 @@ class TableDoc(TypedDict):
     columns: list[str]
     rows: list[list[str]]
     phase: str
+    children: NotRequired[list["DocEntry"]]
 
 
 class LinkDoc(TypedDict):
@@ -51,6 +56,7 @@ class LinkDoc(TypedDict):
     label: str
     url: str
     phase: str
+    children: NotRequired[list["DocEntry"]]
 
 
 class SectionDoc(TypedDict):
@@ -58,6 +64,7 @@ class SectionDoc(TypedDict):
     title: str
     markdown: str
     phase: str
+    children: NotRequired[list["DocEntry"]]
 
 
 class MermaidDoc(TypedDict):
@@ -65,6 +72,7 @@ class MermaidDoc(TypedDict):
     code: str
     phase: str
     title: NotRequired[str]
+    children: NotRequired[list["DocEntry"]]
 
 
 class ScreenshotDoc(TypedDict):
@@ -72,6 +80,7 @@ class ScreenshotDoc(TypedDict):
     path: str
     phase: str
     alt: NotRequired[str]
+    children: NotRequired[list["DocEntry"]]
 
 
 class CustomDoc(TypedDict):
@@ -79,10 +88,19 @@ class CustomDoc(TypedDict):
     type: str
     data: Any
     phase: str
+    children: NotRequired[list["DocEntry"]]
 
 
 # Union of all doc entry types
 DocEntry = NoteDoc | TagDoc | KvDoc | CodeDoc | TableDoc | LinkDoc | SectionDoc | MermaidDoc | ScreenshotDoc | CustomDoc
+
+
+# ── Ticket ────────────────────────────────────────────────────────
+
+
+class TicketDoc(TypedDict):
+    id: str
+    url: NotRequired[str]
 
 
 # ── Attachment ────────────────────────────────────────────────────
@@ -131,7 +149,7 @@ class StoryMeta(TypedDict):
     scenario: str
     steps: NotRequired[list[StoryStep]]
     tags: NotRequired[list[str]]
-    tickets: NotRequired[list[str]]
+    tickets: NotRequired[list[TicketDoc]]
     meta: NotRequired[dict[str, Any]]
     suitePath: NotRequired[list[str]]
     docs: NotRequired[list[DocEntry]]

@@ -64,7 +64,7 @@ function renderScenario(lines: string[], scenario: ScenarioDiff): void {
       lines.push(`| Docs | ${escapeCell(formatDocs(before.docs))} | ${escapeCell(formatDocs(after.docs))} |`);
     }
     if (scenario.flags.tickets) {
-      lines.push(`| Tickets | ${escapeCell(before.tickets.join(", "))} | ${escapeCell(after.tickets.join(", "))} |`);
+      lines.push(`| Tickets | ${escapeCell(before.tickets.map(t => t.id).join(", "))} | ${escapeCell(after.tickets.map(t => t.id).join(", "))} |`);
     }
     lines.push("");
   } else {
@@ -81,7 +81,7 @@ function renderSnapshotDetail(lines: string[], snapshot: ScenarioSnapshot): void
     lines.push("");
   }
   if (snapshot.tickets.length > 0) {
-    lines.push(`**Tickets:** ${snapshot.tickets.join(", ")}`);
+    lines.push(`**Tickets:** ${snapshot.tickets.map(t => t.id).join(", ")}`);
     lines.push("");
   }
   if (snapshot.steps.length > 0) {

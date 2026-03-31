@@ -342,7 +342,7 @@ describe('StoryReporter', () => {
           meta: {
             scenario: 'ticketed test',
             steps: [{ keyword: 'Given', text: 'something', docs: [] }],
-            tickets: ['JIRA-123'],
+            tickets: [{ id: 'JIRA-123' }],
             sourceOrder: 0,
           },
           result: { state: 'passed' },
@@ -385,7 +385,7 @@ describe('StoryReporter', () => {
           meta: {
             scenario: 'ticketed test',
             steps: [{ keyword: 'Given', text: 'something', docs: [] }],
-            tickets: ['JIRA-123'],
+            tickets: [{ id: 'JIRA-123' }],
             sourceOrder: 0,
           },
           result: { state: 'passed' },

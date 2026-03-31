@@ -13,9 +13,13 @@ export type {
   DocEntry,
   StoryStep,
   StoryMeta,
+  NormalizedTicket,
 } from 'executable-stories-formatters';
 
 export { STORY_META_KEY } from 'executable-stories-formatters';
+
+/** A ticket reference: either a plain string ID or an object with id and optional url */
+export type TicketInput = string | { id: string; url?: string };
 
 // ============================================================================
 // Doc Options (for inline docs and standalone methods)
@@ -129,7 +133,7 @@ export interface ScopedAttachment extends AttachmentOptions {
  */
 export interface StoryOptions {
   tags?: string[];
-  ticket?: string | string[];
+  ticket?: TicketInput | TicketInput[];
   meta?: Record<string, unknown>;
   /** URL template for OTel trace links. Uses {traceId} placeholder. Also settable via OTEL_TRACE_URL_TEMPLATE env var. */
   traceUrlTemplate?: string;

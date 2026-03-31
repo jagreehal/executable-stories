@@ -1,4 +1,4 @@
-use executable_stories::{DocEntry, RawRun, RawTestCase, StoryMeta, StoryStep};
+use executable_stories::{DocEntry, RawRun, RawTestCase, StoryMeta, StoryStep, Ticket};
 
 #[test]
 fn test_raw_run_serialization() {
@@ -43,6 +43,7 @@ fn test_raw_run_serialization() {
                 meta: None,
                 docs: None,
                 source_order: Some(0),
+                otel_spans: None,
             }),
             duration_ms: Some(42.5),
             ..Default::default()
@@ -151,18 +152,19 @@ fn test_story_meta_with_docs() {
         scenario: "documented scenario".to_string(),
         steps: vec![],
         tags: None,
-        tickets: Some(vec!["TICKET-1".to_string()]),
+        tickets: Some(vec![Ticket { id: "TICKET-1".to_string(), url: None }]),
         meta: None,
         docs: Some(vec![
             DocEntry::note("overview note"),
             DocEntry::link("spec", "https://example.com/spec"),
         ]),
         source_order: Some(5),
+        otel_spans: None,
     };
 
     let json = serde_json::to_value(&meta).unwrap();
     assert_eq!(json["scenario"], "documented scenario");
-    assert_eq!(json["tickets"], serde_json::json!(["TICKET-1"]));
+    assert_eq!(json["tickets"], serde_json::json!([{"id": "TICKET-1"}]));
     assert_eq!(json["sourceOrder"], 5);
 
     let docs = json["docs"].as_array().unwrap();

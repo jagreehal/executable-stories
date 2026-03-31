@@ -305,8 +305,11 @@ func TestOptions(t *testing.T) {
 	if len(s.tags) != 2 || s.tags[0] != "smoke" || s.tags[1] != "auth" {
 		t.Errorf("unexpected tags: %v", s.tags)
 	}
-	if len(s.tickets) != 2 || s.tickets[0] != "JIRA-123" || s.tickets[1] != "JIRA-456" {
+	if len(s.tickets) != 2 || s.tickets[0].ID != "JIRA-123" || s.tickets[1].ID != "JIRA-456" {
 		t.Errorf("unexpected tickets: %v", s.tickets)
+	}
+	if s.tickets[0].URL != "" || s.tickets[1].URL != "" {
+		t.Errorf("expected empty URLs for string-only tickets, got %v", s.tickets)
 	}
 	if s.meta["priority"] != "high" {
 		t.Errorf("unexpected meta: %v", s.meta)
@@ -661,5 +664,264 @@ func TestTitlePathSplitsSubtests(t *testing.T) {
 		if cases[0].TitlePath[i] != part {
 			t.Fatalf("expected titlePath %v, got %v", expected, cases[0].TitlePath)
 		}
+	}
+}
+
+func TestDocEntryWithChildren(t *testing.T) {
+	reset()
+
+	mt := &mockT{name: "TestDocChildren"}
+	s := Init(mt, "doc with children")
+
+	child1 := NoteEntry("child note 1")
+	child2 := KvEntry("child-key", "child-value")
+	s.Note("parent note", child1, child2)
+
+	if len(s.docs) != 1 {
+		t.Fatalf("expected 1 story-level doc, got %d", len(s.docs))
+	}
+
+	parent := s.docs[0]
+	if parent["kind"] != "note" {
+		t.Errorf("expected kind=note, got %v", parent["kind"])
+	}
+	if parent["text"] != "parent note" {
+		t.Errorf("expected text='parent note', got %v", parent["text"])
+	}
+
+	children, ok := parent["children"].([]DocEntry)
+	if !ok {
+		t.Fatalf("expected children to be []DocEntry, got %T", parent["children"])
+	}
+	if len(children) != 2 {
+		t.Fatalf("expected 2 children, got %d", len(children))
+	}
+	if children[0]["kind"] != "note" || children[0]["text"] != "child note 1" {
+		t.Errorf("unexpected child 0: %v", children[0])
+	}
+	if children[1]["kind"] != "kv" || children[1]["label"] != "child-key" {
+		t.Errorf("unexpected child 1: %v", children[1])
+	}
+}
+
+func TestDocEntryWithoutChildrenHasNoKey(t *testing.T) {
+	reset()
+
+	mt := &mockT{name: "TestNoChildren"}
+	s := Init(mt, "no children")
+
+	s.Note("simple note")
+
+	if _, hasChildren := s.docs[0]["children"]; hasChildren {
+		t.Error("expected no 'children' key when no children provided")
+	}
+}
+
+func TestDocChildrenReparentAcrossSteps(t *testing.T) {
+	reset()
+
+	mt := &mockT{name: "TestReparentAcrossSteps"}
+	s := Init(mt, "reparent across steps")
+
+	s.Given("first step")
+	child := s.Note("shared child")
+	s.When("second step")
+	parent := s.Note("parent note", child)
+
+	if len(s.steps[0].Docs) != 0 {
+		t.Fatalf("expected first step docs to be empty after reparenting, got %v", s.steps[0].Docs)
+	}
+	if len(s.steps[1].Docs) != 1 {
+		t.Fatalf("expected second step docs to contain only parent, got %v", s.steps[1].Docs)
+	}
+	if s.steps[1].Docs[0]["text"] != parent["text"] {
+		t.Fatalf("expected second step doc to be parent, got %v", s.steps[1].Docs[0])
+	}
+}
+
+func TestDocMethodReturnsDocEntry(t *testing.T) {
+	reset()
+
+	mt := &mockT{name: "TestReturn"}
+	s := Init(mt, "return doc entry")
+
+	entry := s.Note("returned note")
+	if entry["kind"] != "note" {
+		t.Errorf("expected kind=note, got %v", entry["kind"])
+	}
+	if entry["text"] != "returned note" {
+		t.Errorf("expected text='returned note', got %v", entry["text"])
+	}
+
+	// Verify it was also added to the story docs
+	if len(s.docs) != 1 {
+		t.Fatalf("expected 1 doc, got %d", len(s.docs))
+	}
+}
+
+func TestDocEntryChildrenSerializeInJSON(t *testing.T) {
+	reset()
+
+	child := NoteEntry("inner")
+	parent := KvEntry("key", "value", child)
+
+	b, err := json.Marshal(parent)
+	if err != nil {
+		t.Fatalf("failed to marshal: %v", err)
+	}
+
+	var parsed map[string]any
+	if err := json.Unmarshal(b, &parsed); err != nil {
+		t.Fatalf("failed to unmarshal: %v", err)
+	}
+
+	children, ok := parsed["children"].([]any)
+	if !ok {
+		t.Fatalf("expected children array in JSON, got %T", parsed["children"])
+	}
+	if len(children) != 1 {
+		t.Fatalf("expected 1 child in JSON, got %d", len(children))
+	}
+
+	childMap, ok := children[0].(map[string]any)
+	if !ok {
+		t.Fatalf("expected child to be object, got %T", children[0])
+	}
+	if childMap["kind"] != "note" {
+		t.Errorf("expected child kind=note, got %v", childMap["kind"])
+	}
+}
+
+func TestTicketObjectsSerialize(t *testing.T) {
+	reset()
+
+	mt := &mockT{name: "TestTicketJSON"}
+	s := Init(mt, "ticket objects",
+		WithTicket("JIRA-100"),
+		WithTicketURL("JIRA-200", "https://jira.example.com/JIRA-200"),
+	)
+
+	if len(s.tickets) != 2 {
+		t.Fatalf("expected 2 tickets, got %d", len(s.tickets))
+	}
+
+	// First ticket: string-only
+	if s.tickets[0].ID != "JIRA-100" {
+		t.Errorf("expected ID=JIRA-100, got %q", s.tickets[0].ID)
+	}
+	if s.tickets[0].URL != "" {
+		t.Errorf("expected empty URL, got %q", s.tickets[0].URL)
+	}
+
+	// Second ticket: with URL
+	if s.tickets[1].ID != "JIRA-200" {
+		t.Errorf("expected ID=JIRA-200, got %q", s.tickets[1].ID)
+	}
+	if s.tickets[1].URL != "https://jira.example.com/JIRA-200" {
+		t.Errorf("expected URL, got %q", s.tickets[1].URL)
+	}
+
+	// Verify JSON serialization
+	mt.runCleanups()
+	cases := getAll()
+	b, err := json.Marshal(cases[0].Story.Tickets)
+	if err != nil {
+		t.Fatalf("failed to marshal tickets: %v", err)
+	}
+
+	var tickets []map[string]any
+	if err := json.Unmarshal(b, &tickets); err != nil {
+		t.Fatalf("failed to unmarshal tickets: %v", err)
+	}
+
+	if tickets[0]["id"] != "JIRA-100" {
+		t.Errorf("expected id=JIRA-100 in JSON, got %v", tickets[0]["id"])
+	}
+	if _, hasURL := tickets[0]["url"]; hasURL {
+		t.Error("expected no 'url' key for ticket without URL")
+	}
+	if tickets[1]["id"] != "JIRA-200" {
+		t.Errorf("expected id=JIRA-200 in JSON, got %v", tickets[1]["id"])
+	}
+	if tickets[1]["url"] != "https://jira.example.com/JIRA-200" {
+		t.Errorf("expected url in JSON, got %v", tickets[1]["url"])
+	}
+}
+
+func TestWithTicketURLOption(t *testing.T) {
+	reset()
+
+	mt := &mockT{name: "TestTicketURL"}
+	s := Init(mt, "ticket url option",
+		WithTicketURL("BUG-42", "https://bugs.example.com/42"),
+	)
+
+	if len(s.tickets) != 1 {
+		t.Fatalf("expected 1 ticket, got %d", len(s.tickets))
+	}
+	if s.tickets[0].ID != "BUG-42" {
+		t.Errorf("expected ID=BUG-42, got %q", s.tickets[0].ID)
+	}
+	if s.tickets[0].URL != "https://bugs.example.com/42" {
+		t.Errorf("expected URL, got %q", s.tickets[0].URL)
+	}
+}
+
+func TestExportedFactoryFunctions(t *testing.T) {
+	// Verify that exported factory functions create correct entries
+	// without pushing to any story
+	note := NoteEntry("standalone")
+	if note["kind"] != "note" || note["text"] != "standalone" {
+		t.Errorf("unexpected NoteEntry: %v", note)
+	}
+
+	kv := KvEntry("k", "v")
+	if kv["kind"] != "kv" || kv["label"] != "k" {
+		t.Errorf("unexpected KvEntry: %v", kv)
+	}
+
+	code := CodeEntry("label", "content", "go")
+	if code["kind"] != "code" || code["lang"] != "go" {
+		t.Errorf("unexpected CodeEntry: %v", code)
+	}
+
+	link := LinkEntry("label", "https://example.com")
+	if link["kind"] != "link" || link["url"] != "https://example.com" {
+		t.Errorf("unexpected LinkEntry: %v", link)
+	}
+
+	section := SectionEntry("title", "# md")
+	if section["kind"] != "section" || section["title"] != "title" {
+		t.Errorf("unexpected SectionEntry: %v", section)
+	}
+
+	tbl := TableEntry("tbl", []string{"a"}, [][]string{{"1"}})
+	if tbl["kind"] != "table" {
+		t.Errorf("unexpected TableEntry: %v", tbl)
+	}
+
+	mermaid := MermaidEntry("graph TD", "title")
+	if mermaid["kind"] != "mermaid" || mermaid["title"] != "title" {
+		t.Errorf("unexpected MermaidEntry: %v", mermaid)
+	}
+
+	ss := ScreenshotEntry("/path", "alt")
+	if ss["kind"] != "screenshot" || ss["alt"] != "alt" {
+		t.Errorf("unexpected ScreenshotEntry: %v", ss)
+	}
+
+	custom := CustomEntry("myType", "data")
+	if custom["kind"] != "custom" || custom["type"] != "myType" {
+		t.Errorf("unexpected CustomEntry: %v", custom)
+	}
+
+	jsonDoc := JSONEntry("label", map[string]string{"a": "b"})
+	if jsonDoc["kind"] != "code" || jsonDoc["lang"] != "json" {
+		t.Errorf("unexpected JSONEntry: %v", jsonDoc)
+	}
+
+	tag := TagEntry("t1", "t2")
+	if tag["kind"] != "tag" {
+		t.Errorf("unexpected TagEntry: %v", tag)
 	}
 }

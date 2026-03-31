@@ -50,6 +50,8 @@ export type {
   StepKeyword,
   StepMode,
   DocPhase,
+  NormalizedTicket,
+  TicketInput,
   StoryDocs,
   StoryOptions,
   VitestTask,

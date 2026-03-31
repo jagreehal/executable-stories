@@ -14,7 +14,7 @@ class StoryContext(
 
     val steps: MutableList<StoryStep> = mutableListOf()
     val tags: MutableList<String> = mutableListOf()
-    val tickets: MutableList<String> = mutableListOf()
+    val tickets: MutableList<Ticket> = mutableListOf()
     val meta: MutableMap<String, Any?> = LinkedHashMap()
     val docs: MutableList<DocEntry> = mutableListOf()
     val sourceOrder: Int = ORDER_COUNTER.getAndIncrement()
@@ -66,6 +66,14 @@ class StoryContext(
     }
 
     fun addDoc(doc: DocEntry) {
+        @Suppress("UNCHECKED_CAST")
+        val children = doc["children"] as? List<DocEntry>
+        if (!children.isNullOrEmpty()) {
+            docs.removeAll(children.toSet())
+            steps.forEach { step ->
+                step.docs?.removeAll(children.toSet())
+            }
+        }
         val step = currentStep
         if (step != null) {
             step.addDoc(doc)

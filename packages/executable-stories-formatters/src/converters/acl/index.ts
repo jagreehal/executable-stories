@@ -5,7 +5,7 @@
  * strict canonical TestRunResult for formatters.
  */
 
-import type { StoryMeta } from "../../types/story";
+import type { StoryMeta, NormalizedTicket } from "../../types/story";
 import type { RawRun, RawTestCase } from "../../types/raw";
 import type {
   TestRunResult,
@@ -99,6 +99,11 @@ function canonicalizeTestCase(
   // Normalize tags
   const tags = normalizeTags(story);
 
+  // Normalize tickets (raw JSON may have plain strings)
+  if (story.tickets) {
+    story.tickets = normalizeTickets(story.tickets as unknown as (string | NormalizedTicket)[]);
+  }
+
   // Build title path
   const titlePath = buildTitlePath(raw, story);
 
@@ -131,6 +136,16 @@ function canonicalizeTestCase(
 function normalizeTags(story: StoryMeta): string[] {
   const tags = story.tags ?? [];
   return [...new Set(tags)].sort();
+}
+
+/**
+ * Normalize raw tickets to NormalizedTicket objects.
+ *
+ * Raw JSON may contain plain strings (from language packages or older adapters)
+ * or objects with {id, url}. This ensures a uniform shape for formatters.
+ */
+function normalizeTickets(raw: (string | NormalizedTicket)[]): NormalizedTicket[] {
+  return raw.map((t) => (typeof t === "string" ? { id: t } : t));
 }
 
 /**

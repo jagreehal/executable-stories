@@ -286,4 +286,171 @@ describe("MarkdownFormatter", () => {
       expect(result).toContain("⏩"); // skipped
     });
   });
+
+  describe("children rendering", () => {
+    it("should render children indented under a parent doc entry", () => {
+      const raw = createRawRun({
+        testCases: [
+          createTestCase({
+            story: createStory({
+              steps: [
+                {
+                  keyword: "Given",
+                  text: "payment is processed",
+                  docs: [
+                    {
+                      kind: "note",
+                      text: "Payment processed",
+                      phase: "static" as const,
+                      children: [
+                        {
+                          kind: "kv" as const,
+                          label: "Amount",
+                          value: "$49",
+                          phase: "static" as const,
+                        },
+                        {
+                          kind: "kv" as const,
+                          label: "Currency",
+                          value: "USD",
+                          phase: "static" as const,
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            }),
+          }),
+        ],
+      });
+      const run = canonicalizeRun(raw);
+      const result = formatter.format(run);
+
+      // Parent note should be present
+      expect(result).toContain("> Payment processed");
+      // Children should be indented under the parent
+      expect(result).toContain("  - **Amount:** $49");
+      expect(result).toContain("  - **Currency:** USD");
+    });
+
+    it("should render nested children with increasing indent", () => {
+      const raw = createRawRun({
+        testCases: [
+          createTestCase({
+            story: createStory({
+              steps: [
+                {
+                  keyword: "Given",
+                  text: "order details",
+                  docs: [
+                    {
+                      kind: "note",
+                      text: "Order summary",
+                      phase: "static" as const,
+                      children: [
+                        {
+                          kind: "note" as const,
+                          text: "Line items",
+                          phase: "static" as const,
+                          children: [
+                            {
+                              kind: "kv" as const,
+                              label: "Item",
+                              value: "Widget",
+                              phase: "static" as const,
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            }),
+          }),
+        ],
+      });
+      const run = canonicalizeRun(raw);
+      const result = formatter.format(run);
+
+      expect(result).toContain("> Order summary");
+      expect(result).toContain("  > Line items");
+      expect(result).toContain("    - **Item:** Widget");
+    });
+  });
+
+  describe("ticket rendering", () => {
+    it("should render ticket with explicit url as a link", () => {
+      const raw = createRawRun({
+        testCases: [
+          createTestCase({
+            story: createStory({
+              tickets: [{ id: "PROJ-42", url: "https://tracker.example.com/PROJ-42" }],
+            }),
+          }),
+        ],
+      });
+      const run = canonicalizeRun(raw);
+      const result = formatter.format(run);
+
+      expect(result).toContain("[PROJ-42](https://tracker.example.com/PROJ-42)");
+    });
+
+    it("should prefer explicit url over ticketUrlTemplate", () => {
+      const templateFormatter = new MarkdownFormatter({
+        ticketUrlTemplate: "https://jira.example.com/browse/{ticket}",
+      });
+      const raw = createRawRun({
+        testCases: [
+          createTestCase({
+            story: createStory({
+              tickets: [{ id: "PROJ-42", url: "https://custom.example.com/PROJ-42" }],
+            }),
+          }),
+        ],
+      });
+      const run = canonicalizeRun(raw);
+      const result = templateFormatter.format(run);
+
+      // Explicit url should win over template
+      expect(result).toContain("[PROJ-42](https://custom.example.com/PROJ-42)");
+      expect(result).not.toContain("jira.example.com");
+    });
+
+    it("should use ticketUrlTemplate when no explicit url", () => {
+      const templateFormatter = new MarkdownFormatter({
+        ticketUrlTemplate: "https://jira.example.com/browse/{ticket}",
+      });
+      const raw = createRawRun({
+        testCases: [
+          createTestCase({
+            story: createStory({
+              tickets: [{ id: "PROJ-42" }],
+            }),
+          }),
+        ],
+      });
+      const run = canonicalizeRun(raw);
+      const result = templateFormatter.format(run);
+
+      expect(result).toContain("[PROJ-42](https://jira.example.com/browse/PROJ-42)");
+    });
+
+    it("should render ticket as inline code when no url and no template", () => {
+      const raw = createRawRun({
+        testCases: [
+          createTestCase({
+            story: createStory({
+              tickets: [{ id: "PROJ-42" }],
+            }),
+          }),
+        ],
+      });
+      const run = canonicalizeRun(raw);
+      const result = formatter.format(run);
+
+      expect(result).toContain("`PROJ-42`");
+    });
+  });
 });

@@ -2,7 +2,7 @@
  * Render a scenario element (fn(args, deps)).
  */
 
-import type { DocEntry } from "../../../types/story";
+import type { DocEntry, NormalizedTicket } from "../../../types/story";
 import type { TestCaseResult } from "../../../types/test-result";
 import type { TestMetrics } from "../../../history/types";
 import { MIN_METRIC_SAMPLES } from "../../../history/sample-policy";
@@ -35,6 +35,19 @@ export interface RenderScenarioDeps {
   ) => string;
   embedScreenshots: boolean;
   permalinkBaseUrl?: string;
+  ticketUrlTemplate?: string;
+}
+
+function renderTicket(
+  ticket: NormalizedTicket,
+  template: string | undefined,
+  escapeHtml: (s: string) => string,
+): string {
+  const url = ticket.url ?? (template ? template.replace("{ticket}", ticket.id) : undefined);
+  if (url) {
+    return `<a class="tag ticket-tag" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(ticket.id)}</a>`;
+  }
+  return `<span class="tag ticket-tag">${escapeHtml(ticket.id)}</span>`;
 }
 
 export function renderScenario(
@@ -49,6 +62,10 @@ export function renderScenario(
 
   const tags = tc.tags
     .map((t) => `<span class="tag">${deps.escapeHtml(t)}</span>`)
+    .join("");
+
+  const tickets = (tc.story.tickets ?? [])
+    .map((t) => renderTicket(t, deps.ticketUrlTemplate, deps.escapeHtml))
     .join("");
 
   // Trace badge from OTel bridge
@@ -135,7 +152,7 @@ export function renderScenario(
         <span class="status-icon ${statusClass}">${statusIcon}</span>
         <span class="scenario-name">${deps.escapeHtml(tc.story.scenario)}</span>
       </div>
-      <div class="scenario-meta">${tags}${sourceLink}${traceBadge}${metricBadges}</div>
+      <div class="scenario-meta">${tags}${tickets}${sourceLink}${traceBadge}${metricBadges}</div>
     </div>
     <span class="scenario-duration">${duration}</span>
   </div>

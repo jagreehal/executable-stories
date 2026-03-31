@@ -16,6 +16,7 @@
     <ID>TooGenericExceptionThrown:StoryApiTest.kt$StoryApiTest$throw RuntimeException("boom")</ID>
     <ID>TooGenericExceptionThrown:StoryApiTest.kt$StoryApiTest$throw RuntimeException(e)</ID>
     <ID>TooManyFunctions:DocEntry.kt$DocEntry$Companion</ID>
+    <ID>LargeClass:StoryApiTest.kt$StoryApiTest</ID>
     <ID>TooManyFunctions:Story.kt$Story$Companion</ID>
   </CurrentIssues>
 </SmellBaseline>

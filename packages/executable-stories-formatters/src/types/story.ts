@@ -27,16 +27,16 @@ export type DocPhase = "static" | "runtime";
 
 /** Union type for all documentation entry kinds */
 export type DocEntry =
-  | { kind: "note"; text: string; phase: DocPhase }
-  | { kind: "tag"; names: string[]; phase: DocPhase }
-  | { kind: "kv"; label: string; value: unknown; phase: DocPhase }
-  | { kind: "code"; label: string; content: string; lang?: string; phase: DocPhase }
-  | { kind: "table"; label: string; columns: string[]; rows: string[][]; phase: DocPhase }
-  | { kind: "link"; label: string; url: string; phase: DocPhase }
-  | { kind: "section"; title: string; markdown: string; phase: DocPhase }
-  | { kind: "mermaid"; code: string; title?: string; phase: DocPhase }
-  | { kind: "screenshot"; path: string; alt?: string; phase: DocPhase }
-  | { kind: "custom"; type: string; data: unknown; phase: DocPhase };
+  | { kind: "note"; text: string; phase: DocPhase; children?: DocEntry[] }
+  | { kind: "tag"; names: string[]; phase: DocPhase; children?: DocEntry[] }
+  | { kind: "kv"; label: string; value: unknown; phase: DocPhase; children?: DocEntry[] }
+  | { kind: "code"; label: string; content: string; lang?: string; phase: DocPhase; children?: DocEntry[] }
+  | { kind: "table"; label: string; columns: string[]; rows: string[][]; phase: DocPhase; children?: DocEntry[] }
+  | { kind: "link"; label: string; url: string; phase: DocPhase; children?: DocEntry[] }
+  | { kind: "section"; title: string; markdown: string; phase: DocPhase; children?: DocEntry[] }
+  | { kind: "mermaid"; code: string; title?: string; phase: DocPhase; children?: DocEntry[] }
+  | { kind: "screenshot"; path: string; alt?: string; phase: DocPhase; children?: DocEntry[] }
+  | { kind: "custom"; type: string; data: unknown; phase: DocPhase; children?: DocEntry[] };
 
 // ============================================================================
 // Story Step
@@ -63,6 +63,18 @@ export interface StoryStep {
 }
 
 // ============================================================================
+// Ticket Reference
+// ============================================================================
+
+/** A ticket reference with an optional direct URL */
+export interface NormalizedTicket {
+  /** Ticket identifier (e.g., "JIRA-123", "PAY-1042") */
+  id: string;
+  /** Direct URL to the ticket (overrides ticketUrlTemplate) */
+  url?: string;
+}
+
+// ============================================================================
 // Story Metadata
 // ============================================================================
 
@@ -78,7 +90,7 @@ export interface StoryMeta {
   /** Tags for filtering and categorization */
   tags?: string[];
   /** Ticket/issue references (normalized to array) */
-  tickets?: string[];
+  tickets?: NormalizedTicket[];
   /** User-defined metadata */
   meta?: Record<string, unknown>;
   /** Parent describe/suite names for hierarchical grouping */

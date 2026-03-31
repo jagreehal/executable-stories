@@ -356,14 +356,16 @@ export class MarkdownFormatter {
     }
     if (tc.story.tickets && tc.story.tickets.length > 0) {
       const ticketTemplate = this.options.ticketUrlTemplate;
-      if (ticketTemplate) {
-        const ticketLinks = tc.story.tickets.map(
-          (t) => `[${t}](${ticketTemplate.replace("{ticket}", t)})`
-        );
-        meta.push(`Tickets: ${ticketLinks.join(", ")}`);
-      } else {
-        meta.push(`Tickets: ${tc.story.tickets.map((t) => `\`${t}\``).join(", ")}`);
-      }
+      const ticketLinks = tc.story.tickets.map((t) => {
+        if (t.url) {
+          return `[${t.id}](${t.url})`;
+        }
+        if (ticketTemplate) {
+          return `[${t.id}](${ticketTemplate.replace("{ticket}", t.id)})`;
+        }
+        return `\`${t.id}\``;
+      });
+      meta.push(`Tickets: ${ticketLinks.join(", ")}`);
     }
     // Trace context (injected by OTel bridge in story.init())
     const otelMeta = (tc.story.meta as Record<string, unknown> | undefined)
@@ -571,6 +573,14 @@ export class MarkdownFormatter {
         lines.push(`${indent}\`\`\``);
         lines.push(`${indent}`);
         break;
+    }
+
+    // Render children with increased indentation
+    if (entry.children && entry.children.length > 0) {
+      const childIndent = indent + "  ";
+      for (const child of entry.children) {
+        this.renderDocEntry(lines, child, childIndent);
+      }
     }
   }
 

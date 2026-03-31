@@ -236,7 +236,7 @@ test.describe('StoryReporter', () => {
       const meta: StoryMeta = {
         scenario: 'ticketed test',
         steps: [{ keyword: 'Given', text: 'something', docs: [] }],
-        tickets: ['JIRA-123', 'JIRA-456'],
+        tickets: [{ id: 'JIRA-123' }, { id: 'JIRA-456' }],
       };
 
       const mockTestCase: MockTestCase = {

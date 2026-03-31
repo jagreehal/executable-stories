@@ -256,7 +256,7 @@ namespace ExecutableStories.Xunit.Tests
         {
             Story.Init("Doc test");
             Story.Given("a step");
-            Story.Note("This is a note");
+            _ = Story.Note("This is a note");
 
             StoryContext ctx = Story.GetContext()!;
             Assert.NotNull(ctx.CurrentStep);
@@ -269,7 +269,7 @@ namespace ExecutableStories.Xunit.Tests
         public void NoteWithoutStepAttachesToStoryLevel()
         {
             Story.Init("Doc test");
-            Story.Note("Story-level note");
+            _ = Story.Note("Story-level note");
 
             StoryContext ctx = Story.GetContext()!;
             _ = Assert.Single(ctx.Docs);
@@ -281,7 +281,7 @@ namespace ExecutableStories.Xunit.Tests
         {
             Story.Init("Doc test");
             Story.Given("a step");
-            Story.Tag("api", "regression");
+            _ = Story.Tag("api", "regression");
 
             StoryContext ctx = Story.GetContext()!;
             _ = Assert.Single(ctx.CurrentStep!.Docs!);
@@ -295,7 +295,7 @@ namespace ExecutableStories.Xunit.Tests
         public void TagAddsToStoryTags()
         {
             Story.Init("Doc test", "smoke");
-            Story.Tag("api", "regression");
+            _ = Story.Tag("api", "regression");
 
             StoryContext ctx = Story.GetContext()!;
             Assert.Equal(s_tagsSmokeApiRegression, ctx.Tags);
@@ -306,7 +306,7 @@ namespace ExecutableStories.Xunit.Tests
         {
             Story.Init("Doc test");
             Story.Given("a step");
-            Story.Kv("userId", 42);
+            _ = Story.Kv("userId", 42);
 
             StoryContext ctx = Story.GetContext()!;
             _ = Assert.Single(ctx.CurrentStep!.Docs!);
@@ -320,7 +320,7 @@ namespace ExecutableStories.Xunit.Tests
         {
             Story.Init("Doc test");
             Story.Given("a step");
-            Story.Json("payload", new { name = "test" });
+            _ = Story.Json("payload", new { name = "test" });
 
             StoryContext ctx = Story.GetContext()!;
             _ = Assert.Single(ctx.CurrentStep!.Docs!);
@@ -334,7 +334,7 @@ namespace ExecutableStories.Xunit.Tests
         {
             Story.Init("Doc test");
             Story.Given("a step");
-            Story.Code("query", "SELECT * FROM users", "sql");
+            _ = Story.Code("query", "SELECT * FROM users", "sql");
 
             StoryContext ctx = Story.GetContext()!;
             _ = Assert.Single(ctx.CurrentStep!.Docs!);
@@ -348,7 +348,7 @@ namespace ExecutableStories.Xunit.Tests
         {
             Story.Init("Doc test");
             Story.Given("a step");
-            Story.Table("users", ["Name", "Age"], [["Alice", "30"]]);
+            _ = Story.Table("users", ["Name", "Age"], [["Alice", "30"]]);
 
             StoryContext ctx = Story.GetContext()!;
             _ = Assert.Single(ctx.CurrentStep!.Docs!);
@@ -361,7 +361,7 @@ namespace ExecutableStories.Xunit.Tests
         {
             Story.Init("Doc test");
             Story.Given("a step");
-            Story.Link("docs", "https://example.com");
+            _ = Story.Link("docs", "https://example.com");
 
             StoryContext ctx = Story.GetContext()!;
             _ = Assert.Single(ctx.CurrentStep!.Docs!);
@@ -374,7 +374,7 @@ namespace ExecutableStories.Xunit.Tests
         {
             Story.Init("Doc test");
             Story.Given("a step");
-            Story.Section("Details", "## More info\nSome text");
+            _ = Story.Section("Details", "## More info\nSome text");
 
             StoryContext ctx = Story.GetContext()!;
             _ = Assert.Single(ctx.CurrentStep!.Docs!);
@@ -387,7 +387,7 @@ namespace ExecutableStories.Xunit.Tests
         {
             Story.Init("Doc test");
             Story.Given("a step");
-            Story.Mermaid("graph TD; A-->B;", "Flow");
+            _ = Story.Mermaid("graph TD; A-->B;", "Flow");
 
             StoryContext ctx = Story.GetContext()!;
             _ = Assert.Single(ctx.CurrentStep!.Docs!);
@@ -401,7 +401,7 @@ namespace ExecutableStories.Xunit.Tests
         {
             Story.Init("Doc test");
             Story.Given("a step");
-            Story.Screenshot("/tmp/screenshot.png", "Login page");
+            _ = Story.Screenshot("/tmp/screenshot.png", "Login page");
 
             StoryContext ctx = Story.GetContext()!;
             _ = Assert.Single(ctx.CurrentStep!.Docs!);
@@ -415,7 +415,7 @@ namespace ExecutableStories.Xunit.Tests
         {
             Story.Init("Doc test");
             Story.Given("a step");
-            Story.Custom("myType", new { foo = "bar" });
+            _ = Story.Custom("myType", new { foo = "bar" });
 
             StoryContext ctx = Story.GetContext()!;
             _ = Assert.Single(ctx.CurrentStep!.Docs!);
@@ -572,6 +572,158 @@ namespace ExecutableStories.Xunit.Tests
 
             StoryStep step = Story.GetContext()!.Steps[0];
             _ = Assert.NotNull(step.DurationMs);
+        }
+
+        // ========================================================================
+        // DocEntry with children
+        // ========================================================================
+
+        [Fact]
+        public void DocEntryWithChildrenSerializesCorrectly()
+        {
+            var child = DocEntry.Note("child note");
+            var parent = DocEntry.Note("parent note", [child]);
+
+            Assert.Equal("note", parent.Kind);
+            var children = parent.Get("children") as DocEntry[];
+            Assert.NotNull(children);
+            _ = Assert.Single(children!);
+            Assert.Equal("note", children[0].Kind);
+            Assert.Equal("child note", children[0].Get("text"));
+        }
+
+        [Fact]
+        public void DocEntryWithNullChildrenOmitsField()
+        {
+            var entry = DocEntry.Note("no children");
+            Assert.Null(entry.Get("children"));
+        }
+
+        [Fact]
+        public void DocEntryWithEmptyChildrenOmitsField()
+        {
+            var entry = DocEntry.Note("no children", []);
+            Assert.Null(entry.Get("children"));
+        }
+
+        [Fact]
+        public void KvWithChildrenIncludesChildren()
+        {
+            var child = DocEntry.Kv("nested", "value");
+            var parent = DocEntry.Kv("parent", "value", [child]);
+
+            var children = parent.Get("children") as DocEntry[];
+            Assert.NotNull(children);
+            _ = Assert.Single(children!);
+            Assert.Equal("kv", children[0].Kind);
+        }
+
+        [Fact]
+        public void DocMethodReturnsDocEntry()
+        {
+            Story.Init("Return test");
+            Story.Given("a step");
+            DocEntry result = Story.Note("a returned note");
+
+            Assert.NotNull(result);
+            Assert.Equal("note", result.Kind);
+            Assert.Equal("a returned note", result.Get("text"));
+        }
+
+        [Fact]
+        public void DocChildrenReparentAcrossSteps()
+        {
+            Story.Init("Reparent test");
+            Story.Given("first step");
+            DocEntry child = Story.Note("shared child");
+            Story.When("second step");
+            DocEntry parent = Story.Note("parent note", [child]);
+
+            StoryContext ctx = Story.GetContext()!;
+            Assert.Empty(ctx.Steps[0].Docs ?? []);
+            Assert.Equal([parent], ctx.Steps[1].Docs);
+        }
+
+        // ========================================================================
+        // Ticket objects
+        // ========================================================================
+
+        [Fact]
+        public void TicketWithIdOnly()
+        {
+            Story.Init("Ticket test");
+            Story.Ticket("JIRA-123");
+
+            StoryContext ctx = Story.GetContext()!;
+            _ = Assert.Single(ctx.Tickets);
+            Assert.Equal("JIRA-123", ctx.Tickets[0].Id);
+            Assert.Null(ctx.Tickets[0].Url);
+        }
+
+        [Fact]
+        public void TicketWithIdAndUrl()
+        {
+            Story.Init("Ticket test");
+            Story.Ticket("JIRA-456", "https://jira.example.com/JIRA-456");
+
+            StoryContext ctx = Story.GetContext()!;
+            _ = Assert.Single(ctx.Tickets);
+            Assert.Equal("JIRA-456", ctx.Tickets[0].Id);
+            Assert.Equal("https://jira.example.com/JIRA-456", ctx.Tickets[0].Url);
+        }
+
+        [Fact]
+        public void TicketObjectOverload()
+        {
+            Story.Init("Ticket test");
+            var ticket = new Ticket("GH-789", "https://github.com/issues/789");
+            Story.Ticket(ticket);
+
+            StoryContext ctx = Story.GetContext()!;
+            _ = Assert.Single(ctx.Tickets);
+            Assert.Equal("GH-789", ctx.Tickets[0].Id);
+            Assert.Equal("https://github.com/issues/789", ctx.Tickets[0].Url);
+        }
+
+        [Fact]
+        public void TicketSerializesAsCamelCase()
+        {
+            var ticket = new Ticket("TEST-1", "https://example.com/TEST-1");
+            var json = System.Text.Json.JsonSerializer.Serialize(ticket);
+
+            Assert.Contains("\"id\":\"TEST-1\"", json);
+            Assert.Contains("\"url\":\"https://example.com/TEST-1\"", json);
+            Assert.DoesNotContain("\"Id\"", json);
+            Assert.DoesNotContain("\"Url\"", json);
+        }
+
+        [Fact]
+        public void TicketWithNullUrlOmitsUrlInJson()
+        {
+            var ticket = new Ticket("TEST-2");
+            var json = System.Text.Json.JsonSerializer.Serialize(ticket);
+
+            Assert.Contains("\"id\":\"TEST-2\"", json);
+            // url is null but record serializes it as null by default
+            Assert.Contains("\"url\":null", json);
+        }
+
+        [Fact]
+        public void ToStoryMetaIncludesTickets()
+        {
+            Story.Init("Ticket meta test");
+            Story.Ticket("ABC-1", "https://example.com/ABC-1");
+            Story.Ticket("ABC-2");
+
+            StoryContext ctx = Story.GetContext()!;
+            var meta = ctx.ToStoryMeta();
+
+            Assert.NotNull(meta.Tickets);
+            Assert.Equal(2, meta.Tickets!.Count);
+            Assert.Equal("ABC-1", meta.Tickets[0].Id);
+            Assert.Equal("https://example.com/ABC-1", meta.Tickets[0].Url);
+            Assert.Equal("ABC-2", meta.Tickets[1].Id);
+            Assert.Null(meta.Tickets[1].Url);
         }
     }
 }

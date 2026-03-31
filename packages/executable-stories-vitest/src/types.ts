@@ -14,9 +14,17 @@ export type {
   DocEntry,
   StoryStep,
   StoryMeta,
+  NormalizedTicket,
 } from 'executable-stories-formatters';
 
 export { STORY_META_KEY } from 'executable-stories-formatters';
+
+// ============================================================================
+// Ticket Input Types
+// ============================================================================
+
+/** A ticket reference: either a plain string ID or an object with id and optional url */
+export type TicketInput = string | { id: string; url?: string };
 
 // ============================================================================
 // Vitest-specific Types
@@ -76,7 +84,7 @@ export interface StoryOptions {
   /** Tags for filtering and categorizing stories */
   tags?: string[];
   /** Ticket/issue reference(s) for requirements traceability */
-  ticket?: string | string[];
+  ticket?: TicketInput | TicketInput[];
   /** Arbitrary user-defined metadata */
   meta?: Record<string, unknown>;
   /** URL template for OTel trace links. Uses {traceId} placeholder. Also settable via OTEL_TRACE_URL_TEMPLATE env var. */

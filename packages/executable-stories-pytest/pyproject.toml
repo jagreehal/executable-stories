@@ -8,6 +8,13 @@ version = "0.1.0"
 description = "pytest plugin for executable-stories BDD documentation"
 requires-python = ">=3.12"
 license = "MIT"
+readme = "README.md"
+authors = [{ name = "Jag Reehal" }]
+
+[project.urls]
+Homepage = "https://github.com/jagreehal/executable-stories"
+Repository = "https://github.com/jagreehal/executable-stories.git"
+Documentation = "https://github.com/jagreehal/executable-stories#readme"
 
 [project.optional-dependencies]
 otel = ["opentelemetry-api>=1.20"]

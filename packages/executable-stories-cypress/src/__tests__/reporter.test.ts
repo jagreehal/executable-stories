@@ -205,7 +205,7 @@ describe("reporter", () => {
       const payload = makePayload("spec.cy.ts", ["Suite", "ticketed"], {
         scenario: "ticketed test",
         steps: [{ keyword: "Given", text: "something", docs: [] }],
-        tickets: ["JIRA-123", "JIRA-456"],
+        tickets: [{ id: "JIRA-123" }, { id: "JIRA-456" }],
       });
       const content = await generateAndRead(
         payload,
