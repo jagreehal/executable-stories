@@ -46,6 +46,8 @@ export type {
   StepKeyword,
   StoryDocs,
   StoryOptions,
+  TicketInput,
+  NormalizedTicket,
   KvOptions,
   JsonOptions,
   CodeOptions,

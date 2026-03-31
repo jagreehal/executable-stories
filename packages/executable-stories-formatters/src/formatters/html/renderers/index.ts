@@ -35,6 +35,8 @@ export interface HtmlFormatterOptions {
   mermaidEnabled?: boolean;
   markdownEnabled?: boolean;
   permalinkBaseUrl?: string;
+  /** URL template for ticket links. Use {ticket} as placeholder. E.g., "https://jira.example.com/browse/{ticket}" */
+  ticketUrlTemplate?: string;
   /** Theme name or custom theme object. Default: "default" */
   theme?: string | HtmlTheme;
 }
@@ -50,6 +52,7 @@ function normalizeOptions(options: HtmlFormatterOptions = {}) {
     mermaidEnabled: options.mermaidEnabled ?? true,
     markdownEnabled: options.markdownEnabled ?? true,
     permalinkBaseUrl: options.permalinkBaseUrl,
+    ticketUrlTemplate: options.ticketUrlTemplate,
     theme: options.theme ?? "default",
   };
 }
@@ -107,6 +110,7 @@ export function createHtmlFormatter(
     ) => renderTraceView(args, d),
     embedScreenshots: opts.embedScreenshots,
     permalinkBaseUrl: opts.permalinkBaseUrl,
+    ticketUrlTemplate: opts.ticketUrlTemplate,
   };
 
   const featureDeps = {

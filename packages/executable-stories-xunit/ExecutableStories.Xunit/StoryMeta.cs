@@ -3,6 +3,14 @@ using System.Text.Json.Serialization;
 namespace ExecutableStories.Xunit
 {
     /// <summary>
+    /// Represents a ticket reference with an ID and optional URL.
+    /// </summary>
+    public record Ticket(
+        [property: JsonPropertyName("id")] string Id,
+        [property: JsonPropertyName("url")] string? Url = null
+    );
+
+    /// <summary>
     /// BDD story metadata for a test case.
     /// Matches the StoryMeta definition in the raw-run schema.
     /// </summary>
@@ -21,7 +29,7 @@ namespace ExecutableStories.Xunit
 
         [JsonPropertyName("tickets")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public List<string>? Tickets { get; set; }
+        public List<Ticket>? Tickets { get; set; }
 
         [JsonPropertyName("meta")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

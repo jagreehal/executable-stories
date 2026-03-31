@@ -33,11 +33,13 @@ import {
 } from 'executable-stories-formatters';
 import type {
   DocEntry,
+  NormalizedTicket,
   StepKeyword,
   StoryDocs,
   StoryMeta,
   StoryOptions,
   StoryStep,
+  TicketInput,
   VitestSuite,
 } from './types';
 
@@ -170,13 +172,14 @@ function extractSuitePath(task: TaskLike): string[] | undefined {
 }
 
 /**
- * Normalize ticket option to array format.
+ * Normalize ticket option to array of NormalizedTicket objects.
  */
 function normalizeTickets(
-  ticket: string | string[] | undefined,
-): string[] | undefined {
+  ticket: TicketInput | TicketInput[] | undefined,
+): NormalizedTicket[] | undefined {
   if (!ticket) return undefined;
-  return Array.isArray(ticket) ? ticket : [ticket];
+  const arr = Array.isArray(ticket) ? ticket : [ticket];
+  return arr.map((t) => (typeof t === 'string' ? { id: t } : t));
 }
 
 /**
@@ -346,7 +349,6 @@ function init(task: TaskLike, options?: StoryOptions): void {
 
     // Story -> OTel: enrich active span with story attributes
     try {
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       const reqUrl = import.meta.url
         ?? (typeof __filename !== 'undefined' ? `file://${__filename}` : undefined);
       const req = createRequire(reqUrl!);
@@ -357,7 +359,7 @@ function init(task: TaskLike, options?: StoryOptions): void {
         if (options?.tags?.length) span.setAttribute('story.tags', options.tags);
         if (options?.ticket) {
           const tickets = Array.isArray(options.ticket) ? options.ticket : [options.ticket];
-          span.setAttribute('story.tickets', tickets);
+          span.setAttribute('story.tickets', tickets.map((t) => typeof t === 'string' ? t : t.id));
         }
       }
     } catch { /* OTel not available */ }
@@ -387,10 +389,12 @@ function init(task: TaskLike, options?: StoryOptions): void {
  */
 function createStepMarker(keyword: StepKeyword) {
   function stepMarker(text: string, docs?: StoryDocs): void;
+  function stepMarker(text: string, children: DocEntry[]): void;
   function stepMarker<T>(text: string, body: () => T): T;
-  function stepMarker<T>(text: string, docsOrBody?: StoryDocs | (() => T)): T | void {
+  function stepMarker<T>(text: string, docsOrBody?: StoryDocs | DocEntry[] | (() => T)): T | void {
     const ctx = getContext();
     const isCallback = typeof docsOrBody === 'function';
+    const isChildrenArray = Array.isArray(docsOrBody);
 
     const resolvedKeyword: StepKeyword =
       (keyword === 'Given' || keyword === 'When' || keyword === 'Then') &&
@@ -398,17 +402,41 @@ function createStepMarker(keyword: StepKeyword) {
         ? 'And'
         : keyword;
 
+    let stepDocs: DocEntry[] = [];
+    if (!isCallback && !isChildrenArray && docsOrBody) {
+      stepDocs = convertStoryDocsToEntries(docsOrBody as StoryDocs);
+    }
+
     const step: StoryStep = {
       id: `step-${ctx.stepCounter++}`,
       keyword: resolvedKeyword,
       text,
-      docs: (!isCallback && docsOrBody) ? convertStoryDocsToEntries(docsOrBody) : [],
+      docs: stepDocs,
       ...(isCallback ? { wrapped: true } : {}),
     };
 
     ctx.meta.steps.push(step);
     ctx.currentStep = step;
     syncMetaToTask();
+
+    // Handle DocEntry[] children: attach as step docs and deduplicate from story-level
+    if (isChildrenArray) {
+      const children = docsOrBody as DocEntry[];
+      if (children.length > 0) {
+        const childSet = new Set<DocEntry>(children);
+        // Deduplicate from story-level docs
+        ctx.meta.docs = (ctx.meta.docs ?? []).filter((d) => !childSet.has(d));
+        // Deduplicate from step docs of earlier steps
+        for (const prevStep of ctx.meta.steps) {
+          if (prevStep !== step && prevStep.docs) {
+            prevStep.docs = prevStep.docs.filter((d) => !childSet.has(d));
+          }
+        }
+        step.docs = [...(step.docs ?? []), ...children];
+      }
+      syncMetaToTask();
+      return;
+    }
 
     if (!isCallback) return;
 
@@ -442,17 +470,8 @@ function createStepMarker(keyword: StepKeyword) {
 /**
  * Add a free-text note to the current step or story-level if before any step.
  */
-function note(text: string): void {
-  const ctx = getContext();
-  const entry: DocEntry = { kind: 'note', text, phase: 'runtime' };
-
-  if (ctx.currentStep) {
-    ctx.currentStep.docs ??= [];
-    ctx.currentStep.docs.push(entry);
-  } else {
-    ctx.meta.docs ??= [];
-    ctx.meta.docs.push(entry);
-  }
+function note(text: string, children?: DocEntry[]): DocEntry {
+  return attachDoc({ kind: 'note', text, phase: 'runtime' }, children);
 }
 
 // ============================================================================
@@ -519,8 +538,18 @@ interface CustomOptions {
 // Helper to attach doc entry to current step or story-level
 // ============================================================================
 
-function attachDoc(entry: DocEntry): void {
+function attachDoc(entry: DocEntry, children?: DocEntry[]): DocEntry {
   const ctx = getContext();
+  if (children && children.length > 0) {
+    entry.children = children;
+    const childSet = new Set<DocEntry>(children);
+    const filterDocs = (docs: DocEntry[]) => docs.filter((d) => !childSet.has(d));
+    // Remove children from ALL containers (story-level + every step)
+    ctx.meta.docs = filterDocs(ctx.meta.docs ?? []);
+    for (const step of ctx.meta.steps) {
+      if (step.docs) step.docs = filterDocs(step.docs);
+    }
+  }
   if (ctx.currentStep) {
     ctx.currentStep.docs ??= [];
     ctx.currentStep.docs.push(entry);
@@ -529,6 +558,7 @@ function attachDoc(entry: DocEntry): void {
     ctx.meta.docs.push(entry);
   }
   syncMetaToTask();
+  return entry;
 }
 
 // ============================================================================
@@ -539,130 +569,130 @@ function attachDoc(entry: DocEntry): void {
  * Add a key-value pair to the current step or story-level.
  * @example story.kv({ label: 'Payment ID', value: 'pay_123' })
  */
-function kv(options: KvOptions): void {
-  attachDoc({
+function kv(options: KvOptions, children?: DocEntry[]): DocEntry {
+  return attachDoc({
     kind: 'kv',
     label: options.label,
     value: options.value,
     phase: 'runtime',
-  });
+  }, children);
 }
 
 /**
  * Add a JSON code block to the current step or story-level.
  * @example story.json({ label: 'Order', value: { id: 123 } })
  */
-function json(options: JsonOptions): void {
+function json(options: JsonOptions, children?: DocEntry[]): DocEntry {
   const content = JSON.stringify(options.value, null, 2);
-  attachDoc({
+  return attachDoc({
     kind: 'code',
     label: options.label,
     content,
     lang: 'json',
     phase: 'runtime',
-  });
+  }, children);
 }
 
 /**
  * Add a code block with optional language to the current step or story-level.
  * @example story.code({ label: 'Config', content: 'port: 3000', lang: 'yaml' })
  */
-function code(options: CodeOptions): void {
-  attachDoc({
+function code(options: CodeOptions, children?: DocEntry[]): DocEntry {
+  return attachDoc({
     kind: 'code',
     label: options.label,
     content: options.content,
     lang: options.lang,
     phase: 'runtime',
-  });
+  }, children);
 }
 
 /**
  * Add a markdown table to the current step or story-level.
  * @example story.table({ label: 'Users', columns: ['Name', 'Role'], rows: [['Alice', 'Admin']] })
  */
-function table(options: TableOptions): void {
-  attachDoc({
+function table(options: TableOptions, children?: DocEntry[]): DocEntry {
+  return attachDoc({
     kind: 'table',
     label: options.label,
     columns: options.columns,
     rows: options.rows,
     phase: 'runtime',
-  });
+  }, children);
 }
 
 /**
  * Add a hyperlink to the current step or story-level.
  * @example story.link({ label: 'API Docs', url: 'https://docs.example.com' })
  */
-function link(options: LinkOptions): void {
-  attachDoc({
+function link(options: LinkOptions, children?: DocEntry[]): DocEntry {
+  return attachDoc({
     kind: 'link',
     label: options.label,
     url: options.url,
     phase: 'runtime',
-  });
+  }, children);
 }
 
 /**
  * Add a titled section with markdown content to the current step or story-level.
  * @example story.section({ title: 'Details', markdown: 'This is **important**' })
  */
-function section(options: SectionOptions): void {
-  attachDoc({
+function section(options: SectionOptions, children?: DocEntry[]): DocEntry {
+  return attachDoc({
     kind: 'section',
     title: options.title,
     markdown: options.markdown,
     phase: 'runtime',
-  });
+  }, children);
 }
 
 /**
  * Add a Mermaid diagram to the current step or story-level.
  * @example story.mermaid({ code: 'graph LR; A-->B', title: 'Flow' })
  */
-function mermaid(options: MermaidOptions): void {
-  attachDoc({
+function mermaid(options: MermaidOptions, children?: DocEntry[]): DocEntry {
+  return attachDoc({
     kind: 'mermaid',
     code: options.code,
     title: options.title,
     phase: 'runtime',
-  });
+  }, children);
 }
 
 /**
  * Add a screenshot reference to the current step or story-level.
  * @example story.screenshot({ path: '/screenshots/result.png', alt: 'Final result' })
  */
-function screenshot(options: ScreenshotOptions): void {
-  attachDoc({
+function screenshot(options: ScreenshotOptions, children?: DocEntry[]): DocEntry {
+  return attachDoc({
     kind: 'screenshot',
     path: options.path,
     alt: options.alt,
     phase: 'runtime',
-  });
+  }, children);
 }
 
 /**
  * Add tag(s) to the current step or story-level.
  * @example story.tag('admin') or story.tag(['admin', 'security'])
  */
-function tag(name: string | string[]): void {
+function tag(name: string | string[], children?: DocEntry[]): DocEntry {
   const names = Array.isArray(name) ? name : [name];
-  attachDoc({ kind: 'tag', names, phase: 'runtime' });
+  return attachDoc({ kind: 'tag', names, phase: 'runtime' }, children);
 }
 
 /**
  * Add a custom documentation entry for use with custom renderers.
  * @example story.custom({ type: 'myType', data: { foo: 'bar' } })
  */
-function custom(options: CustomOptions): void {
-  attachDoc({
+function custom(options: CustomOptions, children?: DocEntry[]): DocEntry {
+  return attachDoc({
     kind: 'custom',
     type: options.type,
     data: options.data,
     phase: 'runtime',
-  });
+  }, children);
 }
 
 // ============================================================================

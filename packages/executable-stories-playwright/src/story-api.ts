@@ -37,6 +37,8 @@ import type {
   StoryMeta,
   StoryStep,
   DocEntry,
+  NormalizedTicket,
+  TicketInput,
 } from './types';
 import type {
   StoryDocs,
@@ -118,9 +120,12 @@ function getContext(): StoryContext {
 // Helper functions (inlined from core)
 // ============================================================================
 
-function normalizeTickets(ticket: string | string[] | undefined): string[] | undefined {
+function normalizeTickets(
+  ticket: TicketInput | TicketInput[] | undefined,
+): NormalizedTicket[] | undefined {
   if (!ticket) return undefined;
-  return Array.isArray(ticket) ? ticket : [ticket];
+  const arr = Array.isArray(ticket) ? ticket : [ticket];
+  return arr.map((t) => (typeof t === 'string' ? { id: t } : t));
 }
 
 function convertStoryDocsToEntries(docs: StoryDocs): DocEntry[] {
@@ -209,8 +214,18 @@ function convertStoryDocsToEntries(docs: StoryDocs): DocEntry[] {
   return entries;
 }
 
-function attachDoc(entry: DocEntry): void {
+function attachDoc(entry: DocEntry, children?: DocEntry[]): DocEntry {
   const ctx = getContext();
+  if (children && children.length > 0) {
+    entry.children = children;
+    const childSet = new Set<DocEntry>(children);
+    const filterDocs = (docs: DocEntry[]) => docs.filter((d) => !childSet.has(d));
+    // Remove children from ALL containers (story-level + every step)
+    ctx.meta.docs = filterDocs(ctx.meta.docs ?? []);
+    for (const step of ctx.meta.steps) {
+      if (step.docs) step.docs = filterDocs(step.docs);
+    }
+  }
   if (ctx.currentStep) {
     ctx.currentStep.docs ??= [];
     ctx.currentStep.docs.push(entry);
@@ -218,6 +233,8 @@ function attachDoc(entry: DocEntry): void {
     ctx.meta.docs ??= [];
     ctx.meta.docs.push(entry);
   }
+  syncAnnotationToTest();
+  return entry;
 }
 
 // ============================================================================
@@ -244,11 +261,13 @@ function extractSuitePath(testInfo: TestInfo): string[] | undefined {
 
 function createStepMarker(keyword: StepKeyword) {
   function stepMarker(text: string, docs?: StoryDocs): void;
+  function stepMarker(text: string, children: DocEntry[]): void;
   function stepMarker<T>(text: string, body: (fixtures: PlaywrightFixtures) => T): T;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  function stepMarker<T>(text: string, docsOrBody?: StoryDocs | ((...args: any[]) => T)): T | void {
+  function stepMarker<T>(text: string, docsOrBody?: StoryDocs | DocEntry[] | ((...args: any[]) => T)): T | void {
     const ctx = getContext();
     const isCallback = typeof docsOrBody === 'function';
+    const isChildrenArray = Array.isArray(docsOrBody);
 
     const resolvedKeyword: StepKeyword =
       (keyword === 'Given' || keyword === 'When' || keyword === 'Then') &&
@@ -256,17 +275,41 @@ function createStepMarker(keyword: StepKeyword) {
         ? 'And'
         : keyword;
 
+    let stepDocs: DocEntry[] = [];
+    if (!isCallback && !isChildrenArray && docsOrBody) {
+      stepDocs = convertStoryDocsToEntries(docsOrBody as StoryDocs);
+    }
+
     const step: StoryStep = {
       id: `step-${ctx.stepCounter++}`,
       keyword: resolvedKeyword,
       text,
-      docs: (!isCallback && docsOrBody) ? convertStoryDocsToEntries(docsOrBody) : [],
+      docs: stepDocs,
       ...(isCallback ? { wrapped: true } : {}),
     };
 
     ctx.meta.steps.push(step);
     ctx.currentStep = step;
     syncAnnotationToTest();
+
+    // Handle DocEntry[] children: attach as step docs and deduplicate from story-level
+    if (isChildrenArray) {
+      const children = docsOrBody as DocEntry[];
+      if (children.length > 0) {
+        const childSet = new Set<DocEntry>(children);
+        // Deduplicate from story-level docs
+        ctx.meta.docs = (ctx.meta.docs ?? []).filter((d) => !childSet.has(d));
+        // Deduplicate from step docs of earlier steps
+        for (const prevStep of ctx.meta.steps) {
+          if (prevStep !== step && prevStep.docs) {
+            prevStep.docs = prevStep.docs.filter((d) => !childSet.has(d));
+          }
+        }
+        step.docs = [...(step.docs ?? []), ...children];
+      }
+      syncAnnotationToTest();
+      return;
+    }
 
     if (!isCallback) return;
 
@@ -366,7 +409,7 @@ function init(
         if (options?.tags?.length) span.setAttribute('story.tags', options.tags);
         if (options?.ticket) {
           const tickets = Array.isArray(options.ticket) ? options.ticket : [options.ticket];
-          span.setAttribute('story.tickets', tickets);
+          span.setAttribute('story.tickets', tickets.map((t) => typeof t === 'string' ? t : t.id));
         }
       }
     } catch { /* OTel not available */ }
@@ -519,61 +562,50 @@ export const story = {
   verify: createStepMarker('Then'),
 
   // Standalone doc methods
-  note(text: string): void {
-    attachDoc({ kind: 'note', text, phase: 'runtime' });
-    syncAnnotationToTest();
+  note(text: string, children?: DocEntry[]): DocEntry {
+    return attachDoc({ kind: 'note', text, phase: 'runtime' }, children);
   },
 
-  tag(name: string | string[]): void {
+  tag(name: string | string[], children?: DocEntry[]): DocEntry {
     const names = Array.isArray(name) ? name : [name];
-    attachDoc({ kind: 'tag', names, phase: 'runtime' });
-    syncAnnotationToTest();
+    return attachDoc({ kind: 'tag', names, phase: 'runtime' }, children);
   },
 
-  kv(options: KvOptions): void {
-    attachDoc({ kind: 'kv', label: options.label, value: options.value, phase: 'runtime' });
-    syncAnnotationToTest();
+  kv(options: KvOptions, children?: DocEntry[]): DocEntry {
+    return attachDoc({ kind: 'kv', label: options.label, value: options.value, phase: 'runtime' }, children);
   },
 
-  json(options: JsonOptions): void {
+  json(options: JsonOptions, children?: DocEntry[]): DocEntry {
     const content = JSON.stringify(options.value, null, 2);
-    attachDoc({ kind: 'code', label: options.label, content, lang: 'json', phase: 'runtime' });
-    syncAnnotationToTest();
+    return attachDoc({ kind: 'code', label: options.label, content, lang: 'json', phase: 'runtime' }, children);
   },
 
-  code(options: CodeOptions): void {
-    attachDoc({ kind: 'code', label: options.label, content: options.content, lang: options.lang, phase: 'runtime' });
-    syncAnnotationToTest();
+  code(options: CodeOptions, children?: DocEntry[]): DocEntry {
+    return attachDoc({ kind: 'code', label: options.label, content: options.content, lang: options.lang, phase: 'runtime' }, children);
   },
 
-  table(options: TableOptions): void {
-    attachDoc({ kind: 'table', label: options.label, columns: options.columns, rows: options.rows, phase: 'runtime' });
-    syncAnnotationToTest();
+  table(options: TableOptions, children?: DocEntry[]): DocEntry {
+    return attachDoc({ kind: 'table', label: options.label, columns: options.columns, rows: options.rows, phase: 'runtime' }, children);
   },
 
-  link(options: LinkOptions): void {
-    attachDoc({ kind: 'link', label: options.label, url: options.url, phase: 'runtime' });
-    syncAnnotationToTest();
+  link(options: LinkOptions, children?: DocEntry[]): DocEntry {
+    return attachDoc({ kind: 'link', label: options.label, url: options.url, phase: 'runtime' }, children);
   },
 
-  section(options: SectionOptions): void {
-    attachDoc({ kind: 'section', title: options.title, markdown: options.markdown, phase: 'runtime' });
-    syncAnnotationToTest();
+  section(options: SectionOptions, children?: DocEntry[]): DocEntry {
+    return attachDoc({ kind: 'section', title: options.title, markdown: options.markdown, phase: 'runtime' }, children);
   },
 
-  mermaid(options: MermaidOptions): void {
-    attachDoc({ kind: 'mermaid', code: options.code, title: options.title, phase: 'runtime' });
-    syncAnnotationToTest();
+  mermaid(options: MermaidOptions, children?: DocEntry[]): DocEntry {
+    return attachDoc({ kind: 'mermaid', code: options.code, title: options.title, phase: 'runtime' }, children);
   },
 
-  screenshot(options: ScreenshotOptions): void {
-    attachDoc({ kind: 'screenshot', path: options.path, alt: options.alt, phase: 'runtime' });
-    syncAnnotationToTest();
+  screenshot(options: ScreenshotOptions, children?: DocEntry[]): DocEntry {
+    return attachDoc({ kind: 'screenshot', path: options.path, alt: options.alt, phase: 'runtime' }, children);
   },
 
-  custom(options: CustomOptions): void {
-    attachDoc({ kind: 'custom', type: options.type, data: options.data, phase: 'runtime' });
-    syncAnnotationToTest();
+  custom(options: CustomOptions, children?: DocEntry[]): DocEntry {
+    return attachDoc({ kind: 'custom', type: options.type, data: options.data, phase: 'runtime' }, children);
   },
 
   // Attachments

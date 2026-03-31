@@ -47,7 +47,7 @@ describe("Story API", () => {
     expect(meta.tags).toEqual(["smoke", "api"]);
 
     story.and("tickets are stored as an array");
-    expect(meta.tickets).toEqual(["PROJ-42"]);
+    expect(meta.tickets).toEqual([{ id: "PROJ-42" }]);
   });
 
   it("supports doc entries like note, json, and code", ({ task }) => {

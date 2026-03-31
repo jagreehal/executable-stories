@@ -179,101 +179,149 @@ namespace ExecutableStories.Xunit
         /// <summary>
         /// Add a free-text note to the current step or story.
         /// </summary>
-        public static void Note(string text)
+        public static DocEntry Note(string text, DocEntry[]? children = null)
         {
             StoryContext ctx = RequireContext();
-            ctx.AddDoc(DocEntry.Note(text));
+            var entry = DocEntry.Note(text, children);
+            ctx.AddDoc(entry);
+            return entry;
         }
 
         /// <summary>
         /// Add tag(s) for categorization.
         /// </summary>
-        public static void Tag(params string[] names)
+        public static DocEntry Tag(string[] names, DocEntry[]? children = null)
         {
             StoryContext ctx = RequireContext();
             ctx.Tags.AddRange(names);
-            ctx.AddDoc(DocEntry.Tag(names));
+            var entry = DocEntry.Tag(names, children);
+            ctx.AddDoc(entry);
+            return entry;
+        }
+
+        /// <summary>
+        /// Add tag(s) for categorization (params overload).
+        /// </summary>
+        public static DocEntry Tag(params string[] names)
+        {
+            return Tag(names, null);
         }
 
         /// <summary>
         /// Add a key-value pair.
         /// </summary>
-        public static void Kv(string label, object value)
+        public static DocEntry Kv(string label, object value, DocEntry[]? children = null)
         {
             StoryContext ctx = RequireContext();
-            ctx.AddDoc(DocEntry.Kv(label, value));
+            var entry = DocEntry.Kv(label, value, children);
+            ctx.AddDoc(entry);
+            return entry;
         }
 
         /// <summary>
         /// Add a JSON data block with label (kind=code, lang=json).
         /// </summary>
-        public static void Json(string label, object value)
+        public static DocEntry Json(string label, object value, DocEntry[]? children = null)
         {
             StoryContext ctx = RequireContext();
-            ctx.AddDoc(DocEntry.Json(label, value));
+            var entry = DocEntry.Json(label, value, children);
+            ctx.AddDoc(entry);
+            return entry;
         }
 
         /// <summary>
         /// Add a code block with optional language.
         /// </summary>
-        public static void Code(string label, string content, string? lang = null)
+        public static DocEntry Code(string label, string content, string? lang = null, DocEntry[]? children = null)
         {
             StoryContext ctx = RequireContext();
-            ctx.AddDoc(DocEntry.Code(label, content, lang));
+            var entry = DocEntry.Code(label, content, lang, children);
+            ctx.AddDoc(entry);
+            return entry;
         }
 
         /// <summary>
         /// Add a markdown table.
         /// </summary>
-        public static void Table(string label, string[] columns, string[][] rows)
+        public static DocEntry Table(string label, string[] columns, string[][] rows, DocEntry[]? children = null)
         {
             StoryContext ctx = RequireContext();
-            ctx.AddDoc(DocEntry.Table(label, columns, rows));
+            var entry = DocEntry.Table(label, columns, rows, children);
+            ctx.AddDoc(entry);
+            return entry;
         }
 
         /// <summary>
         /// Add a hyperlink.
         /// </summary>
-        public static void Link(string label, string url)
+        public static DocEntry Link(string label, string url, DocEntry[]? children = null)
         {
             StoryContext ctx = RequireContext();
-            ctx.AddDoc(DocEntry.Link(label, url));
+            var entry = DocEntry.Link(label, url, children);
+            ctx.AddDoc(entry);
+            return entry;
         }
 
         /// <summary>
         /// Add a titled section with markdown content.
         /// </summary>
-        public static void Section(string title, string markdown)
+        public static DocEntry Section(string title, string markdown, DocEntry[]? children = null)
         {
             StoryContext ctx = RequireContext();
-            ctx.AddDoc(DocEntry.Section(title, markdown));
+            var entry = DocEntry.Section(title, markdown, children);
+            ctx.AddDoc(entry);
+            return entry;
         }
 
         /// <summary>
         /// Add a Mermaid diagram with optional title.
         /// </summary>
-        public static void Mermaid(string code, string? title = null)
+        public static DocEntry Mermaid(string code, string? title = null, DocEntry[]? children = null)
         {
             StoryContext ctx = RequireContext();
-            ctx.AddDoc(DocEntry.Mermaid(code, title));
+            var entry = DocEntry.Mermaid(code, title, children);
+            ctx.AddDoc(entry);
+            return entry;
         }
 
         /// <summary>
         /// Add a screenshot reference.
         /// </summary>
-        public static void Screenshot(string path, string? alt = null)
+        public static DocEntry Screenshot(string path, string? alt = null, DocEntry[]? children = null)
         {
             StoryContext ctx = RequireContext();
-            ctx.AddDoc(DocEntry.Screenshot(path, alt));
+            var entry = DocEntry.Screenshot(path, alt, children);
+            ctx.AddDoc(entry);
+            return entry;
         }
 
         /// <summary>
         /// Add a custom documentation entry.
         /// </summary>
-        public static void Custom(string type, object data)
+        public static DocEntry Custom(string type, object data, DocEntry[]? children = null)
         {
             StoryContext ctx = RequireContext();
-            ctx.AddDoc(DocEntry.Custom(type, data));
+            var entry = DocEntry.Custom(type, data, children);
+            ctx.AddDoc(entry);
+            return entry;
+        }
+
+        /// <summary>
+        /// Add a ticket reference. Accepts a string ID or a Ticket object with optional URL.
+        /// </summary>
+        public static void Ticket(string id, string? url = null)
+        {
+            StoryContext ctx = RequireContext();
+            ctx.Tickets.Add(new Ticket(id, url));
+        }
+
+        /// <summary>
+        /// Add a ticket reference from a Ticket object.
+        /// </summary>
+        public static void Ticket(Ticket ticket)
+        {
+            StoryContext ctx = RequireContext();
+            ctx.Tickets.Add(ticket);
         }
 
         /// <summary>
@@ -503,7 +551,7 @@ namespace ExecutableStories.Xunit
 
                 if (ctx.Tickets.Count > 0)
                 {
-                    _ = activity.SetTag("story.tickets", string.Join(",", ctx.Tickets));
+                    _ = activity.SetTag("story.tickets", string.Join(",", ctx.Tickets.Select(t => t.Id)));
                 }
             }
             catch

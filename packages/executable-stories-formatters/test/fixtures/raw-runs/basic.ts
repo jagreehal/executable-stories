@@ -15,7 +15,7 @@ export function createStory(overrides: Partial<StoryMeta> = {}): StoryMeta {
       { keyword: "Then", text: "user sees dashboard" },
     ],
     tags: ["auth", "login"],
-    tickets: ["JIRA-123"],
+    tickets: [{ id: "JIRA-123" }],
     suitePath: ["Authentication"],
     ...overrides,
   };

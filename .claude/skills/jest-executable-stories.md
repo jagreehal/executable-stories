@@ -1,6 +1,6 @@
 ---
 name: executable-stories-jest
-description: Write Given/When/Then story tests for Jest with automatic Markdown doc generation. Use when creating BDD-style tests or generating user story documentation from tests.
+description: Write Given/When/Then story tests for Jest with structured report generation. Use when creating BDD-style tests or generating user story documentation from tests.
 version: 2.0.0
 libraries: ['jest']
 ---
@@ -42,7 +42,7 @@ it('test name', () => {
   // or with options:
   story.init({
     tags: ['smoke', 'auth'],
-    ticket: 'JIRA-123',
+    ticket: 'JIRA-123', // or { id: 'JIRA-123', url: 'https://jira.example.com/JIRA-123' }
     meta: { priority: 'high' },
   });
 });
@@ -143,6 +143,35 @@ story.screenshot({ path: '/screenshots/confirmation.png', alt: 'Email sent' });
 | `story.mermaid(options)`    | `{ code, title? }`          | Mermaid diagram  |
 | `story.screenshot(options)` | `{ path, alt? }`            | Screenshot       |
 | `story.custom(options)`     | `{ type, data }`            | Custom entry     |
+
+### Nested Doc Children
+
+Doc entries can be attached as children of a parent entry. When a child is nested later, it is removed from earlier flat story-level or step-level docs so it only appears under the parent.
+
+```ts
+it('documents grouped evidence', () => {
+  story.init();
+
+  story.given('the first step');
+  const child = story.note('shared child');
+
+  story.when('the second step');
+  story.note('parent note', [child]);
+});
+```
+
+Step markers also accept `DocEntry[]` as the second argument:
+
+```ts
+it('documents step attachments', () => {
+  story.init();
+
+  const child1 = story.kv({ label: 'User', value: 'alice' });
+  const child2 = story.note('note about user');
+
+  story.given('a user exists', [child1, child2]);
+});
+```
 
 ### Story-Level Docs
 

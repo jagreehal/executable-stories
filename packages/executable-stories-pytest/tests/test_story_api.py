@@ -23,13 +23,13 @@ class TestInit:
         meta = fresh_story._get_meta()
         assert meta is not None
         assert meta["tags"] == ["smoke"]
-        assert meta["tickets"] == ["JIRA-1"]
+        assert meta["tickets"] == [{"id": "JIRA-1"}]
 
     def test_ticket_list(self, fresh_story: Story):
         fresh_story.init("Test", ticket=["A-1", "B-2"])
         meta = fresh_story._get_meta()
         assert meta is not None
-        assert meta["tickets"] == ["A-1", "B-2"]
+        assert meta["tickets"] == [{"id": "A-1"}, {"id": "B-2"}]
 
     def test_meta_dict(self, fresh_story: Story):
         fresh_story.init("Test", meta={"priority": "high"})
@@ -420,6 +420,141 @@ class TestExpect:
         fresh_story.init("expect return")
         result = fresh_story.expect("check value", lambda: True)
         assert result is True
+
+
+class TestDocReturns:
+    def test_note_returns_dict(self, fresh_story: Story):
+        fresh_story.init("Test")
+        result = fresh_story.note("hello")
+        assert result["kind"] == "note"
+        assert result["text"] == "hello"
+
+    def test_kv_returns_dict(self, fresh_story: Story):
+        fresh_story.init("Test")
+        result = fresh_story.kv("key", "val")
+        assert result["kind"] == "kv"
+        assert result["label"] == "key"
+        assert result["value"] == "val"
+
+    def test_json_returns_dict(self, fresh_story: Story):
+        fresh_story.init("Test")
+        result = fresh_story.json("payload", {"a": 1})
+        assert result["kind"] == "code"
+        assert result["lang"] == "json"
+
+    def test_code_returns_dict(self, fresh_story: Story):
+        fresh_story.init("Test")
+        result = fresh_story.code("snippet", "x = 1", lang="python")
+        assert result["kind"] == "code"
+        assert result["lang"] == "python"
+
+    def test_link_returns_dict(self, fresh_story: Story):
+        fresh_story.init("Test")
+        result = fresh_story.link("Docs", "https://example.com")
+        assert result["kind"] == "link"
+
+    def test_table_returns_dict(self, fresh_story: Story):
+        fresh_story.init("Test")
+        result = fresh_story.table("t", ["a"], [["1"]])
+        assert result["kind"] == "table"
+
+    def test_section_returns_dict(self, fresh_story: Story):
+        fresh_story.init("Test")
+        result = fresh_story.section("Title", "body")
+        assert result["kind"] == "section"
+
+    def test_mermaid_returns_dict(self, fresh_story: Story):
+        fresh_story.init("Test")
+        result = fresh_story.mermaid("graph TD; A-->B")
+        assert result["kind"] == "mermaid"
+
+    def test_screenshot_returns_dict(self, fresh_story: Story):
+        fresh_story.init("Test")
+        result = fresh_story.screenshot("/tmp/s.png")
+        assert result["kind"] == "screenshot"
+
+    def test_custom_returns_dict(self, fresh_story: Story):
+        fresh_story.init("Test")
+        result = fresh_story.custom("widget", {"x": 1})
+        assert result["kind"] == "custom"
+
+    def test_tag_returns_dict(self, fresh_story: Story):
+        fresh_story.init("Test")
+        result = fresh_story.tag("important")
+        assert result["kind"] == "tag"
+
+
+class TestDocChildren:
+    def test_note_with_children(self, fresh_story: Story):
+        fresh_story.init("Test")
+        child = fresh_story.kv("k", "v")
+        parent = fresh_story.note("parent", children=[child])
+        assert parent["children"] == [child]
+        # child should be deduplicated from the flat list
+        meta = fresh_story._get_meta()
+        assert meta is not None
+        assert len(meta["docs"]) == 1
+        assert meta["docs"][0]["kind"] == "note"
+        assert meta["docs"][0]["children"][0]["kind"] == "kv"
+
+    def test_children_dedup_on_step(self, fresh_story: Story):
+        fresh_story.init("Test")
+        fresh_story.given("a step")
+        child = fresh_story.note("child note")
+        parent = fresh_story.kv("parent", "val", children=[child])
+        meta = fresh_story._get_meta()
+        assert meta is not None
+        step_docs = meta["steps"][0]["docs"]
+        assert len(step_docs) == 1
+        assert step_docs[0]["kind"] == "kv"
+        assert step_docs[0]["children"][0]["kind"] == "note"
+
+    def test_children_reparent_across_steps(self, fresh_story: Story):
+        fresh_story.init("Test")
+        fresh_story.given("first step")
+        child = fresh_story.note("shared child")
+        fresh_story.when("second step")
+        parent = fresh_story.note("parent", children=[child])
+
+        meta = fresh_story._get_meta()
+        assert meta is not None
+        assert meta["steps"][0].get("docs", []) == []
+        assert meta["steps"][1]["docs"] == [parent]
+        assert parent["children"] == [child]
+
+    def test_no_children_key_when_none(self, fresh_story: Story):
+        fresh_story.init("Test")
+        result = fresh_story.note("no kids")
+        assert "children" not in result
+
+
+class TestTicketNormalization:
+    def test_string_ticket_normalized(self, fresh_story: Story):
+        fresh_story.init("Test", ticket="JIRA-1")
+        meta = fresh_story._get_meta()
+        assert meta is not None
+        assert meta["tickets"] == [{"id": "JIRA-1"}]
+
+    def test_ticket_object_with_url(self, fresh_story: Story):
+        fresh_story.init("Test", ticket={"id": "JIRA-2", "url": "https://jira.example.com/JIRA-2"})
+        meta = fresh_story._get_meta()
+        assert meta is not None
+        assert meta["tickets"] == [{"id": "JIRA-2", "url": "https://jira.example.com/JIRA-2"}]
+
+    def test_mixed_tickets_normalized(self, fresh_story: Story):
+        fresh_story.init("Test", ticket=["JIRA-1", {"id": "JIRA-2", "url": "https://example.com"}])
+        meta = fresh_story._get_meta()
+        assert meta is not None
+        assert meta["tickets"] == [
+            {"id": "JIRA-1"},
+            {"id": "JIRA-2", "url": "https://example.com"},
+        ]
+
+    def test_ticket_list_of_strings(self, fresh_story: Story):
+        fresh_story.init("Test", ticket=["A-1", "B-2"])
+        meta = fresh_story._get_meta()
+        assert meta is not None
+        assert meta["tickets"] == [{"id": "A-1"}, {"id": "B-2"}]
 
 
 class TestStepTiming:

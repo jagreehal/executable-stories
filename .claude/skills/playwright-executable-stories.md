@@ -1,6 +1,6 @@
 ---
 name: executable-stories-playwright
-description: Write Given/When/Then story tests for Playwright with automatic Markdown doc generation. Use when creating BDD-style E2E tests or generating user story documentation from browser tests.
+description: Write Given/When/Then story tests for Playwright with structured report generation. Use when creating BDD-style E2E tests or generating user story documentation from browser tests.
 version: 2.2.0
 libraries: ['@playwright/test']
 ---
@@ -46,7 +46,8 @@ test('test name', async ({ page }, testInfo) => {
   story.init(testInfo);
   // or with fixtures for step callbacks:
   story.init({ page }, testInfo);
-  // or: story.init(testInfo, { tags: ['smoke'], fixtures: { page } });
+  // or: story.init(testInfo, { tags: ['smoke'], ticket: 'JIRA-123', fixtures: { page } });
+  // ticket also accepts { id: 'JIRA-123', url: 'https://jira.example.com/JIRA-123' }
 });
 ```
 
@@ -153,6 +154,35 @@ story.screenshot({ path: '/screenshots/confirmation.png', alt: 'Email sent' });
 | `story.mermaid(options)`    | `{ code, title? }`          | Mermaid diagram  |
 | `story.screenshot(options)` | `{ path, alt? }`            | Screenshot       |
 | `story.custom(options)`     | `{ type, data }`            | Custom entry     |
+
+### Nested Doc Children
+
+Doc entries can be grouped under a parent entry. If a child was already attached to an earlier story-level or step-level container, nesting it later reparents it under the new parent instead of rendering it twice.
+
+```ts
+test('documents grouped evidence', async ({}, testInfo) => {
+  story.init(testInfo);
+
+  story.given('the first step');
+  const child = story.note('shared child');
+
+  story.when('the second step');
+  story.note('parent note', [child]);
+});
+```
+
+Step markers also accept `DocEntry[]` as the second argument:
+
+```ts
+test('documents step attachments', async ({}, testInfo) => {
+  story.init(testInfo);
+
+  const child1 = story.kv({ label: 'User', value: 'alice' });
+  const child2 = story.note('note about user');
+
+  story.given('a user exists', [child1, child2]);
+});
+```
 
 ### Story-Level Docs
 

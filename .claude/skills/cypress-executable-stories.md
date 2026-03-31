@@ -1,6 +1,6 @@
 ---
 name: executable-stories-cypress
-description: Write Given/When/Then story tests for Cypress with automatic Markdown doc generation. Use when creating BDD-style E2E tests or generating user story documentation from Cypress specs.
+description: Write Given/When/Then story tests for Cypress with structured report generation. Use when creating BDD-style E2E tests or generating user story documentation from Cypress specs.
 version: 2.0.0
 libraries: ['cypress']
 ---
@@ -58,7 +58,7 @@ describe("Calculator", () => {
 With options:
 
 ```ts
-story.init({ tags: ["smoke"], ticket: "JIRA-123" });
+story.init({ tags: ["smoke"], ticket: "JIRA-123" }); // ticket also accepts { id: 'JIRA-123', url: '...' }
 ```
 
 ## Step markers
@@ -72,6 +72,35 @@ story.init({ tags: ["smoke"], ticket: "JIRA-123" });
 | `story.but(text)`   | But     | Negative continuation |
 
 Same doc methods as other adapters: `story.note()`, `story.kv()`, `story.json()`, `story.code()`, `story.table()`, `story.link()`, `story.section()`, `story.mermaid()`, `story.screenshot()`, `story.custom()`, `story.tag()`.
+
+## Nested Doc Children
+
+Doc entries can be nested under a parent entry. If a child was previously attached to an earlier story-level or step-level container, nesting it later reparents it under the parent so it does not appear twice.
+
+```ts
+it("documents grouped evidence", () => {
+  story.init();
+
+  story.given("the first step");
+  const child = story.note("shared child");
+
+  story.when("the second step");
+  story.note("parent note", [child]);
+});
+```
+
+Step markers also accept `DocEntry[]` as the second argument:
+
+```ts
+it("documents step attachments", () => {
+  story.init();
+
+  const child1 = story.kv({ label: "User", value: "alice" });
+  const child2 = story.note("note about user");
+
+  story.given("a user exists", [child1, child2]);
+});
+```
 
 ## Reporter
 

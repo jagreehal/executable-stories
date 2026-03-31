@@ -47,13 +47,13 @@ class _StoryContext:
         scenario: str,
         *,
         tags: list[str] | None = None,
-        tickets: list[str] | None = None,
+        tickets: list[dict[str, Any]] | None = None,
         meta: dict[str, Any] | None = None,
     ) -> None:
         self.scenario = scenario
         self.steps: list[dict[str, Any]] = []
         self.tags = tags or []
-        self.tickets = tickets or []
+        self.tickets: list[dict[str, Any]] = tickets or []
         self.meta = meta or {}
         self.suite_path: list[str] = []
         self.docs: list[dict[str, Any]] = []
@@ -81,19 +81,26 @@ class Story:
     def _ctx(self) -> _StoryContext | None:
         return getattr(self._local, "ctx", None)
 
+    @staticmethod
+    def _normalize_tickets(ticket: Any) -> list[dict[str, Any]] | None:
+        """Normalize ticket input to list of ``{"id": ...}`` dicts."""
+        if ticket is None:
+            return None
+        if not isinstance(ticket, list):
+            ticket = [ticket]
+        return [{"id": t} if isinstance(t, str) else t for t in ticket]
+
     def init(
         self,
         scenario: str,
         *,
         tags: list[str] | None = None,
-        ticket: str | list[str] | None = None,
+        ticket: str | list[str] | dict | list[dict | str] | None = None,
         meta: dict[str, Any] | None = None,
         trace_url_template: str | None = None,
     ) -> None:
         """Start a new story context for the current test."""
-        tickets: list[str] | None = None
-        if ticket is not None:
-            tickets = [ticket] if isinstance(ticket, str) else list(ticket)
+        tickets = self._normalize_tickets(ticket)
         self._local.ctx = _StoryContext(scenario, tags=tags, tickets=tickets, meta=meta)
 
         # OTel bridge: detect active span, flow data bidirectionally
@@ -381,32 +388,78 @@ class Story:
             # Attach to story-level docs
             ctx.docs.append(entry)
 
-    def note(self, text: str) -> None:
-        """Add a free-text note."""
-        self._attach_doc({"kind": "note", "text": text, "phase": "runtime"})
+    def _current_step_docs(self) -> list[dict[str, Any]]:
+        """Return the docs list of the current (last) step."""
+        ctx = self._require_context()
+        last = ctx.steps[-1]
+        if "docs" not in last:
+            last["docs"] = []
+        return last["docs"]
 
-    def tag(self, name_or_names: str | list[str]) -> None:
+    def _story_docs(self) -> list[dict[str, Any]]:
+        """Return the story-level docs list."""
+        return self._require_context().docs
+
+    def _dedup_children(self, children: list[dict[str, Any]]) -> None:
+        """Remove children from all flat containers so they only appear nested."""
+        child_ids = {id(c) for c in children}
+        ctx = self._require_context()
+        ctx.docs[:] = [d for d in ctx.docs if id(d) not in child_ids]
+        for step in ctx.steps:
+            docs = step.get("docs")
+            if docs is not None:
+                step["docs"] = [d for d in docs if id(d) not in child_ids]
+
+    def _apply_children(self, entry: dict[str, Any], children: list[dict[str, Any]] | None) -> None:
+        """If children are provided, attach them and deduplicate."""
+        if children:
+            entry["children"] = children
+            self._dedup_children(children)
+
+    def note(self, text: str, *, children: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+        """Add a free-text note."""
+        entry: dict[str, Any] = {"kind": "note", "text": text, "phase": "runtime"}
+        if children:
+            entry["children"] = children
+            self._dedup_children(children)
+        self._attach_doc(entry)
+        return entry
+
+    def tag(self, name_or_names: str | list[str], *, children: list[dict[str, Any]] | None = None) -> dict[str, Any]:
         """Add tag(s) as a doc entry."""
         names = [name_or_names] if isinstance(name_or_names, str) else list(name_or_names)
-        self._attach_doc({"kind": "tag", "names": names, "phase": "runtime"})
+        entry: dict[str, Any] = {"kind": "tag", "names": names, "phase": "runtime"}
+        if children:
+            entry["children"] = children
+            self._dedup_children(children)
+        self._attach_doc(entry)
+        return entry
 
-    def kv(self, label: str, value: Any) -> None:
+    def kv(self, label: str, value: Any, *, children: list[dict[str, Any]] | None = None) -> dict[str, Any]:
         """Add a key-value pair."""
-        self._attach_doc({"kind": "kv", "label": label, "value": value, "phase": "runtime"})
+        entry: dict[str, Any] = {"kind": "kv", "label": label, "value": value, "phase": "runtime"}
+        if children:
+            entry["children"] = children
+            self._dedup_children(children)
+        self._attach_doc(entry)
+        return entry
 
-    def json(self, label: str, value: Any) -> None:
+    def json(self, label: str, value: Any, *, children: list[dict[str, Any]] | None = None) -> dict[str, Any]:
         """Add a JSON code block (serialized with indent=2)."""
-        self._attach_doc(
-            {
-                "kind": "code",
-                "label": label,
-                "content": json.dumps(value, indent=2),
-                "lang": "json",
-                "phase": "runtime",
-            }
-        )
+        entry: dict[str, Any] = {
+            "kind": "code",
+            "label": label,
+            "content": json.dumps(value, indent=2),
+            "lang": "json",
+            "phase": "runtime",
+        }
+        if children:
+            entry["children"] = children
+            self._dedup_children(children)
+        self._attach_doc(entry)
+        return entry
 
-    def code(self, label: str, content: str, *, lang: str | None = None) -> None:
+    def code(self, label: str, content: str, *, lang: str | None = None, children: list[dict[str, Any]] | None = None) -> dict[str, Any]:
         """Add a code block."""
         entry: dict[str, Any] = {
             "kind": "code",
@@ -416,59 +469,85 @@ class Story:
         }
         if lang is not None:
             entry["lang"] = lang
+        if children:
+            entry["children"] = children
+            self._dedup_children(children)
         self._attach_doc(entry)
+        return entry
 
-    def table(self, label: str, columns: list[str], rows: list[list[str]]) -> None:
+    def table(self, label: str, columns: list[str], rows: list[list[str]], *, children: list[dict[str, Any]] | None = None) -> dict[str, Any]:
         """Add a table."""
-        self._attach_doc(
-            {
-                "kind": "table",
-                "label": label,
-                "columns": columns,
-                "rows": rows,
-                "phase": "runtime",
-            }
-        )
+        entry: dict[str, Any] = {
+            "kind": "table",
+            "label": label,
+            "columns": columns,
+            "rows": rows,
+            "phase": "runtime",
+        }
+        if children:
+            entry["children"] = children
+            self._dedup_children(children)
+        self._attach_doc(entry)
+        return entry
 
-    def link(self, label: str, url: str) -> None:
+    def link(self, label: str, url: str, *, children: list[dict[str, Any]] | None = None) -> dict[str, Any]:
         """Add a hyperlink."""
-        self._attach_doc({"kind": "link", "label": label, "url": url, "phase": "runtime"})
+        entry: dict[str, Any] = {"kind": "link", "label": label, "url": url, "phase": "runtime"}
+        if children:
+            entry["children"] = children
+            self._dedup_children(children)
+        self._attach_doc(entry)
+        return entry
 
-    def section(self, title: str, markdown: str) -> None:
+    def section(self, title: str, markdown: str, *, children: list[dict[str, Any]] | None = None) -> dict[str, Any]:
         """Add a titled markdown section."""
-        self._attach_doc(
-            {
-                "kind": "section",
-                "title": title,
-                "markdown": markdown,
-                "phase": "runtime",
-            }
-        )
+        entry: dict[str, Any] = {
+            "kind": "section",
+            "title": title,
+            "markdown": markdown,
+            "phase": "runtime",
+        }
+        if children:
+            entry["children"] = children
+            self._dedup_children(children)
+        self._attach_doc(entry)
+        return entry
 
-    def mermaid(self, code: str, *, title: str | None = None) -> None:
+    def mermaid(self, code: str, *, title: str | None = None, children: list[dict[str, Any]] | None = None) -> dict[str, Any]:
         """Add a Mermaid diagram."""
         entry: dict[str, Any] = {"kind": "mermaid", "code": code, "phase": "runtime"}
         if title is not None:
             entry["title"] = title
+        if children:
+            entry["children"] = children
+            self._dedup_children(children)
         self._attach_doc(entry)
+        return entry
 
-    def screenshot(self, path: str, *, alt: str | None = None) -> None:
+    def screenshot(self, path: str, *, alt: str | None = None, children: list[dict[str, Any]] | None = None) -> dict[str, Any]:
         """Add a screenshot reference."""
         entry: dict[str, Any] = {"kind": "screenshot", "path": path, "phase": "runtime"}
         if alt is not None:
             entry["alt"] = alt
+        if children:
+            entry["children"] = children
+            self._dedup_children(children)
         self._attach_doc(entry)
+        return entry
 
-    def custom(self, type: str, data: Any) -> None:
+    def custom(self, type: str, data: Any, *, children: list[dict[str, Any]] | None = None) -> dict[str, Any]:
         """Add a custom doc entry."""
-        self._attach_doc(
-            {
-                "kind": "custom",
-                "type": type,
-                "data": data,
-                "phase": "runtime",
-            }
-        )
+        entry: dict[str, Any] = {
+            "kind": "custom",
+            "type": type,
+            "data": data,
+            "phase": "runtime",
+        }
+        if children:
+            entry["children"] = children
+            self._dedup_children(children)
+        self._attach_doc(entry)
+        return entry
 
 
 # Module-level singleton

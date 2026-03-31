@@ -3,11 +3,18 @@ package dev.executablestories.junit5
 import com.fasterxml.jackson.annotation.JsonInclude
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
+data class Ticket(
+    val id: String,
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    val url: String? = null,
+)
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
 class StoryMeta {
     var scenario: String? = null
     var steps: List<StoryStep>? = null
     var tags: List<String>? = null
-    var tickets: List<String>? = null
+    var tickets: List<Ticket>? = null
     var meta: Map<String, Any?>? = null
     var suitePath: List<String>? = null
     var docs: List<DocEntry>? = null

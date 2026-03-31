@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"reflect"
 	"strings"
 	"time"
 
@@ -36,7 +37,7 @@ type S struct {
 	scenario         string
 	steps            []StoryStep
 	tags             []string
-	tickets          []string
+	tickets          []Ticket
 	meta             map[string]any
 	docs             []DocEntry // story-level docs
 	currentStep      *StoryStep
@@ -60,9 +61,19 @@ func WithTags(tags ...string) Option {
 }
 
 // WithTicket adds ticket references to the story.
+// Each string is normalized to a Ticket with just an ID.
 func WithTicket(tickets ...string) Option {
 	return func(s *S) {
-		s.tickets = append(s.tickets, tickets...)
+		for _, t := range tickets {
+			s.tickets = append(s.tickets, Ticket{ID: t})
+		}
+	}
+}
+
+// WithTicketURL adds a ticket reference with a URL to the story.
+func WithTicketURL(id, url string) Option {
+	return func(s *S) {
+		s.tickets = append(s.tickets, Ticket{ID: id, URL: url})
 	}
 }
 
@@ -125,7 +136,11 @@ func bridgeOtel(s *S) {
 		span.SetAttributes(attribute.StringSlice("story.tags", s.tags))
 	}
 	if len(s.tickets) > 0 {
-		span.SetAttributes(attribute.StringSlice("story.tickets", s.tickets))
+		ticketIDs := make([]string, len(s.tickets))
+		for i, t := range s.tickets {
+			ticketIDs[i] = t.ID
+		}
+		span.SetAttributes(attribute.StringSlice("story.tickets", ticketIDs))
 	}
 }
 
@@ -307,80 +322,144 @@ func (s *S) Expect(text string, body func()) *S {
 
 // addDoc appends a DocEntry to the current step if one exists,
 // otherwise it appends to the story-level docs.
-func (s *S) addDoc(entry DocEntry) *S {
+func (s *S) addDoc(entry DocEntry) {
+	if children, ok := entry["children"].([]DocEntry); ok && len(children) > 0 {
+		childPtrs := make(map[uintptr]struct{}, len(children))
+		for _, child := range children {
+			childPtrs[reflect.ValueOf(child).Pointer()] = struct{}{}
+		}
+		filterDocs := func(docs []DocEntry) []DocEntry {
+			filtered := docs[:0]
+			for _, doc := range docs {
+				if _, exists := childPtrs[reflect.ValueOf(doc).Pointer()]; !exists {
+					filtered = append(filtered, doc)
+				}
+			}
+			return filtered
+		}
+		s.docs = filterDocs(s.docs)
+		for i := range s.steps {
+			s.steps[i].Docs = filterDocs(s.steps[i].Docs)
+		}
+	}
 	if s.currentStep != nil {
 		s.currentStep.Docs = append(s.currentStep.Docs, entry)
 	} else {
 		s.docs = append(s.docs, entry)
 	}
-	return s
 }
 
-// Note attaches a note doc entry.
-func (s *S) Note(text string) *S {
-	return s.addDoc(noteEntry(text))
+// Note attaches a note doc entry and returns it.
+func (s *S) Note(text string, children ...DocEntry) DocEntry {
+	entry := noteEntry(text, children...)
+	s.addDoc(entry)
+	return entry
 }
 
-// Tag attaches a tag doc entry.
-func (s *S) Tag(names ...string) *S {
-	return s.addDoc(tagEntry(names...))
+// Tag attaches a tag doc entry and returns it.
+func (s *S) Tag(names ...string) DocEntry {
+	entry := tagEntry(names)
+	s.addDoc(entry)
+	return entry
 }
 
-// Kv attaches a key-value doc entry.
-func (s *S) Kv(label string, value any) *S {
-	return s.addDoc(kvEntry(label, value))
+// Kv attaches a key-value doc entry and returns it.
+func (s *S) Kv(label string, value any, children ...DocEntry) DocEntry {
+	entry := kvEntry(label, value, children...)
+	s.addDoc(entry)
+	return entry
 }
 
-// JSON attaches a code doc entry with lang=json by marshaling the value.
-func (s *S) JSON(label string, value any) *S {
-	return s.addDoc(jsonEntry(label, value))
+// JSON attaches a code doc entry with lang=json by marshaling the value and returns it.
+func (s *S) JSON(label string, value any, children ...DocEntry) DocEntry {
+	entry := jsonEntry(label, value, children...)
+	s.addDoc(entry)
+	return entry
 }
 
-// Code attaches a code doc entry. An optional language can be provided.
-func (s *S) Code(label, content string, lang ...string) *S {
+// Code attaches a code doc entry and returns it.
+// The lang parameter is optional (first value used if provided).
+// Children can be passed after lang.
+func (s *S) Code(label, content string, langAndChildren ...any) DocEntry {
 	l := ""
-	if len(lang) > 0 {
-		l = lang[0]
+	var children []DocEntry
+	for _, v := range langAndChildren {
+		switch val := v.(type) {
+		case string:
+			l = val
+		case DocEntry:
+			children = append(children, val)
+		}
 	}
-	return s.addDoc(codeEntry(label, content, l))
+	entry := codeEntry(label, content, l, children...)
+	s.addDoc(entry)
+	return entry
 }
 
-// Table attaches a table doc entry.
-func (s *S) Table(label string, columns []string, rows [][]string) *S {
-	return s.addDoc(tableEntry(label, columns, rows))
+// Table attaches a table doc entry and returns it.
+func (s *S) Table(label string, columns []string, rows [][]string, children ...DocEntry) DocEntry {
+	entry := tableEntry(label, columns, rows, children...)
+	s.addDoc(entry)
+	return entry
 }
 
-// Link attaches a link doc entry.
-func (s *S) Link(label, url string) *S {
-	return s.addDoc(linkEntry(label, url))
+// Link attaches a link doc entry and returns it.
+func (s *S) Link(label, url string, children ...DocEntry) DocEntry {
+	entry := linkEntry(label, url, children...)
+	s.addDoc(entry)
+	return entry
 }
 
-// Section attaches a section doc entry.
-func (s *S) Section(title, markdown string) *S {
-	return s.addDoc(sectionEntry(title, markdown))
+// Section attaches a section doc entry and returns it.
+func (s *S) Section(title, markdown string, children ...DocEntry) DocEntry {
+	entry := sectionEntry(title, markdown, children...)
+	s.addDoc(entry)
+	return entry
 }
 
-// Mermaid attaches a mermaid doc entry. An optional title can be provided.
-func (s *S) Mermaid(code string, title ...string) *S {
+// Mermaid attaches a mermaid doc entry and returns it.
+// The title parameter is optional (first value used if provided).
+// Children can be passed after title.
+func (s *S) Mermaid(code string, titleAndChildren ...any) DocEntry {
 	t := ""
-	if len(title) > 0 {
-		t = title[0]
+	var children []DocEntry
+	for _, v := range titleAndChildren {
+		switch val := v.(type) {
+		case string:
+			t = val
+		case DocEntry:
+			children = append(children, val)
+		}
 	}
-	return s.addDoc(mermaidEntry(code, t))
+	entry := mermaidEntry(code, t, children...)
+	s.addDoc(entry)
+	return entry
 }
 
-// Screenshot attaches a screenshot doc entry. An optional alt text can be provided.
-func (s *S) Screenshot(path string, alt ...string) *S {
+// Screenshot attaches a screenshot doc entry and returns it.
+// The alt parameter is optional (first value used if provided).
+// Children can be passed after alt.
+func (s *S) Screenshot(path string, altAndChildren ...any) DocEntry {
 	a := ""
-	if len(alt) > 0 {
-		a = alt[0]
+	var children []DocEntry
+	for _, v := range altAndChildren {
+		switch val := v.(type) {
+		case string:
+			a = val
+		case DocEntry:
+			children = append(children, val)
+		}
 	}
-	return s.addDoc(screenshotEntry(path, a))
+	entry := screenshotEntry(path, a, children...)
+	s.addDoc(entry)
+	return entry
 }
 
-// Custom attaches a custom doc entry with the given type name and data.
-func (s *S) Custom(typeName string, data any) *S {
-	return s.addDoc(customEntry(typeName, data))
+// Custom attaches a custom doc entry with the given type name and data and returns it.
+func (s *S) Custom(typeName string, data any, children ...DocEntry) DocEntry {
+	entry := customEntry(typeName, data, children...)
+	s.addDoc(entry)
+	return entry
 }
 
 // Attach adds a file or inline attachment to the current step or test case level.

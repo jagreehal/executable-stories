@@ -91,6 +91,9 @@ OPTIONS
   --html-no-mermaid             Disable mermaid diagrams in HTML (enabled by default)
   --html-no-markdown            Disable markdown parsing in HTML (enabled by default)
   --html-permalink-base-url <url> Base URL for source permalinks in HTML (e.g. "https://github.com/org/repo/blob/main")
+  --html-ticket-url-template <url> URL template for ticket links in HTML (use {ticket} as placeholder)
+  --asset-mode <mode>         Asset bundling: "none" (default) or "copy"
+  --allow-missing-assets      Warn on missing assets instead of failing
   --stdin                       Read JSON from stdin instead of file
   --json-summary                Print machine-parsable JSON summary
   --baseline <path|auto>        Compare baseline file, or auto-pick a prior run for compare
@@ -162,6 +165,7 @@ interface CliArgs {
   htmlNoMermaid: boolean;
   htmlNoMarkdown: boolean;
   htmlPermalinkBaseUrl?: string;
+  htmlTicketUrlTemplate?: string;
   jsonSummary: boolean;
   emitCanonical?: string;
   slackWebhook?: string;
@@ -177,6 +181,8 @@ interface CliArgs {
   webhookHmacSecret?: string;
   webhookHmacHeader: string;
   webhookHmacTimestamp: boolean;
+  assetMode: "none" | "copy";
+  allowMissingAssets: boolean;
   prSummary: boolean;
   prSummaryFile?: string;
 }
@@ -220,6 +226,7 @@ function parseCliArgs(argv: string[]): CliArgs {
       "html-no-mermaid": { type: "boolean", default: false },
       "html-no-markdown": { type: "boolean", default: false },
       "html-permalink-base-url": { type: "string" },
+      "html-ticket-url-template": { type: "string" },
       stdin: { type: "boolean", default: false },
       "json-summary": { type: "boolean", default: false },
       "emit-canonical": { type: "string" },
@@ -236,6 +243,8 @@ function parseCliArgs(argv: string[]): CliArgs {
       "webhook-hmac-secret": { type: "string" },
       "webhook-hmac-header": { type: "string" },
       "webhook-hmac-timestamp": { type: "boolean", default: false },
+      "asset-mode": { type: "string", default: "none" },
+      "allow-missing-assets": { type: "boolean", default: false },
       "pr-summary": { type: "boolean", default: false },
       "pr-summary-file": { type: "string" },
       help: { type: "boolean", default: false },
@@ -390,6 +399,13 @@ function parseCliArgs(argv: string[]): CliArgs {
     process.exit(EXIT_USAGE);
   }
 
+  const assetModeRaw = values["asset-mode"] as string;
+  const validAssetModes = new Set(["none", "copy"]);
+  if (!validAssetModes.has(assetModeRaw)) {
+    console.error(`Error: --asset-mode must be "none" or "copy", got "${assetModeRaw}".`);
+    process.exit(EXIT_USAGE);
+  }
+
   return {
     subcommand: subcommand as "format" | "compare" | "list" | "validate",
     inputFile,
@@ -415,6 +431,7 @@ function parseCliArgs(argv: string[]): CliArgs {
     htmlNoMermaid: values["html-no-mermaid"] as boolean,
     htmlNoMarkdown: values["html-no-markdown"] as boolean,
     htmlPermalinkBaseUrl: values["html-permalink-base-url"] as string | undefined,
+    htmlTicketUrlTemplate: values["html-ticket-url-template"] as string | undefined,
     jsonSummary: values["json-summary"] as boolean,
     emitCanonical: values["emit-canonical"] as string | undefined,
     slackWebhook,
@@ -430,6 +447,8 @@ function parseCliArgs(argv: string[]): CliArgs {
     webhookHmacSecret: values["webhook-hmac-secret"] as string | undefined,
     webhookHmacHeader: (values["webhook-hmac-header"] as string | undefined) ?? "X-Signature",
     webhookHmacTimestamp: values["webhook-hmac-timestamp"] as boolean,
+    assetMode: assetModeRaw as "none" | "copy",
+    allowMissingAssets: values["allow-missing-assets"] as boolean,
     prSummary: values["pr-summary"] as boolean,
     prSummaryFile: values["pr-summary-file"] as string | undefined,
   };
@@ -1063,7 +1082,10 @@ async function generateReports(
       mermaidEnabled: !args.htmlNoMermaid,
       markdownEnabled: !args.htmlNoMarkdown,
       permalinkBaseUrl: args.htmlPermalinkBaseUrl,
+      ticketUrlTemplate: args.htmlTicketUrlTemplate,
     },
+    assetMode: args.assetMode,
+    allowMissingAssets: args.allowMissingAssets,
   });
 
   const resultMap = await generator.generate(run);

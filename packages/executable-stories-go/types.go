@@ -35,7 +35,7 @@ type StoryMeta struct {
 	Scenario    string         `json:"scenario"`
 	Steps       []StoryStep    `json:"steps"`
 	Tags        []string       `json:"tags,omitempty"`
-	Tickets     []string       `json:"tickets,omitempty"`
+	Tickets     []Ticket       `json:"tickets,omitempty"`
 	Meta        map[string]any `json:"meta,omitempty"`
 	SuitePath   []string       `json:"suitePath,omitempty"`
 	Docs        []DocEntry     `json:"docs,omitempty"`
@@ -57,6 +57,12 @@ type StoryStep struct {
 // DocEntry is a discriminated union via the "kind" field.
 // Different kinds have different fields (note, tag, kv, code, table, link, section, mermaid, screenshot, custom).
 type DocEntry map[string]any
+
+// Ticket represents a ticket reference with an ID and optional URL.
+type Ticket struct {
+	ID  string `json:"id"`
+	URL string `json:"url,omitempty"`
+}
 
 // RawError holds error information for a failed test.
 type RawError struct {

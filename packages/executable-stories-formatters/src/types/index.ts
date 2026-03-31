@@ -10,6 +10,7 @@ export type {
   DocEntry,
   StoryStep,
   StoryMeta,
+  NormalizedTicket,
 } from "./story";
 export { STORY_META_KEY } from "./story";
 

@@ -18,20 +18,20 @@ const workerDir = path.join(testOutputDir, "worker-0");
 function readFlushedReports(): Array<{ testFilePath: string; scenarios: unknown[] }> {
   if (!fs.existsSync(workerDir)) return [];
   const files = fs.readdirSync(workerDir).filter((f) => f.endsWith(".json"));
-  const reports: Array<{ testFilePath: string; scenarios: unknown[] }> = [];
+  const reports: Array<{ testFilePath: string; scenarios: Record<string, unknown>[] }> = [];
   for (const file of files) {
     const raw = fs.readFileSync(path.join(workerDir, file), "utf8");
-    const parsed = JSON.parse(raw) as { testFilePath: string; scenarios: unknown[] };
+    const parsed = JSON.parse(raw) as { testFilePath: string; scenarios: Record<string, unknown>[] };
     if (parsed?.testFilePath && Array.isArray(parsed.scenarios)) reports.push(parsed);
   }
   return reports;
 }
 
-function getLastScenario(): { scenario: string; steps: unknown[]; docs?: unknown[]; tags?: string[]; tickets?: string[]; meta?: unknown } | null {
+function getLastScenario(): { scenario: string; steps: unknown[]; docs?: unknown[]; tags?: string[]; tickets?: Array<{ id: string; url?: string }>; meta?: unknown } | null {
   const reports = readFlushedReports();
   if (reports.length === 0) return null;
   const lastReport = reports[reports.length - 1];
-  const scenarios = lastReport.scenarios as Array<{ scenario: string; steps: unknown[]; docs?: unknown[]; tags?: string[]; tickets?: string[]; meta?: unknown }>;
+  const scenarios = lastReport.scenarios as Array<{ scenario: string; steps: unknown[]; docs?: unknown[]; tags?: string[]; tickets?: Array<{ id: string; url?: string }>; meta?: unknown }>;
   return scenarios.length > 0 ? scenarios[scenarios.length - 1] : null;
 }
 
@@ -81,7 +81,7 @@ describe("story API", () => {
       _internal.flushStories();
 
       const s = getLastScenario();
-      expect(s!.tickets).toEqual(["JIRA-123"]);
+      expect(s!.tickets).toEqual([{ id: "JIRA-123" }]);
     });
 
     it("accepts options with multiple tickets", () => {
@@ -89,7 +89,26 @@ describe("story API", () => {
       _internal.flushStories();
 
       const s = getLastScenario();
-      expect(s!.tickets).toEqual(["JIRA-123", "JIRA-456"]);
+      expect(s!.tickets).toEqual([{ id: "JIRA-123" }, { id: "JIRA-456" }]);
+    });
+
+    it("accepts options with ticket objects including url", () => {
+      story.init({ ticket: { id: "JIRA-789", url: "https://jira.example.com/JIRA-789" } });
+      _internal.flushStories();
+
+      const s = getLastScenario();
+      expect(s!.tickets).toEqual([{ id: "JIRA-789", url: "https://jira.example.com/JIRA-789" }]);
+    });
+
+    it("accepts mixed string and object tickets", () => {
+      story.init({ ticket: ["JIRA-100", { id: "JIRA-200", url: "https://jira.example.com/JIRA-200" }] });
+      _internal.flushStories();
+
+      const s = getLastScenario();
+      expect(s!.tickets).toEqual([
+        { id: "JIRA-100" },
+        { id: "JIRA-200", url: "https://jira.example.com/JIRA-200" },
+      ]);
     });
 
     it("accepts options with meta", () => {
@@ -296,6 +315,120 @@ describe("story API", () => {
       expect(scenarios[1]?._otelSpans).toEqual([
         { spanId: "span-2", name: "second span" },
       ]);
+    });
+  });
+
+  describe("doc methods return DocEntry", () => {
+    it("note returns a DocEntry", () => {
+      story.init();
+      const entry = story.note("hello");
+      expect(entry).toMatchObject({ kind: "note", text: "hello" });
+    });
+
+    it("kv returns a DocEntry", () => {
+      story.init();
+      const entry = story.kv({ label: "key", value: "val" });
+      expect(entry).toMatchObject({ kind: "kv", label: "key", value: "val" });
+    });
+
+    it("json returns a DocEntry", () => {
+      story.init();
+      const entry = story.json({ label: "data", value: { x: 1 } });
+      expect(entry).toMatchObject({ kind: "code", label: "data", lang: "json" });
+    });
+
+    it("code returns a DocEntry", () => {
+      story.init();
+      const entry = story.code({ label: "snippet", content: "x=1", lang: "py" });
+      expect(entry).toMatchObject({ kind: "code", label: "snippet", content: "x=1", lang: "py" });
+    });
+
+    it("table returns a DocEntry", () => {
+      story.init();
+      const entry = story.table({ label: "t", columns: ["A"], rows: [["1"]] });
+      expect(entry).toMatchObject({ kind: "table", label: "t" });
+    });
+
+    it("link returns a DocEntry", () => {
+      story.init();
+      const entry = story.link({ label: "docs", url: "https://example.com" });
+      expect(entry).toMatchObject({ kind: "link", label: "docs", url: "https://example.com" });
+    });
+
+    it("section returns a DocEntry", () => {
+      story.init();
+      const entry = story.section({ title: "Details", markdown: "**bold**" });
+      expect(entry).toMatchObject({ kind: "section", title: "Details" });
+    });
+
+    it("mermaid returns a DocEntry", () => {
+      story.init();
+      const entry = story.mermaid({ code: "graph LR; A-->B" });
+      expect(entry).toMatchObject({ kind: "mermaid", code: "graph LR; A-->B" });
+    });
+
+    it("screenshot returns a DocEntry", () => {
+      story.init();
+      const entry = story.screenshot({ path: "/tmp/img.png" });
+      expect(entry).toMatchObject({ kind: "screenshot", path: "/tmp/img.png" });
+    });
+
+    it("tag returns a DocEntry", () => {
+      story.init();
+      const entry = story.tag("smoke");
+      expect(entry).toMatchObject({ kind: "tag", names: ["smoke"] });
+    });
+
+    it("custom returns a DocEntry", () => {
+      story.init();
+      const entry = story.custom({ type: "foo", data: 42 });
+      expect(entry).toMatchObject({ kind: "custom", type: "foo", data: 42 });
+    });
+  });
+
+  describe("children deduplication", () => {
+    it("doc method with children sets children and deduplicates from flat array", () => {
+      story.init();
+      const child1 = story.kv({ label: "A", value: 1 });
+      const child2 = story.note("child note");
+      const parent = story.section({ title: "Parent", markdown: "text" }, [child1, child2]);
+      _internal.flushStories();
+
+      expect(parent.children).toHaveLength(2);
+      const s = getLastScenario();
+      const docs = s!.docs as Array<{ kind: string; children?: unknown[] }>;
+      // Children should be deduplicated from the flat array; only parent remains at top level
+      const topLevelKinds = docs.filter((d) => d.kind !== "section").map((d) => d.kind);
+      expect(topLevelKinds).not.toContain("kv");
+      expect(topLevelKinds).not.toContain("note");
+    });
+
+    it("step marker with DocEntry[] children deduplicates from story-level docs", () => {
+      story.init();
+      const child = story.note("a note before step");
+      story.given("precondition", [child]);
+      _internal.flushStories();
+
+      const s = getLastScenario();
+      // Child should be removed from story-level docs
+      expect(s!.docs ?? []).toEqual([]);
+      // Child should appear in step docs
+      const steps = s!.steps as Array<{ docs?: Array<{ kind: string; text?: string }> }>;
+      expect(steps[0].docs).toContainEqual(expect.objectContaining({ kind: "note", text: "a note before step" }));
+    });
+
+    it("doc method with children reparents entries out of earlier steps", () => {
+      story.init();
+      story.given("first step");
+      const child = story.note("shared child");
+      story.when("second step");
+      const parent = story.note("parent note", [child]);
+      _internal.flushStories();
+
+      const s = getLastScenario();
+      const steps = s!.steps as Array<{ docs?: Array<{ kind: string; text?: string; children?: unknown[] }> }>;
+      expect(steps[0].docs).toEqual([]);
+      expect(steps[1].docs).toEqual([parent]);
     });
   });
 

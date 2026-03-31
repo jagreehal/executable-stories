@@ -79,4 +79,61 @@ describe("renderScenario", () => {
 
     expect(result).not.toContain("source-link");
   });
+
+  it("renders ticket as plain span without template", () => {
+    const tc = stubs.testCaseResult({
+      story: stubs.storyMeta({
+        scenario: "Ticket test",
+        tags: [],
+        tickets: [{ id: "JIRA-123" }],
+      }),
+      tags: [],
+    });
+
+    const result = renderScenario({ tc }, baseDeps);
+
+    expect(result).toContain('<span class="tag ticket-tag">JIRA-123</span>');
+    expect(result).not.toContain("<a ");
+  });
+
+  it("renders ticket as link with ticketUrlTemplate", () => {
+    const tc = stubs.testCaseResult({
+      story: stubs.storyMeta({
+        scenario: "Ticket link test",
+        tags: [],
+        tickets: [{ id: "PAY-456" }],
+      }),
+      tags: [],
+    });
+
+    const result = renderScenario(
+      { tc },
+      { ...baseDeps, ticketUrlTemplate: "https://jira.example.com/browse/{ticket}" },
+    );
+
+    expect(result).toContain(
+      '<a class="tag ticket-tag" href="https://jira.example.com/browse/PAY-456" target="_blank" rel="noopener noreferrer">PAY-456</a>',
+    );
+  });
+
+  it("renders ticket with explicit url (overrides template)", () => {
+    const tc = stubs.testCaseResult({
+      story: stubs.storyMeta({
+        scenario: "Ticket explicit url test",
+        tags: [],
+        tickets: [{ id: "GH-789", url: "https://github.com/org/repo/issues/789" }],
+      }),
+      tags: [],
+    });
+
+    const result = renderScenario(
+      { tc },
+      { ...baseDeps, ticketUrlTemplate: "https://jira.example.com/browse/{ticket}" },
+    );
+
+    expect(result).toContain(
+      '<a class="tag ticket-tag" href="https://github.com/org/repo/issues/789" target="_blank" rel="noopener noreferrer">GH-789</a>',
+    );
+    expect(result).not.toContain("jira.example.com");
+  });
 });

@@ -128,7 +128,48 @@ const cucumberJson = new CucumberJsonFormatter().formatToString(canonical);
 # Machine output
 --json-summary                # Print JSON summary to stdout
 --emit-canonical path.json    # Write canonical JSON
+
+# Asset Bundling
+--asset-mode none|copy        # Asset bundling strategy (default: none)
+--allow-missing-assets        # Warn on missing assets instead of failing
 ```
+
+## Asset Bundling
+
+Use `--asset-mode copy` to produce a portable report directory. All locally-referenced assets
+(Playwright videos, screenshots, attachment files) are copied into an `assets/` subdirectory
+and HTML paths are rewritten.
+
+```bash
+executable-stories format raw-run.json --format html --output-dir report --asset-mode copy
+```
+
+Output:
+```
+report/
+  test-results.html   # paths rewritten to assets/
+  assets/
+    video-3f2c1a7b.webm
+    step-1-91ab22de.png
+```
+
+### GitHub Actions usage
+
+```yaml
+- run: npx executable-stories format .executable-stories/raw-run.json --format html --output-dir report --asset-mode copy
+- uses: actions/upload-artifact@v4
+  with:
+    name: test-report
+    path: report/
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--asset-mode none` | Default. No asset bundling. |
+| `--asset-mode copy` | Copy local assets to `assets/`, rewrite paths. |
+| `--allow-missing-assets` | Warn on missing assets instead of failing. |
 
 ### Validation
 

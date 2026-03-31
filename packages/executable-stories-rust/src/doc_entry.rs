@@ -148,6 +148,20 @@ impl DocEntry {
         map.insert("data".to_string(), data);
         DocEntry(map)
     }
+
+    /// Add children to this doc entry.
+    #[must_use]
+    pub fn with_children(mut self, children: Vec<DocEntry>) -> Self {
+        if !children.is_empty() {
+            let child_values: Vec<serde_json::Value> = children
+                .into_iter()
+                .map(|c| serde_json::to_value(c).unwrap())
+                .collect();
+            self.0
+                .insert("children".to_string(), serde_json::Value::Array(child_values));
+        }
+        self
+    }
 }
 
 #[cfg(test)]

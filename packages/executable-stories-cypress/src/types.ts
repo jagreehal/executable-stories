@@ -17,7 +17,15 @@ export type {
   DocEntry,
   StoryStep,
   StoryMeta,
+  NormalizedTicket,
 } from 'executable-stories-formatters';
+
+// ============================================================================
+// Ticket Input Types
+// ============================================================================
+
+/** A ticket reference: either a plain string ID or an object with id and optional url */
+export type TicketInput = string | { id: string; url?: string };
 
 // Local aliases for use within this file
 type StoryMeta = _StoryMeta;
@@ -62,7 +70,7 @@ export interface StoryDocs {
 /** Options for story.init(). */
 export interface StoryOptions {
   tags?: string[];
-  ticket?: string | string[];
+  ticket?: TicketInput | TicketInput[];
   meta?: Record<string, unknown>;
 }
 

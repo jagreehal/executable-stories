@@ -75,7 +75,7 @@ pub struct Story {
     scenario: String,
     steps: Vec<StoryStep>,
     tags: Option<Vec<String>>,
-    tickets: Option<Vec<String>>,
+    tickets: Option<Vec<crate::types::Ticket>>,
     meta: Option<serde_json::Value>,
     trace_url_template: Option<String>,
     docs: Vec<DocEntry>,
@@ -128,7 +128,18 @@ impl Story {
     /// Set tickets on the story (consumes and returns self for chaining at creation).
     #[must_use]
     pub fn with_tickets(mut self, tickets: &[&str]) -> Self {
-        self.tickets = Some(tickets.iter().map(std::string::ToString::to_string).collect());
+        self.tickets = Some(tickets.iter().map(|t| crate::types::Ticket { id: (*t).to_string(), url: None }).collect());
+        self
+    }
+
+    /// Add a ticket with a URL to the story (consumes and returns self for chaining).
+    #[must_use]
+    pub fn with_ticket_url(mut self, id: &str, url: &str) -> Self {
+        let ticket = crate::types::Ticket { id: id.to_string(), url: Some(url.to_string()) };
+        match &mut self.tickets {
+            Some(tickets) => tickets.push(ticket),
+            None => self.tickets = Some(vec![ticket]),
+        }
         self
     }
 

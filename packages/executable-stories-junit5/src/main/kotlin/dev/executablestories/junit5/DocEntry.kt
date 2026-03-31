@@ -27,31 +27,47 @@ class DocEntry {
 
     companion object {
         @JvmStatic
-        fun note(text: String): DocEntry =
+        @JvmOverloads
+        fun note(
+            text: String,
+            children: List<DocEntry>? = null,
+        ): DocEntry =
             DocEntry().apply {
                 set("kind", "note")
                 set("text", text)
                 set("phase", "runtime")
+                if (!children.isNullOrEmpty()) set("children", children)
             }
 
         @JvmStatic
-        fun tag(vararg names: String): DocEntry =
+        fun tag(vararg names: String): DocEntry = tag(names.toList(), null)
+
+        @JvmStatic
+        @JvmOverloads
+        fun tag(
+            names: List<String>,
+            children: List<DocEntry>? = null,
+        ): DocEntry =
             DocEntry().apply {
                 set("kind", "tag")
-                set("names", names.toList())
+                set("names", names)
                 set("phase", "runtime")
+                if (!children.isNullOrEmpty()) set("children", children)
             }
 
         @JvmStatic
+        @JvmOverloads
         fun kv(
             label: String,
             value: Any?,
+            children: List<DocEntry>? = null,
         ): DocEntry =
             DocEntry().apply {
                 set("kind", "kv")
                 set("label", label)
                 set("value", value)
                 set("phase", "runtime")
+                if (!children.isNullOrEmpty()) set("children", children)
             }
 
         @JvmStatic
@@ -60,6 +76,7 @@ class DocEntry {
             label: String,
             content: String,
             lang: String? = null,
+            children: List<DocEntry>? = null,
         ): DocEntry =
             DocEntry().apply {
                 set("kind", "code")
@@ -67,12 +84,15 @@ class DocEntry {
                 set("content", content)
                 if (lang != null) set("lang", lang)
                 set("phase", "runtime")
+                if (!children.isNullOrEmpty()) set("children", children)
             }
 
         @JvmStatic
+        @JvmOverloads
         fun json(
             label: String,
             value: Any?,
+            children: List<DocEntry>? = null,
         ): DocEntry {
             val content =
                 when (value) {
@@ -84,14 +104,16 @@ class DocEntry {
                             value.toString()
                         }
                 }
-            return code(label, content, "json")
+            return code(label, content, "json", children)
         }
 
         @JvmStatic
+        @JvmOverloads
         fun table(
             label: String,
             columns: Array<String>,
             rows: Array<Array<String>>,
+            children: List<DocEntry>? = null,
         ): DocEntry =
             DocEntry().apply {
                 set("kind", "table")
@@ -99,30 +121,37 @@ class DocEntry {
                 set("columns", columns.toList())
                 set("rows", rows.map { it.toList() })
                 set("phase", "runtime")
+                if (!children.isNullOrEmpty()) set("children", children)
             }
 
         @JvmStatic
+        @JvmOverloads
         fun link(
             label: String,
             url: String,
+            children: List<DocEntry>? = null,
         ): DocEntry =
             DocEntry().apply {
                 set("kind", "link")
                 set("label", label)
                 set("url", url)
                 set("phase", "runtime")
+                if (!children.isNullOrEmpty()) set("children", children)
             }
 
         @JvmStatic
+        @JvmOverloads
         fun section(
             title: String,
             markdown: String,
+            children: List<DocEntry>? = null,
         ): DocEntry =
             DocEntry().apply {
                 set("kind", "section")
                 set("title", title)
                 set("markdown", markdown)
                 set("phase", "runtime")
+                if (!children.isNullOrEmpty()) set("children", children)
             }
 
         @JvmStatic
@@ -130,12 +159,14 @@ class DocEntry {
         fun mermaid(
             code: String,
             title: String? = null,
+            children: List<DocEntry>? = null,
         ): DocEntry =
             DocEntry().apply {
                 set("kind", "mermaid")
                 set("code", code)
                 if (title != null) set("title", title)
                 set("phase", "runtime")
+                if (!children.isNullOrEmpty()) set("children", children)
             }
 
         @JvmStatic
@@ -143,24 +174,29 @@ class DocEntry {
         fun screenshot(
             path: String,
             alt: String? = null,
+            children: List<DocEntry>? = null,
         ): DocEntry =
             DocEntry().apply {
                 set("kind", "screenshot")
                 set("path", path)
                 if (alt != null) set("alt", alt)
                 set("phase", "runtime")
+                if (!children.isNullOrEmpty()) set("children", children)
             }
 
         @JvmStatic
+        @JvmOverloads
         fun custom(
             type: String,
             data: Any?,
+            children: List<DocEntry>? = null,
         ): DocEntry =
             DocEntry().apply {
                 set("kind", "custom")
                 set("type", type)
                 set("data", data)
                 set("phase", "runtime")
+                if (!children.isNullOrEmpty()) set("children", children)
             }
     }
 }

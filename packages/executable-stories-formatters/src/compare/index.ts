@@ -46,7 +46,7 @@ function buildFlags(
     steps: stableJson(baseline.story.steps) !== stableJson(current.story.steps),
     docs: stableJson(baselineDocs) !== stableJson(currentDocs),
     tags: !compareStringArrays(baseline.tags, current.tags),
-    tickets: !compareStringArrays(baseline.story.tickets ?? [], current.story.tickets ?? []),
+    tickets: stableJson(baseline.story.tickets ?? []) !== stableJson(current.story.tickets ?? []),
     source:
       baseline.sourceFile !== current.sourceFile ||
       baseline.sourceLine !== current.sourceLine,

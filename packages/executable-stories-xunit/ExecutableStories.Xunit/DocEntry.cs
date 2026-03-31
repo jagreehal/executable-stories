@@ -33,35 +33,52 @@ namespace ExecutableStories.Xunit
         // Factory methods
         // ========================================================================
 
-        public static DocEntry Note(string text)
+        public static DocEntry Note(string text, DocEntry[]? children = null)
         {
             var entry = new DocEntry();
             entry.Set("kind", "note");
             entry.Set("text", text);
             entry.Set("phase", "runtime");
+            if (children is { Length: > 0 })
+            {
+                entry.Set("children", children);
+            }
             return entry;
         }
 
-        public static DocEntry Tag(params string[] names)
+        public static DocEntry Tag(string[] names, DocEntry[]? children = null)
         {
             var entry = new DocEntry();
             entry.Set("kind", "tag");
             entry.Set("names", names.ToList());
             entry.Set("phase", "runtime");
+            if (children is { Length: > 0 })
+            {
+                entry.Set("children", children);
+            }
             return entry;
         }
 
-        public static DocEntry Kv(string label, object value)
+        public static DocEntry Tag(params string[] names)
+        {
+            return Tag(names, null);
+        }
+
+        public static DocEntry Kv(string label, object value, DocEntry[]? children = null)
         {
             var entry = new DocEntry();
             entry.Set("kind", "kv");
             entry.Set("label", label);
             entry.Set("value", value);
             entry.Set("phase", "runtime");
+            if (children is { Length: > 0 })
+            {
+                entry.Set("children", children);
+            }
             return entry;
         }
 
-        public static DocEntry Code(string label, string content, string? lang = null)
+        public static DocEntry Code(string label, string content, string? lang = null, DocEntry[]? children = null)
         {
             var entry = new DocEntry();
             entry.Set("kind", "code");
@@ -72,10 +89,14 @@ namespace ExecutableStories.Xunit
                 entry.Set("lang", lang);
             }
             entry.Set("phase", "runtime");
+            if (children is { Length: > 0 })
+            {
+                entry.Set("children", children);
+            }
             return entry;
         }
 
-        public static DocEntry Json(string label, object value)
+        public static DocEntry Json(string label, object value, DocEntry[]? children = null)
         {
             string content;
             if (value is string s)
@@ -93,10 +114,10 @@ namespace ExecutableStories.Xunit
                     content = value?.ToString() ?? "";
                 }
             }
-            return Code(label, content, "json");
+            return Code(label, content, "json", children);
         }
 
-        public static DocEntry Table(string label, string[] columns, string[][] rows)
+        public static DocEntry Table(string label, string[] columns, string[][] rows, DocEntry[]? children = null)
         {
             var entry = new DocEntry();
             entry.Set("kind", "table");
@@ -104,30 +125,42 @@ namespace ExecutableStories.Xunit
             entry.Set("columns", columns.ToList());
             entry.Set("rows", rows.Select(r => r.ToList()).ToList());
             entry.Set("phase", "runtime");
+            if (children is { Length: > 0 })
+            {
+                entry.Set("children", children);
+            }
             return entry;
         }
 
-        public static DocEntry Link(string label, string url)
+        public static DocEntry Link(string label, string url, DocEntry[]? children = null)
         {
             var entry = new DocEntry();
             entry.Set("kind", "link");
             entry.Set("label", label);
             entry.Set("url", url);
             entry.Set("phase", "runtime");
+            if (children is { Length: > 0 })
+            {
+                entry.Set("children", children);
+            }
             return entry;
         }
 
-        public static DocEntry Section(string title, string markdown)
+        public static DocEntry Section(string title, string markdown, DocEntry[]? children = null)
         {
             var entry = new DocEntry();
             entry.Set("kind", "section");
             entry.Set("title", title);
             entry.Set("markdown", markdown);
             entry.Set("phase", "runtime");
+            if (children is { Length: > 0 })
+            {
+                entry.Set("children", children);
+            }
             return entry;
         }
 
-        public static DocEntry Mermaid(string code, string? title = null)
+        public static DocEntry Mermaid(string code, string? title = null, DocEntry[]? children = null)
         {
             var entry = new DocEntry();
             entry.Set("kind", "mermaid");
@@ -137,10 +170,14 @@ namespace ExecutableStories.Xunit
                 entry.Set("title", title);
             }
             entry.Set("phase", "runtime");
+            if (children is { Length: > 0 })
+            {
+                entry.Set("children", children);
+            }
             return entry;
         }
 
-        public static DocEntry Screenshot(string path, string? alt = null)
+        public static DocEntry Screenshot(string path, string? alt = null, DocEntry[]? children = null)
         {
             var entry = new DocEntry();
             entry.Set("kind", "screenshot");
@@ -150,16 +187,24 @@ namespace ExecutableStories.Xunit
                 entry.Set("alt", alt);
             }
             entry.Set("phase", "runtime");
+            if (children is { Length: > 0 })
+            {
+                entry.Set("children", children);
+            }
             return entry;
         }
 
-        public static DocEntry Custom(string type, object data)
+        public static DocEntry Custom(string type, object data, DocEntry[]? children = null)
         {
             var entry = new DocEntry();
             entry.Set("kind", "custom");
             entry.Set("type", type);
             entry.Set("data", data);
             entry.Set("phase", "runtime");
+            if (children is { Length: > 0 })
+            {
+                entry.Set("children", children);
+            }
             return entry;
         }
     }

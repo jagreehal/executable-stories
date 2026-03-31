@@ -17,7 +17,7 @@ namespace ExecutableStories.Xunit
         public string Scenario { get; } = scenario;
         public List<StoryStep> Steps { get; } = [];
         public List<string> Tags { get; } = [];
-        public List<string> Tickets { get; } = [];
+        public List<Ticket> Tickets { get; } = [];
         public Dictionary<string, object> Meta { get; } = [];
         public List<DocEntry> Docs { get; } = [];
         public int SourceOrder { get; } = Interlocked.Increment(ref _orderCounter) - 1;
@@ -123,6 +123,19 @@ namespace ExecutableStories.Xunit
         /// </summary>
         public void AddDoc(DocEntry doc)
         {
+            if (doc.Get("children") is IEnumerable<DocEntry> children)
+            {
+                HashSet<DocEntry> childSet = [.. children];
+                _ = Docs.RemoveAll(childSet.Contains);
+                foreach (StoryStep step in Steps)
+                {
+                    if (step.Docs != null)
+                    {
+                        _ = step.Docs.RemoveAll(childSet.Contains);
+                    }
+                }
+            }
+
             if (CurrentStep != null)
             {
                 CurrentStep.Docs ??= [];
@@ -144,7 +157,7 @@ namespace ExecutableStories.Xunit
                 Scenario = Scenario,
                 Steps = Steps.Count > 0 ? new List<StoryStep>(Steps) : null,
                 Tags = Tags.Count > 0 ? new List<string>(Tags) : null,
-                Tickets = Tickets.Count > 0 ? new List<string>(Tickets) : null,
+                Tickets = Tickets.Count > 0 ? new List<Ticket>(Tickets) : null,
                 Meta = Meta.Count > 0 ? new Dictionary<string, object>(Meta) : null,
                 Docs = Docs.Count > 0 ? new List<DocEntry>(Docs) : null,
                 SourceOrder = SourceOrder,

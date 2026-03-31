@@ -30,13 +30,13 @@ namespace ExecutableStories.Xunit.Tests
         {
             // Arrange & Act: use the Story API as a real test would
             Story.Init("User login flow", "smoke", "auth");
-            Story.Note("Testing the happy-path login flow");
+            _ = Story.Note("Testing the happy-path login flow");
             Story.Given("a registered user with email alice@example.com");
-            Story.Kv("email", "alice@example.com");
+            _ = Story.Kv("email", "alice@example.com");
             Story.When("the user submits valid credentials");
-            Story.Json("credentials", new { email = "alice@example.com", password = "***" });
+            _ = Story.Json("credentials", new { email = "alice@example.com", password = "***" });
             Story.Then("the user is redirected to the dashboard");
-            Story.Link("dashboard", "https://app.example.com/dashboard");
+            _ = Story.Link("dashboard", "https://app.example.com/dashboard");
             Story.And("a welcome message is displayed");
 
             // Assert: verify the context was built correctly
@@ -60,7 +60,7 @@ namespace ExecutableStories.Xunit.Tests
         {
             Story.Init("Serialization test");
             Story.Given("some precondition");
-            Story.Note("An important note");
+            _ = Story.Note("An important note");
             Story.When("something happens");
             Story.Then("something is verified");
 
@@ -173,14 +173,14 @@ namespace ExecutableStories.Xunit.Tests
         {
             Story.Init("Doc serialization");
             Story.Given("a step with many docs");
-            Story.Note("A note");
-            Story.Tag("api");
-            Story.Kv("count", 5);
-            Story.Code("sql", "SELECT 1", "sql");
-            Story.Table("data", ["A", "B"], [["1", "2"]]);
-            Story.Link("ref", "https://example.com");
-            Story.Mermaid("graph TD; A-->B;");
-            Story.Screenshot("/tmp/img.png", "alt text");
+            _ = Story.Note("A note");
+            _ = Story.Tag("api");
+            _ = Story.Kv("count", 5);
+            _ = Story.Code("sql", "SELECT 1", "sql");
+            _ = Story.Table("data", ["A", "B"], [["1", "2"]]);
+            _ = Story.Link("ref", "https://example.com");
+            _ = Story.Mermaid("graph TD; A-->B;");
+            _ = Story.Screenshot("/tmp/img.png", "alt text");
 
             StoryContext ctx = Story.GetContext()!;
             var meta = ctx.ToStoryMeta();

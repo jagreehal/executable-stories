@@ -2,6 +2,13 @@ use serde::{Deserialize, Serialize};
 
 use crate::doc_entry::DocEntry;
 
+#[derive(Debug, Clone, Serialize)]
+pub struct Ticket {
+    pub id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub url: Option<String>,
+}
+
 #[derive(Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct RawRun {
@@ -46,7 +53,7 @@ pub struct StoryMeta {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tags: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub tickets: Option<Vec<String>>,
+    pub tickets: Option<Vec<Ticket>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub meta: Option<serde_json::Value>,
     #[serde(skip_serializing_if = "Option::is_none")]

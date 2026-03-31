@@ -1,6 +1,6 @@
 ---
 name: executable-stories-vitest
-description: Write Given/When/Then story tests for Vitest with automatic Markdown doc generation. Use when creating BDD-style tests or generating user story documentation from tests.
+description: Write Given/When/Then story tests for Vitest with structured report generation. Use when creating BDD-style tests or generating user story documentation from tests.
 version: 2.2.0
 libraries: ['vitest']
 ---
@@ -43,7 +43,7 @@ it('test name', ({ task }) => {
   // or with options:
   story.init(task, {
     tags: ['smoke', 'auth'],
-    ticket: 'JIRA-123',
+    ticket: 'JIRA-123', // or { id: 'JIRA-123', url: 'https://jira.example.com/JIRA-123' }
     meta: { priority: 'high' },
   });
 });
@@ -151,6 +151,35 @@ story.screenshot({ path: '/screenshots/confirmation.png', alt: 'Email sent' });
 | `story.mermaid(options)`    | `{ code, title? }`          | Mermaid diagram  |
 | `story.screenshot(options)` | `{ path, alt? }`            | Screenshot       |
 | `story.custom(options)`     | `{ type, data }`            | Custom entry     |
+
+### Nested Doc Children
+
+Doc entries can be reused as children of another doc entry. When a child is nested later, it is removed from any earlier flat story-level or step-level doc list and kept only under the parent.
+
+```ts
+it('documents grouped evidence', ({ task }) => {
+  story.init(task);
+
+  story.given('the first step');
+  const child = story.note('shared child');
+
+  story.when('the second step');
+  story.note('parent note', [child]);
+});
+```
+
+Step markers also accept `DocEntry[]` as the second argument:
+
+```ts
+it('documents step attachments', ({ task }) => {
+  story.init(task);
+
+  const child1 = story.kv({ label: 'User', value: 'alice' });
+  const child2 = story.note('note about user');
+
+  story.given('a user exists', [child1, child2]);
+});
+```
 
 ### Story-Level Docs
 

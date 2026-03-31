@@ -52,3 +52,7 @@ htmlcov/
 *.exe
 .astro/
 solo.yml
+skills-lock.json
+.agents
+.superpowers
+**/*/.executable-stories

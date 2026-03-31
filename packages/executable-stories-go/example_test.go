@@ -3,7 +3,7 @@ package es_test
 import (
 	"testing"
 
-	es "github.com/anthropics/executable-stories/packages/executable-stories-go"
+	es "github.com/jagreehal/executable-stories/packages/executable-stories-go"
 )
 
 func TestAddition(t *testing.T) {

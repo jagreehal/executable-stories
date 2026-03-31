@@ -154,28 +154,48 @@ export function renderDocCustom(
 }
 
 export function renderDocEntry(entry: DocEntry, deps: DocEntryDeps): string {
+  let html: string;
   switch (entry.kind) {
     case "note":
-      return renderDocNote(entry, deps);
+      html = renderDocNote(entry, deps);
+      break;
     case "tag":
-      return renderDocTag(entry, deps);
+      html = renderDocTag(entry, deps);
+      break;
     case "kv":
-      return renderDocKv(entry, deps);
+      html = renderDocKv(entry, deps);
+      break;
     case "code":
-      return renderDocCode(entry, deps);
+      html = renderDocCode(entry, deps);
+      break;
     case "table":
-      return renderDocTable(entry, deps);
+      html = renderDocTable(entry, deps);
+      break;
     case "link":
-      return renderDocLink(entry, deps);
+      html = renderDocLink(entry, deps);
+      break;
     case "section":
-      return renderDocSection(entry, deps);
+      html = renderDocSection(entry, deps);
+      break;
     case "mermaid":
-      return renderDocMermaid(entry, deps);
+      html = renderDocMermaid(entry, deps);
+      break;
     case "screenshot":
-      return renderDocScreenshot(entry, deps);
+      html = renderDocScreenshot(entry, deps);
+      break;
     case "custom":
-      return renderDocCustom(entry, deps);
+      html = renderDocCustom(entry, deps);
+      break;
     default:
-      return "";
+      html = "";
   }
+
+  if (entry.children && entry.children.length > 0) {
+    const childrenHtml = entry.children
+      .map((child) => renderDocEntry(child, deps))
+      .join("");
+    html += `<div class="doc-children">${childrenHtml}</div>`;
+  }
+
+  return html;
 }
