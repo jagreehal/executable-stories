@@ -1,5 +1,16 @@
 # executable-stories-playwright
 
+## 8.1.3
+
+### Patch Changes
+
+- ad335f4: fix: move executable-stories-formatters from peerDependencies to dependencies
+
+  All JS adapters runtime-require executable-stories-formatters. Using workspace:\*
+  in dependencies ensures pnpm resolves it locally during development and replaces
+  it with the real version at publish time. Prevents changesets from bumping to
+  unpublished versions.
+
 ## 8.1.2
 
 ### Patch Changes
