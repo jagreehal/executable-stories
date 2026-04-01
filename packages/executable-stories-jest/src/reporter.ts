@@ -199,7 +199,7 @@ export default class StoryReporter {
           : "pass";
 
         // Map attachments
-        const rawAttachments: RawAttachment[] = (meta._attachments ?? []).map((a) => ({
+        const rawAttachments: RawAttachment[] = (meta._attachments ?? []).map((a: NonNullable<typeof meta._attachments>[number]) => ({
           name: a.name,
           mediaType: a.mediaType,
           path: a.path,

@@ -9,19 +9,26 @@ import { afterEach, describe, expect, it } from "vitest";
 const testDir = dirname(fileURLToPath(import.meta.url));
 const packageDir = resolve(testDir, "..");
 const exampleJson = resolve(packageDir, "schemas/examples/minimal.json");
+const packagedCliPath = resolve(packageDir, "dist/cli.js");
+
+function ensurePackagedCliBuilt(): void {
+  if (fs.existsSync(packagedCliPath)) return;
+
+  execFileSync("pnpm", ["build"], {
+    cwd: packageDir,
+    stdio: "pipe",
+  });
+}
 
 describe("packaged CLI", () => {
   it(
     "validates example input after build",
     () => {
-      execFileSync("pnpm", ["build"], {
-        cwd: packageDir,
-        stdio: "pipe",
-      });
+      ensurePackagedCliBuilt();
 
       const output = execFileSync(
         "node",
-        ["dist/cli.js", "validate", exampleJson],
+        [packagedCliPath, "validate", exampleJson],
         {
           cwd: packageDir,
           encoding: "utf8",
@@ -37,13 +44,13 @@ describe("packaged CLI", () => {
   it(
     "rejects unsupported compare formats instead of silently ignoring them",
     () => {
+      ensurePackagedCliBuilt();
+
       expect(() =>
         execFileSync(
-          "pnpm",
+          "node",
           [
-            "exec",
-            "tsx",
-            "src/cli.ts",
+            packagedCliPath,
             "compare",
             exampleJson,
             exampleJson,
@@ -74,11 +81,7 @@ describe("packaged CLI", () => {
     it(
       "copies referenced local assets into assets/ and rewrites HTML paths",
       () => {
-        // Ensure the CLI is built
-        execFileSync("pnpm", ["build"], {
-          cwd: packageDir,
-          stdio: "pipe",
-        });
+        ensurePackagedCliBuilt();
 
         // Create a temp directory for this test.
         // The video file lives directly inside tmpDir so that when the ACL
@@ -135,7 +138,7 @@ describe("packaged CLI", () => {
         const result = spawnSync(
           "node",
           [
-            "dist/cli.js",
+            packagedCliPath,
             "format",
             inputJson,
             "--format",

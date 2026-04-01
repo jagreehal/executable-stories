@@ -44,12 +44,11 @@
     "cypress": ">=15.11.0"
   },
   "dependencies": {
-    "executable-stories-formatters": "^0.7.2"
+    "executable-stories-formatters": "workspace:*"
   },
   "devDependencies": {
     "cypress": "^15.12.0",
     "@types/node": "^25.5.0",
-    "executable-stories-formatters": "workspace:*",
     "tsup": "^8.5.1",
     "typescript": "~5.9.3",
     "vitest": "^4.1.0"
