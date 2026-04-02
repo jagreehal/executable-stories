@@ -1,5 +1,11 @@
 # executable-stories-formatters
 
+## 0.7.3
+
+### Patch Changes
+
+- d1bd61d: Repository `.gitignore` now allows `packages/**/bin/intent.js` to be tracked while other `**/bin/` paths stay ignored.
+
 ## 0.7.2
 
 ### Patch Changes
