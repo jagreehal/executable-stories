@@ -36,6 +36,8 @@ build/
 # Build/test artifacts (multi-language)
 **/target/
 **/bin/
+!packages/**/bin/
+!packages/**/bin/intent.js
 **/obj/
 **/__pycache__/
 *.py[cod]
