@@ -1,5 +1,11 @@
 # eslint-plugin-executable-stories-vitest
 
+## 2.1.4
+
+### Patch Changes
+
+- d1bd61d: Repository `.gitignore` now allows `packages/**/bin/intent.js` to be tracked while other `**/bin/` paths stay ignored.
+
 ## 2.1.3
 
 ### Patch Changes
