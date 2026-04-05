@@ -1,7 +1,6 @@
 plugins {
     kotlin("jvm") version "2.1.0"
-    `maven-publish`
-    signing
+    id("com.vanniktech.maven.publish") version "0.30.0"
     id("org.jlleitschuh.gradle.ktlint") version "14.1.0"
     id("io.gitlab.arturbosch.detekt") version "1.23.8"
 }
@@ -12,72 +11,44 @@ version = "0.1.0"
 fun propertyOrEnv(propertyName: String, envName: String): String? =
     providers.gradleProperty(propertyName).orElse(providers.environmentVariable(envName)).orNull
 
-val mavenCentralBaseUrl =
-    propertyOrEnv("mavenCentralBaseUrl", "MAVEN_CENTRAL_BASE_URL") ?: "https://central.sonatype.com"
-val mavenPublishUrl =
-    propertyOrEnv("mavenPublishUrl", "MAVEN_PUBLISH_URL")
-        ?: if (version.toString().endsWith("SNAPSHOT")) {
-            "$mavenCentralBaseUrl/repository/maven-snapshots/"
-        } else {
-            "$mavenCentralBaseUrl/repository/maven-releases/"
-        }
-val mavenPublishUsername = propertyOrEnv("mavenCentralUsername", "MAVEN_CENTRAL_USERNAME")
-val mavenPublishPassword = propertyOrEnv("mavenCentralPassword", "MAVEN_CENTRAL_PASSWORD")
 val signingKey = propertyOrEnv("signingKey", "SIGNING_KEY")
 val signingPassword = propertyOrEnv("signingPassword", "SIGNING_PASSWORD")
 
 java {
     sourceCompatibility = JavaVersion.VERSION_21
     targetCompatibility = JavaVersion.VERSION_21
-    withSourcesJar()
 }
 
-publishing {
-    publications {
-        create<MavenPublication>("maven") {
-            from(components["java"])
-            pom {
-                name.set("executable-stories-junit5")
-                description.set("JUnit 5 adapter for executable-stories BDD documentation.")
-                url.set("https://github.com/jagreehal/executable-stories")
-
-                licenses {
-                    license {
-                        name.set("MIT")
-                    }
-                }
-
-                developers {
-                    developer {
-                        id.set("jagreehal")
-                        name.set("Jag Reehal")
-                    }
-                }
-
-                scm {
-                    url.set("https://github.com/jagreehal/executable-stories")
-                    connection.set("scm:git:https://github.com/jagreehal/executable-stories.git")
-                    developerConnection.set("scm:git:ssh://git@github.com/jagreehal/executable-stories.git")
-                }
-            }
-        }
-    }
-    repositories {
-        maven {
-            name = "remote"
-            url = uri(mavenPublishUrl)
-            credentials {
-                username = mavenPublishUsername
-                password = mavenPublishPassword
-            }
-        }
-    }
-}
-
-signing {
+mavenPublishing {
+    publishToMavenCentral(com.vanniktech.maven.publish.SonatypeHost.CENTRAL_PORTAL)
     if (!signingKey.isNullOrBlank() && !signingPassword.isNullOrBlank()) {
-        useInMemoryPgpKeys(signingKey, signingPassword)
-        sign(publishing.publications["maven"])
+        signAllPublications()
+    }
+
+    pom {
+        name.set("executable-stories-junit5")
+        description.set("JUnit 5 adapter for executable-stories BDD documentation.")
+        url.set("https://github.com/jagreehal/executable-stories")
+
+        licenses {
+            license {
+                name.set("MIT")
+                url.set("https://opensource.org/licenses/MIT")
+            }
+        }
+
+        developers {
+            developer {
+                id.set("jagreehal")
+                name.set("Jag Reehal")
+            }
+        }
+
+        scm {
+            url.set("https://github.com/jagreehal/executable-stories")
+            connection.set("scm:git:https://github.com/jagreehal/executable-stories.git")
+            developerConnection.set("scm:git:ssh://git@github.com/jagreehal/executable-stories.git")
+        }
     }
 }
 
