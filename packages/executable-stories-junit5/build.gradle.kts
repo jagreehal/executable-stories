@@ -13,13 +13,13 @@ fun propertyOrEnv(propertyName: String, envName: String): String? =
     providers.gradleProperty(propertyName).orElse(providers.environmentVariable(envName)).orNull
 
 val mavenCentralBaseUrl =
-    propertyOrEnv("mavenCentralBaseUrl", "MAVEN_CENTRAL_BASE_URL") ?: "https://s01.oss.sonatype.org"
+    propertyOrEnv("mavenCentralBaseUrl", "MAVEN_CENTRAL_BASE_URL") ?: "https://central.sonatype.com"
 val mavenPublishUrl =
     propertyOrEnv("mavenPublishUrl", "MAVEN_PUBLISH_URL")
         ?: if (version.toString().endsWith("SNAPSHOT")) {
-            "$mavenCentralBaseUrl/content/repositories/snapshots/"
+            "$mavenCentralBaseUrl/repository/maven-snapshots/"
         } else {
-            "$mavenCentralBaseUrl/service/local/staging/deploy/maven2/"
+            "$mavenCentralBaseUrl/repository/maven-releases/"
         }
 val mavenPublishUsername = propertyOrEnv("mavenCentralUsername", "MAVEN_CENTRAL_USERNAME")
 val mavenPublishPassword = propertyOrEnv("mavenCentralPassword", "MAVEN_CENTRAL_PASSWORD")

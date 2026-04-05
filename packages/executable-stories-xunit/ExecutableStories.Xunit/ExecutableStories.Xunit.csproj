@@ -17,7 +17,7 @@
     <AnalysisLevel>latest</AnalysisLevel>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <NoWarn>$(NoWarn);CS1591;IDE0028;IDE0031;IDE0306</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="ExecutableStories.Xunit.Tests" />
