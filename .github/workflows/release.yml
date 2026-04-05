@@ -16,6 +16,8 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
+    outputs:
+      published: ${{ steps.changesets.outputs.published }}
     steps:
       - uses: actions/checkout@v4
 
@@ -56,7 +58,9 @@ jobs:
           NPM_CONFIG_PROVENANCE: true
 
   formatters-binaries:
-    name: Build formatters binaries
+    name: Build and attach formatters binaries
+    needs: release
+    if: needs.release.outputs.published == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -106,3 +110,21 @@ jobs:
             packages/executable-stories-formatters/executable-stories-darwin-x64
             packages/executable-stories-formatters/executable-stories-darwin-arm64
             packages/executable-stories-formatters/executable-stories-windows-x64.exe
+
+      - name: Get formatters release tag
+        id: tag
+        run: |
+          VERSION=$(jq -r '.version' packages/executable-stories-formatters/package.json)
+          echo "tag=executable-stories-formatters@${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Attach binaries to GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ steps.tag.outputs.tag }}" \
+            packages/executable-stories-formatters/executable-stories-linux-x64 \
+            packages/executable-stories-formatters/executable-stories-linux-arm64 \
+            packages/executable-stories-formatters/executable-stories-darwin-x64 \
+            packages/executable-stories-formatters/executable-stories-darwin-arm64 \
+            packages/executable-stories-formatters/executable-stories-windows-x64.exe \
+            --clobber
