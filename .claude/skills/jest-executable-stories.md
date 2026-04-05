@@ -1,320 +1,225 @@
 ---
-name: executable-stories-jest
-description: Write Given/When/Then story tests for Jest with structured report generation. Use when creating BDD-style tests or generating user story documentation from tests.
-version: 2.0.0
-libraries: ['jest']
+name: jest-story-api
+description: >
+  Write BDD stories in Jest using executable-stories-jest. Top-level exports:
+  import { given, when, then, and, but } from executable-stories-jest.
+  story.init() takes no arguments. Auto-And keyword conversion. Suite path
+  from expect.getState().currentTestName. Aliases: arrange, act, assert.
+  Doc entries: json, kv, code, table, link, section, mermaid, note, tag.
+type: core
+library: executable-stories-jest
+library_version: "7.0.1"
+sources:
+  - "jagreehal/executable-stories:packages/executable-stories-jest/src/index.ts"
+  - "jagreehal/executable-stories:packages/executable-stories-jest/src/story-api.ts"
 ---
 
-# executable-stories-jest
+# executable-stories-jest — Story API
 
-TypeScript-first story testing for Jest. Tests and documentation from the same code.
+## Setup
 
-## Quick Start
+```typescript
+import { describe, expect, it } from "@jest/globals";
+import { story, given, when, then } from "executable-stories-jest";
 
-```ts
-import { story } from 'executable-stories-jest';
+describe("Cart checkout", () => {
+  it("applies discount code", () => {
+    story.init({ tags: ["checkout"], ticket: "CART-42" });
 
-describe('User Authentication', () => {
-  it('logs in with valid credentials', () => {
+    given("a cart with items totaling $100");
+    const cart = createCart([{ name: "Shirt", price: 100 }]);
+
+    when("a 20% discount code is applied");
+    applyDiscount(cart, "SAVE20");
+
+    then("the total is $80");
+    expect(cart.total).toBe(80);
+  });
+});
+```
+
+File naming: `*.story.test.ts`.
+
+Jest uses top-level step exports. `story.init()` takes no arguments — the test name is derived from `expect.getState().currentTestName`.
+
+## Core Patterns
+
+### Top-level step exports
+
+```typescript
+import { story, given, when, then, and, but } from "executable-stories-jest";
+
+it("blocks suspended user login", () => {
+  story.init();
+
+  given("the user account exists");         // renders "Given"
+  given("the account is suspended");         // renders "And" (auto-converted)
+  when("the user submits valid credentials");
+  then("the user sees an error message");
+  but("the user is not logged in");          // renders "But" (always)
+});
+```
+
+### Doc entries
+
+```typescript
+import { story, given, when, then } from "executable-stories-jest";
+
+it("processes payment", () => {
+  story.init();
+
+  given("a valid payment request");
+  story.json({ label: "Payload", value: { amount: 50, currency: "USD" } });
+
+  when("the payment is submitted");
+  story.code({ label: "Response", content: '{ "status": "ok" }', lang: "json" });
+
+  then("the order is confirmed");
+  story.table({
+    label: "Order summary",
+    columns: ["Item", "Qty", "Price"],
+    rows: [["Widget", "2", "$25"]],
+  });
+  story.note("Payment processed in sandbox mode");
+});
+```
+
+### Step wrappers with timing
+
+```typescript
+const profile = await story.fn("When", "the profile is fetched", async () => {
+  return fetchProfile(userId);
+});
+
+await story.expect("the profile contains the correct name", () => {
+  expect(profile.name).toBe("Alice");
+});
+```
+
+### Inline docs via second argument
+
+```typescript
+given("valid credentials", {
+  json: { label: "Credentials", value: { user: "alice", role: "admin" } },
+  note: "Password masked for security",
+});
+```
+
+## Common Mistakes
+
+### CRITICAL Calling story.init() with a task argument
+
+Wrong:
+
+```typescript
+it("my test", ({ task }) => {
+  story.init(task);  // Jest does not provide task
+});
+```
+
+Correct:
+
+```typescript
+it("my test", () => {
+  story.init();  // No arguments needed
+});
+```
+
+Jest's `story.init()` takes no arguments. It reads the test name from `expect.getState().currentTestName`. Passing an argument is a Vitest pattern that does not apply to Jest.
+
+Source: packages/executable-stories-jest/src/story-api.ts
+
+### HIGH Suite path not detected in docs
+
+Wrong assumption:
+
+```typescript
+// Expecting "Calculator" to appear as a ## heading in docs
+describe("Calculator", () => {
+  it("adds numbers", () => {
     story.init();
-
-    story.given('user is on login page');
-    // setup code
-
-    story.when('user submits valid credentials');
-    // action code
-
-    story.then('user sees the dashboard');
-    expect(true).toBe(true);
+    // ...
   });
 });
+// Jest's currentTestName format is "Calculator adds numbers" (space-separated)
+// Suite path is usually undefined → docs are flat
 ```
 
-## API Reference
+This is a known limitation. Jest's `expect.getState().currentTestName` uses space-separated format (`"Describe title test name"`), not `" > "` separated. Suite path extraction only works when `" > "` is present. In the default Jest setup, docs are flat without `## Suite name` headings.
 
-### story.init(options?)
+Source: CLAUDE.md — "Doc heading and describe in generated docs"
 
-Initialize a story at the start of each test. Required before using other story methods.
+### HIGH Missing setup file in jest.config
 
-```ts
-it('test name', () => {
-  story.init();
-  // or with options:
-  story.init({
-    tags: ['smoke', 'auth'],
-    ticket: 'JIRA-123', // or { id: 'JIRA-123', url: 'https://jira.example.com/JIRA-123' }
-    meta: { priority: 'high' },
-  });
-});
-```
+Wrong:
 
-### Step Markers
-
-Step markers are documentation-only - they don't wrap code in callbacks.
-
-```ts
-story.given('precondition');
-// setup code here - variables are naturally scoped
-
-story.when('action occurs');
-// action code here
-
-story.then('expected result');
-// assertion code here
-expect(result).toBe(expected);
-```
-
-| Method              | Keyword | Purpose               |
-| ------------------- | ------- | --------------------- |
-| `story.given(text)` | Given   | Precondition/setup    |
-| `story.when(text)`  | When    | Action                |
-| `story.then(text)`  | Then    | Assertion             |
-| `story.and(text)`   | And     | Continuation          |
-| `story.but(text)`   | But     | Negative continuation |
-
-### Step Aliases
-
-```ts
-// AAA Pattern
-story.arrange('setup');
-story.act('action');
-story.assert('check');
-
-// Alternative names
-story.setup('initial state');
-story.context('additional context');
-story.execute('operation');
-story.action('user action');
-story.verify('outcome');
-```
-
-### Inline Docs
-
-Attach documentation directly to steps:
-
-```ts
-story.given('valid credentials', {
-  json: {
-    label: 'Credentials',
-    value: { email: 'test@example.com', password: '***' },
-  },
-  note: 'Password is masked for security',
-});
-
-story.when('payment is processed', {
-  kv: { 'Payment ID': 'pay_123', Amount: '$99.99' },
-});
-
-story.then('order is confirmed', {
-  table: {
-    label: 'Order Summary',
-    columns: ['Item', 'Price'],
-    rows: [['Widget', '$49.99']],
-  },
-});
-```
-
-### Standalone Doc Methods
-
-Call after a step to attach documentation:
-
-```ts
-story.given('an order exists');
-story.json({ label: 'Order', value: { id: 123, items: ['widget'] } });
-
-story.when('payment processed');
-story.kv({ label: 'Payment ID', value: 'pay_123' });
-story.kv({ label: 'Amount', value: '$99.99' });
-
-story.then('confirmation sent');
-story.screenshot({ path: '/screenshots/confirmation.png', alt: 'Email sent' });
-```
-
-| Method                      | Signature                   | Purpose          |
-| --------------------------- | --------------------------- | ---------------- |
-| `story.note(text)`          | `string`                    | Free text note   |
-| `story.tag(names)`          | `string \| string[]`        | Tags             |
-| `story.kv(options)`         | `{ label, value }`          | Key-value pair   |
-| `story.json(options)`       | `{ label, value }`          | JSON code block  |
-| `story.code(options)`       | `{ label, content, lang? }` | Code block       |
-| `story.table(options)`      | `{ label, columns, rows }`  | Markdown table   |
-| `story.link(options)`       | `{ label, url }`            | Hyperlink        |
-| `story.section(options)`    | `{ title, markdown }`       | Markdown section |
-| `story.mermaid(options)`    | `{ code, title? }`          | Mermaid diagram  |
-| `story.screenshot(options)` | `{ path, alt? }`            | Screenshot       |
-| `story.custom(options)`     | `{ type, data }`            | Custom entry     |
-
-### Nested Doc Children
-
-Doc entries can be attached as children of a parent entry. When a child is nested later, it is removed from earlier flat story-level or step-level docs so it only appears under the parent.
-
-```ts
-it('documents grouped evidence', () => {
-  story.init();
-
-  story.given('the first step');
-  const child = story.note('shared child');
-
-  story.when('the second step');
-  story.note('parent note', [child]);
-});
-```
-
-Step markers also accept `DocEntry[]` as the second argument:
-
-```ts
-it('documents step attachments', () => {
-  story.init();
-
-  const child1 = story.kv({ label: 'User', value: 'alice' });
-  const child2 = story.note('note about user');
-
-  story.given('a user exists', [child1, child2]);
-});
-```
-
-### Story-Level Docs
-
-Docs called before any step attach to the story level:
-
-```ts
-it('complex workflow', () => {
-  story.init();
-
-  // These attach to story level (before steps)
-  story.note('Requires running database');
-  story.link({ label: 'API Docs', url: 'https://docs.example.com' });
-
-  story.given('database is seeded');
-  // ...
-});
-```
-
-## Using beforeEach
-
-```ts
-describe('User Profile', () => {
-  beforeEach(() => {
-    story.init();
-    story.given('user is logged in');
-  });
-
-  it('updates email', () => {
-    story.when('user changes email');
-    story.then('email is updated');
-  });
-
-  it('updates password', () => {
-    story.when('user changes password');
-    story.then('password is updated');
-  });
-});
-```
-
-## Test Modifiers
-
-Use native Jest modifiers - they work seamlessly:
-
-```ts
-it.skip('not implemented yet', () => {
-  story.init();
-  // ...
-});
-
-it.todo('will add later');
-
-it.only('debug this', () => {
-  story.init();
-  // ...
-});
-```
-
-## Reporter Setup
-
-```ts
+```javascript
 // jest.config.mjs
 export default {
-  reporters: ['default', 'executable-stories-jest/reporter'],
-  setupFilesAfterEnv: ['executable-stories-jest/setup'],
+  reporters: ["default", "executable-stories-jest/reporter"],
 };
 ```
 
-### Reporter Options
+Correct:
+
+```javascript
+// jest.config.mjs
+export default {
+  setupFilesAfterEnv: ["executable-stories-jest/setup"],
+  reporters: ["default", "executable-stories-jest/reporter"],
+};
+```
+
+The setup file registers an `afterAll` hook that flushes story metadata to disk. Without it, the reporter has no data to process.
+
+Source: packages/executable-stories-jest/src/reporter.ts
+
+### MEDIUM Calling steps before story.init()
+
+Wrong:
+
+```typescript
+it("my test", () => {
+  given("something");
+  story.init();
+});
+```
+
+Correct:
+
+```typescript
+it("my test", () => {
+  story.init();
+  given("something");
+});
+```
+
+Steps called before `init()` are silently dropped because no story context exists.
+
+Source: packages/eslint-plugin-executable-stories-jest/src/rules/require-story-context-for-steps.ts
+
+## Parameterized Scenarios (Scenario Outline equivalent)
+
+Use Jest's `it.each` with `story()` to produce one scenario per data row — the framework-native replacement for Cucumber's Scenario Outline + Examples.
 
 ```ts
-[
-  'executable-stories-jest/reporter',
-  {
-    // Output format selection
-    formats: ['markdown'], // "markdown" | "html" | "junit" | "cucumber-json"
-    outputDir: 'docs', // Output directory
-    outputName: 'user-stories', // Base filename (produces user-stories.md)
+import { story, given, when, then } from "executable-stories-jest";
 
-    // Output routing
-    output: {
-      mode: 'aggregated', // "aggregated" | "colocated"
-      // colocatedStyle: "mirrored",          // "mirrored" | "adjacent" (when mode: "colocated")
-    },
-
-    // Markdown-specific options
-    markdown: {
-      title: 'User Stories',
-      sortScenarios: 'source', // "alpha" | "source"
-      suiteSeparator: ' - ',
-      includeStatusIcons: true, // Show ✅❌⏩📝
-      includeErrors: true, // Show failure details
-      includeMetadata: true, // Show date/version/git SHA
-    },
-  },
+const cases = [
+  { input: 1, expected: 2 },
+  { input: 2, expected: 4 },
+  { input: 3, expected: 6 },
 ];
+
+describe("Doubling", () => {
+  it.each(cases)("doubles $input to $expected", ({ input, expected }) => {
+    story(`Doubles ${input} to ${expected}`);
+    given(`the input is ${input}`);
+    when("the doubler runs");
+    then(`the result is ${expected}`);
+    expect(input * 2).toBe(expected);
+  });
+});
 ```
 
-## Generated Output
-
-```markdown
-## Calculator
-
-### ✅ adds two numbers
-
-- **Given** two numbers 5 and 3
-- **When** I add them together
-- **Then** the result is 8
-
-### ❌ divides by zero
-
-- **Given** a number 10 and zero
-  > Division by zero should throw an error
-- **When** division is attempted
-- **Then** an error is thrown
-
-**Failure**
-
-    Error: Cannot divide by zero
-```
-
-## Metadata Storage
-
-executable-stories-jest writes metadata to `.executable-stories-jest/` during test runs. The reporter reads this to generate documentation.
-
-- SHOULD: Add `.executable-stories-jest/` to `.gitignore`
-
-## Best Practices
-
-- MUST call `story.init()` at the start of each test
-- MUST use native Jest `describe`/`it` for full IDE support
-- SHOULD use `.story.test.ts` suffix for story tests
-- SHOULD keep step descriptions in natural language
-- NEVER put assertions in `given` steps
-- NEVER put setup in `then` steps
-
-## Formatting (when writing or citing)
-
-- **Code and symbols:** Use backticks for file paths, directory names, function names, class names, and inline code (e.g. `story.given`, `vitest.config.ts`).
-- **Emphasis:** Use **bold** for key terms when emphasizing (e.g. **MUST**, **SHOULD**).
-- **Citing code from the repo:** Use the standard citation format with line range and path: ```startLine:endLine:filepath``` (e.g. ```12:15:packages/executable-stories-jest/src/reporter.ts```).
-- **Math (if ever needed):** Inline math `\( ... \)`, block math `\[ ... \]`.
-- **Valid markdown:** Ensure output is valid markdown (no broken backticks or brackets).
-
-## Project context
-
-Repo conventions, ESLint plugins, and verification: see **AGENTS.md** (and **CLAUDE.md** symlink) in the repo root.
+Each iteration produces a separate scenario in the generated report. Use interpolated titles so each scenario has a distinct, descriptive name.

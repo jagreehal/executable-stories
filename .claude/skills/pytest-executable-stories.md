@@ -1,15 +1,23 @@
 ---
-name: executable-stories-pytest
-description: Write Given/When/Then story tests for pytest with structured report generation. Use when creating BDD-style tests in pytest and generating user story documentation from Python tests.
-version: 0.1.0
-libraries: ['pytest', 'python']
+name: pytest-story-api
+description: >
+  Write BDD stories in pytest using executable-stories-pytest. Module singleton:
+  from executable_stories import story. story.init(scenario) with keyword args
+  for tags, ticket, meta. Steps: given, when, then, and_, but (note: and_ due
+  to Python keyword). Aliases: arrange, act, assert_, setup, context, execute,
+  action, verify. Wrapped steps: story.fn, story.expect. Auto-And conversion.
+  Automatic JSON output via pytest plugin hooks.
+type: core
+library: executable-stories-pytest
+library_version: "0.1.0"
+sources:
+  - "jagreehal/executable-stories:packages/executable-stories-pytest/src/executable_stories/_story_api.py"
+  - "jagreehal/executable-stories:packages/executable-stories-pytest/src/executable_stories/_plugin.py"
 ---
 
-# executable-stories-pytest
+# executable-stories-pytest — Story API
 
-Framework-native story testing for pytest. Tests and documentation come from the same Python test code.
-
-## Quick Start
+## Setup
 
 ```python
 from executable_stories import story
@@ -19,111 +27,71 @@ def test_applies_discount_code():
     story.init("Applies discount code", tags=["checkout"], ticket="CART-42")
 
     story.given("a cart with items totaling $100")
-    cart = create_cart()
+    cart = create_cart([{"name": "Shirt", "price": 100}])
 
     story.when("a 20% discount code is applied")
     apply_discount(cart, "SAVE20")
 
     story.then("the total is $80")
     assert cart.total == 80
+
+    story.and_("the discount is shown in the summary")
+    assert len(cart.discounts) == 1
 ```
 
-Use `test_*_story.py` naming if you want story tests to stand out in the suite.
+File naming: `test_*_story.py`. Output is automatic via the pytest plugin — `.executable-stories/raw-run.json` is written after all tests. Override with `EXECUTABLE_STORIES_OUTPUT` env var.
 
-## API Reference
+Note: `and_` has a trailing underscore because `and` is a Python keyword.
 
-### story.init(scenario, **options)
+## Core Patterns
 
-Initialize a story at the start of the test.
+### Step markers with Auto-And conversion
+
+First call to `given()`, `when()`, or `then()` renders the keyword as-is. Subsequent calls to the same keyword auto-convert to "And". Explicit `and_()` always renders "And". Explicit `but()` always renders "But" and never auto-converts.
 
 ```python
-story.init(
-    "Login succeeds",
-    tags=["smoke", "auth"],
-    ticket=["AUTH-42", "AUTH-43"],  # also accepts {"id": "AUTH-42", "url": "https://..."}
-    meta={"priority": "high"},
-    trace_url_template="https://jaeger.example.com/trace/{traceId}",
-)
+def test_blocks_suspended_user_login():
+    story.init("Blocks suspended user login")
+
+    story.given("the user account exists")          # renders "Given"
+    story.given("the account is suspended")          # renders "And" (auto-converted)
+    story.when("the user submits valid credentials")
+    story.then("the user sees an error message")
+    story.but("the user is not logged in")           # renders "But" (always)
+    story.but("no session is created")               # renders "But" (always)
 ```
 
-### Step Markers
+### Step aliases
 
-Step markers are documentation-first. Your Python code stays in normal function scope.
+AAA pattern: `story.arrange()` (Given), `story.act()` (When), `story.assert_()` (Then).
+
+Additional: `story.setup()`, `story.context()` (Given), `story.execute()`, `story.action()` (When), `story.verify()` (Then).
+
+Note: The Then alias is `assert_()` because `assert` is a Python keyword.
+
+### Doc entries attached to steps
 
 ```python
-story.given("a seeded database")
-db = seed_db()
+def test_processes_payment():
+    story.init("Processes payment")
 
-story.when("the service loads the account")
-account = load_account(db)
+    story.given("a valid payment request")
+    story.json("Request payload", {"amount": 50, "currency": "USD"})
+    story.kv("Gateway", "stripe")
 
-story.then("the account is active")
-assert account.active is True
+    story.when("the payment is submitted")
+    story.code("Response", '{ "status": "ok" }', lang="json")
+
+    story.then("the order is confirmed")
+    story.table("Order summary",
+        columns=["Item", "Qty", "Price"],
+        rows=[["Widget", "2", "$25"]],
+    )
+    story.link("API docs", "https://docs.example.com/payments")
+    story.note("Payment processed in sandbox mode")
 ```
 
-| Method          | Keyword | Purpose            |
-| --------------- | ------- | ------------------ |
-| `story.given()` | Given   | Precondition/setup |
-| `story.when()`  | When    | Action             |
-| `story.then()`  | Then    | Assertion          |
-| `story.and_()`  | And     | Continuation       |
-| `story.but()`   | But     | Negative contrast  |
-
-Repeated `given`, `when`, and `then` calls auto-render as `And`. Explicit `and_` and `but` keep their own keywords.
-
-### Step Aliases
-
-```python
-story.arrange("setup")
-story.act("action")
-story.assert_("check")
-
-story.setup("initial state")
-story.context("extra context")
-story.execute("operation")
-story.action("user action")
-story.verify("outcome")
-```
-
-`assert_` and `and_` use a trailing underscore because `assert` and `and` are Python keywords.
-
-### Wrapped Steps
-
-```python
-profile = story.fn("When", "the profile is fetched", lambda: fetch_profile("user-123"))
-
-story.expect("the profile contains the correct name", lambda: (
-    profile.name == "Alice" or (_ for _ in ()).throw(AssertionError("wrong name"))
-))
-```
-
-`story.fn(...)` and `story.expect(...)` record timing around the callable and return its result.
-
-### Standalone Doc Methods
-
-Call after a step to attach docs to that step, or before any step to attach them at story level.
-
-```python
-story.given("a valid payment request")
-story.json("Request payload", {"amount": 50, "currency": "USD"})
-story.kv("Gateway", "stripe")
-
-story.when("the payment is submitted")
-story.code("Response", '{ "status": "ok" }', lang="json")
-
-story.then("the order is confirmed")
-story.table(
-    "Order summary",
-    columns=["Item", "Qty", "Price"],
-    rows=[["Widget", "2", "$25"]],
-)
-story.link("API docs", "https://docs.example.com/payments")
-story.note("Payment processed in sandbox mode")
-```
-
-### Inline Docs
-
-Step markers accept a `docs=` list:
+### Inline docs via docs parameter
 
 ```python
 story.given("valid credentials", docs=[
@@ -132,42 +100,108 @@ story.given("valid credentials", docs=[
 ])
 ```
 
-### Nested Doc Children
-
-Standalone doc helpers accept `children=`. When a child is nested later, it is removed from earlier flat story-level or step-level doc lists and kept only under the parent.
+### Step wrappers with timing
 
 ```python
-story.given("the first step")
-child = story.note("shared child")
+def test_fetches_user_profile():
+    story.init("Fetches user profile")
 
-story.when("the second step")
-story.note("parent note", children=[child])
+    story.given("a registered user")
+
+    profile = story.fn("When", "the profile is fetched", lambda: fetch_profile("user-123"))
+
+    story.expect("the profile contains the correct name", lambda: (
+        assert profile.name == "Alice"
+    ))
 ```
 
-You can also attach nested docs inline:
+`fn` and `expect` wrap a callable with automatic timing. Exceptions propagate after duration is recorded. Both return the callable's result.
+
+### Init options
 
 ```python
-child = story.kv("User", "alice")
-
-story.given("a user exists", docs=[
-    story.note("parent note", children=[child]),
-])
+story.init("My scenario",
+    tags=["smoke", "auth"],
+    ticket="AUTH-42",              # or ticket=["AUTH-42", "AUTH-43"]
+    meta={"priority": "high"},
+    trace_url_template="https://jaeger.example.com/trace/{traceId}",
+)
 ```
 
-## Reporting
+### Manual step timing
 
-The pytest plugin writes `.executable-stories/raw-run.json` automatically after the run. Override the path with `EXECUTABLE_STORIES_OUTPUT`.
+```python
+story.given("a step to time")
+token = story.start_timer()
+# ... work ...
+story.end_timer(token)
+```
+
+### Attachments
+
+```python
+story.attach("debug.log", "text/plain", path="/tmp/debug.log")
+story.attach("config", "application/json", body='{"key":"val"}', encoding="IDENTITY")
+```
 
 ## Common Mistakes
 
-### Missing story.init()
+### CRITICAL Missing story.init() before steps
 
-Call `story.init(...)` before steps or docs.
+Wrong:
 
-### Using `and` or `assert`
+```python
+def test_my_scenario():
+    story.given("something")  # No context — steps are lost
+```
 
-Use `and_()` and `assert_()` instead.
+Correct:
 
-### Reusing the same generic scenario title in parametrized tests
+```python
+def test_my_scenario():
+    story.init("My scenario")
+    story.given("something")
+```
 
-For `pytest.mark.parametrize`, build the scenario title from the parameters so each case has a distinct story name.
+`story.init()` creates the thread-local context. Without it, step calls have no effect.
+
+Source: packages/executable-stories-pytest/src/executable_stories/_story_api.py
+
+### HIGH Using `and` or `assert` instead of `and_` or `assert_`
+
+Wrong:
+
+```python
+story.and("also this")     # SyntaxError: 'and' is a Python keyword
+story.assert("result")     # SyntaxError: 'assert' is a Python keyword
+```
+
+Correct:
+
+```python
+story.and_("also this")    # Trailing underscore
+story.assert_("result")    # Trailing underscore
+```
+
+Python keywords `and` and `assert` cannot be used as method names. The trailing underscore follows PEP 8 naming conventions for keyword conflicts.
+
+Source: packages/executable-stories-pytest/src/executable_stories/_story_api.py
+
+### MEDIUM Parameterized scenarios with pytest.mark.parametrize
+
+```python
+import pytest
+
+@pytest.mark.parametrize("a,b,expected", [(1, 2, 3), (2, 3, 5)])
+def test_addition(a, b, expected):
+    story.init(f"Adding {a} and {b}")
+    story.given(f"two numbers {a} and {b}")
+    story.when("the numbers are added")
+    result = a + b
+    story.then(f"the result is {expected}")
+    assert result == expected
+```
+
+Each parametrize iteration produces a separate scenario. Use f-strings in the scenario title so each has a distinct name.
+
+Source: packages/executable-stories-pytest/src/executable_stories/_plugin.py

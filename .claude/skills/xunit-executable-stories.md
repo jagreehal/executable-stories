@@ -1,15 +1,21 @@
 ---
-name: executable-stories-xunit
-description: Write Given/When/Then story tests for xUnit with structured report generation. Use when creating BDD-style tests in C# and generating user story documentation from xUnit tests.
-version: 0.1.0
-libraries: ['xunit', 'csharp', 'dotnet']
+name: xunit-story-api
+description: >
+  Write BDD stories in xUnit (C#) using ExecutableStories.Xunit. Static API:
+  Story.Init(scenario), Story.Given/When/Then/And/But (PascalCase). Aliases:
+  Arrange, Act, Assert, Setup, Context, Execute, Action, Verify. Steps accept
+  params DocEntry[] for inline docs. Wrapped steps: Story.Fn, Story.Expect.
+  Must call Story.RecordAndClear() at end of each test. Auto-And conversion.
+type: core
+library: ExecutableStories.Xunit
+library_version: "0.1.0"
+sources:
+  - "jagreehal/executable-stories:packages/executable-stories-xunit/ExecutableStories.Xunit/Story.cs"
 ---
 
-# executable-stories-xunit
+# ExecutableStories.Xunit — Story API
 
-Framework-native story testing for xUnit. Tests and documentation come from the same C# test code.
-
-## Quick Start
+## Setup
 
 ```csharp
 using ExecutableStories.Xunit;
@@ -23,7 +29,7 @@ public class CartCheckoutTests
         Story.Init("Applies discount code", "checkout");
 
         Story.Given("a cart with items totaling $100");
-        var cart = CreateCart();
+        var cart = CreateCart(new[] { new Item("Shirt", 100) });
 
         Story.When("a 20% discount code is applied");
         ApplyDiscount(cart, "SAVE20");
@@ -31,63 +37,81 @@ public class CartCheckoutTests
         Story.Then("the total is $80");
         Assert.Equal(80, cart.Total);
 
+        Story.And("the discount is shown in the summary");
+        Assert.Single(cart.Discounts);
+
         Story.RecordAndClear();
     }
 }
 ```
 
-## API Reference
+**Important:** Call `Story.RecordAndClear()` at the end of each test. This records the test case and clears context. Output is written to `.executable-stories/raw-run.json` on process exit via `InProcessCollector`. Override path with `EXECUTABLE_STORIES_OUTPUT` env var.
 
-### Story.Init(scenario, params tags)
+## Core Patterns
 
-Initialize a story at the start of each test.
+### Step markers with Auto-And conversion
 
-```csharp
-Story.Init("Login succeeds", "smoke", "auth"); // tags as params
-Story.Ticket("AUTH-42"); // or Story.Ticket("AUTH-42", "https://jira.example.com/AUTH-42");
-Story.WithTraceUrlTemplate("https://jaeger.example.com/trace/{traceId}");
-```
-
-### Step Markers
-
-Use static step methods directly inside a normal xUnit test.
+First call to `Given()`, `When()`, or `Then()` renders the keyword as-is. Subsequent calls to the same keyword auto-convert to "And". Explicit `And()` always renders "And". Explicit `But()` always renders "But" and never auto-converts.
 
 ```csharp
-Story.Given("a seeded database");
-var db = SeedDb();
+[Fact]
+public void Blocks_suspended_user_login()
+{
+    Story.Init("Blocks suspended user login");
 
-Story.When("the service loads the account");
-var account = LoadAccount(db);
+    Story.Given("the user account exists");         // renders "Given"
+    Story.Given("the account is suspended");         // renders "And" (auto-converted)
+    Story.When("the user submits valid credentials");
+    Story.Then("the user sees an error message");
+    Story.But("the user is not logged in");          // renders "But" (always)
 
-Story.Then("the account is active");
-Assert.True(account.Active);
+    Story.RecordAndClear();
+}
 ```
 
-| Method         | Keyword | Purpose            |
-| -------------- | ------- | ------------------ |
-| `Story.Given()`| Given   | Precondition/setup |
-| `Story.When()` | When    | Action             |
-| `Story.Then()` | Then    | Assertion          |
-| `Story.And()`  | And     | Continuation       |
-| `Story.But()`  | But     | Negative contrast  |
+### Step aliases
 
-Repeated `Given`, `When`, and `Then` calls auto-render as `And`. Explicit `And` and `But` keep their own keywords.
+AAA pattern: `Story.Arrange()` (Given), `Story.Act()` (When), `Story.Assert()` (Then).
 
-### Step Aliases
+Additional: `Story.Setup()`, `Story.Context()` (Given), `Story.Execute()`, `Story.Action()` (When), `Story.Verify()` (Then).
+
+### Doc entries attached to steps
 
 ```csharp
-Story.Arrange("setup");
-Story.Act("action");
-Story.Assert("check");
+[Fact]
+public void Processes_payment()
+{
+    Story.Init("Processes payment");
 
-Story.Setup("initial state");
-Story.Context("extra context");
-Story.Execute("operation");
-Story.Action("user action");
-Story.Verify("outcome");
+    Story.Given("a valid payment request");
+    Story.Json("Request payload", new { amount = 50, currency = "USD" });
+    Story.Kv("Gateway", "stripe");
+
+    Story.When("the payment is submitted");
+    Story.Code("Response", "{ \"status\": \"ok\" }", "json");
+
+    Story.Then("the order is confirmed");
+    Story.Table("Order summary",
+        new[] { "Item", "Qty", "Price" },
+        new[] { new[] { "Widget", "2", "$25" } }
+    );
+    Story.Link("API docs", "https://docs.example.com/payments");
+    Story.Note("Payment processed in sandbox mode");
+
+    Story.RecordAndClear();
+}
 ```
 
-### Wrapped Steps
+### Inline docs via params DocEntry
+
+```csharp
+Story.Given("valid credentials",
+    DocEntry.Kv("username", "alice"),
+    DocEntry.Note("Password masked for security")
+);
+```
+
+### Step wrappers with timing
 
 ```csharp
 var profile = Story.Fn<Profile>("When", "the profile is fetched", () =>
@@ -100,74 +124,104 @@ Story.Expect("the profile contains the correct name", () =>
 });
 ```
 
-### Standalone Doc Methods
+`Fn` and `Expect` wrap a delegate with automatic timing. Both have `Action` (void) and `Func<T>` (returns value) overloads.
 
-Call after a step to attach docs to that step, or before any step to attach them at story level.
-
-```csharp
-Story.Given("a valid payment request");
-Story.Json("Request payload", new { amount = 50, currency = "USD" });
-Story.Kv("Gateway", "stripe");
-
-Story.When("the payment is submitted");
-Story.Code("Response", "{ \"status\": \"ok\" }", "json");
-
-Story.Then("the order is confirmed");
-Story.Table(
-    "Order summary",
-    new[] { "Item", "Qty", "Price" },
-    new[] { new[] { "Widget", "2", "$25" } }
-);
-Story.Link("API docs", "https://docs.example.com/payments");
-Story.Note("Payment processed in sandbox mode");
-```
-
-### Inline Docs
-
-Step markers accept `params DocEntry[]`:
+### Manual step timing
 
 ```csharp
-Story.Given("valid credentials",
-    DocEntry.Kv("username", "alice"),
-    DocEntry.Note("Password masked for security")
-);
+Story.Given("a step to time");
+var token = Story.StartTimer();
+// ... work ...
+Story.EndTimer(token);
 ```
 
-### Nested Doc Children
-
-Standalone doc helpers accept `children`. When a child is nested later, it is removed from earlier flat story-level or step-level doc lists and kept only under the parent.
+### Attachments
 
 ```csharp
-Story.Given("the first step");
-var child = Story.Note("shared child");
-
-Story.When("the second step");
-Story.Note("parent note", new[] { child });
+Story.Attach("debug.log", "text/plain", "/tmp/debug.log");
+Story.AttachInline("config", "application/json", "{\"key\":\"val\"}");
 ```
-
-Step markers can also take nested doc entries inline:
-
-```csharp
-var child1 = DocEntry.Kv("User", "alice");
-var child2 = DocEntry.Note("note about user");
-
-Story.Given("a user exists", child1, child2);
-```
-
-## Reporting
-
-Call `Story.RecordAndClear()` at the end of each test. That records the current story and clears the context. Output is written to `.executable-stories/raw-run.json` on process exit. Override the path with `EXECUTABLE_STORIES_OUTPUT`.
 
 ## Common Mistakes
 
-### Forgetting Story.RecordAndClear()
+### CRITICAL Forgetting Story.RecordAndClear()
 
-Without it, the current story is not recorded for that test.
+Wrong:
 
-### Missing Story.Init()
+```csharp
+[Fact]
+public void My_test()
+{
+    Story.Init("My scenario");
+    Story.Given("something");
+    // Test ends — story data is lost
+}
+```
 
-Call `Story.Init(...)` before steps or doc helpers.
+Correct:
 
-### Not using try/finally around failing assertions
+```csharp
+[Fact]
+public void My_test()
+{
+    Story.Init("My scenario");
+    Story.Given("something");
+    Story.RecordAndClear(); // Records test case and clears context
+}
+```
 
-If a test can throw before the final line, wrap the body in `try/finally` so `Story.RecordAndClear()` still runs.
+xUnit's VSTest runner does not support `IRunnerReporter` for automatic recording. You must call `RecordAndClear()` manually at the end of each test.
+
+Source: packages/executable-stories-xunit/ExecutableStories.Xunit/Story.cs
+
+### CRITICAL Missing Story.Init() before steps
+
+Wrong:
+
+```csharp
+[Fact]
+public void My_test()
+{
+    Story.Given("something"); // No context — steps are lost
+    Story.RecordAndClear();
+}
+```
+
+Correct:
+
+```csharp
+[Fact]
+public void My_test()
+{
+    Story.Init("My scenario");
+    Story.Given("something");
+    Story.RecordAndClear();
+}
+```
+
+Source: packages/executable-stories-xunit/ExecutableStories.Xunit/Story.cs
+
+### HIGH Not calling RecordAndClear on test failure
+
+Use try/finally to ensure recording even when assertions fail:
+
+```csharp
+[Fact]
+public void My_test()
+{
+    Story.Init("My scenario");
+    try
+    {
+        Story.Given("something");
+        Story.When("action");
+        Story.Then("result");
+        Assert.True(false); // This throws
+    }
+    finally
+    {
+        Story.RecordAndClear("fail");
+    }
+}
+```
+
+Source: packages/executable-stories-xunit/ExecutableStories.Xunit/Story.cs

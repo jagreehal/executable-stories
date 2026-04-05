@@ -1,387 +1,243 @@
 ---
-name: executable-stories-vitest
-description: Write Given/When/Then story tests for Vitest with structured report generation. Use when creating BDD-style tests or generating user story documentation from tests.
-version: 2.2.0
-libraries: ['vitest']
+name: vitest-story-api
+description: >
+  Write BDD stories in Vitest using executable-stories-vitest. Callback-only
+  API: story.init(task) with ({ task }) destructuring. Steps: given, when,
+  then, and, but. Doc entries: json, kv, code, table, link, section, mermaid,
+  note, tag, screenshot, custom. Auto-And keyword conversion. No top-level
+  then export. Aliases: arrange, act, assert. Inline docs via second argument.
+type: core
+library: executable-stories-vitest
+library_version: "7.0.1"
+sources:
+  - "jagreehal/executable-stories:packages/executable-stories-vitest/src/story-api.ts"
+  - "jagreehal/executable-stories:apps/docs-site/src/content/docs/vitest/vitest-story-api.md"
 ---
 
-# executable-stories-vitest
+# executable-stories-vitest — Story API
 
-TypeScript-first story testing for Vitest. Tests and documentation from the same code.
+## Setup
 
-## Quick Start
+```typescript
+import { describe, expect, it } from "vitest";
+import { story } from "executable-stories-vitest";
 
-```ts
-import { story } from 'executable-stories-vitest';
-import { describe, expect, it } from 'vitest';
+describe("Cart checkout", () => {
+  it("applies discount code", ({ task }) => {
+    story.init(task, { tags: ["checkout"], ticket: "CART-42" });
 
-describe('User Authentication', () => {
-  it('logs in with valid credentials', ({ task }) => {
-    story.init(task);
+    story.given("a cart with items totaling $100");
+    const cart = createCart([{ name: "Shirt", price: 100 }]);
 
-    story.given('user is on login page');
-    // setup code
+    story.when("a 20% discount code is applied");
+    applyDiscount(cart, "SAVE20");
 
-    story.when('user submits valid credentials');
-    // action code
+    story.then("the total is $80");
+    expect(cart.total).toBe(80);
 
-    story.then('user sees the dashboard');
-    expect(true).toBe(true);
+    story.and("the discount is shown in the summary");
+    expect(cart.discounts).toHaveLength(1);
   });
 });
 ```
 
-## API Reference
+File naming: `*.story.test.ts` or `*.story.spec.ts`.
 
-### story.init(task, options?)
+## Core Patterns
 
-Initialize a story at the start of each test. Required before using other story methods.
+### Step markers with Auto-And conversion
 
-```ts
-it('test name', ({ task }) => {
-  story.init(task);
-  // or with options:
-  story.init(task, {
-    tags: ['smoke', 'auth'],
-    ticket: 'JIRA-123', // or { id: 'JIRA-123', url: 'https://jira.example.com/JIRA-123' }
-    meta: { priority: 'high' },
-  });
-});
-```
+First call to `given()`, `when()`, or `then()` renders the keyword as-is. Subsequent calls to the same keyword in the same story auto-convert to "And". Explicit `and()` always renders "And". Explicit `but()` always renders "But" and never auto-converts.
 
-### Step Markers (marker-only or optional callback)
-
-**Marker-only:** Pass text (and optionally inline StoryDocs). Code lives on the next lines.
-
-```ts
-story.given('precondition');
-// setup code here - variables are naturally scoped
-
-story.when('action occurs');
-// action code here
-
-story.then('expected result');
-expect(result).toBe(expected);
-```
-
-**Optional callback:** Second argument can be a function. The step is recorded first, then the callback runs. Return value is passed through; if it's a Promise, return it so `await story.when('...', async () => { ... })` works. Step gets `wrapped: true` and `durationMs`.
-
-```ts
-story.given('two numbers', () => ({ a: 5, b: 3 }));
-const data = story.when('I fetch', async () => (await fetch('/api')).json());
-story.then('result is valid', () => { expect(data).toBeDefined(); });
-```
-
-| Method                              | Keyword | Purpose               |
-| ----------------------------------- | ------- | --------------------- |
-| `story.given(text)` / `(text, fn?)` | Given   | Precondition/setup    |
-| `story.when(text)` / `(text, fn?)` | When    | Action                |
-| `story.then(text)` / `(text, fn?)` | Then    | Assertion             |
-| `story.and(text)` / `(text, fn?)`  | And     | Continuation          |
-| `story.but(text)` / `(text, fn?)`  | But     | Negative continuation |
-
-### Step Aliases
-
-```ts
-// AAA Pattern
-story.arrange('setup');
-story.act('action');
-story.assert('check');
-
-// Alternative names
-story.setup('initial state');
-story.context('additional context');
-story.execute('operation');
-story.action('user action');
-story.verify('outcome');
-```
-
-### Inline Docs
-
-Attach documentation directly to steps:
-
-```ts
-story.given('valid credentials', {
-  json: {
-    label: 'Credentials',
-    value: { email: 'test@example.com', password: '***' },
-  },
-  note: 'Password is masked for security',
-});
-
-story.when('payment is processed', {
-  kv: { 'Payment ID': 'pay_123', Amount: '$99.99' },
-});
-
-story.then('order is confirmed', {
-  table: {
-    label: 'Order Summary',
-    columns: ['Item', 'Price'],
-    rows: [['Widget', '$49.99']],
-  },
-});
-```
-
-### Standalone Doc Methods
-
-Call after a step to attach documentation:
-
-```ts
-story.given('an order exists');
-story.json({ label: 'Order', value: { id: 123, items: ['widget'] } });
-
-story.when('payment processed');
-story.kv({ label: 'Payment ID', value: 'pay_123' });
-story.kv({ label: 'Amount', value: '$99.99' });
-
-story.then('confirmation sent');
-story.screenshot({ path: '/screenshots/confirmation.png', alt: 'Email sent' });
-```
-
-| Method                      | Signature                   | Purpose          |
-| --------------------------- | --------------------------- | ---------------- |
-| `story.note(text)`          | `string`                    | Free text note   |
-| `story.tag(names)`          | `string \| string[]`        | Tags             |
-| `story.kv(options)`         | `{ label, value }`          | Key-value pair   |
-| `story.json(options)`       | `{ label, value }`          | JSON code block  |
-| `story.code(options)`       | `{ label, content, lang? }` | Code block       |
-| `story.table(options)`      | `{ label, columns, rows }`  | Markdown table   |
-| `story.link(options)`       | `{ label, url }`            | Hyperlink        |
-| `story.section(options)`    | `{ title, markdown }`       | Markdown section |
-| `story.mermaid(options)`    | `{ code, title? }`          | Mermaid diagram  |
-| `story.screenshot(options)` | `{ path, alt? }`            | Screenshot       |
-| `story.custom(options)`     | `{ type, data }`            | Custom entry     |
-
-### Nested Doc Children
-
-Doc entries can be reused as children of another doc entry. When a child is nested later, it is removed from any earlier flat story-level or step-level doc list and kept only under the parent.
-
-```ts
-it('documents grouped evidence', ({ task }) => {
+```typescript
+it("blocks suspended user login", ({ task }) => {
   story.init(task);
 
-  story.given('the first step');
-  const child = story.note('shared child');
-
-  story.when('the second step');
-  story.note('parent note', [child]);
+  story.given("the user account exists");        // renders "Given"
+  story.given("the account is suspended");        // renders "And" (auto-converted)
+  story.when("the user submits valid credentials");
+  story.then("the user sees an error message");
+  story.but("the user is not logged in");         // renders "But" (always)
+  story.but("no session is created");             // renders "But" (always)
 });
 ```
 
-Step markers also accept `DocEntry[]` as the second argument:
+### Doc entries attached to steps
 
-```ts
-it('documents step attachments', ({ task }) => {
+```typescript
+it("processes payment", ({ task }) => {
   story.init(task);
 
-  const child1 = story.kv({ label: 'User', value: 'alice' });
-  const child2 = story.note('note about user');
+  story.given("a valid payment request");
+  story.json({ label: "Request payload", value: { amount: 50, currency: "USD" } });
+  story.kv({ label: "Gateway", value: "stripe" });
 
-  story.given('a user exists', [child1, child2]);
+  story.when("the payment is submitted");
+  story.code({ label: "Response", content: '{ "status": "ok" }', lang: "json" });
+
+  story.then("the order is confirmed");
+  story.table({
+    label: "Order summary",
+    columns: ["Item", "Qty", "Price"],
+    rows: [["Widget", "2", "$25"]],
+  });
+  story.link({ label: "API docs", url: "https://docs.example.com/payments" });
+  story.note("Payment processed in sandbox mode");
 });
 ```
 
-### Story-Level Docs
+### Inline docs via second argument
 
-Docs called before any step attach to the story level:
+```typescript
+story.given("valid credentials", {
+  json: { label: "Credentials", value: { user: "alice", role: "admin" } },
+  note: "Password masked for security",
+});
+```
 
-```ts
-it('complex workflow', ({ task }) => {
+### Step wrappers with timing
+
+```typescript
+it("fetches user profile", ({ task }) => {
   story.init(task);
 
-  // These attach to story level (before steps)
-  story.note('Requires running database');
-  story.link({ label: 'API Docs', url: 'https://docs.example.com' });
+  story.given("a registered user");
+  const userId = "user-123";
 
-  story.given('database is seeded');
-  // ...
-});
-```
-
-## Using beforeEach
-
-```ts
-describe('User Profile', () => {
-  beforeEach(({ task }) => {
-    story.init(task);
-    story.given('user is logged in');
+  const profile = await story.fn("When", "the profile is fetched", async () => {
+    return fetchProfile(userId);
   });
 
-  it('updates email', () => {
-    story.when('user changes email');
-    story.then('email is updated');
-  });
-
-  it('updates password', () => {
-    story.when('user changes password');
-    story.then('password is updated');
+  await story.expect("the profile contains the correct name", () => {
+    expect(profile.name).toBe("Alice");
   });
 });
 ```
 
-## Test Modifiers
+## Common Mistakes
 
-Use native Vitest modifiers - they work seamlessly:
+### CRITICAL Missing task argument in story.init()
 
-```ts
-it.skip('not implemented yet', ({ task }) => {
+Wrong:
+
+```typescript
+it("my test", () => {
+  story.init();
+  story.given("something");
+});
+```
+
+Correct:
+
+```typescript
+it("my test", ({ task }) => {
   story.init(task);
-  // ...
+  story.given("something");
 });
+```
 
-it.todo('will add later');
+Without `task`, story metadata is not linked to the test and the reporter cannot capture it. The `task` object comes from Vitest's test callback destructuring.
 
-it.only('debug this', ({ task }) => {
+Source: packages/executable-stories-vitest/src/story-api.ts
+
+### CRITICAL Importing top-level then from the package
+
+Wrong:
+
+```typescript
+import { story, then } from "executable-stories-vitest";
+```
+
+Correct:
+
+```typescript
+import { story } from "executable-stories-vitest";
+
+it("my test", ({ task }) => {
   story.init(task);
-  // ...
+  story.then("result is correct");
 });
 ```
 
-## Reporter Setup
+A top-level `then` export would make the module namespace thenable. Tools using `await import("executable-stories-vitest")` would treat the module as a Promise and invoke `then` unexpectedly. All step functions exist only on the `story` object.
 
-```ts
-// vitest.config.ts
-import { StoryReporter } from 'executable-stories-vitest/reporter';
-import { defineConfig } from 'vitest/config';
+Source: CLAUDE.md — "Vitest: do not export top-level then"
 
-export default defineConfig({
-  test: {
-    reporters: ['default', new StoryReporter()],
-  },
+### HIGH Expecting but() to auto-convert to And
+
+Wrong:
+
+```typescript
+story.then("the user sees a success message");
+story.but("no email is sent");  // Developer expects this to render "And"
+```
+
+Correct:
+
+```typescript
+// but() always renders "But" — this is intentional for negative/contrast intent
+story.then("the user sees a success message");
+story.but("no email is sent");  // Renders "But" (correct for contrast)
+
+// Use and() if you want "And"
+story.then("the user sees a success message");
+story.and("no email is sent");  // Renders "And"
+```
+
+`but()` expresses negative intent or contrast and never auto-converts. This matches Gherkin semantics.
+
+Source: packages/executable-stories-vitest/src/story-api.ts
+
+### HIGH Calling steps before story.init()
+
+Wrong:
+
+```typescript
+it("my test", ({ task }) => {
+  story.given("something");
+  story.init(task);
 });
 ```
 
-### Reporter Options
+Correct:
 
-```ts
-new StoryReporter({
-  // Output format selection
-  formats: ['markdown'], // "markdown" | "html" | "junit" | "cucumber-json"
-  outputDir: 'docs', // Output directory
-  outputName: 'user-stories', // Base filename (produces user-stories.md)
-
-  // Output routing
-  output: {
-    mode: 'aggregated', // "aggregated" | "colocated"
-    // colocatedStyle: "mirrored",          // "mirrored" | "adjacent" (when mode: "colocated")
-  },
-
-  // Markdown-specific options
-  markdown: {
-    title: 'User Stories',
-    sortScenarios: 'source', // "alpha" | "source"
-    suiteSeparator: ' - ',
-    includeStatusIcons: true, // Show ✅❌⏩📝
-    includeErrors: true, // Show failure details
-    includeMetadata: true, // Show date/version/git SHA
-  },
+```typescript
+it("my test", ({ task }) => {
+  story.init(task);
+  story.given("something");
 });
 ```
 
-## Generated Output
+Steps called before `init()` are silently dropped because no story context exists yet.
 
-```markdown
-## Calculator
+Source: packages/eslint-plugin-executable-stories-vitest/src/rules/require-init-before-steps.ts
 
-### ✅ adds two numbers
+See also: vitest-reporter-setup/SKILL.md — Stories need a reporter to produce output
+See also: eslint-vitest-rules/SKILL.md — ESLint enforces correct story.init() usage
 
-- **Given** two numbers 5 and 3
-- **When** I add them together
-- **Then** the result is 8
+## Parameterized Scenarios (Scenario Outline equivalent)
 
-### ❌ divides by zero
-
-- **Given** a number 10 and zero
-  > Division by zero should throw an error
-- **When** division is attempted
-- **Then** an error is thrown
-
-**Failure**
-
-    Error: Cannot divide by zero
-```
-
-## Converting from callback API
-
-### Before (callback API)
+Use Vitest's `it.each` with `story()` to produce one scenario per data row — the framework-native replacement for Cucumber's Scenario Outline + Examples.
 
 ```ts
-import { story } from 'executable-stories-vitest';
+import { story } from "executable-stories-vitest";
 
-story('User logs in', (s) => {
-  let result;
+const cases = [
+  { input: 1, expected: 2 },
+  { input: 2, expected: 4 },
+  { input: 3, expected: 6 },
+];
 
-  s.given('valid credentials', () => {
-    // setup
-  });
-
-  s.when('submits login', () => {
-    result = login();
-  });
-
-  s.then('sees dashboard', () => {
-    expect(result.ok).toBe(true);
+describe("Doubling", () => {
+  it.each(cases)("doubles $input to $expected", ({ input, expected }) => {
+    story(`Doubles ${input} to ${expected}`, (s) => {
+      s.given(`the input is ${input}`);
+      s.when("the doubler runs");
+      s.then(`the result is ${expected}`);
+      expect(input * 2).toBe(expected);
+    });
   });
 });
 ```
 
-### After (native describe/it)
-
-```ts
-import { story } from 'executable-stories-vitest';
-import { describe, expect, it } from 'vitest';
-
-describe('Authentication', () => {
-  it('User logs in', ({ task }) => {
-    story.init(task);
-
-    story.given('valid credentials');
-    // setup - variables naturally scoped
-
-    story.when('submits login');
-    const result = login();
-
-    story.then('sees dashboard');
-    expect(result.ok).toBe(true);
-  });
-});
-```
-
-## Formatter CLI (CI, history, notifications)
-
-Reporters write raw JSON that the **executable-stories** formatter CLI consumes. In CI, the CLI auto-detects the environment (GitHub Actions, GitLab, etc.) and can send Slack/Teams/webhook notifications and persist run history. Use `--history-file` when running the CLI to get flakiness, stability grade, and performance trend in the HTML report. No test code changes required—reporter emits CI and run metadata.
-
-## OpenTelemetry (autotel): traces in the HTML report
-
-The HTML report **renders a trace waterfall inside the report** — span tree with names, parent/child, and timing — when span data is present. No test code changes beyond normal `story.init(task)`; supply the data and enable HTML output.
-
-**Traces/spans in the HTML view**  
-Include `formats: ['markdown', 'html']` in reporter options. The reporter reads `task.meta.otelSpans` when set (e.g. by [autotel](https://github.com/jagreehal/autotel)'s Vitest integration). The formatter then draws the span waterfall in the HTML report. Add `autotel` as a dependency when using with Vitest for trace waterfall.
-
-**Optional: trace ID and link to external APM**  
-When an OTel span is active, story-api injects a trace ID badge; for a clickable "View Trace" link to Jaeger/Grafana/etc., set `traceUrlTemplate` in `story.init(task, { ... })` or `OTEL_TRACE_URL_TEMPLATE` with a `{traceId}` placeholder.
-
-## Framework-native attach (doc.story)
-
-To attach story metadata to a plain `it()` without `story()`: `it('title', ({ task }) => { doc.story('Scenario title', task); story.init(task); story.given(...); ... });` or `doc.story('Title', (s) => { s.given(...); s.when(...); s.then(...); });`. Scenario heading in docs always comes from the story title, not the `it` name.
-
-## Best Practices
-
-- MUST call `story.init(task)` at the start of each test
-- MUST use native Vitest `describe`/`it` for full IDE support
-- SHOULD use `.story.test.ts` suffix for story tests
-- SHOULD keep step descriptions in natural language
-- NEVER put assertions in `given` steps
-- NEVER put setup in `then` steps
-
-## Formatting (when writing or citing)
-
-- **Code and symbols:** Use backticks for file paths, directory names, function names, class names, and inline code (e.g. `story.given`, `vitest.config.ts`).
-- **Emphasis:** Use **bold** for key terms when emphasizing (e.g. **MUST**, **SHOULD**).
-- **Citing code from the repo:** Use the standard citation format with line range and path: ```startLine:endLine:filepath``` (e.g. ```12:15:packages/executable-stories-vitest/src/reporter.ts```).
-- **Math (if ever needed):** Inline math `\( ... \)`, block math `\[ ... \]`.
-- **Valid markdown:** Ensure output is valid markdown (no broken backticks or brackets).
-
-## Project context
-
-Repo conventions, ESLint plugins, and verification: see **AGENTS.md** (and **CLAUDE.md** symlink) in the repo root. The Vitest package does **not** export top-level `given`/`when`/`then` (use `story.init(task)` then `story.given`/`story.when`/`story.then`) to avoid thenable issues with dynamic imports.
+Each iteration produces a separate scenario in the generated report. Use interpolated titles so each scenario has a distinct, descriptive name.

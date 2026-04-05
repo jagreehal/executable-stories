@@ -1,19 +1,27 @@
 ---
-name: executable-stories-cypress
-description: Write Given/When/Then story tests for Cypress with structured report generation. Use when creating BDD-style E2E tests or generating user story documentation from Cypress specs.
-version: 2.0.0
-libraries: ['cypress']
+name: cypress-story-api
+description: >
+  Write BDD stories in Cypress using executable-stories-cypress. story.init()
+  with optional StoryOptions. Steps: story.given, story.when, story.then,
+  story.and, story.but. Doc entries: json, kv, code, table, link, section,
+  mermaid, screenshot, note, tag. Auto-And keyword conversion. Browser-Node
+  bridge via cy.task. Aliases: arrange, act, assert.
+type: core
+library: executable-stories-cypress
+library_version: "7.0.1"
+sources:
+  - "jagreehal/executable-stories:packages/executable-stories-cypress/src/story-api.ts"
+  - "jagreehal/executable-stories:packages/executable-stories-cypress/src/index.ts"
 ---
 
-# executable-stories-cypress
-
-BDD-style executable stories for Cypress. Uses Cypress’s native `describe`/`it`; story meta is sent from the browser to Node via `cy.task` and merged with run results for the reporter.
+# executable-stories-cypress — Story API
 
 ## Setup
 
-1. **Plugin** — register the task in `cypress.config.ts`:
+Three wiring steps are required:
 
-```ts
+```typescript
+// 1. cypress.config.ts — register the plugin
 import { defineConfig } from "cypress";
 import { registerExecutableStoriesPlugin } from "executable-stories-cypress/plugin";
 
@@ -26,100 +34,185 @@ export default defineConfig({
 });
 ```
 
-2. **Support file** — import so story meta is sent after each test (e.g. `cypress/support/e2e.ts`):
-
-```ts
+```typescript
+// 2. cypress/support/e2e.ts — import the support file
 import "executable-stories-cypress/support";
 ```
 
-## Usage
-
-Call `story.init()` at the start of each test, then use step markers:
-
-```ts
+```typescript
+// 3. cypress/e2e/checkout.story.cy.ts — write a story test
 import { story } from "executable-stories-cypress";
 
-describe("Calculator", () => {
-  it("adds two numbers", () => {
-    story.init();
+describe("Cart checkout", () => {
+  it("applies discount code", () => {
+    story.init({ tags: ["checkout"], ticket: "CART-42" });
 
-    story.given("two numbers 5 and 3");
-    const a = 5, b = 3;
+    story.given("a cart with items totaling $100");
+    cy.visit("/cart");
+    cy.get("[data-testid=total]").should("contain", "$100");
 
-    story.when("I add them together");
-    const result = a + b;
+    story.when("a 20% discount code is applied");
+    cy.get("#discount-code").type("SAVE20");
+    cy.get("#apply-discount").click();
 
-    story.then("the result is 8");
-    expect(result).toBe(8);
+    story.then("the total is $80");
+    cy.get("[data-testid=total]").should("contain", "$80");
   });
 });
 ```
 
-With options:
+File naming: `*.story.cy.ts`.
 
-```ts
-story.init({ tags: ["smoke"], ticket: "JIRA-123" }); // ticket also accepts { id: 'JIRA-123', url: '...' }
-```
+## Core Patterns
 
-## Step markers
+### Step markers with Auto-And conversion
 
-| Method              | Keyword | Purpose               |
-| ------------------- | ------- | --------------------- |
-| `story.given(text)` | Given   | Precondition/setup    |
-| `story.when(text)`  | When    | Action                |
-| `story.then(text)`  | Then    | Assertion             |
-| `story.and(text)`   | And     | Continuation          |
-| `story.but(text)`   | But     | Negative continuation |
-
-Same doc methods as other adapters: `story.note()`, `story.kv()`, `story.json()`, `story.code()`, `story.table()`, `story.link()`, `story.section()`, `story.mermaid()`, `story.screenshot()`, `story.custom()`, `story.tag()`.
-
-## Nested Doc Children
-
-Doc entries can be nested under a parent entry. If a child was previously attached to an earlier story-level or step-level container, nesting it later reparents it under the parent so it does not appear twice.
-
-```ts
-it("documents grouped evidence", () => {
+```typescript
+it("blocks suspended user login", () => {
   story.init();
 
-  story.given("the first step");
-  const child = story.note("shared child");
+  story.given("the user account exists");        // renders "Given"
+  story.given("the account is suspended");        // renders "And" (auto-converted)
+  story.when("the user submits valid credentials");
+  cy.get("#email").type("user@test.com");
+  cy.get("#submit").click();
 
-  story.when("the second step");
-  story.note("parent note", [child]);
+  story.then("the user sees an error message");
+  cy.get(".error").should("be.visible");
+
+  story.but("the user is not logged in");         // renders "But" (always)
+  cy.url().should("include", "/login");
 });
 ```
 
-Step markers also accept `DocEntry[]` as the second argument:
+### Doc entries
 
-```ts
-it("documents step attachments", () => {
+```typescript
+it("processes payment", () => {
   story.init();
 
-  const child1 = story.kv({ label: "User", value: "alice" });
-  const child2 = story.note("note about user");
+  story.given("a valid payment request");
+  story.json({ label: "Payload", value: { amount: 50, currency: "USD" } });
 
-  story.given("a user exists", [child1, child2]);
+  story.when("the payment is submitted");
+  cy.get("#pay").click();
+
+  story.then("the order is confirmed");
+  story.table({
+    label: "Order summary",
+    columns: ["Item", "Qty", "Price"],
+    rows: [["Widget", "2", "$25"]],
+  });
+  story.screenshot({ path: "screenshots/confirmation.png", alt: "Confirmation" });
+  story.note("Payment processed in sandbox mode");
 });
 ```
 
-## Reporter
+### Step wrappers
 
-Output uses the **executable-stories-formatters** schema (RawRun). Use the Mocha reporter with `--reporter executable-stories-cypress/reporter` and `--reporter-options outputDir=...,outputName=...`, or the Module API: `buildRawRunFromCypressResult(result, options)` then `generateReportsFromRawRun(rawRun, options)` from `executable-stories-cypress/reporter`.
+```typescript
+const result = story.fn("When", "the calculation runs", () => {
+  return calculate(2, 3);
+});
 
-## Best practices
+story.expect("the result is correct", () => {
+  expect(result).to.equal(5);
+});
+```
 
-- MUST call `story.init()` at the start of each test that should be documented
-- SHOULD use `.story.cy.ts` suffix for story specs
-- NEVER put assertions in `given` steps; NEVER put setup in `then` steps
+## Common Mistakes
 
-## Formatting (when writing or citing)
+### CRITICAL Missing plugin registration
 
-- **Code and symbols:** Use backticks for file paths, directory names, function names, class names, and inline code (e.g. `story.given`, `vitest.config.ts`).
-- **Emphasis:** Use **bold** for key terms when emphasizing (e.g. **MUST**, **SHOULD**).
-- **Citing code from the repo:** Use the standard citation format with line range and path: ```startLine:endLine:filepath``` (e.g. ```12:15:packages/executable-stories-cypress/src/reporter.ts```).
-- **Math (if ever needed):** Inline math `\( ... \)`, block math `\[ ... \]`.
-- **Valid markdown:** Ensure output is valid markdown (no broken backticks or brackets).
+Wrong:
 
-## Project context
+```typescript
+// cypress.config.ts
+export default defineConfig({
+  e2e: {
+    setupNodeEvents(on) {
+      // No plugin registered
+    },
+  },
+});
+```
 
-Repo conventions, ESLint plugins, and verification: see **AGENTS.md** (and **CLAUDE.md** symlink) in the repo root.
+Correct:
+
+```typescript
+import { registerExecutableStoriesPlugin } from "executable-stories-cypress/plugin";
+
+export default defineConfig({
+  e2e: {
+    setupNodeEvents(on) {
+      registerExecutableStoriesPlugin(on);
+    },
+  },
+});
+```
+
+The plugin registers `cy.task` handlers for `executableStories:recordMeta`. Without it, the support file's `afterEach` hook fails silently and no story metadata is captured.
+
+Source: packages/executable-stories-cypress/src/plugin.ts
+
+### CRITICAL Missing support file import
+
+Wrong:
+
+```typescript
+// cypress/support/e2e.ts
+// (no executable-stories import)
+```
+
+Correct:
+
+```typescript
+// cypress/support/e2e.ts
+import "executable-stories-cypress/support";
+```
+
+The support file registers an `afterEach` hook that sends story metadata from the browser to Node via `cy.task`. Without it, stories are recorded in the browser but never reach the reporter.
+
+Source: packages/executable-stories-cypress/src/support.ts
+
+### HIGH Using wrong file extension
+
+Wrong:
+
+```
+cypress/e2e/checkout.story.test.ts
+```
+
+Correct:
+
+```
+cypress/e2e/checkout.story.cy.ts
+```
+
+Cypress uses `.cy.ts` file extensions. The reporter expects `.story.cy.ts` for story test files.
+
+Source: CLAUDE.md — "Story test files use .story.cy.ts (cypress)"
+
+### MEDIUM Calling steps before story.init()
+
+Wrong:
+
+```typescript
+it("my test", () => {
+  story.given("something");
+  story.init();
+});
+```
+
+Correct:
+
+```typescript
+it("my test", () => {
+  story.init();
+  story.given("something");
+});
+```
+
+Steps called before `init()` are silently dropped because no story context exists.
+
+Source: packages/executable-stories-cypress/src/story-api.ts

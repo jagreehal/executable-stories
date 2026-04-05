@@ -1,389 +1,236 @@
 ---
-name: executable-stories-playwright
-description: Write Given/When/Then story tests for Playwright with structured report generation. Use when creating BDD-style E2E tests or generating user story documentation from browser tests.
-version: 2.2.0
-libraries: ['@playwright/test']
+name: playwright-story-api
+description: >
+  Write BDD stories in Playwright using executable-stories-playwright.
+  Top-level exports with TestInfo: story.init(testInfo). Async steps with
+  fixtures ({ page }). Steps: given, when, then, and, but. Doc entries:
+  json, kv, code, table, link, section, mermaid, screenshot, note, tag.
+  Auto-And keyword conversion. Aliases: arrange, act, assert.
+type: core
+library: executable-stories-playwright
+library_version: "7.0.1"
+sources:
+  - "jagreehal/executable-stories:packages/executable-stories-playwright/src/story-api.ts"
+  - "jagreehal/executable-stories:apps/docs-site/src/content/docs/playwright/playwright-story-api.md"
 ---
 
-# executable-stories-playwright
+# executable-stories-playwright — Story API
 
-TypeScript-first story testing for Playwright. Tests and documentation from the same code.
+## Setup
 
-## Quick Start
+```typescript
+import { test, expect } from "@playwright/test";
+import { story, given, when, then } from "executable-stories-playwright";
 
-```ts
-import { expect, test } from '@playwright/test';
-import { story } from 'executable-stories-playwright';
+test.describe("Login page", () => {
+  test("authenticates with valid credentials", async ({ page }, testInfo) => {
+    story.init(testInfo, { tags: ["auth"], ticket: "AUTH-42" });
 
-test.describe('User Authentication', () => {
-  test('logs in with valid credentials', async ({ page }, testInfo) => {
+    given("the login page is loaded");
+    await page.goto("/login");
+
+    when("valid credentials are entered");
+    await page.fill("#email", "alice@example.com");
+    await page.fill("#password", "secret");
+    await page.click('button[type="submit"]');
+
+    then("the dashboard is shown");
+    await expect(page.locator("h1")).toHaveText("Dashboard");
+  });
+});
+```
+
+File naming: `*.story.spec.ts`.
+
+Playwright uses top-level step exports. `story.init(testInfo)` requires the `testInfo` parameter from the test callback.
+
+## Core Patterns
+
+### Top-level step exports with fixtures
+
+```typescript
+import { story, given, when, then, and, but } from "executable-stories-playwright";
+
+test("blocks suspended user login", async ({ page }, testInfo) => {
+  story.init(testInfo);
+
+  given("the user account exists");          // renders "Given"
+  given("the account is suspended");          // renders "And" (auto-converted)
+  when("the user submits valid credentials");
+  await page.fill("#email", "user@test.com");
+  await page.click("#submit");
+
+  then("the user sees an error message");
+  await expect(page.locator(".error")).toBeVisible();
+
+  but("the user is not logged in");           // renders "But" (always)
+  await expect(page).toHaveURL("/login");
+});
+```
+
+### Doc entries with screenshots
+
+```typescript
+test("checkout flow", async ({ page }, testInfo) => {
+  story.init(testInfo);
+
+  given("a cart with items");
+  story.json({ label: "Cart", value: { items: 3, total: 150 } });
+
+  when("the user completes checkout");
+  await page.click("#checkout");
+  await page.waitForURL("/confirmation");
+
+  then("the confirmation page is shown");
+  story.screenshot({ path: "screenshots/confirmation.png", alt: "Order confirmation" });
+  story.table({
+    label: "Order details",
+    columns: ["Item", "Qty", "Price"],
+    rows: [["Widget", "3", "$50"]],
+  });
+});
+```
+
+### Step wrappers with timing
+
+```typescript
+const response = await story.fn("When", "the API is called", async () => {
+  return page.request.get("/api/data");
+});
+
+await story.expect("the response is successful", async () => {
+  expect(response.status()).toBe(200);
+});
+```
+
+### Suite headings from test.describe
+
+```typescript
+test.describe("Authentication", () => {
+  test("valid login", async ({ page }, testInfo) => {
     story.init(testInfo);
-
-    story.given('user is on login page');
-    await page.goto('/login');
-
-    story.when('user submits valid credentials');
-    await page.fill('[name=email]', 'user@example.com');
-    await page.click('button[type=submit]');
-
-    story.then('user sees the dashboard');
-    await expect(page).toHaveURL(/\/dashboard/);
+    // Produces "## Authentication" heading in generated docs
   });
 });
 ```
 
-## API Reference
+Suite path comes from `testInfo.titlePath`. Describe titles become `##` headings in generated docs.
 
-### story.init(testInfo, options?) / story.init(fixtures, testInfo)
+## Common Mistakes
 
-Initialize a story at the start of each test. Required before using other story methods.
+### CRITICAL Missing testInfo argument in story.init()
 
-- `story.init(testInfo)` — no fixtures; step callbacks receive no argument.
-- `story.init(fixtures, testInfo)` or `story.init(testInfo, { fixtures })` — step callbacks receive fixtures as first argument (e.g. `story.given('...', async ({ page }) => { await page.goto('/'); });`).
+Wrong:
 
-```ts
-test('test name', async ({ page }, testInfo) => {
+```typescript
+test("my test", async ({ page }) => {
+  story.init();
+  given("something");
+});
+```
+
+Correct:
+
+```typescript
+test("my test", async ({ page }, testInfo) => {
   story.init(testInfo);
-  // or with fixtures for step callbacks:
-  story.init({ page }, testInfo);
-  // or: story.init(testInfo, { tags: ['smoke'], ticket: 'JIRA-123', fixtures: { page } });
-  // ticket also accepts { id: 'JIRA-123', url: 'https://jira.example.com/JIRA-123' }
+  given("something");
 });
 ```
 
-### Step Markers (marker-only or optional callback)
+Without `testInfo`, story metadata is not linked to the test. The `testInfo` parameter must be the second argument in the Playwright test callback.
 
-**Marker-only:** Pass text (and optionally inline StoryDocs). Code follows the marker.
+Source: packages/executable-stories-playwright/src/story-api.ts
 
-```ts
-story.given('precondition');
-await page.goto('/login');
+### HIGH Using .story.test.ts file extension
 
-story.when('action occurs');
-await page.click('button');
+Wrong:
 
-story.then('expected result');
-await expect(page).toHaveURL('/dashboard');
+```
+tests/login.story.test.ts
 ```
 
-**Optional callback:** Second argument can be a function. Step is recorded, then callback runs. Return value is passed through; if Promise, use `await story.when('...', async () => { ... })`. With `story.init({ page }, testInfo)`, the callback receives fixtures: `story.given('...', async ({ page }) => { await page.goto('/'); });`. Step gets `wrapped: true` and `durationMs`.
+Correct:
 
-```ts
-story.init({ page }, testInfo);
-story.given('user is on login page', async ({ page }) => { await page.goto('/login'); });
-await story.when('user submits', async ({ page }) => { await page.click('button[type=submit]'); });
-story.then('dashboard is visible', () => { expect(true).toBe(true); });
+```
+tests/login.story.spec.ts
 ```
 
-| Method                              | Keyword | Purpose               |
-| ----------------------------------- | ------- | --------------------- |
-| `story.given(text)` / `(text, fn?)` | Given   | Precondition/setup    |
-| `story.when(text)` / `(text, fn?)`  | When    | Action                |
-| `story.then(text)` / `(text, fn?)` | Then    | Assertion             |
-| `story.and(text)` / `(text, fn?)`  | And     | Continuation          |
-| `story.but(text)` / `(text, fn?)`  | But     | Negative continuation |
+Playwright uses `.spec.ts` by convention. The reporter filters for `.story.spec.ts` files. Using `.test.ts` may cause the reporter to miss story metadata.
 
-### Step Aliases
+Source: CLAUDE.md — "Story test files use .story.spec.ts (playwright)"
 
-```ts
-// AAA Pattern
-story.arrange('setup');
-story.act('action');
-story.assert('check');
+### HIGH Forgetting testInfo in callback destructuring
 
-// Alternative names
-story.setup('initial state');
-story.context('additional context');
-story.execute('operation');
-story.action('user action');
-story.verify('outcome');
-```
+Wrong:
 
-### Inline Docs
-
-Attach documentation directly to steps:
-
-```ts
-story.given('valid credentials', {
-  json: {
-    label: 'Credentials',
-    value: { email: 'test@example.com', password: '***' },
-  },
-  note: 'Password is masked for security',
-});
-
-story.when('payment is processed', {
-  kv: { 'Payment ID': 'pay_123', Amount: '$99.99' },
-});
-
-story.then('order is confirmed', {
-  table: {
-    label: 'Order Summary',
-    columns: ['Item', 'Price'],
-    rows: [['Widget', '$49.99']],
-  },
+```typescript
+test("my test", async ({ page }) => {
+  story.init(testInfo);  // testInfo is undefined
 });
 ```
 
-### Standalone Doc Methods
+Correct:
 
-Call after a step to attach documentation:
-
-```ts
-story.given('an order exists');
-story.json({ label: 'Order', value: { id: 123, items: ['widget'] } });
-
-story.when('payment processed');
-story.kv({ label: 'Payment ID', value: 'pay_123' });
-story.kv({ label: 'Amount', value: '$99.99' });
-
-story.then('confirmation sent');
-story.screenshot({ path: '/screenshots/confirmation.png', alt: 'Email sent' });
-```
-
-| Method                      | Signature                   | Purpose          |
-| --------------------------- | --------------------------- | ---------------- |
-| `story.note(text)`          | `string`                    | Free text note   |
-| `story.tag(names)`          | `string \| string[]`        | Tags             |
-| `story.kv(options)`         | `{ label, value }`          | Key-value pair   |
-| `story.json(options)`       | `{ label, value }`          | JSON code block  |
-| `story.code(options)`       | `{ label, content, lang? }` | Code block       |
-| `story.table(options)`      | `{ label, columns, rows }`  | Markdown table   |
-| `story.link(options)`       | `{ label, url }`            | Hyperlink        |
-| `story.section(options)`    | `{ title, markdown }`       | Markdown section |
-| `story.mermaid(options)`    | `{ code, title? }`          | Mermaid diagram  |
-| `story.screenshot(options)` | `{ path, alt? }`            | Screenshot       |
-| `story.custom(options)`     | `{ type, data }`            | Custom entry     |
-
-### Nested Doc Children
-
-Doc entries can be grouped under a parent entry. If a child was already attached to an earlier story-level or step-level container, nesting it later reparents it under the new parent instead of rendering it twice.
-
-```ts
-test('documents grouped evidence', async ({}, testInfo) => {
+```typescript
+test("my test", async ({ page }, testInfo) => {
   story.init(testInfo);
-
-  story.given('the first step');
-  const child = story.note('shared child');
-
-  story.when('the second step');
-  story.note('parent note', [child]);
 });
 ```
 
-Step markers also accept `DocEntry[]` as the second argument:
+`testInfo` is the second parameter of the Playwright test callback, not a fixture. It must be explicitly named after the fixtures object.
 
-```ts
-test('documents step attachments', async ({}, testInfo) => {
+Source: packages/executable-stories-playwright/src/story-api.ts
+
+### MEDIUM Calling steps before story.init()
+
+Wrong:
+
+```typescript
+test("my test", async ({ page }, testInfo) => {
+  given("something");
   story.init(testInfo);
-
-  const child1 = story.kv({ label: 'User', value: 'alice' });
-  const child2 = story.note('note about user');
-
-  story.given('a user exists', [child1, child2]);
 });
 ```
 
-### Story-Level Docs
+Correct:
 
-Docs called before any step attach to the story level:
-
-```ts
-test('complex workflow', async ({ page }, testInfo) => {
+```typescript
+test("my test", async ({ page }, testInfo) => {
   story.init(testInfo);
-
-  // These attach to story level (before steps)
-  story.note('Requires running database');
-  story.link({ label: 'API Docs', url: 'https://docs.example.com' });
-
-  story.given('database is seeded');
-  // ...
+  given("something");
 });
 ```
 
-## Using test.beforeEach
+Steps called before `init()` are silently dropped because no story context exists.
+
+Source: packages/eslint-plugin-executable-stories-playwright/src/rules/require-story-context-for-steps.ts
+
+## Parameterized Scenarios (Scenario Outline equivalent)
+
+Use Playwright's data-driven pattern with `story()` to produce one scenario per data row — the framework-native replacement for Cucumber's Scenario Outline + Examples.
 
 ```ts
-test.describe('User Profile', () => {
-  test.beforeEach(async ({ page }, testInfo) => {
-    story.init(testInfo);
-    story.given('user is logged in');
-    await page.goto('/dashboard');
-  });
+import { test } from "@playwright/test";
+import { story, given, when, then } from "executable-stories-playwright";
 
-  test('updates email', async ({ page }) => {
-    story.when('user changes email');
-    await page.fill('[name=email]', 'new@example.com');
-
-    story.then('email is updated');
-    await expect(page.locator('.success')).toBeVisible();
-  });
-});
-```
-
-## Test Modifiers
-
-Use native Playwright modifiers - they work seamlessly:
-
-```ts
-test.skip('not implemented yet', async ({ page }, testInfo) => {
-  story.init(testInfo);
-  // ...
-});
-
-test.fixme('needs fix', async ({ page }, testInfo) => {
-  story.init(testInfo);
-  // ...
-});
-
-test.only('debug this', async ({ page }, testInfo) => {
-  story.init(testInfo);
-  // ...
-});
-```
-
-## Reporter Setup
-
-```ts
-// playwright.config.ts
-import { defineConfig, devices } from '@playwright/test';
-
-export default defineConfig({
-  testDir: './src',
-  reporter: [['list'], ['executable-stories-playwright/reporter']],
-  use: { ...devices['Desktop Chrome'] },
-});
-```
-
-### Reporter Options
-
-```ts
-[
-  'executable-stories-playwright/reporter',
-  {
-    // Output format selection
-    formats: ['markdown'], // "markdown" | "html" | "junit" | "cucumber-json"
-    outputDir: 'docs', // Output directory
-    outputName: 'user-stories', // Base filename (produces user-stories.md)
-
-    // Output routing
-    output: {
-      mode: 'aggregated', // "aggregated" | "colocated"
-      // colocatedStyle: "mirrored",          // "mirrored" | "adjacent" (when mode: "colocated")
-    },
-
-    // Markdown-specific options
-    markdown: {
-      title: 'User Stories',
-      sortScenarios: 'source', // "alpha" | "source"
-      suiteSeparator: ' - ',
-      includeStatusIcons: true, // Show ✅❌⏩📝
-      includeErrors: true, // Show failure details
-      includeMetadata: true, // Show date/version/git SHA
-    },
-  },
+const cases = [
+  { input: 1, expected: 2 },
+  { input: 2, expected: 4 },
+  { input: 3, expected: 6 },
 ];
-```
 
-## Generated Output
-
-```markdown
-## Calculator
-
-### ✅ adds two numbers
-
-- **Given** two numbers 5 and 3
-- **When** I add them together
-- **Then** the result is 8
-
-### ❌ divides by zero
-
-- **Given** a number 10 and zero
-  > Division by zero should throw an error
-- **When** division is attempted
-- **Then** an error is thrown
-
-**Failure**
-
-    Error: Cannot divide by zero
-```
-
-## Playwright-Specific Features
-
-### Using Fixtures
-
-All Playwright fixtures are available in the test callback - just use them after step markers:
-
-```ts
-test('API test', async ({ request }, testInfo) => {
-  story.init(testInfo);
-
-  story.given('API is ready');
-  const response = await request.get('/health');
-  expect(response.ok()).toBeTruthy();
-});
-```
-
-### Capturing Screenshots in Docs
-
-```ts
-test('login flow', async ({ page }, testInfo) => {
-  story.init(testInfo);
-
-  story.given('user is on login page');
-  await page.goto('/login');
-
-  story.when('user fills form');
-  await page.fill('[name="email"]', 'user@example.com');
-
-  // Capture screenshot and add to docs
-  await page.screenshot({ path: 'screenshots/login-form.png' });
-  story.screenshot({
-    path: 'screenshots/login-form.png',
-    alt: 'Login form filled',
+for (const { input, expected } of cases) {
+  test(`doubles ${input} to ${expected}`, async ({ page }) => {
+    story(`Doubles ${input} to ${expected}`);
+    given(`the input is ${input}`);
+    when("the doubler runs");
+    then(`the result is ${expected}`);
+    // ... assertions
   });
-
-  story.then('form is ready to submit');
-  await expect(page.locator('button[type="submit"]')).toBeEnabled();
-});
+}
 ```
 
-## Formatter CLI (CI, history, notifications)
+Each iteration produces a separate scenario in the generated report. Use interpolated titles so each scenario has a distinct, descriptive name.
 
-Reporters write raw JSON consumed by the **executable-stories** formatter CLI. In CI the CLI auto-detects the environment and can send Slack/Teams/webhook notifications and persist run history (`--history-file` for flakiness/stability/performance in HTML). No test code changes—reporter emits CI and run metadata.
-
-## OpenTelemetry (autotel): traces in the HTML report
-
-The HTML report **renders a trace waterfall inside the report** — span tree with names, parent/child, and timing — when span data is present. No test code changes beyond normal `story.init(testInfo)`; supply the data and enable HTML output.
-
-**Traces/spans in the HTML view**  
-Include `formats: ['markdown', 'html']` in reporter options. When [autotel](https://github.com/jagreehal/autotel) is available (optional peer `>=2.21.0`), the reporter creates test/step spans and reads serialized spans from the `otel-spans` annotation (e.g. from autotel's Playwright integration). The formatter then draws the span waterfall in the HTML report. Autotel is lazy-loaded.
-
-**Optional: trace ID and link to external APM**  
-When an OTel span is active, story-api injects a trace ID badge; for a clickable "View Trace" link to Grafana/Jaeger/etc., set `traceUrlTemplate` in `story.init(testInfo, { ... })` or `OTEL_TRACE_URL_TEMPLATE` with a `{traceId}` placeholder.
-
-## Framework-native attach (doc.story)
-
-To attach story metadata to a plain `test()`: `test('title', async ({ page }, testInfo) => { doc.story('Scenario title', testInfo); story.init(testInfo); ... });` or `doc.story('Title', (s) => { s.given(...); ... });`. Scenario heading in docs comes from the story title, not the test name.
-
-## Best Practices
-
-- MUST call `story.init(testInfo)` at the start of each test
-- MUST use native Playwright `test.describe`/`test` for full IDE support
-- MUST always `await` Playwright actions
-- SHOULD use `.story.spec.ts` suffix for story tests
-- SHOULD keep step descriptions in natural language
-- NEVER put assertions in `given` steps
-- NEVER put setup in `then` steps
-
-## Formatting (when writing or citing)
-
-- **Code and symbols:** Use backticks for file paths, directory names, function names, class names, and inline code (e.g. `story.given`, `vitest.config.ts`).
-- **Emphasis:** Use **bold** for key terms when emphasizing (e.g. **MUST**, **SHOULD**).
-- **Citing code from the repo:** Use the standard citation format with line range and path: ```startLine:endLine:filepath``` (e.g. ```12:15:packages/executable-stories-playwright/src/reporter.ts```).
-- **Math (if ever needed):** Inline math `\( ... \)`, block math `\[ ... \]`.
-- **Valid markdown:** Ensure output is valid markdown (no broken backticks or brackets).
-
-## Project context
-
-Repo conventions, ESLint plugins, and verification: see **AGENTS.md** (and **CLAUDE.md** symlink) in the repo root.
+Note: Playwright does not have `it.each` — use a `for...of` loop instead.
