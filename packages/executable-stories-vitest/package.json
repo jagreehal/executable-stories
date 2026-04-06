@@ -46,7 +46,7 @@
   },
   "devDependencies": {
     "@opentelemetry/api": "^1.9.0",
-    "@types/node": "^25.5.0",
+    "@types/node": "^25.5.2",
     "@types/picomatch": "^4.0.2",
     "eslint-config-executable-stories": "workspace:*",
     "tsup": "^8.5.1",
