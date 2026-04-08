@@ -109,6 +109,16 @@ export interface StoryOptions {
   fixtures?: unknown;
 }
 
+/** Options for story.console() – captures page console messages as a doc entry. */
+export interface ConsoleOptions {
+  /** The Playwright Page object (typed as unknown to avoid importing Page here). */
+  page: unknown;
+  /** Label shown above the console output block. Defaults to "Console". */
+  label?: string;
+  /** Also capture page errors (uncaught exceptions). Defaults to false. */
+  includeErrors?: boolean;
+}
+
 /** Options for story.attach(). */
 export interface AttachmentOptions {
   name: string;

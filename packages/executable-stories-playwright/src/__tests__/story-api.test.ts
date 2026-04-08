@@ -818,6 +818,26 @@ test.describe("step callbacks", () => {
     expect(typeof (meta!.steps[0] as { durationMs?: number }).durationMs).toBe("number");
   });
 
+  test("promise-returning fixture callback receives TestStepInfo without requiring async keyword", async ({}, testInfo) => {
+    const mockFixtures = { page: {} };
+    story.init(mockFixtures, testInfo);
+
+    let capturedStepInfo: unknown;
+
+    const result = await story.when(
+      "I return a promise from a fixture callback",
+      (_fixtures: { page?: unknown }, step) => {
+        capturedStepInfo = step;
+        return Promise.resolve(42);
+      },
+    );
+
+    expect(result).toBe(42);
+    expect(capturedStepInfo).toBeDefined();
+    expect(typeof (capturedStepInfo as { attach?: unknown })?.attach).toBe("function");
+    expect(typeof (capturedStepInfo as { skip?: unknown })?.skip).toBe("function");
+  });
+
   test("void callback returns undefined", async ({}, testInfo) => {
     story.init(testInfo);
     const result = story.then("check passes", () => {
