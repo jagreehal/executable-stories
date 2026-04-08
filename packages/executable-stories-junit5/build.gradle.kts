@@ -5,7 +5,7 @@ plugins {
     id("io.gitlab.arturbosch.detekt") version "1.23.8"
 }
 
-group = "dev.executablestories"
+group = "io.github.jagreehal"
 version = "0.1.0"
 
 fun propertyOrEnv(propertyName: String, envName: String): String? =

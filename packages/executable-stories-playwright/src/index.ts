@@ -57,4 +57,9 @@ export type {
   MermaidOptions,
   ScreenshotOptions,
   CustomOptions,
+  ConsoleOptions,
+  AttachmentOptions,
 } from './types';
+
+// TestStepInfo re-exported from @playwright/test for consumer convenience
+export type { TestStepInfo } from './step-runner';

@@ -54,7 +54,10 @@ import type {
   MermaidOptions,
   ScreenshotOptions,
   CustomOptions,
+  ConsoleOptions,
 } from './types';
+import { runStep, isAsyncFunction } from './step-runner';
+import type { TestStepInfo } from './step-runner';
 
 // Re-export types for consumers
 export type {
@@ -262,7 +265,7 @@ function extractSuitePath(testInfo: TestInfo): string[] | undefined {
 function createStepMarker(keyword: StepKeyword) {
   function stepMarker(text: string, docs?: StoryDocs): void;
   function stepMarker(text: string, children: DocEntry[]): void;
-  function stepMarker<T>(text: string, body: (fixtures: PlaywrightFixtures) => T): T;
+  function stepMarker<T>(text: string, body: (fixtures: PlaywrightFixtures, step?: TestStepInfo) => T): T;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function stepMarker<T>(text: string, docsOrBody?: StoryDocs | DocEntry[] | ((...args: any[]) => T)): T | void {
     const ctx = getContext();
@@ -313,9 +316,31 @@ function createStepMarker(keyword: StepKeyword) {
 
     if (!isCallback) return;
 
-    const body = docsOrBody as (fixtures?: PlaywrightFixtures) => T;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const body = docsOrBody as (fixtures?: PlaywrightFixtures, stepInfo?: TestStepInfo) => T;
+    const label = `${step.keyword}: ${text}`;
     const start = performance.now();
 
+    // ── Async or stepInfo-aware callbacks: route through runStep() for Playwright-native integrations ──
+    // Integrations: screencast chapters (v1.59), test.step/TestStepInfo (v1.51),
+    // tracing.group (v1.49). Activated when fixtures are available AND either:
+    //   1. callback is an async function, OR
+    //   2. callback expects TestStepInfo (arity >= 2)
+    if (ctx.fixtures !== undefined && (isAsyncFunction(body) || body.length >= 2)) {
+      const fixtures = ctx.fixtures as Record<string, unknown>;
+      const result = runStep(
+        label,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        body as unknown as (fixtures: Record<string, unknown>, step?: TestStepInfo) => Promise<any>,
+        fixtures,
+      );
+      return result.then(
+        (val: T) => { step.durationMs = performance.now() - start; syncAnnotationToTest(); return val; },
+        (err: unknown) => { step.durationMs = performance.now() - start; syncAnnotationToTest(); throw err; },
+      ) as T;
+    }
+
+    // ── Sync callbacks or no-fixture context: existing behaviour ─────────────
     try {
       const result = ctx.fixtures !== undefined ? body(ctx.fixtures as PlaywrightFixtures) : body();
       if (result instanceof Promise) {
@@ -419,6 +444,13 @@ function init(
     type: 'story-meta',
     description: JSON.stringify(meta),
   });
+
+  // ── Feature: Tag sync (v1.43) ─────────────────────────────────────────────
+  // Sync story tags to Playwright's native annotation system so they appear in
+  // UI Mode tag filters and the HTML reporter's tag display.
+  for (const tag of options?.tags ?? []) {
+    testInfo.annotations.push({ type: 'tag', description: tag });
+  }
 
   activeContext = {
     meta,
@@ -606,6 +638,53 @@ export const story = {
 
   custom(options: CustomOptions, children?: DocEntry[]): DocEntry {
     return attachDoc({ kind: 'custom', type: options.type, data: options.data, phase: 'runtime' }, children);
+  },
+
+  // ── Feature: Console capture (v1.56) ────────────────────────────────────
+  /**
+   * Snapshot the current page console messages (and optionally page errors)
+   * and attach them as a code doc entry.
+   *
+   * Uses page.consoleMessages() and page.pageErrors() introduced in Playwright v1.56.
+   * Safe to call on any Playwright version – silently produces empty output if the
+   * APIs are not present.
+   *
+   * @example
+   * story.when('the form is submitted', async ({ page }) => {
+   *   await page.click('#submit');
+   *   story.console({ page, label: 'Submit console output' });
+   * });
+   */
+  console(options: ConsoleOptions, children?: DocEntry[]): DocEntry {
+    const p = options.page as {
+      consoleMessages?: () => Array<{ type(): string; text(): string }>;
+      pageErrors?: () => Error[];
+    };
+
+    const lines: string[] = [];
+
+    if (typeof p?.consoleMessages === 'function') {
+      for (const msg of p.consoleMessages()) {
+        lines.push(`[${msg.type()}] ${msg.text()}`);
+      }
+    }
+
+    if (options.includeErrors === true && typeof p?.pageErrors === 'function') {
+      for (const err of p.pageErrors()) {
+        lines.push(`[error] ${err.message}`);
+      }
+    }
+
+    return attachDoc(
+      {
+        kind: 'code',
+        label: options.label ?? 'Console',
+        content: lines.length > 0 ? lines.join('\n') : '(no console output)',
+        lang: 'log',
+        phase: 'runtime',
+      },
+      children,
+    );
   },
 
   // Attachments

@@ -8,10 +8,10 @@ description: >
   Auto-And keyword conversion. Aliases: arrange, act, assert.
 type: core
 library: executable-stories-playwright
-library_version: "7.0.1"
+library_version: '8.1.4'
 sources:
-  - "jagreehal/executable-stories:packages/executable-stories-playwright/src/story-api.ts"
-  - "jagreehal/executable-stories:apps/docs-site/src/content/docs/playwright/playwright-story-api.md"
+  - 'jagreehal/executable-stories:packages/executable-stories-playwright/src/story-api.ts'
+  - 'jagreehal/executable-stories:apps/docs-site/src/content/docs/playwright/playwright-story-api.md'
 ---
 
 # executable-stories-playwright — Story API
@@ -19,23 +19,23 @@ sources:
 ## Setup
 
 ```typescript
-import { test, expect } from "@playwright/test";
-import { story, given, when, then } from "executable-stories-playwright";
+import { expect, test } from '@playwright/test';
+import { given, story, then, when } from 'executable-stories-playwright';
 
-test.describe("Login page", () => {
-  test("authenticates with valid credentials", async ({ page }, testInfo) => {
-    story.init(testInfo, { tags: ["auth"], ticket: "AUTH-42" });
+test.describe('Login page', () => {
+  test('authenticates with valid credentials', async ({ page }, testInfo) => {
+    story.init(testInfo, { tags: ['auth'], ticket: 'AUTH-42' });
 
-    given("the login page is loaded");
-    await page.goto("/login");
+    given('the login page is loaded');
+    await page.goto('/login');
 
-    when("valid credentials are entered");
-    await page.fill("#email", "alice@example.com");
-    await page.fill("#password", "secret");
+    when('valid credentials are entered');
+    await page.fill('#email', 'alice@example.com');
+    await page.fill('#password', 'secret');
     await page.click('button[type="submit"]');
 
-    then("the dashboard is shown");
-    await expect(page.locator("h1")).toHaveText("Dashboard");
+    then('the dashboard is shown');
+    await expect(page.locator('h1')).toHaveText('Dashboard');
   });
 });
 ```
@@ -49,44 +49,54 @@ Playwright uses top-level step exports. `story.init(testInfo)` requires the `tes
 ### Top-level step exports with fixtures
 
 ```typescript
-import { story, given, when, then, and, but } from "executable-stories-playwright";
+import {
+  and,
+  but,
+  given,
+  story,
+  then,
+  when,
+} from 'executable-stories-playwright';
 
-test("blocks suspended user login", async ({ page }, testInfo) => {
+test('blocks suspended user login', async ({ page }, testInfo) => {
   story.init(testInfo);
 
-  given("the user account exists");          // renders "Given"
-  given("the account is suspended");          // renders "And" (auto-converted)
-  when("the user submits valid credentials");
-  await page.fill("#email", "user@test.com");
-  await page.click("#submit");
+  given('the user account exists'); // renders "Given"
+  given('the account is suspended'); // renders "And" (auto-converted)
+  when('the user submits valid credentials');
+  await page.fill('#email', 'user@test.com');
+  await page.click('#submit');
 
-  then("the user sees an error message");
-  await expect(page.locator(".error")).toBeVisible();
+  then('the user sees an error message');
+  await expect(page.locator('.error')).toBeVisible();
 
-  but("the user is not logged in");           // renders "But" (always)
-  await expect(page).toHaveURL("/login");
+  but('the user is not logged in'); // renders "But" (always)
+  await expect(page).toHaveURL('/login');
 });
 ```
 
 ### Doc entries with screenshots
 
 ```typescript
-test("checkout flow", async ({ page }, testInfo) => {
+test('checkout flow', async ({ page }, testInfo) => {
   story.init(testInfo);
 
-  given("a cart with items");
-  story.json({ label: "Cart", value: { items: 3, total: 150 } });
+  given('a cart with items');
+  story.json({ label: 'Cart', value: { items: 3, total: 150 } });
 
-  when("the user completes checkout");
-  await page.click("#checkout");
-  await page.waitForURL("/confirmation");
+  when('the user completes checkout');
+  await page.click('#checkout');
+  await page.waitForURL('/confirmation');
 
-  then("the confirmation page is shown");
-  story.screenshot({ path: "screenshots/confirmation.png", alt: "Order confirmation" });
+  then('the confirmation page is shown');
+  story.screenshot({
+    path: 'screenshots/confirmation.png',
+    alt: 'Order confirmation',
+  });
   story.table({
-    label: "Order details",
-    columns: ["Item", "Qty", "Price"],
-    rows: [["Widget", "3", "$50"]],
+    label: 'Order details',
+    columns: ['Item', 'Qty', 'Price'],
+    rows: [['Widget', '3', '$50']],
   });
 });
 ```
@@ -94,20 +104,59 @@ test("checkout flow", async ({ page }, testInfo) => {
 ### Step wrappers with timing
 
 ```typescript
-const response = await story.fn("When", "the API is called", async () => {
-  return page.request.get("/api/data");
+const response = await story.fn('When', 'the API is called', async () => {
+  return page.request.get('/api/data');
 });
 
-await story.expect("the response is successful", async () => {
+await story.expect('the response is successful', async () => {
   expect(response.status()).toBe(200);
 });
 ```
 
+### Fixture callbacks receive TestStepInfo
+
+Callbacks with Playwright fixtures receive `TestStepInfo` as the second argument when they use either:
+
+- `async` keyword: `async ({ page }, step) => { ... }`
+- Two parameters: `({ page }, step) => Promise.resolve(...)`
+
+```typescript
+test('attaches to step', async ({ page }, testInfo) => {
+  story.init({ page }, testInfo);
+
+  // async function - gets TestStepInfo
+  await story.when('I perform an action', async (fixtures, step) => {
+    await step.attach('screenshot', {
+      body: await page.screenshot(),
+      contentType: 'image/png',
+    });
+  });
+
+  // Promise-returning callback with two params - also gets TestStepInfo
+  await story.then('result is verified', (fixtures, step) => {
+    step.skip(); // skip conditionally
+    return Promise.resolve();
+  });
+
+  // Single-param sync callback - no TestStepInfo (fast path)
+  story.given('a precondition', ({ page }) => {
+    // step parameter not available here
+  });
+});
+```
+
+Playwright-native integrations (screencast chapters, test.step, tracing.group) activate for callbacks that either:
+
+1. Are declared with `async`
+2. Accept two parameters (fixtures + step)
+
+Sync callbacks with one parameter skip these integrations for performance.
+
 ### Suite headings from test.describe
 
 ```typescript
-test.describe("Authentication", () => {
-  test("valid login", async ({ page }, testInfo) => {
+test.describe('Authentication', () => {
+  test('valid login', async ({ page }, testInfo) => {
     story.init(testInfo);
     // Produces "## Authentication" heading in generated docs
   });
@@ -123,18 +172,18 @@ Suite path comes from `testInfo.titlePath`. Describe titles become `##` headings
 Wrong:
 
 ```typescript
-test("my test", async ({ page }) => {
+test('my test', async ({ page }) => {
   story.init();
-  given("something");
+  given('something');
 });
 ```
 
 Correct:
 
 ```typescript
-test("my test", async ({ page }, testInfo) => {
+test('my test', async ({ page }, testInfo) => {
   story.init(testInfo);
-  given("something");
+  given('something');
 });
 ```
 
@@ -165,15 +214,15 @@ Source: CLAUDE.md — "Story test files use .story.spec.ts (playwright)"
 Wrong:
 
 ```typescript
-test("my test", async ({ page }) => {
-  story.init(testInfo);  // testInfo is undefined
+test('my test', async ({ page }) => {
+  story.init(testInfo); // testInfo is undefined
 });
 ```
 
 Correct:
 
 ```typescript
-test("my test", async ({ page }, testInfo) => {
+test('my test', async ({ page }, testInfo) => {
   story.init(testInfo);
 });
 ```
@@ -187,8 +236,8 @@ Source: packages/executable-stories-playwright/src/story-api.ts
 Wrong:
 
 ```typescript
-test("my test", async ({ page }, testInfo) => {
-  given("something");
+test('my test', async ({ page }, testInfo) => {
+  given('something');
   story.init(testInfo);
 });
 ```
@@ -196,9 +245,9 @@ test("my test", async ({ page }, testInfo) => {
 Correct:
 
 ```typescript
-test("my test", async ({ page }, testInfo) => {
+test('my test', async ({ page }, testInfo) => {
   story.init(testInfo);
-  given("something");
+  given('something');
 });
 ```
 
@@ -206,13 +255,43 @@ Steps called before `init()` are silently dropped because no story context exist
 
 Source: packages/eslint-plugin-executable-stories-playwright/src/rules/require-story-context-for-steps.ts
 
+### MEDIUM Expecting TestStepInfo without correct callback signature
+
+Wrong:
+
+```typescript
+test('my test', async ({ page }, testInfo) => {
+  story.init({ page }, testInfo);
+
+  // step is undefined - callback has only one parameter
+  story.when('action', ({ page }, step) => {
+    step.attach('file', { body: Buffer.from('data') }); // TypeError: Cannot read properties of undefined
+  });
+});
+```
+
+Correct:
+
+```typescript
+test('my test', async ({ page }, testInfo) => {
+  story.init({ page }, testInfo);
+
+  // async callback with two params - step is available
+  await story.when('action', async ({ page }, step) => {
+    await step.attach('file', { body: Buffer.from('data') });
+  });
+});
+```
+
+`TestStepInfo` is injected when the callback either uses `async` or accepts two parameters. A single-parameter sync callback skips the TestStepInfo injection path.
+
 ## Parameterized Scenarios (Scenario Outline equivalent)
 
 Use Playwright's data-driven pattern with `story()` to produce one scenario per data row — the framework-native replacement for Cucumber's Scenario Outline + Examples.
 
 ```ts
-import { test } from "@playwright/test";
-import { story, given, when, then } from "executable-stories-playwright";
+import { test } from '@playwright/test';
+import { given, story, then, when } from 'executable-stories-playwright';
 
 const cases = [
   { input: 1, expected: 2 },
@@ -224,7 +303,7 @@ for (const { input, expected } of cases) {
   test(`doubles ${input} to ${expected}`, async ({ page }) => {
     story(`Doubles ${input} to ${expected}`);
     given(`the input is ${input}`);
-    when("the doubler runs");
+    when('the doubler runs');
     then(`the result is ${expected}`);
     // ... assertions
   });
