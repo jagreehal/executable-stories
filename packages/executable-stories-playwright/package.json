@@ -61,6 +61,6 @@
     "executable-stories"
   ],
   "bin": {
-    "intent": "./bin/intent.js"
+    "intent": "bin/intent.js"
   }
 }
