@@ -8,12 +8,6 @@ plugins {
 group = "io.github.jagreehal"
 version = "0.1.0"
 
-fun propertyOrEnv(propertyName: String, envName: String): String? =
-    providers.gradleProperty(propertyName).orElse(providers.environmentVariable(envName)).orNull
-
-val signingKey = propertyOrEnv("signingKey", "SIGNING_KEY")
-val signingPassword = propertyOrEnv("signingPassword", "SIGNING_PASSWORD")
-
 java {
     sourceCompatibility = JavaVersion.VERSION_21
     targetCompatibility = JavaVersion.VERSION_21
@@ -21,9 +15,7 @@ java {
 
 mavenPublishing {
     publishToMavenCentral(com.vanniktech.maven.publish.SonatypeHost.CENTRAL_PORTAL)
-    if (!signingKey.isNullOrBlank() && !signingPassword.isNullOrBlank()) {
-        signAllPublications()
-    }
+    signAllPublications()
 
     pom {
         name.set("executable-stories-junit5")
