@@ -17,6 +17,22 @@ sources:
 
 ## Setup
 
+### JSON output (required for reports)
+
+Output is automatic via JUnit 5's `TestExecutionListener` SPI — `.executable-stories/raw-run.json` is written after all tests complete. Override the path with `EXECUTABLE_STORIES_OUTPUT` env var. If you use a custom launcher that disables auto-discovery, register the listener manually (see Common Mistakes).
+
+To generate HTML/Markdown reports from the JSON output:
+
+```bash
+# Requires Node.js >= 22 (install from https://nodejs.org)
+npm install -g executable-stories-formatters
+executable-stories format .executable-stories/raw-run.json --format html,markdown --output-dir reports
+```
+
+This produces `reports/test-results.html` and `reports/test-results.md`. See formatters-cli skill for full CLI options, CI setup, and asset bundling.
+
+### Story API usage
+
 ```kotlin
 import dev.executablestories.junit5.Story
 import org.junit.jupiter.api.Test

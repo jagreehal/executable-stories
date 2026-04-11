@@ -1,0 +1,65 @@
+AllCops:
+  NewCops: enable
+  TargetRubyVersion: 3.1
+
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+
+Style/StringLiteralsInInterpolation:
+  EnforcedStyle: double_quotes
+
+Layout/LineLength:
+  Max: 140
+
+# Documentation comments not needed for a small library
+Style/Documentation:
+  Enabled: false
+
+# Test files naturally have multiple classes
+Style/OneClassPerFile:
+  Exclude:
+    - test/**/*.rb
+
+# ENV["X"] reads clearer than ENV.fetch("X", nil) for optional CI vars
+Style/FetchEnvVar:
+  Enabled: false
+
+# get_meta is the intentional public API name
+Naming/AccessorMethodName:
+  Exclude:
+    - lib/executable_stories/story.rb
+
+# Short param names (tc, ci) are clear in serialization context
+Naming/MethodParameterName:
+  MinNameLength: 2
+
+Metrics/MethodLength:
+  Max: 25
+  Exclude:
+    - test/**/*.rb
+
+Metrics/AbcSize:
+  Max: 60
+  Exclude:
+    - test/**/*.rb
+
+Metrics/CyclomaticComplexity:
+  Max: 20
+
+Metrics/PerceivedComplexity:
+  Max: 20
+
+Metrics/ClassLength:
+  Max: 400
+  Exclude:
+    - test/**/*.rb
+
+Metrics/ModuleLength:
+  Max: 160
+
+Metrics/BlockLength:
+  Exclude:
+    - test/**/*.rb
+
+Metrics/ParameterLists:
+  Max: 8

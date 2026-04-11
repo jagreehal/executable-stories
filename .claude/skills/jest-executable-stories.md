@@ -18,6 +18,34 @@ sources:
 
 ## Setup
 
+### Reporter (required for output)
+
+Stories only produce reports when the reporter and setup file are both configured in `jest.config`. **Both entries are required** — the setup file flushes story metadata; the reporter consumes it.
+
+```javascript
+// jest.config.mjs
+export default {
+  setupFilesAfterEnv: ["executable-stories-jest/setup"],
+  reporters: [
+    "default",
+    [
+      "executable-stories-jest/reporter",
+      {
+        formats: ["html", "markdown"],
+        outputDir: "reports",
+        outputName: "test-results",
+      },
+    ],
+  ],
+};
+```
+
+Peer dependency: `executable-stories-formatters` must be installed alongside `executable-stories-jest`.
+
+See jest-reporter-setup/SKILL.md for output modes, format options, and advanced configuration.
+
+### Story API usage
+
 ```typescript
 import { describe, expect, it } from "@jest/globals";
 import { story, given, when, then } from "executable-stories-jest";

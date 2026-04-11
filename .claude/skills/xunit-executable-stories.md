@@ -17,6 +17,22 @@ sources:
 
 ## Setup
 
+### JSON output (required for reports)
+
+Output is written to `.executable-stories/raw-run.json` on process exit via `InProcessCollector`. Override the path with `EXECUTABLE_STORIES_OUTPUT` env var. **You must call `Story.RecordAndClear()` at the end of each test** — without it, test data is lost.
+
+To generate HTML/Markdown reports from the JSON output:
+
+```bash
+# Requires Node.js >= 22 (install from https://nodejs.org)
+npm install -g executable-stories-formatters
+executable-stories format .executable-stories/raw-run.json --format html,markdown --output-dir reports
+```
+
+This produces `reports/test-results.html` and `reports/test-results.md`. See formatters-cli skill for full CLI options, CI setup, and asset bundling.
+
+### Story API usage
+
 ```csharp
 using ExecutableStories.Xunit;
 using Xunit;

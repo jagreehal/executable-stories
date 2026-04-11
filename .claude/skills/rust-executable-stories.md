@@ -49,7 +49,15 @@ fn teardown() {
 }
 ```
 
-**Important:** Call `s.pass()` at the end of each passing test. Without it, the test defaults to "fail" status when the `Story` is dropped. Call `collector::write_results()` to write `.executable-stories/raw-run.json`. Override output path with `EXECUTABLE_STORIES_OUTPUT` env var.
+**Important:** Call `s.pass()` at the end of each passing test. Without it, the test defaults to "fail" status when the `Story` is dropped. Call `collector::write_results()` to write `.executable-stories/raw-run.json`. Override output path with `EXECUTABLE_STORIES_OUTPUT` env var. To generate HTML/Markdown reports from this JSON:
+
+```bash
+# Requires Node.js >= 22 (install from https://nodejs.org)
+npm install -g executable-stories-formatters
+executable-stories format .executable-stories/raw-run.json --format html,markdown --output-dir reports
+```
+
+This produces `reports/test-results.html` and `reports/test-results.md`. See formatters-cli skill for full CLI options, CI setup, and asset bundling.
 
 ## Core Patterns
 

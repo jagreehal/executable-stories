@@ -19,6 +19,20 @@ sources:
 
 ## Setup
 
+### JSON output (required for reports)
+
+The pytest plugin writes `.executable-stories/raw-run.json` automatically after all tests complete. Override the path with `EXECUTABLE_STORIES_OUTPUT` env var. To generate HTML/Markdown reports from this JSON:
+
+```bash
+# Requires Node.js >= 22 (install from https://nodejs.org)
+npm install -g executable-stories-formatters
+executable-stories format .executable-stories/raw-run.json --format html,markdown --output-dir reports
+```
+
+This produces `reports/test-results.html` and `reports/test-results.md`. See formatters-cli skill for full CLI options, CI setup, and asset bundling.
+
+### Story API usage
+
 ```python
 from executable_stories import story
 
@@ -39,7 +53,7 @@ def test_applies_discount_code():
     assert len(cart.discounts) == 1
 ```
 
-File naming: `test_*_story.py`. Output is automatic via the pytest plugin — `.executable-stories/raw-run.json` is written after all tests. Override with `EXECUTABLE_STORIES_OUTPUT` env var.
+File naming: `test_*_story.py`.
 
 Note: `and_` has a trailing underscore because `and` is a Python keyword.
 

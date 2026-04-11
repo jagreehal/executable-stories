@@ -41,17 +41,17 @@
     "test:e2e": "cypress run"
   },
   "peerDependencies": {
-    "cypress": ">=15.11.0"
+    "cypress": ">=15.13.1"
   },
   "dependencies": {
     "executable-stories-formatters": "workspace:*"
   },
   "devDependencies": {
     "cypress": "^15.12.0",
-    "@types/node": "^25.5.0",
+    "@types/node": "^25.6.0",
     "tsup": "^8.5.1",
-    "typescript": "~5.9.3",
-    "vitest": "^4.1.0"
+    "typescript": "~6.0.2",
+    "vitest": "^4.1.4"
   },
   "repository": {
     "type": "git",

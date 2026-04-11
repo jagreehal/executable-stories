@@ -2,9 +2,9 @@
 
 | Key | Value |
 | --- | --- |
-| Date | 2026-04-08T06:41:12.659Z |
+| Date | 2026-04-11T07:49:43.358Z |
 | Version | 1.0.0 |
-| Git SHA | 583327a |
+| Git SHA | 83579c1 |
 
 ## src/all-doc-api.story.spec.ts
 
@@ -1602,6 +1602,120 @@ graph LR
 - **And** we are about to add
 - **When** add is called
 - **Then** the result is 3
+
+## src/playwright-native-features.story.spec.ts
+
+### Tag sync (Playwright v1.43)
+
+### ✅ story.tag() options appear as native Playwright annotations
+Tags: `@regression`, `@smoke`
+
+- **Given** story tags are declared at init time
+- **Then** they appear in Playwright testInfo.annotations
+- **And** the story meta retains the tags for report generation
+    > Tags synced via testInfo.annotations({ type: "tag" }) so they appear in UI Mode filters.
+
+### ✅ story with no tags produces no extra tag annotations
+
+- **Given** no tags are declared
+- **Then** no tag annotations are added
+
+### Console capture (Playwright v1.56)
+
+### ✅ story.console() captures page console messages as a doc entry
+
+- **Given** a page with two console messages
+- **When** story.console() is called
+    **App output**
+    
+    ```log
+    [log] App initialised
+    [warn] Deprecated API used
+    ```
+    
+- **Then** a code doc entry is created with the console content
+
+### ✅ story.console() gracefully handles missing consoleMessages API
+
+- **Given** a page without the consoleMessages() API
+- **When** story.console() is called
+    **Legacy output**
+    
+    ```log
+    (no console output)
+    ```
+    
+- **Then** an empty doc entry is produced without throwing
+
+### ✅ story.console() does NOT include page errors by default
+
+- **Given** a page with console output and a page error
+- **When** story.console() is called without includeErrors
+    **Default output**
+    
+    ```log
+    [log] hello
+    ```
+    
+- **Then** page errors are not included in the output
+
+### ✅ story.console() includes page errors when includeErrors is true
+
+- **Given** a page with a console message and an uncaught error
+- **When** story.console() is called with includeErrors: true
+    **Full output**
+    
+    ```log
+    [log] hello
+    [error] Uncaught TypeError: cannot read property
+    ```
+    
+- **Then** both the console message and the error appear in the doc entry
+
+### Async step callback integrations (v1.49–v1.59)
+
+### ✅ async step callbacks receive TestStepInfo as second argument
+
+- **Given** an async step callback that captures its TestStepInfo
+- **When** the async step runs
+- **Then** TestStepInfo was injected
+    > TestStepInfo is injected via test.step() – same object Playwright provides in test.step(label, async (step) => …). Use step.attach() to attach files to the step, or step.skip() to conditionally skip it.
+
+### ✅ async step callbacks work without fixtures (no runStep path)
+
+- **Given** no fixtures are provided to story.init
+- **When** an async step still executes correctly
+- **Then** the result is returned correctly
+
+### ✅ screencast showChapter is called for each async step when available
+
+- **Given** a page with screencast support
+- **When** the first async step runs
+- **Then** the second async step runs
+- **And** chapter markers were shown for each step
+    **Screencast integration**
+    
+    Each `async` step callback automatically calls `page.screencast.showChapter(label)`
+    so the video recording is narrated with the BDD step title.
+    
+    **Chapter label format:** `<Keyword>: <step text>`
+    
+    e.g. `When: the user submits the form`
+    
+
+### ✅ graceful degradation: sync callbacks skip runStep entirely
+
+- **Given** a page with screencast support
+- **When** a sync step runs
+- **Then** the sync result is returned correctly
+- **And** no chapter was shown for the sync step
+
+### ✅ tracing.group is called for async steps when context is available
+
+- **Given** a context with tracing active
+- **When** the async step runs
+- **Then** tracing.group was called with the step label
+    > tracing.group() groups child actions under the BDD step label in the Playwright trace viewer.
 
 ## src/refactor-guide.story.spec.ts
 

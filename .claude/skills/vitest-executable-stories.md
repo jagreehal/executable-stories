@@ -18,6 +18,35 @@ sources:
 
 ## Setup
 
+### Reporter (required for output)
+
+Stories only produce reports when `StoryReporter` is configured in `vitest.config.ts`. **Do NOT use Vitest's built-in `html` reporter** — it generates Vitest's own UI, not executable-stories reports.
+
+```typescript
+// vitest.config.ts
+import { defineConfig } from "vitest/config";
+import { StoryReporter } from "executable-stories-vitest/reporter";
+
+export default defineConfig({
+  test: {
+    reporters: [
+      "default",
+      new StoryReporter({
+        formats: ["html", "markdown"],
+        outputDir: "reports",
+        outputName: "test-results",
+      }),
+    ],
+  },
+});
+```
+
+Peer dependency: `executable-stories-formatters` must be installed alongside `executable-stories-vitest`.
+
+See vitest-reporter-setup/SKILL.md for output modes, format options, and advanced configuration.
+
+### Story API usage
+
 ```typescript
 import { describe, expect, it } from "vitest";
 import { story } from "executable-stories-vitest";
@@ -211,6 +240,44 @@ it("my test", ({ task }) => {
 Steps called before `init()` are silently dropped because no story context exists yet.
 
 Source: packages/eslint-plugin-executable-stories-vitest/src/rules/require-init-before-steps.ts
+
+### CRITICAL Using Vitest's built-in html reporter instead of StoryReporter
+
+Wrong:
+
+```typescript
+// vitest.config.ts — this produces Vitest's UI, NOT executable-stories reports
+export default defineConfig({
+  test: {
+    reporters: ['default', 'html'],
+    outputFile: { html: 'reports/test-results.html' },
+  },
+});
+```
+
+Correct:
+
+```typescript
+// vitest.config.ts
+import { StoryReporter } from "executable-stories-vitest/reporter";
+
+export default defineConfig({
+  test: {
+    reporters: [
+      'default',
+      new StoryReporter({
+        formats: ['html', 'markdown'],
+        outputDir: 'reports',
+        outputName: 'test-results',
+      }),
+    ],
+  },
+});
+```
+
+Vitest's `html` reporter generates its own UI shell (a small HTML file that loads a JS bundle). It does not understand story metadata. Use `StoryReporter` from `executable-stories-vitest/reporter` to generate executable-stories HTML reports.
+
+Source: packages/executable-stories-vitest/src/reporter.ts
 
 See also: vitest-reporter-setup/SKILL.md — Stories need a reporter to produce output
 See also: eslint-vitest-rules/SKILL.md — ESLint enforces correct story.init() usage

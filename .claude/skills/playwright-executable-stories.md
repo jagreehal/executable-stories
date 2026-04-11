@@ -18,6 +18,35 @@ sources:
 
 ## Setup
 
+### Reporter (required for output)
+
+Stories only produce reports when the reporter is configured in `playwright.config.ts`. **Do NOT rely on Playwright's built-in `html` reporter** — it generates Playwright's own UI, not executable-stories reports. You can use both side by side.
+
+```typescript
+// playwright.config.ts
+import { defineConfig } from "@playwright/test";
+
+export default defineConfig({
+  reporter: [
+    ["html"],
+    [
+      "executable-stories-playwright/reporter",
+      {
+        formats: ["html", "markdown"],
+        outputDir: "reports",
+        outputName: "test-results",
+      },
+    ],
+  ],
+});
+```
+
+Peer dependency: `executable-stories-formatters` must be installed alongside `executable-stories-playwright`.
+
+See playwright-reporter-setup/SKILL.md for output modes, format options, and advanced configuration.
+
+### Story API usage
+
 ```typescript
 import { expect, test } from '@playwright/test';
 import { given, story, then, when } from 'executable-stories-playwright';
