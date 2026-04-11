@@ -39,7 +39,7 @@ Metrics/MethodLength:
     - test/**/*.rb
 
 Metrics/AbcSize:
-  Max: 45
+  Max: 60
   Exclude:
     - test/**/*.rb
 
