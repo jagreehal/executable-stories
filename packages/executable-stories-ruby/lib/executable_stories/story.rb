@@ -360,44 +360,53 @@ module ExecutableStories
       return nil unless ticket
 
       tickets = Array(ticket)
-      tickets.map { |t| t.is_a?(String) ? Ticket.new(id: t) : Ticket.new(id: t[:id] || t["id"], url: t[:url] || t["url"]) }
+      tickets.map do |t|
+        if t.is_a?(String)
+          Ticket.new(id: t)
+        else
+          Ticket.new(id: t[:id] || t["id"], url: t[:url] || t["url"])
+        end
+      end
     end
 
     def bridge_otel
-      # OTel bridge is a no-op unless the opentelemetry gem is loaded.
-      # When available, detect active span and inject trace metadata.
-      begin
-        require "opentelemetry-api"
-        context = OpenTelemetry::Trace.current_span_context
-        return unless context&.valid?
+      require "opentelemetry-api"
+      context = OpenTelemetry::Trace.current_span_context
+      return unless context&.valid?
 
-        trace_id = context.trace_id
-        span_id = context.span_id
+      inject_otel_meta(context)
+      inject_otel_docs(context)
+      tag_otel_span
+    rescue LoadError
+      # opentelemetry-api not available
+    rescue StandardError
+      # OTel not configured, ignore
+    end
 
-        @meta ||= {}
-        @meta["otel"] = { "traceId" => trace_id, "spanId" => span_id }
+    def inject_otel_meta(context)
+      @meta ||= {}
+      @meta["otel"] = { "traceId" => context.trace_id, "spanId" => context.span_id }
+    end
 
-        @docs << DocEntry.kv("Trace ID", trace_id)
+    def inject_otel_docs(context)
+      @docs << DocEntry.kv("Trace ID", context.trace_id)
 
-        template = @trace_url_template || ENV["OTEL_TRACE_URL_TEMPLATE"]
-        if template && !template.empty?
-          url = template.gsub("{traceId}", trace_id)
-          @docs << DocEntry.link("View Trace", url)
-        end
+      template = @trace_url_template || ENV["OTEL_TRACE_URL_TEMPLATE"]
+      return unless template && !template.empty?
 
-        span = OpenTelemetry::Trace.current_span
-        if span && !span.recording?
-          span.set_attribute("story.scenario", @scenario)
-          span.set_attribute("story.tags", @tags.join(",")) if @tags && !@tags.empty?
-          if @tickets
-            span.set_attribute("story.tickets", @tickets.map { |t| t.id }.join(","))
-          end
-        end
-      rescue LoadError
-        # opentelemetry-api not available
-      rescue StandardError
-        # OTel not configured, ignore
-      end
+      url = template.gsub("{traceId}", context.trace_id)
+      @docs << DocEntry.link("View Trace", url)
+    end
+
+    def tag_otel_span
+      span = OpenTelemetry::Trace.current_span
+      return unless span && !span.recording?
+
+      span.set_attribute("story.scenario", @scenario)
+      span.set_attribute("story.tags", @tags.join(",")) if @tags && !@tags.empty?
+      return unless @tickets
+
+      span.set_attribute("story.tickets", @tickets.map(&:id).join(","))
     end
   end
 

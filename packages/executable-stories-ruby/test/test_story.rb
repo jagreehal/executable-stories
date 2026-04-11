@@ -687,6 +687,19 @@ class TestMinitestPlugin < Minitest::Test
 
   def test_after_run_hook_writes_raw_run_json
     output_path = File.join(@tmpdir, "raw-run.json")
+    data = run_sample_test(output_path)
+
+    assert_equal 1, data["schemaVersion"]
+    assert_equal 1, data["testCases"].length
+    assert_equal "pass", data["testCases"][0]["status"]
+    assert_equal "writes output", data["testCases"][0]["story"]["scenario"]
+    refute_nil data["startedAtMs"]
+    refute_nil data["finishedAtMs"]
+  end
+
+  private
+
+  def run_sample_test(output_path)
     script_path = File.join(@tmpdir, "sample_test.rb")
     lib_path = File.expand_path("../lib", __dir__)
 
@@ -705,26 +718,15 @@ class TestMinitestPlugin < Minitest::Test
       end
     RUBY
 
-    env = {
-      "EXECUTABLE_STORIES_OUTPUT" => output_path
-    }
-
+    env = { "EXECUTABLE_STORIES_OUTPUT" => output_path }
     stdout, stderr, status = Open3.capture3(
-      env,
-      RbConfig.ruby,
-      "-I", lib_path,
-      script_path
+      env, RbConfig.ruby,
+      "-I", lib_path, script_path
     )
 
     assert status.success?, "subprocess failed\nstdout:\n#{stdout}\nstderr:\n#{stderr}"
     assert File.exist?(output_path), "expected #{output_path} to exist\nstdout:\n#{stdout}\nstderr:\n#{stderr}"
 
-    data = JSON.parse(File.read(output_path))
-    assert_equal 1, data["schemaVersion"]
-    assert_equal 1, data["testCases"].length
-    assert_equal "pass", data["testCases"][0]["status"]
-    assert_equal "writes output", data["testCases"][0]["story"]["scenario"]
-    refute_nil data["startedAtMs"]
-    refute_nil data["finishedAtMs"]
+    JSON.parse(File.read(output_path))
   end
 end

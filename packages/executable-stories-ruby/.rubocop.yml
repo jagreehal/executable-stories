@@ -1,0 +1,32 @@
+AllCops:
+  NewCops: enable
+  TargetRubyVersion: 3.1
+
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+
+Style/StringLiteralsInInterpolation:
+  EnforcedStyle: double_quotes
+
+Layout/LineLength:
+  Max: 140
+
+Metrics/MethodLength:
+  Max: 25
+  Exclude:
+    - test/**/*.rb
+
+Metrics/AbcSize:
+  Max: 25
+  Exclude:
+    - test/**/*.rb
+
+Metrics/CyclomaticComplexity:
+  Max: 10
+
+Metrics/PerceivedComplexity:
+  Max: 10
+
+Metrics/BlockLength:
+  Exclude:
+    - test/**/*.rb
