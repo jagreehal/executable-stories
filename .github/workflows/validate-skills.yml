@@ -25,19 +25,5 @@ jobs:
         with:
           node-version: 22
 
-      - name: Find and validate skills
-        run: |
-          # Monorepo: validate each package's skills/ (prefer over root skills/)
-          if [ -d "packages" ]; then
-            for dir in packages/*/skills; do
-              if [ -d "$dir" ]; then
-                echo "Validating $dir..."
-                npx @tanstack/intent@latest validate "$dir"
-              fi
-            done
-          elif [ -d "skills" ]; then
-            echo "Validating skills..."
-            npx @tanstack/intent@latest validate "skills"
-          else
-            echo "No skills/ directory found — skipping validation."
-          fi
+      - name: Validate skills
+        run: npx @tanstack/intent@latest validate "skills"
