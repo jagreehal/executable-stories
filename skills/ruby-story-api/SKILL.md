@@ -23,13 +23,13 @@ The `executable-stories-ruby` package provides Ruby-first story/given/when/then 
 Add to your Gemfile:
 
 ```ruby
-gem "executable_stories"
+gem "executable-stories-ruby"
 ```
 
 Or install directly:
 
 ```bash
-gem install executable_stories
+gem install executable-stories-ruby
 ```
 
 ## Basic Usage

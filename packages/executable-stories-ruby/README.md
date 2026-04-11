@@ -9,13 +9,13 @@ Local development expects Ruby 3.1 or newer. The gemspec currently requires Ruby
 Add to your Gemfile:
 
 ```ruby
-gem "executable_stories"
+gem "executable-stories-ruby"
 ```
 
 Or install directly:
 
 ```bash
-gem install executable_stories
+gem install executable-stories-ruby
 ```
 
 If Bundler reports that the lockfile was created with a different version, install the pinned Bundler and use that for package commands:

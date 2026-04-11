@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    executable_stories (0.1.0)
+    executable-stories-ruby (0.1.0)
 
 GEM
   remote: https://rubygems.org/
@@ -44,7 +44,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  executable_stories!
+  executable-stories-ruby!
   minitest (~> 5.0)
   rake (~> 13.0)
   rubocop (~> 1.50)
