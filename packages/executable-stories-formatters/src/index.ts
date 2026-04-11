@@ -525,7 +525,7 @@ export class ReportGenerator {
       excludeTags: options.excludeTags ?? [],
       formats: options.formats ?? ["cucumber-json"],
       outputDir: options.outputDir ?? "reports",
-      outputName: options.outputName ?? "test-results",
+      outputName: options.outputName ?? "index",
       outputNameTimestamp: options.outputNameTimestamp ?? false,
       sortTestCases: options.sortTestCases ?? "none",
       output: {

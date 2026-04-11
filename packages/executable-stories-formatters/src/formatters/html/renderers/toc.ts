@@ -70,7 +70,7 @@ export function renderToc(args: RenderTocArgs, deps: RenderTocDeps): string {
 
   return `<nav class="toc-sidebar" aria-label="Table of contents">
   <div class="toc-header">
-    <span class="toc-title">Contents</span>
+    <a href="#" class="toc-title" onclick="window.scrollTo({top:0,behavior:'smooth'});return false;">Contents</a>
   </div>
   <div class="toc-body">
     ${features.join("\n")}

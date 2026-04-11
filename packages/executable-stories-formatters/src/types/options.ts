@@ -93,7 +93,7 @@ export interface FormatterOptions {
   /** Output directory for generated reports. Default: "reports" */
   outputDir?: string;
 
-  /** Base filename (without extension). Default: "test-results" */
+  /** Base filename (without extension). Default: "index" */
   outputName?: string;
 
   /** Append run timestamp (UTC seconds) to output filename for before/after diffs. Default: false */

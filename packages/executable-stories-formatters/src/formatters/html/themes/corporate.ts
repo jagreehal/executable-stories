@@ -63,7 +63,7 @@ function corporateBuildBody(args: BuildBodyArgs, deps: BuildBodyDeps): string {
   const sidebar = `
 <nav class="toc">
   <div class="toc-header">
-    <div class="toc-title">Test Report</div>
+    <a href="#" class="toc-title" onclick="window.scrollTo({top:0,behavior:'smooth'});return false;">Test Report</a>
     <div class="toc-stats">
       <div class="toc-stat-row">
         <span class="toc-stat-label">Total</span>
