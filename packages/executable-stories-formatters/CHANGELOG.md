@@ -1,5 +1,11 @@
 # executable-stories-formatters
 
+## 0.7.6
+
+### Patch Changes
+
+- 650706c: Changed default page to index.html
+
 ## 0.7.5
 
 ### Patch Changes
