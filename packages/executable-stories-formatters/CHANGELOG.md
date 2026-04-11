@@ -1,5 +1,11 @@
 # executable-stories-formatters
 
+## 0.7.5
+
+### Patch Changes
+
+- 0ec25fb: Add HTML report navigation enhancements, theme switching support, and Storybook examples for formatter UI review.
+
 ## 0.7.4
 
 ### Patch Changes
