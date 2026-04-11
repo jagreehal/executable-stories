@@ -157,7 +157,7 @@ describe("packaged CLI", () => {
         expect(result.status).toBe(0);
 
         // The HTML report file should exist
-        const htmlPath = join(reportsDir, "test-results.html");
+        const htmlPath = join(reportsDir, "index.html");
         expect(fs.existsSync(htmlPath)).toBe(true);
 
         // The assets directory should exist

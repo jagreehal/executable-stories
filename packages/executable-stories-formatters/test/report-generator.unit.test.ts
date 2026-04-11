@@ -706,7 +706,7 @@ describe("ReportGenerator", () => {
       // Assert
       // Default format is cucumber-json
       expect(result.has("cucumber-json")).toBe(true);
-      expect(result.get("cucumber-json")![0]).toBe("reports/test-results.cucumber.json");
+      expect(result.get("cucumber-json")![0]).toBe("reports/index.cucumber.json");
     });
   });
 });

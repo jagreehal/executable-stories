@@ -1895,6 +1895,12 @@ body {
   font-weight: 600;
   font-size: 0.875rem;
   color: var(--foreground);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+a.toc-title:hover {
+  color: var(--primary);
 }
 
 .toc-feature {

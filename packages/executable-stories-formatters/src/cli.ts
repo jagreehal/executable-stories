@@ -76,7 +76,7 @@ OPTIONS
                                   cucumber-messages Raw NDJSON (Cucumber Messages)
   --input-type <type>           Input type: raw, canonical, or ndjson (default: raw)
   --output-dir <dir>            Output directory (default: reports)
-  --output-name <name>          Base filename (default: test-results)
+  --output-name <name>          Base filename (default: index)
   --output-name-timestamp       Append run timestamp (UTC seconds) to output filename for before/after diffs
   --sort-test-cases <mode>      Sort scenarios deterministically: id, source, none (default: none)
   --include <globs>             Comma-separated globs to include test cases by sourceFile (e.g. "**/*.Story*.cs")
@@ -215,7 +215,7 @@ function parseCliArgs(argv: string[]): CliArgs {
       "baseline-dir": { type: "string" },
       "input-type": { type: "string", default: "raw" },
       "output-dir": { type: "string", default: "reports" },
-      "output-name": { type: "string", default: "test-results" },
+      "output-name": { type: "string", default: "index" },
       "output-name-timestamp": { type: "boolean", default: false },
       "sort-test-cases": { type: "string", default: "none" },
       include: { type: "string" },
