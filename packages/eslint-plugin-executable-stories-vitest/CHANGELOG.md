@@ -1,5 +1,11 @@
 # eslint-plugin-executable-stories-vitest
 
+## 2.1.5
+
+### Patch Changes
+
+- 63b9b70: Updated deps
+
 ## 2.1.4
 
 ### Patch Changes

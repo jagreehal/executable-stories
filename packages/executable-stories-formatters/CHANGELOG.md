@@ -1,5 +1,11 @@
 # executable-stories-formatters
 
+## 0.7.4
+
+### Patch Changes
+
+- 63b9b70: Updated deps
+
 ## 0.7.3
 
 ### Patch Changes
