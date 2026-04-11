@@ -54,7 +54,15 @@ func TestAppliesDiscountCode(t *testing.T) {
 }
 ```
 
-`RunAndReport(m)` in `TestMain` writes `.executable-stories/raw-run.json` after all tests complete. Override output path with `EXECUTABLE_STORIES_OUTPUT` env var.
+`RunAndReport(m)` in `TestMain` writes `.executable-stories/raw-run.json` after all tests complete. Override output path with `EXECUTABLE_STORIES_OUTPUT` env var. To generate HTML/Markdown reports from this JSON:
+
+```bash
+# Requires Node.js >= 22 (install from https://nodejs.org)
+npm install -g executable-stories-formatters
+executable-stories format .executable-stories/raw-run.json --format html,markdown --output-dir reports
+```
+
+This produces `reports/test-results.html` and `reports/test-results.md`. See formatters-cli skill for full CLI options, CI setup, and asset bundling.
 
 ## Core Patterns
 

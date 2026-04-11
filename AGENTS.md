@@ -29,6 +29,12 @@ packages/
   executable-stories-playwright/ # Playwright adapter
   executable-stories-cypress/    # Cypress adapter
   executable-stories-formatters/ # Core: report generation (HTML, Markdown, JUnit, Cucumber JSON/HTML/Messages)
+  executable-stories-ruby/       # Ruby adapter (Minitest story API + JSON output)
+  executable-stories-go/         # Go adapter (testing.T story API + JSON output)
+  executable-stories-rust/       # Rust adapter (Story struct + JSON output)
+  executable-stories-pytest/     # Python pytest adapter
+  executable-stories-junit5/     # JUnit 5 (Kotlin) adapter
+  executable-stories-xunit/      # xUnit (C#) adapter
   eslint-config/                 # Shared ESLint config
   eslint-plugin-*-executable-stories/ # Per-framework ESLint plugins
 
@@ -218,32 +224,43 @@ Use this when you want a framework-native test (e.g. `it("adds two numbers", () 
 - Tests in `packages/` use Vitest; `apps/jest-example` uses Jest
 
 <!-- intent-skills:start -->
+
 ## Agent Skills
 
 When working in these areas, load the linked skill file into context for accurate, versioned guidance.
 
-| Task | Skill |
-|------|-------|
-| Writing Vitest story tests | `packages/executable-stories-vitest/skills/vitest-story-api/SKILL.md` |
-| Configuring Vitest StoryReporter | `packages/executable-stories-vitest/skills/vitest-reporter-setup/SKILL.md` |
-| Converting existing Vitest tests | `packages/executable-stories-vitest/skills/vitest-converting-tests/SKILL.md` |
-| Writing Jest story tests | `packages/executable-stories-jest/skills/jest-story-api/SKILL.md` |
-| Configuring Jest reporter | `packages/executable-stories-jest/skills/jest-reporter-setup/SKILL.md` |
-| Converting existing Jest tests | `packages/executable-stories-jest/skills/jest-converting-tests/SKILL.md` |
-| Writing Playwright story tests | `packages/executable-stories-playwright/skills/playwright-story-api/SKILL.md` |
-| Configuring Playwright reporter | `packages/executable-stories-playwright/skills/playwright-reporter-setup/SKILL.md` |
-| Converting existing Playwright tests | `packages/executable-stories-playwright/skills/playwright-converting-tests/SKILL.md` |
-| Writing Cypress story tests | `packages/executable-stories-cypress/skills/cypress-story-api/SKILL.md` |
-| Configuring Cypress reporter | `packages/executable-stories-cypress/skills/cypress-reporter-setup/SKILL.md` |
-| Converting existing Cypress tests | `packages/executable-stories-cypress/skills/cypress-converting-tests/SKILL.md` |
-| Writing Go story tests | `packages/executable-stories-go/skills/go-story-api/SKILL.md` |
-| Writing JUnit 5 (Kotlin) story tests | `packages/executable-stories-junit5/skills/junit5-story-api/SKILL.md` |
-| Writing Rust story tests | `packages/executable-stories-rust/skills/rust-story-api/SKILL.md` |
-| Writing xUnit (C#) story tests | `packages/executable-stories-xunit/skills/xunit-story-api/SKILL.md` |
-| Writing pytest story tests | `packages/executable-stories-pytest/skills/pytest-story-api/SKILL.md` |
-| Using the CLI or formatters API | `packages/executable-stories-formatters/skills/formatters-cli/SKILL.md` |
-| Setting up Vitest ESLint rules | `packages/eslint-plugin-executable-stories-vitest/skills/eslint-vitest-rules/SKILL.md` |
-| Setting up Jest ESLint rules | `packages/eslint-plugin-executable-stories-jest/skills/eslint-jest-rules/SKILL.md` |
-| Setting up Playwright ESLint rules | `packages/eslint-plugin-executable-stories-playwright/skills/eslint-playwright-rules/SKILL.md` |
-| Writing well-structured story tests (BDD Discovery & OOPSI) | `.claude/skills/bdd-discovery-oopsi.md` |
+| Task                                                        | Skill                                                                                          |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Writing Vitest story tests                                  | `skills/vitest-story-api/SKILL.md`                                                             |
+| Configuring Vitest StoryReporter                            | `skills/vitest-reporter-setup/SKILL.md`                                                        |
+| Converting existing Vitest tests                            | `skills/vitest-converting-tests/SKILL.md`                                                      |
+| Writing Jest story tests                                    | `skills/jest-story-api/SKILL.md`                                                               |
+| Configuring Jest reporter                                   | `skills/jest-reporter-setup/SKILL.md`                                                          |
+| Converting existing Jest tests                              | `skills/jest-converting-tests/SKILL.md`                                                        |
+| Writing Playwright story tests                              | `skills/playwright-story-api/SKILL.md`                                                         |
+| Configuring Playwright reporter                             | `skills/playwright-reporter-setup/SKILL.md`                                                    |
+| Converting existing Playwright tests                        | `skills/playwright-converting-tests/SKILL.md`                                                  |
+| Writing Cypress story tests                                 | `skills/cypress-story-api/SKILL.md`                                                            |
+| Configuring Cypress reporter                                | `skills/cypress-reporter-setup/SKILL.md`                                                       |
+| Converting existing Cypress tests                           | `skills/cypress-converting-tests/SKILL.md`                                                     |
+| Writing Go story tests                                      | `skills/go-story-api/SKILL.md`                                                                 |
+| Writing Ruby (Minitest) story tests                         | `skills/ruby-story-api/SKILL.md`                                                               |
+| Writing JUnit 5 (Kotlin) story tests                        | `skills/junit5-story-api/SKILL.md`                                                             |
+| Writing Rust story tests                                    | `skills/rust-story-api/SKILL.md`                                                               |
+| Writing xUnit (C#) story tests                              | `skills/xunit-story-api/SKILL.md`                                                              |
+| Writing pytest story tests                                  | `skills/pytest-story-api/SKILL.md`                                                             |
+| Using the CLI or formatters API                             | `skills/formatters-cli/SKILL.md`                                                               |
+| Setting up Vitest ESLint rules                              | `skills/eslint-vitest-rules/SKILL.md`                                                          |
+| Setting up Jest ESLint rules                                | `skills/eslint-jest-rules/SKILL.md`                                                            |
+| Setting up Playwright ESLint rules                          | `skills/eslint-playwright-rules/SKILL.md`                                                      |
+| Shaping specifications with OOPSI decomposition              | `.claude/skills/spec-discovery-oopsi.md`                                                       |
+| Mining requirements with Example Mapping                     | `.claude/skills/spec-example-mapping.md`                                                       |
+| Specifying business rules and decision tables                | `.claude/skills/spec-rules-decision-tables.md`                                                 |
+| Specifying workflows and state transitions                   | `.claude/skills/spec-workflow-state.md`                                                        |
+| Reviewing executable specifications                          | `.claude/skills/spec-review.md`                                                                |
+| Converting existing tests to executable stories              | `.claude/skills/spec-convert-tests.md`                                                         |
+| Refining raw examples into precise specifications            | `.claude/skills/spec-refine-examples.md`                                                       |
+| Outside-in behaviour discovery (Dan North)                   | `.claude/skills/spec-outside-in-behaviour.md`                                                  |
+| Writing specs as living documentation (Gojko Adzic)          | `.claude/skills/spec-living-documentation.md`                                                  |
+
 <!-- intent-skills:end -->

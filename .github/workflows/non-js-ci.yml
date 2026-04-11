@@ -8,6 +8,7 @@ on:
       - "packages/executable-stories-go/**"
       - "packages/executable-stories-junit5/**"
       - "packages/executable-stories-pytest/**"
+      - "packages/executable-stories-ruby/**"
       - "packages/executable-stories-rust/**"
       - "packages/executable-stories-xunit/**"
   pull_request:
@@ -17,6 +18,7 @@ on:
       - "packages/executable-stories-go/**"
       - "packages/executable-stories-junit5/**"
       - "packages/executable-stories-pytest/**"
+      - "packages/executable-stories-ruby/**"
       - "packages/executable-stories-rust/**"
       - "packages/executable-stories-xunit/**"
 
@@ -65,6 +67,24 @@ jobs:
           python-version: "3.12"
       - run: pip install -e ".[dev]"
       - run: python -m pytest tests/ -q
+
+  ruby:
+    name: Ruby
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/executable-stories-ruby
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3.0"
+          bundler: "2.5.23"
+          bundler-cache: true
+          working-directory: packages/executable-stories-ruby
+      - run: bundle exec rake test
+      - run: bundle exec rubocop lib/ test/
+      - run: gem build executable_stories.gemspec --strict
 
   rust:
     name: Rust

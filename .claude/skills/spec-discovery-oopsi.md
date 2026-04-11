@@ -1,5 +1,5 @@
 ---
-name: bdd-discovery-oopsi
+name: spec-discovery-oopsi
 description: Use when writing new executable story tests, converting existing tests to stories, or reviewing story test quality. Guides specification shape using OOPSI decomposition before writing Given/When/Then.
 ---
 
@@ -9,19 +9,37 @@ Write better executable specifications by thinking about the shape of the specif
 
 **Core principle:** Start with the value (Outcome), defer detail on unimportant things until later. If you jump into GWT too early, you end up with unfocused scenarios, duplicated preconditions, and missed edge cases.
 
+## Agent guardrails
+
+This skill guides what the executable specification should say. It is not an adapter API reference. Treat code examples as specification sketches; if an example uses `story.init(task)`, adapt it before editing non-Vitest adapters.
+
+- Keep the implementation framework-native: `describe`/`it`/`test`, inline steps, and story/doc metadata.
+- Do not introduce feature files, Gherkin parsing, regex step matching, or a world object.
+- Vitest: use `story.init(task)` inside `it(..., ({ task }) => ...)`; never import a top-level `then`.
+- Jest: use `story.init(options?)` inside `it(...)`; steps can be called as `story.given(...)` or top-level `given(...)`.
+- Playwright: use `story.init(testInfo)`, or `story.init({ page }, testInfo)` when step callbacks need fixtures.
+- Cypress: use `story.init()` inside `it(...)`; step functions live on the `story` object.
+- Go: use `es.Init(t, "Scenario", opts...)`; configure `es.RunAndReport(m)` in `TestMain`.
+- Ruby/Minitest: use `ExecutableStories.init("Scenario", ...)` and call steps on the returned story object.
+- pytest: use `story.init("Scenario", ...)`; Python keyword collisions are `and_()` and `assert_()`.
+- JUnit 5: use static `Story.init("Scenario", ...)`; Kotlin escapes the `when` call as ``Story.`when`("...")``.
+- Rust: use `Story::new("Scenario")`; call `s.pass()` for passing tests and `collector::write_results()` for output.
+- xUnit: use `Story.Init("Scenario", ...)`; call `Story.RecordAndClear()` at the end of each test.
+
 ## The OOPSI Model
 
 OOPSI (Outcomes → Outputs → Process → Scenarios → Inputs) is an extension of Chris Matt's Feature Injection, created by Jag Reehal and Pete Buckney. It structures how you think about what to specify.
 
-| Level | Question | Maps to |
-|-------|----------|---------|
-| **Outcomes** | What value are we delivering? Why does this matter? | Story title, `describe` block name |
-| **Outputs** | What tangible things does the user get? (Data, screens, messages, errors) | Doc entries: `story.json()`, `story.table()`, `story.screenshot()` |
-| **Process** | What interactions/steps produce those outputs? | `story.when()` steps, `story.mermaid()` for flow |
-| **Scenarios** | What paths through the process exist? What rules apply? | Individual `it()` test cases |
-| **Inputs** | What preconditions and data drive each scenario? | `story.given()` steps, `story.table()` for examples |
+| Level         | Question                                                                  | Maps to                                                            |
+| ------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| **Outcomes**  | What value are we delivering? Why does this matter?                       | Story title, `describe` block name                                 |
+| **Outputs**   | What tangible things does the user get? (Data, screens, messages, errors) | Doc entries: `story.json()`, `story.table()`, `story.screenshot()` |
+| **Process**   | What interactions/steps produce those outputs?                            | `story.when()` steps, `story.mermaid()` for flow                   |
+| **Scenarios** | What paths through the process exist? What rules apply?                   | Individual `it()` test cases                                       |
+| **Inputs**    | What preconditions and data drive each scenario?                          | `story.given()` steps, `story.table()` for examples                |
 
 **Mental checklist before writing any story test:**
+
 1. What **outcome** does this feature serve?
 2. What **outputs** can be produced? (List them all — cash, receipts, errors, updated state)
 3. What **process** generates the most important output?
@@ -97,10 +115,10 @@ it('cash withdrawal rules', ({ task }) => {
     label: 'Withdrawal examples',
     columns: ['Balance', 'Overdraft', 'Request', 'Outcome', 'New Balance'],
     rows: [
-      ['£500', '£0',   '£100', 'Dispensed', '£400'],
-      ['£50',  '£200', '£100', 'Dispensed', '-£50'],
-      ['£50',  '£200', '£300', 'Declined',  '£50'],
-      ['£0',   '£0',   '£50',  'Declined',  '£0'],
+      ['£500', '£0', '£100', 'Dispensed', '£400'],
+      ['£50', '£200', '£100', 'Dispensed', '-£50'],
+      ['£50', '£200', '£300', 'Declined', '£50'],
+      ['£0', '£0', '£50', 'Declined', '£0'],
     ],
   });
 
@@ -159,13 +177,13 @@ Symptom: Happy path only, edge cases discovered in production. Fix: Use context 
 
 ## Quick Reference
 
-| Principle | Rule |
-|-----------|------|
-| Start with value | Name your `describe` after the outcome, not the feature |
-| One output per scenario | Each `it()` focuses on one key output or rule |
-| Tables before steps | Use `story.table()` to explore examples, then write steps for the specific case |
-| Named data | Use data personas with `story.note()` — give test data a name and personality |
-| Find dragons | Ask "Is there any scenario where X wouldn't happen?" for each output |
-| New column = new rule | If your example table needs a new column, you've found a new scenario group |
-| Group by output | Organise `describe` blocks around outputs and processes, not arbitrary categories |
-| Defer detail | Don't explore low-value outputs until you've covered high-value ones |
+| Principle               | Rule                                                                              |
+| ----------------------- | --------------------------------------------------------------------------------- |
+| Start with value        | Name your `describe` after the outcome, not the feature                           |
+| One output per scenario | Each `it()` focuses on one key output or rule                                     |
+| Tables before steps     | Use `story.table()` to explore examples, then write steps for the specific case   |
+| Named data              | Use data personas with `story.note()` — give test data a name and personality     |
+| Find dragons            | Ask "Is there any scenario where X wouldn't happen?" for each output              |
+| New column = new rule   | If your example table needs a new column, you've found a new scenario group       |
+| Group by output         | Organise `describe` blocks around outputs and processes, not arbitrary categories |
+| Defer detail            | Don't explore low-value outputs until you've covered high-value ones              |
