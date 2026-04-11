@@ -18,7 +18,7 @@ module ExecutableStories
       @steps = []
       @tags = tags
       @tickets = normalize_tickets(ticket)
-      @meta = meta ? meta.dup : nil
+      @meta = meta&.dup
       @docs = []
       @current_step = nil
       @seen_primary = {}
@@ -106,16 +106,16 @@ module ExecutableStories
       start_ms = Process.clock_gettime(Process::CLOCK_MONOTONIC) * 1000.0
       begin
         result = body.call
-        @current_step.duration_ms = Process.clock_gettime(Process::CLOCK_MONOTONIC) * 1000.0 - start_ms
+        @current_step.duration_ms = (Process.clock_gettime(Process::CLOCK_MONOTONIC) * 1000.0) - start_ms
         result
-      rescue => e
-        @current_step.duration_ms = Process.clock_gettime(Process::CLOCK_MONOTONIC) * 1000.0 - start_ms
+      rescue StandardError => e
+        @current_step.duration_ms = (Process.clock_gettime(Process::CLOCK_MONOTONIC) * 1000.0) - start_ms
         raise e
       end
     end
 
-    def expect(text, &body)
-      fn("Then", text, &body)
+    def expect(text, &)
+      fn("Then", text, &)
     end
 
     def start_timer
@@ -138,15 +138,11 @@ module ExecutableStories
       return unless entry && !entry[:consumed]
 
       entry[:consumed] = true
-      duration_ms = Process.clock_gettime(Process::CLOCK_MONOTONIC) * 1000.0 - entry[:start]
+      duration_ms = (Process.clock_gettime(Process::CLOCK_MONOTONIC) * 1000.0) - entry[:start]
 
       step = nil
-      if entry[:step_id]
-        step = @steps.find { |s| s.id == entry[:step_id] }
-      end
-      if !step && entry[:step_index] && entry[:step_index] < @steps.length
-        step = @steps[entry[:step_index]]
-      end
+      step = @steps.find { |s| s.id == entry[:step_id] } if entry[:step_id]
+      step = @steps[entry[:step_index]] if !step && entry[:step_index] && entry[:step_index] < @steps.length
 
       step.duration_ms = duration_ms if step
     end
@@ -274,9 +270,9 @@ module ExecutableStories
       @end_time = Process.clock_gettime(Process::CLOCK_MONOTONIC) * 1000.0
       duration = duration_ms || (@end_time - @start_time)
 
-      step_events = @steps.each_with_index.map { |s, i|
+      step_events = @steps.each_with_index.map do |s, i|
         s.duration_ms ? RawStepEvent.new(index: i, title: s.text, duration_ms: s.duration_ms) : nil
-      }.compact
+      end.compact
 
       tc = RawTestCase.new(
         status: status,
@@ -342,7 +338,7 @@ module ExecutableStories
 
     def attach_doc(entry)
       if entry["children"] && !entry["children"].empty?
-        child_set = entry["children"].to_set { |c| c.object_id }
+        child_set = entry["children"].to_set(&:object_id)
         filter_docs = ->(docs) { docs.reject { |d| child_set.include?(d.object_id) } }
         @docs = filter_docs.call(@docs)
         @steps.each { |s| s.docs = filter_docs.call(s.docs) if s.docs }

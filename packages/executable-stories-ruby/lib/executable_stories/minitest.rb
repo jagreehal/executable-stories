@@ -28,8 +28,8 @@ module ExecutableStories
 
       output_path ||= ENV.fetch("EXECUTABLE_STORIES_OUTPUT", ".executable-stories/raw-run.json")
 
-      started = cases.map { |c| c.start_time }.compact.min
-      finished = cases.map { |c| c.end_time }.compact.max
+      started = cases.map(&:start_time).compact.min
+      finished = cases.map(&:end_time).compact.max
 
       run = RawRun.new(
         schema_version: 1,
@@ -63,8 +63,6 @@ module ExecutableStories
         RawCIInfo.new(name: "gitlab", url: ENV["CI_PIPELINE_URL"], build_number: ENV["CI_PIPELINE_IID"])
       elsif ENV["CI"] == "true"
         RawCIInfo.new(name: "ci")
-      else
-        nil
       end
     end
   end

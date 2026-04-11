@@ -172,7 +172,10 @@ class TestStory < Minitest::Test
   def test_fn_creates_wrapped_step
     s = ExecutableStories::Story.new("fn test")
     called = false
-    result = s.fn("Given", "a wrapped precondition") { called = true; 42 }
+    result = s.fn("Given", "a wrapped precondition") do
+      called = true
+      42
+    end
 
     assert called
     assert_equal 42, result
@@ -194,7 +197,7 @@ class TestStory < Minitest::Test
   def test_fn_auto_and_conversion
     s = ExecutableStories::Story.new("fn auto-and")
     s.given("a text-only step")
-    s.fn("Given", "a wrapped step") {}
+    s.fn("Given", "a wrapped step") { nil }
 
     assert_equal "Given", s.steps[0].keyword
     assert_equal "And", s.steps[1].keyword
@@ -254,12 +257,11 @@ class TestStory < Minitest::Test
 
   def test_init_with_tags_and_tickets
     s = ExecutableStories::Story.new("option test",
-      tags: ["smoke", "auth"],
-      ticket: ["JIRA-123", "JIRA-456"],
-      meta: { "priority" => "high" }
-    )
+                                     tags: %w[smoke auth],
+                                     ticket: %w[JIRA-123 JIRA-456],
+                                     meta: { "priority" => "high" })
 
-    assert_equal ["smoke", "auth"], s.tags
+    assert_equal %w[smoke auth], s.tags
     assert_equal 2, s.tickets.length
     assert_equal "JIRA-123", s.tickets[0].id
     assert_equal "JIRA-456", s.tickets[1].id
@@ -268,8 +270,7 @@ class TestStory < Minitest::Test
 
   def test_init_with_ticket_hash
     s = ExecutableStories::Story.new("ticket hash",
-      ticket: [{ id: "JIRA-200", url: "https://jira.example.com/JIRA-200" }]
-    )
+                                     ticket: [{ id: "JIRA-200", url: "https://jira.example.com/JIRA-200" }])
 
     assert_equal 1, s.tickets.length
     assert_equal "JIRA-200", s.tickets[0].id
@@ -312,7 +313,7 @@ class TestStory < Minitest::Test
     s = ExecutableStories::Story.new("doc children")
     child1 = ExecutableStories::DocEntry.note("child note 1")
     child2 = ExecutableStories::DocEntry.kv("child-key", "child-value")
-    parent = s.note("parent note", children: [child1, child2])
+    s.note("parent note", children: [child1, child2])
 
     assert_equal 1, s.docs.length
     assert_equal "note", s.docs[0]["kind"]
@@ -476,11 +477,11 @@ class TestDocEntry < Minitest::Test
   end
 
   def test_table
-    entry = ExecutableStories::DocEntry.table("results", %w[name score], [["Alice", "100"]])
+    entry = ExecutableStories::DocEntry.table("results", %w[name score], [%w[Alice 100]])
     assert_equal "table", entry["kind"]
     assert_equal "results", entry["label"]
     assert_equal %w[name score], entry["columns"]
-    assert_equal [["Alice", "100"]], entry["rows"]
+    assert_equal [%w[Alice 100]], entry["rows"]
   end
 
   def test_link
