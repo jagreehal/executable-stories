@@ -42,7 +42,7 @@ export function renderStep(
     ? deps.highlightStepParams(step.text)
     : deps.escapeHtml(step.text);
 
-  return `<div class="${stepClass}">
+  return `<div class="${stepClass}" data-keyword="${deps.escapeHtml(keywordTrimmed)}" data-text="${deps.escapeHtml(step.text)}">
   <span class="step-status ${statusClass}">${statusIcon}</span>
   <span class="step-keyword">${deps.escapeHtml(step.keyword)}</span>
   <span class="step-text">${textHtml}</span>

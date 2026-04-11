@@ -132,7 +132,7 @@ export type {
 
 // Theme types
 export type { HtmlTheme, HtmlThemeName } from "./formatters/html/themes/index";
-export { resolveTheme, getAvailableThemes } from "./formatters/html/themes/index";
+export { resolveTheme, getAvailableThemes, getCssOnlyThemes } from "./formatters/html/themes/index";
 
 // ============================================================================
 // ACL Exports
@@ -555,6 +555,8 @@ export class ReportGenerator {
         permalinkBaseUrl: options.html?.permalinkBaseUrl,
         ticketUrlTemplate: options.html?.ticketUrlTemplate,
         theme: options.html?.theme ?? "default",
+        tocEnabled: options.html?.tocEnabled ?? true,
+        themePickerEnabled: options.html?.themePickerEnabled ?? false,
       },
       junit: {
         suiteName: options.junit?.suiteName ?? "Test Suite",
@@ -706,6 +708,8 @@ export class ReportGenerator {
           markdownEnabled: this.options.html.markdownEnabled,
           permalinkBaseUrl: this.options.html.permalinkBaseUrl,
           ticketUrlTemplate: this.options.html.ticketUrlTemplate,
+          tocEnabled: this.options.html.tocEnabled,
+          themePickerEnabled: this.options.html.themePickerEnabled,
         });
         return formatter.format(run);
       }

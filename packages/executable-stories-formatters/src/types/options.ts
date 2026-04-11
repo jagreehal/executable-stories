@@ -135,6 +135,10 @@ export interface FormatterOptions {
     ticketUrlTemplate?: string;
     /** Theme name. Default: "default". Available: default, corporate, terminal, minimal, dashboard, playful */
     theme?: string;
+    /** Show table of contents sidebar. Default: true */
+    tocEnabled?: boolean;
+    /** Include theme picker with all CSS-only themes embedded. Default: false */
+    themePickerEnabled?: boolean;
   };
 
   /** JUnit XML specific options */
@@ -287,6 +291,8 @@ export interface ResolvedFormatterOptions {
     permalinkBaseUrl?: string;
     ticketUrlTemplate?: string;
     theme: string;
+    tocEnabled: boolean;
+    themePickerEnabled: boolean;
   };
   junit: {
     suiteName: string;

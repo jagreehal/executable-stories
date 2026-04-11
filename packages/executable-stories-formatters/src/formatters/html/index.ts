@@ -32,8 +32,12 @@ export interface HtmlOptions {
   permalinkBaseUrl?: string;
   /** URL template for ticket links. Use {ticket} as placeholder. E.g., "https://jira.example.com/browse/{ticket}" */
   ticketUrlTemplate?: string;
+  /** Show table of contents sidebar. Default: true */
+  tocEnabled?: boolean;
   /** Theme name or custom theme object. Default: "default" */
   theme?: string | HtmlTheme;
+  /** Include theme picker with all CSS-only themes embedded. Default: false */
+  themePickerEnabled?: boolean;
 }
 
 /**
@@ -94,5 +98,6 @@ export {
   buildBody,
   getStatusIcon,
 } from "./renderers/index";
+export { renderToc } from "./renderers/toc";
 export type { HtmlTheme, HtmlThemeName } from "./themes/index";
-export { resolveTheme, getAvailableThemes } from "./themes/index";
+export { resolveTheme, getAvailableThemes, getCssOnlyThemes } from "./themes/index";

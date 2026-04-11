@@ -36,4 +36,11 @@ export function getAvailableThemes(): string[] {
   return [...THEME_REGISTRY.keys()];
 }
 
+/** Get all themes that only use CSS (no custom body/template overrides). */
+export function getCssOnlyThemes(): HtmlTheme[] {
+  return [...THEME_REGISTRY.values()].filter(
+    (theme) => !theme.buildBody && !theme.generateTemplate,
+  );
+}
+
 export type { HtmlTheme, HtmlThemeName } from "./types.js";

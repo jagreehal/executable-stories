@@ -116,6 +116,32 @@ describe("renderScenario", () => {
     );
   });
 
+  it("renders permalink anchor icon in scenario header", () => {
+    const tc = stubs.testCaseResult({
+      id: "anchor-test-123",
+      story: stubs.storyMeta({ scenario: "Anchor test", tags: [] }),
+      tags: [],
+    });
+
+    const result = renderScenario({ tc }, baseDeps);
+
+    expect(result).toContain('class="permalink-anchor"');
+    expect(result).toContain("copyPermalink('scenario-anchor-test-123')");
+  });
+
+  it("renders copy-as-markdown button in scenario header", () => {
+    const tc = stubs.testCaseResult({
+      id: "copy-md-test",
+      story: stubs.storyMeta({ scenario: "Copy test", tags: [] }),
+      tags: [],
+    });
+
+    const result = renderScenario({ tc }, baseDeps);
+
+    expect(result).toContain('class="copy-scenario-btn"');
+    expect(result).toContain("copyScenarioAsMarkdown('scenario-copy-md-test')");
+  });
+
   it("renders ticket with explicit url (overrides template)", () => {
     const tc = stubs.testCaseResult({
       story: stubs.storyMeta({
