@@ -205,6 +205,7 @@ function applyAllFilters() {
   });
 
   updateFilterResults(visibleCount, totalCount);
+  syncTocVisibility();
   writeUrlState();
 }
 
@@ -221,13 +222,135 @@ function updateFilterResults(visible, total) {
   if (tc) tc.textContent = total;
 }
 
-// Keyboard shortcuts
+// Keyboard navigation
+var focusedScenarioIndex = -1;
+
+function getVisibleScenarios() {
+  return Array.from(document.querySelectorAll('.scenario')).filter(function(s) {
+    return s.style.display !== 'none' && s.closest('.feature').style.display !== 'none';
+  });
+}
+
+function focusScenario(index) {
+  var scenarios = getVisibleScenarios();
+  if (scenarios.length === 0) return;
+
+  // Remove previous focus
+  var prev = document.querySelector('.scenario-focused');
+  if (prev) prev.classList.remove('scenario-focused');
+
+  // Wrap around
+  if (index < 0) index = scenarios.length - 1;
+  if (index >= scenarios.length) index = 0;
+  focusedScenarioIndex = index;
+
+  var scenario = scenarios[index];
+  scenario.classList.add('scenario-focused');
+  scenario.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+function showShortcutsOverlay() {
+  if (document.querySelector('.shortcuts-overlay')) return;
+  var overlay = document.createElement('div');
+  overlay.className = 'shortcuts-overlay';
+  overlay.innerHTML = '<div class="shortcuts-modal">' +
+    '<div class="shortcuts-title">Keyboard Shortcuts</div>' +
+    '<div class="shortcuts-grid">' +
+    '<kbd>j</kbd><span>Next scenario</span>' +
+    '<kbd>k</kbd><span>Previous scenario</span>' +
+    '<kbd>Enter</kbd><span>Expand/collapse scenario</span>' +
+    '<kbd>Escape</kbd><span>Collapse scenario / close</span>' +
+    '<kbd>/</kbd><span>Focus search</span>' +
+    '<kbd>?</kbd><span>Toggle this help</span>' +
+    '<kbd>e</kbd><span>Expand all</span>' +
+    '<kbd>c</kbd><span>Collapse all</span>' +
+    '<kbd>t</kbd><span>Toggle table of contents</span>' +
+    '</div></div>';
+  overlay.addEventListener('click', function(ev) {
+    if (ev.target === overlay) hideShortcutsOverlay();
+  });
+  document.body.appendChild(overlay);
+}
+
+function hideShortcutsOverlay() {
+  var overlay = document.querySelector('.shortcuts-overlay');
+  if (overlay) overlay.remove();
+}
+
 function initKeyboardShortcuts() {
   document.addEventListener('keydown', function(e) {
-    if (e.key === '/' && !e.ctrlKey && !e.metaKey && e.target.tagName !== 'INPUT') {
-      e.preventDefault();
-      var input = document.querySelector('.search-input');
-      if (input) input.focus();
+    var tag = e.target.tagName;
+    if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') {
+      if (e.key === 'Escape') {
+        e.target.blur();
+        if (e.target.classList.contains('search-input')) {
+          e.target.value = '';
+          applyAllFilters();
+        }
+      }
+      return;
+    }
+
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+    switch (e.key) {
+      case 'j':
+        e.preventDefault();
+        focusScenario(focusedScenarioIndex + 1);
+        break;
+      case 'k':
+        e.preventDefault();
+        focusScenario(focusedScenarioIndex - 1);
+        break;
+      case 'Enter':
+        e.preventDefault();
+        var scenarios = getVisibleScenarios();
+        if (focusedScenarioIndex >= 0 && focusedScenarioIndex < scenarios.length) {
+          var s = scenarios[focusedScenarioIndex];
+          var h = s.querySelector('.scenario-header');
+          if (h) toggleCollapse(h, s);
+        }
+        break;
+      case 'Escape':
+        if (document.querySelector('.shortcuts-overlay')) {
+          hideShortcutsOverlay();
+        } else {
+          var scenarios2 = getVisibleScenarios();
+          if (focusedScenarioIndex >= 0 && focusedScenarioIndex < scenarios2.length) {
+            var sc = scenarios2[focusedScenarioIndex];
+            if (!sc.classList.contains('collapsed')) {
+              sc.classList.add('collapsed');
+              var sh = sc.querySelector('.scenario-header');
+              if (sh) sh.setAttribute('aria-expanded', 'false');
+            }
+          }
+        }
+        break;
+      case '/':
+        e.preventDefault();
+        var input = document.querySelector('.search-input');
+        if (input) input.focus();
+        break;
+      case '?':
+        e.preventDefault();
+        if (document.querySelector('.shortcuts-overlay')) {
+          hideShortcutsOverlay();
+        } else {
+          showShortcutsOverlay();
+        }
+        break;
+      case 'e':
+        e.preventDefault();
+        expandAll();
+        break;
+      case 'c':
+        e.preventDefault();
+        collapseAll();
+        break;
+      case 't':
+        e.preventDefault();
+        if (typeof toggleToc === 'function') toggleToc();
+        break;
     }
   });
 }
@@ -365,6 +488,189 @@ function writeUrlState() {
   var url = window.location.pathname + (qs ? '?' + qs : '');
   history.replaceState(null, '', url);
 }
+
+// Permalink copy
+function copyPermalink(anchorId) {
+  var url = location.origin + location.pathname + location.search + '#' + anchorId;
+  navigator.clipboard.writeText(url).then(function() {
+    var el = document.getElementById(anchorId);
+    if (el) showCopyToast(el);
+  });
+}
+
+function showCopyToast(el) {
+  var existing = el.querySelector('.copy-toast');
+  if (existing) existing.remove();
+  var toast = document.createElement('span');
+  toast.className = 'copy-toast';
+  toast.textContent = 'Copied!';
+  var header = el.querySelector('.feature-header, .scenario-header');
+  if (header) {
+    header.style.position = 'relative';
+    header.appendChild(toast);
+  }
+  setTimeout(function() { toast.remove(); }, 1500);
+}
+
+// Copy scenario as markdown
+function copyScenarioAsMarkdown(scenarioId) {
+  var scenario = document.getElementById(scenarioId);
+  if (!scenario) return;
+
+  var title = (scenario.querySelector('.scenario-name') || {}).textContent || '';
+  var steps = scenario.querySelectorAll('.step, .step.continuation');
+  var lines = ['### Scenario: ' + title.trim(), ''];
+
+  steps.forEach(function(step) {
+    var keyword = step.getAttribute('data-keyword') || '';
+    var text = step.getAttribute('data-text') || '';
+    lines.push('- **' + keyword + '** ' + text);
+  });
+
+  var errorBox = scenario.querySelector('.error-message');
+  if (errorBox) {
+    var errorText = errorBox.textContent || '';
+    lines.push('');
+    lines.push('> **Error:** ' + errorText.trim());
+  }
+
+  var md = lines.join('\\n');
+  navigator.clipboard.writeText(md).then(function() {
+    showCopyToast(scenario);
+  });
+}
+
+// Hash scroll on load
+function initHashScroll() {
+  if (!location.hash) return;
+  var target = document.querySelector(location.hash);
+  if (!target) return;
+  var feature = target.closest('.feature');
+  if (feature && feature.classList.contains('collapsed')) {
+    feature.classList.remove('collapsed');
+    var fh = feature.querySelector('.feature-header');
+    if (fh) fh.setAttribute('aria-expanded', 'true');
+  }
+  if (target.classList.contains('collapsed')) {
+    target.classList.remove('collapsed');
+    var sh = target.querySelector('.scenario-header');
+    if (sh) sh.setAttribute('aria-expanded', 'true');
+  }
+  setTimeout(function() {
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    target.classList.add('hash-highlight');
+  }, 100);
+}
+
+// Table of contents
+function toggleToc() {
+  var sidebar = document.querySelector('.toc-sidebar');
+  var wrapper = document.querySelector('.report-layout');
+  if (!sidebar || !wrapper) return;
+  var isMobile = window.matchMedia('(max-width: 767px)').matches;
+  if (isMobile) {
+    sidebar.classList.toggle('toc-mobile-open');
+  } else {
+    wrapper.classList.toggle('toc-hidden');
+    var hidden = wrapper.classList.contains('toc-hidden');
+    localStorage.setItem('toc-visible', String(!hidden));
+  }
+}
+
+function initToc() {
+  var sidebar = document.querySelector('.toc-sidebar');
+  if (!sidebar) return;
+
+  var saved = localStorage.getItem('toc-visible');
+  var wrapper = document.querySelector('.report-layout');
+  if (saved === 'false' && wrapper) {
+    wrapper.classList.add('toc-hidden');
+  }
+
+  // Active tracking via IntersectionObserver
+  var observer = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting) {
+        var id = entry.target.id;
+        if (!id) return;
+        document.querySelectorAll('.toc-scenario, .toc-feature-toggle').forEach(function(el) {
+          el.classList.remove('toc-active');
+        });
+        var tocLink = sidebar.querySelector('a[href="#' + id + '"]');
+        if (tocLink) tocLink.classList.add('toc-active');
+      }
+    });
+  }, { rootMargin: '-10% 0px -80% 0px' });
+
+  document.querySelectorAll('.feature, .scenario').forEach(function(el) {
+    if (el.id) observer.observe(el);
+  });
+
+  // Click navigation: expand collapsed parents
+  sidebar.querySelectorAll('.toc-scenario').forEach(function(link) {
+    link.addEventListener('click', function(e) {
+      var hash = link.getAttribute('href');
+      if (!hash) return;
+      var target = document.querySelector(hash);
+      if (!target) return;
+      var feature = target.closest('.feature');
+      if (feature && feature.classList.contains('collapsed')) {
+        feature.classList.remove('collapsed');
+        var fh = feature.querySelector('.feature-header');
+        if (fh) fh.setAttribute('aria-expanded', 'true');
+      }
+      if (target.classList.contains('collapsed')) {
+        target.classList.remove('collapsed');
+        var sh = target.querySelector('.scenario-header');
+        if (sh) sh.setAttribute('aria-expanded', 'true');
+      }
+    });
+  });
+}
+
+// Theme picker
+function initThemePicker() {
+  var picker = document.querySelector('.theme-picker');
+  if (!picker) return;
+
+  var saved = localStorage.getItem('report-theme');
+  if (saved) {
+    picker.value = saved;
+    switchReportTheme(saved);
+  }
+
+  picker.addEventListener('change', function(e) {
+    switchReportTheme(e.target.value);
+    localStorage.setItem('report-theme', e.target.value);
+  });
+}
+
+function switchReportTheme(name) {
+  document.querySelectorAll('style[data-theme-name]').forEach(function(s) {
+    s.disabled = s.dataset.themeName !== name;
+  });
+}
+
+// Sync TOC visibility with filters
+function syncTocVisibility() {
+  var sidebar = document.querySelector('.toc-sidebar');
+  if (!sidebar) return;
+
+  sidebar.querySelectorAll('.toc-scenario').forEach(function(link) {
+    var href = link.getAttribute('href');
+    if (!href) return;
+    var target = document.querySelector(href);
+    link.style.display = (target && target.style.display !== 'none') ? '' : 'none';
+  });
+
+  sidebar.querySelectorAll('.toc-feature').forEach(function(feature) {
+    var visibleScenarios = feature.querySelectorAll('.toc-scenario');
+    var anyVisible = Array.from(visibleScenarios).some(function(s) {
+      return s.style.display !== 'none';
+    });
+    feature.style.display = anyVisible ? '' : 'none';
+  });
+}
 `;
 
 /** Options for HTML template generation */
@@ -378,6 +684,14 @@ export interface HtmlTemplateOptions {
   additionalJs?: string;
   /** Additional ESM import statements for CDN libraries (used by themes). */
   additionalImports?: string[];
+  /** Pre-rendered TOC sidebar HTML. Placed as sibling of .container inside .report-layout. */
+  tocHtml?: string;
+  /** Pre-rendered theme picker HTML (select element). */
+  themePickerHtml?: string;
+  /** Additional theme CSS blocks to embed (for theme picker). */
+  additionalThemeCss?: Array<{ name: string; label: string; css: string }>;
+  /** Name of the currently active theme (for data-theme-name attribute). */
+  activeThemeName?: string;
 }
 
 /** JavaScript for markdown parsing (used as a function body string in the ESM module) */
@@ -423,6 +737,9 @@ function generateScript(options: HtmlTemplateOptions): string {
   initCalls.push('initCollapse();');
   initCalls.push('initDetailLevel();');
   initCalls.push('applyAllFilters();');
+  initCalls.push('initHashScroll();');
+  initCalls.push('initToc();');
+  initCalls.push('initThemePicker();');
 
   const initScript = `
 // Initialize on load
@@ -510,6 +827,10 @@ export function generateHtmlTemplate(
   const cdnStylesHtml = cdnStyles.length > 0 ? '\n  ' + cdnStyles.join('\n  ') : '';
   const esmScriptHtml = generateEsmScript(options);
 
+  const additionalThemeStyles = (options.additionalThemeCss ?? [])
+    .map(t => `<style data-theme-name="${escapeHtml(t.name)}" disabled>${t.css}</style>`)
+    .join('\n  ');
+
   return `<!DOCTYPE html>
 <html lang="en"${themeAttr} data-detail-level="full">
 <head>
@@ -517,19 +838,27 @@ export function generateHtmlTemplate(
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="light dark">
   <title>${escapeHtml(title)}</title>${cdnStylesHtml}
-  <style>${styles}</style>
+  <style${options.additionalThemeCss ? ` data-theme-name="${escapeHtml(options.activeThemeName ?? 'default')}"` : ''}>${styles}</style>
+  ${additionalThemeStyles}
 </head>
 <body>
-  <div class="container">
-    <header class="header">
-      <h1>${escapeHtml(title)}</h1>
-      <div class="header-actions">
-        ${includeSearch ? '<input type="text" class="search-input" placeholder="Search scenarios..." aria-label="Search scenarios">' : ''}
-        <button type="button" class="detail-toggle" onclick="toggleDetailLevel()" aria-label="Toggle detail level" title="Toggle documentation detail"></button>
-        ${includeDarkMode ? '<button type="button" class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme"></button>' : ''}
+  <div class="report-layout">
+    ${options.tocHtml ?? ''}
+    <div class="main-content">
+      <div class="container">
+        <header class="header">
+          <h1>${escapeHtml(title)}</h1>
+          <div class="header-actions">
+            <button type="button" class="toc-toggle" onclick="toggleToc()" aria-label="Toggle table of contents" title="Toggle contents">&#x2630;</button>
+            ${includeSearch ? '<input type="text" class="search-input" placeholder="Search scenarios..." aria-label="Search scenarios">' : ''}
+            <button type="button" class="detail-toggle" onclick="toggleDetailLevel()" aria-label="Toggle detail level" title="Toggle documentation detail"></button>
+            ${options.themePickerHtml ?? ''}
+            ${includeDarkMode ? '<button type="button" class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme"></button>' : ''}
+          </div>
+        </header>
+        ${body}
       </div>
-    </header>
-    ${body}
+    </div>
   </div>
   <script>${script}</script>${esmScriptHtml}
 </body>

@@ -91,6 +91,8 @@ OPTIONS
   --html-no-mermaid             Disable mermaid diagrams in HTML (enabled by default)
   --html-no-markdown            Disable markdown parsing in HTML (enabled by default)
   --html-permalink-base-url <url> Base URL for source permalinks in HTML (e.g. "https://github.com/org/repo/blob/main")
+  --html-no-toc                 Disable table of contents sidebar in HTML (enabled by default)
+  --html-theme-picker           Include theme picker in HTML report (embeds all CSS-only themes)
   --html-ticket-url-template <url> URL template for ticket links in HTML (use {ticket} as placeholder)
   --asset-mode <mode>         Asset bundling: "none" (default) or "copy"
   --allow-missing-assets      Warn on missing assets instead of failing
@@ -166,6 +168,8 @@ interface CliArgs {
   htmlNoMarkdown: boolean;
   htmlPermalinkBaseUrl?: string;
   htmlTicketUrlTemplate?: string;
+  htmlNoToc: boolean;
+  htmlThemePicker: boolean;
   jsonSummary: boolean;
   emitCanonical?: string;
   slackWebhook?: string;
@@ -227,6 +231,8 @@ function parseCliArgs(argv: string[]): CliArgs {
       "html-no-markdown": { type: "boolean", default: false },
       "html-permalink-base-url": { type: "string" },
       "html-ticket-url-template": { type: "string" },
+      "html-no-toc": { type: "boolean", default: false },
+      "html-theme-picker": { type: "boolean", default: false },
       stdin: { type: "boolean", default: false },
       "json-summary": { type: "boolean", default: false },
       "emit-canonical": { type: "string" },
@@ -432,6 +438,8 @@ function parseCliArgs(argv: string[]): CliArgs {
     htmlNoMarkdown: values["html-no-markdown"] as boolean,
     htmlPermalinkBaseUrl: values["html-permalink-base-url"] as string | undefined,
     htmlTicketUrlTemplate: values["html-ticket-url-template"] as string | undefined,
+    htmlNoToc: values["html-no-toc"] as boolean,
+    htmlThemePicker: values["html-theme-picker"] as boolean,
     jsonSummary: values["json-summary"] as boolean,
     emitCanonical: values["emit-canonical"] as string | undefined,
     slackWebhook,
@@ -1083,6 +1091,8 @@ async function generateReports(
       markdownEnabled: !args.htmlNoMarkdown,
       permalinkBaseUrl: args.htmlPermalinkBaseUrl,
       ticketUrlTemplate: args.htmlTicketUrlTemplate,
+      tocEnabled: !args.htmlNoToc,
+      themePickerEnabled: args.htmlThemePicker,
     },
     assetMode: args.assetMode,
     allowMissingAssets: args.allowMissingAssets,

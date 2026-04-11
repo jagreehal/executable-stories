@@ -154,7 +154,11 @@ export function renderScenario(
       </div>
       <div class="scenario-meta">${tags}${tickets}${sourceLink}${traceBadge}${metricBadges}</div>
     </div>
-    <span class="scenario-duration">${duration}</span>
+    <div class="scenario-actions">
+      <button class="copy-scenario-btn" onclick="copyScenarioAsMarkdown('scenario-${tc.id}')" aria-label="Copy scenario as markdown" title="Copy as Markdown">&#x2398;</button>
+      <button class="permalink-anchor" onclick="copyPermalink('scenario-${tc.id}')" aria-label="Copy link to scenario" title="Copy link">#</button>
+      <span class="scenario-duration">${duration}</span>
+    </div>
   </div>
   <div class="scenario-content">
     ${storyDocs}

@@ -8,7 +8,7 @@ import type { TestRunResult } from "../../../types/test-result";
 import { escapeHtml, generateHtmlTemplate } from "../template";
 import { CSS_STYLES } from "../styles";
 import type { HtmlTheme } from "../themes/types.js";
-import { resolveTheme } from "../themes/index.js";
+import { resolveTheme, getCssOnlyThemes } from "../themes/index.js";
 import { getStatusIcon } from "./status";
 import { renderMetaInfo } from "./meta";
 import { renderSummary } from "./summary";
@@ -23,6 +23,7 @@ import { renderTraceView } from "./trace-view";
 import { renderFeature } from "./feature";
 import { buildBody } from "./body";
 import { renderFailureSummary } from "./failure-summary";
+import { renderToc } from "./toc";
 
 /** Options for HTML formatting (subset used by createHtmlFormatter) */
 export interface HtmlFormatterOptions {
@@ -37,8 +38,12 @@ export interface HtmlFormatterOptions {
   permalinkBaseUrl?: string;
   /** URL template for ticket links. Use {ticket} as placeholder. E.g., "https://jira.example.com/browse/{ticket}" */
   ticketUrlTemplate?: string;
+  /** Show table of contents sidebar. Default: true */
+  tocEnabled?: boolean;
   /** Theme name or custom theme object. Default: "default" */
   theme?: string | HtmlTheme;
+  /** Include theme picker with all CSS-only themes embedded. Default: false */
+  themePickerEnabled?: boolean;
 }
 
 function normalizeOptions(options: HtmlFormatterOptions = {}) {
@@ -53,7 +58,9 @@ function normalizeOptions(options: HtmlFormatterOptions = {}) {
     markdownEnabled: options.markdownEnabled ?? true,
     permalinkBaseUrl: options.permalinkBaseUrl,
     ticketUrlTemplate: options.ticketUrlTemplate,
+    tocEnabled: options.tocEnabled ?? true,
     theme: options.theme ?? "default",
+    themePickerEnabled: options.themePickerEnabled ?? false,
   };
 }
 
@@ -123,6 +130,11 @@ export function createHtmlFormatter(
 
   const tagBarDeps = { escapeHtml };
 
+  const tocDeps = {
+    escapeHtml,
+    getStatusIcon,
+  };
+
   const bodyDeps = {
     renderMetaInfo,
     renderSummary,
@@ -143,6 +155,25 @@ export function createHtmlFormatter(
       const bodyFn = theme.buildBody ?? buildBody;
       const body = bodyFn({ run }, bodyDeps);
       const templateFn = theme.generateTemplate ?? generateHtmlTemplate;
+
+      // Only inject default TOC for themes that don't override body/template layout
+      const isStructuralTheme = !!(theme.buildBody || theme.generateTemplate);
+      const tocHtml = opts.tocEnabled && !isStructuralTheme ? renderToc({ run }, tocDeps) : undefined;
+
+      let themePickerHtml: string | undefined;
+      let additionalThemeCss: Array<{ name: string; label: string; css: string }> | undefined;
+
+      if (opts.themePickerEnabled) {
+        const cssOnlyThemes = getCssOnlyThemes();
+        const pickerOptions = cssOnlyThemes
+          .map(t => `<option value="${t.name}"${t.name === theme.name ? ' selected' : ''}>${t.label}</option>`)
+          .join('');
+        themePickerHtml = `<select class="theme-picker" aria-label="Select theme">${pickerOptions}</select>`;
+        additionalThemeCss = cssOnlyThemes
+          .filter(t => t.name !== theme.name)
+          .map(t => ({ name: t.name, label: t.label, css: t.css }));
+      }
+
       return templateFn(
         opts.title,
         theme.css,
@@ -155,6 +186,10 @@ export function createHtmlFormatter(
           markdownEnabled: opts.markdownEnabled,
           additionalJs: theme.additionalJs,
           additionalImports: theme.additionalImports,
+          tocHtml,
+          themePickerHtml,
+          additionalThemeCss,
+          activeThemeName: theme.name,
         },
       );
     },
@@ -200,3 +235,5 @@ export type { RenderTraceViewArgs, RenderTraceViewDeps } from "./trace-view";
 export type { RenderFeatureArgs, RenderFeatureDeps } from "./feature";
 export type { BuildBodyArgs, BuildBodyDeps } from "./body";
 export type { RenderFailureSummaryArgs, RenderFailureSummaryDeps } from "./failure-summary";
+export { renderToc } from "./toc";
+export type { RenderTocArgs, RenderTocDeps } from "./toc";

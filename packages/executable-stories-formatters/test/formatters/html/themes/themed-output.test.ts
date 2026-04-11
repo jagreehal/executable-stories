@@ -18,6 +18,15 @@ describe("themed HTML output", () => {
     expect(noTheme.format(run)).toBe(defaultTheme.format(run));
   });
 
+  it("places the default theme TOC beside the main content in the report layout", () => {
+    const formatter = new HtmlFormatter({ theme: "default", tocEnabled: true });
+    const result = formatter.format(run);
+
+    expect(result).toMatch(
+      /<div class="report-layout">\s*<nav class="toc-sidebar"[\s\S]*<\/nav>\s*<div class="main-content">\s*<div class="container">/,
+    );
+  });
+
   for (const name of getAvailableThemes()) {
     describe(`${name} theme`, () => {
       it("should produce valid HTML", () => {
@@ -54,6 +63,14 @@ describe("themed HTML output", () => {
     const formatter = new HtmlFormatter({ theme: "dashboard" });
     const result = formatter.format(run);
     expect(result).toContain("db-sidebar");
+  });
+
+  it("should not add the default TOC sidebar to structural themes", () => {
+    const corporate = new HtmlFormatter({ theme: "corporate", tocEnabled: true });
+    const dashboard = new HtmlFormatter({ theme: "dashboard", tocEnabled: true });
+
+    expect(corporate.format(run)).not.toContain('class="toc-sidebar"');
+    expect(dashboard.format(run)).not.toContain('class="toc-sidebar"');
   });
 
   it("should accept custom theme objects", () => {

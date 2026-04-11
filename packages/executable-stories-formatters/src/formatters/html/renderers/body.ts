@@ -54,6 +54,7 @@ export interface BuildBodyDeps {
 
 export function buildBody(args: BuildBodyArgs, deps: BuildBodyDeps): string {
   const { run } = args;
+
   const parts: string[] = [];
 
   parts.push(

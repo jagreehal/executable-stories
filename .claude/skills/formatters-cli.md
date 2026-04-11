@@ -7,7 +7,7 @@ description: >
   (Go, Rust, Python, Ruby, JUnit5, xUnit) that produce raw-run.json output.
 type: core
 library: executable-stories-formatters
-library_version: "0.7.3"
+library_version: "0.7.4"
 sources:
   - "jagreehal/executable-stories:packages/executable-stories-formatters/src/cli.ts"
 ---
@@ -116,9 +116,14 @@ cat raw-run.json | executable-stories format --stdin --format html
 
 # HTML options
 --html-title "Test Report"
+--html-theme <name>            # default, corporate, terminal, minimal, dashboard, playful
 --html-no-syntax-highlighting
 --html-no-mermaid
 --html-no-markdown
+--html-no-toc                  # Disable table of contents sidebar
+--html-theme-picker            # Embed all CSS-only themes for client-side switching
+--html-permalink-base-url <url>  # Base URL for source permalinks
+--html-ticket-url-template <url> # URL template for ticket links ({ticket} placeholder)
 
 # Asset bundling (for portable reports)
 --asset-mode copy             # Copy screenshots/videos into report directory
@@ -133,6 +138,19 @@ executable-stories compare baseline.json current.json \
   --format html,markdown \
   --output-name review-diff
 ```
+
+## HTML report features
+
+The HTML report includes interactive features that work without any server:
+
+- **Table of contents sidebar** — collapsible left sidebar with feature/scenario tree. Highlights the active section on scroll. Syncs with search and filter state. Disable with `--html-no-toc`.
+- **Permalink anchors** — hover over any feature or scenario header to reveal a `#` link icon. Click to copy the deep link URL to clipboard.
+- **Keyboard navigation** — press `?` to see all shortcuts. `j`/`k` to move between scenarios, `Enter` to expand/collapse, `/` to search, `e`/`c` to expand/collapse all, `t` to toggle TOC.
+- **Copy as Markdown** — hover over a scenario header to reveal a copy button. Copies the scenario title, steps, and error (if failed) as formatted Markdown.
+- **Theme picker** — opt-in with `--html-theme-picker`. Embeds all CSS-only themes so readers can switch themes client-side. Adds ~30-50KB to file size.
+- **6 built-in themes** — `default`, `corporate`, `terminal`, `minimal`, `dashboard`, `playful`. Set with `--html-theme <name>`.
+- **Dark/light mode** — toggle in the header. Respects system preference. Persists to localStorage.
+- **Search and filtering** — real-time search across scenario titles, tags, and steps. Tag filter bar. Status filter via summary cards. All filter state syncs to URL for shareable links.
 
 ## Output path override
 

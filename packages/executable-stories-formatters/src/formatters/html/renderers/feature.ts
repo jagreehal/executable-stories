@@ -4,6 +4,7 @@
 
 import type { TestCaseResult } from "../../../types/test-result";
 import type { TestMetrics } from "../../../history/types";
+import { slugify } from "../../../converters/acl/ids.js";
 
 export interface RenderFeatureArgs {
   file: string;
@@ -42,6 +43,7 @@ export function renderFeature(
 
   const collapsedClass = deps.startCollapsed ? " collapsed" : "";
   const ariaExpanded = !deps.startCollapsed;
+  const featureSlug = `feature-${slugify(file)}`;
 
   const scenarios = testCases
     .map((tc) =>
@@ -53,8 +55,9 @@ export function renderFeature(
     .join("\n");
 
   return `
-<div class="feature${collapsedClass}">
+<div class="feature${collapsedClass}" id="${featureSlug}">
   <div class="feature-header" role="button" tabindex="0" aria-expanded="${ariaExpanded}">
+    <button class="permalink-anchor" onclick="copyPermalink('${featureSlug}')" aria-label="Copy link to feature" title="Copy link">#</button>
     <div class="feature-info">
       <div class="feature-title">${deps.escapeHtml(featureName)}</div>
       <div class="feature-path">${deps.escapeHtml(file)}</div>
