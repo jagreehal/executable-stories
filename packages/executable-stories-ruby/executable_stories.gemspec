@@ -1,6 +1,6 @@
 Gem::Specification.new do |spec|
   spec.name = "executable-stories-ruby"
-  spec.version = "0.1.0"
+  spec.version = "0.1.1"
   spec.authors = ["Jag Reehal"]
   spec.email = ["jag@jagreehal.com"]
 

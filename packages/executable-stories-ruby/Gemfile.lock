@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    executable-stories-ruby (0.1.0)
+    executable-stories-ruby (0.1.1)
 
 GEM
   remote: https://rubygems.org/
