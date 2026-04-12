@@ -1,1 +1,130 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap');
 @import "tailwindcss";
+
+/*
+ * Starlight CSS variable overrides
+ * Only override what we need: fonts and accent color.
+ * Let Starlight handle the full gray/white/black scale natively.
+ */
+
+:root {
+  --sl-font: 'Geist', system-ui, sans-serif;
+  --sl-font-mono: 'Geist Mono', ui-monospace, 'SFMono-Regular', monospace;
+
+  /* Accent: cucumber green */
+  --sl-color-accent-low: #1b4332;
+  --sl-color-accent: #40916c;
+  --sl-color-accent-high: #95d5b2;
+}
+
+[data-theme='light'] {
+  --sl-color-accent-low: rgba(45, 106, 79, 0.1);
+  --sl-color-accent: #2d6a4f;
+  --sl-color-accent-high: #1b4332;
+}
+
+/* ── Header / Nav ── */
+
+.site-title {
+  font-weight: 700 !important;
+  letter-spacing: -0.02em;
+}
+
+.site-title span {
+  color: var(--sl-color-text) !important;
+}
+
+.site-title img {
+  width: 1.75rem !important;
+  height: 1.75rem !important;
+}
+
+header.header {
+  border-bottom: 1px solid var(--sl-color-hairline) !important;
+}
+
+/* ── Code blocks — GitHub style ── */
+
+.expressive-code .frame {
+  background: #f6f8fa !important;
+  border-radius: 0.5rem !important;
+  border: 1px solid #d1d9e0 !important;
+  box-shadow: none !important;
+  overflow: hidden;
+}
+
+.expressive-code pre {
+  background: transparent !important;
+  border-radius: 0 !important;
+  border: none !important;
+  padding: 1rem 1.25rem !important;
+  font-family: var(--sl-font-mono);
+  font-size: 0.875rem !important;
+  line-height: 1.7 !important;
+  color: #1f2328 !important;
+}
+
+.expressive-code .header {
+  background: #eef1f4 !important;
+  border-bottom: 1px solid #d1d9e0 !important;
+  padding: 8px 14px !important;
+}
+
+.expressive-code .header .title {
+  color: #636c76 !important;
+  font-size: 0.75rem !important;
+  font-family: var(--sl-font-mono) !important;
+}
+
+/* Dark mode — GitHub Dark */
+[data-theme='dark'] .expressive-code .frame {
+  background: #161b22 !important;
+  border-color: #30363d !important;
+}
+
+[data-theme='dark'] .expressive-code pre {
+  color: #e6edf3 !important;
+}
+
+[data-theme='dark'] .expressive-code .header {
+  background: #1c2128 !important;
+  border-bottom-color: #30363d !important;
+}
+
+[data-theme='dark'] .expressive-code .header .title {
+  color: #8b949e !important;
+}
+
+/* ── Typography ── */
+
+.sl-markdown-content h1,
+.sl-markdown-content h2,
+.sl-markdown-content h3 {
+  letter-spacing: -0.02em;
+}
+
+.sl-markdown-content p {
+  max-width: 65ch;
+}
+
+/* ── Sidebar ── */
+
+nav.sidebar a[aria-current='page'] {
+  border-left: 2px solid var(--sl-color-accent);
+  background: var(--sl-color-accent-low);
+  font-weight: 600;
+  color: var(--sl-color-accent) !important;
+}
+
+[data-theme='light'] nav.sidebar a[aria-current='page'] {
+  color: var(--sl-color-accent-high) !important;
+  background: rgba(45, 106, 79, 0.06);
+}
+
+nav.sidebar a {
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+nav.sidebar a:hover {
+  background: var(--sl-color-accent-low);
+}

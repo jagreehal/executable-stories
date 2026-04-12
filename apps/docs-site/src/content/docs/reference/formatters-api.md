@@ -185,3 +185,91 @@ The formatters package provides an **`executable-stories`** CLI for generating r
 **Run history:** Use **`--history-file <path>`** to persist run history to a JSON file. The CLI updates it after each run and uses it to show **flakiness**, **stability grade** (A–F), and **performance trend** in the HTML report. **`--max-history-runs <n>`** (default 10) caps how many runs are kept per test. Omit `--history-file` to disable history.
 
 **Standalone binary:** From the formatters package directory, run `bun run compile` to build a single `executable-stories` binary. CI builds produce platform-specific binaries (e.g. `executable-stories-linux-x64`); the release workflow uploads multi-platform binaries (linux-x64, linux-arm64, darwin-x64, darwin-arm64, windows-x64) as the `formatters-binaries` artifact.
+
+### `format` flags reference
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--format` | string | `html` | Output format(s): `html`, `cucumber-html`, `markdown`, `junit`, `cucumber-json`, `cucumber-messages` |
+| `--output-dir` | string | `reports` | Directory to write output files |
+| `--output-name` | string | `test-results` | Base filename (without extension) for aggregated output |
+| `--input-type` | string | `raw` | Input type: `raw`, `canonical`, or `ndjson` |
+| `--sort-test-cases` | string | `none` | Sort scenarios: `id`, `source`, or `none` |
+| `--include-tags` | string | — | Comma-separated tags to include (any match) |
+| `--exclude-tags` | string | — | Comma-separated tags to exclude (any match) |
+| `--include` | string | — | Glob patterns to include by source file |
+| `--exclude` | string | — | Glob patterns to exclude by source file |
+| `--synthesize-stories` | boolean | `true` | Synthesize story metadata for plain tests |
+| `--no-synthesize-stories` | boolean | — | Disable story synthesis (strict mode) |
+| `--html-no-syntax-highlighting` | boolean | `false` | Disable syntax highlighting in HTML |
+| `--html-no-mermaid` | boolean | `false` | Disable Mermaid diagram rendering in HTML |
+| `--html-no-markdown` | boolean | `false` | Disable Markdown parsing in HTML |
+| `--html-permalink-base-url` | string | — | Base URL for source file permalinks (e.g. `https://github.com/org/repo/blob/main`) |
+| `--html-ticket-url-template` | string | — | URL template for ticket links (use `{ticket}` placeholder) |
+| `--html-no-toc` | boolean | `false` | Disable table of contents sidebar |
+| `--html-theme-picker` | boolean | `false` | Embed all themes with a picker UI |
+| `--asset-mode` | string | `none` | Asset bundling: `none` or `copy` |
+| `--allow-missing-assets` | boolean | `false` | Warn instead of fail on missing assets |
+| `--output-name-timestamp` | boolean | `false` | Append UTC timestamp to output filename |
+| `--emit-canonical` | string | — | Write canonical JSON to given path |
+| `--json-summary` | boolean | `false` | Print machine-parsable JSON summary |
+| `--history-file` | string | — | Path to run history JSON file |
+| `--max-history-runs` | number | `10` | Maximum runs to keep per test in history |
+| `--slack-webhook` | string | — | Slack webhook URL for notifications |
+| `--teams-webhook` | string | — | Microsoft Teams webhook URL for notifications |
+| `--webhook-url` | string | — | Generic webhook URL (repeatable) |
+| `--notify` | string | `on-failure` | When to send notifications: `always`, `on-failure`, or `never` |
+| `--report-url` | string | — | Link to the report included in notification messages |
+| `--webhook-hmac-secret` | string | — | HMAC secret for webhook signing |
+| `--webhook-hmac-header` | string | — | Header name for HMAC signature |
+| `--webhook-hmac-timestamp` | boolean | `false` | Include timestamp in HMAC signing |
+
+### `compare`
+
+Compare two test runs and generate a diff report showing regressions, fixes, and changes.
+
+```bash
+executable-stories compare current.json --baseline baseline.json --format html
+```
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--baseline` | string | — | Baseline JSON file, or `auto` to pick the most recent prior run |
+| `--baseline-dir` | string | — | Directory to scan when using `--baseline auto` |
+| `--pr-summary` | boolean | `false` | Print PR-friendly markdown summary to stdout |
+| `--pr-summary-file` | string | — | Write the PR summary to a file |
+
+Inherits all `format` flags. Only `html` and `markdown` formats are supported for diff reports.
+
+**Auto-baseline:**
+
+```bash
+executable-stories compare current.json \
+  --baseline auto \
+  --baseline-dir .executable-stories/history/ \
+  --format html
+```
+
+**PR summary for CI:**
+
+```bash
+executable-stories compare current.json \
+  --baseline baseline.json \
+  --pr-summary-file pr-comment.md
+```
+
+### `list`
+
+List all scenarios from a test run.
+
+```bash
+executable-stories list raw-run.json
+```
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--include-tags` | string | — | Comma-separated tags to include |
+| `--exclude-tags` | string | — | Comma-separated tags to exclude |
+| `--json-summary` | boolean | `false` | Output as JSON instead of text table |
+| `--input-type` | string | `raw` | Input type: `raw`, `canonical`, or `ndjson` |
+| `--stdin` | boolean | `false` | Read from stdin |

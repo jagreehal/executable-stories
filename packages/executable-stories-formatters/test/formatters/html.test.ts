@@ -9,6 +9,7 @@ import {
   createRawRun,
   createMultipleTestCasesRun,
   createTestCase,
+  createRspecRawRun,
 } from "../fixtures/raw-runs/basic";
 
 describe("HtmlFormatter", () => {
@@ -175,6 +176,18 @@ describe("HtmlFormatter", () => {
       expect(result).toContain('class="tag"');
       expect(result).toContain("auth");
       expect(result).toContain("login");
+    });
+
+    it("should render RSpec-style nested suite paths and skipped scenarios", () => {
+      const raw = createRspecRawRun();
+      const run = canonicalizeRun(raw);
+      const result = formatter.format(run);
+
+      expect(result).toContain("Arithmetic");
+      expect(result).toContain("adds two numbers");
+      expect(result).toContain("skips unavailable scenario");
+      expect(result).toContain("smoke");
+      expect(result).toContain("calculator");
     });
   });
 

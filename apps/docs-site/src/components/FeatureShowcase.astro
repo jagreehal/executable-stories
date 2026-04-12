@@ -1,0 +1,75 @@
+---
+interface Props {
+  title: string;
+  description: string;
+  screenshotSrc: string;
+  screenshotAlt: string;
+  flip?: boolean;
+}
+
+const { title, description, screenshotSrc, screenshotAlt, flip = false } = Astro.props;
+---
+
+<div class:list={['feature-showcase', { 'feature-showcase--flip': flip }]}>
+  <div class="feature-showcase__text">
+    <h3 class="feature-showcase__title">{title}</h3>
+    <p class="feature-showcase__description">{description}</p>
+    <div class="feature-showcase__code">
+      <slot />
+    </div>
+  </div>
+  <div class="feature-showcase__image">
+    <img src={screenshotSrc} alt={screenshotAlt} loading="lazy" decoding="async" />
+  </div>
+</div>
+
+<style>
+  .feature-showcase {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    align-items: center;
+    margin: 3rem 0;
+  }
+
+  .feature-showcase--flip {
+    direction: rtl;
+  }
+
+  .feature-showcase--flip > * {
+    direction: ltr;
+  }
+
+  .feature-showcase__title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.5rem;
+  }
+
+  .feature-showcase__description {
+    font-size: 0.875rem;
+    color: var(--sl-color-gray-4);
+    line-height: 1.6;
+    margin-bottom: 1rem;
+    max-width: 50ch;
+  }
+
+  .feature-showcase__image img {
+    width: 100%;
+    height: auto;
+    border-radius: 0.75rem;
+    border: 1px solid var(--sl-color-gray-2);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  }
+
+  @media (max-width: 768px) {
+    .feature-showcase {
+      grid-template-columns: 1fr;
+    }
+
+    .feature-showcase--flip {
+      direction: ltr;
+    }
+  }
+</style>

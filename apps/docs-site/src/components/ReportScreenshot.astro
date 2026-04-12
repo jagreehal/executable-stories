@@ -1,0 +1,71 @@
+---
+interface Props {
+  src: string;
+  alt: string;
+  caption?: string;
+}
+
+const { src, alt, caption } = Astro.props;
+---
+
+<figure class="report-screenshot">
+  <div class="report-screenshot__header">
+    <span class="report-screenshot__label">Report Output</span>
+    <span class="report-screenshot__sublabel">what this code generates</span>
+  </div>
+  <div class="report-screenshot__image-wrap">
+    <img src={src} alt={alt} loading="lazy" decoding="async" />
+  </div>
+  {caption && <figcaption class="report-screenshot__caption">{caption}</figcaption>}
+</figure>
+
+<style>
+  .report-screenshot {
+    margin: 1.5rem 0;
+    border: 1px solid rgba(45, 106, 79, 0.2);
+    border-radius: 0.75rem;
+    overflow: hidden;
+  }
+
+  .report-screenshot__header {
+    padding: 0.5rem 1rem;
+    background: rgba(45, 106, 79, 0.06);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  :root[data-theme='dark'] .report-screenshot__header {
+    background: rgba(64, 145, 108, 0.1);
+  }
+
+  .report-screenshot__label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--sl-color-accent);
+  }
+
+  .report-screenshot__sublabel {
+    font-size: 0.75rem;
+    color: var(--sl-color-gray-4);
+  }
+
+  .report-screenshot__image-wrap {
+    background: var(--sl-color-gray-1);
+    padding: 0.5rem;
+  }
+
+  .report-screenshot__image-wrap img {
+    width: 100%;
+    height: auto;
+    border-radius: 0.5rem;
+    display: block;
+  }
+
+  .report-screenshot__caption {
+    padding: 0.5rem 1rem;
+    font-size: 0.75rem;
+    color: var(--sl-color-gray-4);
+    text-align: center;
+  }
+</style>

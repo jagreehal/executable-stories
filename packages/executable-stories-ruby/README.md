@@ -1,6 +1,6 @@
 # executable-stories-ruby
 
-Ruby-first story/given/when/then helpers for Minitest with Markdown doc generation.
+Ruby-first story/given/when/then helpers for Minitest and RSpec with Markdown doc generation.
 
 ## Installation
 
@@ -44,6 +44,30 @@ class CalculatorTest < Minitest::Test
 
     story.then("the result is 8")
     assert_equal 8, result
+  end
+end
+```
+
+### RSpec
+
+```ruby
+require "rspec"
+require "executable_stories/rspec"
+
+ExecutableStories::RSpecPlugin.install!
+
+RSpec.describe "Calculator" do
+  story "adds two numbers" do |s|
+    s.given("two numbers 5 and 3")
+    a = 5
+    b = 3
+
+    s.when("they are added")
+    result = a + b
+
+    s.expect("the result is 8") do
+      expect(result).to eq(8)
+    end
   end
 end
 ```
@@ -93,9 +117,17 @@ end
 
 - `ExecutableStories.init("scenario", tags: [...], ticket: [...], meta: {...})`
 
+### RSpec
+
+- `ExecutableStories::RSpecPlugin.install!` — Include the story helper in example groups and write a raw run after the suite
+- `story("scenario") { |s| ... }` — Define an RSpec example that records executable-stories output
+- Story metadata accepts `tags:`, `ticket:`, `meta:`, and `trace_url_template:`
+
 ## Output
 
-After running tests with the Minitest plugin, a `raw-run.json` file is written to `.executable-stories/` by default. Set the `EXECUTABLE_STORIES_OUTPUT` environment variable to customize the output path.
+After running tests with the Minitest or RSpec plugin, a `raw-run.json` file is written to `.executable-stories/` by default. Set the `EXECUTABLE_STORIES_OUTPUT` environment variable to customize the output path.
+
+That raw run uses the same schema as `executable-stories-formatters`, so you can render it to HTML, Markdown, JUnit, or Cucumber output without a translation step.
 
 ## License
 

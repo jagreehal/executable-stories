@@ -15,6 +15,7 @@ playwright-report/
 playwright/.cache/
 .playwright/
 screenshots/
+!apps/docs-site/public/screenshots/
 cypress/videos/
 cypress/screenshots/
 .cypress/
@@ -25,6 +26,7 @@ tsup.config.bundled_*.mjs
 apps/jest-example/.jest-executable-stories
 ___temp
 **/docs
+!apps/docs-site/src/content/docs/
 
 **/reports/
 .pnpm-store
@@ -59,3 +61,4 @@ skills-lock.json
 .superpowers
 **/*/.executable-stories
 .worktrees/
+.playwright-cli

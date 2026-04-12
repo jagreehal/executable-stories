@@ -11,7 +11,7 @@ module ExecutableStories
     attr_accessor :scenario, :steps, :tags, :tickets, :meta, :docs,
                   :current_step, :seen_primary, :start_time, :end_time,
                   :source_order, :step_counter, :attachments, :active_timers,
-                  :timer_counter, :otel_spans, :trace_url_template
+                  :timer_counter, :otel_spans, :trace_url_template, :suite_path
 
     def initialize(scenario, tags: nil, ticket: nil, meta: nil, trace_url_template: nil)
       @scenario = scenario
@@ -30,6 +30,7 @@ module ExecutableStories
       @timer_counter = 0
       @otel_spans = nil
       @trace_url_template = trace_url_template
+      @suite_path = nil
 
       bridge_otel
     end
@@ -260,14 +261,16 @@ module ExecutableStories
         tags: @tags,
         tickets: @tickets,
         meta: @meta,
+        suite_path: @suite_path,
         docs: @docs.empty? ? nil : @docs,
         source_order: @source_order,
         otel_spans: @otel_spans
       )
     end
 
-    def record(status:, title: nil, suite_path: nil, source_file: nil, duration_ms: nil, error: nil)
+    def record(status:, title: nil, suite_path: nil, source_file: nil, source_line: nil, duration_ms: nil, error: nil)
       @end_time = Process.clock_gettime(Process::CLOCK_MONOTONIC) * 1000.0
+      @suite_path = suite_path if suite_path
       duration = duration_ms || (@end_time - @start_time)
 
       step_events = @steps.each_with_index.map do |s, i|
@@ -280,6 +283,7 @@ module ExecutableStories
         title_path: suite_path ? suite_path + [@scenario] : [@scenario],
         story: get_meta,
         source_file: source_file,
+        source_line: source_line,
         duration_ms: duration,
         error: error,
         retry: 0,
