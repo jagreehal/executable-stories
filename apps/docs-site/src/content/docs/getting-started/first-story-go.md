@@ -95,6 +95,6 @@ The Markdown report includes the scenario title, all Given/When/Then steps, and 
 
 ## Next
 
-[Go story & doc API](/reference/go-story-api/) — full reference for steps, docs, and options.
+[Go story & doc API](reference/go-story-api/) — full reference for steps, docs, and options.
 
-[Using the CLI](/reference/formatters-cli/) — all formatter output formats and flags.
+[Using the CLI](reference/formatters-cli/) — all formatter output formats and flags.

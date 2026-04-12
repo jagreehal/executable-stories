@@ -71,6 +71,6 @@ The raw run JSON can be rendered by `executable-stories-formatters`. A Markdown 
 
 ## Next
 
-[Ruby story & doc API](/reference/ruby-story-api/) — steps, docs, and options.
+[Ruby story & doc API](reference/ruby-story-api/) — steps, docs, and options.
 
-[Other adapters](/reference/other-adapters/) — the rest of the repo’s non-JS adapters.
+[Other adapters](reference/other-adapters/) — the rest of the repo’s non-JS adapters.

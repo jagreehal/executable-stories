@@ -58,6 +58,6 @@ npm install -D executable-stories-formatters
 
 ## Next
 
-[First Story (JUnit 5)](/getting-started/first-story-junit5/) — write your first Kotlin scenario.
+[First Story (JUnit 5)](getting-started/first-story-junit5/) — write your first Kotlin scenario.
 
-[JUnit 5 story & doc API](/reference/junit5-story-api/) — steps, docs, and adapter options.
+[JUnit 5 story & doc API](reference/junit5-story-api/) — steps, docs, and adapter options.

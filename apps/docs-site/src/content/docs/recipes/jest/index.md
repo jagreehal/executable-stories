@@ -102,41 +102,41 @@ describe('Users', () => {
 
 ## Full recipe list
 
-The same 32 scenarios as [Vitest recipes](/recipes/vitest/) are in `apps/jest-example/src/replicate.story.test.ts`. Generated docs: `apps/jest-example/src/replicate.story.docs.md`.
+The same 32 scenarios as [Vitest recipes](recipes/vitest/) are in `apps/jest-example/src/replicate.story.test.ts`. Generated docs: `apps/jest-example/src/replicate.story.docs.md`.
 
 | Scenario | Pattern | See Vitest recipe |
 | -------- | ------- | ----------------- |
-| User logs in successfully | Multiple Given, single When, single Then | [Link](/recipes/vitest/user-logs-in-successfully/) |
-| User updates profile details | Single Given, multiple When, single Then | [Link](/recipes/vitest/user-updates-profile-details/) |
-| Checkout calculates totals | Single Given, single When, multiple Then | [Link](/recipes/vitest/checkout-calculates-totals/) |
-| Password reset flow | Multiple Given/When/Then | [Link](/recipes/vitest/password-reset-flow/) |
-| Login blocked for suspended user | Use of But | [Link](/recipes/vitest/login-blocked-suspended-user/) |
-| Login works (tags) | Story tags | [Link](/recipes/vitest/login-works/) |
-| Login errors (outline) | Scenario outline with loop | [Link](/recipes/vitest/login-errors/) |
-| Many login attempts (outline) | Scenario outline, multiple outcomes | [Link](/recipes/vitest/many-login-attempts/) |
-| Bulk user creation | doc.table | [Link](/recipes/vitest/bulk-user-creation/) |
-| Create users from table | Scenario outline with doc.table | [Link](/recipes/vitest/create-users-from-table/) |
-| Calculate shipping options | DataTable, multiple Then | [Link](/recipes/vitest/calculate-shipping-options/) |
-| Shipping eligibility | Scenario outline by country | [Link](/recipes/vitest/shipping-eligibility/) |
-| Tax calculation by region | Scenario outline with multiple rows | [Link](/recipes/vitest/tax-calculation-by-region/) |
-| API accepts JSON payload | doc.json (DocString) | [Link](/recipes/vitest/api-accepts-json-payload/) |
-| Post JSON payload (outline) | Scenario outline with doc.json | [Link](/recipes/vitest/post-json-payload/) |
-| Import XML invoice | doc.code (XML) | [Link](/recipes/vitest/import-xml-invoice/) |
-| Import users + welcome email | doc.table + doc.code | [Link](/recipes/vitest/import-users-welcome-email/) |
-| Render markdown | doc.code (markdown) | [Link](/recipes/vitest/render-markdown/) |
-| Change email address | Shared background | [Link](/recipes/vitest/change-email-address/) |
-| Change password | Shared background, different When/Then | [Link](/recipes/vitest/change-password/) |
-| Eligible customer gets discount | Rule block, positive path | [Link](/recipes/vitest/eligible-customer-gets-discount/) |
-| Ineligible customer no discount | Rule block, negative path | [Link](/recipes/vitest/ineligible-customer-no-discount/) |
-| Two step checkout | Multiple When groups | [Link](/recipes/vitest/two-step-checkout/) |
-| Payment declined | Negative path with But | [Link](/recipes/vitest/payment-declined/) |
-| Guest checkout allowed | doc.note for But | [Link](/recipes/vitest/guest-checkout-allowed/) |
-| Logout clears session | Repeated Then steps | [Link](/recipes/vitest/logout-clears-session/) |
-| Document status changes | Explicit state transition | [Link](/recipes/vitest/document-status-changes/) |
-| Update preferences | DataTable as key-value pairs | [Link](/recipes/vitest/update-preferences/) |
-| Configure feature flags | Complex DataTable | [Link](/recipes/vitest/configure-feature-flags/) |
-| Create order | Background and tags | [Link](/recipes/vitest/create-order/) |
-| Search results show highlights | And after Then | [Link](/recipes/vitest/search-results-show-highlights/) |
-| Report shows fields in order | And in middle of Then | [Link](/recipes/vitest/report-shows-fields-in-order/) |
+| User logs in successfully | Multiple Given, single When, single Then | [Link](recipes/vitest/user-logs-in-successfully/) |
+| User updates profile details | Single Given, multiple When, single Then | [Link](recipes/vitest/user-updates-profile-details/) |
+| Checkout calculates totals | Single Given, single When, multiple Then | [Link](recipes/vitest/checkout-calculates-totals/) |
+| Password reset flow | Multiple Given/When/Then | [Link](recipes/vitest/password-reset-flow/) |
+| Login blocked for suspended user | Use of But | [Link](recipes/vitest/login-blocked-suspended-user/) |
+| Login works (tags) | Story tags | [Link](recipes/vitest/login-works/) |
+| Login errors (outline) | Scenario outline with loop | [Link](recipes/vitest/login-errors/) |
+| Many login attempts (outline) | Scenario outline, multiple outcomes | [Link](recipes/vitest/many-login-attempts/) |
+| Bulk user creation | doc.table | [Link](recipes/vitest/bulk-user-creation/) |
+| Create users from table | Scenario outline with doc.table | [Link](recipes/vitest/create-users-from-table/) |
+| Calculate shipping options | DataTable, multiple Then | [Link](recipes/vitest/calculate-shipping-options/) |
+| Shipping eligibility | Scenario outline by country | [Link](recipes/vitest/shipping-eligibility/) |
+| Tax calculation by region | Scenario outline with multiple rows | [Link](recipes/vitest/tax-calculation-by-region/) |
+| API accepts JSON payload | doc.json (DocString) | [Link](recipes/vitest/api-accepts-json-payload/) |
+| Post JSON payload (outline) | Scenario outline with doc.json | [Link](recipes/vitest/post-json-payload/) |
+| Import XML invoice | doc.code (XML) | [Link](recipes/vitest/import-xml-invoice/) |
+| Import users + welcome email | doc.table + doc.code | [Link](recipes/vitest/import-users-welcome-email/) |
+| Render markdown | doc.code (markdown) | [Link](recipes/vitest/render-markdown/) |
+| Change email address | Shared background | [Link](recipes/vitest/change-email-address/) |
+| Change password | Shared background, different When/Then | [Link](recipes/vitest/change-password/) |
+| Eligible customer gets discount | Rule block, positive path | [Link](recipes/vitest/eligible-customer-gets-discount/) |
+| Ineligible customer no discount | Rule block, negative path | [Link](recipes/vitest/ineligible-customer-no-discount/) |
+| Two step checkout | Multiple When groups | [Link](recipes/vitest/two-step-checkout/) |
+| Payment declined | Negative path with But | [Link](recipes/vitest/payment-declined/) |
+| Guest checkout allowed | doc.note for But | [Link](recipes/vitest/guest-checkout-allowed/) |
+| Logout clears session | Repeated Then steps | [Link](recipes/vitest/logout-clears-session/) |
+| Document status changes | Explicit state transition | [Link](recipes/vitest/document-status-changes/) |
+| Update preferences | DataTable as key-value pairs | [Link](recipes/vitest/update-preferences/) |
+| Configure feature flags | Complex DataTable | [Link](recipes/vitest/configure-feature-flags/) |
+| Create order | Background and tags | [Link](recipes/vitest/create-order/) |
+| Search results show highlights | And after Then | [Link](recipes/vitest/search-results-show-highlights/) |
+| Report shows fields in order | And in middle of Then | [Link](recipes/vitest/report-shows-fields-in-order/) |
 
-[Jest story & doc API](/reference/jest-story-api/) — steps and doc usage.
+[Jest story & doc API](reference/jest-story-api/) — steps and doc usage.

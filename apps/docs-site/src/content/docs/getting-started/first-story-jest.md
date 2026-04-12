@@ -45,8 +45,8 @@ The reporter writes to your configured formats and paths. For Markdown output (f
 
 ## Next
 
-[Jest story & doc API](/reference/jest-story-api/) — steps, doc methods, and options.
+[Jest story & doc API](reference/jest-story-api/) — steps, doc methods, and options.
 
-[Converting existing Jest tests](/guides/converting-jest/) — adopt executable-stories without rewriting existing tests.
+[Converting existing Jest tests](guides/converting-jest/) — adopt executable-stories without rewriting existing tests.
 
-[Recipes (Jest)](/recipes/jest/) — more examples.
+[Recipes (Jest)](recipes/jest/) — more examples.

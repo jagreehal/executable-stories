@@ -16,7 +16,7 @@ We aim for a **seamless native experience** in each framework. You keep your exi
 - **Mental model:** You are writing normal Jest tests with step labels. One test = one scenario; the scenario title in the report is the **it name**. Tests appear in Jest's reporter and respect `-t`, `--watch`, and other Jest options.
 - **Modifiers:** Use Jest's own: `it.skip`, `it.only`, `it.todo`, etc. No custom step semantics.
 - **Suite path in docs:** A `## Suite name` heading appears only when Jest's `currentTestName` contains `" > "` (e.g. "Describe title > test name"). With the default Jest setup this is often not the case, so docs are flat unless you configure test name formatting.
-- **Reporter:** Add the Story reporter to `reporters` with options such as `formats`, `outputDir`, `outputName`, and `output: { mode: 'aggregated' }`. See [Jest reporter options](/reference/jest-config/). Also add `setupFilesAfterEnv: ['executable-stories-jest/setup']`.
+- **Reporter:** Add the Story reporter to `reporters` with options such as `formats`, `outputDir`, `outputName`, and `output: { mode: 'aggregated' }`. See [Jest reporter options](reference/jest-config/). Also add `setupFilesAfterEnv: ['executable-stories-jest/setup']`.
 
 **What we guarantee:** Your describe/it stay as-is; we only add the `story` object and the reporter. The only intentional difference is how we group scenarios in Markdown output (by file and test name).
 
@@ -72,7 +72,7 @@ Your main `vitest.config.ts` keeps the `StoryReporter` for normal `vitest run`. 
 - **Modifiers:** Playwright uses **`.fail`** (expected failure), not `.fails`. Use `test.skip`, `test.only`, `test.fixme`, `test.todo`, `test.fail`, `test.slow` on the test. We follow Playwright's naming.
 - **Suite path in docs:** Comes from `test.describe()` nesting via Playwright's title path.
 - **Hooks:** `test.beforeEach` and `test.afterEach` work as usual. Each scenario is one test, so beforeEach runs once per scenario.
-- **Reporter:** Use the package path with options such as `formats`, `outputDir`, `outputName`, and `output: { mode: 'aggregated' }`. See [Playwright reporter options](/reference/playwright-config/).
+- **Reporter:** Use the package path with options such as `formats`, `outputDir`, `outputName`, and `output: { mode: 'aggregated' }`. See [Playwright reporter options](reference/playwright-config/).
 
 **What we guarantee:** Native test.describe/test, Playwright modifiers and fixtures, and the same story API as Jest/Vitest. The only intentional difference is the **`testInfo`** argument for `story.init(testInfo)` and Playwright's modifier names (`.fail` vs `.fails`, plus `.fixme` and `.slow`).
 
@@ -87,4 +87,4 @@ Your main `vitest.config.ts` keeps the `StoryReporter` for normal `vitest run`. 
 
 ## Wider repo scope
 
-The monorepo also includes adapters for Go, pytest, JUnit 5, Ruby, Rust, and xUnit. This site documents the JavaScript packages in detail because they share the Starlight setup and reporter UX; see [Other adapters](/reference/other-adapters/) for the rest of the repo surface.
+The monorepo also includes adapters for Go, pytest, JUnit 5, Ruby, Rust, and xUnit. This site documents the JavaScript packages in detail because they share the Starlight setup and reporter UX; see [Other adapters](reference/other-adapters/) for the rest of the repo surface.

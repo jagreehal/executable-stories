@@ -533,4 +533,4 @@ public class CheckoutTests : IDisposable
 | Context | Cleanup | ThreadLocal | RAII (Drop) | ThreadLocal | AsyncLocal |
 | Output trigger | `RunAndReport()` | Plugin hooks | `write_results()` | Listener | `RecordAndClear()` |
 
-All adapters write the same `RawRun` JSON schema. Once on disk, pass the file to `executable-stories-formatters` to produce HTML, Markdown, JUnit, Cucumber JSON, and other formats. See [Formatters CLI and API](/reference/formatters-api/) for details.
+All adapters write the same `RawRun` JSON schema. Once on disk, pass the file to `executable-stories-formatters` to produce HTML, Markdown, JUnit, Cucumber JSON, and other formats. See [Formatters CLI and API](reference/formatters-api/) for details.

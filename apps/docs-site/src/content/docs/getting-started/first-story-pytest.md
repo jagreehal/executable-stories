@@ -85,6 +85,6 @@ The Markdown report includes the scenario title, all Given/When/Then steps, and 
 
 ## Next
 
-[pytest story & doc API](/reference/pytest-story-api/) — full reference for steps, docs, and options.
+[pytest story & doc API](reference/pytest-story-api/) — full reference for steps, docs, and options.
 
-[Using the CLI](/reference/formatters-cli/) — all formatter output formats and flags.
+[Using the CLI](reference/formatters-cli/) — all formatter output formats and flags.

@@ -48,6 +48,6 @@ npm install -D executable-stories-formatters
 
 ## Next
 
-[First Story (Go)](/getting-started/first-story-go/) — write your first Go scenario.
+[First Story (Go)](getting-started/first-story-go/) — write your first Go scenario.
 
-[Go story & doc API](/reference/go-story-api/) — steps, docs, and adapter options.
+[Go story & doc API](reference/go-story-api/) — steps, docs, and adapter options.

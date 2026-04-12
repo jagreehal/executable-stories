@@ -119,6 +119,6 @@ npx executable-stories-formatters format --input .executable-stories/raw-run.jso
 
 ## Next
 
-[xUnit story & doc API](/reference/xunit-story-api/) — full steps, docs, and adapter options.
+[xUnit story & doc API](reference/xunit-story-api/) — full steps, docs, and adapter options.
 
-[Other adapters](/reference/other-adapters/) — the rest of the non-JS adapters.
+[Other adapters](reference/other-adapters/) — the rest of the non-JS adapters.

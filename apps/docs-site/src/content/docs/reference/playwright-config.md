@@ -23,7 +23,7 @@ export default defineConfig({
 
 ## Options reference
 
-The reporter uses `FormatterOptions` from `executable-stories-formatters`. Same core options as [Vitest reporter options](/reference/vitest-config/).
+The reporter uses `FormatterOptions` from `executable-stories-formatters`. Same core options as [Vitest reporter options](reference/vitest-config/).
 
 ### Output configuration
 
@@ -46,7 +46,7 @@ The reporter uses `FormatterOptions` from `executable-stories-formatters`. Same 
 
 ### Markdown options
 
-Nested under `markdown`. See [Vitest config](/reference/vitest-config/#markdown-options) for full list.
+Nested under `markdown`. See [Vitest config](reference/vitest-config/#markdown-options) for full list.
 
 The same top-level filtering, history, and notification options are also available in Playwright reporter config.
 

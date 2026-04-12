@@ -37,6 +37,6 @@ npm install -D executable-stories-formatters
 
 ## Next
 
-[First Story (pytest)](/getting-started/first-story-pytest/) — write your first pytest scenario.
+[First Story (pytest)](getting-started/first-story-pytest/) — write your first pytest scenario.
 
-[pytest story & doc API](/reference/pytest-story-api/) — steps, docs, and adapter options.
+[pytest story & doc API](reference/pytest-story-api/) — steps, docs, and adapter options.

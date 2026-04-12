@@ -13,7 +13,7 @@ When Cypress runs, it uses Mocha under the hood. You can pass the executable-sto
 cypress run --reporter executable-stories-cypress/reporter --reporter-options outputDir=docs,outputName=user-stories
 ```
 
-Reporter options match **FormatterOptions** from `executable-stories-formatters`. See [Vitest reporter options](/reference/vitest-config/) for the full option list (output configuration, filtering, markdown options, html, junit, history, notifications, and more).
+Reporter options match **FormatterOptions** from `executable-stories-formatters`. See [Vitest reporter options](reference/vitest-config/) for the full option list (output configuration, filtering, markdown options, html, junit, history, notifications, and more).
 
 ## Module API
 
@@ -48,4 +48,4 @@ Options are the same **FormatterOptions** used by the other framework reporters:
 | `outputNameTimestamp` | `boolean` | `false`                | Append a UTC timestamp suffix to the output filename.                 |
 | `output`     | `OutputConfig`   | `{ mode: "aggregated" }` | Output routing configuration.                                         |
 
-For **OutputConfig**, **markdown**, **html**, and other nested options, see [Vitest reporter options](/reference/vitest-config/).
+For **OutputConfig**, **markdown**, **html**, and other nested options, see [Vitest reporter options](reference/vitest-config/).
