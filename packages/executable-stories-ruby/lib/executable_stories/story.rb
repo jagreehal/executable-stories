@@ -115,8 +115,8 @@ module ExecutableStories
       end
     end
 
-    def expect(text, &block)
-      fn("Then", text, &block)
+    def expect(text, &)
+      fn("Then", text, &)
     end
 
     def start_timer

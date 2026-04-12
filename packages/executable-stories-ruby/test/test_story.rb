@@ -394,7 +394,7 @@ class TestStory < Minitest::Test
     assert_equal "fail", tc.status
     assert_equal "custom title", tc.title
     assert_equal ["MySuite", "MyTest", "record test"], tc.title_path
-    assert_equal ["MySuite", "MyTest"], tc.story.suite_path
+    assert_equal %w[MySuite MyTest], tc.story.suite_path
     assert_equal "test/example.rb", tc.source_file
     assert_equal 42.5, tc.duration_ms
     assert_equal "expected 5, got 3", tc.error.message

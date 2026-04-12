@@ -9,13 +9,13 @@ require_relative "output"
 module ExecutableStories
   module RSpecStoryDSL
     def story(scenario, tags: nil, ticket: nil, meta: nil, trace_url_template: nil, **example_metadata, &block)
-      it(scenario, **example_metadata.merge(executable_stories: {
-           scenario: scenario,
-           tags: tags,
-           ticket: ticket,
-           meta: meta,
-           trace_url_template: trace_url_template
-         })) do
+      it(scenario, **example_metadata, executable_stories: {
+        scenario: scenario,
+        tags: tags,
+        ticket: ticket,
+        meta: meta,
+        trace_url_template: trace_url_template
+      }) do
         story = ExecutableStories.init(
           scenario,
           tags: tags,
