@@ -51,6 +51,6 @@ The Markdown file is generated after the test run.
 
 ## Next
 
-[First Story (Playwright)](/getting-started/first-story-playwright/) — write your first scenario.
+[First Story (Playwright)](getting-started/first-story-playwright/) — write your first scenario.
 
-[Playwright reporter options](/reference/playwright-config/) — all configuration options.
+[Playwright reporter options](reference/playwright-config/) — all configuration options.

@@ -64,6 +64,6 @@ npm install -D executable-stories-formatters
 
 ## Next
 
-[First Story (xUnit)](/getting-started/first-story-xunit/) — write your first C# scenario.
+[First Story (xUnit)](getting-started/first-story-xunit/) — write your first C# scenario.
 
-[xUnit story & doc API](/reference/xunit-story-api/) — steps, docs, and adapter options.
+[xUnit story & doc API](reference/xunit-story-api/) — steps, docs, and adapter options.

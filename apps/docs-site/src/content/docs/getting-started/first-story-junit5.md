@@ -104,6 +104,6 @@ npx executable-stories-formatters format --input .executable-stories/raw-run.jso
 
 ## Next
 
-[JUnit 5 story & doc API](/reference/junit5-story-api/) — full steps, docs, and adapter options.
+[JUnit 5 story & doc API](reference/junit5-story-api/) — full steps, docs, and adapter options.
 
-[Other adapters](/reference/other-adapters/) — the rest of the non-JS adapters.
+[Other adapters](reference/other-adapters/) — the rest of the non-JS adapters.

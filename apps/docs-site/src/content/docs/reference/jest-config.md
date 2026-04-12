@@ -22,7 +22,7 @@ export default {
 
 ## Options reference
 
-The reporter uses `FormatterOptions` from `executable-stories-formatters`. Same core options as [Vitest reporter options](/reference/vitest-config/), plus Jest's own `setupFilesAfterEnv` requirement.
+The reporter uses `FormatterOptions` from `executable-stories-formatters`. Same core options as [Vitest reporter options](reference/vitest-config/), plus Jest's own `setupFilesAfterEnv` requirement.
 
 ### Output configuration
 
@@ -45,7 +45,7 @@ The reporter uses `FormatterOptions` from `executable-stories-formatters`. Same 
 
 ### Markdown options
 
-Nested under `markdown`. See [Vitest config](/reference/vitest-config/#markdown-options) for full list.
+Nested under `markdown`. See [Vitest config](reference/vitest-config/#markdown-options) for full list.
 
 The same top-level filtering, history, and notification options are also available in Jest reporter config.
 

@@ -51,8 +51,8 @@ The reporter writes to your configured formats and paths. For Markdown output (f
 
 ## Next
 
-[Playwright story & doc API](/reference/playwright-story-api/) — steps, doc methods, and options.
+[Playwright story & doc API](reference/playwright-story-api/) — steps, doc methods, and options.
 
-[Converting existing Playwright tests](/guides/converting-playwright/) — adopt executable-stories without rewriting existing tests.
+[Converting existing Playwright tests](guides/converting-playwright/) — adopt executable-stories without rewriting existing tests.
 
-[Recipes (Playwright)](/recipes/playwright/) — more examples.
+[Recipes (Playwright)](recipes/playwright/) — more examples.

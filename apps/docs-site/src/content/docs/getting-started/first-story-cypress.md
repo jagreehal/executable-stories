@@ -42,7 +42,7 @@ pnpm cypress open
 
 ## Generated output
 
-If you configured the reporter (see [Installation (Cypress)](/getting-started/installation-cypress/)), reports are written to your configured formats and paths. For Markdown output, the story above looks like:
+If you configured the reporter (see [Installation (Cypress)](getting-started/installation-cypress/)), reports are written to your configured formats and paths. For Markdown output, the story above looks like:
 
 ```markdown
 ### Adds two numbers
@@ -54,6 +54,6 @@ If you configured the reporter (see [Installation (Cypress)](/getting-started/in
 
 ## Next
 
-[Cypress story & doc API](/reference/cypress-story-api/) — step markers, inline docs, doc methods, and options.
+[Cypress story & doc API](reference/cypress-story-api/) — step markers, inline docs, doc methods, and options.
 
-[Developer experience](/guides/developer-experience/) — how Cypress differs from Jest/Vitest/Playwright (e.g. meta via cy.task).
+[Developer experience](guides/developer-experience/) — how Cypress differs from Jest/Vitest/Playwright (e.g. meta via cy.task).

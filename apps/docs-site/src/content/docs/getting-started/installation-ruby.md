@@ -43,6 +43,6 @@ Both plugins write a raw run JSON file that `executable-stories-formatters` can 
 
 ## Next
 
-[First Story (Ruby)](/getting-started/first-story-ruby/) — write your first Ruby scenario.
+[First Story (Ruby)](getting-started/first-story-ruby/) — write your first Ruby scenario.
 
-[Ruby story & doc API](/reference/ruby-story-api/) — steps, docs, and adapter options.
+[Ruby story & doc API](reference/ruby-story-api/) — steps, docs, and adapter options.

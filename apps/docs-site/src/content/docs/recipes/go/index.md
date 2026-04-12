@@ -29,4 +29,4 @@ slug: recipes/go
 | [Import XML invoice](import-xml-invoice/) | doc.code |
 | [Create order](create-order/) | Background and tags |
 
-For the full 32-scenario set, see the [Vitest recipes](/recipes/vitest/).
+For the full 32-scenario set, see the [Vitest recipes](recipes/vitest/).

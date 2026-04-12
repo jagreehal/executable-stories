@@ -109,6 +109,6 @@ npx executable-stories-formatters format --input .executable-stories/raw-run.jso
 
 ## Next
 
-[Rust story & doc API](/reference/rust-story-api/) — full steps, docs, and adapter options.
+[Rust story & doc API](reference/rust-story-api/) — full steps, docs, and adapter options.
 
-[Other adapters](/reference/other-adapters/) — the rest of the non-JS adapters.
+[Other adapters](reference/other-adapters/) — the rest of the non-JS adapters.

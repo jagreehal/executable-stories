@@ -47,8 +47,8 @@ If a step is skipped, failed, or todo, the docs reflect that (e.g. ⚠️ or ❌
 
 ## Next
 
-[Vitest story & doc API](/reference/vitest-story-api/) — step markers, inline docs, doc methods, and options.
+[Vitest story & doc API](reference/vitest-story-api/) — step markers, inline docs, doc methods, and options.
 
-[Converting existing Vitest tests](/guides/converting-vitest/) — adopt executable-stories without rewriting existing tests.
+[Converting existing Vitest tests](guides/converting-vitest/) — adopt executable-stories without rewriting existing tests.
 
-[Recipes (Vitest)](/recipes/vitest/) — more examples with tables, JSON, and tags.
+[Recipes (Vitest)](recipes/vitest/) — more examples with tables, JSON, and tags.
