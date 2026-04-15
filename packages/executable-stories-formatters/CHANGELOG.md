@@ -1,5 +1,11 @@
 # executable-stories-formatters
 
+## 0.7.7
+
+### Patch Changes
+
+- f64a4f2: Added astro
+
 ## 0.7.6
 
 ### Patch Changes
