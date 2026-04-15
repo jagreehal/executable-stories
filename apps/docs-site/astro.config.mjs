@@ -15,6 +15,14 @@ export default defineConfig({
       title: 'Executable Stories',
       description:
         'Framework-native BDD-style tests with generated reports for Vitest, Jest, Playwright, Cypress, Go, Python, Ruby, Rust, Kotlin, and C#.',
+      head: [
+        {
+          tag: 'base',
+          attrs: {
+            href: '/',
+          },
+        },
+      ],
       favicon: '/favicon.svg',
       logo: {
         src: './public/logo.svg',
