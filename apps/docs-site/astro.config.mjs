@@ -6,12 +6,8 @@ import astroMermaid from 'astro-mermaid';
 import { defineConfig } from 'astro/config';
 
 
-// Use base path for GitHub Pages (e.g. /executable-stories). Local dev uses same by default; use pnpm dev:root or BASE=/ pnpm dev to run from /.
-const base = process.env.BASE || '/executable-stories';
-
 export default defineConfig({
-  site: 'https://jagreehal.github.io',
-  base,
+  site: 'https://executablestories.com',
   integrations: [
     sitemap(),
     astroMermaid(),
@@ -19,14 +15,6 @@ export default defineConfig({
       title: 'Executable Stories',
       description:
         'Framework-native BDD-style tests with generated reports for Vitest, Jest, Playwright, Cypress, Go, Python, Ruby, Rust, Kotlin, and C#.',
-      head: [
-        {
-          tag: 'base',
-          attrs: {
-            href: base.replace(/\/?$/, '/'),
-          },
-        },
-      ],
       favicon: '/favicon.svg',
       logo: {
         src: './public/logo.svg',
@@ -527,6 +515,11 @@ export default defineConfig({
             { label: 'Import XML invoice', slug: 'recipes/xunit/import-xml-invoice' },
             { label: 'Create order', slug: 'recipes/xunit/create-order' },
           ],
+        },
+        {
+          label: 'Generated Stories',
+          autogenerate: { directory: 'stories' },
+          collapsed: true,
         },
       ],
     }),

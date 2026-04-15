@@ -42,6 +42,8 @@ import { RunDiffHtmlFormatter } from "./formatters/run-diff-html";
 import { RunDiffMarkdownFormatter } from "./formatters/run-diff-markdown";
 import { matchesPattern, selectTestCases } from "./select-test-cases";
 import { bundleAssets } from "./bundler/bundle-assets";
+import { AstroFormatter } from "./formatters/astro";
+import { copyMarkdownAssets } from "./formatters/astro-assets";
 
 // Import adapters for convenience functions
 import { adaptJestRun } from "./converters/adapters/jest";
@@ -188,6 +190,19 @@ export {
 } from "./formatters/markdown";
 
 export {
+  AstroFormatter,
+  type AstroFormatterOptions as AstroFormatterOpts,
+  type StarlightBadge,
+} from "./formatters/astro";
+
+export {
+  copyMarkdownAssets,
+  rewriteAssetPaths,
+  type AstroAssetResult,
+  type CopyMarkdownAssetsOptions,
+} from "./formatters/astro-assets";
+
+export {
   CucumberMessagesFormatter,
   type CucumberMessagesOptions,
 } from "./formatters/cucumber-messages/index";
@@ -324,6 +339,7 @@ export interface GenerateCompareResult {
 
 /** Extension map for output formats */
 const FORMAT_EXTENSIONS: Record<OutputFormat, string> = {
+  astro: ".md",
   markdown: ".md",
   html: ".html",
   "cucumber-html": ".cucumber.html",
@@ -580,6 +596,24 @@ export class ReportGenerator {
         includeSourceLinks: options.markdown?.includeSourceLinks ?? true,
         customRenderers: options.markdown?.customRenderers,
       },
+      astro: {
+        assetsDir: options.astro?.assetsDir ?? "public/stories/assets",
+        assetsBaseUrl: options.astro?.assetsBaseUrl ?? "/stories/assets",
+        markdown: {
+          title: options.astro?.markdown?.title ?? "User Stories",
+          includeStatusIcons: options.astro?.markdown?.includeStatusIcons ?? true,
+          includeErrors: options.astro?.markdown?.includeErrors ?? true,
+          scenarioHeadingLevel: options.astro?.markdown?.scenarioHeadingLevel ?? 3,
+          groupBy: options.astro?.markdown?.groupBy ?? "file",
+          sortScenarios: options.astro?.markdown?.sortScenarios ?? "source",
+          suiteSeparator: options.astro?.markdown?.suiteSeparator ?? " - ",
+          includeSourceLinks: options.astro?.markdown?.includeSourceLinks ?? true,
+          permalinkBaseUrl: options.astro?.markdown?.permalinkBaseUrl,
+          ticketUrlTemplate: options.astro?.markdown?.ticketUrlTemplate,
+          traceUrlTemplate: options.astro?.markdown?.traceUrlTemplate,
+          customRenderers: options.astro?.markdown?.customRenderers,
+        },
+      },
       assetMode: options.assetMode ?? "none",
       allowMissingAssets: options.allowMissingAssets ?? false,
     };
@@ -620,6 +654,26 @@ export class ReportGenerator {
           bundleAssets(htmlPath, {
             allowMissing: this.options.allowMissingAssets,
           });
+        }
+      }
+
+      const astroPaths = results.get("astro");
+      if (astroPaths) {
+        for (const mdPath of astroPaths) {
+          const content = await fsPromises.readFile(mdPath, "utf8");
+          const mdDir = path.dirname(mdPath);
+          // assetsDir is resolved from CWD (same as outputDir), not relative to outputDir
+          const assetsDir = path.resolve(this.options.astro.assetsDir);
+          const result = copyMarkdownAssets({
+            markdown: content,
+            markdownDir: mdDir,
+            assetsDir,
+            assetsBaseUrl: this.options.astro.assetsBaseUrl,
+            allowMissing: this.options.allowMissingAssets,
+          });
+          if (result.copiedCount > 0 || result.missingCount > 0) {
+            await this.deps.writeFile(mdPath, result.markdown);
+          }
         }
       }
     }
@@ -742,6 +796,14 @@ export class ReportGenerator {
           meta: this.options.cucumberMessages.meta,
         });
         return formatter.formatToString(run);
+      }
+
+      case "astro": {
+        const formatter = new AstroFormatter({
+          assetsBaseUrl: this.options.astro.assetsBaseUrl,
+          markdown: this.options.astro.markdown,
+        });
+        return formatter.format(run);
       }
 
       case "markdown": {
