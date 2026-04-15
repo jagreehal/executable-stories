@@ -1,6 +1,6 @@
 {
   "name": "executable-stories-cypress",
-  "version": "8.1.7",
+  "version": "8.1.8",
   "description": "BDD-style executable stories for Cypress with documentation generation",
   "type": "module",
   "sideEffects": false,
