@@ -34,6 +34,7 @@ import { listScenarios } from "./list-scenarios";
 import { selectTestCases } from "./select-test-cases";
 import type { RawRun } from "./types/raw";
 import type { TestRunResult } from "./types/test-result";
+import { initAstro as initAstroFn } from "./init-astro";
 
 // ============================================================================
 // Exit Codes
@@ -59,15 +60,18 @@ USAGE
   executable-stories list <file> [options]
   executable-stories validate <file>
   executable-stories validate --stdin
+  executable-stories init-astro [directory]
 
 SUBCOMMANDS
   format     Read raw test results and generate reports
   compare    Compare two runs and generate a diff report
   list       List scenarios from a test run (text table or JSON)
   validate   Validate a JSON file against the schema (no output generated)
+  init-astro Scaffold an Astro Starlight docs site for story output
 
 OPTIONS
   --format <formats>            Comma-separated formats (default: html)
+                                  astro             Starlight-compatible Markdown (for Astro docs sites)
                                   html              Custom HTML report (accessible, dark mode, mermaid)
                                   cucumber-html     Official Cucumber HTML report
                                   markdown          Markdown documentation
@@ -113,6 +117,10 @@ LIST
 COMPARE
   compare supports --format html,markdown
   compare uses the same --input-type for both baseline and current files
+
+INIT-ASTRO
+  executable-stories init-astro [directory]   Scaffold into directory (default: ./story-docs)
+  --force                                      Overwrite existing directory
 
 NOTIFICATIONS
   --slack-webhook <url>         Slack incoming webhook URL (fallback: SLACK_WEBHOOK_URL env var)
@@ -201,9 +209,33 @@ function parseCliArgs(argv: string[]): CliArgs {
   }
 
   const subcommand = args[0];
-  if (subcommand !== "format" && subcommand !== "compare" && subcommand !== "list" && subcommand !== "validate") {
-    console.error(`Unknown subcommand: "${subcommand}". Use "format", "compare", "list", or "validate".`);
+  if (subcommand !== "format" && subcommand !== "compare" && subcommand !== "list" && subcommand !== "validate" && subcommand !== "init-astro") {
+    console.error(`Unknown subcommand: "${subcommand}". Use "format", "compare", "list", "validate", or "init-astro".`);
     process.exit(EXIT_USAGE);
+  }
+
+  // Handle init-astro early (no parseArgs needed)
+  if (subcommand === "init-astro") {
+    const initArgs = args.slice(1);
+    const targetDir = initArgs.find((a) => !a.startsWith("--")) ?? "./story-docs";
+    const force = initArgs.includes("--force");
+
+    try {
+      const result = initAstroFn({ targetDir, force });
+      console.log(`Scaffolded Astro Starlight project at ${result.targetDir}`);
+      console.log("");
+      console.log("Next steps:");
+      console.log(`  cd ${result.targetDir}`);
+      console.log("  pnpm install    # or npm install");
+      console.log("  pnpm dev        # start the dev server");
+      console.log("");
+      console.log("Generate story docs with:");
+      console.log(`  executable-stories format run.json --format astro --output-dir ${result.targetDir}/src/content/docs/stories --asset-mode copy`);
+      process.exit(EXIT_SUCCESS);
+    } catch (err) {
+      console.error(`Error: ${(err as Error).message}`);
+      process.exit(EXIT_USAGE);
+    }
   }
 
   // Parse remaining args with node:util parseArgs
@@ -314,12 +346,12 @@ function parseCliArgs(argv: string[]): CliArgs {
   }
 
   // Parse comma-separated formats
-  const validFormats = new Set(["html", "markdown", "junit", "cucumber-json", "cucumber-messages", "cucumber-html"]);
+  const validFormats = new Set(["astro", "html", "markdown", "junit", "cucumber-json", "cucumber-messages", "cucumber-html"]);
   const formatStr = values.format as string;
   const formats = formatStr.split(",").map((f) => f.trim()) as OutputFormat[];
   for (const f of formats) {
     if (!validFormats.has(f)) {
-      console.error(`Error: Unknown format "${f}". Valid: html, markdown, junit, cucumber-json, cucumber-messages, cucumber-html.`);
+      console.error(`Error: Unknown format "${f}". Valid: astro, html, markdown, junit, cucumber-json, cucumber-messages, cucumber-html.`);
       process.exit(EXIT_USAGE);
     }
   }

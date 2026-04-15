@@ -30,7 +30,7 @@ export interface CanonicalizeOptions {
 }
 
 /** Output format for report generation */
-export type OutputFormat = "cucumber-json" | "cucumber-messages" | "cucumber-html" | "html" | "junit" | "markdown";
+export type OutputFormat = "astro" | "cucumber-json" | "cucumber-messages" | "cucumber-html" | "html" | "junit" | "markdown";
 
 /** Sort order for test cases in reports (deterministic for diff-friendly output) */
 export type SortTestCasesMode = "id" | "source" | "none";
@@ -164,6 +164,9 @@ export interface FormatterOptions {
   /** Markdown specific options */
   markdown?: MarkdownFormatterOptions;
 
+  /** Astro/Starlight specific options */
+  astro?: AstroFormatterOptions;
+
   /** History tracking options */
   history?: {
     /** Path to JSON history file (enables tracking) */
@@ -241,6 +244,16 @@ import type { DocEntry, StoryStep } from "./story";
 import type { TestCaseResult, TestRunResult } from "./test-result";
 import type { NotifyCondition, GenericWebhookNotifierOptions } from "../notifiers/types";
 
+/** Astro/Starlight formatter options */
+export interface AstroFormatterOptions {
+  /** Base directory for copied assets (relative to outputDir). Default: "public/stories/assets" */
+  assetsDir?: string;
+  /** Base URL prefix for asset references in markdown. Default: "/stories/assets" */
+  assetsBaseUrl?: string;
+  /** Markdown options to pass through (title, permalinkBaseUrl, ticketUrlTemplate, etc.) */
+  markdown?: Omit<MarkdownFormatterOptions, "includeFrontMatter" | "includeSummaryTable" | "includeMetadata" | "stepStyle">;
+}
+
 /** Custom renderers for markdown doc entries */
 export interface MarkdownRenderers {
   /** Custom renderer for scenario header */
@@ -315,6 +328,24 @@ export interface ResolvedFormatterOptions {
     traceUrlTemplate?: string;
     includeSourceLinks: boolean;
     customRenderers?: MarkdownRenderers;
+  };
+  astro: {
+    assetsDir: string;
+    assetsBaseUrl: string;
+    markdown: {
+      title: string;
+      includeStatusIcons: boolean;
+      includeErrors: boolean;
+      scenarioHeadingLevel: 2 | 3 | 4;
+      groupBy: "file" | "suite" | "none";
+      sortScenarios: "alpha" | "source" | "none";
+      suiteSeparator: string;
+      includeSourceLinks: boolean;
+      permalinkBaseUrl?: string;
+      ticketUrlTemplate?: string;
+      traceUrlTemplate?: string;
+      customRenderers?: MarkdownRenderers;
+    };
   };
   assetMode: "none" | "copy";
   allowMissingAssets: boolean;

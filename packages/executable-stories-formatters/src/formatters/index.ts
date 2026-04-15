@@ -33,3 +33,9 @@ export {
   CucumberHtmlFormatter,
   type CucumberHtmlOptions,
 } from "./cucumber-html";
+
+export {
+  AstroFormatter,
+  type AstroFormatterOptions,
+  type StarlightBadge,
+} from "./astro";
