@@ -135,10 +135,18 @@ export default defineConfig({
           label: 'Guides',
           items: [
             {
+              label: 'GitHub Action',
+              slug: 'guides/github-action',
+            },
+            {
               label: 'Developer experience',
               slug: 'guides/developer-experience',
             },
             { label: 'Output modes', slug: 'guides/output-modes' },
+            {
+              label: 'Astro docs site',
+              slug: 'guides/astro-docs-site',
+            },
             {
               label: 'Understanding the report',
               slug: 'guides/understanding-the-report',
@@ -165,6 +173,15 @@ export default defineConfig({
             {
               label: 'Converting existing Playwright tests',
               slug: 'guides/converting-playwright',
+            },
+          ],
+        },
+        {
+          label: 'AI Writing Skills',
+          items: [
+            {
+              label: 'Overview',
+              slug: 'ai-skills',
             },
           ],
         },
