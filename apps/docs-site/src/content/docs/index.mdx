@@ -9,6 +9,7 @@ hero:
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 import BeforeAfter from '../../components/BeforeAfter.astro';
+import PersonaCards from '../../components/PersonaCards.astro';
 
 {/* ── Hero ── */}
 
@@ -192,6 +193,17 @@ npx executable-stories format --html --markdown
     </div>
   </a>
 </div>
+
+{/* ── Personas ── */}
+
+<div class="section-break" />
+
+<div class="section-header not-content">
+  <h2 class="section-header__title">Same tests, different readers</h2>
+  <p class="section-header__sub">Teach your AI agent to write documentation for your audience.</p>
+</div>
+
+<PersonaCards />
 
 {/* ── Diff Reports ── */}
 
