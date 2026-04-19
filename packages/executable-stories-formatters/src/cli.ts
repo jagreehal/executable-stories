@@ -35,6 +35,8 @@ import { selectTestCases } from "./select-test-cases";
 import type { RawRun } from "./types/raw";
 import type { TestRunResult } from "./types/test-result";
 import { initAstro as initAstroFn } from "./init-astro";
+import { loadConfig } from "./config.js";
+import type { Formatter } from "./types/formatter.js";
 
 // ============================================================================
 // Exit Codes
@@ -70,7 +72,7 @@ SUBCOMMANDS
   init-astro Scaffold an Astro Starlight docs site for story output
 
 OPTIONS
-  --format <formats>            Comma-separated formats (default: html)
+  --format <formats>            Comma-separated formats: html, markdown, junit, cucumber-json, cucumber-messages, cucumber-html, astro, or custom names from config (default: html)
                                   astro             Starlight-compatible Markdown (for Astro docs sites)
                                   html              Custom HTML report (accessible, dark mode, mermaid)
                                   cucumber-html     Official Cucumber HTML report
@@ -78,6 +80,7 @@ OPTIONS
                                   junit             JUnit XML
                                   cucumber-json     Cucumber JSON
                                   cucumber-messages Raw NDJSON (Cucumber Messages)
+  --config <path>               Path to executable-stories.config.js (default: ./executable-stories.config.js)
   --input-type <type>           Input type: raw, canonical, or ndjson (default: raw)
   --output-dir <dir>            Output directory (default: reports)
   --output-name <name>          Base filename (default: index)
@@ -101,7 +104,8 @@ OPTIONS
   --asset-mode <mode>         Asset bundling: "none" (default) or "copy"
   --allow-missing-assets      Warn on missing assets instead of failing
   --stdin                       Read JSON from stdin instead of file
-  --json-summary                Print machine-parsable JSON summary
+  --list-format <format>        list output format: text (default), json, csv, markdown-table
+  --json-summary                Deprecated alias for --list-format json
   --baseline <path|auto>        Compare baseline file, or auto-pick a prior run for compare
   --baseline-dir <dir>          Directory to scan when --baseline auto is used
   --pr-summary                  Print a PR-friendly markdown summary after compare
@@ -110,7 +114,8 @@ OPTIONS
   --help                        Show this help message
 
 LIST
-  list prints one scenario per line (text by default, JSON with --json-summary)
+  list prints one scenario per line (--list-format text by default)
+  list --list-format json outputs machine-parsable JSON (--json-summary is a deprecated alias)
   list supports --include-tags, --exclude-tags for filtering
   list supports --input-type and --stdin
 
@@ -179,6 +184,7 @@ interface CliArgs {
   htmlNoToc: boolean;
   htmlThemePicker: boolean;
   jsonSummary: boolean;
+  listFormat: "text" | "json" | "csv" | "markdown-table";
   emitCanonical?: string;
   slackWebhook?: string;
   teamsWebhook?: string;
@@ -197,9 +203,10 @@ interface CliArgs {
   allowMissingAssets: boolean;
   prSummary: boolean;
   prSummaryFile?: string;
+  config?: string;
 }
 
-function parseCliArgs(argv: string[]): CliArgs {
+async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConfig: Awaited<ReturnType<typeof loadConfig>>; customRequested: string[] }> {
   // Strip node + script path
   const args = argv.slice(2);
 
@@ -267,6 +274,7 @@ function parseCliArgs(argv: string[]): CliArgs {
       "html-theme-picker": { type: "boolean", default: false },
       stdin: { type: "boolean", default: false },
       "json-summary": { type: "boolean", default: false },
+      "list-format": { type: "string", default: "text" },
       "emit-canonical": { type: "string" },
       "slack-webhook": { type: "string" },
       "teams-webhook": { type: "string" },
@@ -285,6 +293,7 @@ function parseCliArgs(argv: string[]): CliArgs {
       "allow-missing-assets": { type: "boolean", default: false },
       "pr-summary": { type: "boolean", default: false },
       "pr-summary-file": { type: "string" },
+      "config": { type: "string" },
       help: { type: "boolean", default: false },
     },
     allowPositionals: true,
@@ -345,16 +354,24 @@ function parseCliArgs(argv: string[]): CliArgs {
     process.exit(EXIT_USAGE);
   }
 
-  // Parse comma-separated formats
-  const validFormats = new Set(["astro", "html", "markdown", "junit", "cucumber-json", "cucumber-messages", "cucumber-html"]);
+  // Load config early so custom formatter names can be validated alongside built-ins
+  const pluginConfig = await loadConfig(values["config"] as string | undefined);
+  const customFormatterNames = new Set(Object.keys(pluginConfig.formatters ?? {}));
+
+  const builtInFormats = new Set(["astro", "html", "markdown", "junit", "cucumber-json", "cucumber-messages", "cucumber-html"]);
   const formatStr = values.format as string;
-  const formats = formatStr.split(",").map((f) => f.trim()) as OutputFormat[];
-  for (const f of formats) {
-    if (!validFormats.has(f)) {
-      console.error(`Error: Unknown format "${f}". Valid: astro, html, markdown, junit, cucumber-json, cucumber-messages, cucumber-html.`);
-      process.exit(EXIT_USAGE);
-    }
+  const allRequestedFormats = formatStr.split(",").map((f) => f.trim());
+  const builtInRequested = allRequestedFormats.filter((f) => builtInFormats.has(f)) as OutputFormat[];
+  const customRequested = allRequestedFormats.filter((f) => customFormatterNames.has(f));
+  const unknownFormats = allRequestedFormats.filter((f) => !builtInFormats.has(f) && !customFormatterNames.has(f));
+
+  if (unknownFormats.length > 0) {
+    const knownCustom = customFormatterNames.size > 0 ? `, ${[...customFormatterNames].join(", ")}` : "";
+    console.error(`Error: Unknown format(s): ${unknownFormats.join(", ")}. Valid built-in: astro, html, markdown, junit, cucumber-json, cucumber-messages, cucumber-html${knownCustom}.`);
+    process.exit(EXIT_USAGE);
   }
+
+  const formats = builtInRequested;
 
   // Validate --html-theme
   const htmlTheme = values["html-theme"] as string;
@@ -444,7 +461,7 @@ function parseCliArgs(argv: string[]): CliArgs {
     process.exit(EXIT_USAGE);
   }
 
-  return {
+  const cliArgs: CliArgs = {
     subcommand: subcommand as "format" | "compare" | "list" | "validate",
     inputFile,
     baselineFile,
@@ -473,6 +490,7 @@ function parseCliArgs(argv: string[]): CliArgs {
     htmlNoToc: values["html-no-toc"] as boolean,
     htmlThemePicker: values["html-theme-picker"] as boolean,
     jsonSummary: values["json-summary"] as boolean,
+    listFormat: (values["list-format"] as string) as "text" | "json" | "csv" | "markdown-table",
     emitCanonical: values["emit-canonical"] as string | undefined,
     slackWebhook,
     teamsWebhook,
@@ -491,7 +509,10 @@ function parseCliArgs(argv: string[]): CliArgs {
     allowMissingAssets: values["allow-missing-assets"] as boolean,
     prSummary: values["pr-summary"] as boolean,
     prSummaryFile: values["pr-summary-file"] as string | undefined,
+    config: values["config"] as string | undefined,
   };
+
+  return { args: cliArgs, pluginConfig, customRequested };
 }
 
 // ============================================================================
@@ -736,7 +757,7 @@ function resolveBaselineAuto(
 // ============================================================================
 
 async function main() {
-  const args = parseCliArgs(process.argv);
+  const { args, pluginConfig, customRequested } = await parseCliArgs(process.argv);
   const startMs = Date.now();
 
   if (args.subcommand === "compare") {
@@ -764,9 +785,17 @@ async function main() {
     const text = await readInput(args);
     const run = applySelection(normalizeRunFromText(text, args).run, args);
 
-    // Use --json-summary to get JSON output for list command
-    const outputFormat: "text" | "json" = args.jsonSummary ? "json" : "text";
-    const output = listScenarios({ testCases: run.testCases, format: outputFormat }, {});
+    // --json-summary is a deprecated alias for --list-format json
+    const resolvedFormat = args.jsonSummary ? "json" : args.listFormat;
+    const validListFormats = new Set(["text", "json", "csv", "markdown-table"]);
+    if (!validListFormats.has(resolvedFormat)) {
+      console.error(`Error: Unknown list format "${resolvedFormat}". Valid: text, json, csv, markdown-table.`);
+      process.exit(EXIT_USAGE);
+    }
+    const output = listScenarios(
+      { testCases: run.testCases, format: resolvedFormat as "text" | "json" | "csv" | "markdown-table" },
+      {}
+    );
     console.log(output);
     process.exit(EXIT_SUCCESS);
   }
@@ -821,6 +850,7 @@ async function main() {
 
     try {
       const result = await generateReports(run, args);
+      runCustomFormatters(run, customRequested, pluginConfig.formatters ?? {}, args);
       await dispatchNotifications(run, args);
       runHistoryPipeline(run, args);
       printResult(result, args, startMs);
@@ -893,6 +923,7 @@ async function main() {
 
     try {
       const result = await generateReports(run, args);
+      runCustomFormatters(run, customRequested, pluginConfig.formatters ?? {}, args);
       await dispatchNotifications(run, args);
       runHistoryPipeline(run, args);
       printResult(result, args, startMs);
@@ -966,6 +997,7 @@ async function main() {
   // 6. Generate reports
   try {
     const result = await generateReports(canonical, args, droppedMissingStory);
+    runCustomFormatters(canonical, customRequested, pluginConfig.formatters ?? {}, args);
     await dispatchNotifications(canonical, args);
     runHistoryPipeline(canonical, args);
     printResult(result, args, startMs, droppedMissingStory);
@@ -974,6 +1006,37 @@ async function main() {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`Generation failed: ${msg}`);
     process.exit(EXIT_GENERATION);
+  }
+}
+
+// ============================================================================
+// Custom Formatters
+// ============================================================================
+
+function runCustomFormatters(
+  run: TestRunResult,
+  customRequested: string[],
+  formatters: Record<string, Formatter>,
+  args: CliArgs
+): void {
+  if (customRequested.length === 0) return;
+  const outputDir = args.outputDir ?? ".";
+  for (const formatName of customRequested) {
+    const formatter = formatters[formatName];
+    try {
+      const content = formatter.format(run);
+      const ext = formatter.fileExtension ?? formatName;
+      const baseName = args.outputName ?? "report";
+      const filename = args.outputNameTimestamp
+        ? `${baseName}-${Math.floor(run.startedAtMs / 1000)}.${ext}`
+        : `${baseName}.${ext}`;
+      const filepath = path.join(outputDir, filename);
+      fs.mkdirSync(outputDir, { recursive: true });
+      fs.writeFileSync(filepath, content, "utf8");
+      console.log(`Generated: ${filepath}`);
+    } catch (err) {
+      console.error(`Error running custom formatter "${formatName}": ${err instanceof Error ? err.message : String(err)}`);
+    }
   }
 }
 
