@@ -7,7 +7,7 @@ import type { TestCaseResult } from "./types/test-result";
 
 export interface ListScenariosArgs {
   testCases: TestCaseResult[];
-  format: "text" | "json";
+  format: "text" | "json" | "csv" | "markdown-table";
 }
 
 export type ListScenariosDeps = Record<string, never>;
@@ -35,6 +35,41 @@ export function listScenarios(
       id: tc.id,
     }));
     return JSON.stringify(items, null, 2);
+  }
+
+  if (format === "csv") {
+    const header = "id,scenario,status,sourceFile,sourceLine,tags";
+    const rows = testCases.map((tc) => {
+      const fields = [
+        tc.id,
+        tc.story.scenario,
+        tc.status,
+        tc.sourceFile,
+        String(tc.sourceLine),
+        tc.tags.join(" "),
+      ];
+      return fields
+        .map((f) => {
+          if (f.includes(",") || f.includes('"') || f.includes("\n")) {
+            return `"${f.replace(/"/g, '""')}"`;
+          }
+          return f;
+        })
+        .join(",");
+    });
+    return [header, ...rows].join("\n");
+  }
+
+  if (format === "markdown-table") {
+    const header = "| Status | Scenario | Location | Tags |";
+    const divider = "|--------|----------|----------|------|";
+    const rows = testCases.map((tc) => {
+      const icon = STATUS_ICONS[tc.status] ?? "?";
+      const location = `${tc.sourceFile}:${tc.sourceLine}`;
+      const tags = tc.tags.map((t) => `@${t}`).join(" ");
+      return `| ${icon} | ${tc.story.scenario} | ${location} | ${tags} |`;
+    });
+    return [header, divider, ...rows].join("\n");
   }
 
   // Text format

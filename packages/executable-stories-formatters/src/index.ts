@@ -105,6 +105,9 @@ export type {
   IJsonFeature,
 } from "./types/cucumber-json";
 
+// Formatter plugin types
+export type { Formatter, ExecutableStoriesConfig } from "./types/formatter";
+
 // Options types
 export type {
   CanonicalizeOptions,
