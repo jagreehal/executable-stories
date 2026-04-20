@@ -366,10 +366,10 @@ importers:
     dependencies:
       '@cucumber/html-formatter':
         specifier: ^23.0.0
-        version: 23.0.0(@cucumber/messages@32.2.0)
+        version: 23.0.0(@cucumber/messages@32.3.1)
       '@cucumber/messages':
-        specifier: ^32.2.0
-        version: 32.2.0
+        specifier: ^32.3.1
+        version: 32.3.1
       ajv:
         specifier: ^8.18.0
         version: 8.18.0
@@ -802,8 +802,8 @@ packages:
     peerDependencies:
       '@cucumber/messages': '>=18'
 
-  '@cucumber/messages@32.2.0':
-    resolution: {integrity: sha512-oYp1dgL2TByYWL51Z+rNm+/mFtJhiPU9WS03goes9EALb8d9GFcXRbG1JluFLFaChF1YDqIzLac0kkC3tv1DjQ==}
+  '@cucumber/messages@32.3.1':
+    resolution: {integrity: sha512-yNQq1KoXRYaEKrWMFmpUQX7TdeQuU9jeGgJAZ3dArTsC/T4NpJ6DnqaJIIgwPnz/wtQIQTNX7/h0rOuF5xY4qQ==}
 
   '@cypress/request@3.0.10':
     resolution: {integrity: sha512-hauBrOdvu08vOsagkZ/Aju5XuiZx6ldsLfByg1htFeldhex+PeMrYauANzFsMJeAA0+dyPLbDoX2OYuvVoLDkQ==}
@@ -6806,11 +6806,11 @@ snapshots:
 
   '@ctrl/tinycolor@4.2.0': {}
 
-  '@cucumber/html-formatter@23.0.0(@cucumber/messages@32.2.0)':
+  '@cucumber/html-formatter@23.0.0(@cucumber/messages@32.3.1)':
     dependencies:
-      '@cucumber/messages': 32.2.0
+      '@cucumber/messages': 32.3.1
 
-  '@cucumber/messages@32.2.0':
+  '@cucumber/messages@32.3.1':
     dependencies:
       class-transformer: 0.5.1
       reflect-metadata: 0.2.2
