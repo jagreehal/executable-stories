@@ -1,5 +1,6 @@
 /**
- * Scaffold an Astro Starlight project from template.
+ * Scaffold an Astro docs site from template.
+ * Uses Starlight with theme overrides matching the HTML report design system.
  */
 
 import * as fs from "node:fs";
@@ -31,6 +32,7 @@ export function initAstro(options: InitAstroOptions = {}): InitAstroResult {
   }
 
   // Template is at: <package-root>/templates/astro-starlight/
+  // Includes Starlight with 6 theme overrides matching HTML report themes.
   const templateDir = path.resolve(__dirname, "..", "templates", "astro-starlight");
 
   if (!fs.existsSync(templateDir)) {

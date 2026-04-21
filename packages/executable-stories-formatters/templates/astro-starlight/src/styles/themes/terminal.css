@@ -1,0 +1,61 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+:root {
+  --sl-font: "JetBrains Mono", ui-monospace, "SFMono-Regular", "SF Mono", Menlo, monospace;
+  --sl-font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", "SF Mono", Menlo, monospace;
+
+  --sl-color-white: #eaeae5;
+  --sl-color-gray-1: #e0e0d8;
+  --sl-color-gray-2: #d0d0c8;
+  --sl-color-gray-3: #c8c8c0;
+  --sl-color-gray-4: #8a8a80;
+  --sl-color-gray-5: #666660;
+  --sl-color-gray-6: #3a3a35;
+  --sl-color-gray-7: #2a2a25;
+  --sl-color-black: #1a1a1a;
+
+  --sl-color-accent-low: rgba(0, 138, 69, 0.1);
+  --sl-color-accent: #008a45;
+  --sl-color-accent-high: #006633;
+
+  --sl-shadow-lg: none;
+
+  color-scheme: light;
+  --sl-border-radius: 0;
+}
+
+[data-theme='dark'] {
+  --sl-color-white: #111111;
+  --sl-color-gray-1: #1a1a1a;
+  --sl-color-gray-2: #222222;
+  --sl-color-gray-3: #2a2a2a;
+  --sl-color-gray-4: #555555;
+  --sl-color-gray-5: #6b6b6b;
+  --sl-color-gray-6: #a0a0a0;
+  --sl-color-gray-7: #c0c0c0;
+  --sl-color-black: #d4d4d4;
+
+  --sl-color-accent-low: rgba(0, 210, 106, 0.1);
+  --sl-color-accent: #00d26a;
+  --sl-color-accent-high: #00ff80;
+
+  --sl-shadow-lg: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --sl-color-white: #111111;
+    --sl-color-gray-1: #1a1a1a;
+    --sl-color-gray-2: #222222;
+    --sl-color-gray-3: #2a2a2a;
+    --sl-color-gray-4: #555555;
+    --sl-color-gray-5: #6b6b6b;
+    --sl-color-gray-6: #a0a0a0;
+    --sl-color-gray-7: #c0c0c0;
+    --sl-color-black: #d4d4d4;
+    --sl-color-accent-low: rgba(0, 210, 106, 0.1);
+    --sl-color-accent: #00d26a;
+    --sl-color-accent-high: #00ff80;
+    --sl-shadow-lg: none;
+  }
+}

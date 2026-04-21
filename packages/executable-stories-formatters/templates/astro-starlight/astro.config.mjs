@@ -16,6 +16,10 @@ export default defineConfig({
           autogenerate: { directory: 'stories' },
         },
       ],
+      customCss: [
+        './src/styles/global.css',
+        './src/styles/themes/default.css',
+      ],
     }),
   ],
 });

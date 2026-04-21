@@ -1,8 +1,9 @@
 /**
- * Astro/Starlight Formatter - Layer 3.
+ * Astro Formatter - Layer 3.
  *
- * Wraps the MarkdownFormatter to produce Starlight-compatible .md files
- * with proper YAML frontmatter (title, description, sidebar.badge).
+ * Wraps the MarkdownFormatter to produce .md files with YAML frontmatter
+ * (title, description, sidebar.badge) for Starlight content collections.
+ * The scaffolded docs site uses themed CSS matching the HTML report design system.
  */
 
 import { MarkdownFormatter } from "./markdown";

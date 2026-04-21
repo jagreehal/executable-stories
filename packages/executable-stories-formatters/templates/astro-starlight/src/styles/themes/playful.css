@@ -1,0 +1,61 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Source+Sans+3:wght@400;500;600&family=Source+Code+Pro:wght@400;500&display=swap');
+
+:root {
+  --sl-font: "Source Sans 3", "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --sl-font-mono: "Source Code Pro", ui-monospace, "SFMono-Regular", "SF Mono", Menlo, monospace;
+
+  --sl-color-white: #ffffff;
+  --sl-color-gray-1: #fdf0e6;
+  --sl-color-gray-2: #f5ebe0;
+  --sl-color-gray-3: #e6d5c3;
+  --sl-color-gray-4: #b0a090;
+  --sl-color-gray-5: #6b5b4e;
+  --sl-color-gray-6: #544639;
+  --sl-color-gray-7: #3d3229;
+  --sl-color-black: #3d3229;
+
+  --sl-color-accent-low: rgba(224, 122, 95, 0.1);
+  --sl-color-accent: #e07a5f;
+  --sl-color-accent-high: #c4623f;
+
+  --sl-shadow-lg: 0 10px 20px -4px rgb(61 50 41 / 0.1), 0 4px 8px -4px rgb(61 50 41 / 0.05);
+
+  color-scheme: light;
+  --sl-border-radius: 1rem;
+}
+
+[data-theme='dark'] {
+  --sl-color-white: #1e1814;
+  --sl-color-gray-1: #2a2118;
+  --sl-color-gray-2: #332920;
+  --sl-color-gray-3: #4a3d32;
+  --sl-color-gray-4: #8a7a6a;
+  --sl-color-gray-5: #a89585;
+  --sl-color-gray-6: #d4c4b4;
+  --sl-color-gray-7: #eae0d6;
+  --sl-color-black: #f0e6dc;
+
+  --sl-color-accent-low: rgba(232, 149, 125, 0.12);
+  --sl-color-accent: #e8957d;
+  --sl-color-accent-high: #f0a994;
+
+  --sl-shadow-lg: 0 10px 20px -4px rgb(0 0 0 / 0.4), 0 4px 8px -4px rgb(0 0 0 / 0.3);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --sl-color-white: #1e1814;
+    --sl-color-gray-1: #2a2118;
+    --sl-color-gray-2: #332920;
+    --sl-color-gray-3: #4a3d32;
+    --sl-color-gray-4: #8a7a6a;
+    --sl-color-gray-5: #a89585;
+    --sl-color-gray-6: #d4c4b4;
+    --sl-color-gray-7: #eae0d6;
+    --sl-color-black: #f0e6dc;
+    --sl-color-accent-low: rgba(232, 149, 125, 0.12);
+    --sl-color-accent: #e8957d;
+    --sl-color-accent-high: #f0a994;
+    --sl-shadow-lg: 0 10px 20px -4px rgb(0 0 0 / 0.4), 0 4px 8px -4px rgb(0 0 0 / 0.3);
+  }
+}

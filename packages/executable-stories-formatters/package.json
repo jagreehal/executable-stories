@@ -66,8 +66,8 @@
     "build-storybook": "storybook build"
   },
   "dependencies": {
-    "@cucumber/html-formatter": "^23.0.0",
-    "@cucumber/messages": "^32.2.0",
+    "@cucumber/html-formatter": "^23.1.0",
+    "@cucumber/messages": "^32.3.1",
     "ajv": "^8.18.0"
   },
   "devDependencies": {
@@ -78,7 +78,7 @@
     "storybook": "^10.3.5",
     "tsup": "^8.5.1",
     "tsx": "^4.21.0",
-    "typescript": "~6.0.2",
+    "typescript": "~6.0.3",
     "vitest": "^4.1.4",
     "vitest-mock-extended": "^4.0.0"
   }

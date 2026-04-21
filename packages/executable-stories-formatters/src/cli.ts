@@ -69,11 +69,11 @@ SUBCOMMANDS
   compare    Compare two runs and generate a diff report
   list       List scenarios from a test run (text table or JSON)
   validate   Validate a JSON file against the schema (no output generated)
-  init-astro Scaffold an Astro Starlight docs site for story output
+  init-astro Scaffold an Astro docs site for story output (Starlight with themed CSS)
 
 OPTIONS
   --format <formats>            Comma-separated formats: html, markdown, junit, cucumber-json, cucumber-messages, cucumber-html, astro, or custom names from config (default: html)
-                                  astro             Starlight-compatible Markdown (for Astro docs sites)
+                                  astro             Themed Markdown (for Astro docs sites with matching CSS)
                                   html              Custom HTML report (accessible, dark mode, mermaid)
                                   cucumber-html     Official Cucumber HTML report
                                   markdown          Markdown documentation
@@ -229,7 +229,18 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
 
     try {
       const result = initAstroFn({ targetDir, force });
-      console.log(`Scaffolded Astro Starlight project at ${result.targetDir}`);
+      console.log(`Scaffolded Astro docs site at ${result.targetDir}`);
+      console.log("");
+      console.log("Themes available in src/styles/themes/:");
+      console.log("  default.css   IBM Plex Sans, cucumber green (default)");
+      console.log("  corporate.css  DM Sans, navy accent");
+      console.log("  terminal.css   JetBrains Mono, green-on-dark");
+      console.log("  minimal.css    DM Sans, warm teal");
+      console.log("  dashboard.css  DM Sans, blue accent");
+      console.log("  playful.css    Source Sans, coral pastels");
+      console.log("");
+      console.log("To change theme, edit astro.config.mjs customCss array.");
+      console.log("");
       console.log("");
       console.log("Next steps:");
       console.log(`  cd ${result.targetDir}`);

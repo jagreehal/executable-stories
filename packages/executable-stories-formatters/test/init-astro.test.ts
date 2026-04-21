@@ -27,6 +27,28 @@ describe("initAstro", () => {
     expect(fs.existsSync(path.join(target, "public/stories/assets/.gitkeep"))).toBe(true);
   });
 
+  it("should include theme CSS files", () => {
+    const target = path.join(tmpDir, "story-docs");
+    initAstro({ targetDir: target });
+
+    expect(fs.existsSync(path.join(target, "src/styles/global.css"))).toBe(true);
+    expect(fs.existsSync(path.join(target, "src/styles/themes/default.css"))).toBe(true);
+    expect(fs.existsSync(path.join(target, "src/styles/themes/corporate.css"))).toBe(true);
+    expect(fs.existsSync(path.join(target, "src/styles/themes/terminal.css"))).toBe(true);
+    expect(fs.existsSync(path.join(target, "src/styles/themes/minimal.css"))).toBe(true);
+    expect(fs.existsSync(path.join(target, "src/styles/themes/dashboard.css"))).toBe(true);
+    expect(fs.existsSync(path.join(target, "src/styles/themes/playful.css"))).toBe(true);
+  });
+
+  it("should include tsconfig with types and rootDir", () => {
+    const target = path.join(tmpDir, "story-docs");
+    initAstro({ targetDir: target });
+
+    const tsconfig = JSON.parse(fs.readFileSync(path.join(target, "tsconfig.json"), "utf8"));
+    expect(tsconfig.compilerOptions.types).toContain("node");
+    expect(tsconfig.compilerOptions.rootDir).toBe("./src");
+  });
+
   it("should refuse to overwrite existing non-empty directory without force", () => {
     const target = path.join(tmpDir, "story-docs");
     fs.mkdirSync(target);
