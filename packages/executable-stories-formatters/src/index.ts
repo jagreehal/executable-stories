@@ -43,6 +43,7 @@ import { RunDiffMarkdownFormatter } from "./formatters/run-diff-markdown";
 import { matchesPattern, selectTestCases } from "./select-test-cases";
 import { bundleAssets } from "./bundler/bundle-assets";
 import { AstroFormatter } from "./formatters/astro";
+import { ConfluenceFormatter } from "./formatters/confluence";
 import { copyMarkdownAssets } from "./formatters/astro-assets";
 
 // Import adapters for convenience functions
@@ -199,6 +200,29 @@ export {
 } from "./formatters/astro";
 
 export {
+  ConfluenceFormatter,
+  type ConfluenceFormatterOptions as ConfluenceFormatterOpts,
+} from "./formatters/confluence";
+
+export {
+  publishConfluencePage,
+  type PublishConfluenceArgs,
+  type PublishConfluenceDeps,
+  type PublishConfluenceResult,
+  type ConfluenceAuth,
+  type FetchFn,
+} from "./publishers/confluence";
+
+export {
+  publishJiraIssue,
+  type PublishJiraArgs,
+  type PublishJiraDeps,
+  type PublishJiraResult,
+  type JiraAuth,
+  type JiraPublishMode,
+} from "./publishers/jira";
+
+export {
   copyMarkdownAssets,
   rewriteAssetPaths,
   type AstroAssetResult,
@@ -349,6 +373,7 @@ const FORMAT_EXTENSIONS: Record<OutputFormat, string> = {
   junit: ".junit.xml",
   "cucumber-json": ".cucumber.json",
   "cucumber-messages": ".ndjson",
+  confluence: ".adf.json",
 };
 
 /** Known test file extensions to strip for colocated naming */
@@ -599,6 +624,19 @@ export class ReportGenerator {
         includeSourceLinks: options.markdown?.includeSourceLinks ?? true,
         customRenderers: options.markdown?.customRenderers,
       },
+      confluence: {
+        title: options.confluence?.title ?? "User Stories",
+        includeStatusIcons: options.confluence?.includeStatusIcons ?? true,
+        includeMetadata: options.confluence?.includeMetadata ?? true,
+        includeSummaryTable: options.confluence?.includeSummaryTable ?? true,
+        includeErrors: options.confluence?.includeErrors ?? true,
+        scenarioHeadingLevel: options.confluence?.scenarioHeadingLevel ?? 3,
+        groupBy: options.confluence?.groupBy ?? "file",
+        sortScenarios: options.confluence?.sortScenarios ?? "source",
+        pretty: options.confluence?.pretty ?? true,
+        permalinkBaseUrl: options.confluence?.permalinkBaseUrl,
+        ticketUrlTemplate: options.confluence?.ticketUrlTemplate,
+      },
       astro: {
         assetsDir: options.astro?.assetsDir ?? "public/stories/assets",
         assetsBaseUrl: options.astro?.assetsBaseUrl ?? "/stories/assets",
@@ -805,6 +843,23 @@ export class ReportGenerator {
         const formatter = new AstroFormatter({
           assetsBaseUrl: this.options.astro.assetsBaseUrl,
           markdown: this.options.astro.markdown,
+        });
+        return formatter.format(run);
+      }
+
+      case "confluence": {
+        const formatter = new ConfluenceFormatter({
+          title: this.options.confluence.title,
+          includeStatusIcons: this.options.confluence.includeStatusIcons,
+          includeMetadata: this.options.confluence.includeMetadata,
+          includeSummaryTable: this.options.confluence.includeSummaryTable,
+          includeErrors: this.options.confluence.includeErrors,
+          scenarioHeadingLevel: this.options.confluence.scenarioHeadingLevel,
+          groupBy: this.options.confluence.groupBy,
+          sortScenarios: this.options.confluence.sortScenarios,
+          pretty: this.options.confluence.pretty,
+          permalinkBaseUrl: this.options.confluence.permalinkBaseUrl,
+          ticketUrlTemplate: this.options.confluence.ticketUrlTemplate,
         });
         return formatter.format(run);
       }

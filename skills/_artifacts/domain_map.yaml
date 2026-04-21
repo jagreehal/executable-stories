@@ -60,7 +60,7 @@ domains:
     name: Formatters & CLI
     description: >
       The executable-stories CLI and programmatic API for transforming
-      RawRun JSON into 6 output formats. Pipeline: RawRun → canonicalize →
+      RawRun JSON into 8 output formats. Pipeline: RawRun → canonicalize →
       formatters.
     packages:
       - packages/executable-stories-formatters
@@ -232,14 +232,15 @@ skills:
     package: packages/executable-stories-formatters
     type: core
     description: >
-      executable-stories CLI with format and validate subcommands. Pipeline:
-      RawRun JSON → canonicalizeRun → formatters. 6 output formats: HTML,
+      executable-stories CLI with format, compare, list, validate, init-astro,
+      and Atlassian publish subcommands. Pipeline: RawRun JSON →
+      canonicalizeRun → formatters. 8 output formats: Astro, Confluence, HTML,
       Markdown, JUnit, Cucumber JSON/HTML/Messages. fn(args, deps) pattern.
-      Exit codes 0-4. Programmatic ReportGenerator API.
+      Exit codes 0-4. Programmatic ReportGenerator + publish API.
     sources:
       - "jagreehal/executable-stories:packages/executable-stories-formatters/src/cli.ts"
       - "jagreehal/executable-stories:packages/executable-stories-formatters/src/index.ts"
-      - "jagreehal/executable-stories:apps/docs-site/src/content/docs/formatters/formatters-api.md"
+      - "jagreehal/executable-stories:apps/docs-site/src/content/docs/reference/formatters-api.md"
 
   # --- ESLint Plugins (3 skills, 1 each) ---
   - slug: eslint-vitest-rules

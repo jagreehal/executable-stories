@@ -153,6 +153,7 @@ const generator = new ReportGenerator({
 | `markdown` | Markdown user-story documentation | `.md` |
 | `junit` | JUnit XML for CI integration | `.junit.xml` |
 | `cucumber-json` | Cucumber JSON for tooling compatibility | `.cucumber.json` |
+| `confluence` | Atlassian Document Format (ADF) JSON for Confluence pages and Jira issue descriptions (via REST API) | `.adf.json` |
 
 ## Writing a Custom Adapter
 

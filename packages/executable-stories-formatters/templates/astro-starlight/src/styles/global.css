@@ -15,8 +15,10 @@
   letter-spacing: -0.02em;
 }
 
-.sl-markdown-content p {
-  max-width: 65ch;
+.sl-markdown-content > p,
+.sl-markdown-content > ul,
+.sl-markdown-content > ol {
+  max-width: 72ch;
 }
 
 /* ============================================================================
@@ -65,85 +67,78 @@ nav.sidebar a:hover {
 }
 
 /* ============================================================================
-   Code blocks — GitHub style
+   Code blocks — theme-aware via Starlight variables
    ============================================================================ */
 
 .expressive-code .frame {
-  background: #f6f8fa !important;
   border-radius: 0.5rem !important;
-  border: 1px solid #d1d9e0 !important;
+  border: 1px solid var(--sl-color-gray-5) !important;
   box-shadow: none !important;
   overflow: hidden;
 }
 
 .expressive-code pre {
-  background: transparent !important;
   border-radius: 0 !important;
   border: none !important;
   padding: 1rem 1.25rem !important;
   font-family: var(--sl-font-mono);
   font-size: 0.875rem !important;
   line-height: 1.7 !important;
-  color: #1f2328 !important;
 }
 
 .expressive-code .header {
-  background: #eef1f4 !important;
-  border-bottom: 1px solid #d1d9e0 !important;
+  border-bottom: 1px solid var(--sl-color-gray-5) !important;
   padding: 8px 14px !important;
 }
 
 .expressive-code .header .title {
-  color: #636c76 !important;
   font-size: 0.75rem !important;
   font-family: var(--sl-font-mono) !important;
 }
 
-[data-theme='dark'] .expressive-code .frame {
-  background: #161b22 !important;
-  border-color: #30363d !important;
-}
-
-[data-theme='dark'] .expressive-code pre {
-  color: #e6edf3 !important;
-}
-
-[data-theme='dark'] .expressive-code .header {
-  background: #1c2128 !important;
-  border-bottom-color: #30363d !important;
-}
-
-[data-theme='dark'] .expressive-code .header .title {
-  color: #8b949e !important;
+/* Inline code */
+.sl-markdown-content :not(pre) > code {
+  background: var(--sl-color-gray-6);
+  border: 1px solid var(--sl-color-gray-5);
+  border-radius: 0.25rem;
+  padding: 0.125em 0.375em;
+  font-size: 0.85em;
 }
 
 /* ============================================================================
    Status badges — match report status colors
+   Starlight renders <span class="sl-badge success">, so override via the
+   --sl-badge-*-bg/border/text CSS custom properties it already defines.
    ============================================================================ */
 
-.sl-badge-success {
-  background-color: hsl(145 63% 42%) !important;
-  color: white !important;
+:root {
+  --sl-badge-success-bg: hsl(145 63% 42%);
+  --sl-badge-success-border: hsl(145 63% 35%);
+  --sl-badge-success-text: #fff;
+
+  --sl-badge-danger-bg: hsl(0 72% 51%);
+  --sl-badge-danger-border: hsl(0 72% 42%);
+  --sl-badge-danger-text: #fff;
+
+  --sl-badge-caution-bg: hsl(38 92% 50%);
+  --sl-badge-caution-border: hsl(38 92% 40%);
+  --sl-badge-caution-text: #fff;
+
+  --sl-badge-note-bg: hsl(262 60% 55%);
+  --sl-badge-note-border: hsl(262 60% 45%);
+  --sl-badge-note-text: #fff;
+
+  --sl-badge-tip-bg: hsl(145 63% 42%);
+  --sl-badge-tip-border: hsl(145 63% 35%);
+  --sl-badge-tip-text: #fff;
 }
 
-.sl-badge-danger {
-  background-color: hsl(0 72% 51%) !important;
-  color: white !important;
-}
-
-.sl-badge-caution {
-  background-color: hsl(38 92% 50%) !important;
-  color: white !important;
-}
-
-.sl-badge-note {
-  background-color: hsl(262 60% 55%) !important;
-  color: white !important;
-}
-
-.sl-badge-tip {
-  background-color: hsl(145 63% 42%) !important;
-  color: white !important;
+[data-theme='light']:root {
+  --sl-badge-success-bg: hsl(145 63% 42%);
+  --sl-badge-danger-bg: hsl(0 72% 51%);
+  --sl-badge-caution-bg: hsl(38 92% 50%);
+  --sl-badge-note-bg: hsl(262 60% 55%);
+  --sl-badge-tip-bg: hsl(145 63% 42%);
 }
 
 /* ============================================================================

@@ -220,16 +220,17 @@ skills:
     path: "skills/formatters-cli/SKILL.md"
     package: "packages/executable-stories-formatters"
     description: >
-      executable-stories CLI: format and validate subcommands. Pipeline:
-      RawRun JSON → canonicalizeRun() → formatters. 6 output formats: HTML,
-      Markdown, JUnit, Cucumber JSON/HTML/Messages. fn(args, deps) dependency
-      injection. Exit codes 0=success, 1=schema, 2=canonical, 3=generation,
-      4=usage. Programmatic ReportGenerator API.
+      executable-stories CLI: format, compare, list, validate, init-astro,
+      and Atlassian publish subcommands. Pipeline: RawRun JSON →
+      canonicalizeRun() → formatters. 8 output formats: Astro, Confluence,
+      HTML, Markdown, JUnit, Cucumber JSON/HTML/Messages. fn(args, deps)
+      dependency injection. Exit codes 0=success, 1=schema, 2=canonical,
+      3=generation, 4=usage. Programmatic ReportGenerator + publish API.
     requires: []
     sources:
       - "jagreehal/executable-stories:packages/executable-stories-formatters/src/cli.ts"
       - "jagreehal/executable-stories:packages/executable-stories-formatters/src/index.ts"
-      - "jagreehal/executable-stories:apps/docs-site/src/content/docs/formatters/formatters-api.md"
+      - "jagreehal/executable-stories:apps/docs-site/src/content/docs/reference/formatters-api.md"
     subsystems: []
     references: []
 

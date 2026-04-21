@@ -39,3 +39,8 @@ export {
   type AstroFormatterOptions,
   type StarlightBadge,
 } from "./astro";
+
+export {
+  ConfluenceFormatter,
+  type ConfluenceFormatterOptions,
+} from "./confluence";

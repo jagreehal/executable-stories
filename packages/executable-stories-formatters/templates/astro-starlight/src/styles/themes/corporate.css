@@ -1,60 +1,83 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&family=Playfair+Display:wght@500;600;700&display=swap');
 
+/* Light mode */
 :root {
   --sl-font: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --sl-font-mono: "DM Mono", ui-monospace, "SFMono-Regular", "SF Mono", Menlo, monospace;
 
-  --sl-color-white: #ffffff;
-  --sl-color-gray-1: #f0ede8;
-  --sl-color-gray-2: #eee9e0;
-  --sl-color-gray-3: #d6d0c4;
+  --sl-color-white: #1a202c;
+  --sl-color-gray-1: #1e293b;
+  --sl-color-gray-2: #334155;
+  --sl-color-gray-3: #64748b;
   --sl-color-gray-4: #8a8578;
-  --sl-color-gray-5: #64748b;
-  --sl-color-gray-6: #334155;
-  --sl-color-gray-7: #1e293b;
-  --sl-color-black: #1a202c;
+  --sl-color-gray-5: #d6d0c4;
+  --sl-color-gray-6: #eee9e0;
+  --sl-color-gray-7: #f5f2ed;
+  --sl-color-black: #faf9f7;
 
-  --sl-color-accent-low: rgba(26, 54, 93, 0.08);
+  --sl-color-accent-low: rgba(26, 54, 93, 0.12);
   --sl-color-accent: #1a365d;
-  --sl-color-accent-high: #93c5fd;
+  --sl-color-accent-high: #0f1f3a;
 
   --sl-shadow-lg: 0 10px 25px -5px rgb(26 54 93 / 0.1), 0 8px 10px -6px rgb(26 54 93 / 0.06);
+
+  --mermaid-theme-primary: #1a365d;
+  --mermaid-theme-primary-text: #ffffff;
+  --mermaid-theme-line: #64748b;
 
   color-scheme: light;
 }
 
+/* Dark mode */
 [data-theme='dark'] {
-  --sl-color-white: #111827;
-  --sl-color-gray-1: #1e293b;
-  --sl-color-gray-2: #1e293b;
-  --sl-color-gray-3: #334155;
+  --sl-color-white: #f1f5f9;
+  --sl-color-gray-1: #e2e8f0;
+  --sl-color-gray-2: #cbd5e1;
+  --sl-color-gray-3: #94a3b8;
   --sl-color-gray-4: #64748b;
-  --sl-color-gray-5: #94a3b8;
-  --sl-color-gray-6: #cbd5e1;
-  --sl-color-gray-7: #e2e8f0;
-  --sl-color-black: #f1f5f9;
+  --sl-color-gray-5: #334155;
+  --sl-color-gray-6: #1e293b;
+  --sl-color-gray-7: #162033;
+  --sl-color-black: #111827;
 
-  --sl-color-accent-low: rgba(147, 197, 253, 0.1);
+  --sl-color-accent-low: rgba(147, 197, 253, 0.15);
   --sl-color-accent: #93c5fd;
-  --sl-color-accent-high: #1a365d;
+  --sl-color-accent-high: #dbeafe;
 
   --sl-shadow-lg: 0 10px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.3);
+
+  --mermaid-theme-primary: #93c5fd;
+  --mermaid-theme-primary-text: #0f172a;
+  --mermaid-theme-line: #94a3b8;
+
+  color-scheme: dark;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --sl-color-white: #111827;
-    --sl-color-gray-1: #1e293b;
-    --sl-color-gray-2: #1e293b;
-    --sl-color-gray-3: #334155;
+    --sl-color-white: #f1f5f9;
+    --sl-color-gray-1: #e2e8f0;
+    --sl-color-gray-2: #cbd5e1;
+    --sl-color-gray-3: #94a3b8;
     --sl-color-gray-4: #64748b;
-    --sl-color-gray-5: #94a3b8;
-    --sl-color-gray-6: #cbd5e1;
-    --sl-color-gray-7: #e2e8f0;
-    --sl-color-black: #f1f5f9;
-    --sl-color-accent-low: rgba(147, 197, 253, 0.1);
+    --sl-color-gray-5: #334155;
+    --sl-color-gray-6: #1e293b;
+    --sl-color-gray-7: #162033;
+    --sl-color-black: #111827;
+    --sl-color-accent-low: rgba(147, 197, 253, 0.15);
     --sl-color-accent: #93c5fd;
-    --sl-color-accent-high: #1a365d;
+    --sl-color-accent-high: #dbeafe;
     --sl-shadow-lg: 0 10px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.3);
+    --mermaid-theme-primary: #93c5fd;
+    --mermaid-theme-primary-text: #0f172a;
+    --mermaid-theme-line: #94a3b8;
+    color-scheme: dark;
   }
+}
+
+/* Editorial serif headings — matches HTML corporate theme */
+.sl-markdown-content h1,
+.sl-markdown-content h2 {
+  font-family: "Playfair Display", Georgia, "Times New Roman", serif;
+  font-weight: 600;
 }
