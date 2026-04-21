@@ -1,5 +1,11 @@
 # executable-stories-formatters
 
+## 0.7.9
+
+### Patch Changes
+
+- 6778e30: Added Confluence Formatters
+
 ## 0.7.8
 
 ### Patch Changes
