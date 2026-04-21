@@ -1,0 +1,77 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Source+Sans+3:wght@400;500;600&family=Source+Code+Pro:wght@400;500&display=swap');
+
+/* Light mode — warm cream + coral */
+:root {
+  --sl-font: "Source Sans 3", "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --sl-font-mono: "Source Code Pro", ui-monospace, "SFMono-Regular", "SF Mono", Menlo, monospace;
+
+  --sl-color-white: #3d3229;
+  --sl-color-gray-1: #544639;
+  --sl-color-gray-2: #6b5b4e;
+  --sl-color-gray-3: #8a7a6a;
+  --sl-color-gray-4: #b0a090;
+  --sl-color-gray-5: #e6d5c3;
+  --sl-color-gray-6: #f5ebe0;
+  --sl-color-gray-7: #fdf0e6;
+  --sl-color-black: #fef7f0;
+
+  --sl-color-accent-low: rgba(224, 122, 95, 0.18);
+  --sl-color-accent: #e07a5f;
+  --sl-color-accent-high: #b05740;
+
+  --sl-shadow-lg: 0 10px 20px -4px rgb(61 50 41 / 0.1), 0 4px 8px -4px rgb(61 50 41 / 0.05);
+
+  --mermaid-theme-primary: #e07a5f;
+  --mermaid-theme-primary-text: #ffffff;
+  --mermaid-theme-line: #6b5b4e;
+
+  color-scheme: light;
+  --sl-border-radius: 1rem;
+}
+
+/* Dark mode */
+[data-theme='dark'] {
+  --sl-color-white: #f0e6dc;
+  --sl-color-gray-1: #eae0d6;
+  --sl-color-gray-2: #d4c4b4;
+  --sl-color-gray-3: #a89585;
+  --sl-color-gray-4: #8a7a6a;
+  --sl-color-gray-5: #4a3d32;
+  --sl-color-gray-6: #332920;
+  --sl-color-gray-7: #2a2118;
+  --sl-color-black: #1e1814;
+
+  --sl-color-accent-low: rgba(232, 149, 125, 0.2);
+  --sl-color-accent: #e8957d;
+  --sl-color-accent-high: #f5b8a2;
+
+  --sl-shadow-lg: 0 10px 20px -4px rgb(0 0 0 / 0.4), 0 4px 8px -4px rgb(0 0 0 / 0.3);
+
+  --mermaid-theme-primary: #e8957d;
+  --mermaid-theme-primary-text: #1e1814;
+  --mermaid-theme-line: #a89585;
+
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --sl-color-white: #f0e6dc;
+    --sl-color-gray-1: #eae0d6;
+    --sl-color-gray-2: #d4c4b4;
+    --sl-color-gray-3: #a89585;
+    --sl-color-gray-4: #8a7a6a;
+    --sl-color-gray-5: #4a3d32;
+    --sl-color-gray-6: #332920;
+    --sl-color-gray-7: #2a2118;
+    --sl-color-black: #1e1814;
+    --sl-color-accent-low: rgba(232, 149, 125, 0.2);
+    --sl-color-accent: #e8957d;
+    --sl-color-accent-high: #f5b8a2;
+    --sl-shadow-lg: 0 10px 20px -4px rgb(0 0 0 / 0.4), 0 4px 8px -4px rgb(0 0 0 / 0.3);
+    --mermaid-theme-primary: #e8957d;
+    --mermaid-theme-primary-text: #1e1814;
+    --mermaid-theme-line: #a89585;
+    color-scheme: dark;
+  }
+}

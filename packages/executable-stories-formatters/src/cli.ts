@@ -35,6 +35,8 @@ import { selectTestCases } from "./select-test-cases";
 import type { RawRun } from "./types/raw";
 import type { TestRunResult } from "./types/test-result";
 import { initAstro as initAstroFn } from "./init-astro";
+import { publishConfluencePage } from "./publishers/confluence";
+import { publishJiraIssue, type JiraPublishMode } from "./publishers/jira";
 import { loadConfig } from "./config.js";
 import type { Formatter } from "./types/formatter.js";
 
@@ -63,17 +65,22 @@ USAGE
   executable-stories validate <file>
   executable-stories validate --stdin
   executable-stories init-astro [directory]
+  executable-stories publish-confluence <file.adf.json> [options]
+  executable-stories publish-jira <file.adf.json> [options]
 
 SUBCOMMANDS
-  format     Read raw test results and generate reports
-  compare    Compare two runs and generate a diff report
-  list       List scenarios from a test run (text table or JSON)
-  validate   Validate a JSON file against the schema (no output generated)
-  init-astro Scaffold an Astro Starlight docs site for story output
+  format             Read raw test results and generate reports
+  compare            Compare two runs and generate a diff report
+  list               List scenarios from a test run (text table or JSON)
+  validate           Validate a JSON file against the schema (no output generated)
+  init-astro         Scaffold an Astro docs site for story output (Starlight with themed CSS)
+  publish-confluence Publish an ADF JSON file to a Confluence page via REST API
+  publish-jira       Publish an ADF JSON file to a Jira issue (as comment or description)
 
 OPTIONS
-  --format <formats>            Comma-separated formats: html, markdown, junit, cucumber-json, cucumber-messages, cucumber-html, astro, or custom names from config (default: html)
-                                  astro             Starlight-compatible Markdown (for Astro docs sites)
+  --format <formats>            Comma-separated formats: html, markdown, junit, cucumber-json, cucumber-messages, cucumber-html, astro, confluence, or custom names from config (default: html)
+                                  astro             Themed Markdown (for Astro docs sites with matching CSS)
+                                  confluence        Atlassian Document Format (ADF) JSON for Confluence / Jira
                                   html              Custom HTML report (accessible, dark mode, mermaid)
                                   cucumber-html     Official Cucumber HTML report
                                   markdown          Markdown documentation
@@ -126,6 +133,26 @@ COMPARE
 INIT-ASTRO
   executable-stories init-astro [directory]   Scaffold into directory (default: ./story-docs)
   --force                                      Overwrite existing directory
+
+PUBLISH-CONFLUENCE
+  executable-stories publish-confluence <file.adf.json> [options]
+  --page-id <id>               Update an existing page (alternative to --space-id)
+  --space-id <id>              Create a new page (requires --title)
+  --parent-id <id>             Parent page ID (for new pages)
+  --title <title>              Page title
+  --base-url <url>             Confluence base URL (env: CONFLUENCE_BASE_URL)
+  --email <email>              Atlassian email (env: CONFLUENCE_EMAIL)
+  --token <token>              API token (env: CONFLUENCE_TOKEN)
+  --dry-run                    Validate and print request plan, don't POST
+
+PUBLISH-JIRA
+  executable-stories publish-jira <file.adf.json> [options]
+  --issue <KEY>                Issue key, e.g. PROJ-123 (required)
+  --mode <mode>                "comment" (default) or "description"
+  --base-url <url>             Jira base URL (env: JIRA_BASE_URL)
+  --email <email>              Atlassian email (env: JIRA_EMAIL)
+  --token <token>              API token (env: JIRA_TOKEN)
+  --dry-run                    Validate and print request plan, don't POST
 
 NOTIFICATIONS
   --slack-webhook <url>         Slack incoming webhook URL (fallback: SLACK_WEBHOOK_URL env var)
@@ -216,9 +243,31 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
   }
 
   const subcommand = args[0];
-  if (subcommand !== "format" && subcommand !== "compare" && subcommand !== "list" && subcommand !== "validate" && subcommand !== "init-astro") {
-    console.error(`Unknown subcommand: "${subcommand}". Use "format", "compare", "list", "validate", or "init-astro".`);
+  if (
+    subcommand !== "format" &&
+    subcommand !== "compare" &&
+    subcommand !== "list" &&
+    subcommand !== "validate" &&
+    subcommand !== "init-astro" &&
+    subcommand !== "publish-confluence" &&
+    subcommand !== "publish-jira"
+  ) {
+    console.error(
+      `Unknown subcommand: "${subcommand}". Use "format", "compare", "list", "validate", "init-astro", "publish-confluence", or "publish-jira".`,
+    );
     process.exit(EXIT_USAGE);
+  }
+
+  // Handle publish-confluence early (has its own arg shape — exits after completion)
+  if (subcommand === "publish-confluence") {
+    await runPublishConfluence(args.slice(1));
+    process.exit(EXIT_SUCCESS);
+  }
+
+  // Handle publish-jira early (has its own arg shape — exits after completion)
+  if (subcommand === "publish-jira") {
+    await runPublishJira(args.slice(1));
+    process.exit(EXIT_SUCCESS);
   }
 
   // Handle init-astro early (no parseArgs needed)
@@ -229,7 +278,18 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
 
     try {
       const result = initAstroFn({ targetDir, force });
-      console.log(`Scaffolded Astro Starlight project at ${result.targetDir}`);
+      console.log(`Scaffolded Astro docs site at ${result.targetDir}`);
+      console.log("");
+      console.log("Themes available in src/styles/themes/:");
+      console.log("  default.css   IBM Plex Sans, cucumber green (default)");
+      console.log("  corporate.css  DM Sans, navy accent");
+      console.log("  terminal.css   JetBrains Mono, green-on-dark");
+      console.log("  minimal.css    DM Sans, warm teal");
+      console.log("  dashboard.css  DM Sans, blue accent");
+      console.log("  playful.css    Source Sans, coral pastels");
+      console.log("");
+      console.log("To change theme, edit astro.config.mjs customCss array.");
+      console.log("");
       console.log("");
       console.log("Next steps:");
       console.log(`  cd ${result.targetDir}`);
@@ -358,7 +418,7 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
   const pluginConfig = await loadConfig(values["config"] as string | undefined);
   const customFormatterNames = new Set(Object.keys(pluginConfig.formatters ?? {}));
 
-  const builtInFormats = new Set(["astro", "html", "markdown", "junit", "cucumber-json", "cucumber-messages", "cucumber-html"]);
+  const builtInFormats = new Set(["astro", "confluence", "html", "markdown", "junit", "cucumber-json", "cucumber-messages", "cucumber-html"]);
   const formatStr = values.format as string;
   const allRequestedFormats = formatStr.split(",").map((f) => f.trim());
   const builtInRequested = allRequestedFormats.filter((f) => builtInFormats.has(f)) as OutputFormat[];
@@ -367,7 +427,7 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
 
   if (unknownFormats.length > 0) {
     const knownCustom = customFormatterNames.size > 0 ? `, ${[...customFormatterNames].join(", ")}` : "";
-    console.error(`Error: Unknown format(s): ${unknownFormats.join(", ")}. Valid built-in: astro, html, markdown, junit, cucumber-json, cucumber-messages, cucumber-html${knownCustom}.`);
+    console.error(`Error: Unknown format(s): ${unknownFormats.join(", ")}. Valid built-in: astro, confluence, html, markdown, junit, cucumber-json, cucumber-messages, cucumber-html${knownCustom}.`);
     process.exit(EXIT_USAGE);
   }
 
@@ -1308,6 +1368,248 @@ function printCompareResult(
   if (result.prSummary && args.prSummary) {
     console.log("");
     console.log(result.prSummary);
+  }
+}
+
+async function runPublishConfluence(rawArgs: string[]): Promise<void> {
+  const { values, positionals } = parseArgs({
+    args: rawArgs,
+    options: {
+      "page-id": { type: "string" },
+      "space-id": { type: "string" },
+      "parent-id": { type: "string" },
+      title: { type: "string" },
+      "base-url": { type: "string" },
+      email: { type: "string" },
+      token: { type: "string" },
+      "dry-run": { type: "boolean", default: false },
+      help: { type: "boolean", default: false },
+    },
+    allowPositionals: true,
+    strict: true,
+  });
+
+  if (values.help) {
+    console.log(`Usage: executable-stories publish-confluence <file.adf.json> [options]
+
+Publishes an ADF JSON document to a Confluence Cloud page.
+
+Required (one of):
+  --page-id <id>           Update an existing page in place
+  --space-id <id>          Create a new page in a space (also requires --title)
+
+Optional:
+  --parent-id <id>         Parent page ID (new pages only)
+  --title <title>          Page title (required for create; overrides current title on update)
+  --base-url <url>         Confluence base URL, e.g. https://acme.atlassian.net/wiki
+                           (env: CONFLUENCE_BASE_URL)
+  --email <email>          Atlassian account email (env: CONFLUENCE_EMAIL)
+  --token <token>          Atlassian API token (env: CONFLUENCE_TOKEN)
+  --dry-run                Validate inputs and print the request plan, don't POST
+  --help                   Show this help
+
+Generate an API token at https://id.atlassian.com/manage-profile/security/api-tokens`);
+    process.exit(EXIT_SUCCESS);
+  }
+
+  const inputFile = positionals[0];
+  if (!inputFile) {
+    console.error("Error: missing ADF file argument. Run with --help for usage.");
+    process.exit(EXIT_USAGE);
+  }
+  if (!fs.existsSync(inputFile)) {
+    console.error(`Error: file not found: ${inputFile}`);
+    process.exit(EXIT_USAGE);
+  }
+
+  const baseUrl =
+    (values["base-url"] as string | undefined) ??
+    process.env.CONFLUENCE_BASE_URL;
+  const email =
+    (values.email as string | undefined) ?? process.env.CONFLUENCE_EMAIL;
+  const token =
+    (values.token as string | undefined) ?? process.env.CONFLUENCE_TOKEN;
+  const pageId = values["page-id"] as string | undefined;
+  const spaceId = values["space-id"] as string | undefined;
+  const parentId = values["parent-id"] as string | undefined;
+  const title = values.title as string | undefined;
+  const dryRun = values["dry-run"] as boolean;
+
+  if (!baseUrl) {
+    console.error(
+      "Error: --base-url or CONFLUENCE_BASE_URL is required (e.g. https://acme.atlassian.net/wiki)",
+    );
+    process.exit(EXIT_USAGE);
+  }
+  if (!pageId && !spaceId) {
+    console.error(
+      "Error: specify either --page-id (to update) or --space-id (to create)",
+    );
+    process.exit(EXIT_USAGE);
+  }
+  if (!pageId && !title) {
+    console.error("Error: --title is required when creating a new page");
+    process.exit(EXIT_USAGE);
+  }
+
+  const adf = fs.readFileSync(path.resolve(inputFile), "utf8");
+
+  if (dryRun) {
+    console.log(
+      JSON.stringify(
+        {
+          action: pageId ? "update" : "create",
+          baseUrl,
+          pageId,
+          spaceId,
+          parentId,
+          title,
+          adfBytes: adf.length,
+        },
+        null,
+        2,
+      ),
+    );
+    process.exit(EXIT_SUCCESS);
+  }
+
+  if (!email || !token) {
+    console.error(
+      "Error: --email/CONFLUENCE_EMAIL and --token/CONFLUENCE_TOKEN are required unless --dry-run is set",
+    );
+    process.exit(EXIT_USAGE);
+  }
+
+  try {
+    const result = await publishConfluencePage(
+      { adf, pageId, spaceId, parentId, title, baseUrl },
+      { auth: { email, token } },
+    );
+    console.log(
+      `${result.action === "created" ? "Created" : "Updated"} "${result.title}" (v${result.version}) → ${result.url}`,
+    );
+    process.exit(EXIT_SUCCESS);
+  } catch (err) {
+    console.error(`Error: ${(err as Error).message}`);
+    process.exit(EXIT_GENERATION);
+  }
+}
+
+async function runPublishJira(rawArgs: string[]): Promise<void> {
+  const { values, positionals } = parseArgs({
+    args: rawArgs,
+    options: {
+      issue: { type: "string" },
+      mode: { type: "string", default: "comment" },
+      "base-url": { type: "string" },
+      email: { type: "string" },
+      token: { type: "string" },
+      "dry-run": { type: "boolean", default: false },
+      help: { type: "boolean", default: false },
+    },
+    allowPositionals: true,
+    strict: true,
+  });
+
+  if (values.help) {
+    console.log(`Usage: executable-stories publish-jira <file.adf.json> [options]
+
+Publishes an ADF JSON document to a Jira Cloud issue.
+
+Required:
+  --issue <KEY>            Issue key, e.g. PROJ-123
+
+Optional:
+  --mode <mode>            "comment" (default, append-only) or "description" (replaces field)
+  --base-url <url>         Jira base URL, e.g. https://acme.atlassian.net
+                           (env: JIRA_BASE_URL)
+  --email <email>          Atlassian account email (env: JIRA_EMAIL)
+  --token <token>          Atlassian API token (env: JIRA_TOKEN)
+  --dry-run                Validate inputs and print the request plan, don't POST
+  --help                   Show this help
+
+Generate an API token at https://id.atlassian.com/manage-profile/security/api-tokens`);
+    process.exit(EXIT_SUCCESS);
+  }
+
+  const inputFile = positionals[0];
+  if (!inputFile) {
+    console.error("Error: missing ADF file argument. Run with --help for usage.");
+    process.exit(EXIT_USAGE);
+  }
+  if (!fs.existsSync(inputFile)) {
+    console.error(`Error: file not found: ${inputFile}`);
+    process.exit(EXIT_USAGE);
+  }
+
+  const baseUrl =
+    (values["base-url"] as string | undefined) ?? process.env.JIRA_BASE_URL;
+  const email = (values.email as string | undefined) ?? process.env.JIRA_EMAIL;
+  const token = (values.token as string | undefined) ?? process.env.JIRA_TOKEN;
+  const issueKey = values.issue as string | undefined;
+  const modeRaw = values.mode as string;
+  const dryRun = values["dry-run"] as boolean;
+
+  if (!baseUrl) {
+    console.error(
+      "Error: --base-url or JIRA_BASE_URL is required (e.g. https://acme.atlassian.net)",
+    );
+    process.exit(EXIT_USAGE);
+  }
+  if (!issueKey) {
+    console.error("Error: --issue <KEY> is required (e.g. --issue PROJ-123)");
+    process.exit(EXIT_USAGE);
+  }
+  if (modeRaw !== "comment" && modeRaw !== "description") {
+    console.error(
+      `Error: --mode must be "comment" or "description" (got "${modeRaw}")`,
+    );
+    process.exit(EXIT_USAGE);
+  }
+  const mode = modeRaw as JiraPublishMode;
+
+  const adf = fs.readFileSync(path.resolve(inputFile), "utf8");
+
+  if (dryRun) {
+    console.log(
+      JSON.stringify(
+        {
+          action: mode === "description" ? "description-updated" : "comment-added",
+          baseUrl,
+          issueKey,
+          mode,
+          adfBytes: adf.length,
+        },
+        null,
+        2,
+      ),
+    );
+    process.exit(EXIT_SUCCESS);
+  }
+
+  if (!email || !token) {
+    console.error(
+      "Error: --email/JIRA_EMAIL and --token/JIRA_TOKEN are required unless --dry-run is set",
+    );
+    process.exit(EXIT_USAGE);
+  }
+
+  try {
+    const result = await publishJiraIssue(
+      { adf, issueKey, baseUrl, mode },
+      { auth: { email, token } },
+    );
+    if (result.action === "comment-added") {
+      console.log(
+        `Added comment to ${result.issueKey} (comment ${result.commentId}) → ${result.url}`,
+      );
+    } else {
+      console.log(`Updated description for ${result.issueKey} → ${result.url}`);
+    }
+    process.exit(EXIT_SUCCESS);
+  } catch (err) {
+    console.error(`Error: ${(err as Error).message}`);
+    process.exit(EXIT_GENERATION);
   }
 }
 

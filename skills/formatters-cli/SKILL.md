@@ -1,19 +1,20 @@
 ---
 name: formatters-cli
 description: >
-  executable-stories CLI: format and validate subcommands. Pipeline: RawRun
-  JSON from stdin or file, canonicalizeRun() normalization, 6 output formats
-  (HTML, Markdown, JUnit, Cucumber JSON/HTML/Messages). fn(args, deps)
+  executable-stories CLI: format, compare, list, validate, init-astro, and
+  Atlassian publish subcommands. Pipeline: RawRun JSON from stdin or file,
+  canonicalizeRun() normalization, and 8 output formats (Astro, Confluence,
+  HTML, Markdown, JUnit, Cucumber JSON/HTML/Messages). fn(args, deps)
   dependency injection. Exit codes 0=success, 1=schema, 2=canonical,
-  3=generation, 4=usage. ReportGenerator programmatic API. Aggregated and
+  3=generation, 4=usage. ReportGenerator and publish API. Aggregated and
   colocated output modes. canonicalizeRun, assertValidRun, validateCanonicalRun.
 type: core
 library: executable-stories-formatters
-library_version: "0.6.1"
+library_version: "0.7.8"
 sources:
   - "jagreehal/executable-stories:packages/executable-stories-formatters/src/cli.ts"
   - "jagreehal/executable-stories:packages/executable-stories-formatters/src/index.ts"
-  - "jagreehal/executable-stories:apps/docs-site/src/content/docs/formatters/formatters-api.md"
+  - "jagreehal/executable-stories:apps/docs-site/src/content/docs/reference/formatters-api.md"
 ---
 
 # executable-stories-formatters — CLI & API
@@ -44,6 +45,13 @@ executable-stories compare baseline.json current.json \
 
 # Validate JSON against schema
 executable-stories validate raw-run.json
+
+# Scaffold Starlight docs site for themed story output
+executable-stories init-astro story-docs
+
+# Publish ADF to Atlassian (dry run first)
+executable-stories publish-confluence reports/test-results.adf.json --page-id 12345 --dry-run
+executable-stories publish-jira reports/test-results.adf.json --issue PROJ-123 --mode comment --dry-run
 ```
 
 ### Programmatic usage
@@ -78,7 +86,7 @@ Test code (story.given/when/then)
   → Framework adapter (vitest/jest/playwright/cypress)
     → RawRun JSON (schemaVersion: 1)
       → canonicalizeRun() → TestRunResult
-        → Formatters (HTML, Markdown, JUnit, Cucumber JSON/HTML/Messages)
+        → Formatters (Astro, Confluence, HTML, Markdown, JUnit, Cucumber JSON/HTML/Messages)
 ```
 
 ### Individual formatters
@@ -86,6 +94,8 @@ Test code (story.given/when/then)
 ```typescript
 import {
   canonicalizeRun,
+  AstroFormatter,
+  ConfluenceFormatter,
   MarkdownFormatter,
   HtmlFormatter,
   JUnitFormatter,
@@ -98,13 +108,15 @@ const md = new MarkdownFormatter().format(canonical);
 const html = new HtmlFormatter().format(canonical);
 const junit = new JUnitFormatter().format(canonical);
 const cucumberJson = new CucumberJsonFormatter().formatToString(canonical);
+const astro = new AstroFormatter().format(canonical);
+const confluenceAdfJson = new ConfluenceFormatter().format(canonical);
 ```
 
 ### CLI flags
 
 ```bash
 # Output control
---format html,markdown,junit,cucumber-json,cucumber-html,cucumber-messages
+--format html,markdown,junit,cucumber-json,cucumber-html,cucumber-messages,astro,confluence
 --output-dir reports          # Base directory (default: reports)
 --output-name test-results    # Base filename (default: test-results)
 --output-name-timestamp       # Append run timestamp (UTC seconds) to filename for before/after diffs
@@ -133,6 +145,23 @@ const cucumberJson = new CucumberJsonFormatter().formatToString(canonical);
 --asset-mode none|copy        # Asset bundling strategy (default: none)
 --allow-missing-assets        # Warn on missing assets instead of failing
 ```
+
+### Atlassian publishing
+
+```bash
+# Confluence Cloud page publish (create or update)
+executable-stories publish-confluence test-results.adf.json --page-id 12345
+executable-stories publish-confluence test-results.adf.json --space-id ENG --title "Story Report"
+
+# Jira Cloud publish (append comment or replace description)
+executable-stories publish-jira test-results.adf.json --issue PROJ-123 --mode comment
+executable-stories publish-jira test-results.adf.json --issue PROJ-123 --mode description
+```
+
+Environment variables are supported for credentials and base URL:
+
+- Confluence: `CONFLUENCE_BASE_URL`, `CONFLUENCE_EMAIL`, `CONFLUENCE_TOKEN`
+- Jira: `JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_TOKEN`
 
 ## Asset Bundling
 

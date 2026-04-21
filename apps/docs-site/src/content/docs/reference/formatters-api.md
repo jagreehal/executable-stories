@@ -3,7 +3,7 @@ title: Formatters API
 description: Programmatic report generation with executable-stories-formatters
 ---
 
-The **`executable-stories-formatters`** package provides a programmatic API to turn test results into reports. It supports **Cucumber JSON**, **HTML**, **JUnit XML**, and **Markdown**. Framework reporters (Vitest, Jest, Playwright) use this package under the hood; you can also use it directly in custom scripts or CI pipelines.
+The **`executable-stories-formatters`** package provides a programmatic API to turn test results into reports. It supports **Cucumber JSON**, **HTML**, **JUnit XML**, **Markdown**, **Astro/Starlight**, and **Confluence (ADF)**. Framework reporters (Vitest, Jest, Playwright) use this package under the hood; you can also use it directly in custom scripts or CI pipelines.
 
 ## Installation
 
@@ -25,7 +25,7 @@ Three layers:
 
 1. **Adapters** — Convert framework-specific results to a raw run (`RawRun`).
 2. **Anti-Corruption Layer (ACL)** — Normalize to a canonical `TestRunResult` via `canonicalizeRun`.
-3. **Formatters** — Turn `TestRunResult` into Cucumber JSON, HTML, JUnit, or Markdown.
+3. **Formatters** — Turn `TestRunResult` into Cucumber JSON, HTML, JUnit, Markdown, Astro, or Confluence (ADF).
 
 The **ReportGenerator** class combines adapters + ACL + formatters: you feed it a canonical `TestRunResult` and options, and it writes files.
 
@@ -85,7 +85,7 @@ Use these when you have framework results and want a canonical run for **ReportG
 
 | Option | Type | Default | Description |
 | ------ | ---- | ------- | ----------- |
-| `formats` | `OutputFormat[]` | `["cucumber-json"]` | Output formats: `"cucumber-json"`, `"html"`, `"junit"`, `"markdown"`. |
+| `formats` | `OutputFormat[]` | `["cucumber-json"]` | Output formats: `"cucumber-json"`, `"cucumber-html"`, `"cucumber-messages"`, `"html"`, `"junit"`, `"markdown"`, `"astro"`, `"confluence"`. |
 | `outputDir` | `string` | `"reports"` | Base directory for output files. |
 | `outputName` | `string` | `"test-results"` | Base filename (without extension) for aggregated output. |
 | `output` | `OutputConfig` | see below | Output routing (mode, colocated style, rules). |
@@ -93,6 +93,7 @@ Use these when you have framework results and want a canonical run for **ReportG
 | `html` | `HtmlOptions` | — | Title, darkMode, searchable, startCollapsed, embedScreenshots. |
 | `junit` | `JUnitOptions` | — | suiteName, includeOutput. |
 | `markdown` | `MarkdownFormatterOptions` | — | title, includeStatusIcons, includeMetadata, includeErrors, scenarioHeadingLevel, stepStyle, groupBy, sortScenarios, includeFrontMatter, includeSummaryTable, permalinkBaseUrl, ticketUrlTemplate, includeSourceLinks, customRenderers. |
+| `confluence` | `ConfluenceFormatterOptions` | — | title, includeStatusIcons, includeMetadata, includeSummaryTable, includeErrors, scenarioHeadingLevel, groupBy, sortScenarios, pretty, permalinkBaseUrl, ticketUrlTemplate. |
 
 **OutputConfig:**
 
@@ -130,8 +131,10 @@ You can use formatters without **ReportGenerator** if you already have a **`Test
 - **HtmlFormatter** — `format(run)` → string
 - **JUnitFormatter** — `format(run)` → string
 - **MarkdownFormatter** — `format(run)` → string
+- **AstroFormatter** — `format(run)` → string (themed Markdown with Starlight frontmatter)
+- **ConfluenceFormatter** — `format(run)` → string (ADF JSON); also `formatToAdf(run)` → the `{ version, type: "doc", content }` object
 
-Instantiate with the same options as in **ReportGenerator** (e.g. `MarkdownFormatterOptions` for Markdown).
+Instantiate with the same options as in **ReportGenerator** (e.g. `MarkdownFormatterOptions` for Markdown, `ConfluenceFormatterOptions` for Confluence).
 
 ## ACL and validation
 
@@ -163,8 +166,13 @@ The formatters package provides an **`executable-stories`** CLI for generating r
 
 **Subcommands:**
 
-- **`executable-stories format <file>`** — Read raw (or canonical) test results and generate reports. Use `--format` to choose one or more of: `html`, `cucumber-html`, `markdown`, `junit`, `cucumber-json`, `cucumber-messages`. Default format is `html`.
+- **`executable-stories format <file>`** — Read raw (or canonical) test results and generate reports. Use `--format` to choose one or more of: `html`, `cucumber-html`, `markdown`, `junit`, `cucumber-json`, `cucumber-messages`, `astro`, `confluence`. Default format is `html`.
+- **`executable-stories compare <current>`** — Compare two runs and generate a diff report.
+- **`executable-stories list <file>`** — List scenarios from a test run.
 - **`executable-stories validate <file>`** — Validate a JSON file against the schema (no output generated).
+- **`executable-stories init-astro [directory]`** — Scaffold an Astro/Starlight docs site for story output.
+- **`executable-stories publish-confluence <file.adf.json>`** — Push an ADF file to a Confluence page. See the [Publishing to Confluence & Jira](../../guides/publishing-to-atlassian/) guide.
+- **`executable-stories publish-jira <file.adf.json>`** — Push an ADF file to a Jira issue as a comment or description.
 
 **Filtering by source file:**
 
@@ -190,7 +198,7 @@ The formatters package provides an **`executable-stories`** CLI for generating r
 
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
-| `--format` | string | `html` | Output format(s): `html`, `cucumber-html`, `markdown`, `junit`, `cucumber-json`, `cucumber-messages` |
+| `--format` | string | `html` | Output format(s): `html`, `cucumber-html`, `markdown`, `junit`, `cucumber-json`, `cucumber-messages`, `astro`, `confluence` |
 | `--output-dir` | string | `reports` | Directory to write output files |
 | `--output-name` | string | `test-results` | Base filename (without extension) for aggregated output |
 | `--input-type` | string | `raw` | Input type: `raw`, `canonical`, or `ndjson` |
@@ -273,3 +281,45 @@ executable-stories list raw-run.json
 | `--json-summary` | boolean | `false` | Output as JSON instead of text table |
 | `--input-type` | string | `raw` | Input type: `raw`, `canonical`, or `ndjson` |
 | `--stdin` | boolean | `false` | Read from stdin |
+
+### `publish-confluence`
+
+Publish an ADF JSON file (generated via `--format confluence`) to a Confluence Cloud page. See the [Publishing to Confluence & Jira](../../guides/publishing-to-atlassian/) guide for a full walkthrough.
+
+```bash
+executable-stories publish-confluence reports/index.adf.json \
+  --page-id 123456 \
+  --base-url https://acme.atlassian.net/wiki
+```
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--page-id` | string | — | Update an existing page (alternative to `--space-id`) |
+| `--space-id` | string | — | Create a new page in this space (requires `--title`) |
+| `--parent-id` | string | — | Parent page ID (for new pages) |
+| `--title` | string | — | Page title (required for create; overrides current title on update) |
+| `--base-url` | string | — | Confluence base URL, e.g. `https://acme.atlassian.net/wiki` (env: `CONFLUENCE_BASE_URL`) |
+| `--email` | string | — | Atlassian account email (env: `CONFLUENCE_EMAIL`) |
+| `--token` | string | — | API token (env: `CONFLUENCE_TOKEN`) |
+| `--dry-run` | boolean | `false` | Validate inputs and print request plan, don't POST |
+
+### `publish-jira`
+
+Publish an ADF JSON file to a Jira Cloud issue as a comment (default, non-destructive) or replace the issue description.
+
+```bash
+executable-stories publish-jira reports/index.adf.json \
+  --issue PROJ-123 \
+  --base-url https://acme.atlassian.net
+```
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--issue` | string | — | Issue key, e.g. `PROJ-123` (required) |
+| `--mode` | string | `comment` | `comment` (appends) or `description` (replaces) |
+| `--base-url` | string | — | Jira base URL, e.g. `https://acme.atlassian.net` (env: `JIRA_BASE_URL`) |
+| `--email` | string | — | Atlassian account email (env: `JIRA_EMAIL`) |
+| `--token` | string | — | API token (env: `JIRA_TOKEN`) |
+| `--dry-run` | boolean | `false` | Validate inputs and print request plan, don't POST |
+
+Both publishers are also available as library functions: **`publishConfluencePage(args, deps)`** and **`publishJiraIssue(args, deps)`**. The `deps` object accepts an injected `fetch` for testing.

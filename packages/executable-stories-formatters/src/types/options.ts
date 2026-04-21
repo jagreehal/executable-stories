@@ -30,7 +30,7 @@ export interface CanonicalizeOptions {
 }
 
 /** Output format for report generation */
-export type OutputFormat = "astro" | "cucumber-json" | "cucumber-messages" | "cucumber-html" | "html" | "junit" | "markdown";
+export type OutputFormat = "astro" | "confluence" | "cucumber-json" | "cucumber-messages" | "cucumber-html" | "html" | "junit" | "markdown";
 
 /** Sort order for test cases in reports (deterministic for diff-friendly output) */
 export type SortTestCasesMode = "id" | "source" | "none";
@@ -167,6 +167,9 @@ export interface FormatterOptions {
   /** Astro/Starlight specific options */
   astro?: AstroFormatterOptions;
 
+  /** Confluence/ADF specific options */
+  confluence?: ConfluenceFormatterOptionsType;
+
   /** History tracking options */
   history?: {
     /** Path to JSON history file (enables tracking) */
@@ -243,6 +246,10 @@ export interface MarkdownFormatterOptions {
 import type { DocEntry, StoryStep } from "./story";
 import type { TestCaseResult, TestRunResult } from "./test-result";
 import type { NotifyCondition, GenericWebhookNotifierOptions } from "../notifiers/types";
+import type { ConfluenceFormatterOptions as ConfluenceFormatterOptionsType } from "../formatters/confluence";
+
+/** Re-exported for consumers */
+export type { ConfluenceFormatterOptionsType as ConfluenceFormatterOptions };
 
 /** Astro/Starlight formatter options */
 export interface AstroFormatterOptions {
@@ -328,6 +335,19 @@ export interface ResolvedFormatterOptions {
     traceUrlTemplate?: string;
     includeSourceLinks: boolean;
     customRenderers?: MarkdownRenderers;
+  };
+  confluence: {
+    title: string;
+    includeStatusIcons: boolean;
+    includeMetadata: boolean;
+    includeSummaryTable: boolean;
+    includeErrors: boolean;
+    scenarioHeadingLevel: 1 | 2 | 3 | 4 | 5 | 6;
+    groupBy: "file" | "suite" | "none";
+    sortScenarios: "alpha" | "source" | "none";
+    pretty: boolean;
+    permalinkBaseUrl?: string;
+    ticketUrlTemplate?: string;
   };
   astro: {
     assetsDir: string;

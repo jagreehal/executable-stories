@@ -28,7 +28,7 @@ Each adapter gets three skills following the same pattern:
 
 | Skill | Type | Description |
 |---|---|---|
-| `formatters-cli` | core | CLI + programmatic API, pipeline architecture, 6 output formats |
+| `formatters-cli` | core | CLI + programmatic API, pipeline architecture, 8 output formats + Atlassian publish commands |
 
 ### ESLint Plugins (3 skills — 1 per plugin)
 
