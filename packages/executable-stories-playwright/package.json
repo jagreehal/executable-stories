@@ -31,7 +31,7 @@
   },
   "peerDependencies": {
     "@playwright/test": ">=1.59.1",
-    "autotel": ">=2.26.0"
+    "autotel": ">=3.0.0"
   },
   "peerDependenciesMeta": {
     "autotel": {
@@ -43,10 +43,10 @@
   },
   "devDependencies": {
     "@opentelemetry/api": "^1.9.1",
-    "@playwright/test": "^1.58.2",
+    "@playwright/test": "^1.59.1",
     "@types/node": "^25.6.0",
     "tsup": "^8.5.1",
-    "typescript": "~6.0.2"
+    "typescript": "~6.0.3"
   },
   "repository": {
     "type": "git",
