@@ -1,5 +1,13 @@
 # executable-stories-playwright
 
+## 8.2.7
+
+### Patch Changes
+
+- 4f84253: Update dependencies. Align `@playwright/test` peer/dev versions across packages and example apps to `^1.59.1` to avoid loading two Playwright copies in the same process.
+- Updated dependencies [4f84253]
+  - executable-stories-formatters@0.7.10
+
 ## 8.2.6
 
 ### Patch Changes

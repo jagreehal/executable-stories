@@ -1,5 +1,11 @@
 # eslint-plugin-executable-stories-jest
 
+## 2.1.6
+
+### Patch Changes
+
+- 4f84253: Update dependencies. Align `@playwright/test` peer/dev versions across packages and example apps to `^1.59.1` to avoid loading two Playwright copies in the same process.
+
 ## 2.1.5
 
 ### Patch Changes
