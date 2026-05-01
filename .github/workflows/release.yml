@@ -129,6 +129,12 @@ jobs:
           VERSION=$(jq -r '.version' packages/executable-stories-formatters/package.json)
           echo "tag=executable-stories-formatters@${VERSION}" >> "$GITHUB_OUTPUT"
 
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ steps.tag.outputs.tag }}" --draft --notes "" || true
+
       - name: Attach binaries to GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
