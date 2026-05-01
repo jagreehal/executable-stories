@@ -1,0 +1,32 @@
+{
+  "generatedAt": "2026-05-01T06:40:44.122Z",
+  "input": "/Users/jreehal/dev/js/executable-stories/apps/demo-example/fixtures/raw-run.json",
+  "config": "/Users/jreehal/dev/js/executable-stories/apps/demo-example/demo.config.json",
+  "productName": "Acme Cloud",
+  "theme": "corporate",
+  "assets": {
+    "dir": "/Users/jreehal/dev/js/executable-stories/apps/demo-example/public/demo-assets",
+    "baseUrl": "/demo-assets",
+    "allowMissing": false,
+    "strict": true
+  },
+  "stats": {
+    "scenarios": 2,
+    "passed": 2,
+    "failed": 0,
+    "skipped": 0,
+    "pending": 0
+  },
+  "pages": [
+    {
+      "title": "Onboarding Flow",
+      "slug": "stories/tests/onboarding-flow.story.index",
+      "file": "stories/tests/onboarding-flow.story.index.md"
+    },
+    {
+      "title": "Feature Tour",
+      "slug": "stories/tests/feature-tour.story.index",
+      "file": "stories/tests/feature-tour.story.index.md"
+    }
+  ]
+}

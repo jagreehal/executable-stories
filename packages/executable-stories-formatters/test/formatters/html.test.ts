@@ -2,6 +2,9 @@
  * Tests for the HTML formatter.
  */
 
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
 import { describe, it, expect } from "vitest";
 import { HtmlFormatter } from "../../src/formatters/html/index";
 import { canonicalizeRun } from "../../src/converters/acl/index";
@@ -10,6 +13,7 @@ import {
   createMultipleTestCasesRun,
   createTestCase,
   createRspecRawRun,
+  createStory,
 } from "../fixtures/raw-runs/basic";
 
 describe("HtmlFormatter", () => {
@@ -232,6 +236,81 @@ describe("HtmlFormatter", () => {
       const result = formatter.format(run);
 
       expect(result).toContain('href="data:text/plain;base64,bG9n"');
+    });
+
+    it("inlines doc.screenshot file paths as data URIs (PR-artifact safe)", () => {
+      // 1x1 transparent PNG
+      const pngBytes = Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
+        "base64",
+      );
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), "es-screenshot-"));
+      const screenshotPath = path.join(dir, "screenshot.png");
+      fs.writeFileSync(screenshotPath, pngBytes);
+
+      try {
+        const raw = createRawRun({
+          testCases: [
+            createTestCase({
+              story: createStory({
+                steps: [
+                  {
+                    keyword: "Given",
+                    text: "a screenshot exists",
+                    docs: [
+                      {
+                        kind: "screenshot",
+                        path: screenshotPath,
+                        alt: "captured",
+                        phase: "runtime",
+                      },
+                    ],
+                  },
+                ],
+              }),
+            }),
+          ],
+        });
+        const run = canonicalizeRun(raw);
+        const result = formatter.format(run);
+
+        const expected = `data:image/png;base64,${pngBytes.toString("base64")}`;
+        expect(result).toContain(expected);
+        expect(result).not.toContain(screenshotPath);
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it("leaves doc.screenshot path alone when embedScreenshots is false", () => {
+      const noEmbedFormatter = new HtmlFormatter({ embedScreenshots: false });
+      const screenshotPath = "/runner/work/repo/test-results/foo.png";
+      const raw = createRawRun({
+        testCases: [
+          createTestCase({
+            story: createStory({
+              steps: [
+                {
+                  keyword: "Given",
+                  text: "screenshot referenced",
+                  docs: [
+                    {
+                      kind: "screenshot",
+                      path: screenshotPath,
+                      alt: "Foo",
+                      phase: "runtime",
+                    },
+                  ],
+                },
+              ],
+            }),
+          }),
+        ],
+      });
+      const run = canonicalizeRun(raw);
+      const result = noEmbedFormatter.format(run);
+
+      expect(result).toContain(screenshotPath);
     });
 
     it("should render base64 image as data URL when embedScreenshots is false", () => {

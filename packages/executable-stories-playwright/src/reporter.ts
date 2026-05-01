@@ -292,6 +292,17 @@ export default class StoryReporter implements Reporter {
   async onEnd(_result: FullResult): Promise<void> {
     if (this.scenarios.length === 0) return;
 
+    // Debug: check if this.scenarios objects have tags at wrong level
+    if (this.scenarios.length > 0) {
+      const sampleScenario = this.scenarios[0];
+      if ('tags' in sampleScenario) {
+        console.error('[Reporter Debug] tags found at scenario level! Keys:', Object.keys(sampleScenario));
+      }
+      if (sampleScenario.meta && 'tags' in sampleScenario.meta) {
+        console.error('[Reporter Debug] tags found inside meta (correct). meta.tags:', sampleScenario.meta.tags);
+      }
+    }
+
     // Collect test cases
     const rawTestCases: RawTestCase[] = this.scenarios.map((scenario) => {
       // Map Playwright status to raw status
@@ -303,7 +314,7 @@ export default class StoryReporter implements Reporter {
         interrupted: "fail",
       };
 
-      return {
+      const testCase = {
         title: scenario.meta.scenario,
         titlePath: scenario.meta.suitePath
           ? [...scenario.meta.suitePath, scenario.meta.scenario]
@@ -322,7 +333,20 @@ export default class StoryReporter implements Reporter {
         attachments: scenario.attachments,
         stepEvents: scenario.stepEvents,
       };
+
+      return testCase;
     });
+
+    // Debug: check if tags is at wrong level in rawTestCases
+    if (rawTestCases.length > 0) {
+      const sample = rawTestCases[0];
+      if ('tags' in sample) {
+        console.error('[Reporter Debug] tags found at rawTestCase level! Keys:', Object.keys(sample));
+      }
+      if (sample.story && 'tags' in sample.story) {
+        console.error('[Reporter Debug] tags found inside story (correct).');
+      }
+    }
 
     // Build RawRun
     const rawRun: RawRun = {

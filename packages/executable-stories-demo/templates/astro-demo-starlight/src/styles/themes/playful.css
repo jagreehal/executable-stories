@@ -1,0 +1,263 @@
+/*
+ * playful — risograph poster.
+ * Bricolage Grotesque display (variable optical size) + Figtree body.
+ * Soft butter bg, persimmon + inky-blue spot colours, hard-edged strokes.
+ * Forced light.
+ */
+
+@import "@fontsource-variable/bricolage-grotesque";
+@import "@fontsource/figtree/400.css";
+@import "@fontsource/figtree/500.css";
+@import "@fontsource/figtree/600.css";
+@import "@fontsource/figtree/700.css";
+
+:root,
+:root[data-theme="dark"] {
+  --demo-font-display: "Bricolage Grotesque", system-ui, sans-serif;
+  --demo-font-body: "Figtree", system-ui, sans-serif;
+  --demo-font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+
+  --demo-bg: oklch(0.96 0.045 88);
+  --demo-surface: oklch(0.93 0.055 88);
+  --demo-ink: oklch(0.22 0.04 20);
+  --demo-ink-muted: oklch(0.46 0.05 25);
+  --demo-border: oklch(0.22 0.04 20);
+  --demo-accent: oklch(0.64 0.22 30);
+  --demo-accent-ink: oklch(0.98 0.02 88);
+  --demo-accent-2: oklch(0.40 0.18 265);
+  --demo-spot: oklch(0.82 0.18 90);
+
+  --demo-pass: oklch(0.58 0.17 150);
+  --demo-fail: oklch(0.58 0.22 25);
+  --demo-skip: oklch(0.60 0.15 85);
+  --demo-pending: oklch(0.55 0.06 30);
+
+  --demo-radius-sm: 6px;
+  --demo-radius-md: 14px;
+  --demo-radius-lg: 22px;
+
+  --sl-font: var(--demo-font-body);
+  --sl-font-mono: var(--demo-font-mono);
+
+  --sl-color-accent-low: oklch(0.92 0.08 30);
+  --sl-color-accent: var(--demo-accent);
+  --sl-color-accent-high: oklch(0.32 0.14 30);
+
+  --sl-color-bg: var(--demo-bg);
+  --sl-color-bg-nav: var(--demo-bg);
+  --sl-color-bg-sidebar: var(--demo-surface);
+  --sl-color-text: var(--demo-ink);
+  --sl-color-text-accent: var(--demo-accent);
+
+  color-scheme: light;
+}
+
+.demo-hero {
+  position: relative;
+  max-width: 56ch;
+}
+
+/* A decorative inky-blue blob behind the hero title */
+.demo-hero::before {
+  content: "";
+  position: absolute;
+  top: -0.5rem;
+  left: -1.5rem;
+  width: 8rem;
+  height: 8rem;
+  background: var(--demo-accent-2);
+  border-radius: 50%;
+  z-index: -1;
+  transform: rotate(-5deg);
+  opacity: 0.9;
+  mix-blend-mode: multiply;
+}
+
+.demo-hero__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--demo-font-body);
+  font-weight: 700;
+  color: var(--demo-accent);
+  letter-spacing: 0.12em;
+}
+
+.demo-hero__eyebrow::before {
+  content: "★";
+  color: var(--demo-spot);
+  font-size: 1.2em;
+  -webkit-text-stroke: 1px var(--demo-ink);
+}
+
+.demo-hero__title {
+  font-family: var(--demo-font-display);
+  font-variation-settings: "opsz" 96, "wght" 800;
+  font-size: clamp(3rem, 7vw, 6rem);
+  letter-spacing: -0.03em;
+  line-height: 0.9;
+  color: var(--demo-ink);
+}
+
+.demo-hero__tagline {
+  font-family: var(--demo-font-body);
+  font-weight: 500;
+  font-size: clamp(1.15rem, 1.6vw, 1.35rem);
+  line-height: 1.45;
+  color: var(--demo-ink);
+}
+
+/* Chunky CTA with a hard shadow — poster button */
+.demo-hero__cta {
+  background: var(--demo-accent);
+  color: var(--demo-accent-ink);
+  border: 2px solid var(--demo-ink);
+  border-radius: var(--demo-radius-lg);
+  font-family: var(--demo-font-display);
+  font-variation-settings: "opsz" 24, "wght" 700;
+  font-size: 1rem;
+  padding: var(--demo-space-4) var(--demo-space-8);
+  box-shadow: 4px 4px 0 var(--demo-ink);
+  transform: rotate(-1deg);
+  transition: transform 120ms ease-out, box-shadow 120ms ease-out;
+}
+
+.demo-hero__cta:hover {
+  transform: rotate(-1deg) translate(-2px, -2px);
+  box-shadow: 6px 6px 0 var(--demo-ink);
+}
+
+/* Stat cards — chunky bordered blocks in alternating colours */
+.demo-stat {
+  background: var(--demo-surface);
+  border: 2px solid var(--demo-ink);
+  border-radius: var(--demo-radius-md);
+  padding: var(--demo-space-4) var(--demo-space-6);
+  box-shadow: 3px 3px 0 var(--demo-ink);
+}
+
+.demo-stat__value {
+  font-family: var(--demo-font-display);
+  font-variation-settings: "opsz" 48, "wght" 700;
+  font-size: clamp(2.25rem, 4vw, 3rem);
+  color: var(--demo-ink);
+  letter-spacing: -0.03em;
+}
+
+.demo-stat__label {
+  font-family: var(--demo-font-body);
+  font-weight: 700;
+  color: var(--demo-ink-muted);
+}
+
+.demo-stat[data-tone="pass"]  { background: color-mix(in oklch, var(--demo-pass) 24%, var(--demo-surface)); }
+.demo-stat[data-tone="fail"]  { background: color-mix(in oklch, var(--demo-accent) 26%, var(--demo-surface)); }
+.demo-stat[data-tone="skip"]  { background: color-mix(in oklch, var(--demo-spot) 35%, var(--demo-surface)); }
+
+/* Section heading gets a playful marker */
+.demo-section-heading {
+  font-family: var(--demo-font-display);
+  font-variation-settings: "opsz" 48, "wght" 700;
+  position: relative;
+  display: inline-block;
+  padding-right: var(--demo-space-4);
+}
+
+.demo-section-heading::after {
+  content: "";
+  display: block;
+  width: 3rem;
+  height: 0.5rem;
+  background: var(--demo-spot);
+  border-radius: var(--demo-radius-pill);
+  margin-top: 0.5rem;
+}
+
+/* Story rows as cards with coloured numbers */
+.demo-stories {
+  border-top: 0;
+  gap: var(--demo-space-3);
+}
+
+.demo-story {
+  background: var(--demo-surface);
+  border: 2px solid var(--demo-ink);
+  border-radius: var(--demo-radius-md);
+  grid-template-columns: 3rem 1fr auto;
+  padding: var(--demo-space-4) var(--demo-space-6);
+  box-shadow: 3px 3px 0 var(--demo-ink);
+  transition: transform 120ms ease-out, box-shadow 120ms ease-out;
+}
+
+.demo-story:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0 var(--demo-ink);
+  background: var(--demo-surface);
+}
+
+.demo-story__index {
+  font-family: var(--demo-font-display);
+  font-variation-settings: "opsz" 24, "wght" 700;
+  font-size: 1.15rem;
+  color: var(--demo-accent);
+}
+
+.demo-story__title {
+  font-family: var(--demo-font-body);
+  font-weight: 600;
+  color: var(--demo-ink);
+}
+
+.demo-story__status {
+  font-family: var(--demo-font-body);
+  font-weight: 700;
+}
+
+.demo-story[data-status="passed"] .demo-story__status { color: var(--demo-pass); }
+.demo-story[data-status="failed"] .demo-story__status { color: var(--demo-accent); }
+.demo-story[data-status="skipped"] .demo-story__status { color: var(--demo-ink-muted); }
+
+.demo-empty {
+  background: var(--demo-surface);
+  border: 2px dashed var(--demo-ink);
+  border-radius: var(--demo-radius-lg);
+  box-shadow: 4px 4px 0 var(--demo-ink);
+}
+
+/* ---- Story pages: poster-style steps --------------------------------- */
+
+.sl-markdown-content p > strong:first-child {
+  font-family: var(--demo-font-display);
+  font-variation-settings: "opsz" 72, "wght" 700;
+  font-size: 1.4em;
+  color: var(--demo-accent);
+  letter-spacing: -0.02em;
+  transform: rotate(-1deg);
+  display: inline-block;
+  transform-origin: left center;
+  margin-right: 0.3ch;
+}
+
+/* Subtler colour rotation across consecutive steps; geometric rotation kept
+   tight so it doesn't break baseline alignment at narrow viewports. */
+.sl-markdown-content p:has(> strong:first-child):nth-of-type(3n+2) > strong:first-child {
+  color: var(--demo-accent-2);
+  transform: rotate(0deg);
+}
+
+.sl-markdown-content p:has(> strong:first-child):nth-of-type(3n+3) > strong:first-child {
+  color: var(--demo-ink);
+  transform: rotate(0.5deg);
+}
+
+.sl-markdown-content h3 {
+  font-family: var(--demo-font-display);
+  font-variation-settings: "opsz" 96, "wght" 700;
+  letter-spacing: -0.025em;
+  color: var(--demo-ink);
+}
+
+/* Forced-mode theme: hide the (non-functional) theme toggle. */
+starlight-theme-select {
+  display: none;
+}

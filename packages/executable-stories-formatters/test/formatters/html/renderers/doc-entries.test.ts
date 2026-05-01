@@ -156,6 +156,85 @@ describe("renderDocScreenshot", () => {
     expect(html).toContain("img");
     expect(html).toContain("https://example.com/img.png");
   });
+
+  it("does not call readScreenshot for http(s) URLs", () => {
+    let called = false;
+    const html = renderDocScreenshot(
+      {
+        kind: "screenshot",
+        path: "https://example.com/img.png",
+        alt: "Remote",
+        phase: "static",
+      },
+      {
+        ...baseDeps,
+        embedScreenshots: true,
+        readScreenshot: () => {
+          called = true;
+          return "data:image/png;base64,AAAA";
+        },
+      },
+    );
+    expect(called).toBe(false);
+    expect(html).toContain("https://example.com/img.png");
+  });
+
+  it("inlines local files as data URIs when embedScreenshots is true", () => {
+    const html = renderDocScreenshot(
+      {
+        kind: "screenshot",
+        path: "/absolute/runner/path/foo.png",
+        alt: "Local",
+        phase: "static",
+      },
+      {
+        ...baseDeps,
+        embedScreenshots: true,
+        readScreenshot: () => "data:image/png;base64,AAAA",
+      },
+    );
+    expect(html).toContain("data:image/png;base64,AAAA");
+    expect(html).not.toContain("/absolute/runner/path/foo.png");
+  });
+
+  it("falls back to original path when readScreenshot returns undefined", () => {
+    const html = renderDocScreenshot(
+      {
+        kind: "screenshot",
+        path: "/missing/foo.png",
+        alt: "Local",
+        phase: "static",
+      },
+      {
+        ...baseDeps,
+        embedScreenshots: true,
+        readScreenshot: () => undefined,
+      },
+    );
+    expect(html).toContain("/missing/foo.png");
+  });
+
+  it("does not embed when embedScreenshots is false", () => {
+    let called = false;
+    const html = renderDocScreenshot(
+      {
+        kind: "screenshot",
+        path: "/absolute/runner/path/foo.png",
+        alt: "Local",
+        phase: "static",
+      },
+      {
+        ...baseDeps,
+        embedScreenshots: false,
+        readScreenshot: () => {
+          called = true;
+          return "data:image/png;base64,AAAA";
+        },
+      },
+    );
+    expect(called).toBe(false);
+    expect(html).toContain("/absolute/runner/path/foo.png");
+  });
 });
 
 describe("renderDocCustom", () => {

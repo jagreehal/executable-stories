@@ -1,0 +1,241 @@
+/*
+ * dashboard — ops room.
+ * Funnel Sans for UI, JetBrains Mono for numbers. Dark slate-tinted
+ * surfaces, teal accent, distinct status colours. Forced dark.
+ */
+
+@import "@fontsource/funnel-sans/400.css";
+@import "@fontsource/funnel-sans/500.css";
+@import "@fontsource/funnel-sans/600.css";
+@import "@fontsource/funnel-sans/700.css";
+@import "@fontsource/jetbrains-mono/400.css";
+@import "@fontsource/jetbrains-mono/500.css";
+@import "@fontsource/jetbrains-mono/600.css";
+
+:root,
+:root[data-theme="dark"] {
+  --demo-font-display: "Funnel Sans", system-ui, sans-serif;
+  --demo-font-body: "Funnel Sans", system-ui, sans-serif;
+  --demo-font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --demo-bg: oklch(0.16 0.012 250);
+  --demo-surface: oklch(0.20 0.014 250);
+  --demo-surface-elevated: oklch(0.23 0.015 250);
+  --demo-ink: oklch(0.93 0.01 240);
+  --demo-ink-muted: oklch(0.66 0.014 240);
+  --demo-border: oklch(0.30 0.015 250);
+  --demo-accent: oklch(0.76 0.14 195);
+  --demo-accent-ink: oklch(0.15 0.015 250);
+
+  --demo-pass: oklch(0.76 0.17 145);
+  --demo-fail: oklch(0.70 0.20 25);
+  --demo-skip: oklch(0.78 0.15 80);
+  --demo-pending: oklch(0.68 0.04 250);
+
+  --sl-font: var(--demo-font-body);
+  --sl-font-mono: var(--demo-font-mono);
+
+  --sl-color-accent-low: oklch(0.28 0.08 195);
+  --sl-color-accent: var(--demo-accent);
+  --sl-color-accent-high: oklch(0.92 0.12 195);
+
+  --sl-color-bg: var(--demo-bg);
+  --sl-color-bg-nav: var(--demo-surface);
+  --sl-color-bg-sidebar: var(--demo-surface);
+  --sl-color-text: var(--demo-ink);
+  --sl-color-text-accent: var(--demo-accent);
+
+  color-scheme: dark;
+}
+
+/* Subtle grid backdrop — ops-room vibe without being loud */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    linear-gradient(to right, color-mix(in oklch, var(--demo-border) 40%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklch, var(--demo-border) 40%, transparent) 1px, transparent 1px);
+  background-size: 4rem 4rem;
+  mask-image: radial-gradient(ellipse at top, black 0%, transparent 70%);
+  opacity: 0.5;
+}
+
+/* Tight, data-forward hero */
+.demo-hero__title {
+  font-family: var(--demo-font-display);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  font-size: clamp(2.25rem, 4.5vw, 3.75rem);
+  line-height: 1;
+}
+
+.demo-hero__eyebrow {
+  color: var(--demo-accent);
+  font-weight: 600;
+  letter-spacing: 0.22em;
+}
+
+.demo-hero__tagline {
+  color: var(--demo-ink-muted);
+}
+
+.demo-hero__cta {
+  background: var(--demo-accent);
+  color: var(--demo-accent-ink);
+  border-radius: var(--demo-radius-sm);
+  font-weight: 600;
+}
+
+/* Stat cards with coloured value by tone and mono numbers */
+.demo-stats {
+  gap: var(--demo-space-2);
+}
+
+.demo-stat {
+  background: var(--demo-surface);
+  border: 1px solid var(--demo-border);
+  border-radius: var(--demo-radius-sm);
+  padding: var(--demo-space-4);
+  gap: var(--demo-space-2);
+}
+
+.demo-stat__value {
+  font-family: var(--demo-font-mono);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.demo-stat__label {
+  font-weight: 600;
+  color: var(--demo-ink-muted);
+}
+
+/* Status dot on each stat card (accent rule on top, not left) */
+.demo-stat {
+  position: relative;
+  overflow: hidden;
+}
+
+.demo-stat[data-tone="total"] { --demo-tone: var(--demo-accent); }
+.demo-stat[data-tone="pass"]  { --demo-tone: var(--demo-pass); }
+.demo-stat[data-tone="fail"]  { --demo-tone: var(--demo-fail); }
+.demo-stat[data-tone="skip"]  { --demo-tone: var(--demo-skip); }
+
+.demo-stat::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  inset-inline: 0;
+  height: 2px;
+  background: var(--demo-tone, var(--demo-accent));
+}
+
+/* Section heading picks up a small mono prefix like a log label */
+.demo-section-heading {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: baseline;
+  gap: var(--demo-space-3);
+}
+
+.demo-section-heading::before {
+  content: "//";
+  font-family: var(--demo-font-mono);
+  color: var(--demo-accent);
+  font-weight: 500;
+  font-size: 0.8em;
+}
+
+/* Story list: surface cards with status pill on the right */
+.demo-stories {
+  border-top: 0;
+  gap: var(--demo-space-1);
+}
+
+.demo-story {
+  background: var(--demo-surface);
+  border: 1px solid var(--demo-border);
+  border-radius: var(--demo-radius-sm);
+  grid-template-columns: 3rem 1fr auto;
+  padding: var(--demo-space-3) var(--demo-space-4);
+  transition: border-color 120ms ease-out, background 120ms ease-out;
+}
+
+.demo-story:hover {
+  background: var(--demo-surface-elevated);
+  border-color: var(--demo-accent);
+}
+
+.demo-story__index {
+  color: var(--demo-ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.demo-story__title {
+  font-weight: 500;
+}
+
+.demo-story__status {
+  font-family: var(--demo-font-mono);
+  font-size: 0.7rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--demo-radius-pill);
+  letter-spacing: 0.12em;
+  background: color-mix(in oklch, var(--demo-surface-elevated) 100%, transparent);
+  border: 1px solid var(--demo-border);
+}
+
+.demo-story[data-status="passed"] .demo-story__status {
+  color: var(--demo-pass);
+  border-color: color-mix(in oklch, var(--demo-pass) 40%, transparent);
+  background: color-mix(in oklch, var(--demo-pass) 12%, var(--demo-surface));
+}
+
+.demo-story[data-status="failed"] .demo-story__status {
+  color: var(--demo-fail);
+  border-color: color-mix(in oklch, var(--demo-fail) 50%, transparent);
+  background: color-mix(in oklch, var(--demo-fail) 12%, var(--demo-surface));
+}
+
+.demo-story[data-status="skipped"] .demo-story__status {
+  color: var(--demo-skip);
+  border-color: color-mix(in oklch, var(--demo-skip) 40%, transparent);
+  background: color-mix(in oklch, var(--demo-skip) 10%, var(--demo-surface));
+}
+
+/* ---- Story pages: log-line steps ------------------------------------- */
+
+.sl-markdown-content p > strong:first-child {
+  font-family: var(--demo-font-mono);
+  font-size: 0.72em;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--demo-accent);
+  padding: 0.2em 0.6em;
+  background: color-mix(in oklch, var(--demo-accent) 15%, var(--demo-surface));
+  border-radius: var(--demo-radius-pill);
+  border: 1px solid color-mix(in oklch, var(--demo-accent) 30%, transparent);
+  align-self: center;
+}
+
+.sl-markdown-content h3 {
+  font-family: var(--demo-font-display);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.sl-markdown-content > h2:first-of-type {
+  color: var(--demo-accent);
+  border-bottom-color: color-mix(in oklch, var(--demo-accent) 40%, transparent);
+}
+
+/* Forced-mode theme: hide the (non-functional) theme toggle. */
+starlight-theme-select {
+  display: none;
+}

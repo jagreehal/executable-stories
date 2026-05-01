@@ -1,0 +1,159 @@
+/*
+ * corporate — institutional grotesk.
+ * Archivo single family. High density, sharp 1-px borders, steel-blue
+ * accent. Light-only: the dark-mode override matches so the site does
+ * not change character when the OS scheme flips.
+ */
+
+@import "@fontsource/archivo/400.css";
+@import "@fontsource/archivo/500.css";
+@import "@fontsource/archivo/600.css";
+@import "@fontsource/archivo/700.css";
+@import "@fontsource/archivo/800.css";
+
+:root,
+:root[data-theme="dark"] {
+  --demo-font-display: "Archivo", system-ui, sans-serif;
+  --demo-font-body: "Archivo", system-ui, sans-serif;
+  --demo-font-mono: ui-monospace, "SF Mono", Consolas, monospace;
+
+  --demo-bg: oklch(0.99 0.005 245);
+  --demo-surface: oklch(0.975 0.008 245);
+  --demo-ink: oklch(0.20 0.025 260);
+  --demo-ink-muted: oklch(0.46 0.022 255);
+  --demo-border: oklch(0.84 0.012 250);
+  --demo-accent: oklch(0.38 0.14 255);
+  --demo-accent-ink: oklch(0.99 0.005 245);
+
+  --demo-pass: oklch(0.42 0.12 160);
+  --demo-fail: oklch(0.48 0.18 25);
+  --demo-skip: oklch(0.48 0.08 70);
+  --demo-pending: oklch(0.55 0.02 255);
+
+  --demo-radius-xs: 0;
+  --demo-radius-sm: 0;
+  --demo-radius-md: 2px;
+  --demo-radius-lg: 2px;
+
+  --sl-font: var(--demo-font-body);
+  --sl-font-mono: var(--demo-font-mono);
+  --sl-color-accent-low: oklch(0.94 0.04 255);
+  --sl-color-accent: var(--demo-accent);
+  --sl-color-accent-high: oklch(0.26 0.10 255);
+
+  --sl-color-bg: var(--demo-bg);
+  --sl-color-bg-nav: var(--demo-bg);
+  --sl-color-bg-sidebar: var(--demo-surface);
+  --sl-color-text: var(--demo-ink);
+  --sl-color-text-accent: var(--demo-accent);
+
+  color-scheme: light;
+}
+
+/* Compress hero — institutional UIs do not waste vertical space. */
+.demo-hero__title {
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  font-size: clamp(2rem, 4.2vw, 3.5rem);
+  line-height: 0.98;
+}
+
+.demo-hero__eyebrow {
+  border-left: 0;
+  padding-left: 0;
+  color: var(--demo-accent);
+  font-weight: 700;
+}
+
+.demo-hero__cta {
+  border-radius: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.85rem;
+  padding: var(--demo-space-3) var(--demo-space-6);
+}
+
+/* Sharp, zero-radius stat cards with a thin top rule instead of a full box */
+.demo-stat {
+  border: 0;
+  border-top: 2px solid var(--demo-ink);
+  border-radius: 0;
+  background: transparent;
+  padding: var(--demo-space-3) 0;
+  padding-right: var(--demo-space-6);
+}
+
+.demo-stat__value {
+  font-family: var(--demo-font-body);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.demo-stat__label {
+  font-weight: 600;
+  letter-spacing: 0.16em;
+}
+
+/* Dense story table */
+.demo-stories {
+  border-top-width: 2px;
+  border-top-color: var(--demo-ink);
+}
+
+.demo-story {
+  padding: var(--demo-space-3) 0;
+  grid-template-columns: 2.5rem 1fr auto;
+  font-size: 0.95rem;
+}
+
+.demo-story__title {
+  font-weight: 500;
+  font-size: 1rem;
+}
+
+.demo-story__index {
+  color: var(--demo-ink-muted);
+  font-weight: 500;
+}
+
+/* ---- Story pages: institutional step labels --------------------------- */
+
+.sl-markdown-content p > strong:first-child {
+  font-family: var(--demo-font-body);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.72em;
+  color: var(--demo-accent);
+  padding: 0.2em 0;
+  border-bottom: 2px solid var(--demo-accent);
+  align-self: baseline;
+  margin-right: 0.4ch;
+}
+
+.sl-markdown-content h3 {
+  font-family: var(--demo-font-body);
+  font-weight: 800;
+  letter-spacing: -0.015em;
+}
+
+.sl-markdown-content > h2:first-of-type {
+  border-bottom-width: 2px;
+  border-bottom-color: var(--demo-ink);
+}
+
+/* Forced-mode theme: the theme toggle would do nothing visible. Hide it
+   rather than ship a control that lies to users. */
+starlight-theme-select {
+  display: none;
+}
+
+/* Tone-coloured stat values + top accent rule, matching the institutional palette. */
+.demo-stat[data-tone="pass"] { border-top-color: var(--demo-pass); }
+.demo-stat[data-tone="fail"] { border-top-color: var(--demo-fail); }
+.demo-stat[data-tone="skip"] { border-top-color: var(--demo-skip); }
+.demo-stat[data-tone="pending"] { border-top-color: var(--demo-pending); }
+.demo-stat[data-tone="pass"] .demo-stat__value { color: var(--demo-pass); }
+.demo-stat[data-tone="fail"] .demo-stat__value { color: var(--demo-fail); }
+.demo-stat[data-tone="skip"] .demo-stat__value { color: var(--demo-skip); }
+.demo-stat[data-tone="pending"] .demo-stat__value { color: var(--demo-pending); }

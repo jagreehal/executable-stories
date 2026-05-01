@@ -1,0 +1,218 @@
+/*
+ * terminal — phosphor CRT.
+ * VT323 display, JetBrains Mono body. Near-black bg with green tint,
+ * phosphor-green ink, amber highlights. Forced dark.
+ */
+
+@import "@fontsource/vt323/400.css";
+@import "@fontsource/jetbrains-mono/400.css";
+@import "@fontsource/jetbrains-mono/500.css";
+@import "@fontsource/jetbrains-mono/700.css";
+
+:root,
+:root[data-theme="dark"] {
+  --demo-font-display: "VT323", "JetBrains Mono", monospace;
+  --demo-font-body: "JetBrains Mono", ui-monospace, monospace;
+  --demo-font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --demo-bg: oklch(0.15 0.02 150);
+  --demo-surface: oklch(0.19 0.025 150);
+  --demo-ink: oklch(0.84 0.17 140);
+  /* Bumped from 0.56 to 0.66 — original tone failed WCAG AA (~3.8:1) on the
+     phosphor-tinted background; 0.66 measures ~4.7:1 while keeping the
+     muted-vs-primary distinction visible. */
+  --demo-ink-muted: oklch(0.66 0.13 140);
+  --demo-border: oklch(0.32 0.06 150);
+  --demo-accent: oklch(0.82 0.18 90);
+  --demo-accent-ink: oklch(0.15 0.02 150);
+
+  --demo-pass: oklch(0.84 0.17 140);
+  --demo-fail: oklch(0.70 0.21 25);
+  --demo-skip: oklch(0.78 0.15 90);
+  --demo-pending: oklch(0.62 0.05 150);
+
+  --sl-font: var(--demo-font-body);
+  --sl-font-mono: var(--demo-font-mono);
+
+  --sl-color-accent-low: oklch(0.28 0.09 140);
+  --sl-color-accent: var(--demo-accent);
+  --sl-color-accent-high: oklch(0.92 0.16 95);
+
+  --sl-color-bg: var(--demo-bg);
+  --sl-color-bg-nav: var(--demo-bg);
+  --sl-color-bg-sidebar: var(--demo-surface);
+  --sl-color-text: var(--demo-ink);
+  --sl-color-text-accent: var(--demo-accent);
+
+  color-scheme: dark;
+}
+
+body {
+  background:
+    radial-gradient(ellipse at top, oklch(0.20 0.03 150) 0%, var(--demo-bg) 70%),
+    var(--demo-bg);
+  background-attachment: fixed;
+}
+
+/* Big, soft phosphor headings — VT323 reads large */
+.demo-hero__title,
+.demo-section-heading,
+.sl-markdown-content h1,
+.sl-markdown-content h2 {
+  font-family: var(--demo-font-display);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  text-shadow: 0 0 12px color-mix(in oklch, var(--demo-ink) 40%, transparent);
+}
+
+.demo-hero__title {
+  font-size: clamp(3rem, 7vw, 6rem);
+  line-height: 1;
+}
+
+/* A blinking cursor cap on the hero title */
+.demo-hero__title::after {
+  content: "_";
+  display: inline-block;
+  margin-left: 0.25ch;
+  color: var(--demo-accent);
+  animation: demo-blink 1s steps(1) infinite;
+}
+
+@keyframes demo-blink {
+  50% { opacity: 0; }
+}
+
+.demo-hero__eyebrow::before {
+  content: "> ";
+  color: var(--demo-accent);
+}
+
+.demo-hero__eyebrow {
+  font-family: var(--demo-font-mono);
+  color: var(--demo-ink-muted);
+  letter-spacing: 0.1em;
+  text-transform: none;
+}
+
+/* CTA as a terminal button: bracketed, no rounding */
+.demo-hero__cta {
+  border-radius: 0;
+  background: transparent;
+  color: var(--demo-accent);
+  border: 1px solid var(--demo-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-family: var(--demo-font-mono);
+}
+
+.demo-hero__cta::before { content: "["; }
+.demo-hero__cta::after { content: "]"; }
+
+.demo-hero__cta:hover {
+  background: var(--demo-accent);
+  color: var(--demo-accent-ink);
+  transform: none;
+}
+
+/* Stats look like a system report */
+.demo-stat {
+  background: transparent;
+  border: 1px dashed var(--demo-border);
+  border-radius: 0;
+}
+
+.demo-stat__value {
+  font-family: var(--demo-font-display);
+  font-weight: 400;
+  font-size: clamp(2.5rem, 4vw, 3.5rem);
+  line-height: 1;
+}
+
+.demo-stat__label::before {
+  content: "// ";
+  color: var(--demo-accent);
+}
+
+/* Story list feels like ls -la output */
+.demo-stories {
+  border-top: 1px dashed var(--demo-border);
+}
+
+.demo-story {
+  border-bottom: 1px dashed var(--demo-border);
+  grid-template-columns: 3.5rem 1fr auto;
+  font-family: var(--demo-font-mono);
+}
+
+.demo-story__title {
+  font-weight: 400;
+  font-size: 1rem;
+}
+
+.demo-story__title::before {
+  content: "./";
+  color: var(--demo-ink-muted);
+  margin-right: 0.25ch;
+}
+
+.demo-story:hover {
+  background: var(--demo-surface);
+  color: var(--demo-accent);
+}
+
+.demo-story:hover .demo-story__title {
+  color: var(--demo-accent);
+}
+
+.demo-empty {
+  border-style: dashed;
+  font-family: var(--demo-font-mono);
+}
+
+.demo-empty code::before { content: "$ "; color: var(--demo-accent); }
+
+/* ---- Story pages: command-line steps --------------------------------- */
+
+.sl-markdown-content p:has(> strong:first-child)::before {
+  content: ">";
+  color: var(--demo-accent);
+  font-family: var(--demo-font-mono);
+  font-weight: 700;
+  flex: 0 0 auto;
+  margin-right: 0.2ch;
+}
+
+.sl-markdown-content p > strong:first-child {
+  font-family: var(--demo-font-mono);
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--demo-accent);
+  letter-spacing: 0.08em;
+}
+
+.sl-markdown-content h3 {
+  font-family: var(--demo-font-display);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  text-shadow: 0 0 10px color-mix(in oklch, var(--demo-ink) 35%, transparent);
+}
+
+.sl-markdown-content > h2:first-of-type::before {
+  content: "// ";
+  color: var(--demo-accent);
+}
+
+/* Forced-mode theme: hide the (non-functional) theme toggle. */
+starlight-theme-select {
+  display: none;
+}
+
+/* Tone-coloured stat values — phosphor green for pass, amber for skip, red for fail. */
+.demo-stat[data-tone="pass"] .demo-stat__value { color: var(--demo-pass); }
+.demo-stat[data-tone="fail"] .demo-stat__value { color: var(--demo-fail); }
+.demo-stat[data-tone="skip"] .demo-stat__value { color: var(--demo-skip); }
+.demo-stat[data-tone="pending"] .demo-stat__value { color: var(--demo-pending); }
+.demo-stat[data-tone="pass"] { border-color: color-mix(in oklch, var(--demo-pass) 50%, var(--demo-border)); }
+.demo-stat[data-tone="fail"] { border-color: color-mix(in oklch, var(--demo-fail) 50%, var(--demo-border)); }
+.demo-stat[data-tone="skip"] { border-color: color-mix(in oklch, var(--demo-skip) 50%, var(--demo-border)); }

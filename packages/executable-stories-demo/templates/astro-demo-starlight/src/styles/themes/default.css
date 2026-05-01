@@ -1,0 +1,106 @@
+/*
+ * default — editorial warmth.
+ * Literata display + Work Sans body. Warm cream, bottle-green accent.
+ * Scheme-adaptive; light is the native mode.
+ */
+
+@import "@fontsource-variable/literata";
+@import "@fontsource/work-sans/400.css";
+@import "@fontsource/work-sans/500.css";
+@import "@fontsource/work-sans/600.css";
+@import "@fontsource/work-sans/700.css";
+
+:root {
+  --demo-font-display: "Literata", "Georgia", serif;
+  --demo-font-body: "Work Sans", system-ui, sans-serif;
+  --demo-font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+
+  --demo-bg: oklch(0.985 0.012 85);
+  --demo-surface: oklch(0.965 0.018 85);
+  --demo-ink: oklch(0.18 0.015 60);
+  --demo-ink-muted: oklch(0.44 0.015 65);
+  --demo-border: oklch(0.88 0.018 85);
+  --demo-accent: oklch(0.42 0.12 150);
+  --demo-accent-ink: oklch(0.985 0.008 85);
+
+  --demo-pass: oklch(0.48 0.13 150);
+  --demo-fail: oklch(0.52 0.18 25);
+  --demo-skip: oklch(0.58 0.09 70);
+  --demo-pending: oklch(0.50 0.02 65);
+
+  --sl-font: var(--demo-font-body);
+  --sl-font-mono: var(--demo-font-mono);
+
+  --sl-color-accent-low: oklch(0.92 0.05 150);
+  --sl-color-accent: var(--demo-accent);
+  --sl-color-accent-high: oklch(0.28 0.10 150);
+
+  --sl-color-bg: var(--demo-bg);
+  --sl-color-bg-nav: var(--demo-bg);
+  --sl-color-bg-sidebar: var(--demo-surface);
+  --sl-color-text: var(--demo-ink);
+  --sl-color-text-accent: var(--demo-accent);
+}
+
+:root[data-theme="dark"] {
+  --demo-bg: oklch(0.19 0.012 65);
+  --demo-surface: oklch(0.23 0.014 65);
+  --demo-ink: oklch(0.94 0.01 85);
+  --demo-ink-muted: oklch(0.70 0.012 75);
+  --demo-border: oklch(0.30 0.018 70);
+  --demo-accent: oklch(0.72 0.14 150);
+  --demo-accent-ink: oklch(0.18 0.015 60);
+
+  --demo-pass: oklch(0.72 0.14 150);
+  --demo-fail: oklch(0.70 0.17 25);
+  --demo-skip: oklch(0.72 0.10 80);
+  --demo-pending: oklch(0.72 0.02 75);
+
+  --sl-color-accent-low: oklch(0.30 0.08 150);
+  --sl-color-accent: var(--demo-accent);
+  --sl-color-accent-high: oklch(0.88 0.10 150);
+}
+
+/* Display headings in the content area lean on Literata's serif voice. */
+.sl-markdown-content h1,
+.sl-markdown-content h2,
+.sl-markdown-content h3,
+.demo-hero__title,
+.demo-section-heading {
+  font-family: var(--demo-font-display);
+  font-feature-settings: "onum" 1, "liga" 1, "dlig" 1;
+}
+
+.demo-hero__title {
+  letter-spacing: -0.015em;
+}
+
+/* Soften the stat card borders to match the paper-ish palette. */
+.demo-stat {
+  border-color: color-mix(in oklch, var(--demo-border) 70%, transparent);
+  background: var(--demo-surface);
+}
+
+/* A discreet drop-rule under the hero, reinforcing the publication feel. */
+.demo-hero {
+  padding-bottom: var(--demo-space-8);
+  border-bottom: 1px solid var(--demo-border);
+}
+
+/* ---- Story pages: publication-style steps ----------------------------- */
+
+.sl-markdown-content p > strong:first-child {
+  font-family: var(--demo-font-display);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 1.05em;
+  color: var(--demo-accent);
+  letter-spacing: 0;
+  font-feature-settings: "onum" 1, "dlig" 1;
+}
+
+.sl-markdown-content h3 {
+  font-family: var(--demo-font-display);
+  font-weight: 600;
+  font-feature-settings: "onum" 1, "liga" 1, "dlig" 1;
+}

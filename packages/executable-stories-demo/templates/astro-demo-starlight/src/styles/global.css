@@ -1,0 +1,588 @@
+/*
+ * Shared structural styles for every theme. Theme files override the
+ * --demo-* tokens; this file only defines the scale, landing-page layout,
+ * and Starlight hooks that are safe to share.
+ */
+
+:root {
+  --sl-content-width: 76rem;
+
+  --demo-space-1: 0.25rem;
+  --demo-space-2: 0.5rem;
+  --demo-space-3: 0.75rem;
+  --demo-space-4: 1rem;
+  --demo-space-6: 1.5rem;
+  --demo-space-8: 2rem;
+  --demo-space-12: 3rem;
+  --demo-space-16: 4rem;
+  --demo-space-24: 6rem;
+
+  --demo-radius-xs: 2px;
+  --demo-radius-sm: 4px;
+  --demo-radius-md: 8px;
+  --demo-radius-lg: 14px;
+  --demo-radius-pill: 999px;
+
+  --demo-max-prose: 68ch;
+
+  /* Status colours — themes override for fidelity to the palette. */
+  --demo-pass: oklch(0.62 0.14 150);
+  --demo-fail: oklch(0.58 0.19 25);
+  --demo-skip: oklch(0.68 0.10 80);
+  --demo-pending: oklch(0.58 0.02 260);
+}
+
+/* Keep long passages readable. */
+.sl-markdown-content p,
+.sl-markdown-content li {
+  max-width: var(--demo-max-prose);
+}
+
+/* ---- Landing page composition ------------------------------------------ */
+
+.demo-landing {
+  display: grid;
+  gap: clamp(2.5rem, 4vw, 4rem);
+  padding-block: clamp(1rem, 2vw, 2rem);
+  max-width: none;
+}
+
+.demo-hero {
+  display: grid;
+  gap: var(--demo-space-6);
+  max-width: 52ch;
+}
+
+.demo-hero__eyebrow {
+  font-size: 0.75rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--demo-ink-muted, currentColor);
+}
+
+.demo-hero__title {
+  font-family: var(--demo-font-display, inherit);
+  font-size: clamp(2.25rem, 5.2vw, 4.5rem);
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+  margin: 0;
+  color: var(--demo-ink, inherit);
+}
+
+.demo-hero__tagline {
+  font-family: var(--demo-font-body, inherit);
+  font-size: clamp(1.1rem, 1.6vw, 1.35rem);
+  line-height: 1.45;
+  color: var(--demo-ink-muted, inherit);
+  margin: 0;
+  max-width: 42ch;
+}
+
+.demo-hero__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--demo-space-2);
+  padding: var(--demo-space-3) var(--demo-space-6);
+  background: var(--demo-accent, currentColor);
+  color: var(--demo-accent-ink, white);
+  font-family: var(--demo-font-body, inherit);
+  font-weight: 600;
+  font-size: 1rem;
+  text-decoration: none;
+  border-radius: var(--demo-radius-md);
+  border: 1px solid var(--demo-accent, currentColor);
+  width: max-content;
+  transition: transform 120ms ease-out;
+}
+
+.demo-hero__cta:hover {
+  transform: translateY(-1px);
+}
+
+.demo-hero__cta::after {
+  content: "→";
+  font-weight: 400;
+}
+
+/* ---- Stats strip ------------------------------------------------------- */
+
+.demo-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: var(--demo-space-4);
+  padding: 0;
+  list-style: none;
+}
+
+.demo-stat {
+  display: grid;
+  gap: var(--demo-space-1);
+  padding: var(--demo-space-4) var(--demo-space-6);
+  background: var(--demo-surface, transparent);
+  border: 1px solid var(--demo-border, currentColor);
+  border-radius: var(--demo-radius-md);
+}
+
+.demo-stat__value {
+  font-family: var(--demo-font-mono, inherit);
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--demo-ink, inherit);
+}
+
+.demo-stat__label {
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--demo-ink-muted, inherit);
+}
+
+.demo-stat[data-tone="pass"] .demo-stat__value { color: var(--demo-pass); }
+.demo-stat[data-tone="fail"] .demo-stat__value { color: var(--demo-fail); }
+.demo-stat[data-tone="skip"] .demo-stat__value { color: var(--demo-skip); }
+
+/* ---- Story list -------------------------------------------------------- */
+
+.demo-section-heading {
+  font-family: var(--demo-font-display, inherit);
+  font-size: clamp(1.5rem, 2.4vw, 2rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0 0 var(--demo-space-6);
+  color: var(--demo-ink, inherit);
+}
+
+.demo-stories {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: var(--demo-space-2);
+  border-top: 1px solid var(--demo-border, currentColor);
+}
+
+.demo-stories li {
+  max-width: none;
+  margin: 0;
+}
+
+.demo-story {
+  display: grid;
+  grid-template-columns: 3rem 1fr auto;
+  align-items: baseline;
+  gap: var(--demo-space-4);
+  padding: var(--demo-space-4) var(--demo-space-2);
+  color: var(--demo-ink, inherit);
+  text-decoration: none;
+  border-bottom: 1px solid var(--demo-border, currentColor);
+  font-family: var(--demo-font-body, inherit);
+  transition: background 120ms ease-out;
+}
+
+.demo-story:hover {
+  background: var(--demo-surface, transparent);
+}
+
+.demo-story__index {
+  font-family: var(--demo-font-mono, inherit);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.85rem;
+  color: var(--demo-ink-muted, inherit);
+  letter-spacing: 0.04em;
+}
+
+.demo-story__title {
+  font-size: 1.1rem;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--demo-ink, inherit);
+}
+
+.demo-story__status {
+  font-family: var(--demo-font-mono, inherit);
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--demo-ink-muted, inherit);
+}
+
+.demo-empty {
+  padding: var(--demo-space-12);
+  border: 1px dashed var(--demo-border, currentColor);
+  border-radius: var(--demo-radius-md);
+  color: var(--demo-ink-muted, inherit);
+  font-family: var(--demo-font-body, inherit);
+  text-align: center;
+  max-width: none;
+}
+
+.demo-empty code {
+  font-family: var(--demo-font-mono, inherit);
+}
+
+/* ---- Splash sections (landing page) ----------------------------------- */
+
+/* Sections are vertical rhythm units. Themes can opt into different
+   surface treatments by overriding .demo-section background/padding. */
+.demo-section {
+  display: block;
+}
+
+/* Featured scenario block — hero media slot beneath the headline. */
+.demo-featured {
+  display: grid;
+  gap: var(--demo-space-4);
+  padding-block: var(--demo-space-6);
+  border-top: 1px solid var(--demo-border, currentColor);
+  border-bottom: 1px solid var(--demo-border, currentColor);
+}
+
+.demo-featured__eyebrow {
+  font-family: var(--demo-font-mono, inherit);
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--demo-accent, currentColor);
+  font-weight: 600;
+}
+
+.demo-featured__title {
+  font-family: var(--demo-font-display, inherit);
+  font-size: clamp(1.5rem, 2.6vw, 2.25rem);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  margin: 0;
+  color: var(--demo-ink, inherit);
+}
+
+.demo-featured__media {
+  margin: 0;
+  border-radius: var(--demo-radius-md);
+  overflow: hidden;
+  border: 1px solid var(--demo-border, currentColor);
+  background: color-mix(in oklch, var(--demo-surface, currentColor) 60%, transparent);
+}
+
+.demo-featured__video,
+.demo-featured__image {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.demo-featured__link {
+  font-family: var(--demo-font-body, inherit);
+  font-weight: 600;
+  color: var(--demo-accent, currentColor);
+  text-decoration: none;
+  align-self: start;
+}
+
+.demo-featured__link:hover,
+.demo-featured__link:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+/* Feature grid — three-column "what's in this product" tile strip. */
+.demo-feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: var(--demo-space-6);
+  padding: 0;
+  list-style: none;
+  max-width: none;
+}
+
+.demo-feature-grid li {
+  max-width: none;
+  margin: 0;
+}
+
+.demo-feature {
+  display: grid;
+  gap: var(--demo-space-2);
+  padding: var(--demo-space-6);
+  border: 1px solid var(--demo-border, currentColor);
+  border-radius: var(--demo-radius-md);
+  background: color-mix(in oklch, var(--demo-surface, currentColor) 70%, transparent);
+}
+
+.demo-feature__title {
+  font-family: var(--demo-font-display, inherit);
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0;
+  color: var(--demo-ink, inherit);
+}
+
+.demo-feature__body {
+  margin: 0;
+  font-family: var(--demo-font-body, inherit);
+  color: var(--demo-ink-muted, inherit);
+  line-height: 1.5;
+}
+
+/* Narrative section — copy block + optional media on the right. */
+.demo-narrative {
+  display: grid;
+  gap: var(--demo-space-8);
+  align-items: center;
+  padding-block: var(--demo-space-12);
+}
+
+@media (min-width: 56rem) {
+  .demo-narrative:has(.demo-narrative__media) {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.demo-narrative__copy {
+  display: grid;
+  gap: var(--demo-space-3);
+  max-width: 48ch;
+}
+
+.demo-narrative__eyebrow {
+  font-family: var(--demo-font-mono, inherit);
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--demo-accent, currentColor);
+  font-weight: 600;
+}
+
+.demo-narrative__heading {
+  font-family: var(--demo-font-display, inherit);
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0;
+  color: var(--demo-ink, inherit);
+}
+
+.demo-narrative__body {
+  margin: 0;
+  font-family: var(--demo-font-body, inherit);
+  font-size: 1.1rem;
+  line-height: 1.55;
+  color: var(--demo-ink-muted, inherit);
+}
+
+.demo-narrative__media img {
+  width: 100%;
+  height: auto;
+  border-radius: var(--demo-radius-md);
+  border: 1px solid var(--demo-border, currentColor);
+}
+
+/* Quote — pull quote with attribution, no card chrome by default. */
+.demo-quote {
+  margin: 0;
+  padding-block: var(--demo-space-12);
+  display: grid;
+  gap: var(--demo-space-3);
+  text-align: left;
+}
+
+.demo-quote__body {
+  margin: 0;
+  font-family: var(--demo-font-display, inherit);
+  font-size: clamp(1.5rem, 3vw, 2.25rem);
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  color: var(--demo-ink, inherit);
+  max-width: 28ch;
+}
+
+.demo-quote__attribution {
+  font-family: var(--demo-font-body, inherit);
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  color: var(--demo-ink-muted, inherit);
+}
+
+/* Optional logo above the hero. Sized to read at glance, never dominate. */
+.demo-hero__logo {
+  height: 2.25rem;
+  width: auto;
+  margin-bottom: var(--demo-space-2);
+}
+
+/* Branding accent override — set on .demo-landing[style] when config.branding.accent is provided. */
+.demo-landing[style*="--demo-accent-override"] {
+  --demo-accent: var(--demo-accent-override);
+}
+
+/* ---- Media blocks inside story pages ---------------------------------- */
+
+.sl-markdown-content video,
+.sl-markdown-content img {
+  border-radius: var(--demo-radius-md);
+  border: 1px solid var(--demo-border, transparent);
+  max-width: 100%;
+}
+
+/* ---- Story pages ------------------------------------------------------ */
+
+/* Step paragraphs are emitted as `<p><strong>Given</strong> text</p>`.
+   A step-paragraph selector lets themes target the keyword and the line. */
+.sl-markdown-content p:has(> strong:first-child) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 0.6ch;
+  margin-block: var(--demo-space-3);
+  max-width: var(--demo-max-prose);
+  line-height: 1.5;
+}
+
+.sl-markdown-content p > strong:first-child {
+  font-family: var(--demo-font-mono, inherit);
+  font-weight: 600;
+  color: var(--demo-accent, currentColor);
+  letter-spacing: 0.04em;
+  flex: 0 0 auto;
+}
+
+/* Source-file path (first h2 on the page) is technical noise — diminish it. */
+.sl-markdown-content > h2:first-of-type {
+  font-family: var(--demo-font-mono, inherit);
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: var(--demo-ink-muted, currentColor);
+  margin-bottom: var(--demo-space-8);
+  padding-bottom: var(--demo-space-3);
+  border-bottom: 1px solid var(--demo-border, currentColor);
+  text-transform: none;
+  max-width: none;
+}
+
+/* Later h2s (Media, Failure, etc.) act as content dividers. */
+.sl-markdown-content > h2:not(:first-of-type) {
+  font-family: var(--demo-font-display, inherit);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--demo-ink-muted, currentColor);
+  margin-top: var(--demo-space-16);
+  padding-top: var(--demo-space-4);
+  border-top: 1px solid var(--demo-border, currentColor);
+  max-width: none;
+}
+
+/* Scenario + suite + media-item headings — the real content markers. */
+.sl-markdown-content h3 {
+  font-family: var(--demo-font-display, inherit);
+  font-size: clamp(1.5rem, 2.5vw, 2rem);
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  margin-block: var(--demo-space-12) var(--demo-space-4);
+  color: var(--demo-ink, inherit);
+  max-width: none;
+}
+
+/* Data tables inside story pages. */
+.sl-markdown-content table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--demo-font-body, inherit);
+  font-size: 0.95rem;
+  margin-block: var(--demo-space-4);
+}
+
+.sl-markdown-content th {
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--demo-ink-muted, currentColor);
+  text-align: left;
+  padding: var(--demo-space-3) var(--demo-space-4);
+  border-bottom: 1px solid var(--demo-border, currentColor);
+}
+
+.sl-markdown-content td {
+  padding: var(--demo-space-3) var(--demo-space-4);
+  border-bottom: 1px solid var(--demo-border, currentColor);
+  vertical-align: top;
+}
+
+/* Media attachments sit prominently in the flow. */
+.sl-markdown-content video {
+  width: 100%;
+  max-width: 960px;
+  height: auto;
+  display: block;
+  margin-block: var(--demo-space-4) var(--demo-space-8);
+}
+
+.sl-markdown-content img {
+  display: block;
+  margin-block: var(--demo-space-4);
+}
+
+/* Inline doc-entry bullets (e.g. `- **Label:** value`). Keep the label calm. */
+.sl-markdown-content li > strong:first-child {
+  color: var(--demo-ink, currentColor);
+  font-weight: 600;
+}
+
+/* Code fences pick up theme surface + border. */
+.sl-markdown-content pre {
+  background: var(--demo-surface, transparent);
+  border: 1px solid var(--demo-border, currentColor);
+  border-radius: var(--demo-radius-sm);
+  padding: var(--demo-space-4);
+  margin-block: var(--demo-space-4);
+  overflow-x: auto;
+}
+
+.sl-markdown-content :not(pre) > code {
+  font-family: var(--demo-font-mono, inherit);
+  font-size: 0.88em;
+  padding: 0.1em 0.35em;
+  border-radius: var(--demo-radius-xs);
+  background: color-mix(in oklch, var(--demo-surface, currentColor) 80%, transparent);
+  border: 1px solid color-mix(in oklch, var(--demo-border, currentColor) 60%, transparent);
+}
+
+/* ---- Keyboard focus ---------------------------------------------------- */
+
+/* A single, theme-tinted focus ring for every interactive demo surface.
+   Each theme can override --demo-focus-ring if it wants something distinct. */
+:root {
+  --demo-focus-ring: 2px solid var(--demo-accent, currentColor);
+  --demo-focus-offset: 3px;
+}
+
+.demo-hero__cta:focus-visible,
+.demo-story:focus-visible,
+.demo-featured__link:focus-visible,
+.demo-feature:focus-within {
+  outline: var(--demo-focus-ring);
+  outline-offset: var(--demo-focus-offset);
+  border-radius: var(--demo-radius-sm);
+}
+
+/* Match hover affordance on focus so keyboard users see the same intent. */
+.demo-story:focus-visible {
+  background: var(--demo-surface, transparent);
+}
+
+/* ---- Motion honouring preference -------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0ms !important;
+    transition-duration: 0ms !important;
+  }
+}

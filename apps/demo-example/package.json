@@ -1,0 +1,28 @@
+{
+  "name": "demo-example",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "demo:build": "executable-stories-demo build --input fixtures/raw-run.json --site . --strict",
+    "dev": "pnpm run demo:build && astro dev",
+    "build": "pnpm run demo:build && astro build",
+    "preview": "pnpm run demo:build && astro preview",
+    "lint": "eslint . --ignore-pattern dist --ignore-pattern .astro --ignore-pattern playwright-sample",
+    "type-check": "tsc --noEmit",
+    "test": "node -e \"console.log('No tests in demo-example')\""
+  },
+  "devDependencies": {
+    "@astrojs/starlight": "^0.38.2",
+    "@eslint/js": "^10.0.1",
+    "astro": "^6.1.3",
+    "astro-mermaid": "^1.3.1",
+    "eslint": "^10.2.0",
+    "eslint-config-executable-stories": "workspace:*",
+    "eslint-config-prettier": "^10.1.8",
+    "executable-stories-demo": "workspace:*",
+    "mermaid": "^11.14.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.58.1"
+  }
+}

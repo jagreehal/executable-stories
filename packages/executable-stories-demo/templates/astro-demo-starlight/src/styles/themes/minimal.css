@@ -1,0 +1,212 @@
+/*
+ * minimal — aggressive restraint.
+ * Albert Sans single family with extreme weight contrast (300 vs 700).
+ * Near-monochrome; a single oxidised-orange accent used sparingly.
+ * Forced light.
+ */
+
+@import "@fontsource/albert-sans/300.css";
+@import "@fontsource/albert-sans/400.css";
+@import "@fontsource/albert-sans/500.css";
+@import "@fontsource/albert-sans/700.css";
+
+:root,
+:root[data-theme="dark"] {
+  --demo-font-display: "Albert Sans", system-ui, sans-serif;
+  --demo-font-body: "Albert Sans", system-ui, sans-serif;
+  --demo-font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+
+  --demo-bg: oklch(0.985 0 0);
+  --demo-surface: oklch(0.985 0 0);
+  --demo-ink: oklch(0.14 0 0);
+  --demo-ink-muted: oklch(0.55 0 0);
+  --demo-border: oklch(0.88 0 0);
+  --demo-accent: oklch(0.56 0.18 35);
+  --demo-accent-ink: oklch(0.985 0 0);
+
+  --demo-pass: oklch(0.14 0 0);
+  --demo-fail: oklch(0.56 0.18 35);
+  --demo-skip: oklch(0.55 0 0);
+  --demo-pending: oklch(0.55 0 0);
+
+  --sl-font: var(--demo-font-body);
+  --sl-font-mono: var(--demo-font-mono);
+
+  --sl-color-accent-low: oklch(0.94 0.04 35);
+  --sl-color-accent: var(--demo-accent);
+  --sl-color-accent-high: oklch(0.30 0.14 35);
+
+  --sl-color-bg: var(--demo-bg);
+  --sl-color-bg-nav: var(--demo-bg);
+  --sl-color-bg-sidebar: var(--demo-bg);
+  --sl-color-text: var(--demo-ink);
+  --sl-color-text-accent: var(--demo-ink);
+
+  color-scheme: light;
+}
+
+.demo-landing {
+  gap: clamp(4rem, 8vw, 8rem);
+  padding-block: clamp(2rem, 5vw, 5rem);
+}
+
+.demo-hero {
+  max-width: 40ch;
+  gap: var(--demo-space-8);
+}
+
+.demo-hero__title {
+  font-family: var(--demo-font-display);
+  font-weight: 300;
+  font-size: clamp(2.75rem, 6vw, 5.5rem);
+  letter-spacing: -0.035em;
+  line-height: 0.95;
+}
+
+/* One rare touch of colour: a small dot precedes the eyebrow, and nothing else */
+.demo-hero__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--demo-ink-muted);
+  font-weight: 500;
+}
+
+.demo-hero__eyebrow::before {
+  content: "";
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: var(--demo-accent);
+  display: inline-block;
+}
+
+.demo-hero__tagline {
+  font-weight: 300;
+  font-size: clamp(1.1rem, 1.4vw, 1.25rem);
+  line-height: 1.5;
+  color: var(--demo-ink-muted);
+}
+
+.demo-hero__cta {
+  background: var(--demo-ink);
+  border-color: var(--demo-ink);
+  border-radius: 0;
+  padding: var(--demo-space-4) var(--demo-space-8);
+  font-weight: 500;
+  font-size: 0.9rem;
+  letter-spacing: 0.02em;
+}
+
+.demo-hero__cta::after { content: ""; }
+
+/* Stats: no cards, just large numbers separated by whitespace */
+.demo-stats {
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: var(--demo-space-8);
+  padding-block: var(--demo-space-8);
+  border-top: 1px solid var(--demo-border);
+  border-bottom: 1px solid var(--demo-border);
+}
+
+.demo-stat {
+  border: 0;
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  gap: var(--demo-space-3);
+}
+
+.demo-stat__value {
+  font-family: var(--demo-font-display);
+  font-weight: 300;
+  font-size: clamp(2.5rem, 4vw, 3.5rem);
+  letter-spacing: -0.04em;
+  color: var(--demo-ink);
+}
+
+.demo-stat[data-tone="fail"] .demo-stat__value { color: var(--demo-accent); }
+
+.demo-stat__label {
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 500;
+  font-size: 0.68rem;
+}
+
+/* Stories: hairline rules, generous padding, no hover colour */
+.demo-section-heading {
+  font-weight: 300;
+  letter-spacing: -0.02em;
+}
+
+.demo-stories {
+  border-top: 1px solid var(--demo-border);
+}
+
+.demo-story {
+  grid-template-columns: 4rem 1fr auto;
+  padding: var(--demo-space-6) 0;
+  border-bottom: 1px solid var(--demo-border);
+  align-items: baseline;
+}
+
+.demo-story__index {
+  font-family: var(--demo-font-body);
+  font-weight: 400;
+  color: var(--demo-ink-muted);
+  letter-spacing: 0.02em;
+}
+
+.demo-story__title {
+  font-weight: 400;
+  font-size: 1.125rem;
+  letter-spacing: -0.005em;
+}
+
+.demo-story__status {
+  color: var(--demo-ink-muted);
+  font-weight: 500;
+}
+
+.demo-story:hover {
+  background: transparent;
+}
+
+.demo-story:hover .demo-story__title {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  text-decoration-thickness: 1px;
+}
+
+/* ---- Story pages: whispered steps ------------------------------------ */
+
+.sl-markdown-content p:has(> strong:first-child) {
+  display: grid;
+  grid-template-columns: 6rem 1fr;
+  gap: var(--demo-space-4);
+  align-items: baseline;
+  max-width: var(--demo-max-prose);
+}
+
+.sl-markdown-content p > strong:first-child {
+  font-family: var(--demo-font-body);
+  font-weight: 500;
+  font-size: 0.68rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--demo-ink-muted);
+  padding-top: 0.3em;
+}
+
+.sl-markdown-content h3 {
+  font-family: var(--demo-font-display);
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  font-size: clamp(1.5rem, 2.4vw, 2rem);
+}
+
+/* Forced-mode theme: hide the (non-functional) theme toggle. */
+starlight-theme-select {
+  display: none;
+}

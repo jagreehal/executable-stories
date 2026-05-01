@@ -10,6 +10,10 @@ export interface DocEntryDeps {
   syntaxHighlighting: boolean;
   markdownEnabled: boolean;
   mermaidEnabled: boolean;
+  /** When true, attempt to inline local screenshot files as data URIs. Default: true */
+  embedScreenshots?: boolean;
+  /** Read a local image file and return a `data:` URI; return undefined to leave the path untouched. */
+  readScreenshot?: (path: string) => string | undefined;
 }
 
 export function renderDocNote(
@@ -135,7 +139,13 @@ export function renderDocScreenshot(
   deps: DocEntryDeps,
 ): string {
   const alt = entry.alt ?? "Screenshot";
-  const src = entry.path;
+  const embedEnabled = deps.embedScreenshots ?? true;
+  // Only attempt to embed local file paths — leave http(s)/data URIs alone.
+  const isRemote = /^(?:https?:|data:)/i.test(entry.path);
+  const src =
+    embedEnabled && !isRemote && deps.readScreenshot
+      ? (deps.readScreenshot(entry.path) ?? entry.path)
+      : entry.path;
   return `<div class="doc-screenshot">
   <img src="${deps.escapeHtml(src)}" alt="${deps.escapeHtml(alt)}" class="doc-screenshot-img" />
   ${entry.alt ? `<div class="doc-screenshot-caption">${deps.escapeHtml(entry.alt)}</div>` : ""}
