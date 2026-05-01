@@ -20,7 +20,7 @@
     "bin"
   ],
   "bin": {
-    "executable-stories-demo": "./dist/cli.js",
+    "executable-stories-demo": "./bin/executable-stories-demo.js",
     "intent": "./bin/intent.js"
   },
   "scripts": {
