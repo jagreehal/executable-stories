@@ -20,12 +20,21 @@ interface MockAnnotation {
 interface MockTestCase {
   annotations: MockAnnotation[];
   location?: { file: string; line?: number };
+  id?: string;
+}
+
+interface MockAttachment {
+  name: string;
+  contentType: string;
+  path?: string;
+  body?: string | Buffer;
 }
 
 interface MockTestResult {
   status: 'passed' | 'failed' | 'skipped' | 'timedOut' | 'interrupted';
   errors?: Array<{ message?: string }>;
   duration?: number;
+  attachments?: MockAttachment[];
 }
 
 // Temp directory for test outputs (using os.tmpdir for ES modules compatibility)
@@ -999,6 +1008,307 @@ test.describe('StoryReporter', () => {
 
       // Playwright reporter skips writing when there are no stories
       expect(fs.existsSync(outputFile)).toBe(false);
+    });
+  });
+
+  test.describe('error message ANSI stripping', () => {
+    test('strips ANSI color codes from playwright error messages', async () => {
+      // Reproduces the regression seen in mountly PR #14: Playwright supplies
+      // colorized error messages and the raw escape codes leaked into the
+      // generated reports as garbled text like "[2mexpect([22m[31mreceived[39m".
+      const reporter = new StoryReporter({
+        formats: ['markdown'],
+        outputDir: TEMP_DIR,
+        outputName: 'ansi-stripped',
+        output: { mode: 'aggregated' },
+        markdown: { includeMetadata: false, includeErrors: true },
+      });
+
+      const meta: StoryMeta = {
+        scenario: 'failing assertion',
+        steps: [{ keyword: 'Given', text: 'something', docs: [] }],
+      };
+
+      const failingTest: MockTestCase = {
+        annotations: [
+          { type: 'story-meta', description: JSON.stringify(meta) },
+        ],
+        location: { file: 'test.spec.ts', line: 1 },
+      };
+
+      const ansiMessage =
+        '[2mexpect([22m[31mreceived[39m[2m).[22mtoBe([32m"weather:Bristol"[39m)';
+      const ansiStack =
+        '    at [34m/runner/work/foo/spec.ts:533:26[39m';
+
+      reporter.onBegin({} as Parameters<typeof reporter.onBegin>[0]);
+      reporter.onTestEnd(
+        failingTest as unknown as Parameters<typeof reporter.onTestEnd>[0],
+        {
+          status: 'failed',
+          errors: [{ message: ansiMessage, stack: ansiStack }],
+          duration: 1,
+        } as unknown as Parameters<typeof reporter.onTestEnd>[1],
+      );
+      await reporter.onEnd({ status: 'failed' } as Parameters<
+        typeof reporter.onEnd
+      >[0]);
+
+      const outputFile = path.join(TEMP_DIR, 'ansi-stripped.md');
+      const content = await fs.promises.readFile(outputFile, 'utf8');
+      expect(content).toContain('expect(received).toBe("weather:Bristol")');
+      expect(content).toContain('/runner/work/foo/spec.ts:533:26');
+      // Raw ANSI escape bytes must not appear.
+      expect(content).not.toMatch(/\[/);
+    });
+  });
+
+  test.describe('attachment persistence', () => {
+    function makeMeta(scenario: string): StoryMeta {
+      return {
+        scenario,
+        steps: [{ keyword: 'Given', text: 'something', docs: [] }],
+      };
+    }
+
+    test('inlines small path-based attachments as base64 in raw run', async () => {
+      const sourceDir = await fs.promises.mkdtemp(
+        path.join(os.tmpdir(), 'es-attach-src-'),
+      );
+      const screenshotPath = path.join(sourceDir, 'small.png');
+      const screenshotBytes = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
+      await fs.promises.writeFile(screenshotPath, screenshotBytes);
+
+      const rawRunPath = path.join(TEMP_DIR, 'attach-inline.raw.json');
+      const reporter = new StoryReporter({
+        formats: [],
+        outputDir: TEMP_DIR,
+        outputName: 'attach-inline',
+        output: { mode: 'aggregated' },
+        rawRunPath,
+      });
+
+      const meta = makeMeta('test with small screenshot');
+      const mockTestCase: MockTestCase = {
+        id: 'test-small-1',
+        annotations: [
+          { type: 'story-meta', description: JSON.stringify(meta) },
+        ],
+        location: { file: 'test.spec.ts', line: 1 },
+      };
+
+      reporter.onBegin({} as Parameters<typeof reporter.onBegin>[0]);
+      reporter.onTestEnd(
+        mockTestCase as unknown as Parameters<typeof reporter.onTestEnd>[0],
+        {
+          status: 'passed',
+          duration: 1,
+          attachments: [
+            { name: 'screenshot', contentType: 'image/png', path: screenshotPath },
+          ],
+        } as unknown as Parameters<typeof reporter.onTestEnd>[1],
+      );
+      await reporter.onEnd({ status: 'passed' } as Parameters<
+        typeof reporter.onEnd
+      >[0]);
+
+      const rawRun = JSON.parse(await fs.promises.readFile(rawRunPath, 'utf8'));
+      const attachments = rawRun.testCases[0].attachments;
+      expect(attachments).toHaveLength(1);
+      expect(attachments[0].encoding).toBe('BASE64');
+      expect(Buffer.from(attachments[0].body, 'base64').equals(screenshotBytes)).toBe(true);
+
+      await fs.promises.rm(sourceDir, { recursive: true });
+    });
+
+    test('copies large path-based attachments to a stable directory', async () => {
+      const sourceDir = await fs.promises.mkdtemp(
+        path.join(os.tmpdir(), 'es-attach-src-'),
+      );
+      const videoPath = path.join(sourceDir, 'video.webm');
+      const videoBytes = Buffer.alloc(8 * 1024);
+      videoBytes.write('WEBMHEAD', 0, 'ascii');
+      await fs.promises.writeFile(videoPath, videoBytes);
+
+      const attachmentDir = path.join(TEMP_DIR, 'persisted-attachments');
+      const rawRunPath = path.join(TEMP_DIR, 'attach-copy.raw.json');
+      const reporter = new StoryReporter({
+        formats: [],
+        outputDir: TEMP_DIR,
+        outputName: 'attach-copy',
+        output: { mode: 'aggregated' },
+        rawRunPath,
+        attachments: { dir: attachmentDir, inlineMaxBytes: 1024 },
+      });
+
+      const meta = makeMeta('test with large video');
+      const mockTestCase: MockTestCase = {
+        id: 'test-large-1',
+        annotations: [
+          { type: 'story-meta', description: JSON.stringify(meta) },
+        ],
+        location: { file: 'test.spec.ts', line: 1 },
+      };
+
+      reporter.onBegin({} as Parameters<typeof reporter.onBegin>[0]);
+      reporter.onTestEnd(
+        mockTestCase as unknown as Parameters<typeof reporter.onTestEnd>[0],
+        {
+          status: 'passed',
+          duration: 1,
+          attachments: [
+            { name: 'video', contentType: 'video/webm', path: videoPath },
+          ],
+        } as unknown as Parameters<typeof reporter.onTestEnd>[1],
+      );
+      await reporter.onEnd({ status: 'passed' } as Parameters<
+        typeof reporter.onEnd
+      >[0]);
+
+      const rawRun = JSON.parse(await fs.promises.readFile(rawRunPath, 'utf8'));
+      const attachments = rawRun.testCases[0].attachments;
+      expect(attachments).toHaveLength(1);
+      expect(attachments[0].body).toBeUndefined();
+      expect(attachments[0].path).toBe(
+        path.join(attachmentDir, 'test-large-1', 'video.webm'),
+      );
+      const copied = await fs.promises.readFile(attachments[0].path);
+      expect(copied.equals(videoBytes)).toBe(true);
+
+      await fs.promises.rm(sourceDir, { recursive: true });
+      expect(fs.existsSync(attachments[0].path)).toBe(true);
+    });
+
+    test('preserves original path when source file is missing', async () => {
+      const rawRunPath = path.join(TEMP_DIR, 'attach-missing.raw.json');
+      const reporter = new StoryReporter({
+        formats: [],
+        outputDir: TEMP_DIR,
+        outputName: 'attach-missing',
+        output: { mode: 'aggregated' },
+        rawRunPath,
+      });
+
+      const meta = makeMeta('test with vanished video');
+      const mockTestCase: MockTestCase = {
+        id: 'test-missing-1',
+        annotations: [
+          { type: 'story-meta', description: JSON.stringify(meta) },
+        ],
+        location: { file: 'test.spec.ts', line: 1 },
+      };
+
+      const ghostPath = '/definitely/not/here/video.webm';
+      reporter.onBegin({} as Parameters<typeof reporter.onBegin>[0]);
+      reporter.onTestEnd(
+        mockTestCase as unknown as Parameters<typeof reporter.onTestEnd>[0],
+        {
+          status: 'passed',
+          duration: 1,
+          attachments: [
+            { name: 'video', contentType: 'video/webm', path: ghostPath },
+          ],
+        } as unknown as Parameters<typeof reporter.onTestEnd>[1],
+      );
+      await reporter.onEnd({ status: 'passed' } as Parameters<
+        typeof reporter.onEnd
+      >[0]);
+
+      const rawRun = JSON.parse(await fs.promises.readFile(rawRunPath, 'utf8'));
+      const attachments = rawRun.testCases[0].attachments;
+      expect(attachments).toHaveLength(1);
+      expect(attachments[0].path).toBe(ghostPath);
+      expect(attachments[0].body).toBeUndefined();
+    });
+
+    test('respects attachments.enabled: false (legacy behavior)', async () => {
+      const sourceDir = await fs.promises.mkdtemp(
+        path.join(os.tmpdir(), 'es-attach-src-'),
+      );
+      const filePath = path.join(sourceDir, 'foo.png');
+      await fs.promises.writeFile(filePath, Buffer.from([0x00, 0x01]));
+
+      const rawRunPath = path.join(TEMP_DIR, 'attach-disabled.raw.json');
+      const reporter = new StoryReporter({
+        formats: [],
+        outputDir: TEMP_DIR,
+        outputName: 'attach-disabled',
+        output: { mode: 'aggregated' },
+        rawRunPath,
+        attachments: { enabled: false },
+      });
+
+      const meta = makeMeta('legacy disabled');
+      const mockTestCase: MockTestCase = {
+        id: 'test-disabled-1',
+        annotations: [
+          { type: 'story-meta', description: JSON.stringify(meta) },
+        ],
+        location: { file: 'test.spec.ts', line: 1 },
+      };
+
+      reporter.onBegin({} as Parameters<typeof reporter.onBegin>[0]);
+      reporter.onTestEnd(
+        mockTestCase as unknown as Parameters<typeof reporter.onTestEnd>[0],
+        {
+          status: 'passed',
+          duration: 1,
+          attachments: [
+            { name: 'screenshot', contentType: 'image/png', path: filePath },
+          ],
+        } as unknown as Parameters<typeof reporter.onTestEnd>[1],
+      );
+      await reporter.onEnd({ status: 'passed' } as Parameters<
+        typeof reporter.onEnd
+      >[0]);
+
+      const rawRun = JSON.parse(await fs.promises.readFile(rawRunPath, 'utf8'));
+      const attachments = rawRun.testCases[0].attachments;
+      expect(attachments[0].path).toBe(filePath);
+      expect(attachments[0].body).toBeUndefined();
+
+      await fs.promises.rm(sourceDir, { recursive: true });
+    });
+
+    test('keeps inline body when attachment supplies bytes directly', async () => {
+      const rawRunPath = path.join(TEMP_DIR, 'attach-body.raw.json');
+      const reporter = new StoryReporter({
+        formats: [],
+        outputDir: TEMP_DIR,
+        outputName: 'attach-body',
+        output: { mode: 'aggregated' },
+        rawRunPath,
+      });
+
+      const meta = makeMeta('inline body');
+      const mockTestCase: MockTestCase = {
+        id: 'test-body-1',
+        annotations: [
+          { type: 'story-meta', description: JSON.stringify(meta) },
+        ],
+        location: { file: 'test.spec.ts', line: 1 },
+      };
+
+      const buffer = Buffer.from([0xde, 0xad, 0xbe, 0xef]);
+      reporter.onBegin({} as Parameters<typeof reporter.onBegin>[0]);
+      reporter.onTestEnd(
+        mockTestCase as unknown as Parameters<typeof reporter.onTestEnd>[0],
+        {
+          status: 'passed',
+          duration: 1,
+          attachments: [
+            { name: 'binary', contentType: 'application/octet-stream', body: buffer },
+          ],
+        } as unknown as Parameters<typeof reporter.onTestEnd>[1],
+      );
+      await reporter.onEnd({ status: 'passed' } as Parameters<
+        typeof reporter.onEnd
+      >[0]);
+
+      const rawRun = JSON.parse(await fs.promises.readFile(rawRunPath, 'utf8'));
+      const attachments = rawRun.testCases[0].attachments;
+      expect(attachments[0].encoding).toBe('BASE64');
+      expect(Buffer.from(attachments[0].body, 'base64').equals(buffer)).toBe(true);
     });
   });
 });

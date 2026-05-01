@@ -551,6 +551,60 @@ test.describe("standalone doc methods", () => {
     });
   });
 
+  test("story.screenshot() inlines existing files as data URIs", async ({}, testInfo) => {
+    // Write a minimal valid PNG to disk so story.screenshot can read it.
+    // This guards against Playwright's per-test outputDir cleanup deleting
+    // screenshots before the formatter runs (see issue: broken /home/runner/...
+    // image src in PR HTML reports).
+    const pngBytes = Buffer.from([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+      0xde, 0xad, 0xbe, 0xef,
+    ]);
+    const screenshotPath = testInfo.outputPath("inline-test.png");
+    fs.writeFileSync(screenshotPath, pngBytes);
+
+    story.init(testInfo);
+    story.then("page renders correctly");
+    story.screenshot({ path: screenshotPath, alt: "Inlined" });
+
+    const meta = getStoryMeta(testInfo);
+    const entry = meta!.steps[0].docs![0] as { kind: "screenshot"; path: string; alt?: string };
+    expect(entry.kind).toBe("screenshot");
+    expect(entry.alt).toBe("Inlined");
+    expect(entry.path.startsWith("data:image/png;base64,")).toBe(true);
+    // Original filesystem path must NOT leak into the doc entry — that's the
+    // bug we're fixing.
+    expect(entry.path.includes(screenshotPath)).toBe(false);
+    // Bytes must round-trip.
+    const base64 = entry.path.replace(/^data:image\/png;base64,/, "");
+    expect(Buffer.from(base64, "base64").equals(pngBytes)).toBe(true);
+  });
+
+  test("story.screenshot() preserves path when file is missing", async ({}, testInfo) => {
+    story.init(testInfo);
+    story.then("page renders correctly");
+    story.screenshot({
+      path: "/definitely/does/not/exist/foo.png",
+      alt: "Missing",
+    });
+
+    const meta = getStoryMeta(testInfo);
+    const entry = meta!.steps[0].docs![0] as { kind: "screenshot"; path: string };
+    // Falls back to the original path so the formatter can render its
+    // "Screenshot unavailable" placeholder.
+    expect(entry.path).toBe("/definitely/does/not/exist/foo.png");
+  });
+
+  test("story.screenshot() leaves remote URLs untouched", async ({}, testInfo) => {
+    story.init(testInfo);
+    story.then("page renders correctly");
+    story.screenshot({ path: "https://example.com/img.png", alt: "Remote" });
+
+    const meta = getStoryMeta(testInfo);
+    const entry = meta!.steps[0].docs![0] as { kind: "screenshot"; path: string };
+    expect(entry.path).toBe("https://example.com/img.png");
+  });
+
   test("story.tag() attaches to current step", async ({}, testInfo) => {
     story.init(testInfo);
     story.given("admin user");

@@ -855,6 +855,27 @@ body {
   border: 1px solid var(--border);
 }
 
+.attachment-unavailable {
+  padding: 0.75rem 1rem;
+  border: 1px dashed var(--border);
+  border-radius: calc(var(--radius) - 2px);
+  background: var(--muted, transparent);
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+}
+
+.attachment-unavailable-label {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.attachment-unavailable-path {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.75rem;
+  word-break: break-all;
+  opacity: 0.8;
+}
+
 /* ============================================================================
    Chevron Icon - smooth rotation
    ============================================================================ */
@@ -1418,6 +1439,27 @@ body {
   font-size: 0.75rem;
   color: var(--muted-foreground);
   font-style: italic;
+}
+
+.doc-screenshot-missing {
+  padding: 0.75rem 1rem;
+  border: 1px dashed var(--border);
+  border-radius: calc(var(--radius) - 2px);
+  background: var(--muted, transparent);
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+}
+
+.doc-screenshot-missing-label {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.doc-screenshot-missing-path {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.75rem;
+  word-break: break-all;
+  opacity: 0.8;
 }
 
 /* ============================================================================

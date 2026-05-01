@@ -27,6 +27,8 @@
  */
 
 import { createRequire } from 'node:module';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import type { TestInfo, PlaywrightTestArgs, PlaywrightTestOptions } from '@playwright/test';
 import {
   tryGetActiveOtelContext,
@@ -215,6 +217,35 @@ function convertStoryDocsToEntries(docs: StoryDocs): DocEntry[] {
   }
 
   return entries;
+}
+
+const SCREENSHOT_MIME_BY_EXT: Record<string, string> = {
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  gif: 'image/gif',
+  webp: 'image/webp',
+  svg: 'image/svg+xml',
+  avif: 'image/avif',
+  bmp: 'image/bmp',
+};
+
+/**
+ * Read a screenshot file and return a `data:` URI; fall back to the original
+ * path on any failure (remote URL, missing file, unknown extension).
+ */
+function inlineScreenshotIfPossible(filePath: string): string {
+  if (/^(?:https?:|data:)/i.test(filePath)) return filePath;
+  try {
+    const ext = path.extname(filePath).slice(1).toLowerCase();
+    const mime = SCREENSHOT_MIME_BY_EXT[ext];
+    if (!mime) return filePath;
+    if (!fs.existsSync(filePath)) return filePath;
+    const buf = fs.readFileSync(filePath);
+    return `data:${mime};base64,${buf.toString('base64')}`;
+  } catch {
+    return filePath;
+  }
 }
 
 function attachDoc(entry: DocEntry, children?: DocEntry[]): DocEntry {
@@ -633,7 +664,12 @@ export const story = {
   },
 
   screenshot(options: ScreenshotOptions, children?: DocEntry[]): DocEntry {
-    return attachDoc({ kind: 'screenshot', path: options.path, alt: options.alt, phase: 'runtime' }, children);
+    // Inline file bytes as a `data:` URI so the screenshot survives Playwright's
+    // per-test outputDir cleanup (passing tests have their `test-results/<test>/`
+    // directory deleted before the formatter runs). Falls back to the original
+    // path for remote URLs or unreadable files.
+    const resolvedPath = inlineScreenshotIfPossible(options.path);
+    return attachDoc({ kind: 'screenshot', path: resolvedPath, alt: options.alt, phase: 'runtime' }, children);
   },
 
   custom(options: CustomOptions, children?: DocEntry[]): DocEntry {

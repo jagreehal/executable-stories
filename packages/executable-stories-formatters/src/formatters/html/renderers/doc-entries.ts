@@ -142,10 +142,35 @@ export function renderDocScreenshot(
   const embedEnabled = deps.embedScreenshots ?? true;
   // Only attempt to embed local file paths — leave http(s)/data URIs alone.
   const isRemote = /^(?:https?:|data:)/i.test(entry.path);
-  const src =
-    embedEnabled && !isRemote && deps.readScreenshot
-      ? (deps.readScreenshot(entry.path) ?? entry.path)
-      : entry.path;
+
+  // Try to inline as a data URI; undefined means the file is missing/unreadable.
+  const embedAttempted =
+    !isRemote && embedEnabled && !!deps.readScreenshot;
+  const inlined = embedAttempted
+    ? deps.readScreenshot!(entry.path)
+    : undefined;
+
+  // For absolute filesystem paths we couldn't inline, an `<img src>` would 404
+  // when the HTML is opened standalone (e.g. `/home/runner/work/...` resolved
+  // against the page's host). Render a placeholder instead of a broken image —
+  // but only when embedding was actually attempted. If the caller didn't
+  // supply a readScreenshot hook (or explicitly set embedScreenshots: false),
+  // they're handling assets externally; keep the legacy <img>.
+  // Catches POSIX (/foo, \foo) and Windows drive-letter (C:\foo) absolute paths.
+  const isAbsoluteFsPath =
+    !isRemote && /^(?:[/\\]|[A-Za-z]:[/\\])/.test(entry.path);
+  if (embedAttempted && inlined === undefined && isAbsoluteFsPath) {
+    const captionHtml = entry.alt
+      ? `<div class="doc-screenshot-caption">${deps.escapeHtml(entry.alt)}</div>`
+      : "";
+    return `<div class="doc-screenshot doc-screenshot-missing">
+  <div class="doc-screenshot-missing-label">Screenshot unavailable</div>
+  <div class="doc-screenshot-missing-path">${deps.escapeHtml(entry.path)}</div>
+  ${captionHtml}
+</div>`;
+  }
+
+  const src = inlined ?? entry.path;
   return `<div class="doc-screenshot">
   <img src="${deps.escapeHtml(src)}" alt="${deps.escapeHtml(alt)}" class="doc-screenshot-img" />
   ${entry.alt ? `<div class="doc-screenshot-caption">${deps.escapeHtml(entry.alt)}</div>` : ""}

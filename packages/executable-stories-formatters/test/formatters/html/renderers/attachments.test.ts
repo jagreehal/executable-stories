@@ -115,4 +115,47 @@ describe("renderAttachments", () => {
     expect(html).toContain('<a class="attachment"');
     expect(html).toContain("recording.mp4");
   });
+
+  it("keeps link for absolute path attachment when embedScreenshots is false", () => {
+    // Mirrors the screenshot doc-entry behavior: embedScreenshots: false means
+    // the caller will handle assets externally, so don't replace the link with
+    // a placeholder even when the path looks absolute.
+    const html = renderAttachments(
+      {
+        attachments: [
+          {
+            name: "video.webm",
+            mediaType: "video/webm",
+            body: "/home/runner/work/foo/test-results/video.webm",
+            contentEncoding: "IDENTITY",
+          },
+        ],
+      },
+      { escapeHtml: (s) => s, embedScreenshots: false },
+    );
+    expect(html).not.toContain("attachment-unavailable");
+    expect(html).toContain('<a class="attachment"');
+    expect(html).toContain("/home/runner/work/foo/test-results/video.webm");
+  });
+
+  it("renders placeholder for missing Windows absolute file attachments", () => {
+    const html = renderAttachments(
+      {
+        attachments: [
+          {
+            name: "screenshot.png",
+            mediaType: "image/png",
+            body: "C:\\runner\\work\\repo\\test-results\\screenshot.png",
+            contentEncoding: "IDENTITY",
+          },
+        ],
+      },
+      { escapeHtml: (s) => s, embedScreenshots: true },
+    );
+    expect(html).toContain("attachment-unavailable");
+    expect(html).toContain("screenshot.png unavailable");
+    expect(html).toContain("C:\\runner\\work\\repo\\test-results\\screenshot.png");
+    expect(html).not.toContain("<img");
+    expect(html).not.toContain("<video");
+  });
 });
