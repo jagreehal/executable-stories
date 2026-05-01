@@ -27,6 +27,7 @@ apps/jest-example/.jest-executable-stories
 ___temp
 **/docs
 !apps/docs-site/src/content/docs/
+!apps/demo-example/src/content/docs/
 
 **/reports/
 .pnpm-store

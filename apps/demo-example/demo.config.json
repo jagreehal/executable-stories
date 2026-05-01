@@ -1,0 +1,15 @@
+{
+  "productName": "Acme Cloud",
+  "tagline": "Execution-backed product walkthroughs",
+  "theme": "corporate",
+  "cta": {
+    "primary": "Start free",
+    "url": "/signup"
+  },
+  "scenarios": {
+    "order": [
+      "stories/tests/onboarding-flow.story.index",
+      "stories/tests/feature-tour.story.index"
+    ]
+  }
+}

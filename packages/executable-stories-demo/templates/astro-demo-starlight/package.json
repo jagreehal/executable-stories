@@ -1,0 +1,26 @@
+{
+  "name": "executable-stories-demo-site",
+  "type": "module",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "^0.38.3",
+    "@fontsource-variable/bricolage-grotesque": "^5.2.5",
+    "@fontsource-variable/literata": "^5.2.5",
+    "@fontsource/albert-sans": "^5.2.5",
+    "@fontsource/archivo": "^5.2.5",
+    "@fontsource/figtree": "^5.2.5",
+    "@fontsource/funnel-sans": "^5.2.5",
+    "@fontsource/jetbrains-mono": "^5.2.5",
+    "@fontsource/vt323": "^5.2.5",
+    "@fontsource/work-sans": "^5.2.5",
+    "astro": "^6.1.8",
+    "astro-mermaid": "^2.0.1",
+    "mermaid": "^11.14.0"
+  }
+}

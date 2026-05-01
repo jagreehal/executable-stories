@@ -148,6 +148,10 @@ export default defineConfig({
               slug: 'guides/astro-docs-site',
             },
             {
+              label: 'Product sites with CMS and demos',
+              slug: 'guides/product-sites-with-cms-and-demos',
+            },
+            {
               label: 'Publishing to Confluence & Jira',
               slug: 'guides/publishing-to-atlassian',
             },

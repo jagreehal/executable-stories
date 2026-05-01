@@ -3,6 +3,8 @@
  * Exports all render functions and createHtmlFormatter.
  */
 
+import * as fs from "node:fs";
+import * as path from "node:path";
 import type { DocEntry } from "../../../types/story";
 import type { TestRunResult } from "../../../types/test-result";
 import { escapeHtml, generateHtmlTemplate } from "../template";
@@ -46,6 +48,36 @@ export interface HtmlFormatterOptions {
   themePickerEnabled?: boolean;
 }
 
+const SCREENSHOT_MIME_BY_EXT: Record<string, string> = {
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  gif: "image/gif",
+  webp: "image/webp",
+  svg: "image/svg+xml",
+  avif: "image/avif",
+  bmp: "image/bmp",
+};
+
+/**
+ * Read a local screenshot file and encode it as a `data:` URI.
+ * Returns undefined if the file is missing, unreadable, or has an unknown extension.
+ * Self-contained HTML reports rely on this so PR artifact downloads don't 404 on
+ * runner-only paths like `/home/runner/work/.../screenshot.png`.
+ */
+function readScreenshotAsDataUri(filePath: string): string | undefined {
+  try {
+    const ext = path.extname(filePath).slice(1).toLowerCase();
+    const mime = SCREENSHOT_MIME_BY_EXT[ext];
+    if (!mime) return undefined;
+    if (!fs.existsSync(filePath)) return undefined;
+    const buf = fs.readFileSync(filePath);
+    return `data:${mime};base64,${buf.toString("base64")}`;
+  } catch {
+    return undefined;
+  }
+}
+
 function normalizeOptions(options: HtmlFormatterOptions = {}) {
   return {
     title: options.title ?? "Test Results",
@@ -77,6 +109,8 @@ export function createHtmlFormatter(
     syntaxHighlighting: opts.syntaxHighlighting,
     markdownEnabled: opts.markdownEnabled,
     mermaidEnabled: opts.mermaidEnabled,
+    embedScreenshots: opts.embedScreenshots,
+    readScreenshot: (filePath: string) => readScreenshotAsDataUri(filePath),
   };
 
   const renderDocs = (
