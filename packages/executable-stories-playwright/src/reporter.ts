@@ -34,6 +34,7 @@ import {
   loadHistory,
   updateHistory,
   saveHistory,
+  stripAnsi,
   type RawRun,
   type RawTestCase,
   type RawAttachment,
@@ -57,6 +58,24 @@ export type {
 export interface StoryReporterOptions extends FormatterOptions {
   /** If set, write raw run JSON (schemaVersion 1) to this path for use with the executable-stories CLI/binary */
   rawRunPath?: string;
+  /**
+   * Attachment persistence settings. Playwright keeps videos/screenshots/traces
+   * inside its per-test outputDir; that directory may be cleaned before the
+   * formatter (or a downstream CI job) runs, leaving reports with broken
+   * <video>/<img> tags pointing at /home/runner/... paths. The reporter
+   * eagerly persists each attachment at onTestEnd:
+   *   - small files (<= inlineMaxBytes) are base64-encoded into raw-run.json
+   *   - larger files are copied to <attachmentDir>/<test-id>/<filename>
+   * so the bytes always survive even when the source dir is wiped.
+   */
+  attachments?: {
+    /** Directory to copy non-inlined attachments to. Default: "<outputDir>/attachments" */
+    dir?: string;
+    /** Inline threshold in bytes. Default: 1 MB (1_048_576) */
+    inlineMaxBytes?: number;
+    /** Set false to skip persistence entirely. Default: true */
+    enabled?: boolean;
+  };
 }
 
 // ============================================================================
@@ -87,6 +106,84 @@ interface CollectedScenario {
  */
 function toRelativePosix(absolutePath: string, projectRoot: string): string {
   return path.relative(projectRoot, absolutePath).split(path.sep).join("/");
+}
+
+const DEFAULT_ATTACHMENT_INLINE_MAX_BYTES = 1024 * 1024; // 1 MB
+
+/**
+ * Persist a single Playwright attachment so its bytes outlive Playwright's
+ * per-test outputDir cleanup. Small files are base64-encoded inline; larger
+ * files are copied to a stable directory and referenced by absolute path.
+ *
+ * Returns the resolved RawAttachment. On unexpected I/O failure falls back to
+ * the original path-only mapping so behavior is no worse than before.
+ */
+function persistAttachment(
+  raw: { name: string; contentType: string; path?: string; body?: unknown },
+  args: { testId: string; attachmentDir: string; inlineMaxBytes: number },
+): RawAttachment {
+  // Attachment already has a body (either string content or a Buffer) — encode
+  // it once and we're done. No filesystem I/O required.
+  if (raw.body !== undefined) {
+    if (typeof raw.body === "string") {
+      return {
+        name: raw.name,
+        mediaType: raw.contentType,
+        path: raw.path,
+        body: raw.body,
+        encoding: "IDENTITY",
+      };
+    }
+    if (Buffer.isBuffer(raw.body) || raw.body instanceof Uint8Array) {
+      return {
+        name: raw.name,
+        mediaType: raw.contentType,
+        path: raw.path,
+        body: Buffer.from(raw.body as Buffer | Uint8Array).toString("base64"),
+        encoding: "BASE64",
+      };
+    }
+  }
+
+  // Path-only attachment: read the file now while it still exists.
+  if (raw.path) {
+    try {
+      if (fs.existsSync(raw.path)) {
+        const stats = fs.statSync(raw.path);
+        if (stats.size <= args.inlineMaxBytes) {
+          const buf = fs.readFileSync(raw.path);
+          return {
+            name: raw.name,
+            mediaType: raw.contentType,
+            path: raw.path,
+            body: buf.toString("base64"),
+            encoding: "BASE64",
+            byteLength: stats.size,
+          };
+        }
+        // Too large to inline — copy to stable location instead.
+        const destDir = path.join(args.attachmentDir, args.testId);
+        fs.mkdirSync(destDir, { recursive: true });
+        const filename = path.basename(raw.path);
+        const destPath = path.join(destDir, filename);
+        fs.copyFileSync(raw.path, destPath);
+        return {
+          name: raw.name,
+          mediaType: raw.contentType,
+          path: destPath,
+          byteLength: stats.size,
+        };
+      }
+    } catch {
+      // Fall through to original path-only mapping.
+    }
+  }
+
+  return {
+    name: raw.name,
+    mediaType: raw.contentType,
+    path: raw.path,
+  };
 }
 
 // ============================================================================
@@ -225,35 +322,53 @@ export default class StoryReporter implements Reporter {
         : "unknown";
       const sourceLine = (test.location as { line?: number })?.line ?? 1;
 
-      // Get error message if failed
+      // Get error message if failed. Playwright populates these with ANSI
+      // color codes; strip them so reports render clean text instead of
+      // garbled escape sequences like "[2mexpect([22m...".
       let error: string | undefined;
       let errorStack: string | undefined;
       if (result.status === "failed" && result.errors?.length) {
         const err = result.errors[0];
-        error = err.message || String(err);
-        errorStack = err.stack;
+        error = stripAnsi(err.message || String(err));
+        errorStack = err.stack ? stripAnsi(err.stack) : undefined;
       }
 
-      // Map Playwright result.attachments → RawAttachment[]
+      // Map Playwright result.attachments → RawAttachment[]. Eagerly persist
+      // path-based attachments (videos/screenshots/traces) so their bytes
+      // survive Playwright's per-test outputDir cleanup — see the
+      // `persistAttachment` helper for the inline-vs-copy decision.
+      const persistEnabled = this.options.attachments?.enabled ?? true;
+      const inlineMaxBytes =
+        this.options.attachments?.inlineMaxBytes ?? DEFAULT_ATTACHMENT_INLINE_MAX_BYTES;
+      const attachmentDir =
+        this.options.attachments?.dir ??
+        path.join(this.options.outputDir ?? "reports", "attachments");
       const allAttachments: RawAttachment[] = (result.attachments ?? []).map((a) => {
-        let body: string | undefined;
-        let encoding: "BASE64" | "IDENTITY" | undefined;
-        if (a.body !== undefined) {
-          if (typeof a.body === "string") {
-            body = a.body;
-            encoding = "IDENTITY";
-          } else if (Buffer.isBuffer(a.body) || (a.body as unknown) instanceof Uint8Array) {
-            body = Buffer.from(a.body as Buffer | Uint8Array).toString("base64");
-            encoding = "BASE64";
+        if (!persistEnabled) {
+          let body: string | undefined;
+          let encoding: "BASE64" | "IDENTITY" | undefined;
+          if (a.body !== undefined) {
+            if (typeof a.body === "string") {
+              body = a.body;
+              encoding = "IDENTITY";
+            } else if (Buffer.isBuffer(a.body) || (a.body as unknown) instanceof Uint8Array) {
+              body = Buffer.from(a.body as Buffer | Uint8Array).toString("base64");
+              encoding = "BASE64";
+            }
           }
+          return {
+            name: a.name,
+            mediaType: a.contentType,
+            path: a.path,
+            body,
+            encoding,
+          };
         }
-        return {
-          name: a.name,
-          mediaType: a.contentType,
-          path: a.path,
-          body,
-          encoding,
-        };
+        return persistAttachment(a, {
+          testId: test.id,
+          attachmentDir,
+          inlineMaxBytes,
+        });
       });
 
       // Deduplicate video attachments by name — Playwright may attach

@@ -2,6 +2,8 @@
  * Render error box (fn(args, deps)).
  */
 
+import { stripAnsi } from "../../../notifiers/ansi-strip";
+
 export interface RenderErrorBoxArgs {
   message: string;
   stack?: string;
@@ -15,9 +17,11 @@ export function renderErrorBox(
   args: RenderErrorBoxArgs,
   deps: RenderErrorBoxDeps,
 ): string {
+  const message = stripAnsi(args.message);
+  const stack = args.stack != null ? stripAnsi(args.stack) : undefined;
   const body =
-    args.stack != null
-      ? `${deps.escapeHtml(args.message)}\n\n${deps.escapeHtml(args.stack)}`
-      : deps.escapeHtml(args.message);
+    stack != null
+      ? `${deps.escapeHtml(message)}\n\n${deps.escapeHtml(stack)}`
+      : deps.escapeHtml(message);
   return `<div class="error-box">${body}</div>`;
 }

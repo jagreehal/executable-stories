@@ -39,4 +39,20 @@ describe("renderErrorBox", () => {
     expect(html).toContain("Fail");
     expect(html).toContain("at line 1");
   });
+
+  it("strips ANSI escape codes from message and stack", () => {
+    // Reproduces the Playwright failure rendering: "[2mexpect([22m..."
+    const ansiMessage =
+      "Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe([32mexpected[39m)";
+    const ansiStack = "    at [34m/runner/work/spec.ts:1:1[39m";
+    const html = renderErrorBox(
+      { message: ansiMessage, stack: ansiStack },
+      { escapeHtml: (s) => s },
+    );
+    expect(html).toContain("Error: expect(received).toBe(expected)");
+    expect(html).toContain("at /runner/work/spec.ts:1:1");
+    expect(html).not.toMatch(/\[/);
+    expect(html).not.toContain("[2m");
+    expect(html).not.toContain("[22m");
+  });
 });

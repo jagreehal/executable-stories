@@ -197,11 +197,11 @@ describe("renderDocScreenshot", () => {
     expect(html).not.toContain("/absolute/runner/path/foo.png");
   });
 
-  it("falls back to original path when readScreenshot returns undefined", () => {
+  it("renders placeholder for missing absolute paths instead of broken <img>", () => {
     const html = renderDocScreenshot(
       {
         kind: "screenshot",
-        path: "/missing/foo.png",
+        path: "/home/runner/work/foo/test-results/missing.png",
         alt: "Local",
         phase: "static",
       },
@@ -211,7 +211,72 @@ describe("renderDocScreenshot", () => {
         readScreenshot: () => undefined,
       },
     );
-    expect(html).toContain("/missing/foo.png");
+    // Placeholder rendered instead of `<img>` so browsers don't try to resolve
+    // /home/runner/... against the host serving the HTML.
+    expect(html).toContain("doc-screenshot-missing");
+    expect(html).toContain("Screenshot unavailable");
+    expect(html).toContain("/home/runner/work/foo/test-results/missing.png");
+    expect(html).not.toMatch(/<img\s/);
+  });
+
+  it("falls back to original path for relative paths when read fails", () => {
+    const html = renderDocScreenshot(
+      {
+        kind: "screenshot",
+        path: "screenshots/foo.png",
+        alt: "Local",
+        phase: "static",
+      },
+      {
+        ...baseDeps,
+        embedScreenshots: true,
+        readScreenshot: () => undefined,
+      },
+    );
+    // Relative paths can still resolve next to the HTML, so keep the <img>.
+    expect(html).toContain("screenshots/foo.png");
+    expect(html).toContain("<img");
+    expect(html).not.toContain("doc-screenshot-missing");
+  });
+
+  it("renders placeholder for missing Windows absolute paths", () => {
+    const html = renderDocScreenshot(
+      {
+        kind: "screenshot",
+        path: "C:\\runner\\work\\foo\\test-results\\missing.png",
+        alt: "Windows Local",
+        phase: "static",
+      },
+      {
+        ...baseDeps,
+        embedScreenshots: true,
+        readScreenshot: () => undefined,
+      },
+    );
+    expect(html).toContain("doc-screenshot-missing");
+    expect(html).toContain("Screenshot unavailable");
+    expect(html).toContain("C:\\runner\\work\\foo\\test-results\\missing.png");
+    expect(html).not.toMatch(/<img\s/);
+  });
+
+  it("keeps img path when readScreenshot hook is not provided", () => {
+    const html = renderDocScreenshot(
+      {
+        kind: "screenshot",
+        path: "/home/runner/work/foo/test-results/missing.png",
+        alt: "Local",
+        phase: "static",
+      },
+      {
+        ...baseDeps,
+        embedScreenshots: true,
+      },
+    );
+    // No readScreenshot implementation means embedding was not attempted.
+    // Keep legacy `<img>` behavior instead of a missing placeholder.
+    expect(html).toContain("<img");
+    expect(html).toContain("/home/runner/work/foo/test-results/missing.png");
+    expect(html).not.toContain("doc-screenshot-missing");
   });
 
   it("does not embed when embedScreenshots is false", () => {
