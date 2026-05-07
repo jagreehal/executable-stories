@@ -14,6 +14,8 @@ export type TestStatus = "passed" | "failed" | "skipped" | "pending";
 export interface StepResult {
   /** Step index (0-based) */
   index: number;
+  /** Stable step ID when available */
+  stepId?: string;
   /** Step status */
   status: TestStatus;
   /** Duration in milliseconds (default 0) */
@@ -60,6 +62,8 @@ export interface TestCaseResult {
   sourceLine: number;
   /** Test status (required) */
   status: TestStatus;
+  /** Original adapter/framework status (preserved for diagnostics). */
+  rawStatus?: import("./raw").RawStatus;
   /** Duration in milliseconds (required, default 0) */
   durationMs: number;
   /** Error message if failed */

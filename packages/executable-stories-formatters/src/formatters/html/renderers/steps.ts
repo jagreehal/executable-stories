@@ -54,9 +54,16 @@ export function renderSteps(
   args: RenderStepsArgs,
   deps: RenderStepsDeps,
 ): string {
+  const byStepId = new Map(
+    args.stepResults
+      .filter((sr) => typeof sr.stepId === "string" && sr.stepId.length > 0)
+      .map((sr) => [sr.stepId as string, sr]),
+  );
   const stepsHtml = args.steps
     .map((step, index) => {
-      const stepResult = args.stepResults.find((sr) => sr.index === index);
+      const stepResult =
+        (step.id ? byStepId.get(step.id) : undefined) ??
+        args.stepResults.find((sr) => sr.index === index);
       return renderStep(step, stepResult, index, deps);
     })
     .join("");

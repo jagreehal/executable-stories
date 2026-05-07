@@ -43,6 +43,7 @@ export interface RawAttachment {
 /** Raw step event from framework (if available) */
 export interface RawStepEvent {
   index?: number;
+  stepId?: string;
   title?: string;
   status?: RawStatus;
   durationMs?: number;

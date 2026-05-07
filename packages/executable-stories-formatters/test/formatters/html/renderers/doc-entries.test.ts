@@ -312,6 +312,28 @@ describe("renderDocCustom", () => {
     expect(html).toContain("MyType");
     expect(html).toContain("foo");
   });
+
+  it("renders visual custom docs with dedicated visual layout", () => {
+    const html = renderDocCustom(
+      {
+        kind: "custom",
+        type: "visual",
+        data: {
+          status: "diff",
+          baseline: "baseline.png",
+          actual: "actual.png",
+          diff: "diff.png",
+        },
+        phase: "static",
+      },
+      baseDeps,
+    );
+    expect(html).toContain("doc-visual");
+    expect(html).toContain("Visual Check");
+    expect(html).toContain("baseline.png");
+    expect(html).toContain("actual.png");
+    expect(html).toContain("diff.png");
+  });
 });
 
 describe("renderDocEntry", () => {

@@ -179,6 +179,22 @@ describe("MarkdownFormatter", () => {
 
       expect(result).not.toContain("**Failure**");
     });
+
+    it("should preserve timeout/interrupted outcome metadata", () => {
+      const timeoutRaw = createRawRun({
+        testCases: [createTestCase({ status: "timeout" })],
+      });
+      const timeoutRun = canonicalizeRun(timeoutRaw);
+      const timeoutResult = formatter.format(timeoutRun);
+      expect(timeoutResult).toContain("Outcome: `timeout`");
+
+      const interruptedRaw = createRawRun({
+        testCases: [createTestCase({ status: "interrupted" })],
+      });
+      const interruptedRun = canonicalizeRun(interruptedRaw);
+      const interruptedResult = formatter.format(interruptedRun);
+      expect(interruptedResult).toContain("Outcome: `interrupted`");
+    });
   });
 
   describe("grouping", () => {

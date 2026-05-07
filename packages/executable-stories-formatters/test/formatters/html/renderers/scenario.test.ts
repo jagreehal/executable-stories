@@ -162,4 +162,25 @@ describe("renderScenario", () => {
     );
     expect(result).not.toContain("jira.example.com");
   });
+
+  it("renders outcome tag for timeout/interrupted raw statuses", () => {
+    const timeoutTc = stubs.testCaseResult({
+      rawStatus: "timeout",
+      story: stubs.storyMeta({ scenario: "Timeout test", tags: [] }),
+      tags: [],
+    });
+    const interruptedTc = stubs.testCaseResult({
+      rawStatus: "interrupted",
+      story: stubs.storyMeta({ scenario: "Interrupted test", tags: [] }),
+      tags: [],
+    });
+
+    const timeoutHtml = renderScenario({ tc: timeoutTc }, baseDeps);
+    const interruptedHtml = renderScenario({ tc: interruptedTc }, baseDeps);
+
+    expect(timeoutHtml).toContain('class="tag outcome-tag"');
+    expect(timeoutHtml).toContain("timeout");
+    expect(interruptedHtml).toContain('class="tag outcome-tag"');
+    expect(interruptedHtml).toContain("interrupted");
+  });
 });

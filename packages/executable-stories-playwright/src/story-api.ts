@@ -57,6 +57,7 @@ import type {
   ScreenshotOptions,
   CustomOptions,
   ConsoleOptions,
+  ObservePageErrorsOptions,
 } from './types';
 import { runStep, isAsyncFunction } from './step-runner';
 import type { TestStepInfo } from './step-runner';
@@ -716,6 +717,47 @@ export const story = {
         kind: 'code',
         label: options.label ?? 'Console',
         content: lines.length > 0 ? lines.join('\n') : '(no console output)',
+        lang: 'log',
+        phase: 'runtime',
+      },
+      children,
+    );
+  },
+
+  /**
+   * Capture current page runtime errors and attach as a structured doc entry.
+   *
+   * Collects from Playwright v1.56+ page.pageErrors() and page.consoleMessages().
+   * This is intentionally snapshot-based so tests can call it at critical points
+   * (after submit, after navigation) and keep evidence near relevant steps.
+   */
+  observePageErrors(options: ObservePageErrorsOptions, children?: DocEntry[]): DocEntry {
+    const p = options.page as {
+      consoleMessages?: () => Array<{ type(): string; text(): string }>;
+      pageErrors?: () => Error[];
+    };
+    const ignore = options.ignore ?? [];
+    const lines: string[] = [];
+
+    if (typeof p?.pageErrors === 'function') {
+      for (const err of p.pageErrors()) {
+        const msg = err?.message ?? String(err);
+        if (!ignore.some((rx) => rx.test(msg))) lines.push(`[pageerror] ${msg}`);
+      }
+    }
+    if (typeof p?.consoleMessages === 'function') {
+      for (const msg of p.consoleMessages()) {
+        if (msg.type() !== 'error') continue;
+        const text = msg.text();
+        if (!ignore.some((rx) => rx.test(text))) lines.push(`[console.error] ${text}`);
+      }
+    }
+
+    return attachDoc(
+      {
+        kind: 'code',
+        label: options.label ?? 'Browser Runtime Errors',
+        content: lines.length > 0 ? lines.join('\n') : '(no runtime errors observed)',
         lang: 'log',
         phase: 'runtime',
       },
