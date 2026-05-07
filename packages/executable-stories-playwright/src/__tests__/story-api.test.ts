@@ -648,6 +648,44 @@ test.describe("standalone doc methods", () => {
       phase: "runtime",
     });
   });
+
+  test("story.observePageErrors() captures pageerror and console.error", async ({}, testInfo) => {
+    story.init(testInfo);
+    story.when("action runs");
+    story.observePageErrors({
+      page: {
+        pageErrors: () => [new Error("Unhandled boom")],
+        consoleMessages: () => [
+          { type: () => "log", text: () => "noise" },
+          { type: () => "error", text: () => "Console boom" },
+        ],
+      },
+    });
+
+    const meta = getStoryMeta(testInfo)!;
+    const entry = meta.steps[0].docs?.[0] as { kind: string; label?: string; content?: string };
+    expect(entry.kind).toBe("code");
+    expect(entry.label).toBe("Browser Runtime Errors");
+    expect(entry.content).toContain("[pageerror] Unhandled boom");
+    expect(entry.content).toContain("[console.error] Console boom");
+    expect(entry.content).not.toContain("noise");
+  });
+
+  test("story.observePageErrors() respects ignore list", async ({}, testInfo) => {
+    story.init(testInfo);
+    story.when("action runs");
+    story.observePageErrors({
+      page: {
+        pageErrors: () => [new Error("ResizeObserver loop limit exceeded")],
+        consoleMessages: () => [{ type: () => "error", text: () => "ResizeObserver loop limit exceeded" }],
+      },
+      ignore: [/ResizeObserver loop limit exceeded/],
+    });
+
+    const meta = getStoryMeta(testInfo)!;
+    const entry = meta.steps[0].docs?.[0] as { content?: string };
+    expect(entry.content).toBe("(no runtime errors observed)");
+  });
 });
 
 test.describe("story.fn() - step wrapper", () => {

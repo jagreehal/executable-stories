@@ -181,6 +181,28 @@ export function renderDocCustom(
   entry: Extract<DocEntry, { kind: "custom" }>,
   deps: DocEntryDeps,
 ): string {
+  if (entry.type === "visual" && entry.data && typeof entry.data === "object") {
+    const data = entry.data as Record<string, unknown>;
+    const status = typeof data.status === "string" ? data.status : "unknown";
+    const baseline = typeof data.baseline === "string" ? data.baseline : undefined;
+    const actual = typeof data.actual === "string" ? data.actual : undefined;
+    const diff = typeof data.diff === "string" ? data.diff : undefined;
+
+    const maybeImg = (src?: string, label?: string) =>
+      src
+        ? `<div class="doc-visual-item"><div class="doc-visual-label">${deps.escapeHtml(label ?? "")}</div><img src="${deps.escapeHtml(src)}" alt="${deps.escapeHtml(label ?? "visual image")}" class="doc-screenshot-img" /></div>`
+        : "";
+
+    return `<div class="doc-visual">
+  <div class="doc-visual-header">Visual Check <span class="doc-visual-status">${deps.escapeHtml(status)}</span></div>
+  <div class="doc-visual-grid">
+    ${maybeImg(baseline, "Baseline")}
+    ${maybeImg(actual, "Actual")}
+    ${maybeImg(diff, "Diff")}
+  </div>
+</div>`;
+  }
+
   const dataStr = JSON.stringify(entry.data, null, 2);
   return `<div class="doc-custom">
   <div class="doc-custom-type">${deps.escapeHtml(entry.type)}</div>

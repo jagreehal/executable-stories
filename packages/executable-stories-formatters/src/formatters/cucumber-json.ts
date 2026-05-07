@@ -464,20 +464,35 @@ export class CucumberJsonFormatter {
         };
       }
 
+      case "custom":
+        if (doc.type === "visual" && doc.data && typeof doc.data === "object") {
+          const data = doc.data as Record<string, unknown>;
+          const status = typeof data.status === "string" ? data.status : "unknown";
+          const lines = [`Visual Check (${status})`];
+          if (typeof data.baseline === "string") lines.push(`Baseline: ${data.baseline}`);
+          if (typeof data.actual === "string") lines.push(`Actual: ${data.actual}`);
+          if (typeof data.diff === "string") lines.push(`Diff: ${data.diff}`);
+          return {
+            doc_string: {
+              content: lines.join("\n"),
+              content_type: "text/plain",
+              line: 0,
+            },
+          };
+        }
+        return {
+          doc_string: {
+            content: JSON.stringify(doc.data, null, 2),
+            content_type: "application/json",
+            line: 0,
+          },
+        };
+
       case "tag":
         return {
           doc_string: {
             content: doc.names.map((n) => `@${n}`).join(" "),
             content_type: "text/plain",
-            line: 0,
-          },
-        };
-
-      case "custom":
-        return {
-          doc_string: {
-            content: JSON.stringify(doc.data, null, 2),
-            content_type: "application/json",
             line: 0,
           },
         };

@@ -367,6 +367,9 @@ export class MarkdownFormatter {
       });
       meta.push(`Tickets: ${ticketLinks.join(", ")}`);
     }
+    if (tc.rawStatus === "timeout" || tc.rawStatus === "interrupted") {
+      meta.push(`Outcome: \`${tc.rawStatus}\``);
+    }
     // Trace context (injected by OTel bridge in story.init())
     const otelMeta = (tc.story.meta as Record<string, unknown> | undefined)
       ?.otel as { traceId?: string } | undefined;
@@ -564,6 +567,16 @@ export class MarkdownFormatter {
         break;
 
       case "custom":
+        if (entry.type === "visual" && entry.data && typeof entry.data === "object") {
+          const data = entry.data as Record<string, unknown>;
+          const status = typeof data.status === "string" ? data.status : "unknown";
+          lines.push(`${indent}**Visual Check** (${status})`);
+          if (typeof data.baseline === "string") lines.push(`${indent}- Baseline: ${data.baseline}`);
+          if (typeof data.actual === "string") lines.push(`${indent}- Actual: ${data.actual}`);
+          if (typeof data.diff === "string") lines.push(`${indent}- Diff: ${data.diff}`);
+          lines.push(`${indent}`);
+          break;
+        }
         lines.push(`${indent}**[${entry.type}]**`);
         lines.push(`${indent}`);
         lines.push(`${indent}\`\`\`json`);

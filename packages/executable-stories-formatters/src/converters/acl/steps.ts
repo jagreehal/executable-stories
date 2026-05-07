@@ -35,6 +35,7 @@ export function deriveStepResults(
   if (scenarioStatus === "passed") {
     return steps.map((_, index) => ({
       index,
+      stepId: steps[index].id,
       status: "passed" as TestStatus,
       durationMs: 0,
     }));
@@ -44,6 +45,7 @@ export function deriveStepResults(
   if (scenarioStatus === "skipped" || scenarioStatus === "pending") {
     return steps.map((_, index) => ({
       index,
+      stepId: steps[index].id,
       status: scenarioStatus,
       durationMs: 0,
     }));
@@ -55,18 +57,19 @@ export function deriveStepResults(
   return steps.map((_, index) => {
     if (index < failingIndex) {
       // Steps before failure are passed
-      return { index, status: "passed" as TestStatus, durationMs: 0 };
+      return { index, stepId: steps[index].id, status: "passed" as TestStatus, durationMs: 0 };
     } else if (index === failingIndex) {
       // Failing step
       return {
         index,
+        stepId: steps[index].id,
         status: "failed" as TestStatus,
         durationMs: 0,
         errorMessage: error?.message,
       };
     } else {
       // Steps after failure are skipped
-      return { index, status: "skipped" as TestStatus, durationMs: 0 };
+      return { index, stepId: steps[index].id, status: "skipped" as TestStatus, durationMs: 0 };
     }
   });
 }
@@ -119,6 +122,7 @@ export function mergeStepResults(
   derived: StepResult[],
   events?: Array<{
     index?: number;
+    stepId?: string;
     status?: string;
     durationMs?: number;
     errorMessage?: string;
@@ -130,20 +134,25 @@ export function mergeStepResults(
 
   // Create a map of actual results by index
   const actualByIndex = new Map<number, (typeof events)[0]>();
+  const actualByStepId = new Map<string, (typeof events)[0]>();
   for (const event of events) {
     if (event.index !== undefined) {
       actualByIndex.set(event.index, event);
     }
+    if (event.stepId) {
+      actualByStepId.set(event.stepId, event);
+    }
   }
 
   return derived.map((step) => {
-    const actual = actualByIndex.get(step.index);
+    const actual = (step.stepId ? actualByStepId.get(step.stepId) : undefined) ?? actualByIndex.get(step.index);
     if (!actual) {
       return step;
     }
 
     return {
       index: step.index,
+      stepId: step.stepId ?? actual.stepId,
       status: normalizeStepStatus(actual.status) ?? step.status,
       durationMs: actual.durationMs ?? step.durationMs,
       errorMessage: actual.errorMessage ?? step.errorMessage,

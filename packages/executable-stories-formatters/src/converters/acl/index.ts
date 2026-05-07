@@ -83,6 +83,7 @@ function canonicalizeTestCase(
     derivedSteps,
     raw.stepEvents?.map((e) => ({
       index: e.index,
+      stepId: e.stepId,
       status: e.status,
       durationMs: e.durationMs,
       errorMessage: e.errorMessage,
@@ -113,6 +114,7 @@ function canonicalizeTestCase(
     sourceFile,
     sourceLine: raw.sourceLine ?? 1,
     status,
+    rawStatus: raw.status,
     durationMs: raw.durationMs ?? 0,
     errorMessage: raw.error?.message,
     errorStack: raw.error?.stack,

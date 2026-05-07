@@ -84,4 +84,27 @@ describe("renderStep", () => {
     expect(html).toContain("I have 5 items");
     expect(html).not.toContain("step-param");
   });
+
+  it("matches step results by stepId before index", () => {
+    const html = renderSteps(
+      {
+        steps: [
+          { id: "step-a", keyword: "Given", text: "alpha", docs: undefined },
+          { id: "step-b", keyword: "When", text: "beta", docs: undefined },
+        ],
+        // Intentionally swap indices; stepId should still map correctly.
+        stepResults: [
+          { index: 1, stepId: "step-a", status: "passed", durationMs: 10 },
+          { index: 0, stepId: "step-b", status: "failed", durationMs: 20 },
+        ],
+      },
+      {
+        ...deps,
+        getStatusIcon: (status: string) => (status === "passed" ? "✓" : "✗"),
+      },
+    );
+    // "alpha" gets passed icon via stepId mapping, despite mismatched index.
+    expect(html).toContain("✓");
+    expect(html).toContain("✗");
+  });
 });

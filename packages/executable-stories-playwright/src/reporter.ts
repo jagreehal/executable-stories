@@ -76,6 +76,8 @@ export interface StoryReporterOptions extends FormatterOptions {
     /** Set false to skip persistence entirely. Default: true */
     enabled?: boolean;
   };
+  /** Enable verbose reporter diagnostics. Default: false */
+  debug?: boolean;
 }
 
 // ============================================================================
@@ -209,6 +211,12 @@ export default class StoryReporter implements Reporter {
 
   constructor(options: StoryReporterOptions = {}) {
     this.options = options;
+  }
+
+  private debug(...args: unknown[]): void {
+    if (this.options.debug) {
+      console.error("[executable-stories-playwright][debug]", ...args);
+    }
   }
 
   onBegin(config: FullConfig): void {
@@ -379,8 +387,9 @@ export default class StoryReporter implements Reporter {
       // Extract step events (timing) from story steps
       const stepEvents: RawStepEvent[] = meta.steps
         .filter((s: { durationMs?: number }) => s.durationMs !== undefined)
-        .map((s: { durationMs?: number; text: string }, i: number) => ({
+        .map((s: { durationMs?: number; text: string; id?: string }, i: number) => ({
           index: i,
+          stepId: s.id,
           title: s.text,
           durationMs: s.durationMs,
         }));
@@ -407,14 +416,13 @@ export default class StoryReporter implements Reporter {
   async onEnd(_result: FullResult): Promise<void> {
     if (this.scenarios.length === 0) return;
 
-    // Debug: check if this.scenarios objects have tags at wrong level
     if (this.scenarios.length > 0) {
       const sampleScenario = this.scenarios[0];
-      if ('tags' in sampleScenario) {
-        console.error('[Reporter Debug] tags found at scenario level! Keys:', Object.keys(sampleScenario));
+      if ("tags" in sampleScenario) {
+        this.debug("tags found at scenario level", Object.keys(sampleScenario));
       }
-      if (sampleScenario.meta && 'tags' in sampleScenario.meta) {
-        console.error('[Reporter Debug] tags found inside meta (correct). meta.tags:', sampleScenario.meta.tags);
+      if (sampleScenario.meta && "tags" in sampleScenario.meta) {
+        this.debug("tags found inside meta (expected)", sampleScenario.meta.tags);
       }
     }
 
@@ -425,8 +433,8 @@ export default class StoryReporter implements Reporter {
         passed: "pass",
         failed: "fail",
         skipped: "skip",
-        timedOut: "fail",
-        interrupted: "fail",
+        timedOut: "timeout",
+        interrupted: "interrupted",
       };
 
       const testCase = {
@@ -452,14 +460,13 @@ export default class StoryReporter implements Reporter {
       return testCase;
     });
 
-    // Debug: check if tags is at wrong level in rawTestCases
     if (rawTestCases.length > 0) {
       const sample = rawTestCases[0];
-      if ('tags' in sample) {
-        console.error('[Reporter Debug] tags found at rawTestCase level! Keys:', Object.keys(sample));
+      if ("tags" in sample) {
+        this.debug("tags found at rawTestCase level", Object.keys(sample));
       }
-      if (sample.story && 'tags' in sample.story) {
-        console.error('[Reporter Debug] tags found inside story (correct).');
+      if (sample.story && "tags" in sample.story) {
+        this.debug("tags found inside story (expected)");
       }
     }
 

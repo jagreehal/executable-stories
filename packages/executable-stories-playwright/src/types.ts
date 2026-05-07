@@ -119,6 +119,20 @@ export interface ConsoleOptions {
   includeErrors?: boolean;
 }
 
+/** Options for story.observePageErrors() */
+export interface ObservePageErrorsOptions {
+  /**
+   * The Playwright Page object. Typed as `unknown` to avoid importing
+   * `@playwright/test` from this types module; requires Playwright >= 1.56
+   * for `page.pageErrors()` and `page.consoleMessages()`.
+   */
+  page: unknown;
+  /** Label shown in docs. Defaults to "Browser Runtime Errors". */
+  label?: string;
+  /** Regexes for messages to suppress (known non-actionable noise). */
+  ignore?: RegExp[];
+}
+
 /** Options for story.attach(). */
 export interface AttachmentOptions {
   name: string;

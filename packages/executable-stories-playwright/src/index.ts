@@ -58,6 +58,7 @@ export type {
   ScreenshotOptions,
   CustomOptions,
   ConsoleOptions,
+  ObservePageErrorsOptions,
   AttachmentOptions,
 } from './types';
 

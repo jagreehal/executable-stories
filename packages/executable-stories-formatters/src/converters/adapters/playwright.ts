@@ -36,6 +36,15 @@ export interface PlaywrightTestResult {
   errors: PlaywrightError[];
   attachments: PlaywrightAttachment[];
   retry: number;
+  /** Optional step events if caller captures Playwright step timing. */
+  stepEvents?: Array<{
+    index?: number;
+    stepId?: string;
+    title?: string;
+    status?: RawStatus;
+    durationMs?: number;
+    errorMessage?: string;
+  }>;
 }
 
 /** Playwright test case annotation */
@@ -133,6 +142,22 @@ export function adaptPlaywrightRun(
         }
       : undefined;
 
+    const stepEvents =
+      result.stepEvents?.length
+        ? result.stepEvents
+        : story.steps
+            .map((step, index) =>
+              step.durationMs !== undefined
+                ? {
+                    index,
+                    stepId: step.id,
+                    title: step.text,
+                    durationMs: step.durationMs,
+                  }
+                : undefined,
+            )
+            .filter((e): e is NonNullable<typeof e> => e !== undefined);
+
     testCases.push({
       externalId: test.titlePath().join(" > "),
       title: story.scenario,
@@ -143,7 +168,7 @@ export function adaptPlaywrightRun(
       status: mapPlaywrightStatus(result.status),
       durationMs: result.duration,
       error,
-      stepEvents: undefined, // Playwright could provide step info, but we don't capture it yet
+      stepEvents: stepEvents.length > 0 ? stepEvents : undefined,
       attachments,
       meta: {
         playwrightStatus: result.status,

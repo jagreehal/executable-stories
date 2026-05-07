@@ -699,6 +699,14 @@ body {
   font-family: var(--font-mono);
 }
 
+.outcome-tag {
+  background: var(--status-fail-bg, color-mix(in srgb, var(--destructive, #ef4444) 12%, transparent));
+  color: var(--destructive, #b91c1c);
+  border-color: color-mix(in srgb, var(--destructive, #ef4444) 35%, transparent);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 .scenario-duration {
   font-size: 0.75rem;
   color: var(--muted-foreground);
@@ -1460,6 +1468,63 @@ body {
   font-size: 0.75rem;
   word-break: break-all;
   opacity: 0.8;
+}
+
+/* ============================================================================
+   Documentation Entries - Visual Check
+   ============================================================================ */
+.doc-visual {
+  margin-bottom: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) - 2px);
+  background: var(--muted, transparent);
+}
+
+.doc-visual:last-child {
+  margin-bottom: 0;
+}
+
+.doc-visual-header {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.doc-visual-status {
+  font-size: 0.6875rem;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  background: var(--tag-bg);
+  color: var(--tag-color);
+  border: 1px solid var(--tag-border);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.doc-visual-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.5rem;
+}
+
+.doc-visual-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.doc-visual-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 /* ============================================================================

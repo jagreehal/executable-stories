@@ -821,6 +821,43 @@ test.describe('StoryReporter', () => {
     });
   });
 
+  test.describe('debug logging', () => {
+    test('does not emit debug logs by default', async () => {
+      const logs: string[] = [];
+      const original = console.error;
+      console.error = (...args: unknown[]) => logs.push(args.map(String).join(' '));
+
+      try {
+        const reporter = new StoryReporter({
+          formats: ['markdown'],
+          outputDir: TEMP_DIR,
+          outputName: 'debug-off',
+          output: { mode: 'aggregated' },
+          markdown: { includeMetadata: false },
+        });
+        const meta: StoryMeta = {
+          scenario: 'debug-off scenario',
+          steps: [{ keyword: 'Given', text: 'something', docs: [] }],
+        };
+        const mockTestCase: MockTestCase = {
+          annotations: [{ type: 'story-meta', description: JSON.stringify(meta) }],
+          location: { file: 'test.spec.ts' },
+        };
+        reporter.onBegin({} as Parameters<typeof reporter.onBegin>[0]);
+        reporter.onTestEnd(
+          mockTestCase as unknown as Parameters<typeof reporter.onTestEnd>[0],
+          { status: 'passed' } as unknown as Parameters<typeof reporter.onTestEnd>[1],
+        );
+        await reporter.onEnd({ status: 'passed' } as Parameters<typeof reporter.onEnd>[0]);
+      } finally {
+        console.error = original;
+      }
+
+      const debugLogs = logs.filter((l) => l.includes('[executable-stories-playwright][debug]'));
+      expect(debugLogs).toHaveLength(0);
+    });
+  });
+
   test.describe('sorting', () => {
     test('sorts scenarios by source line by default', async () => {
       const reporter = new StoryReporter({
