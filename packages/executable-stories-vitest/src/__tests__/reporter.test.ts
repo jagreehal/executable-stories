@@ -13,6 +13,7 @@ import type { StoryMeta } from '../types';
 interface MockTestResult {
   state: 'passed' | 'failed' | 'skipped' | 'pending';
   duration?: number;
+  retryCount?: number;
   errors?: Array<{ message?: string; stack?: string; diff?: string }>;
 }
 
@@ -1074,6 +1075,140 @@ describe('StoryReporter', () => {
       expect(fs.existsSync(outputFile)).toBe(true);
       const content = fs.readFileSync(outputFile, 'utf8');
       expect(content).toContain('# User Stories');
+    });
+  });
+
+  describe('resilience and metadata', () => {
+    it('aggregates coverage across multiple onCoverage callbacks', async () => {
+      const reporter = new StoryReporter({
+        formats: ['markdown'],
+        outputDir: TEMP_DIR,
+        outputName: 'coverage-merged',
+        output: { mode: 'aggregated' },
+        markdown: { includeMetadata: false, includeSummaryTable: true },
+      });
+
+      reporter.onInit({
+        config: { root: process.cwd() },
+      } as unknown as Parameters<typeof reporter.onInit>[0]);
+
+      reporter.onCoverage({
+        '/a.ts': {
+          s: { '1': 1 },
+          f: { '1': 1 },
+          b: { '1': [1, 1] },
+          l: { '1': 1 },
+        },
+      });
+      reporter.onCoverage({
+        '/b.ts': {
+          s: { '1': 0 },
+          f: { '1': 0 },
+          b: { '1': [0, 0] },
+          l: { '1': 0 },
+        },
+      });
+
+      const mockModule = createMockTestModule('test.story.test.ts', [
+        {
+          meta: {
+            scenario: 'coverage scenario',
+            steps: [{ keyword: 'Given', text: 'something', docs: [] }],
+            sourceOrder: 0,
+          },
+          result: { state: 'passed' },
+        },
+      ]);
+
+      await reporter.onTestRunEnd(
+        [
+          mockModule as unknown as Parameters<
+            typeof reporter.onTestRunEnd
+          >[0][0],
+        ],
+        [],
+        'passed',
+      );
+
+      const outputFile = path.join(TEMP_DIR, 'coverage-merged.md');
+      const content = fs.readFileSync(outputFile, 'utf8');
+      expect(content).toContain('| Statements | 50% |');
+      expect(content).toContain('| Branches | 50% |');
+      expect(content).toContain('| Functions | 50% |');
+      expect(content).toContain('| Lines | 50% |');
+    });
+
+    it('continues report generation when rawRunPath write fails', async () => {
+      const reporter = new StoryReporter({
+        formats: ['markdown'],
+        outputDir: TEMP_DIR,
+        outputName: 'raw-run-write-fail',
+        output: { mode: 'aggregated' },
+        markdown: { includeMetadata: false },
+        rawRunPath: '/dev/null/raw-run.json',
+      });
+
+      reporter.onInit({
+        config: { root: process.cwd() },
+      } as unknown as Parameters<typeof reporter.onInit>[0]);
+
+      const mockModule = createMockTestModule('test.story.test.ts', [
+        {
+          meta: {
+            scenario: 'still generates reports',
+            steps: [{ keyword: 'Given', text: 'something', docs: [] }],
+            sourceOrder: 0,
+          },
+          result: { state: 'passed' },
+        },
+      ]);
+
+      await reporter.onTestRunEnd(
+        [
+          mockModule as unknown as Parameters<
+            typeof reporter.onTestRunEnd
+          >[0][0],
+        ],
+        [],
+        'passed',
+      );
+
+      const outputFile = path.join(TEMP_DIR, 'raw-run-write-fail.md');
+      expect(fs.existsSync(outputFile)).toBe(true);
+    });
+
+    it('maps retries from vitest test metadata when available', () => {
+      const reporter = new StoryReporter({});
+      const storyMeta: StoryMeta = {
+        scenario: 'retry scenario',
+        steps: [{ keyword: 'Given', text: 'a step', docs: [] }],
+        sourceOrder: 0,
+      };
+
+      const mockModule: MockTestModule = {
+        moduleId: 'retry.story.test.ts',
+        children: {
+          allTests: () => [
+            {
+              meta: () => ({ story: storyMeta }),
+              result: () => ({ state: 'passed', retryCount: 1 }),
+              options: { retry: 3 },
+            } as unknown as MockTestCase,
+          ],
+        },
+      };
+
+      const testCases = (
+        reporter as unknown as {
+          collectTestCases: (
+            modules: ReadonlyArray<MockTestModule>,
+            root: string,
+          ) => Array<{ retry: number; retries: number }>;
+        }
+      ).collectTestCases([mockModule], process.cwd());
+
+      expect(testCases[0].retry).toBe(1);
+      expect(testCases[0].retries).toBe(3);
     });
   });
 
