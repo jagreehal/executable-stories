@@ -1,5 +1,12 @@
 # executable-stories-vitest
 
+## 8.1.15
+
+### Patch Changes
+
+- Updated dependencies [e8ae8c1]
+  - executable-stories-formatters@0.7.14
+
 ## 8.1.14
 
 ### Patch Changes
