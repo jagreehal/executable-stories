@@ -4,14 +4,22 @@
  *
  * Do not add value imports from "vitest" or "./story-api.js" here; this entry is loaded in vitest.config
  * before Vitest is ready. Use only `import type` from those modules.
+ *
+ * Type strategy: this reporter is duck-typed against vitest's runner contract,
+ * not nominally typed via `implements Reporter`. That keeps it compatible with
+ * any vitest-compatible runner (including forks like vite-plus) where the
+ * `Vitest` class type carries different private fields and would otherwise
+ * fail nominal assignability checks at the consumer's call site.
+ *
+ * Vitest types are imported only for parameter typing of internal helpers,
+ * never as `implements`. Anything we touch on `ctx` is captured by the local
+ * `VitestContext` structural type below.
  */
 import type {
-  Reporter,
   SerializedError,
   TestModule,
   TestCase,
   TestRunEndReason,
-  Vitest,
 } from "vitest/node";
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -46,6 +54,21 @@ export type {
   OutputRule,
   FormatterOptions,
 } from "executable-stories-formatters";
+
+// ============================================================================
+// Structural runner context
+// ----------------------------------------------------------------------------
+// We only read `ctx.config.root`. Avoid importing the full `Vitest` class as
+// a parameter type — its private fields (`_clearScreenPending`, etc.) make
+// nominal assignability fail across vitest forks. A structural type lets the
+// reporter accept any vitest-compatible runner.
+// ============================================================================
+
+export type VitestContext = {
+  config?: {
+    root?: string;
+  };
+};
 
 // ============================================================================
 // Reporter Options (delegates to FormatterOptions)
@@ -203,19 +226,19 @@ function toRelativePosix(absolutePath: string, projectRoot: string): string {
  * Reads `task.meta.story` from each test and generates reports in configured formats.
  * Supports output routing (aggregated/colocated) and multiple output formats.
  */
-export default class StoryReporter implements Reporter {
+export default class StoryReporter {
   private options: StoryReporterOptions;
-  private ctx: Vitest | undefined;
+  private ctx: VitestContext | undefined;
   private startTime: number = 0;
   private packageVersion: string | undefined;
   private gitSha: string | undefined;
-  private coverageData: CoverageData | undefined;
+  private coverageByFile: Record<string, CoverageFile> = {};
 
   constructor(options: StoryReporterOptions = {}) {
     this.options = options;
   }
 
-  onInit(ctx: Vitest): void {
+  onInit(ctx: VitestContext): void {
     this.ctx = ctx;
     this.startTime = Date.now();
     const root = ctx.config?.root ?? process.cwd();
@@ -231,7 +254,7 @@ export default class StoryReporter implements Reporter {
   onCoverage(coverage: unknown): void {
     const data = normalizeCoveragePayload(coverage);
     if (data) {
-      this.coverageData = summarizeCoverage(data);
+      this.coverageByFile = { ...this.coverageByFile, ...data };
     }
   }
 
@@ -261,21 +284,26 @@ export default class StoryReporter implements Reporter {
     // Optionally write raw run JSON for CLI/binary consumption
     const rawRunPath = this.options.rawRunPath;
     if (rawRunPath) {
-      const absolutePath = path.isAbsolute(rawRunPath)
-        ? rawRunPath
-        : path.join(root, rawRunPath);
-      const dir = path.dirname(absolutePath);
-      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-      const payload = { schemaVersion: 1, ...rawRun };
-      fs.writeFileSync(absolutePath, JSON.stringify(payload, null, 2), "utf8");
+      try {
+        const absolutePath = path.isAbsolute(rawRunPath)
+          ? rawRunPath
+          : path.join(root, rawRunPath);
+        const dir = path.dirname(absolutePath);
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        const payload = { schemaVersion: 1, ...rawRun };
+        fs.writeFileSync(absolutePath, JSON.stringify(payload, null, 2), "utf8");
+      } catch (err) {
+        console.error("Failed to write raw run JSON:", err);
+      }
     }
 
     // Canonicalize
     const canonicalRun = canonicalizeRun(rawRun);
 
     // Add coverage if available
-    if (this.coverageData) {
-      canonicalRun.coverage = toCoverageSummary(this.coverageData);
+    const coverageData = summarizeCoverage(this.coverageByFile);
+    if (coverageData) {
+      canonicalRun.coverage = toCoverageSummary(coverageData);
     }
 
     // 1. Generate reports
@@ -442,6 +470,12 @@ export default class StoryReporter implements Reporter {
 
         // Retry info from Vitest result
         const retryCount = (result as { retryCount?: number } | undefined)?.retryCount ?? 0;
+        const configuredRetries = Math.max(
+          retryCount,
+          (test as { retries?: number }).retries ??
+            (test as { options?: { retry?: number } }).options?.retry ??
+            0,
+        );
 
         testCases.push({
           title: meta.scenario,
@@ -459,7 +493,7 @@ export default class StoryReporter implements Reporter {
           attachments: attachments.length > 0 ? attachments : undefined,
           stepEvents: stepEvents.length > 0 ? stepEvents : undefined,
           retry: retryCount,
-          retries: 0,
+          retries: configuredRetries,
         });
       }
     }

@@ -1,6 +1,6 @@
 # executable-stories
 
-Executable stories without Cucumber in your framework of choice with automatic Markdown documentation.
+Executable stories without Cucumber across JavaScript/TypeScript and non-JS test frameworks, with generated documentation and report outputs.
 
 ## Why not Cucumber?
 
@@ -17,21 +17,33 @@ One source of truth. Code that executes. Docs that do not lie.
 
 - Scenario API built on your test runner's native primitives
 - `given()`, `when()`, `then()`, `and()`, `but()` helpers that register real tests
-- Reporter that generates Markdown from test metadata
+- Reporters/formatters that generate Markdown, HTML, JUnit XML, and Cucumber outputs from test metadata
 - Output readable by developers and stakeholders
 
 If a test is skipped, failed, or todo, the docs reflect that.
 
 ## Packages
 
-| Package                                                                   | Test Runner      | Install                                  |
-| ------------------------------------------------------------------------- | ---------------- | ---------------------------------------- |
-| [executable-stories-jest](./packages/executable-stories-jest)             | Jest 30+         | `npm i -D executable-stories-jest`       |
-| [executable-stories-vitest](./packages/executable-stories-vitest)         | Vitest 4+        | `npm i -D executable-stories-vitest`     |
-| [executable-stories-playwright](./packages/executable-stories-playwright) | Playwright 1.58+ | `npm i -D executable-stories-playwright` |
-| [executable-stories-cypress](./packages/executable-stories-cypress)       | Cypress 13+      | `npm i -D executable-stories-cypress`    |
+| Package                                                                   | Ecosystem                    | Install / Usage                          |
+| ------------------------------------------------------------------------- | ---------------------------- | ---------------------------------------- |
+| [executable-stories-jest](./packages/executable-stories-jest)             | Jest 30+                     | `npm i -D executable-stories-jest`       |
+| [executable-stories-vitest](./packages/executable-stories-vitest)         | Vitest 4+                    | `npm i -D executable-stories-vitest`     |
+| [executable-stories-playwright](./packages/executable-stories-playwright) | Playwright 1.58+             | `npm i -D executable-stories-playwright` |
+| [executable-stories-cypress](./packages/executable-stories-cypress)       | Cypress 13+                  | `npm i -D executable-stories-cypress`    |
+| [executable-stories-ruby](./packages/executable-stories-ruby)             | Ruby / Minitest              | Ruby gem/package in repo                 |
+| [executable-stories-go](./packages/executable-stories-go)                 | Go `testing`                 | Go module in repo                        |
+| [executable-stories-rust](./packages/executable-stories-rust)             | Rust                          | Rust crate in repo                       |
+| [executable-stories-pytest](./packages/executable-stories-pytest)         | Python / pytest              | Python package in repo                   |
+| [executable-stories-junit5](./packages/executable-stories-junit5)         | Kotlin / JUnit 5             | JVM module in repo                       |
+| [executable-stories-xunit](./packages/executable-stories-xunit)           | C# / xUnit                   | .NET package in repo                     |
+| [executable-stories-formatters](./packages/executable-stories-formatters) | Cross-runner formatter CLI   | `npm i -D executable-stories-formatters` |
+| [executable-stories-demo](./packages/executable-stories-demo)             | Demo site/report tooling     | workspace package                        |
+| [eslint-plugin-executable-stories-vitest](./packages/eslint-plugin-executable-stories-vitest) | ESLint plugin (Vitest) | `npm i -D eslint-plugin-executable-stories-vitest` |
+| [eslint-plugin-executable-stories-jest](./packages/eslint-plugin-executable-stories-jest) | ESLint plugin (Jest)   | `npm i -D eslint-plugin-executable-stories-jest` |
+| [eslint-plugin-executable-stories-playwright](./packages/eslint-plugin-executable-stories-playwright) | ESLint plugin (Playwright) | `npm i -D eslint-plugin-executable-stories-playwright` |
+| [eslint-config](./packages/eslint-config)                                 | Shared ESLint config         | workspace package                        |
 
-Example apps: [apps/jest-example](./apps/jest-example), [apps/vitest-example](./apps/vitest-example), [apps/playwright-example](./apps/playwright-example), [apps/cypress-example](./apps/cypress-example), [apps/junit5-example](./apps/junit5-example) (Java 21, Maven; verification: `pnpm run verify:junit5`), [apps/pytest-example](./apps/pytest-example) (Python 3.12+, pytest; verification: `pnpm run verify:pytest`), [apps/go-example](./apps/go-example) (Go 1.22+; verification: `pnpm run verify:go`), [apps/rust-example](./apps/rust-example) (Rust 1.75+; verification: `pnpm run verify:rust`), [apps/xunit-example](./apps/xunit-example) (.NET 8, xUnit; verification: `pnpm run verify:xunit`).
+Example apps: [apps/jest-example](./apps/jest-example), [apps/vitest-example](./apps/vitest-example), [apps/playwright-example](./apps/playwright-example), [apps/cypress-example](./apps/cypress-example), [apps/vite-plus-example](./apps/vite-plus-example), [apps/junit5-example](./apps/junit5-example) (Java 21, Maven; verification: `pnpm run verify:junit5`), [apps/pytest-example](./apps/pytest-example) (Python 3.12+, pytest; verification: `pnpm run verify:pytest`), [apps/go-example](./apps/go-example) (Go 1.22+; verification: `pnpm run verify:go`), [apps/rust-example](./apps/rust-example) (Rust 1.75+; verification: `pnpm run verify:rust`), [apps/xunit-example](./apps/xunit-example) (.NET 8, xUnit; verification: `pnpm run verify:xunit`).
 
 ### Features matrix
 
