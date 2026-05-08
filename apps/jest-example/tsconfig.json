@@ -3,6 +3,17 @@
     "target": "ES2022",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+    "baseUrl": ".",
+    "paths": {
+      "executable-stories-jest": [
+        "../../packages/executable-stories-jest/dist/index.d.ts",
+        "../../packages/executable-stories-jest/src/index.ts"
+      ],
+      "executable-stories-jest/*": [
+        "../../packages/executable-stories-jest/dist/*",
+        "../../packages/executable-stories-jest/src/*"
+      ]
+    },
     "strict": true,
     "isolatedModules": true,
     "esModuleInterop": true,
