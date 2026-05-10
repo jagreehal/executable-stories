@@ -1,5 +1,5 @@
 import { defineConfig } from 'vite-plus';
-import { StoryReporter } from 'executable-stories-vitest/reporter';
+import { createStoryReporter } from 'executable-stories-vitest/reporter';
 
 export default defineConfig({
   test: {
@@ -8,11 +8,11 @@ export default defineConfig({
     include: ['src/**/*.test.ts'],
     reporters: [
       'default',
-      new StoryReporter({
+      createStoryReporter({
         formats: ['markdown', 'html'],
         outputDir: 'reports',
         outputName: 'executable-stories',
-      }) as never,
+      }),
     ],
   },
 });
