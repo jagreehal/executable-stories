@@ -50,6 +50,10 @@ export default defineConfig({
           label: 'Getting Started',
           items: [
             {
+              label: 'Install',
+              slug: 'getting-started/install',
+            },
+            {
               label: 'Installation (Vitest)',
               slug: 'getting-started/installation-vitest',
             },
@@ -182,6 +186,10 @@ export default defineConfig({
               label: 'Converting existing Playwright tests',
               slug: 'guides/converting-playwright',
             },
+            {
+              label: 'Embed reports in React apps',
+              slug: 'guides/embed-in-react-apps',
+            },
           ],
         },
         {
@@ -199,6 +207,7 @@ export default defineConfig({
             { label: 'Core types & constants', slug: 'reference/core-api' },
             { label: 'Other adapters', slug: 'reference/other-adapters' },
             { label: 'Formatters API', slug: 'reference/formatters-api' },
+            { label: 'React renderer', slug: 'reference/react-renderer' },
             { label: 'ESLint plugins', slug: 'reference/eslint-plugins' },
             { label: 'HTML themes', slug: 'reference/themes' },
             {

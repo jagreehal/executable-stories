@@ -1,0 +1,84 @@
+{
+  "name": "executable-stories-react",
+  "version": "0.1.0",
+  "description": "React components for rendering executable-stories StoryReport JSON. Semantic, SSR-safe, themeable via CSS variables.",
+  "author": "Jag Reehal <jag@jagreehal.com>",
+  "homepage": "https://github.com/jagreehal/executable-stories#readme",
+  "bugs": {
+    "url": "https://github.com/jagreehal/executable-stories/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jagreehal/executable-stories.git",
+    "directory": "packages/executable-stories-react"
+  },
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": ["./dist/styles.css", "*.css"],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./parse": {
+      "types": "./dist/parse.d.ts",
+      "import": "./dist/parse.js",
+      "require": "./dist/parse.cjs"
+    },
+    "./interactive": {
+      "types": "./dist/interactive.d.ts",
+      "import": "./dist/interactive.js",
+      "require": "./dist/interactive.cjs"
+    },
+    "./styles.css": "./dist/styles.css"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
+  },
+  "dependencies": {
+    "executable-stories-formatters": "workspace:*",
+    "marked": "^15.0.7",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.4.0",
+    "@testing-library/react": "^16.0.0",
+    "@types/node": "^25.6.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "eslint-config-executable-stories": "workspace:*",
+    "eslint-plugin-react-hooks": "^7.1.0",
+    "jsdom": "^25.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.4"
+  },
+  "keywords": [
+    "executable-stories",
+    "react",
+    "report",
+    "living-documentation",
+    "bdd",
+    "testing"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint .",
+    "clean": "rm -rf dist",
+    "test": "vitest run",
+    "quality": "pnpm type-check && pnpm test && pnpm lint"
+  }
+}

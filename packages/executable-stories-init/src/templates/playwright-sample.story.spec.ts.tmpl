@@ -1,0 +1,12 @@
+import { expect, test } from '@playwright/test';
+import { given, then, when } from 'executable-stories-playwright';
+
+test('Loads example.com', async ({ page }) => {
+  await given('a fresh browser context', async () => {});
+  await when('the user visits example.com', async () => {
+    await page.goto('https://example.com');
+  });
+  await then('the title contains Example', async () => {
+    await expect(page).toHaveTitle(/Example/);
+  });
+});

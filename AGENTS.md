@@ -231,6 +231,7 @@ When working in these areas, load the linked skill file into context for accurat
 
 | Task                                                        | Skill                                                                                          |
 | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Bootstrapping executable-stories into a repo from zero      | `skills/executable-stories-init/SKILL.md`                                                      |
 | Writing Vitest story tests                                  | `skills/vitest-story-api/SKILL.md`                                                             |
 | Configuring Vitest StoryReporter                            | `skills/vitest-reporter-setup/SKILL.md`                                                        |
 | Converting existing Vitest tests                            | `skills/vitest-converting-tests/SKILL.md`                                                      |

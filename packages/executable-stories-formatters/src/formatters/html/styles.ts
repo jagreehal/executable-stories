@@ -5,11 +5,21 @@
  * Supports dark/light mode via CSS custom properties and prefers-color-scheme.
  */
 
+import { ES_THEME_TOKENS_CSS } from "../../theme/tokens";
+
 export const CSS_STYLES = `
 /* ============================================================================
    Google Fonts Import - IBM Plex for refined typography
    ============================================================================ */
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+/* ============================================================================
+   executable-stories canonical tokens (--es-*).
+   Shared with executable-stories-react. Override on :root or any ancestor of
+   the report to re-color both the standalone HTML and the React component.
+   ============================================================================ */
+${ES_THEME_TOKENS_CSS}
+
 
 /* ============================================================================
    CSS Custom Properties - Light Mode (Default)

@@ -1,0 +1,115 @@
+{
+  "schemaVersion": "1.0",
+  "runId": "demo-run",
+  "startedAtMs": 1717200000000,
+  "finishedAtMs": 1717200005400,
+  "durationMs": 5400,
+  "projectRoot": "/example",
+  "packageVersion": "0.1.0",
+  "gitSha": "deadbee",
+  "summary": { "total": 5, "passed": 3, "failed": 1, "skipped": 1, "pending": 0, "durationMs": 5400 },
+  "features": [
+    {
+      "id": "feature-todos",
+      "title": "Todos",
+      "sourceFile": "src/todos.story.test.ts",
+      "summary": { "total": 3, "passed": 2, "failed": 1, "skipped": 0, "pending": 0, "durationMs": 3400 },
+      "scenarios": [
+        {
+          "id": "feature-todos--add-a-todo",
+          "title": "Add a todo",
+          "status": "passed",
+          "durationMs": 1200,
+          "tags": ["smoke"],
+          "retry": 0,
+          "retries": 0,
+          "docEntries": [
+            { "kind": "note", "text": "Validated against the happy path.", "phase": "static" },
+            { "kind": "kv", "label": "endpoint", "value": "/api/todos", "phase": "static" },
+            { "kind": "code", "label": "Request", "content": "{\n  \"title\": \"buy milk\"\n}", "lang": "json", "phase": "static" },
+            { "kind": "section", "title": "Background", "markdown": "Users add todos by typing in the input and pressing Enter. The list is **persisted** to the API.", "phase": "static" }
+          ],
+          "steps": [
+            { "id": "feature-todos--add-a-todo--step-0", "index": 0, "keyword": "Given", "text": "the todo list is empty", "status": "passed", "durationMs": 100, "docEntries": [] },
+            { "id": "feature-todos--add-a-todo--step-1", "index": 1, "keyword": "When", "text": "the user adds 'buy milk'", "status": "passed", "durationMs": 800, "docEntries": [] },
+            { "id": "feature-todos--add-a-todo--step-2", "index": 2, "keyword": "Then", "text": "the todo list contains 'buy milk'", "status": "passed", "durationMs": 300, "docEntries": [] }
+          ],
+          "attachments": []
+        },
+        {
+          "id": "feature-todos--complete-a-todo",
+          "title": "Complete a todo",
+          "status": "passed",
+          "durationMs": 900,
+          "tags": [],
+          "retry": 0,
+          "retries": 0,
+          "docEntries": [],
+          "steps": [
+            { "id": "feature-todos--complete-a-todo--step-0", "index": 0, "keyword": "Given", "text": "a pending todo exists", "status": "passed", "durationMs": 50, "docEntries": [] },
+            { "id": "feature-todos--complete-a-todo--step-1", "index": 1, "keyword": "When", "text": "the user marks it complete", "status": "passed", "durationMs": 700, "docEntries": [] },
+            { "id": "feature-todos--complete-a-todo--step-2", "index": 2, "keyword": "Then", "text": "the todo appears in the Done section", "status": "passed", "durationMs": 150, "docEntries": [] }
+          ],
+          "attachments": []
+        },
+        {
+          "id": "feature-todos--delete-a-todo",
+          "title": "Delete a todo",
+          "status": "failed",
+          "durationMs": 1300,
+          "tags": ["regression"],
+          "retry": 0,
+          "retries": 0,
+          "errorMessage": "Expected list to contain 0 items, got 1",
+          "docEntries": [
+            { "kind": "mermaid", "code": "sequenceDiagram\n  User->>UI: click delete\n  UI->>API: DELETE /todos/1\n  API-->>UI: 200 OK\n  UI->>List: re-render", "title": "Delete flow", "phase": "static" }
+          ],
+          "steps": [
+            { "id": "feature-todos--delete-a-todo--step-0", "index": 0, "keyword": "Given", "text": "a todo exists", "status": "passed", "durationMs": 60, "docEntries": [] },
+            { "id": "feature-todos--delete-a-todo--step-1", "index": 1, "keyword": "When", "text": "the user clicks delete", "status": "passed", "durationMs": 200, "docEntries": [] },
+            { "id": "feature-todos--delete-a-todo--step-2", "index": 2, "keyword": "Then", "text": "the list should be empty", "status": "failed", "durationMs": 1040, "errorMessage": "Expected list to contain 0 items, got 1", "docEntries": [] }
+          ],
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "id": "feature-auth",
+      "title": "Auth",
+      "sourceFile": "src/auth.story.test.ts",
+      "summary": { "total": 2, "passed": 1, "failed": 0, "skipped": 1, "pending": 0, "durationMs": 2000 },
+      "scenarios": [
+        {
+          "id": "feature-auth--login",
+          "title": "Login",
+          "status": "passed",
+          "durationMs": 1500,
+          "tags": ["smoke"],
+          "retry": 0,
+          "retries": 0,
+          "docEntries": [
+            { "kind": "table", "label": "Test users", "columns": ["Username", "Role"], "rows": [["alice", "admin"], ["bob", "viewer"]], "phase": "static" }
+          ],
+          "steps": [
+            { "id": "feature-auth--login--step-0", "index": 0, "keyword": "Given", "text": "alice is registered", "status": "passed", "durationMs": 100, "docEntries": [] },
+            { "id": "feature-auth--login--step-1", "index": 1, "keyword": "When", "text": "she logs in with valid credentials", "status": "passed", "durationMs": 1200, "docEntries": [] },
+            { "id": "feature-auth--login--step-2", "index": 2, "keyword": "Then", "text": "she is taken to the dashboard", "status": "passed", "durationMs": 200, "docEntries": [] }
+          ],
+          "attachments": []
+        },
+        {
+          "id": "feature-auth--password-reset",
+          "title": "Password reset",
+          "status": "skipped",
+          "durationMs": 500,
+          "tags": ["wip"],
+          "retry": 0,
+          "retries": 0,
+          "docEntries": [],
+          "steps": [],
+          "attachments": []
+        }
+      ]
+    }
+  ]
+}

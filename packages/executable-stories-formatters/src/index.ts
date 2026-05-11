@@ -32,6 +32,7 @@ import type { RunDiffResult } from "./types/compare";
 
 import { canonicalizeRun } from "./converters/acl/index";
 import { CucumberJsonFormatter } from "./formatters/cucumber-json";
+import { StoryReportJsonFormatter } from "./formatters/story-report-json";
 import { HtmlFormatter } from "./formatters/html/index";
 import { JUnitFormatter } from "./formatters/junit-xml";
 import { MarkdownFormatter } from "./formatters/markdown";
@@ -109,6 +110,35 @@ export type {
 // Formatter plugin types
 export type { Formatter, ExecutableStoriesConfig } from "./types/formatter";
 
+// StoryReport public contract (consumed by UI renderers — additive-only within major)
+export type {
+  StoryReportSchemaVersion,
+  ReportSummary,
+  ReportTicket,
+  ReportAttachment,
+  ReportCIInfo,
+  ReportCoverageSummary,
+  ReportDocEntry,
+  ReportDocNote,
+  ReportDocTag,
+  ReportDocKv,
+  ReportDocCode,
+  ReportDocTable,
+  ReportDocLink,
+  ReportDocSection,
+  ReportDocMermaid,
+  ReportDocScreenshot,
+  ReportDocCustom,
+  ReportStep,
+  ReportScenario,
+  ReportFeature,
+  StoryReport,
+} from "./types/story-report";
+export {
+  STORY_REPORT_SCHEMA_VERSION,
+  STORY_REPORT_SCHEMA_MAJOR,
+} from "./types/story-report";
+
 // Options types
 export type {
   CanonicalizeOptions,
@@ -139,6 +169,9 @@ export type {
 // Theme types
 export type { HtmlTheme, HtmlThemeName } from "./formatters/html/themes/index";
 export { resolveTheme, getAvailableThemes, getCssOnlyThemes } from "./formatters/html/themes/index";
+
+// Canonical --es-* theme tokens (shared with executable-stories-react)
+export { ES_THEME_TOKENS_CSS, ES_THEME_TOKEN_VALUES } from "./theme/tokens";
 
 // ============================================================================
 // ACL Exports
@@ -177,6 +210,13 @@ export {
   CucumberJsonFormatter,
   type CucumberJsonOptions,
 } from "./formatters/cucumber-json";
+
+export {
+  StoryReportJsonFormatter,
+  type StoryReportJsonOptions,
+} from "./formatters/story-report-json";
+
+export { toStoryReport } from "./converters/story-report";
 
 export {
   HtmlFormatter,
@@ -374,6 +414,7 @@ const FORMAT_EXTENSIONS: Record<OutputFormat, string> = {
   "cucumber-json": ".cucumber.json",
   "cucumber-messages": ".ndjson",
   confluence: ".adf.json",
+  "story-report-json": ".story-report.json",
 };
 
 /** Known test file extensions to strip for colocated naming */
@@ -580,6 +621,9 @@ export class ReportGenerator {
       },
       cucumberJson: {
         pretty: options.cucumberJson?.pretty ?? false,
+      },
+      storyReportJson: {
+        pretty: options.storyReportJson?.pretty ?? true,
       },
       cucumberMessages: {
         uriStrategy: options.cucumberMessages?.uriStrategy ?? "sourceFile",
@@ -882,6 +926,13 @@ export class ReportGenerator {
           traceUrlTemplate: this.options.markdown.traceUrlTemplate,
           includeSourceLinks: this.options.markdown.includeSourceLinks,
           customRenderers: this.options.markdown.customRenderers,
+        });
+        return formatter.format(run);
+      }
+
+      case "story-report-json": {
+        const formatter = new StoryReportJsonFormatter({
+          pretty: this.options.storyReportJson.pretty,
         });
         return formatter.format(run);
       }
