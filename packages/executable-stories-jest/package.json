@@ -42,7 +42,7 @@
     "fast-glob": "^3.3.3"
   },
   "devDependencies": {
-    "@jest/globals": "^30.3.0",
+    "@jest/globals": "^30.4.1",
     "@opentelemetry/api": "^1.9.1",
     "@types/jest": "^30.0.0",
     "@types/node": "^25.6.0",
