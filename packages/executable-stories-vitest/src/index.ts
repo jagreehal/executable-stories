@@ -24,19 +24,21 @@
  * });
  * ```
  *
- * In vitest.config, import StoryReporter from "executable-stories-vitest/reporter":
+ * In vitest.config, use createStoryReporter factory from "executable-stories-vitest/reporter":
  *
  * @example
  * ```ts
  * import { defineConfig } from "vitest/config";
- * import { StoryReporter } from "executable-stories-vitest/reporter";
+ * import { createStoryReporter } from "executable-stories-vitest/reporter";
  *
  * export default defineConfig({
  *   test: {
- *     reporters: ["default", new StoryReporter()],
+ *     reporters: ["default", createStoryReporter()],
  *   },
  * });
  * ```
+ *
+ * The factory provides type-safe reporter creation with no type casts.
  */
 
 // Core API
@@ -60,15 +62,18 @@ export type {
 
 export { STORY_META_KEY } from './types';
 
-// Reporter types (actual reporter is in /reporter subpath)
+// Reporter types and factory (actual reporter is in /reporter subpath)
 export type {
   StoryReporterOptions,
+  StoryReporterProtocol,
+  VitestContext,
   OutputFormat,
   OutputMode,
   ColocatedStyle,
   OutputRule,
   FormatterOptions,
 } from './reporter';
+export { createStoryReporter } from './reporter';
 
 const STORY_REPORTER_GUARD_MSG =
   'Do not import StoryReporter from "executable-stories-vitest". In vitest.config, import it from "executable-stories-vitest/reporter".';

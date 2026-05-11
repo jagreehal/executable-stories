@@ -71,6 +71,30 @@ export type VitestContext = {
 };
 
 // ============================================================================
+// Reporter Protocol (duck-typed interface for reporters)
+// ============================================================================
+// Exported protocol that captures the reporter contract. This allows
+// StoryReporter to be properly typed without nominal `implements Reporter`,
+// enabling duck-typing compatibility across vitest forks while maintaining
+// type safety at the consumer call site.
+// ============================================================================
+
+// Public-facing protocol uses loose params on runner-supplied callbacks so the
+// returned reporter is structurally assignable to any vitest-compatible runner's
+// `Reporter` type (vitest, vite-plus, future forks). The concrete StoryReporter
+// class still uses strict vitest types internally — method bivariance lets the
+// narrower class satisfy this looser protocol.
+export interface StoryReporterProtocol {
+  onInit(ctx: VitestContext): void;
+  onCoverage(coverage: unknown): void;
+  onTestRunEnd(
+    testModules: readonly unknown[],
+    unhandledErrors: readonly unknown[],
+    reason: unknown,
+  ): Promise<void>;
+}
+
+// ============================================================================
 // Reporter Options (delegates to FormatterOptions)
 // ============================================================================
 
@@ -225,8 +249,10 @@ function toRelativePosix(absolutePath: string, projectRoot: string): string {
  *
  * Reads `task.meta.story` from each test and generates reports in configured formats.
  * Supports output routing (aggregated/colocated) and multiple output formats.
+ *
+ * Implements StoryReporterProtocol for type-safe duck-typing across vitest forks.
  */
-export default class StoryReporter {
+export default class StoryReporter implements StoryReporterProtocol {
   private options: StoryReporterOptions;
   private ctx: VitestContext | undefined;
   private startTime: number = 0;
@@ -515,6 +541,34 @@ export default class StoryReporter {
       // @actions/core not available or not in Actions
     }
   }
+}
+
+// ============================================================================
+// Factory Function (recommended API)
+// ============================================================================
+// Type-safe factory for creating story reporters. Returns a properly-typed
+// instance that implements StoryReporterProtocol, enabling clean usage in
+// vite.config.ts without type casts.
+//
+// Usage:
+//   import { createStoryReporter } from 'executable-stories-vitest/reporter';
+//   export default defineConfig({
+//     test: {
+//       reporters: [
+//         'default',
+//         createStoryReporter({
+//           formats: ['html', 'markdown'],
+//           outputDir: 'reports',
+//         }),
+//       ],
+//     },
+//   });
+// ============================================================================
+
+export function createStoryReporter(
+  options?: StoryReporterOptions
+): StoryReporterProtocol {
+  return new StoryReporter(options);
 }
 
 export { StoryReporter };
