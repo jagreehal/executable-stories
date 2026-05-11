@@ -85,7 +85,7 @@ Use these when you have framework results and want a canonical run for **ReportG
 
 | Option | Type | Default | Description |
 | ------ | ---- | ------- | ----------- |
-| `formats` | `OutputFormat[]` | `["cucumber-json"]` | Output formats: `"cucumber-json"`, `"cucumber-html"`, `"cucumber-messages"`, `"html"`, `"junit"`, `"markdown"`, `"astro"`, `"confluence"`. |
+| `formats` | `OutputFormat[]` | `["cucumber-json"]` | Output formats: `"cucumber-json"`, `"cucumber-html"`, `"cucumber-messages"`, `"html"`, `"junit"`, `"markdown"`, `"astro"`, `"confluence"`, `"story-report-json"`. |
 | `outputDir` | `string` | `"reports"` | Base directory for output files. |
 | `outputName` | `string` | `"test-results"` | Base filename (without extension) for aggregated output. |
 | `output` | `OutputConfig` | see below | Output routing (mode, colocated style, rules). |
@@ -166,7 +166,7 @@ The formatters package provides an **`executable-stories`** CLI for generating r
 
 **Subcommands:**
 
-- **`executable-stories format <file>`** — Read raw (or canonical) test results and generate reports. Use `--format` to choose one or more of: `html`, `cucumber-html`, `markdown`, `junit`, `cucumber-json`, `cucumber-messages`, `astro`, `confluence`. Default format is `html`.
+- **`executable-stories format <file>`** — Read raw (or canonical) test results and generate reports. Use `--format` to choose one or more of: `html`, `cucumber-html`, `markdown`, `junit`, `cucumber-json`, `cucumber-messages`, `astro`, `confluence`, `story-report-json`. Default format is `html`. The `story-report-json` format emits the [StoryReport v1 contract](/reference/react-renderer#the-storyreport-contract) consumed by `executable-stories-react`.
 - **`executable-stories compare <current>`** — Compare two runs and generate a diff report.
 - **`executable-stories list <file>`** — List scenarios from a test run.
 - **`executable-stories validate <file>`** — Validate a JSON file against the schema (no output generated).
@@ -198,7 +198,7 @@ The formatters package provides an **`executable-stories`** CLI for generating r
 
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
-| `--format` | string | `html` | Output format(s): `html`, `cucumber-html`, `markdown`, `junit`, `cucumber-json`, `cucumber-messages`, `astro`, `confluence` |
+| `--format` | string | `html` | Output format(s): `html`, `cucumber-html`, `markdown`, `junit`, `cucumber-json`, `cucumber-messages`, `astro`, `confluence`, `story-report-json` |
 | `--output-dir` | string | `reports` | Directory to write output files |
 | `--output-name` | string | `test-results` | Base filename (without extension) for aggregated output |
 | `--input-type` | string | `raw` | Input type: `raw`, `canonical`, or `ndjson` |

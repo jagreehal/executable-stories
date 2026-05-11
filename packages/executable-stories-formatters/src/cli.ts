@@ -78,7 +78,7 @@ SUBCOMMANDS
   publish-jira       Publish an ADF JSON file to a Jira issue (as comment or description)
 
 OPTIONS
-  --format <formats>            Comma-separated formats: html, markdown, junit, cucumber-json, cucumber-messages, cucumber-html, astro, confluence, or custom names from config (default: html)
+  --format <formats>            Comma-separated formats: html, markdown, junit, cucumber-json, cucumber-messages, cucumber-html, astro, confluence, story-report-json, or custom names from config (default: html)
                                   astro             Themed Markdown (for Astro docs sites with matching CSS)
                                   confluence        Atlassian Document Format (ADF) JSON for Confluence / Jira
                                   html              Custom HTML report (accessible, dark mode, mermaid)
@@ -87,6 +87,7 @@ OPTIONS
                                   junit             JUnit XML
                                   cucumber-json     Cucumber JSON
                                   cucumber-messages Raw NDJSON (Cucumber Messages)
+                                  story-report-json StoryReport v1 JSON (consumed by executable-stories-react and other UI renderers)
   --config <path>               Path to executable-stories.config.js (default: ./executable-stories.config.js)
   --input-type <type>           Input type: raw, canonical, or ndjson (default: raw)
   --output-dir <dir>            Output directory (default: reports)
@@ -418,7 +419,7 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
   const pluginConfig = await loadConfig(values["config"] as string | undefined);
   const customFormatterNames = new Set(Object.keys(pluginConfig.formatters ?? {}));
 
-  const builtInFormats = new Set(["astro", "confluence", "html", "markdown", "junit", "cucumber-json", "cucumber-messages", "cucumber-html"]);
+  const builtInFormats = new Set(["astro", "confluence", "html", "markdown", "junit", "cucumber-json", "cucumber-messages", "cucumber-html", "story-report-json"]);
   const formatStr = values.format as string;
   const allRequestedFormats = formatStr.split(",").map((f) => f.trim());
   const builtInRequested = allRequestedFormats.filter((f) => builtInFormats.has(f)) as OutputFormat[];
@@ -427,7 +428,7 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
 
   if (unknownFormats.length > 0) {
     const knownCustom = customFormatterNames.size > 0 ? `, ${[...customFormatterNames].join(", ")}` : "";
-    console.error(`Error: Unknown format(s): ${unknownFormats.join(", ")}. Valid built-in: astro, confluence, html, markdown, junit, cucumber-json, cucumber-messages, cucumber-html${knownCustom}.`);
+    console.error(`Error: Unknown format(s): ${unknownFormats.join(", ")}. Valid built-in: astro, confluence, html, markdown, junit, cucumber-json, cucumber-messages, cucumber-html, story-report-json${knownCustom}.`);
     process.exit(EXIT_USAGE);
   }
 

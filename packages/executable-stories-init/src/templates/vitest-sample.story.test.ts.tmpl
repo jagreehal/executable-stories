@@ -1,0 +1,18 @@
+import { story } from 'executable-stories-vitest';
+import { describe, expect, it } from 'vitest';
+
+describe('Calculator', () => {
+  it('Adds two numbers', ({ task }) => {
+    story.init(task);
+
+    story.given('two numbers');
+    const a = 1;
+    const b = 2;
+
+    story.when('they are added');
+    const result = a + b;
+
+    story.then('the sum is 3');
+    expect(result).toBe(3);
+  });
+});

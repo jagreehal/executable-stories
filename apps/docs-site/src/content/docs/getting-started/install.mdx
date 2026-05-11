@@ -1,0 +1,293 @@
+---
+title: Install
+description: Bootstrap executable-stories into your project with a single command using executable-stories-init.
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+Use the `executable-stories-init` CLI to install everything in a single command. Run this inside your project's root directory:
+
+<Tabs syncKey="pkg">
+<TabItem label="npm">
+
+```shell
+npm create executable-stories@latest
+```
+
+</TabItem>
+<TabItem label="pnpm">
+
+```shell
+pnpm create executable-stories@latest
+```
+
+</TabItem>
+<TabItem label="yarn">
+
+```shell
+yarn create executable-stories
+```
+
+</TabItem>
+</Tabs>
+
+`executable-stories-init` inspects your project, detects your test framework and workspace layout, asks you a couple of questions, and writes the right config — adapter, reporter, sample story, and `package.json` scripts — so your first report is one `pnpm test` away.
+
+## Project requirements
+
+`executable-stories` is designed to work with a variety of frameworks. If your project uses one of the packages below, please ensure you have at least these versions installed:
+
+<div style={{ columns: 2, marginBottom: '1.5rem' }}>
+
+- Node.js 22+
+- TypeScript 5.6+
+- Vitest 3+
+- Jest 29+
+- Playwright 1.45+
+- Cypress 13+
+- pnpm 9+
+- npm 10+
+- Yarn 4+
+
+</div>
+
+The init CLI itself supports **Vitest** and **Playwright** in v0.1. Jest, Cypress, and the non-JS adapters (Ruby, Go, pytest, Rust, JUnit 5, xUnit) can be set up manually — see the per-framework installation pages in the sidebar.
+
+## Installation
+
+Run this command inside your project's root directory:
+
+<Tabs syncKey="pkg">
+<TabItem label="npm">
+
+```shell
+npm create executable-stories@latest
+```
+
+</TabItem>
+<TabItem label="pnpm">
+
+```shell
+pnpm create executable-stories@latest
+```
+
+</TabItem>
+<TabItem label="yarn">
+
+```shell
+yarn create executable-stories
+```
+
+</TabItem>
+</Tabs>
+
+When you run the command, you'll see a short interactive flow:
+
+**Detected**
+
+The CLI prints what it found: package manager, TypeScript, monorepo layout. No surprises.
+
+```
+◆ executable-stories
+│  package manager: pnpm
+│  typescript: yes
+│  monorepo: yes (3 workspace packages)
+```
+
+**Which package(s) to set up?**
+
+In a monorepo you'll be asked to select target packages. In a single-package repo this prompt is skipped.
+
+**Which framework(s)?**
+
+Pick one or both:
+
+- **Vitest** — unit and integration tests
+- **Playwright** — end-to-end tests
+
+Frameworks already installed in `devDependencies` are shown with an `already installed` hint and won't be re-installed.
+
+**Plan preview**
+
+Before any files are written, the CLI shows exactly what it's about to do — packages to install, files to create, scripts to add — and asks you to confirm.
+
+After you confirm, the command will:
+
+* 📦 Install the framework + the executable-stories adapter + the formatters package
+* 🛠 Write `vitest.config.ts` and/or `playwright.config.ts` wiring up the `StoryReporter`
+* 📝 Drop a working sample story (`src/example.story.test.ts` or `tests/example.story.spec.ts`)
+* 🔧 Patch `package.json` scripts (`test`, optionally `test:e2e`)
+
+## Run your tests
+
+The init CLI does not run your tests for you — it leaves you in control. Once it finishes:
+
+<Tabs syncKey="pkg">
+<TabItem label="npm">
+
+```shell
+npm test
+open reports/executable-stories.html
+```
+
+</TabItem>
+<TabItem label="pnpm">
+
+```shell
+pnpm test
+open reports/executable-stories.html
+```
+
+</TabItem>
+<TabItem label="yarn">
+
+```shell
+yarn test
+open reports/executable-stories.html
+```
+
+</TabItem>
+</Tabs>
+
+You should see one passing story and two report files in `reports/`: `executable-stories.html` (open in a browser) and `executable-stories.md` (commit alongside your code as living documentation).
+
+If you chose Playwright, also install the browser binaries:
+
+<Tabs syncKey="pkg">
+<TabItem label="npm">
+
+```shell
+npx playwright install
+```
+
+</TabItem>
+<TabItem label="pnpm">
+
+```shell
+pnpm exec playwright install
+```
+
+</TabItem>
+<TabItem label="yarn">
+
+```shell
+yarn playwright install
+```
+
+</TabItem>
+</Tabs>
+
+## Flags
+
+Most users won't need flags — the prompts cover everything. For scripting, CI, or agent automation, the CLI accepts:
+
+| Flag | Effect |
+|------|--------|
+| `--vitest` / `--playwright` / `--both` | Choose framework(s) without prompting |
+| `--target <pkg...>` | In a monorepo, set up specific workspace package(s). Pass `root` for the repo root |
+| `--ts` / `--no-ts` | Write a minimal `tsconfig.json` if missing |
+| `--yes`, `-y` | Accept defaults, suppress all prompts (non-interactive) |
+| `--dry-run` | Print the plan but don't write or install anything |
+| `--json` | Emit a machine-readable plan + result (implies `--yes`). Useful for AI agents and CI |
+| `--force` | Overwrite existing config files with different contents |
+| `--interactive` | Force prompts even when stdin is piped |
+
+Example — non-interactive Vitest setup in a CI script:
+
+<Tabs syncKey="pkg">
+<TabItem label="npm">
+
+```shell
+npm create executable-stories@latest -- --vitest --yes
+```
+
+</TabItem>
+<TabItem label="pnpm">
+
+```shell
+pnpm create executable-stories@latest --vitest --yes
+```
+
+</TabItem>
+<TabItem label="yarn">
+
+```shell
+yarn create executable-stories --vitest --yes
+```
+
+</TabItem>
+</Tabs>
+
+Example — preview what would change in a monorepo without touching anything:
+
+```shell
+pnpm dlx executable-stories-init --both --target apps/web --dry-run
+```
+
+## What gets installed
+
+Per framework, the CLI adds these to your target package's `devDependencies`:
+
+| Framework | Packages |
+|-----------|----------|
+| Vitest | `vitest`, `executable-stories-vitest`, `executable-stories-formatters` |
+| Playwright | `@playwright/test`, `executable-stories-playwright`, `executable-stories-formatters` |
+
+If any of these are already installed (any version), they're skipped — the init CLI never downgrades or re-pins a dependency you've already chosen.
+
+## Manual setup
+
+If you want to skip the CLI or you're on a framework the init CLI doesn't support yet, follow the per-framework guide:
+
+- [Installation (Vitest)](/getting-started/installation-vitest/)
+- [Installation (Jest)](/getting-started/installation-jest/)
+- [Installation (Playwright)](/getting-started/installation-playwright/)
+- [Installation (Cypress)](/getting-started/installation-cypress/)
+- [Installation (Ruby)](/getting-started/installation-ruby/)
+- [Installation (Go)](/getting-started/installation-go/)
+- [Installation (pytest)](/getting-started/installation-pytest/)
+- [Installation (Rust)](/getting-started/installation-rust/)
+- [Installation (JUnit 5)](/getting-started/installation-junit5/)
+- [Installation (xUnit)](/getting-started/installation-xunit/)
+
+## Troubleshooting
+
+### My framework wasn't detected
+
+`executable-stories-init` only auto-installs Vitest and Playwright. For other frameworks, follow the manual setup guide linked above.
+
+If you have Vitest or Playwright installed but the CLI didn't pick it up, check that the package appears in your target's `devDependencies` (not `dependencies` of a parent workspace package).
+
+### "exists; use --force to overwrite"
+
+If you already have a `vitest.config.ts` or `playwright.config.ts`, the CLI won't clobber it. It prints a skip note with the existing path. You have two options:
+
+- Add the `StoryReporter` block from the [Vitest installation guide](/getting-started/installation-vitest/) or [Playwright installation guide](/getting-started/installation-playwright/) into your existing config manually.
+- Re-run with `--force` to overwrite (you'll lose your existing config).
+
+### Monorepo: it set things up in the wrong package
+
+By default the CLI prompts you to select target packages. If you ran with `--yes` in a monorepo without `--target`, it defaults to the repo root. Re-run with `--target <package-name>` to target a specific workspace package — e.g. `--target apps/web`, or just `--target web` if the name is unambiguous.
+
+### I'm using AI agents to set this up
+
+Pass `--json` to get a parseable plan + result:
+
+```shell
+pnpm dlx executable-stories-init --vitest --target apps/web --yes --json
+```
+
+The output is a single JSON object: `{ ok, plan: { ops, summary }, result: { written, installed, patched, skipped, notes } }`. Pipe it into `jq` or your agent's parser.
+
+If you're using Claude Code or a similar agent, the [`executable-stories-init` skill](https://github.com/jagreehal/executable-stories/blob/main/skills/executable-stories-init/SKILL.md) gives the agent the same checklist the CLI follows, in case it can't run the CLI directly.
+
+### The installation seems to hang on `pnpm add`
+
+This is almost always a network issue or a missing `pnpm-lock.yaml`. Run the install yourself first to see the error: `cd <target> && pnpm install`. Fix any reported issue, then re-run `executable-stories-init`.
+
+## Next
+
+Now that you have executable-stories installed, write your first scenario:
+
+- [First Story (Vitest)](/getting-started/first-story-vitest/)
+- [First Story (Playwright)](/getting-started/first-story-playwright/)

@@ -37,6 +37,35 @@ export type {
   TestRunResult,
 } from "./test-result";
 
+// Public report contract (consumed by UI renderers — frozen, additive-only within major)
+export type {
+  StoryReportSchemaVersion,
+  ReportSummary,
+  ReportTicket,
+  ReportAttachment,
+  ReportCIInfo,
+  ReportCoverageSummary,
+  ReportDocEntry,
+  ReportDocNote,
+  ReportDocTag,
+  ReportDocKv,
+  ReportDocCode,
+  ReportDocTable,
+  ReportDocLink,
+  ReportDocSection,
+  ReportDocMermaid,
+  ReportDocScreenshot,
+  ReportDocCustom,
+  ReportStep,
+  ReportScenario,
+  ReportFeature,
+  StoryReport,
+} from "./story-report";
+export {
+  STORY_REPORT_SCHEMA_VERSION,
+  STORY_REPORT_SCHEMA_MAJOR,
+} from "./story-report";
+
 // Cucumber JSON types (Layer 3 - Formatter output)
 export type {
   IJsonTag,
