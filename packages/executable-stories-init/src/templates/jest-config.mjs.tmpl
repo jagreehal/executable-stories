@@ -1,0 +1,32 @@
+/** Jest config with executable-stories-jest. */
+export default {
+  rootDir: process.cwd(),
+  testEnvironment: 'node',
+  testMatch: ['<rootDir>/src/**/*.story.test.ts'],
+  setupFilesAfterEnv: ['executable-stories-jest/setup'],
+  extensionsToTreatAsEsm: ['.ts'],
+  transform: {
+    '^.+\\.ts$': [
+      'ts-jest',
+      {
+        useESM: true,
+        tsconfig: '<rootDir>/tsconfig.json',
+      },
+    ],
+  },
+  moduleNameMapper: {
+    '^(\\.{1,2}/.*)\\.js$': '$1',
+  },
+  reporters: [
+    'default',
+    [
+      'executable-stories-jest/reporter',
+      {
+        formats: ['markdown', 'html'],
+        outputDir: 'reports',
+        outputName: 'executable-stories',
+        output: { mode: 'aggregated' },
+      },
+    ],
+  ],
+};

@@ -1,0 +1,19 @@
+import { defineConfig } from 'cypress';
+import { registerExecutableStoriesPlugin } from 'executable-stories-cypress/plugin';
+
+export default defineConfig({
+  e2e: {
+    supportFile: 'cypress/support/e2e.ts',
+    specPattern: 'cypress/e2e/**/*.story.cy.ts',
+    setupNodeEvents(on) {
+      registerExecutableStoriesPlugin(on);
+    },
+  },
+  reporter: 'executable-stories-cypress/reporter.cjs',
+  reporterOptions: {
+    formats: ['markdown', 'html'],
+    outputDir: 'reports',
+    outputName: 'executable-stories',
+    output: { mode: 'aggregated' },
+  },
+});

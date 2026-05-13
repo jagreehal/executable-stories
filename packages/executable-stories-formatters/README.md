@@ -70,7 +70,26 @@ executable-stories format run.json --format html --history-file .history/runs.js
 
 # Notify on failure (Slack or Teams; env: SLACK_WEBHOOK_URL / TEAMS_WEBHOOK_URL)
 executable-stories format run.json --format html --notify on-failure --report-url "https://ci.example.com/artifacts/report.html"
+
+# Compare two runs and fail CI on regressions
+executable-stories compare baseline.json current.json --format markdown --fail-on-regression
+
+# Compare with threshold gating (allow up to 2 regressions)
+executable-stories compare baseline.json current.json --format html --max-regressions 2
+
+# Compare and fail on newly added failing scenarios
+executable-stories compare baseline.json current.json --format markdown --fail-on-added-failures
 ```
+
+### Compare gating
+
+Use compare mode to produce diff reports between two runs and optionally enforce CI gates:
+
+- `--fail-on-regression` — fails when any pass→fail regression is found.
+- `--fail-on-added-failures` — fails when new failing scenarios appear in the current run.
+- `--max-regressions <n>` — fails when regressions are greater than `n`.
+
+When a gate fails, CLI exits with code `5`.
 
 ### CI detection
 

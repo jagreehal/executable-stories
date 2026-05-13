@@ -30,7 +30,7 @@ jobs:
         run: corepack prepare pnpm@10.28.1 --activate
 
       - name: Cache pnpm dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.pnpm-store
           key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
@@ -51,7 +51,7 @@ jobs:
 
       - name: Upload formatters binary
         if: hashFiles('packages/executable-stories-formatters/package.json') != ''
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: executable-stories-linux-x64
           path: packages/executable-stories-formatters/executable-stories

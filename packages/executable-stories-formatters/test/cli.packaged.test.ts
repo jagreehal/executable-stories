@@ -11,14 +11,15 @@ const packageDir = resolve(testDir, "..");
 const exampleJson = resolve(packageDir, "schemas/examples/minimal.json");
 const packagedCliPath = resolve(packageDir, "dist/cli.js");
 const validConfigPath = resolve(testDir, "fixtures/config/valid.config.js");
+let builtPackagedCli = false;
 
 function ensurePackagedCliBuilt(): void {
-  if (fs.existsSync(packagedCliPath)) return;
-
+  if (builtPackagedCli && fs.existsSync(packagedCliPath)) return;
   execFileSync("pnpm", ["build"], {
     cwd: packageDir,
     stdio: "pipe",
   });
+  builtPackagedCli = true;
 }
 
 describe("packaged CLI", () => {
@@ -246,6 +247,238 @@ describe("packaged CLI", () => {
         expect(html).not.toContain(videoPath);
       },
       60_000
+    );
+  });
+
+  describe("compare gates", () => {
+    let tmpDir: string | undefined;
+
+    afterEach(() => {
+      if (tmpDir) {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+        tmpDir = undefined;
+      }
+    });
+
+    it(
+      "exits with compare gate code when regressions are present and --fail-on-regression is set",
+      () => {
+        ensurePackagedCliBuilt();
+        tmpDir = fs.mkdtempSync(join(os.tmpdir(), "es-compare-gate-regression-"));
+
+        const baseline = {
+          schemaVersion: 1,
+          projectRoot: tmpDir,
+          testCases: [{ title: "scenario A", status: "pass" }],
+        };
+        const current = {
+          schemaVersion: 1,
+          projectRoot: tmpDir,
+          testCases: [{ title: "scenario A", status: "fail" }],
+        };
+        const baselinePath = join(tmpDir, "baseline.json");
+        const currentPath = join(tmpDir, "current.json");
+        fs.writeFileSync(baselinePath, JSON.stringify(baseline), "utf8");
+        fs.writeFileSync(currentPath, JSON.stringify(current), "utf8");
+
+        const result = spawnSync(
+          "node",
+          [
+            packagedCliPath,
+            "compare",
+            baselinePath,
+            currentPath,
+            "--format",
+            "markdown",
+            "--output-dir",
+            tmpDir,
+            "--fail-on-regression",
+          ],
+          { cwd: packageDir, encoding: "utf8" },
+        );
+
+        expect(result.status).toBe(5);
+        expect(result.stderr).toContain("Compare gate failed");
+      },
+      30_000
+    );
+
+    it(
+      "exits with compare gate code when added failing scenarios are present and --fail-on-added-failures is set",
+      () => {
+        ensurePackagedCliBuilt();
+        tmpDir = fs.mkdtempSync(join(os.tmpdir(), "es-compare-gate-added-failures-"));
+
+        const baseline = {
+          schemaVersion: 1,
+          projectRoot: tmpDir,
+          testCases: [{ title: "scenario A", status: "pass" }],
+        };
+        const current = {
+          schemaVersion: 1,
+          projectRoot: tmpDir,
+          testCases: [
+            { title: "scenario A", status: "pass" },
+            { title: "scenario B", status: "fail" },
+          ],
+        };
+        const baselinePath = join(tmpDir, "baseline.json");
+        const currentPath = join(tmpDir, "current.json");
+        fs.writeFileSync(baselinePath, JSON.stringify(baseline), "utf8");
+        fs.writeFileSync(currentPath, JSON.stringify(current), "utf8");
+
+        const result = spawnSync(
+          "node",
+          [
+            packagedCliPath,
+            "compare",
+            baselinePath,
+            currentPath,
+            "--format",
+            "markdown",
+            "--output-dir",
+            tmpDir,
+            "--fail-on-added-failures",
+          ],
+          { cwd: packageDir, encoding: "utf8" },
+        );
+
+        expect(result.status).toBe(5);
+        expect(result.stderr).toContain("Compare gate failed");
+      },
+      30_000
+    );
+
+    it(
+      "passes when regressions do not exceed --max-regressions threshold",
+      () => {
+        ensurePackagedCliBuilt();
+        tmpDir = fs.mkdtempSync(join(os.tmpdir(), "es-compare-gate-threshold-"));
+
+        const baseline = {
+          schemaVersion: 1,
+          projectRoot: tmpDir,
+          testCases: [{ title: "scenario A", status: "pass" }],
+        };
+        const current = {
+          schemaVersion: 1,
+          projectRoot: tmpDir,
+          testCases: [{ title: "scenario A", status: "fail" }],
+        };
+        const baselinePath = join(tmpDir, "baseline.json");
+        const currentPath = join(tmpDir, "current.json");
+        fs.writeFileSync(baselinePath, JSON.stringify(baseline), "utf8");
+        fs.writeFileSync(currentPath, JSON.stringify(current), "utf8");
+
+        const result = spawnSync(
+          "node",
+          [
+            packagedCliPath,
+            "compare",
+            baselinePath,
+            currentPath,
+            "--format",
+            "markdown",
+            "--output-dir",
+            tmpDir,
+            "--max-regressions",
+            "1",
+          ],
+          { cwd: packageDir, encoding: "utf8" },
+        );
+
+        expect(result.status).toBe(0);
+      },
+      30_000
+    );
+
+    it(
+      "fails with usage exit code for invalid --max-regressions value",
+      () => {
+        ensurePackagedCliBuilt();
+        tmpDir = fs.mkdtempSync(join(os.tmpdir(), "es-compare-gate-invalid-threshold-"));
+
+        const baseline = {
+          schemaVersion: 1,
+          projectRoot: tmpDir,
+          testCases: [{ title: "scenario A", status: "pass" }],
+        };
+        const current = {
+          schemaVersion: 1,
+          projectRoot: tmpDir,
+          testCases: [{ title: "scenario A", status: "pass" }],
+        };
+        const baselinePath = join(tmpDir, "baseline.json");
+        const currentPath = join(tmpDir, "current.json");
+        fs.writeFileSync(baselinePath, JSON.stringify(baseline), "utf8");
+        fs.writeFileSync(currentPath, JSON.stringify(current), "utf8");
+
+        const result = spawnSync(
+          "node",
+          [
+            packagedCliPath,
+            "compare",
+            baselinePath,
+            currentPath,
+            "--format",
+            "markdown",
+            "--max-regressions",
+            "-1",
+          ],
+          { cwd: packageDir, encoding: "utf8" },
+        );
+
+        expect(result.status).toBe(4);
+        expect(result.stderr).toContain("--max-regressions");
+      },
+      30_000
+    );
+
+    it(
+      "fails compare gate when combined conditions are enabled",
+      () => {
+        ensurePackagedCliBuilt();
+        tmpDir = fs.mkdtempSync(join(os.tmpdir(), "es-compare-gate-combined-"));
+
+        const baseline = {
+          schemaVersion: 1,
+          projectRoot: tmpDir,
+          testCases: [{ title: "scenario A", status: "pass" }],
+        };
+        const current = {
+          schemaVersion: 1,
+          projectRoot: tmpDir,
+          testCases: [
+            { title: "scenario A", status: "fail" }, // regressed
+            { title: "scenario B", status: "fail" }, // added failing
+          ],
+        };
+        const baselinePath = join(tmpDir, "baseline.json");
+        const currentPath = join(tmpDir, "current.json");
+        fs.writeFileSync(baselinePath, JSON.stringify(baseline), "utf8");
+        fs.writeFileSync(currentPath, JSON.stringify(current), "utf8");
+
+        const result = spawnSync(
+          "node",
+          [
+            packagedCliPath,
+            "compare",
+            baselinePath,
+            currentPath,
+            "--format",
+            "markdown",
+            "--fail-on-regression",
+            "--fail-on-added-failures",
+            "--max-regressions",
+            "0",
+          ],
+          { cwd: packageDir, encoding: "utf8" },
+        );
+
+        expect(result.status).toBe(5);
+        expect(result.stderr).toContain("Compare gate failed");
+      },
+      30_000
     );
   });
 });

@@ -40,6 +40,12 @@ async function statSet(target: string): Promise<Set<string>> {
   for (const f of ['playwright.config.ts', 'playwright.config.js', 'playwright.config.mjs']) {
     if (await exists(join(target, f))) { flags.add('playwright-config'); break; }
   }
+  for (const f of ['jest.config.ts', 'jest.config.js', 'jest.config.mjs', 'jest.config.cjs', 'jest.config.json']) {
+    if (await exists(join(target, f))) { flags.add('jest-config'); break; }
+  }
+  for (const f of ['cypress.config.ts', 'cypress.config.js', 'cypress.config.mjs', 'cypress.config.cjs']) {
+    if (await exists(join(target, f))) { flags.add('cypress-config'); break; }
+  }
   return flags;
 }
 
@@ -119,7 +125,11 @@ export async function detectRepo(args: { cwd: string }, _deps: unknown): Promise
     hasTypeScript: (t) => stats.get(t)?.has('ts') ?? false,
     hasVitest: (t) => depPresent(pkgCache.get(t) ?? rootPkg, 'vitest'),
     hasPlaywright: (t) => depPresent(pkgCache.get(t) ?? rootPkg, '@playwright/test'),
+    hasJest: (t) => depPresent(pkgCache.get(t) ?? rootPkg, 'jest'),
+    hasCypress: (t) => depPresent(pkgCache.get(t) ?? rootPkg, 'cypress'),
     hasExistingVitestConfig: (t) => stats.get(t)?.has('vitest-config') ?? false,
     hasExistingPlaywrightConfig: (t) => stats.get(t)?.has('playwright-config') ?? false,
+    hasExistingJestConfig: (t) => stats.get(t)?.has('jest-config') ?? false,
+    hasExistingCypressConfig: (t) => stats.get(t)?.has('cypress-config') ?? false,
   };
 }

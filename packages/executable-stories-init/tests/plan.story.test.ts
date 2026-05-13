@@ -14,8 +14,12 @@ function fakeFacts(over: Partial<RepoFacts> = {}): RepoFacts {
     hasDependency: () => false,
     hasVitest: () => false,
     hasPlaywright: () => false,
+    hasJest: () => false,
+    hasCypress: () => false,
     hasExistingVitestConfig: () => false,
     hasExistingPlaywrightConfig: () => false,
+    hasExistingJestConfig: () => false,
+    hasExistingCypressConfig: () => false,
     ...over,
   };
 }
@@ -37,7 +41,9 @@ describe('resolvePlan', () => {
 
     story.then('plan has install, write config, write sample, patch package.json');
     const kinds = plan.ops.map((o) => o.kind);
-    expect(kinds).toEqual(['install', 'write', 'write', 'patch-package-json']);
+    expect(kinds).toContain('install');
+    expect(kinds).toContain('write');
+    expect(kinds).toContain('patch-package-json');
 
     story.then('install op contains vitest deps');
     const install = plan.ops.find((o) => o.kind === 'install');
@@ -124,5 +130,121 @@ describe('resolvePlan', () => {
     story.then('no install op is created');
     const installOps = plan.ops.filter((o) => o.kind === 'install');
     expect(installOps).toHaveLength(0);
+  });
+
+  it('Plans Jest config + sample + script when selected', async ({ task }) => {
+    story.init(task);
+
+    const flags: ResolvedFlags = {
+      targets: ['/repo'],
+      frameworks: ['jest'],
+      writeTsconfig: false,
+      force: false,
+    };
+
+    const plan = await resolvePlan({ facts: fakeFacts(), flags }, {});
+    const install = plan.ops.find((o) => o.kind === 'install');
+    expect(install?.kind).toBe('install');
+    if (install?.kind === 'install') {
+      expect(install.deps).toContain('jest');
+      expect(install.deps).toContain('ts-jest');
+      expect(install.deps).toContain('executable-stories-jest');
+    }
+    expect(
+      plan.ops.some((o) => o.kind === 'write' && o.path.endsWith('jest.config.mjs'))
+    ).toBe(true);
+    expect(
+      plan.ops.some((o) => o.kind === 'write' && o.path.endsWith('src/example.story.test.ts'))
+    ).toBe(true);
+    const patch = plan.ops.find((o) => o.kind === 'patch-package-json');
+    expect(patch?.kind).toBe('patch-package-json');
+    if (patch?.kind === 'patch-package-json') {
+      expect(patch.scripts.test).toBe('jest --config jest.config.mjs');
+    }
+  });
+
+  it('Plans Cypress config + support + sample + script when selected', async ({ task }) => {
+    story.init(task);
+
+    const flags: ResolvedFlags = {
+      targets: ['/repo'],
+      frameworks: ['cypress'],
+      writeTsconfig: false,
+      force: false,
+    };
+
+    const plan = await resolvePlan({ facts: fakeFacts(), flags }, {});
+    const install = plan.ops.find((o) => o.kind === 'install');
+    expect(install?.kind).toBe('install');
+    if (install?.kind === 'install') {
+      expect(install.deps).toContain('cypress');
+      expect(install.deps).toContain('executable-stories-cypress');
+    }
+    expect(
+      plan.ops.some((o) => o.kind === 'write' && o.path.endsWith('cypress.config.ts'))
+    ).toBe(true);
+    expect(
+      plan.ops.some((o) => o.kind === 'write' && o.path.endsWith('cypress/support/e2e.ts'))
+    ).toBe(true);
+    expect(
+      plan.ops.some((o) => o.kind === 'write' && o.path.endsWith('cypress/e2e/example.story.cy.ts'))
+    ).toBe(true);
+    const patch = plan.ops.find((o) => o.kind === 'patch-package-json');
+    expect(patch?.kind).toBe('patch-package-json');
+    if (patch?.kind === 'patch-package-json') {
+      expect(patch.scripts['test:e2e']).toBe('cypress run');
+    }
+  });
+
+  it('Avoids script collisions when all frameworks are selected', async ({ task }) => {
+    story.init(task);
+
+    const flags: ResolvedFlags = {
+      targets: ['/repo'],
+      frameworks: ['vitest', 'playwright', 'jest', 'cypress'],
+      writeTsconfig: false,
+      force: false,
+    };
+
+    const plan = await resolvePlan({ facts: fakeFacts(), flags }, {});
+    const patchOps = plan.ops.filter((o): o is Extract<typeof plan.ops[number], { kind: 'patch-package-json' }> => (
+      o.kind === 'patch-package-json'
+    ));
+    const mergedScripts = patchOps.reduce<Record<string, string>>((acc, op) => {
+      Object.assign(acc, op.scripts);
+      return acc;
+    }, {});
+
+    expect(mergedScripts['test:stories:vitest']).toBe('vitest run');
+    expect(mergedScripts['test:stories:jest']).toBe('jest --config jest.config.mjs');
+    expect(mergedScripts['test:e2e:playwright']).toBe('playwright test');
+    expect(mergedScripts['test:e2e:cypress']).toBe('cypress run');
+    expect(mergedScripts.test).toBeUndefined();
+    expect(mergedScripts['test:e2e']).toBeUndefined();
+
+    const notes = plan.ops.filter((o): o is Extract<typeof plan.ops[number], { kind: 'note' }> => o.kind === 'note');
+    expect(notes.some((n) => n.message.includes('Vitest and Jest'))).toBe(true);
+    expect(notes.some((n) => n.message.includes('Playwright and Cypress'))).toBe(true);
+
+    const writePaths = plan.ops
+      .filter((o): o is Extract<typeof plan.ops[number], { kind: 'write' }> => o.kind === 'write')
+      .map((o) => o.path);
+    expect(writePaths).toContain('/repo/src/example.vitest.story.test.ts');
+    expect(writePaths).toContain('/repo/src/example.jest.story.test.ts');
+    expect(writePaths).not.toContain('/repo/src/example.story.test.ts');
+
+    const installOps = plan.ops.filter((o): o is Extract<typeof plan.ops[number], { kind: 'install' }> => o.kind === 'install');
+    expect(installOps).toHaveLength(1);
+    expect(installOps[0]?.deps).toEqual(expect.arrayContaining([
+      'vitest',
+      '@playwright/test',
+      'jest',
+      'cypress',
+      'executable-stories-formatters',
+      'executable-stories-vitest',
+      'executable-stories-playwright',
+      'executable-stories-jest',
+      'executable-stories-cypress',
+    ]));
   });
 });

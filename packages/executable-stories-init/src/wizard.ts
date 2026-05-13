@@ -33,6 +33,16 @@ export async function runWizard(
         label: 'Playwright',
         hint: facts.hasPlaywright(facts.cwd) ? 'already installed' : undefined,
       },
+      {
+        value: 'jest',
+        label: 'Jest',
+        hint: facts.hasJest(facts.cwd) ? 'already installed' : undefined,
+      },
+      {
+        value: 'cypress',
+        label: 'Cypress',
+        hint: facts.hasCypress(facts.cwd) ? 'already installed' : undefined,
+      },
     ],
     required: true,
   });

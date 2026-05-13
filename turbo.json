@@ -28,7 +28,7 @@
       ]
     },
     "test": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["^build", "executable-stories-formatters#build"],
       "inputs": [
         "$TURBO_DEFAULT$",
         "!dist/**",

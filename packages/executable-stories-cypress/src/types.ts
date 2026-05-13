@@ -72,6 +72,7 @@ export interface StoryOptions {
   tags?: string[];
   ticket?: TicketInput | TicketInput[];
   meta?: Record<string, unknown>;
+  traceUrlTemplate?: string;
 }
 
 /** Options for story.attach(). */

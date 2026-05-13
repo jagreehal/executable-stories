@@ -12,6 +12,7 @@ import { runWizard } from './wizard';
 import type { Framework, ResolvedFlags, Plan } from './types';
 import { resolveTargets } from './targets';
 import { formatCliError } from './errors';
+import { resolveFrameworks } from './flags';
 
 async function confirmPlan(plan: Plan): Promise<boolean> {
   const lines = [
@@ -37,11 +38,14 @@ const program = new Command();
 
 program
   .name('executable-stories-init')
-  .description('Bootstrap executable-stories (Vitest + Playwright) into a TypeScript repo')
+  .description('Bootstrap executable-stories (Vitest, Playwright, Jest, Cypress) into a TypeScript repo')
   .argument('[target]', 'target directory (defaults to cwd)')
   .option('--vitest', 'set up Vitest')
   .option('--playwright', 'set up Playwright')
+  .option('--jest', 'set up Jest')
+  .option('--cypress', 'set up Cypress')
   .option('--both', 'set up both Vitest and Playwright')
+  .option('--all', 'set up Vitest, Playwright, Jest, and Cypress')
   .option('--ts', 'write tsconfig.json if missing')
   .option('--no-ts', 'do not write tsconfig.json')
   .option('-y, --yes', 'accept all defaults, non-interactive')
@@ -57,12 +61,17 @@ program
       const deps = buildDeps(cliOpts, cwd);
       const facts = await detectRepo({ cwd }, deps);
 
-      const frameworks: Framework[] = opts.both
-        ? ['vitest', 'playwright']
-        : ([opts.vitest && 'vitest', opts.playwright && 'playwright'].filter(Boolean) as Framework[]);
+      const frameworks: Framework[] = resolveFrameworks(opts as {
+        all?: boolean;
+        both?: boolean;
+        vitest?: boolean;
+        playwright?: boolean;
+        jest?: boolean;
+        cypress?: boolean;
+      });
 
       if (frameworks.length === 0 && cliOpts.json) {
-        console.error(formatCliError('--json requires at least one of --vitest, --playwright, --both', true));
+        console.error(formatCliError('--json requires at least one framework flag (--vitest, --playwright, --jest, --cypress, --both, --all)', true));
         process.exit(2);
       }
 
