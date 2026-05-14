@@ -1,5 +1,12 @@
 # executable-stories-playwright
 
+## 8.2.12
+
+### Patch Changes
+
+- Updated dependencies [6c87c1f]
+  - executable-stories-formatters@0.7.15
+
 ## 8.2.11
 
 ### Patch Changes

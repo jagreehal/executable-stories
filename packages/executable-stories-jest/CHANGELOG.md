@@ -1,5 +1,12 @@
 # executable-stories-jest
 
+## 8.1.16
+
+### Patch Changes
+
+- Updated dependencies [6c87c1f]
+  - executable-stories-formatters@0.7.15
+
 ## 8.1.15
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "executable-stories-formatters",
-  "version": "0.7.14",
+  "version": "0.7.15",
   "description": "Cucumber-compatible report formats (HTML, Markdown, JUnit XML, Cucumber JSON) for executable-stories test results.",
   "author": "Jag Reehal <jag@jagreehal.com>",
   "license": "MIT",
