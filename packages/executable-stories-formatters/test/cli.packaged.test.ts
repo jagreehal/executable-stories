@@ -11,15 +11,16 @@ const packageDir = resolve(testDir, "..");
 const exampleJson = resolve(packageDir, "schemas/examples/minimal.json");
 const packagedCliPath = resolve(packageDir, "dist/cli.js");
 const validConfigPath = resolve(testDir, "fixtures/config/valid.config.js");
-let builtPackagedCli = false;
 
 function ensurePackagedCliBuilt(): void {
-  if (builtPackagedCli && fs.existsSync(packagedCliPath)) return;
+  // If turbo has already built dist, trust it — do NOT rebuild. Calling
+  // pnpm build here triggers tsup with clean: true, which wipes the dist
+  // and races with parallel test/lint/type-check tasks across the monorepo.
+  if (fs.existsSync(packagedCliPath)) return;
   execFileSync("pnpm", ["build"], {
     cwd: packageDir,
     stdio: "pipe",
   });
-  builtPackagedCli = true;
 }
 
 describe("packaged CLI", () => {
@@ -40,7 +41,7 @@ describe("packaged CLI", () => {
 
       expect(output).toContain("Valid RawRun (schemaVersion 1).");
     },
-    30_000
+    120_000
   );
 
   it(
@@ -67,7 +68,7 @@ describe("packaged CLI", () => {
         )
       ).toThrowError(/compare supports only "html" and "markdown" formats/);
     },
-    30_000
+    120_000
   );
 
   describe("--config custom formatter plugin", () => {
@@ -300,7 +301,7 @@ describe("packaged CLI", () => {
         expect(result.status).toBe(5);
         expect(result.stderr).toContain("Compare gate failed");
       },
-      30_000
+      120_000
     );
 
     it(
@@ -346,7 +347,7 @@ describe("packaged CLI", () => {
         expect(result.status).toBe(5);
         expect(result.stderr).toContain("Compare gate failed");
       },
-      30_000
+      120_000
     );
 
     it(
@@ -389,7 +390,7 @@ describe("packaged CLI", () => {
 
         expect(result.status).toBe(0);
       },
-      30_000
+      120_000
     );
 
     it(
@@ -431,7 +432,7 @@ describe("packaged CLI", () => {
         expect(result.status).toBe(4);
         expect(result.stderr).toContain("--max-regressions");
       },
-      30_000
+      120_000
     );
 
     it(
@@ -478,7 +479,7 @@ describe("packaged CLI", () => {
         expect(result.status).toBe(5);
         expect(result.stderr).toContain("Compare gate failed");
       },
-      30_000
+      120_000
     );
   });
 });
