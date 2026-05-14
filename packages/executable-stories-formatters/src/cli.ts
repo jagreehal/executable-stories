@@ -49,6 +49,7 @@ const EXIT_SCHEMA_VALIDATION = 1;
 const EXIT_CANONICAL_VALIDATION = 2;
 const EXIT_GENERATION = 3;
 const EXIT_USAGE = 4;
+const EXIT_COMPARE_GATE = 5;
 
 // ============================================================================
 // CLI Argument Parsing
@@ -118,6 +119,9 @@ OPTIONS
   --baseline-dir <dir>          Directory to scan when --baseline auto is used
   --pr-summary                  Print a PR-friendly markdown summary after compare
   --pr-summary-file <path>      Write the PR-friendly markdown summary to a file
+  --fail-on-regression          Exit non-zero when any regression is detected in compare
+  --fail-on-added-failures      Exit non-zero when newly added scenarios are failing
+  --max-regressions <n>         Exit non-zero when regressions exceed threshold
   --emit-canonical <path>       Write canonical JSON to given path
   --help                        Show this help message
 
@@ -181,6 +185,7 @@ EXIT CODES
   2  Canonical validation failure
   3  Formatter/generation failure
   4  Bad arguments / usage error
+  5  Compare gate failed
 `.trim();
 
 interface CliArgs {
@@ -231,6 +236,9 @@ interface CliArgs {
   allowMissingAssets: boolean;
   prSummary: boolean;
   prSummaryFile?: string;
+  failOnRegression: boolean;
+  failOnAddedFailures: boolean;
+  maxRegressions?: number;
   config?: string;
 }
 
@@ -354,6 +362,9 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
       "allow-missing-assets": { type: "boolean", default: false },
       "pr-summary": { type: "boolean", default: false },
       "pr-summary-file": { type: "string" },
+      "fail-on-regression": { type: "boolean", default: false },
+      "fail-on-added-failures": { type: "boolean", default: false },
+      "max-regressions": { type: "string" },
       "config": { type: "string" },
       help: { type: "boolean", default: false },
     },
@@ -508,6 +519,17 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
     process.exit(EXIT_USAGE);
   }
 
+  const maxRegressionsStr = values["max-regressions"] as string | undefined;
+  const maxRegressions =
+    maxRegressionsStr !== undefined ? parseInt(maxRegressionsStr, 10) : undefined;
+  if (
+    maxRegressionsStr !== undefined &&
+    (isNaN(maxRegressions as number) || (maxRegressions as number) < 0)
+  ) {
+    console.error(`Error: --max-regressions must be a non-negative integer, got "${maxRegressionsStr}".`);
+    process.exit(EXIT_USAGE);
+  }
+
   const sortTestCasesRaw = values["sort-test-cases"] as string;
   const validSortModes = new Set(["id", "source", "none"]);
   if (!validSortModes.has(sortTestCasesRaw)) {
@@ -570,6 +592,9 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
     allowMissingAssets: values["allow-missing-assets"] as boolean,
     prSummary: values["pr-summary"] as boolean,
     prSummaryFile: values["pr-summary-file"] as string | undefined,
+    failOnRegression: values["fail-on-regression"] as boolean,
+    failOnAddedFailures: values["fail-on-added-failures"] as boolean,
+    maxRegressions,
     config: values["config"] as string | undefined,
   };
 
@@ -834,6 +859,13 @@ async function main() {
     try {
       const result = await generateCompareReports(baseline, current, baselineFile, args);
       printCompareResult(result, args, startMs);
+      const gateFailures = evaluateCompareGate(result, args);
+      if (gateFailures.length > 0) {
+        for (const failure of gateFailures) {
+          console.error(`Compare gate failed: ${failure}`);
+        }
+        process.exit(EXIT_COMPARE_GATE);
+      }
       process.exit(EXIT_SUCCESS);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -1213,6 +1245,7 @@ interface CliResult {
 interface CompareCliResult {
   files: string[];
   baselineFile: string;
+  addedFailures: number;
   summary: {
     added: number;
     removed: number;
@@ -1302,6 +1335,10 @@ async function generateCompareReports(
   return {
     files: result.files,
     baselineFile,
+    addedFailures: result.diff.scenarios.filter(
+      (scenario) =>
+        scenario.kind === "added" && scenario.current?.status === "failed"
+    ).length,
     summary: result.diff.summary,
     prSummary: args.prSummary || args.prSummaryFile ? createPrCommentSummary(result.diff) : undefined,
   };
@@ -1351,6 +1388,7 @@ function printCompareResult(
         {
           files: result.files,
           baselineFile: result.baselineFile,
+          addedFailures: result.addedFailures,
           diff: result.summary,
           prSummary: result.prSummary,
           durationMs,
@@ -1370,6 +1408,32 @@ function printCompareResult(
     console.log("");
     console.log(result.prSummary);
   }
+}
+
+function evaluateCompareGate(
+  result: CompareCliResult,
+  args: CliArgs,
+): string[] {
+  const failures: string[] = [];
+  if (args.failOnRegression && result.summary.regressed > 0) {
+    failures.push(
+      `regressions detected (${result.summary.regressed}) with --fail-on-regression`
+    );
+  }
+  if (args.failOnAddedFailures && result.addedFailures > 0) {
+    failures.push(
+      `new failing scenarios detected (${result.addedFailures}) with --fail-on-added-failures`
+    );
+  }
+  if (
+    args.maxRegressions !== undefined &&
+    result.summary.regressed > args.maxRegressions
+  ) {
+    failures.push(
+      `regressions ${result.summary.regressed} exceed --max-regressions ${args.maxRegressions}`
+    );
+  }
+  return failures;
 }
 
 async function runPublishConfluence(rawArgs: string[]): Promise<void> {

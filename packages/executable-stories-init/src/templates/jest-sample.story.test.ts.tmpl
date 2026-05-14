@@ -1,0 +1,18 @@
+import { describe, expect, it } from '@jest/globals';
+import { story } from 'executable-stories-jest';
+
+describe('Calculator', () => {
+  it('Adds two numbers', () => {
+    story.init();
+
+    story.given('two numbers 2 and 3');
+    const a = 2;
+    const b = 3;
+
+    story.when('the numbers are added');
+    const result = a + b;
+
+    story.then('the result is 5');
+    expect(result).toBe(5);
+  });
+});

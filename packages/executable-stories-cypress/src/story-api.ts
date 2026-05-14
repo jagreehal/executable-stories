@@ -27,6 +27,7 @@
 
 import type {
   StepKeyword,
+  StepMode,
   StoryMeta,
   StoryStep,
   DocEntry,
@@ -84,7 +85,15 @@ interface StoryContext {
   specRelative: string;
   titlePath: string[];
   otelSpans?: ReadonlyArray<Record<string, unknown>>;
+  traceUrlTemplate?: string;
+  traceDocAdded: boolean;
 }
+
+type ScenarioBody = () => unknown;
+type ItLike = ((title: string, body: ScenarioBody) => unknown) & {
+  skip?: (title: string, body: ScenarioBody) => unknown;
+  only?: (title: string, body: ScenarioBody) => unknown;
+};
 
 // ============================================================================
 // Cypress-specific context
@@ -238,11 +247,38 @@ function extractSuitePath(titlePath: string[]): string[] | undefined {
   return suitePath.length > 0 ? suitePath : undefined;
 }
 
+function extractTraceIdFromSpans(
+  spans: ReadonlyArray<Record<string, unknown>>,
+): string | undefined {
+  for (const span of spans) {
+    const direct = span.traceId;
+    if (typeof direct === 'string' && direct.length > 0) return direct;
+
+    const context = span.context;
+    if (context && typeof context === 'object' && context !== null) {
+      const nested = (context as { traceId?: unknown }).traceId;
+      if (typeof nested === 'string' && nested.length > 0) return nested;
+    }
+  }
+  return undefined;
+}
+
 // ============================================================================
 // Step markers
 // ============================================================================
 
-function createStepMarker(keyword: StepKeyword) {
+export type StepMarker = {
+  (text: string, docs?: StoryDocs): void;
+  (text: string, children: DocEntry[]): void;
+  <T>(text: string, body: () => T): T;
+  skip: StepMarker;
+  only: StepMarker;
+  todo: StepMarker;
+  fails: StepMarker;
+  concurrent: StepMarker;
+};
+
+function createStepMarker(keyword: StepKeyword, mode?: StepMode): StepMarker {
   function stepMarker(text: string, docs?: StoryDocs): void;
   function stepMarker(text: string, children: DocEntry[]): void;
   function stepMarker<T>(text: string, body: () => T): T;
@@ -267,6 +303,7 @@ function createStepMarker(keyword: StepKeyword) {
       keyword: resolvedKeyword,
       text,
       docs: stepDocs,
+      ...(mode ? { mode } : {}),
       ...(isCallback ? { wrapped: true } : {}),
     };
 
@@ -311,14 +348,20 @@ function createStepMarker(keyword: StepKeyword) {
       throw err;
     }
   }
-  return stepMarker;
+  const marker = stepMarker as StepMarker;
+  marker.skip = mode ? marker : createStepMarker(keyword, 'skip');
+  marker.only = mode ? marker : createStepMarker(keyword, 'only');
+  marker.todo = mode ? marker : createStepMarker(keyword, 'todo');
+  marker.fails = mode ? marker : createStepMarker(keyword, 'fails');
+  marker.concurrent = mode ? marker : createStepMarker(keyword, 'concurrent');
+  return marker;
 }
 
 // ============================================================================
 // story.init() - Cypress-specific
 // ============================================================================
 
-function init(options?: StoryOptions): void {
+function init(options?: StoryOptions, scenarioOverride?: string): void {
   const currentTest = Cypress.currentTest;
   const spec = Cypress.spec;
   if (!currentTest) {
@@ -326,7 +369,7 @@ function init(options?: StoryOptions): void {
   }
 
   const titlePath = currentTest.titlePath ?? [currentTest.title];
-  const scenario = currentTest.title;
+  const scenario = scenarioOverride ?? currentTest.title;
   const suitePath = extractSuitePath(titlePath);
   const specRelative = spec?.relative ?? "unknown";
 
@@ -349,7 +392,32 @@ function init(options?: StoryOptions): void {
     timerCounter: 0,
     specRelative,
     titlePath,
+    traceUrlTemplate: options?.traceUrlTemplate,
+    traceDocAdded: false,
   };
+}
+
+function runScenario(mode: 'normal' | 'skip' | 'only', title: string, body: ScenarioBody, options?: StoryOptions): unknown {
+  const globalIt = (globalThis as { it?: ItLike }).it;
+  if (!globalIt) {
+    throw new Error('Global it() is not available. Use story.skip/story.only inside Cypress spec files.');
+  }
+
+  const runner =
+    mode === 'skip'
+      ? globalIt.skip
+      : mode === 'only'
+        ? globalIt.only
+        : globalIt;
+
+  if (!runner) {
+    throw new Error(`Global it.${mode}() is not available in this environment.`);
+  }
+
+  return runner(title, () => {
+    init(options);
+    return body();
+  });
 }
 
 /**
@@ -434,6 +502,12 @@ function storyExpect<T>(text: string, body: () => T): T {
 
 export const story = {
   init,
+  skip(title: string, body: ScenarioBody, options?: StoryOptions): unknown {
+    return runScenario('skip', title, body, options);
+  },
+  only(title: string, body: ScenarioBody, options?: StoryOptions): unknown {
+    return runScenario('only', title, body, options);
+  },
 
   // BDD step markers
   given: createStepMarker('Given'),
@@ -518,6 +592,24 @@ export const story = {
   attachSpans(spans: ReadonlyArray<Record<string, unknown>>): void {
     const ctx = getContext();
     ctx.otelSpans = spans;
+
+    if (ctx.traceDocAdded) return;
+    const traceId = extractTraceIdFromSpans(spans);
+    if (!traceId) return;
+
+    ctx.meta.meta = {
+      ...ctx.meta.meta,
+      otel: { traceId },
+    };
+    ctx.meta.docs ??= [];
+    ctx.meta.docs.push({ kind: 'kv', label: 'Trace ID', value: traceId, phase: 'runtime' });
+
+    const template = ctx.traceUrlTemplate;
+    if (template) {
+      const url = template.replace('{traceId}', traceId);
+      ctx.meta.docs.push({ kind: 'link', label: 'View Trace', url, phase: 'runtime' });
+    }
+    ctx.traceDocAdded = true;
   },
 
   // Step timing
@@ -560,6 +652,33 @@ export const story = {
   // Step wrappers
   fn,
   expect: storyExpect,
+};
+
+const stepCallbacks = {
+  given: story.given,
+  when: story.when,
+  then: story.then,
+  and: story.and,
+  but: story.but,
+  arrange: story.arrange,
+  act: story.act,
+  assert: story.assert,
+  setup: story.setup,
+  context: story.context,
+  execute: story.execute,
+  action: story.action,
+  verify: story.verify,
+};
+
+function docStory(title: string): void;
+function docStory(title: string, callback: (steps: typeof stepCallbacks) => void): void;
+function docStory(title: string, callback?: (steps: typeof stepCallbacks) => void): void {
+  init(undefined, title);
+  if (callback) callback(stepCallbacks);
+}
+
+export const doc = {
+  story: docStory,
 };
 
 export type Story = typeof story;

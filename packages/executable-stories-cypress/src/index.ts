@@ -25,8 +25,17 @@
  */
 
 // Story API
-export { story, getAndClearMeta } from './story-api';
-export type { Story, RecordMetaPayload } from './story-api';
+import { story, doc, getAndClearMeta } from './story-api';
+import type { StepMarker } from './story-api';
+export { story, doc, getAndClearMeta };
+export type { Story, RecordMetaPayload, StepMarker } from './story-api';
+
+// Top-level step helpers (framework contract)
+export const given: StepMarker = story.given;
+export const when: StepMarker = story.when;
+export const then: StepMarker = story.then;
+export const and: StepMarker = story.and;
+export const but: StepMarker = story.but;
 
 // Re-export types from local types module
 export type {

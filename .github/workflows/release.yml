@@ -113,7 +113,7 @@ jobs:
           bun build src/cli.ts --compile --target=bun-windows-x64 --outfile executable-stories-windows-x64
 
       - name: Upload formatters binaries
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: formatters-binaries
           path: |

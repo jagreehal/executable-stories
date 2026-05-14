@@ -56,11 +56,48 @@ describe("Calculator", () => {
 });
 ```
 
+Scenario-level helpers are also available:
+
+```ts
+story.skip("legacy scenario", () => {
+  story.given("legacy behavior");
+});
+
+story.only("focused scenario", () => {
+  story.given("focused behavior");
+});
+```
+
+Framework-native attach to plain Cypress tests:
+
+```ts
+import { doc, story } from "executable-stories-cypress";
+
+it("plain test name", () => {
+  doc.story("Friendly scenario title");
+  story.given("documented setup");
+});
+```
+
+Step markers support metadata modifiers for report intent:
+
+```ts
+story.given.skip("legacy precondition");
+story.when.concurrent("action can run in parallel");
+story.then.todo("assertion to implement");
+```
+
 With options:
 
 ```ts
-story.init({ tags: ["smoke"], ticket: "JIRA-123" });
+story.init({
+  tags: ["smoke"],
+  ticket: "JIRA-123",
+  traceUrlTemplate: "https://grafana.example.com/explore?traceId={traceId}",
+});
 ```
+
+When `traceUrlTemplate` is set and spans are attached via `story.attachSpans(...)`, the story docs include a `Trace ID` entry and a `View Trace` link.
 
 ## Reporter options
 
@@ -73,7 +110,7 @@ Options match the formatters’ `FormatterOptions` (e.g. `formats`, `outputDir`,
 
 ## Exports
 
-- **Main:** `story`, `getAndClearMeta`, types from `executable-stories-cypress`.
+- **Main:** `story`, `doc`, `getAndClearMeta`, types from `executable-stories-cypress`.
 - **Support:** `executable-stories-cypress/support` (side-effect: registers `afterEach` + `cy.task`).
 - **Plugin:** `registerExecutableStoriesPlugin` from `executable-stories-cypress/plugin`.
 - **Reporter:** default reporter and `buildRawRunFromCypressResult`, `generateReportsFromRawRun` from `executable-stories-cypress/reporter`.

@@ -17,8 +17,12 @@ function fakeFacts(over: Partial<RepoFacts> = {}): RepoFacts {
     hasDependency: () => false,
     hasVitest: () => false,
     hasPlaywright: () => false,
+    hasJest: () => false,
+    hasCypress: () => false,
     hasExistingVitestConfig: () => false,
     hasExistingPlaywrightConfig: () => false,
+    hasExistingJestConfig: () => false,
+    hasExistingCypressConfig: () => false,
     ...over,
   };
 }

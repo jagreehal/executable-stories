@@ -24,7 +24,7 @@ const mockSpec = {
 };
 
 // Import after setting up globals
-const { story, getAndClearMeta } = await import("../story-api");
+const { story, doc, getAndClearMeta } = await import("../story-api");
 
 function resetForTest(title: string, titlePath?: string[]) {
   mockCurrentTest.title = title;
@@ -432,5 +432,210 @@ describe("ticket normalization for objects", () => {
 
     const payload = getAndClearMeta();
     expect(payload!.meta.tickets).toBeUndefined();
+  });
+});
+
+describe("trace url template", () => {
+  beforeEach(() => {
+    resetForTest("trace docs");
+  });
+
+  afterEach(() => {
+    getAndClearMeta();
+  });
+
+  it("adds trace docs when traceId exists in attached spans", () => {
+    story.init({
+      traceUrlTemplate: "https://grafana.example.com/explore?traceId={traceId}",
+    });
+    story.attachSpans([{ traceId: "trace-123", spanId: "span-1" }]);
+
+    const payload = getAndClearMeta();
+    expect(payload!.meta.meta).toEqual({ otel: { traceId: "trace-123" } });
+    expect(payload!.meta.docs).toEqual([
+      { kind: "kv", label: "Trace ID", value: "trace-123", phase: "runtime" },
+      {
+        kind: "link",
+        label: "View Trace",
+        url: "https://grafana.example.com/explore?traceId=trace-123",
+        phase: "runtime",
+      },
+    ]);
+  });
+
+  it("extracts traceId from nested context.traceId", () => {
+    story.init({ traceUrlTemplate: "https://example.com/{traceId}" });
+    story.attachSpans([{ context: { traceId: "nested-trace" } } as unknown as Record<string, unknown>]);
+
+    const payload = getAndClearMeta();
+    expect(payload!.meta.meta).toEqual({ otel: { traceId: "nested-trace" } });
+    expect(payload!.meta.docs?.[1]).toEqual({
+      kind: "link",
+      label: "View Trace",
+      url: "https://example.com/nested-trace",
+      phase: "runtime",
+    });
+  });
+
+  it("does not add trace docs when no traceId is present", () => {
+    story.init({ traceUrlTemplate: "https://example.com/{traceId}" });
+    story.attachSpans([{ spanId: "span-1" }]);
+
+    const payload = getAndClearMeta();
+    expect(payload!.meta.meta).toBeUndefined();
+    expect(payload!.meta.docs).toBeUndefined();
+  });
+});
+
+describe("step modifiers", () => {
+  beforeEach(() => {
+    resetForTest("step modifiers");
+  });
+
+  afterEach(() => {
+    getAndClearMeta();
+  });
+
+  it("records step modes for modifier variants", () => {
+    story.init();
+    story.given.skip("a skipped precondition");
+    story.when.only("an only action");
+    story.then.todo("a pending assertion");
+    story.and.fails("a known failing step");
+    story.but.concurrent("a concurrent constraint");
+
+    const payload = getAndClearMeta();
+    expect(payload!.meta.steps.map((step) => step.mode)).toEqual([
+      "skip",
+      "only",
+      "todo",
+      "fails",
+      "concurrent",
+    ]);
+  });
+
+  it("applies auto-And conversion with modifiers", () => {
+    story.init();
+    story.given("first precondition");
+    story.given.skip("second precondition");
+    story.when("first action");
+    story.when.todo("second action");
+    story.then("first assertion");
+    story.then.fails("second assertion");
+
+    const payload = getAndClearMeta();
+    expect(payload!.meta.steps.map((step) => step.keyword)).toEqual([
+      "Given",
+      "And",
+      "When",
+      "And",
+      "Then",
+      "And",
+    ]);
+    expect(payload!.meta.steps.map((step) => step.mode)).toEqual([
+      undefined,
+      "skip",
+      undefined,
+      "todo",
+      undefined,
+      "fails",
+    ]);
+  });
+});
+
+describe("scenario modifiers", () => {
+  afterEach(() => {
+    getAndClearMeta();
+    delete (globalThis as { it?: unknown }).it;
+  });
+
+  it("story.skip delegates to it.skip and initializes story context", () => {
+    const calls: Array<{ title: string }> = [];
+    const mockIt = ((title: string, body: () => void) => body()) as ((title: string, body: () => void) => void) & {
+      skip?: (title: string, body: () => void) => void;
+      only?: (title: string, body: () => void) => void;
+    };
+    mockIt.skip = (title, body) => {
+      calls.push({ title });
+      mockCurrentTest.title = title;
+      mockCurrentTest.titlePath = ["Suite", title];
+      body();
+    };
+    (globalThis as { it?: typeof mockIt }).it = mockIt;
+
+    story.skip("skipped scenario", () => {
+      story.given("a skipped setup");
+    }, { tags: ["skip"] });
+
+    const payload = getAndClearMeta();
+    expect(calls).toEqual([{ title: "skipped scenario" }]);
+    expect(payload!.meta.scenario).toBe("skipped scenario");
+    expect(payload!.meta.tags).toEqual(["skip"]);
+    expect(payload!.meta.steps[0].text).toBe("a skipped setup");
+  });
+
+  it("story.only delegates to it.only and initializes story context", () => {
+    const calls: Array<{ title: string }> = [];
+    const mockIt = ((title: string, body: () => void) => body()) as ((title: string, body: () => void) => void) & {
+      skip?: (title: string, body: () => void) => void;
+      only?: (title: string, body: () => void) => void;
+    };
+    mockIt.only = (title, body) => {
+      calls.push({ title });
+      mockCurrentTest.title = title;
+      mockCurrentTest.titlePath = ["Suite", title];
+      body();
+    };
+    (globalThis as { it?: typeof mockIt }).it = mockIt;
+
+    story.only("focused scenario", () => {
+      story.given("a focused setup");
+    });
+
+    const payload = getAndClearMeta();
+    expect(calls).toEqual([{ title: "focused scenario" }]);
+    expect(payload!.meta.scenario).toBe("focused scenario");
+    expect(payload!.meta.steps[0].text).toBe("a focused setup");
+  });
+
+  it("throws if global it is unavailable", () => {
+    expect(() => story.skip("broken", () => undefined)).toThrow(
+      "Global it() is not available"
+    );
+  });
+});
+
+describe("doc.story", () => {
+  beforeEach(() => {
+    resetForTest("native test title");
+  });
+
+  afterEach(() => {
+    getAndClearMeta();
+  });
+
+  it("overrides scenario title in plain test mode", () => {
+    doc.story("Friendly scenario title");
+    story.given("a plain test step");
+
+    const payload = getAndClearMeta();
+    expect(payload!.meta.scenario).toBe("Friendly scenario title");
+    expect(payload!.meta.steps[0].text).toBe("a plain test step");
+  });
+
+  it("supports callback form as story replacement", () => {
+    doc.story("Callback scenario", (s) => {
+      s.given("a callback setup");
+      s.when("an action happens");
+      s.then("an assertion is documented");
+    });
+
+    const payload = getAndClearMeta();
+    expect(payload!.meta.scenario).toBe("Callback scenario");
+    expect(payload!.meta.steps.map((step) => step.keyword)).toEqual([
+      "Given",
+      "When",
+      "Then",
+    ]);
   });
 });

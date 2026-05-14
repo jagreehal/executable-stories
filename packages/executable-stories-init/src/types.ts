@@ -1,5 +1,5 @@
 export type PackageManager = 'pnpm' | 'npm' | 'yarn';
-export type Framework = 'vitest' | 'playwright';
+export type Framework = 'vitest' | 'playwright' | 'jest' | 'cypress';
 
 export type WorkspacePackage = { name: string; path: string };
 
@@ -13,8 +13,12 @@ export type RepoFacts = {
   hasDependency: (target: string, dep: string) => boolean;
   hasVitest: (target: string) => boolean;
   hasPlaywright: (target: string) => boolean;
+  hasJest: (target: string) => boolean;
+  hasCypress: (target: string) => boolean;
   hasExistingVitestConfig: (target: string) => boolean;
   hasExistingPlaywrightConfig: (target: string) => boolean;
+  hasExistingJestConfig: (target: string) => boolean;
+  hasExistingCypressConfig: (target: string) => boolean;
 };
 
 export type ResolvedFlags = {

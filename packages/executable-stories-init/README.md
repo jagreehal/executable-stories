@@ -1,6 +1,6 @@
 # executable-stories-init
 
-Bootstrap [executable-stories](https://github.com/jagreehal/executable-stories) (Vitest and/or Playwright) into a TypeScript repo from zero. Detects your framework, package manager and monorepo layout, installs the right adapter, writes config, drops a sample story, and patches `package.json` scripts.
+Bootstrap [executable-stories](https://github.com/jagreehal/executable-stories) (Vitest, Playwright, Jest, and/or Cypress) into a TypeScript repo from zero. Detects your framework, package manager and monorepo layout, installs the right adapter, writes config, drops a sample story, and patches `package.json` scripts.
 
 ## Install and run
 
@@ -25,10 +25,11 @@ The wizard is interactive by default. Pass `--yes` (or `--json`) to run non-inte
 For each selected target (repo root, or one or more workspace packages):
 
 1. **Detects** existing Vitest / Playwright installs, an existing config, and TypeScript.
-2. **Installs** `executable-stories-vitest` / `executable-stories-playwright` and `executable-stories-formatters` using your repo's package manager (`pnpm`, `yarn`, or `npm`).
-3. **Writes** `vitest.config.ts` and/or `playwright.config.ts` pre-wired with `StoryReporter` (Markdown + HTML output to `reports/`).
-4. **Writes a sample story**: `tests/sample.story.test.ts` for Vitest, `tests/sample.story.spec.ts` for Playwright.
-5. **Patches `package.json` scripts**: adds `test` (Vitest) and/or `test:e2e` (Playwright).
+2. **Installs** framework adapter packages and `executable-stories-formatters` using your repo's package manager (`pnpm`, `yarn`, or `npm`).
+   - When multiple frameworks are selected for a target, dependencies are merged into one install pass.
+3. **Writes configs** (`vitest.config.ts`, `playwright.config.ts`, `jest.config.mjs`, `cypress.config.ts`) pre-wired for reporting.
+4. **Writes sample stories** in framework-appropriate locations.
+5. **Patches `package.json` scripts** for selected frameworks.
 6. **Optionally writes `tsconfig.json`** when missing and `--ts` is passed.
 
 Anything already present is left alone (or skipped with a reason). Use `--force` to overwrite differing files.
@@ -39,14 +40,19 @@ Anything already present is left alone (or skipped with a reason). Use `--force`
 | ---- | ----------- |
 | `--vitest` | Set up Vitest. |
 | `--playwright` | Set up Playwright. |
+| `--jest` | Set up Jest. |
+| `--cypress` | Set up Cypress. |
 | `--both` | Set up both Vitest and Playwright. |
+| `--all` | Set up Vitest, Playwright, Jest, and Cypress. |
 | `--target <pkg...>` | Workspace package(s) to set up. Use `root` for the repo root. Repeatable. |
 | `--ts` / `--no-ts` | Write a minimal `tsconfig.json` if missing. |
 | `-y`, `--yes` | Non-interactive; accept defaults. |
 | `--interactive` | Force prompts even when piped. |
 | `--dry-run` | Print the plan; do not write or install. |
 | `--force` | Overwrite differing existing files. |
-| `--json` | Machine-readable output. Implies `--yes`. Requires `--vitest` / `--playwright` / `--both`. |
+| `--json` | Machine-readable output. Implies `--yes`. Requires at least one framework flag (`--vitest`, `--playwright`, `--jest`, `--cypress`, `--both`, or `--all`). |
+
+`--both` and `--all` are additive with explicit framework flags. Example: `--both --jest` sets up Vitest, Playwright, and Jest.
 
 ## Examples
 
@@ -83,6 +89,12 @@ cd <target>           # repeat per selected target
 <pm> run test         # Vitest stories
 <pm> run test:e2e     # Playwright stories (if installed)
 ```
+
+If you bootstrap multiple frameworks at once, script names are collision-safe:
+
+- Vitest + Jest: `test:stories:vitest`, `test:stories:jest`
+- Playwright + Cypress: `test:e2e:playwright`, `test:e2e:cypress`
+- Vitest + Jest sample files: `src/example.vitest.story.test.ts`, `src/example.jest.story.test.ts`
 
 Open the generated report:
 

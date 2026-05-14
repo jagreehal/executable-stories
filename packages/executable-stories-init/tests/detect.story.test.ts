@@ -76,4 +76,33 @@ describe('detectRepo', () => {
 
     await cleanup();
   });
+
+  it('Detects Jest and Cypress dependencies plus existing configs', async ({ task }) => {
+    story.init(task);
+
+    story.given('a repo with jest and cypress dependencies plus existing config files');
+    const fx = await makeFixture({
+      'package.json': JSON.stringify({
+        name: 'test-app',
+        devDependencies: {
+          jest: '^30.0.0',
+          cypress: '^15.0.0',
+        },
+      }),
+      'jest.config.mjs': 'export default {}',
+      'cypress.config.ts': 'export default {}',
+    });
+    const { dir, cleanup } = fx;
+
+    story.when('we run detectRepo');
+    const facts = await detectRepo({ cwd: dir }, {});
+
+    story.then('Jest and Cypress are detected with existing config flags');
+    expect(facts.hasJest(dir)).toBe(true);
+    expect(facts.hasCypress(dir)).toBe(true);
+    expect(facts.hasExistingJestConfig(dir)).toBe(true);
+    expect(facts.hasExistingCypressConfig(dir)).toBe(true);
+
+    await cleanup();
+  });
 });

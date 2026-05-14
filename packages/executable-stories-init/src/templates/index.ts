@@ -11,8 +11,13 @@ const here = _fileDir.endsWith('/cli') ? join(_fileDir, '..', 'templates') : _fi
 const _NAMES = [
   'vitest-config.ts',
   'playwright-config.ts',
+  'jest-config.mjs',
+  'cypress-config.ts',
+  'cypress-support-e2e.ts',
   'vitest-sample.story.test.ts',
   'playwright-sample.story.spec.ts',
+  'jest-sample.story.test.ts',
+  'cypress-sample.story.cy.ts',
   'tsconfig.json',
 ] as const;
 export type TemplateName = (typeof _NAMES)[number];
