@@ -1,6 +1,6 @@
 {
   "name": "executable-stories-react",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "React components for rendering executable-stories StoryReport JSON. Semantic, SSR-safe, themeable via CSS variables.",
   "author": "Jag Reehal <jag@jagreehal.com>",
   "homepage": "https://github.com/jagreehal/executable-stories#readme",
@@ -17,7 +17,10 @@
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "sideEffects": ["./dist/styles.css", "*.css"],
+  "sideEffects": [
+    "./dist/styles.css",
+    "*.css"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
