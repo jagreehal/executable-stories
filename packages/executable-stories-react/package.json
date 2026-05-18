@@ -50,7 +50,7 @@
   "dependencies": {
     "executable-stories-formatters": "workspace:*",
     "marked": "^15.0.7",
-    "zod": "^4.0.0"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.4.0",
