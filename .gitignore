@@ -63,3 +63,4 @@ skills-lock.json
 **/*/.executable-stories
 .worktrees/
 .playwright-cli
+storybook-static/

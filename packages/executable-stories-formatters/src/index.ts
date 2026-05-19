@@ -608,7 +608,7 @@ export class ReportGenerator {
       exclude: options.exclude ?? [],
       includeTags: options.includeTags ?? [],
       excludeTags: options.excludeTags ?? [],
-      formats: options.formats ?? ["cucumber-json"],
+      formats: options.formats ?? ["html"],
       outputDir: options.outputDir ?? "reports",
       outputName: options.outputName ?? "index",
       outputNameTimestamp: options.outputNameTimestamp ?? false,

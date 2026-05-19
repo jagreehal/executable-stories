@@ -87,7 +87,7 @@ export interface FormatterOptions {
   includeTags?: string[];
   /** Tags to exclude test cases (any match). Applied after includeTags. */
   excludeTags?: string[];
-  /** Output formats to generate. Default: ["cucumber-json"] */
+  /** Output formats to generate. Default: ["html"] */
   formats?: OutputFormat[];
 
   /** Output directory for generated reports. Default: "reports" */

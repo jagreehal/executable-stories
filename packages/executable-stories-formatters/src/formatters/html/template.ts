@@ -355,11 +355,53 @@ function initKeyboardShortcuts() {
   });
 }
 
-// Collapse/expand functionality
+// Collapse/expand functionality (persisted in localStorage)
+var COLLAPSE_KEY = 'es-collapsed-ids';
+
+function loadCollapseState() {
+  try {
+    var raw = localStorage.getItem(COLLAPSE_KEY);
+    return raw ? new Set(JSON.parse(raw)) : new Set();
+  } catch (e) {
+    return new Set();
+  }
+}
+
+function saveCollapseState(set) {
+  try {
+    localStorage.setItem(COLLAPSE_KEY, JSON.stringify(Array.from(set)));
+  } catch (e) { /* quota or disabled */ }
+}
+
+function persistCollapse(container) {
+  if (!container || !container.id) return;
+  var state = loadCollapseState();
+  if (container.classList.contains('collapsed')) {
+    state.add(container.id);
+  } else {
+    state.delete(container.id);
+  }
+  saveCollapseState(state);
+}
+
 function toggleCollapse(header, container) {
   container?.classList.toggle('collapsed');
   const isCollapsed = container?.classList.contains('collapsed');
   header.setAttribute('aria-expanded', !isCollapsed);
+  persistCollapse(container);
+}
+
+function restoreCollapseState() {
+  var state = loadCollapseState();
+  if (state.size === 0) return;
+  state.forEach(function(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    if (!el.classList.contains('feature') && !el.classList.contains('scenario')) return;
+    el.classList.add('collapsed');
+    var header = el.querySelector('.feature-header, .scenario-header');
+    if (header) header.setAttribute('aria-expanded', 'false');
+  });
 }
 
 function initCollapse() {
@@ -406,14 +448,20 @@ function expandAll() {
     const header = el.querySelector('.feature-header, .scenario-header, .trace-view-header');
     header?.setAttribute('aria-expanded', 'true');
   });
+  saveCollapseState(new Set());
 }
 
 function collapseAll() {
+  var ids = new Set();
   document.querySelectorAll('.feature, .scenario, .trace-view').forEach(el => {
     el.classList.add('collapsed');
     const header = el.querySelector('.feature-header, .scenario-header, .trace-view-header');
     header?.setAttribute('aria-expanded', 'false');
+    if (el.id && (el.classList.contains('feature') || el.classList.contains('scenario'))) {
+      ids.add(el.id);
+    }
   });
+  saveCollapseState(ids);
 }
 
 // Detail level toggle
@@ -536,6 +584,68 @@ function copyScenarioAsMarkdown(scenarioId) {
 
   var md = lines.join('\\n');
   navigator.clipboard.writeText(md).then(function() {
+    showCopyToast(scenario);
+  });
+}
+
+// Copy scenario as Claude-ready prompt (failure investigation context)
+function copyScenarioAsPrompt(scenarioId) {
+  var scenario = document.getElementById(scenarioId);
+  if (!scenario) return;
+
+  var feature = scenario.closest('.feature');
+  var featureTitle = feature ? (feature.querySelector('.feature-title') || {}).textContent || '' : '';
+  var title = (scenario.querySelector('.scenario-name') || {}).textContent || '';
+  var statusEl = scenario.querySelector('.status-icon');
+  var status = statusEl && statusEl.classList.contains('status-passed') ? 'passed' :
+               statusEl && statusEl.classList.contains('status-failed') ? 'failed' :
+               statusEl && statusEl.classList.contains('status-skipped') ? 'skipped' : 'pending';
+  var sourceLink = scenario.querySelector('.source-link');
+  var source = sourceLink ? sourceLink.textContent || '' : '';
+  var tags = Array.from(scenario.querySelectorAll('.scenario-meta .tag')).map(function(t) { return t.textContent.trim(); });
+  var steps = scenario.querySelectorAll('.step, .step.continuation');
+
+  var lines = [];
+  lines.push('I need help investigating a failing executable-story scenario.');
+  lines.push('');
+  if (featureTitle.trim()) lines.push('Feature: ' + featureTitle.trim());
+  lines.push('Scenario: ' + title.trim());
+  lines.push('Status: ' + status);
+  if (source.trim()) lines.push('Source: ' + source.trim());
+  if (tags.length > 0) lines.push('Tags: ' + tags.join(', '));
+  lines.push('');
+  lines.push('Steps:');
+  steps.forEach(function(step) {
+    var keyword = step.getAttribute('data-keyword') || '';
+    var text = step.getAttribute('data-text') || '';
+    var stepStatusEl = step.querySelector('.step-status');
+    var marker = '  ';
+    if (stepStatusEl) {
+      if (stepStatusEl.classList.contains('status-failed')) marker = 'x ';
+      else if (stepStatusEl.classList.contains('status-passed')) marker = '+ ';
+      else if (stepStatusEl.classList.contains('status-skipped')) marker = '- ';
+    }
+    lines.push(marker + keyword + ' ' + text);
+  });
+
+  var errorBox = scenario.querySelector('.error-message');
+  if (errorBox) {
+    lines.push('');
+    lines.push('Error:');
+    lines.push((errorBox.textContent || '').trim());
+  }
+  var stackBox = scenario.querySelector('.error-stack');
+  if (stackBox) {
+    lines.push('');
+    lines.push('Stack:');
+    lines.push((stackBox.textContent || '').trim());
+  }
+
+  lines.push('');
+  lines.push('Please read the source file, identify the root cause, and propose a fix.');
+
+  var text = lines.join('\\n');
+  navigator.clipboard.writeText(text).then(function() {
     showCopyToast(scenario);
   });
 }
@@ -735,6 +845,7 @@ function generateScript(options: HtmlTemplateOptions): string {
   initCalls.push('initStatusFilter();');
   initCalls.push('initKeyboardShortcuts();');
   initCalls.push('initCollapse();');
+  initCalls.push('restoreCollapseState();');
   initCalls.push('initDetailLevel();');
   initCalls.push('applyAllFilters();');
   initCalls.push('initHashScroll();');

@@ -1909,6 +1909,33 @@ body {
   color: var(--primary);
 }
 
+.copy-prompt-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: none;
+  background: none;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  font-size: 0.95rem;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.scenario-header:hover .copy-prompt-btn,
+.copy-prompt-btn:focus-visible {
+  opacity: 1;
+}
+
+.copy-prompt-btn:hover {
+  color: var(--primary);
+  transform: scale(1.15);
+}
+
 /* ============================================================================
    Keyboard Navigation
    ============================================================================ */
@@ -2144,6 +2171,82 @@ a.toc-title:hover {
 .theme-picker:focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
+}
+
+/* ============================================================================
+   Mobile responsive refinements
+   ============================================================================ */
+@media (max-width: 640px) {
+  .container {
+    padding: 0.875rem;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .header-actions {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .search-input {
+    width: 100%;
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .header h1 {
+    font-size: 1.25rem;
+  }
+
+  .scenario-header,
+  .feature-header {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .scenario-meta {
+    flex-wrap: wrap;
+  }
+
+  .scenario-actions {
+    flex-wrap: wrap;
+  }
+
+  /* Always-visible action buttons on touch (no hover) */
+  .copy-scenario-btn,
+  .copy-prompt-btn,
+  .permalink-anchor {
+    opacity: 1 !important;
+  }
+
+  .summary-card {
+    padding: 0.75rem 0.875rem;
+  }
+
+  .summary-card .value {
+    font-size: 1.5rem;
+  }
+
+  .tag-bar {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .shortcuts-overlay {
+    padding: 1rem;
+  }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .copy-scenario-btn,
+  .copy-prompt-btn,
+  .permalink-anchor {
+    opacity: 1;
+  }
 }
 
 `;
