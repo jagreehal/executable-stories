@@ -704,9 +704,9 @@ describe("ReportGenerator", () => {
       const result = await generator.generate(run);
 
       // Assert
-      // Default format is cucumber-json
-      expect(result.has("cucumber-json")).toBe(true);
-      expect(result.get("cucumber-json")![0]).toBe("reports/index.cucumber.json");
+      // Default format is html
+      expect(result.has("html")).toBe(true);
+      expect(result.get("html")![0]).toBe("reports/index.html");
     });
   });
 });
