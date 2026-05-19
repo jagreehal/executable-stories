@@ -1,6 +1,6 @@
 {
   "name": "executable-stories-jest",
-  "version": "8.1.16",
+  "version": "8.1.17",
   "description": "BDD-style executable stories for Jest with documentation generation",
   "type": "module",
   "sideEffects": false,
