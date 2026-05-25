@@ -49,7 +49,7 @@
   },
   "dependencies": {
     "executable-stories-formatters": "workspace:*",
-    "marked": "^15.0.7",
+    "marked": "^18.0.4",
     "zod": "^4.0.0"
   },
   "devDependencies": {
