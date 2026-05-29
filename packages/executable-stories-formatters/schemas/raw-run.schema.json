@@ -403,7 +403,7 @@
     },
     "RawAttachment": {
       "type": "object",
-      "description": "A test attachment (screenshot, log, artifact). In the MVP schema, only path-based attachments are supported (no inline base64).",
+      "description": "A test attachment (screenshot, log, artifact). Either path-based or inline (body); the ACL decides embed-vs-link.",
       "properties": {
         "name": {
           "type": "string",
@@ -416,9 +416,40 @@
         "path": {
           "type": "string",
           "description": "File path (relative to projectRoot or absolute)."
+        },
+        "body": {
+          "type": "string",
+          "description": "Inline content (e.g., base64-encoded image or UTF-8 text)."
+        },
+        "encoding": {
+          "type": "string",
+          "enum": ["BASE64", "IDENTITY"],
+          "description": "Content encoding for an inline body."
+        },
+        "charset": {
+          "type": "string",
+          "description": "Character set for IDENTITY text bodies (default utf-8)."
+        },
+        "fileName": {
+          "type": "string",
+          "description": "Actual artifact filename (distinct from the logical name)."
+        },
+        "byteLength": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Size in bytes, used for embed-vs-link decisions."
+        },
+        "stepIndex": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Step index this attachment belongs to (undefined = test-case level)."
+        },
+        "stepId": {
+          "type": "string",
+          "description": "Stable step ID this attachment belongs to (preferred over stepIndex)."
         }
       },
-      "required": ["name", "mediaType", "path"],
+      "required": ["name", "mediaType"],
       "additionalProperties": false
     },
     "RawStepEvent": {
@@ -464,6 +495,22 @@
         "buildNumber": {
           "type": "string",
           "description": "CI build number or run ID."
+        },
+        "provider": {
+          "type": "string",
+          "description": "Typed provider key (e.g., 'github', 'gitlab', 'circleci')."
+        },
+        "branch": {
+          "type": "string",
+          "description": "Git branch name."
+        },
+        "commitSha": {
+          "type": "string",
+          "description": "Git commit SHA."
+        },
+        "prNumber": {
+          "type": "string",
+          "description": "Pull/merge request number."
         }
       },
       "required": ["name"],

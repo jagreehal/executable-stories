@@ -24,6 +24,10 @@ import {
   generateRunComparison,
 } from "./index.js";
 import { parseNdjson } from "./converters/ndjson-parser";
+import { buildReview } from "./review/build-review";
+import { ReviewMarkdownFormatter } from "./formatters/review-markdown";
+import { ReviewHtmlFormatter } from "./formatters/review-html";
+import type { ChangedFile, ReviewContext, EvidenceStrength } from "./types/review";
 import type { OutputFormat } from "./types/options";
 import { sendNotifications } from "./notifiers";
 import { toCIInfo } from "./types/ci";
@@ -50,6 +54,7 @@ const EXIT_CANONICAL_VALIDATION = 2;
 const EXIT_GENERATION = 3;
 const EXIT_USAGE = 4;
 const EXIT_COMPARE_GATE = 5;
+const EXIT_REVIEW_GATE = 5;
 
 // ============================================================================
 // CLI Argument Parsing
@@ -62,6 +67,7 @@ USAGE
   executable-stories format <file> [options]
   executable-stories format --stdin [options]
   executable-stories compare <baseline-file> <current-file> [options]
+  executable-stories review <file> --changed-files <path> [options]
   executable-stories list <file> [options]
   executable-stories validate <file>
   executable-stories validate --stdin
@@ -72,6 +78,7 @@ USAGE
 SUBCOMMANDS
   format             Read raw test results and generate reports
   compare            Compare two runs and generate a diff report
+  review             Generate an Evidence Review of AI-authored changes (correlate a run to the diff)
   list               List scenarios from a test run (text table or JSON)
   validate           Validate a JSON file against the schema (no output generated)
   init-astro         Scaffold an Astro docs site for story output (Starlight with themed CSS)
@@ -122,6 +129,11 @@ OPTIONS
   --fail-on-regression          Exit non-zero when any regression is detected in compare
   --fail-on-added-failures      Exit non-zero when newly added scenarios are failing
   --max-regressions <n>         Exit non-zero when regressions exceed threshold
+  --changed-files <path>        (review) Changed files: JSON (ChangedFile[] or {changedFiles,baseRef,headRef}) or "git diff --name-status" text
+  --base-ref <ref>              (review) Base ref label shown in the report (informational)
+  --head-ref <ref>              (review) Head ref label shown in the report (informational)
+  --fail-on <band>              (review) Gate: "uncovered" or "weak" — exit non-zero when changed code lacks evidence (default: off)
+  --min-evidence <strength>     (review) Gate: "weak"|"moderate"|"strong" — exit non-zero when any claim is below this strength (default: off)
   --emit-canonical <path>       Write canonical JSON to given path
   --help                        Show this help message
 
@@ -189,7 +201,7 @@ EXIT CODES
 `.trim();
 
 interface CliArgs {
-  subcommand: "format" | "compare" | "list" | "validate";
+  subcommand: "format" | "compare" | "review" | "list" | "validate";
   inputFile?: string;
   baselineFile?: string;
   currentFile?: string;
@@ -239,6 +251,11 @@ interface CliArgs {
   failOnRegression: boolean;
   failOnAddedFailures: boolean;
   maxRegressions?: number;
+  changedFilesPath?: string;
+  baseRef?: string;
+  headRef?: string;
+  failOn?: "uncovered" | "weak";
+  minEvidence?: EvidenceStrength;
   config?: string;
 }
 
@@ -255,6 +272,7 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
   if (
     subcommand !== "format" &&
     subcommand !== "compare" &&
+    subcommand !== "review" &&
     subcommand !== "list" &&
     subcommand !== "validate" &&
     subcommand !== "init-astro" &&
@@ -262,7 +280,7 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
     subcommand !== "publish-jira"
   ) {
     console.error(
-      `Unknown subcommand: "${subcommand}". Use "format", "compare", "list", "validate", "init-astro", "publish-confluence", or "publish-jira".`,
+      `Unknown subcommand: "${subcommand}". Use "format", "compare", "review", "list", "validate", "init-astro", "publish-confluence", or "publish-jira".`,
     );
     process.exit(EXIT_USAGE);
   }
@@ -365,6 +383,11 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
       "fail-on-regression": { type: "boolean", default: false },
       "fail-on-added-failures": { type: "boolean", default: false },
       "max-regressions": { type: "string" },
+      "changed-files": { type: "string" },
+      "base-ref": { type: "string" },
+      "head-ref": { type: "string" },
+      "fail-on": { type: "string" },
+      "min-evidence": { type: "string" },
       "config": { type: "string" },
       help: { type: "boolean", default: false },
     },
@@ -544,8 +567,20 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
     process.exit(EXIT_USAGE);
   }
 
+  const failOnRaw = values["fail-on"] as string | undefined;
+  if (failOnRaw !== undefined && failOnRaw !== "uncovered" && failOnRaw !== "weak") {
+    console.error(`Error: --fail-on must be "uncovered" or "weak", got "${failOnRaw}".`);
+    process.exit(EXIT_USAGE);
+  }
+  const minEvidenceRaw = values["min-evidence"] as string | undefined;
+  const validMinEvidence = new Set(["weak", "moderate", "strong"]);
+  if (minEvidenceRaw !== undefined && !validMinEvidence.has(minEvidenceRaw)) {
+    console.error(`Error: --min-evidence must be "weak", "moderate", or "strong", got "${minEvidenceRaw}".`);
+    process.exit(EXIT_USAGE);
+  }
+
   const cliArgs: CliArgs = {
-    subcommand: subcommand as "format" | "compare" | "list" | "validate",
+    subcommand: subcommand as "format" | "compare" | "review" | "list" | "validate",
     inputFile,
     baselineFile,
     currentFile,
@@ -595,6 +630,11 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
     failOnRegression: values["fail-on-regression"] as boolean,
     failOnAddedFailures: values["fail-on-added-failures"] as boolean,
     maxRegressions,
+    changedFilesPath: values["changed-files"] as string | undefined,
+    baseRef: values["base-ref"] as string | undefined,
+    headRef: values["head-ref"] as string | undefined,
+    failOn: failOnRaw as "uncovered" | "weak" | undefined,
+    minEvidence: minEvidenceRaw as EvidenceStrength | undefined,
     config: values["config"] as string | undefined,
   };
 
@@ -870,6 +910,32 @@ async function main() {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error(`Comparison failed: ${msg}`);
+      process.exit(EXIT_GENERATION);
+    }
+  }
+
+  if (args.subcommand === "review") {
+    const text = await readInput(args);
+    const run = applySelection(normalizeRunFromText(text, args).run, args);
+    const context = loadReviewContext(args);
+    const review = buildReview(run, context);
+
+    try {
+      const files = writeReviewReport(review, args);
+      for (const f of files) {
+        console.log(f);
+      }
+      const gateFailures = evaluateReviewGate(review, args);
+      if (gateFailures.length > 0) {
+        for (const failure of gateFailures) {
+          console.error(`Review gate failed: ${failure}`);
+        }
+        process.exit(EXIT_REVIEW_GATE);
+      }
+      process.exit(EXIT_SUCCESS);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`Review failed: ${msg}`);
       process.exit(EXIT_GENERATION);
     }
   }
@@ -1342,6 +1408,145 @@ async function generateCompareReports(
     summary: result.diff.summary,
     prSummary: args.prSummary || args.prSummaryFile ? createPrCommentSummary(result.diff) : undefined,
   };
+}
+
+// ============================================================================
+// Review (Evidence-Driven Review)
+// ============================================================================
+
+const STRENGTH_RANK: Record<EvidenceStrength, number> = {
+  none: 0,
+  weak: 1,
+  moderate: 2,
+  strong: 3,
+};
+
+/** Map a `git diff` status code to a change kind. */
+function mapStatus(status: string): ChangedFile["changeKind"] {
+  const letter = status.charAt(0).toUpperCase();
+  if (letter === "A") return "added";
+  if (letter === "D") return "deleted";
+  if (letter === "R") return "renamed";
+  if (letter === "C") return "added";
+  return "modified";
+}
+
+/** Parse `git diff --name-status` text into changed files. */
+function parseNameStatus(text: string): ChangedFile[] {
+  const files: ChangedFile[] = [];
+  for (const raw of text.split("\n")) {
+    const line = raw.trim();
+    if (!line) continue;
+    const cols = line.includes("\t") ? line.split("\t") : line.split(/\s+/);
+    const status = cols[0];
+    if (!status) continue;
+    // Renames/copies report old and new path; use the new (last) path.
+    const filePath = /^[RC]/i.test(status) && cols.length >= 3 ? cols[cols.length - 1] : cols[1];
+    if (!filePath) continue;
+    files.push({ path: filePath, changeKind: mapStatus(status) });
+  }
+  return files;
+}
+
+const VALID_CHANGE_KINDS = new Set(["added", "modified", "deleted", "renamed"]);
+
+/** Coerce an arbitrary object into a ChangedFile (defaulting changeKind to "modified"). */
+function coerceChangedFile(value: unknown): ChangedFile | undefined {
+  if (typeof value !== "object" || value === null) return undefined;
+  const obj = value as Record<string, unknown>;
+  if (typeof obj.path !== "string") return undefined;
+  const kind = typeof obj.changeKind === "string" && VALID_CHANGE_KINDS.has(obj.changeKind)
+    ? (obj.changeKind as ChangedFile["changeKind"])
+    : "modified";
+  const changedLines = Array.isArray(obj.changedLines)
+    ? obj.changedLines.filter((n): n is number => typeof n === "number")
+    : undefined;
+  return changedLines ? { path: obj.path, changeKind: kind, changedLines } : { path: obj.path, changeKind: kind };
+}
+
+/**
+ * Build the review context from CLI flags. The `--changed-files` file may be
+ * JSON (a ChangedFile[] or a {changedFiles, baseRef, headRef} object) or plain
+ * `git diff --name-status` text — whichever the Action/CLI finds easiest.
+ */
+function loadReviewContext(args: CliArgs): ReviewContext {
+  let changedFiles: ChangedFile[] = [];
+  let baseRef = args.baseRef;
+  let headRef = args.headRef;
+
+  if (args.changedFilesPath) {
+    const text = readFileInput(args.changedFilesPath);
+    const parsed = tryParseJson(text);
+    if (Array.isArray(parsed)) {
+      changedFiles = parsed.map(coerceChangedFile).filter((f): f is ChangedFile => f !== undefined);
+    } else if (parsed && typeof parsed === "object") {
+      const obj = parsed as Record<string, unknown>;
+      if (Array.isArray(obj.changedFiles)) {
+        changedFiles = obj.changedFiles.map(coerceChangedFile).filter((f): f is ChangedFile => f !== undefined);
+      }
+      if (typeof obj.baseRef === "string") baseRef = baseRef ?? obj.baseRef;
+      if (typeof obj.headRef === "string") headRef = headRef ?? obj.headRef;
+    } else {
+      changedFiles = parseNameStatus(text);
+    }
+  }
+
+  return { changedFiles, baseRef, headRef };
+}
+
+/** Render and write the review report (markdown + HTML, mirroring report mode). */
+function writeReviewReport(
+  review: ReturnType<typeof buildReview>,
+  args: CliArgs
+): string[] {
+  const title = args.htmlTitle && args.htmlTitle !== "Test Results" ? args.htmlTitle : undefined;
+  const titleOpt = title ? { title } : {};
+
+  const markdown = new ReviewMarkdownFormatter(titleOpt).format(review);
+  const html = new ReviewHtmlFormatter({ ...titleOpt, theme: args.htmlTheme }).format(review);
+
+  const outputDir = args.outputDir ?? "reports";
+  const baseName = args.outputName ?? "evidence-review";
+  const suffix = args.outputNameTimestamp
+    ? `-${Math.floor(review.run.startedAtMs / 1000)}`
+    : "";
+
+  fs.mkdirSync(outputDir, { recursive: true });
+  const mdPath = path.join(outputDir, `${baseName}${suffix}.md`);
+  const htmlPath = path.join(outputDir, `${baseName}${suffix}.html`);
+  fs.writeFileSync(mdPath, markdown, "utf8");
+  fs.writeFileSync(htmlPath, html, "utf8");
+
+  return [mdPath, htmlPath];
+}
+
+/** Evaluate the opt-in review gate. Returns failure messages (empty = pass). */
+function evaluateReviewGate(
+  review: ReturnType<typeof buildReview>,
+  args: CliArgs
+): string[] {
+  const failures: string[] = [];
+  const { summary } = review;
+
+  if (args.failOn === "uncovered" && summary.uncovered > 0) {
+    failures.push(`${summary.uncovered} changed source file(s) have no evidence`);
+  }
+  if (args.failOn === "weak" && summary.uncovered + summary.weaklyCovered > 0) {
+    failures.push(
+      `${summary.uncovered + summary.weaklyCovered} changed source file(s) lack moderate+ evidence`
+    );
+  }
+  if (args.minEvidence) {
+    const threshold = STRENGTH_RANK[args.minEvidence];
+    const below = review.claims.filter((c) => STRENGTH_RANK[c.strength] < threshold);
+    if (below.length > 0) {
+      failures.push(
+        `${below.length} claim(s) below "${args.minEvidence}" evidence strength`
+      );
+    }
+  }
+
+  return failures;
 }
 
 function printResult(

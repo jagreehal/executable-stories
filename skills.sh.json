@@ -1,0 +1,76 @@
+{
+  "$schema": "https://skills.sh/schemas/skills.sh.schema.json",
+  "notGrouped": "bottom",
+  "groupings": [
+    {
+      "title": "Framework APIs",
+      "description": "Skills for writing executable stories in each supported test framework.",
+      "skills": [
+        "vitest-story-api",
+        "jest-story-api",
+        "playwright-story-api",
+        "cypress-story-api",
+        "go-story-api",
+        "ruby-story-api",
+        "junit5-story-api",
+        "rust-story-api",
+        "xunit-story-api",
+        "pytest-story-api"
+      ]
+    },
+    {
+      "title": "Reporter Setup",
+      "description": "Skills for configuring framework reporters and generated documentation output.",
+      "skills": [
+        "vitest-reporter-setup",
+        "jest-reporter-setup",
+        "playwright-reporter-setup",
+        "cypress-reporter-setup",
+        "formatters-cli"
+      ]
+    },
+    {
+      "title": "Adoption",
+      "description": "Skills for bootstrapping executable-stories and converting existing tests incrementally.",
+      "skills": [
+        "executable-stories-init",
+        "vitest-converting-tests",
+        "jest-converting-tests",
+        "playwright-converting-tests",
+        "cypress-converting-tests"
+      ]
+    },
+    {
+      "title": "Living Docs",
+      "description": "Skills for shaping specifications into durable, audience-aware living documentation.",
+      "skills": [
+        "spec-living-documentation",
+        "spec-example-mapping",
+        "spec-discovery-oopsi",
+        "spec-outside-in-behaviour",
+        "spec-refine-examples",
+        "spec-rules-decision-tables",
+        "spec-workflow-state",
+        "spec-convert-tests",
+        "spec-review",
+        "spec-evidence-review"
+      ]
+    },
+    {
+      "title": "Workflow Receipts",
+      "description": "Skills for posting proof-of-behaviour receipts back to workflow tools without making them the source of truth.",
+      "skills": [
+        "linear-evidence-review"
+      ]
+    },
+    {
+      "title": "ESLint",
+      "description": "Skills for setting up executable-stories ESLint rules.",
+      "skills": [
+        "eslint-vitest-rules",
+        "eslint-jest-rules",
+        "eslint-playwright-rules"
+      ]
+    }
+  ]
+}

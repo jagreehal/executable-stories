@@ -31,8 +31,7 @@
   "files": [
     "dist",
     "skills",
-    "reporter.cjs",
-    "bin"
+    "reporter.cjs"
   ],
   "scripts": {
     "build": "tsup",
@@ -64,8 +63,5 @@
     "testing",
     "documentation",
     "executable-stories"
-  ],
-  "bin": {
-    "intent": "./bin/intent.js"
-  }
+  ]
 }
