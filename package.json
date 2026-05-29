@@ -54,7 +54,6 @@
   },
   "author": "Jag Reehal <jag@jagreehal.com>",
   "license": "MIT",
-  "keywords": ["tanstack-intent"],
   "bugs": {
     "url": "https://github.com/jagreehal/executable-stories/issues"
   },

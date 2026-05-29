@@ -78,6 +78,7 @@ export type {
   Attachment,
   TestCaseResult,
   TestCaseAttempt,
+  TestCaseEvidence,
   CIInfo,
   CoverageSummary,
   TestRunResult,
@@ -165,6 +166,21 @@ export type {
   CompareFormat,
   CompareFormatterOptions,
 } from "./types/compare";
+
+// Review types (Evidence-Driven Review report)
+export type {
+  ReviewAudience,
+  ChangeType,
+  EvidenceStrength,
+  ReviewBand,
+  FileChangeKind,
+  ChangedFile,
+  ReviewContext,
+  ReviewClaim,
+  ChangedFileReview,
+  ReviewSummary,
+  ReviewResult,
+} from "./types/review";
 
 // Theme types
 export type { HtmlTheme, HtmlThemeName } from "./formatters/html/themes/index";
@@ -986,6 +1002,23 @@ export async function generateRunComparison(args: {
 
 export { diffRuns } from "./compare/index";
 export { createPrCommentSummary } from "./compare/index";
+
+// Review domain + formatter (Evidence-Driven Review report)
+export { buildReview, gradeEvidence } from "./review/build-review";
+export {
+  deriveAudience,
+  deriveChangeType,
+  isReviewableSource,
+  isTestFile,
+} from "./review/conventions";
+export {
+  ReviewMarkdownFormatter,
+  type ReviewMarkdownOptions,
+} from "./formatters/review-markdown";
+export {
+  ReviewHtmlFormatter,
+  type ReviewHtmlOptions,
+} from "./formatters/review-html";
 
 // ============================================================================
 // Convenience Functions

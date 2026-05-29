@@ -86,6 +86,36 @@ export interface TestCaseResult {
   tags: string[];
   /** All retry attempts (optional, includes details per attempt) */
   attempts?: TestCaseAttempt[];
+  /**
+   * Ingested evidence (mutation/coverage/failing-first) used by the review
+   * formatter to grade proof strength. Populated at the ACL/ingestion layer,
+   * never by adapters. Optional and additive.
+   */
+  evidence?: TestCaseEvidence;
+}
+
+/**
+ * Evidence ingested from external tools to harden the "the test passes" claim.
+ *
+ * Populated at the ACL/ingestion layer from the host project's own tooling
+ * (Stryker/PITest mutation runs, coverage reports, base-ref re-verification).
+ * The packages never RUN these tools — same ingestion shape as {@link StoryMeta.otelSpans}.
+ * Consumed by the review formatter to grade how credible a claim's proof is.
+ */
+export interface TestCaseEvidence {
+  /** Mutation score (0-100) attributed to this test/file, from Stryker/PITest/etc. */
+  mutationScorePct?: number;
+  /** Mutants killed by this test's covered code (when the tool reports it). */
+  mutantsKilled?: number;
+  /** Total mutants in this test's covered code (when the tool reports it). */
+  mutantsTotal?: number;
+  /**
+   * True when the test was verified red on the base ref and green on head
+   * (the failing-first regression lock for bugfixes).
+   */
+  failingFirstVerified?: boolean;
+  /** Coverage of the changed lines this test exercises (0-100), when computable. */
+  changedLineCoveragePct?: number;
 }
 
 /** CI environment info */

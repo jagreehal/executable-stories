@@ -33,8 +33,7 @@
   "files": [
     "dist",
     "skills",
-    "README.md",
-    "bin"
+    "README.md"
   ],
   "peerDependencies": {
     "vitest": ">=4.1.5"
@@ -72,8 +71,5 @@
     "clean": "rm -rf dist",
     "test": "vitest run",
     "quality": "pnpm type-check && pnpm test && pnpm lint"
-  },
-  "bin": {
-    "intent": "./bin/intent.js"
   }
 }

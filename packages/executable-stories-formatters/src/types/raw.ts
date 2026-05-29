@@ -6,6 +6,7 @@
  */
 
 import type { StoryMeta } from "./story";
+import type { TestCaseEvidence } from "./test-result";
 
 /** Permissive status from any framework */
 export type RawStatus =
@@ -84,6 +85,13 @@ export interface RawTestCase {
 
   /** Framework-specific metadata (kept for debugging) */
   meta?: Record<string, unknown>;
+
+  /**
+   * Evidence ingested from external tools (mutation/coverage/failing-first).
+   * Not produced by framework adapters — injected at ingestion time and passed
+   * through to the canonical {@link TestCaseResult.evidence}.
+   */
+  evidence?: TestCaseEvidence;
 
   /** Retry attempt number (0-based) */
   retry?: number;

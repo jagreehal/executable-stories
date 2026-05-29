@@ -31,14 +31,12 @@
     }
   },
   "bin": {
-    "executable-stories": "./dist/cli.js",
-    "intent": "./bin/intent.js"
+    "executable-stories": "./dist/cli.js"
   },
   "files": [
     "dist",
     "skills",
-    "schemas",
-    "bin"
+    "schemas"
   ],
   "engines": {
     "node": ">=22"

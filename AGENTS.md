@@ -254,14 +254,16 @@ When working in these areas, load the linked skill file into context for accurat
 | Setting up Vitest ESLint rules                              | `skills/eslint-vitest-rules/SKILL.md`                                                          |
 | Setting up Jest ESLint rules                                | `skills/eslint-jest-rules/SKILL.md`                                                            |
 | Setting up Playwright ESLint rules                          | `skills/eslint-playwright-rules/SKILL.md`                                                      |
-| Shaping specifications with OOPSI decomposition              | `.claude/skills/spec-discovery-oopsi.md`                                                       |
-| Mining requirements with Example Mapping                     | `.claude/skills/spec-example-mapping.md`                                                       |
-| Specifying business rules and decision tables                | `.claude/skills/spec-rules-decision-tables.md`                                                 |
-| Specifying workflows and state transitions                   | `.claude/skills/spec-workflow-state.md`                                                        |
-| Reviewing executable specifications                          | `.claude/skills/spec-review.md`                                                                |
-| Converting existing tests to executable stories              | `.claude/skills/spec-convert-tests.md`                                                         |
-| Refining raw examples into precise specifications            | `.claude/skills/spec-refine-examples.md`                                                       |
-| Outside-in behaviour discovery (Dan North)                   | `.claude/skills/spec-outside-in-behaviour.md`                                                  |
-| Writing specs as living documentation (Gojko Adzic)          | `.claude/skills/spec-living-documentation.md`                                                  |
+| Shaping specifications with OOPSI decomposition              | `skills/spec-discovery-oopsi/SKILL.md`                                                         |
+| Mining requirements with Example Mapping                     | `skills/spec-example-mapping/SKILL.md`                                                         |
+| Specifying business rules and decision tables                | `skills/spec-rules-decision-tables/SKILL.md`                                                   |
+| Specifying workflows and state transitions                   | `skills/spec-workflow-state/SKILL.md`                                                          |
+| Reviewing executable specifications                          | `skills/spec-review/SKILL.md`                                                                  |
+| Converting existing tests to executable stories              | `skills/spec-convert-tests/SKILL.md`                                                           |
+| Refining raw examples into precise specifications            | `skills/spec-refine-examples/SKILL.md`                                                         |
+| Outside-in behaviour discovery (Dan North)                   | `skills/spec-outside-in-behaviour/SKILL.md`                                                    |
+| Writing specs as living documentation (Gojko Adzic)          | `skills/spec-living-documentation/SKILL.md`                                                    |
+| Authoring changes for the Evidence Review report             | `skills/spec-evidence-review/SKILL.md`                                                         |
+| Posting Evidence Review receipts to Linear via MCP           | `skills/linear-evidence-review/SKILL.md`                                                       |
 
 <!-- intent-skills:end -->

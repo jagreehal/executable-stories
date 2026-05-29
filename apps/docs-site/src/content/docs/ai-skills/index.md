@@ -5,15 +5,15 @@ description: Teach your AI coding agent to write documentation for your specific
 
 Your test suite is the single source of truth. But a product owner, a developer, and a QA lead all need different things from the same tests. **AI writing skills** let you control how your coding agent writes documentation — the audience, the tone, the level of detail.
 
-Skills are markdown files you drop into your project. Your AI agent (Claude Code, Cursor, Copilot, or any tool that reads project-level instructions) picks them up and follows them when writing executable stories.
+Skills are directories containing a `SKILL.md` file. Your AI agent (Claude Code, Cursor, Copilot, or any tool that reads project-level skills) picks them up and follows them when writing executable stories.
 
 ## How it works
 
-1. **Copy a skill file** into your project's `.claude/skills/` directory (or your agent's equivalent)
+1. **Copy a skill directory** from this repo's `skills/` directory into your agent's project-level skills directory
 2. **Tell your agent** to use the skill when writing stories — or it picks it up automatically
 3. **The same test suite** produces documentation tuned for your audience
 
-No config. No build step. Just a markdown file that shapes how your agent writes.
+No config. No build step. Just a `SKILL.md` file that shapes how your agent writes.
 
 ## Example: three audiences, one scenario
 
@@ -70,7 +70,7 @@ Traceability: REQ-AUTH-001, SOC2-CC6.1
 
 ## Available skills
 
-Executable Stories ships 9 specification skills you can use out of the box:
+Executable Stories ships 10 specification skills you can use out of the box:
 
 | Skill | Purpose | When to use |
 |-------|---------|-------------|
@@ -83,12 +83,21 @@ Executable Stories ships 9 specification skills you can use out of the box:
 | `spec-living-documentation` | Write specs as lasting documentation | Ensuring docs stay useful over time |
 | `spec-convert-tests` | Convert existing tests to business-facing specs | Migrating legacy test suites |
 | `spec-review` | Review scenarios for clarity and coverage | Before merging or after writing |
+| `spec-evidence-review` | Author changes as communication-with-evidence for the Evidence Review report | Reviewing AI-authored changes by behaviour + proof, not diff |
 
-Each skill file lives in `.claude/skills/` and can be used as-is or as a starting point for your own.
+Each skill lives in the repository root `skills/<skill-name>/SKILL.md` and can be used as-is or as a starting point for your own.
+
+### Workflow receipts
+
+One skill closes the loop back to your tracker — without making it the source of truth:
+
+| Skill | Purpose | When to use |
+|-------|---------|-------------|
+| `linear-evidence-review` | Post idempotent evidence receipts to linked Linear issues via MCP | Stamping tickets with verified-behaviour receipts that point at the authoritative report |
 
 ## Create your own
 
-Write a markdown file that tells your agent how to write for your audience:
+Write a `SKILL.md` file that tells your agent how to write for your audience:
 
 ```markdown
 # Skill: Write for regulatory auditors
@@ -103,11 +112,11 @@ When writing executable stories, follow these rules:
 - Include boundary conditions as separate scenarios
 ```
 
-Drop it into `.claude/skills/` and your agent will follow it when writing stories in this project.
+Put it in a skill directory such as `skills/regulatory-auditor/SKILL.md`, then install or copy that directory into your agent's project-level skills directory.
 
-You can combine multiple skills — one for audience, one for methodology. The agent reads all skill files in the directory.
+You can combine multiple skills — one for audience, one for methodology. The agent reads the skill names and descriptions, then loads the relevant `SKILL.md` files when they match the task.
 
 ## Links
 
-- [Skills on GitHub](https://github.com/jagreehal/executable-stories/tree/main/.claude/skills) — browse and copy the shipped skill files
+- [Skills on GitHub](https://github.com/jagreehal/executable-stories/tree/main/skills) — browse and copy the shipped skill directories
 - [Executable Stories homepage](/) — see the full feature set

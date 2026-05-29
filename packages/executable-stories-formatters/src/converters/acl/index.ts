@@ -125,6 +125,7 @@ function canonicalizeTestCase(
     retry: raw.retry ?? 0,
     retries: raw.retries ?? 0,
     tags,
+    ...(raw.evidence ? { evidence: raw.evidence } : {}),
   };
 }
 
