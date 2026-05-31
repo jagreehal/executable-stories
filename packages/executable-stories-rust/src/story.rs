@@ -76,6 +76,7 @@ pub struct Story {
     steps: Vec<StoryStep>,
     tags: Option<Vec<String>>,
     tickets: Option<Vec<crate::types::Ticket>>,
+    covers: Option<Vec<String>>,
     meta: Option<serde_json::Value>,
     trace_url_template: Option<String>,
     docs: Vec<DocEntry>,
@@ -100,6 +101,7 @@ impl Story {
             steps: Vec::new(),
             tags: None,
             tickets: None,
+            covers: None,
             meta: None,
             trace_url_template: None,
             docs: Vec::new(),
@@ -129,6 +131,13 @@ impl Story {
     #[must_use]
     pub fn with_tickets(mut self, tickets: &[&str]) -> Self {
         self.tickets = Some(tickets.iter().map(|t| crate::types::Ticket { id: (*t).to_string(), url: None }).collect());
+        self
+    }
+
+    /// Declare the product-code paths/globs this story exercises (consumes and returns self).
+    #[must_use]
+    pub fn with_covers(mut self, covers: &[&str]) -> Self {
+        self.covers = Some(covers.iter().map(std::string::ToString::to_string).collect());
         self
     }
 
@@ -548,6 +557,7 @@ impl Drop for Story {
                 steps: self.steps.clone(),
                 tags: self.tags.clone(),
                 tickets: self.tickets.clone(),
+                covers: self.covers.clone(),
                 meta: self.meta.clone(),
                 docs: if self.docs.is_empty() { None } else { Some(self.docs.clone()) },
                 source_order: self.source_order,

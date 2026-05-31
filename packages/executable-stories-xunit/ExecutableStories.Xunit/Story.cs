@@ -325,6 +325,15 @@ namespace ExecutableStories.Xunit
         }
 
         /// <summary>
+        /// Declare the product-code paths/globs this story exercises.
+        /// </summary>
+        public static void Covers(params string[] paths)
+        {
+            StoryContext ctx = RequireContext();
+            ctx.Covers.AddRange(paths);
+        }
+
+        /// <summary>
         /// Record the current story to the in-process collector and clear context.
         /// Call at the end of each test when using dotnet test (VSTest does not use the runner reporter).
         /// Results are written to .executable-stories/raw-run.json on process exit.

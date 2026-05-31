@@ -268,6 +268,13 @@ class TestStory < Minitest::Test
     assert_equal({ "priority" => "high" }, s.meta)
   end
 
+  def test_init_with_covers
+    s = ExecutableStories::Story.new("covers test", covers: ["src/auth/login.rb"])
+
+    assert_equal ["src/auth/login.rb"], s.covers
+    assert_equal ["src/auth/login.rb"], ExecutableStories.meta_to_h(s.get_meta)["covers"]
+  end
+
   def test_init_with_ticket_hash
     s = ExecutableStories::Story.new("ticket hash",
                                      ticket: [{ id: "JIRA-200", url: "https://jira.example.com/JIRA-200" }])

@@ -27,6 +27,7 @@ public class CartCheckoutTests
     public void Applies_discount_code()
     {
         Story.Init("Applies discount code", "checkout");
+        Story.Covers("src/Checkout/Total.cs");
 
         Story.Given("a cart with items totaling $100");
         var cart = CreateCart(new[] { new Item("Shirt", 100) });

@@ -47,6 +47,17 @@ class StoryApiTest {
     }
 
     @Test
+    fun coversIsRecordedAndSerialized() {
+        Story.init("User logs in")
+        Story.covers("src/auth/Login.kt", "src/Session.kt")
+
+        val ctx = Story.getContext()
+        assertNotNull(ctx)
+        assertEquals(listOf("src/auth/Login.kt", "src/Session.kt"), ctx!!.covers)
+        assertEquals(listOf("src/auth/Login.kt", "src/Session.kt"), ctx.toStoryMeta().covers)
+    }
+
+    @Test
     fun stepMethodsAddSteps() {
         Story.init("Shopping cart flow")
 

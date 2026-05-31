@@ -56,6 +56,19 @@ namespace ExecutableStories.Xunit.Tests
             Assert.Empty(ctx!.Tags);
         }
 
+        [Fact]
+        public void CoversIsRecordedAndSerialized()
+        {
+            Story.Init("Covered scenario");
+            Story.Covers("src/Auth/Login.cs", "src/Session.cs");
+
+            StoryContext? ctx = Story.GetContext();
+            Assert.NotNull(ctx);
+            List<string> expected = ["src/Auth/Login.cs", "src/Session.cs"];
+            Assert.Equal(expected, ctx!.Covers);
+            Assert.Equal(expected, ctx.ToStoryMeta().Covers);
+        }
+
         // ========================================================================
         // Step Methods
         // ========================================================================

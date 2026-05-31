@@ -40,6 +40,7 @@ fn test_raw_run_serialization() {
                 ],
                 tags: Some(vec!["smoke".to_string()]),
                 tickets: None,
+                covers: None,
                 meta: None,
                 docs: None,
                 source_order: Some(0),
@@ -153,6 +154,7 @@ fn test_story_meta_with_docs() {
         steps: vec![],
         tags: None,
         tickets: Some(vec![Ticket { id: "TICKET-1".to_string(), url: None }]),
+        covers: None,
         meta: None,
         docs: Some(vec![
             DocEntry::note("overview note"),

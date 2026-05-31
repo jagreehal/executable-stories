@@ -15,6 +15,7 @@ class StoryContext(
     val steps: MutableList<StoryStep> = mutableListOf()
     val tags: MutableList<String> = mutableListOf()
     val tickets: MutableList<Ticket> = mutableListOf()
+    val covers: MutableList<String> = mutableListOf()
     val meta: MutableMap<String, Any?> = LinkedHashMap()
     val docs: MutableList<DocEntry> = mutableListOf()
     val sourceOrder: Int = ORDER_COUNTER.getAndIncrement()
@@ -115,6 +116,7 @@ class StoryContext(
             steps = if (this@StoryContext.steps.isEmpty()) null else ArrayList(this@StoryContext.steps)
             tags = if (this@StoryContext.tags.isEmpty()) null else ArrayList(this@StoryContext.tags)
             tickets = if (this@StoryContext.tickets.isEmpty()) null else ArrayList(this@StoryContext.tickets)
+            covers = if (this@StoryContext.covers.isEmpty()) null else ArrayList(this@StoryContext.covers)
             meta = if (this@StoryContext.meta.isEmpty()) null else LinkedHashMap(this@StoryContext.meta)
             docs = if (this@StoryContext.docs.isEmpty()) null else ArrayList(this@StoryContext.docs)
             sourceOrder = this@StoryContext.sourceOrder

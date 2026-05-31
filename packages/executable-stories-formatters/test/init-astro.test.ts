@@ -25,6 +25,21 @@ describe("initAstro", () => {
     expect(fs.existsSync(path.join(target, "src/content/docs/index.md"))).toBe(true);
     expect(fs.existsSync(path.join(target, "src/content/docs/stories/.gitkeep"))).toBe(true);
     expect(fs.existsSync(path.join(target, "public/stories/assets/.gitkeep"))).toBe(true);
+    expect(fs.existsSync(path.join(target, "public/stories/story-report.json"))).toBe(true);
+    expect(fs.existsSync(path.join(target, "src/pages/stories/index.astro"))).toBe(true);
+  });
+
+  it("should include the static scenario explorer page", () => {
+    const target = path.join(tmpDir, "story-docs");
+    initAstro({ targetDir: target });
+
+    const explorer = fs.readFileSync(path.join(target, "src/pages/stories/index.astro"), "utf8");
+    expect(explorer).toContain("Scenario Explorer");
+    expect(explorer).toContain("/stories/story-report.json");
+    expect(explorer).toContain("Search scenarios");
+    expect(explorer).toContain("status-filter");
+    expect(explorer).toContain("history.replaceState");
+    expect(explorer).toContain("source-link");
   });
 
   it("should include theme CSS files", () => {

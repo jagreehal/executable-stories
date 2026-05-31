@@ -56,8 +56,28 @@ describe("listScenarios", () => {
       status: "failed",
       sourceFile: "src/auth/login.test.ts",
       sourceLine: 42,
-      story: stubs.storyMeta({ scenario: "Login fails" }),
+      durationMs: 125,
+      errorMessage: "Expected login to fail",
+      story: stubs.storyMeta({
+        scenario: "Login fails",
+        suitePath: ["Auth"],
+        steps: [
+          {
+            id: "step-0",
+            keyword: "Given",
+            text: "a suspended account",
+            docs: [{ kind: "note", phase: "runtime", text: "fixture: suspended user" }],
+          },
+          { id: "step-1", keyword: "Then", text: "login is blocked" },
+        ],
+        tickets: [{ id: "AUTH-123" }],
+        docs: [{ kind: "link", phase: "runtime", label: "Policy", url: "https://example.com" }],
+      }),
       tags: ["smoke"],
+      stepResults: [
+        { index: 0, stepId: "step-0", status: "passed", durationMs: 5 },
+        { index: 1, stepId: "step-1", status: "failed", durationMs: 9, errorMessage: "blocked assertion failed" },
+      ],
     });
 
     const result = listScenarios({ testCases: [tc], format: "json" }, {});
@@ -71,7 +91,33 @@ describe("listScenarios", () => {
       sourceLine: 42,
       tags: ["smoke"],
       id: "abc123",
+      suitePath: ["Auth"],
+      tickets: [{ id: "AUTH-123" }],
+      durationMs: 125,
+      error: { message: "Expected login to fail" },
+      docKinds: ["link", "note"],
     });
+    expect(parsed[0].steps).toEqual([
+      {
+        id: "step-0",
+        index: 0,
+        keyword: "Given",
+        text: "a suspended account",
+        status: "passed",
+        durationMs: 5,
+        docKinds: ["note"],
+      },
+      {
+        id: "step-1",
+        index: 1,
+        keyword: "Then",
+        text: "login is blocked",
+        status: "failed",
+        durationMs: 9,
+        errorMessage: "blocked assertion failed",
+        docKinds: [],
+      },
+    ]);
   });
 
   it("handles empty test cases", () => {

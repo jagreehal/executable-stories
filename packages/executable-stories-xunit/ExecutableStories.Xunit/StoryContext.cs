@@ -18,6 +18,7 @@ namespace ExecutableStories.Xunit
         public List<StoryStep> Steps { get; } = [];
         public List<string> Tags { get; } = [];
         public List<Ticket> Tickets { get; } = [];
+        public List<string> Covers { get; } = [];
         public Dictionary<string, object> Meta { get; } = [];
         public List<DocEntry> Docs { get; } = [];
         public int SourceOrder { get; } = Interlocked.Increment(ref _orderCounter) - 1;
@@ -158,6 +159,7 @@ namespace ExecutableStories.Xunit
                 Steps = Steps.Count > 0 ? new List<StoryStep>(Steps) : null,
                 Tags = Tags.Count > 0 ? new List<string>(Tags) : null,
                 Tickets = Tickets.Count > 0 ? new List<Ticket>(Tickets) : null,
+                Covers = Covers.Count > 0 ? new List<string>(Covers) : null,
                 Meta = Meta.Count > 0 ? new Dictionary<string, object>(Meta) : null,
                 Docs = Docs.Count > 0 ? new List<DocEntry>(Docs) : null,
                 SourceOrder = SourceOrder,

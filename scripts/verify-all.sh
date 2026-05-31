@@ -5,7 +5,7 @@
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
-ALL_ADAPTERS=(go pytest rust xunit junit5)
+ALL_ADAPTERS=(go pytest rust xunit junit5 ruby)
 if [ $# -gt 0 ]; then
   ADAPTERS=("$@")
 else

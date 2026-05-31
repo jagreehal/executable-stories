@@ -167,6 +167,8 @@ export interface ReportScenario {
   durationMs: number;
   tags: string[];
   tickets?: ReportTicket[];
+  /** Product-code paths/globs this scenario exercises (project-root-relative). */
+  covers?: string[];
   sourceLine?: number;
   errorMessage?: string;
   errorStack?: string;

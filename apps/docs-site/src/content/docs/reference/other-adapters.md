@@ -25,6 +25,7 @@ func TestLogin(t *testing.T) {
         es.WithTags("auth", "smoke"),
         es.WithTicket("AUTH-42"),
         es.WithTicketURL("https://jira.example.com/AUTH-42"),
+        es.WithCovers("internal/auth/login.go"),
         es.WithMeta(map[string]string{"owner": "auth-team"}),
         es.WithTraceUrlTemplate("https://otel.example.com/trace/{{traceId}}"),
     )
@@ -129,6 +130,7 @@ def test_login():
         "User can log in with valid credentials",
         tags=["auth", "smoke"],
         ticket="AUTH-42",
+        covers=["src/auth/login.py"],
         meta={"owner": "auth-team"},
         trace_url_template="https://otel.example.com/trace/{{traceId}}",
     )

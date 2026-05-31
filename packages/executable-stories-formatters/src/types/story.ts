@@ -91,6 +91,8 @@ export interface StoryMeta {
   tags?: string[];
   /** Ticket/issue references (normalized to array) */
   tickets?: NormalizedTicket[];
+  /** Product-code paths/globs this scenario exercises (project-root-relative). */
+  covers?: string[];
   /** User-defined metadata */
   meta?: Record<string, unknown>;
   /** Parent describe/suite names for hierarchical grouping */

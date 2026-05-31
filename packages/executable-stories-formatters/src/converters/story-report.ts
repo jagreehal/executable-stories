@@ -219,6 +219,10 @@ function buildScenario(tc: TestCaseResult, featureId: string): ReportScenario {
     scenario.tickets = tickets.map((t) => (t.url ? { id: t.id, url: t.url } : { id: t.id }));
   }
 
+  if (tc.story.covers && tc.story.covers.length > 0) {
+    scenario.covers = [...tc.story.covers];
+  }
+
   return scenario;
 }
 

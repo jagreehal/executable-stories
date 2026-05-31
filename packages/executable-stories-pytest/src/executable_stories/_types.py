@@ -150,6 +150,7 @@ class StoryMeta(TypedDict):
     steps: NotRequired[list[StoryStep]]
     tags: NotRequired[list[str]]
     tickets: NotRequired[list[TicketDoc]]
+    covers: NotRequired[list[str]]
     meta: NotRequired[dict[str, Any]]
     suitePath: NotRequired[list[str]]
     docs: NotRequired[list[DocEntry]]

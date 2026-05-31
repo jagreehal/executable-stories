@@ -21,6 +21,7 @@ it('admin deletes user', () => {
   story.init({
     tags: ['admin', 'destructive'],
     ticket: 'JIRA-456',
+    covers: ['src/admin/users.ts'],
   });
   story.given('the admin is logged in');
   story.when('the admin deletes the user');
@@ -42,6 +43,7 @@ Same as other frameworks: **`story.note`**, **`story.tag`**, **`story.kv`**, **`
 | -------- | ------------------------- | ------- | --------------------------------------------------------------- |
 | `tags`   | `string[]`                | —       | Tags for filtering and categorizing (e.g. `["smoke", "auth"]`). |
 | `ticket` | `string \| string[]`      | —       | Ticket/issue reference(s) for requirements traceability.        |
+| `covers` | `string[]`                | —       | Product-code paths/globs this scenario exercises (e.g. `["src/auth/**"]`). Powers `get_scenarios_for_paths`. |
 | `meta`   | `Record<string, unknown>` | —       | Arbitrary user-defined metadata.                                |
 
 Unlike Vitest, Jest, and Playwright, Cypress does not currently expose a `traceUrlTemplate` story option because it uses a browser-to-Node reporting bridge instead of the Node test context used by the other adapters.

@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://executable-stories.dev/schemas/behavior-manifest-v1.json",
+  "title": "Executable Stories Behavior Manifest v1",
+  "type": "object",
+  "required": ["schemaVersion", "runId", "generatedAtMs", "summary", "sourceFiles", "tags", "docCoverage", "debugger"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "runId": { "type": "string" },
+    "generatedAtMs": { "type": "number" },
+    "summary": { "$ref": "scenario-index-v1.json#/$defs/summary" },
+    "sourceFiles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "scenarioCount", "failed", "tags"],
+        "additionalProperties": false,
+        "properties": {
+          "path": { "type": "string" },
+          "scenarioCount": { "type": "number" },
+          "failed": { "type": "number" },
+          "tags": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "scenarioCount"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string" },
+          "scenarioCount": { "type": "number" }
+        }
+      }
+    },
+    "docCoverage": {
+      "type": "object",
+      "required": ["scenariosWithDocs", "scenariosWithoutDocs", "docKinds"],
+      "additionalProperties": false,
+      "properties": {
+        "scenariosWithDocs": { "type": "number" },
+        "scenariosWithoutDocs": { "type": "number" },
+        "docKinds": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "debugger": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["severity", "code", "scenarioId", "title", "message"],
+        "additionalProperties": false,
+        "properties": {
+          "severity": { "const": "warning" },
+          "code": { "enum": ["missing-docs", "missing-tags", "missing-covers", "missing-source-line"] },
+          "scenarioId": { "type": "string" },
+          "title": { "type": "string" },
+          "message": { "type": "string" }
+        }
+      }
+    }
+  }
+}

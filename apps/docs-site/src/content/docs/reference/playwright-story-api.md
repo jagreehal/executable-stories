@@ -31,6 +31,7 @@ test('admin deletes user', async ({ page }, testInfo) => {
   story.init({ page }, testInfo, {
     tags: ['admin', 'destructive'],
     ticket: 'JIRA-456',
+    covers: ['src/admin/users.ts'],
     traceUrlTemplate: 'https://grafana.example.com/explore?traceId={traceId}',
   });
   await story.given('the admin is logged in', async ({ page }) => {

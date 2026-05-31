@@ -131,6 +131,11 @@
           "type": "array",
           "items": { "$ref": "#/$defs/Ticket" }
         },
+        "covers": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Product-code paths/globs this scenario exercises."
+        },
         "sourceLine": { "type": "integer", "minimum": 1 },
         "errorMessage": { "type": "string" },
         "errorStack": { "type": "string" },

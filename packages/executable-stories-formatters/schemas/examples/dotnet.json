@@ -11,7 +11,11 @@
     {
       "externalId": "MyApp.Tests.Auth.LoginTests.SuccessfulLogin_ReturnsToken",
       "title": "Successful login returns token",
-      "titlePath": ["MyApp.Tests.Auth", "LoginTests", "Successful login returns token"],
+      "titlePath": [
+        "MyApp.Tests.Auth",
+        "LoginTests",
+        "Successful login returns token"
+      ],
       "sourceFile": "tests/MyApp.Tests/Auth/LoginTests.cs",
       "sourceLine": 22,
       "status": "pass",
@@ -19,15 +23,38 @@
       "story": {
         "scenario": "Successful login returns token",
         "steps": [
-          { "keyword": "Given", "text": "a registered user with email 'alice@example.com'" },
-          { "keyword": "When", "text": "the user submits login with valid credentials" },
-          { "keyword": "Then", "text": "the response status is 200" },
-          { "keyword": "And", "text": "a JWT token is returned" }
+          {
+            "keyword": "Given",
+            "text": "a registered user with email 'alice@example.com'"
+          },
+          {
+            "keyword": "When",
+            "text": "the user submits login with valid credentials"
+          },
+          {
+            "keyword": "Then",
+            "text": "the response status is 200"
+          },
+          {
+            "keyword": "And",
+            "text": "a JWT token is returned"
+          }
         ],
-        "tags": ["smoke", "auth"],
-        "tickets": ["AUTH-101"],
-        "suitePath": ["MyApp.Tests.Auth", "LoginTests"],
-        "sourceOrder": 0
+        "tags": [
+          "smoke",
+          "auth"
+        ],
+        "tickets": [
+          "AUTH-101"
+        ],
+        "suitePath": [
+          "MyApp.Tests.Auth",
+          "LoginTests"
+        ],
+        "sourceOrder": 0,
+        "covers": [
+          "src/auth/login.*"
+        ]
       },
       "meta": {
         "framework": "xunit",
@@ -37,7 +64,11 @@
     {
       "externalId": "MyApp.Tests.Auth.LoginTests.InvalidPassword_Returns401",
       "title": "Invalid password returns 401",
-      "titlePath": ["MyApp.Tests.Auth", "LoginTests", "Invalid password returns 401"],
+      "titlePath": [
+        "MyApp.Tests.Auth",
+        "LoginTests",
+        "Invalid password returns 401"
+      ],
       "sourceFile": "tests/MyApp.Tests/Auth/LoginTests.cs",
       "sourceLine": 48,
       "status": "fail",
@@ -54,7 +85,11 @@
     {
       "externalId": "MyApp.Tests.Auth.LoginTests.RateLimiting_BlocksAfterFiveAttempts",
       "title": "Rate limiting blocks after five attempts",
-      "titlePath": ["MyApp.Tests.Auth", "LoginTests", "Rate limiting blocks after five attempts"],
+      "titlePath": [
+        "MyApp.Tests.Auth",
+        "LoginTests",
+        "Rate limiting blocks after five attempts"
+      ],
       "sourceFile": "tests/MyApp.Tests/Auth/LoginTests.cs",
       "sourceLine": 75,
       "status": "skip",
@@ -68,7 +103,11 @@
     {
       "externalId": "MyApp.Tests.Cart.CheckoutTests.CompleteCheckout_WithCreditCard",
       "title": "Complete checkout with credit card",
-      "titlePath": ["MyApp.Tests.Cart", "CheckoutTests", "Complete checkout with credit card"],
+      "titlePath": [
+        "MyApp.Tests.Cart",
+        "CheckoutTests",
+        "Complete checkout with credit card"
+      ],
       "sourceFile": "tests/MyApp.Tests/Cart/CheckoutTests.cs",
       "sourceLine": 16,
       "status": "pass",
@@ -76,14 +115,35 @@
       "story": {
         "scenario": "Complete checkout with credit card",
         "steps": [
-          { "keyword": "Given", "text": "a cart with 2 items totaling $59.98" },
-          { "keyword": "When", "text": "the user submits payment with a test credit card" },
-          { "keyword": "Then", "text": "the order is confirmed" },
-          { "keyword": "And", "text": "a confirmation email is queued" }
+          {
+            "keyword": "Given",
+            "text": "a cart with 2 items totaling $59.98"
+          },
+          {
+            "keyword": "When",
+            "text": "the user submits payment with a test credit card"
+          },
+          {
+            "keyword": "Then",
+            "text": "the order is confirmed"
+          },
+          {
+            "keyword": "And",
+            "text": "a confirmation email is queued"
+          }
         ],
-        "tags": ["checkout", "payments", "e2e"],
-        "tickets": ["SHOP-200"],
-        "suitePath": ["MyApp.Tests.Cart", "CheckoutTests"],
+        "tags": [
+          "checkout",
+          "payments",
+          "e2e"
+        ],
+        "tickets": [
+          "SHOP-200"
+        ],
+        "suitePath": [
+          "MyApp.Tests.Cart",
+          "CheckoutTests"
+        ],
         "sourceOrder": 0
       },
       "meta": {
@@ -94,7 +154,11 @@
     {
       "externalId": "MyApp.Tests.Cart.CheckoutTests.EmptyCart_ShouldBlock",
       "title": "Empty cart should block checkout",
-      "titlePath": ["MyApp.Tests.Cart", "CheckoutTests", "Empty cart should block checkout"],
+      "titlePath": [
+        "MyApp.Tests.Cart",
+        "CheckoutTests",
+        "Empty cart should block checkout"
+      ],
       "sourceFile": "tests/MyApp.Tests/Cart/CheckoutTests.cs",
       "sourceLine": 50,
       "status": "pass",

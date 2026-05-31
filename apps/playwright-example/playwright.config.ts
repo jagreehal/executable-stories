@@ -128,6 +128,8 @@ export default defineConfig({
         // cucumberJson: {
         //   pretty: true,  // Pretty-print JSON
         // },
+
+        rawRunPath: 'reports/raw-run.json',
       },
     ],
   ],

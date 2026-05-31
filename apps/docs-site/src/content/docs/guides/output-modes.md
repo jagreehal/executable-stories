@@ -149,12 +149,15 @@ Generate multiple output formats from a single run:
 
 ## File extensions by format
 
-| Format        | Extension        |
-| ------------- | ---------------- |
-| markdown      | `.md`            |
-| html          | `.html`          |
-| cucumber-json | `.cucumber.json` |
-| junit         | `.junit.xml`     |
+| Format                 | Extension                |
+| ---------------------- | ------------------------ |
+| markdown               | `.md`                    |
+| html                   | `.html`                  |
+| cucumber-json          | `.cucumber.json`         |
+| junit                  | `.junit.xml`             |
+| story-report-json      | `.story-report.json`     |
+| scenario-index-json    | `.scenarios-index.json`  |
+| behavior-manifest-json | `.behavior-manifest.json`|
 
 ## Framework defaults
 

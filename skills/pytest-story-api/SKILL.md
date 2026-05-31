@@ -24,7 +24,7 @@ from executable_stories import story
 
 
 def test_applies_discount_code():
-    story.init("Applies discount code", tags=["checkout"], ticket="CART-42")
+    story.init("Applies discount code", tags=["checkout"], ticket="CART-42", covers=["src/checkout.py"])
 
     story.given("a cart with items totaling $100")
     cart = create_cart([{"name": "Shirt", "price": 100}])

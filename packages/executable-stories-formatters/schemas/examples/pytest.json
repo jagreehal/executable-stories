@@ -11,7 +11,12 @@
     {
       "externalId": "tests/auth/test_login.py::test_successful_login",
       "title": "Successful login with valid credentials",
-      "titlePath": ["tests", "auth", "test_login", "Successful login with valid credentials"],
+      "titlePath": [
+        "tests",
+        "auth",
+        "test_login",
+        "Successful login with valid credentials"
+      ],
       "sourceFile": "tests/auth/test_login.py",
       "sourceLine": 15,
       "status": "pass",
@@ -19,15 +24,39 @@
       "story": {
         "scenario": "Successful login with valid credentials",
         "steps": [
-          { "keyword": "Given", "text": "a registered user with email 'alice@example.com'" },
-          { "keyword": "When", "text": "the user submits login with valid credentials" },
-          { "keyword": "Then", "text": "the response status is 200" },
-          { "keyword": "And", "text": "a JWT token is returned" }
+          {
+            "keyword": "Given",
+            "text": "a registered user with email 'alice@example.com'"
+          },
+          {
+            "keyword": "When",
+            "text": "the user submits login with valid credentials"
+          },
+          {
+            "keyword": "Then",
+            "text": "the response status is 200"
+          },
+          {
+            "keyword": "And",
+            "text": "a JWT token is returned"
+          }
         ],
-        "tags": ["smoke", "auth"],
-        "tickets": ["AUTH-101"],
-        "suitePath": ["tests", "auth", "test_login"],
-        "sourceOrder": 0
+        "tags": [
+          "smoke",
+          "auth"
+        ],
+        "tickets": [
+          "AUTH-101"
+        ],
+        "suitePath": [
+          "tests",
+          "auth",
+          "test_login"
+        ],
+        "sourceOrder": 0,
+        "covers": [
+          "src/auth/login.*"
+        ]
       },
       "meta": {
         "framework": "pytest",
@@ -37,7 +66,13 @@
     {
       "externalId": "tests/auth/test_login.py::TestLoginValidation::test_invalid_password",
       "title": "Login with invalid password shows error",
-      "titlePath": ["tests", "auth", "test_login", "TestLoginValidation", "Login with invalid password shows error"],
+      "titlePath": [
+        "tests",
+        "auth",
+        "test_login",
+        "TestLoginValidation",
+        "Login with invalid password shows error"
+      ],
       "sourceFile": "tests/auth/test_login.py",
       "sourceLine": 42,
       "status": "fail",
@@ -54,7 +89,12 @@
     {
       "externalId": "tests/auth/test_login.py::test_login_rate_limiting",
       "title": "Login is rate-limited after 5 failed attempts",
-      "titlePath": ["tests", "auth", "test_login", "Login is rate-limited after 5 failed attempts"],
+      "titlePath": [
+        "tests",
+        "auth",
+        "test_login",
+        "Login is rate-limited after 5 failed attempts"
+      ],
       "sourceFile": "tests/auth/test_login.py",
       "sourceLine": 68,
       "status": "skip",
@@ -68,7 +108,12 @@
     {
       "externalId": "tests/cart/test_checkout.py::test_checkout_flow",
       "title": "Complete checkout with credit card",
-      "titlePath": ["tests", "cart", "test_checkout", "Complete checkout with credit card"],
+      "titlePath": [
+        "tests",
+        "cart",
+        "test_checkout",
+        "Complete checkout with credit card"
+      ],
       "sourceFile": "tests/cart/test_checkout.py",
       "sourceLine": 10,
       "status": "pass",
@@ -76,14 +121,36 @@
       "story": {
         "scenario": "Complete checkout with credit card",
         "steps": [
-          { "keyword": "Given", "text": "a cart with 2 items totaling $59.98" },
-          { "keyword": "When", "text": "the user submits payment with a test credit card" },
-          { "keyword": "Then", "text": "the order is confirmed" },
-          { "keyword": "And", "text": "a confirmation email is queued" }
+          {
+            "keyword": "Given",
+            "text": "a cart with 2 items totaling $59.98"
+          },
+          {
+            "keyword": "When",
+            "text": "the user submits payment with a test credit card"
+          },
+          {
+            "keyword": "Then",
+            "text": "the order is confirmed"
+          },
+          {
+            "keyword": "And",
+            "text": "a confirmation email is queued"
+          }
         ],
-        "tags": ["checkout", "payments", "e2e"],
-        "tickets": ["SHOP-200"],
-        "suitePath": ["tests", "cart", "test_checkout"],
+        "tags": [
+          "checkout",
+          "payments",
+          "e2e"
+        ],
+        "tickets": [
+          "SHOP-200"
+        ],
+        "suitePath": [
+          "tests",
+          "cart",
+          "test_checkout"
+        ],
         "sourceOrder": 0
       },
       "meta": {
@@ -94,7 +161,12 @@
     {
       "externalId": "tests/cart/test_checkout.py::test_empty_cart_checkout",
       "title": "Cannot checkout with an empty cart",
-      "titlePath": ["tests", "cart", "test_checkout", "Cannot checkout with an empty cart"],
+      "titlePath": [
+        "tests",
+        "cart",
+        "test_checkout",
+        "Cannot checkout with an empty cart"
+      ],
       "sourceFile": "tests/cart/test_checkout.py",
       "sourceLine": 55,
       "status": "pass",

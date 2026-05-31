@@ -4,6 +4,7 @@
  */
 
 import type { TestCaseResult } from "./types/test-result";
+import type { StoryStep } from "./types/story";
 
 export interface ListScenariosArgs {
   testCases: TestCaseResult[];
@@ -27,12 +28,24 @@ export function listScenarios(
 
   if (format === "json") {
     const items = testCases.map((tc) => ({
+      id: tc.id,
       scenario: tc.story.scenario,
       status: tc.status,
       sourceFile: tc.sourceFile,
       sourceLine: tc.sourceLine,
+      suitePath: tc.story.suitePath ?? tc.titlePath.slice(0, -1),
       tags: tc.tags,
-      id: tc.id,
+      tickets: tc.story.tickets ?? [],
+      covers: tc.story.covers ?? [],
+      durationMs: tc.durationMs,
+      error: tc.errorMessage
+        ? {
+            message: tc.errorMessage,
+            stack: tc.errorStack,
+          }
+        : undefined,
+      steps: tc.story.steps.map((step, index) => toScenarioStep(step, index, tc)),
+      docKinds: collectDocKinds(tc),
     }));
     return JSON.stringify(items, null, 2);
   }
@@ -116,4 +129,52 @@ export function listScenarios(
   ];
 
   return lines.join("\n");
+}
+
+function toScenarioStep(
+  step: StoryStep,
+  index: number,
+  testCase: TestCaseResult,
+): {
+  id?: string;
+  index: number;
+  keyword: StoryStep["keyword"];
+  text: string;
+  status: TestCaseResult["status"];
+  durationMs: number;
+  errorMessage?: string;
+  mode?: StoryStep["mode"];
+  docKinds: string[];
+} {
+  const result = testCase.stepResults.find(
+    (candidate) => candidate.index === index || candidate.stepId === step.id,
+  );
+
+  return {
+    id: step.id,
+    index,
+    keyword: step.keyword,
+    text: step.text,
+    status: result?.status ?? testCase.status,
+    durationMs: result?.durationMs ?? step.durationMs ?? 0,
+    errorMessage: result?.errorMessage,
+    mode: step.mode,
+    docKinds: (step.docs ?? []).map((doc) => doc.kind),
+  };
+}
+
+function collectDocKinds(testCase: TestCaseResult): string[] {
+  const kinds = new Set<string>();
+
+  for (const doc of testCase.story.docs ?? []) {
+    kinds.add(doc.kind);
+  }
+
+  for (const step of testCase.story.steps) {
+    for (const doc of step.docs ?? []) {
+      kinds.add(doc.kind);
+    }
+  }
+
+  return [...kinds].sort();
 }

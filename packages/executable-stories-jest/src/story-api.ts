@@ -401,6 +401,7 @@ function init(options?: StoryOptions): void {
     suitePath,
     tags: options?.tags,
     tickets: normalizeTickets(options?.ticket),
+    covers: options?.covers,
     meta: options?.meta,
     sourceOrder: sourceOrderCounter++,
   };

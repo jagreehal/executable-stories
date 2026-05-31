@@ -33,6 +33,8 @@ import type { RunDiffResult } from "./types/compare";
 import { canonicalizeRun } from "./converters/acl/index";
 import { CucumberJsonFormatter } from "./formatters/cucumber-json";
 import { StoryReportJsonFormatter } from "./formatters/story-report-json";
+import { ScenarioIndexJsonFormatter } from "./formatters/scenario-index-json";
+import { BehaviorManifestJsonFormatter } from "./formatters/behavior-manifest-json";
 import { HtmlFormatter } from "./formatters/html/index";
 import { JUnitFormatter } from "./formatters/junit-xml";
 import { MarkdownFormatter } from "./formatters/markdown";
@@ -232,6 +234,43 @@ export {
   type StoryReportJsonOptions,
 } from "./formatters/story-report-json";
 
+export {
+  ScenarioIndexJsonFormatter,
+  toScenarioIndex,
+  type ScenarioIndex,
+  type ScenarioIndexFilters,
+  type ScenarioIndexItem,
+  type ScenarioIndexJsonOptions,
+  type ScenarioIndexStep,
+} from "./formatters/scenario-index-json";
+
+export {
+  BehaviorManifestJsonFormatter,
+  toBehaviorManifest,
+  type BehaviorDebuggerIssue,
+  type BehaviorManifest,
+  type BehaviorManifestJsonOptions,
+  type BehaviorSourceFile,
+  type BehaviorTag,
+} from "./formatters/behavior-manifest-json";
+
+export { scenariosCoveringPaths } from "./coverage-index";
+
+export {
+  regenerateArtifacts,
+  startWatch,
+  type WatchOptions,
+  type WatchDeps,
+  type WatchHandle,
+} from "./watch";
+
+export {
+  diffStoryReports,
+  classifyStatusChange,
+  type BehaviorDiff,
+  type BehaviorDiffEntry,
+} from "./behavior-diff";
+
 export { toStoryReport } from "./converters/story-report";
 
 export {
@@ -423,6 +462,7 @@ export interface GenerateCompareResult {
 /** Extension map for output formats */
 const FORMAT_EXTENSIONS: Record<OutputFormat, string> = {
   astro: ".md",
+  "behavior-manifest-json": ".behavior-manifest.json",
   markdown: ".md",
   html: ".html",
   "cucumber-html": ".cucumber.html",
@@ -430,6 +470,7 @@ const FORMAT_EXTENSIONS: Record<OutputFormat, string> = {
   "cucumber-json": ".cucumber.json",
   "cucumber-messages": ".ndjson",
   confluence: ".adf.json",
+  "scenario-index-json": ".scenarios-index.json",
   "story-report-json": ".story-report.json",
 };
 
@@ -640,6 +681,12 @@ export class ReportGenerator {
       },
       storyReportJson: {
         pretty: options.storyReportJson?.pretty ?? true,
+      },
+      scenarioIndexJson: {
+        pretty: options.scenarioIndexJson?.pretty ?? true,
+      },
+      behaviorManifestJson: {
+        pretty: options.behaviorManifestJson?.pretty ?? true,
       },
       cucumberMessages: {
         uriStrategy: options.cucumberMessages?.uriStrategy ?? "sourceFile",
@@ -949,6 +996,20 @@ export class ReportGenerator {
       case "story-report-json": {
         const formatter = new StoryReportJsonFormatter({
           pretty: this.options.storyReportJson.pretty,
+        });
+        return formatter.format(run);
+      }
+
+      case "scenario-index-json": {
+        const formatter = new ScenarioIndexJsonFormatter({
+          pretty: this.options.scenarioIndexJson.pretty,
+        });
+        return formatter.format(run);
+      }
+
+      case "behavior-manifest-json": {
+        const formatter = new BehaviorManifestJsonFormatter({
+          pretty: this.options.behaviorManifestJson.pretty,
         });
         return formatter.format(run);
       }

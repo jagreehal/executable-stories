@@ -25,7 +25,8 @@ use executable_stories::{Story, collector};
 fn applies_discount_code() {
     let mut s = Story::new("Applies discount code")
         .with_tags(&["checkout"])
-        .with_tickets(&["CART-42"]);
+        .with_tickets(&["CART-42"])
+        .with_covers(&["src/checkout.rs"]);
 
     s.given("a cart with items totaling $100");
     let mut cart = create_cart(vec![item("Shirt", 100)]);

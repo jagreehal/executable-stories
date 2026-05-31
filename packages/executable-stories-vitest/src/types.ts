@@ -85,6 +85,8 @@ export interface StoryOptions {
   tags?: string[];
   /** Ticket/issue reference(s) for requirements traceability */
   ticket?: TicketInput | TicketInput[];
+  /** Product-code paths/globs this scenario exercises (project-root-relative). */
+  covers?: string[];
   /** Arbitrary user-defined metadata */
   meta?: Record<string, unknown>;
   /** URL template for OTel trace links. Uses {traceId} placeholder. Also settable via OTEL_TRACE_URL_TEMPLATE env var. */

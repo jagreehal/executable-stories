@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://executable-stories.dev/schemas/scenario-index-v1.json",
+  "title": "Executable Stories Scenario Index v1",
+  "type": "object",
+  "required": ["schemaVersion", "runId", "generatedAtMs", "summary", "scenarios"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "runId": { "type": "string" },
+    "generatedAtMs": { "type": "number" },
+    "summary": { "$ref": "#/$defs/summary" },
+    "scenarios": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/scenario" }
+    }
+  },
+  "$defs": {
+    "status": { "enum": ["passed", "failed", "skipped", "pending"] },
+    "summary": {
+      "type": "object",
+      "required": ["total", "passed", "failed", "skipped", "pending", "durationMs"],
+      "additionalProperties": false,
+      "properties": {
+        "total": { "type": "number" },
+        "passed": { "type": "number" },
+        "failed": { "type": "number" },
+        "skipped": { "type": "number" },
+        "pending": { "type": "number" },
+        "durationMs": { "type": "number" }
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "required": ["id", "title", "status", "feature", "sourceFile", "tags", "tickets", "covers", "durationMs", "steps", "docKinds"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "status": { "$ref": "#/$defs/status" },
+        "feature": { "type": "string" },
+        "sourceFile": { "type": "string" },
+        "sourceLine": { "type": "number" },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "covers": { "type": "array", "items": { "type": "string" } },
+        "tickets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id"],
+            "additionalProperties": false,
+            "properties": {
+              "id": { "type": "string" },
+              "url": { "type": "string" }
+            }
+          }
+        },
+        "durationMs": { "type": "number" },
+        "steps": { "type": "array", "items": { "$ref": "#/$defs/step" } },
+        "docKinds": { "type": "array", "items": { "type": "string" } },
+        "error": {
+          "type": "object",
+          "required": ["message"],
+          "additionalProperties": false,
+          "properties": {
+            "message": { "type": "string" },
+            "stack": { "type": "string" }
+          }
+        }
+      }
+    },
+    "step": {
+      "type": "object",
+      "required": ["id", "index", "keyword", "text", "status", "durationMs", "docKinds"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "index": { "type": "number" },
+        "keyword": { "enum": ["Given", "When", "Then", "And", "But"] },
+        "text": { "type": "string" },
+        "status": { "$ref": "#/$defs/status" },
+        "durationMs": { "type": "number" },
+        "errorMessage": { "type": "string" },
+        "docKinds": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}

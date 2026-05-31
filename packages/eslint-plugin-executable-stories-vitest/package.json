@@ -2,7 +2,7 @@
   "name": "eslint-plugin-executable-stories-vitest",
   "version": "2.1.6",
   "type": "module",
-  "description": "ESLint rules for executable-stories-vitest: step context, doc.story in test/it, require task for doc.story(title)",
+  "description": "ESLint rules for executable-stories-vitest: story.init(task) and legacy story context guards",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",

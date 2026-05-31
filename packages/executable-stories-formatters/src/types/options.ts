@@ -30,7 +30,7 @@ export interface CanonicalizeOptions {
 }
 
 /** Output format for report generation */
-export type OutputFormat = "astro" | "confluence" | "cucumber-json" | "cucumber-messages" | "cucumber-html" | "html" | "junit" | "markdown" | "story-report-json";
+export type OutputFormat = "astro" | "behavior-manifest-json" | "confluence" | "cucumber-json" | "cucumber-messages" | "cucumber-html" | "html" | "junit" | "markdown" | "scenario-index-json" | "story-report-json";
 
 /** Sort order for test cases in reports (deterministic for diff-friendly output) */
 export type SortTestCasesMode = "id" | "source" | "none";
@@ -113,6 +113,18 @@ export interface FormatterOptions {
 
   /** StoryReport JSON specific options */
   storyReportJson?: {
+    /** Pretty-print JSON output. Default: true */
+    pretty?: boolean;
+  };
+
+  /** Scenario index JSON specific options */
+  scenarioIndexJson?: {
+    /** Pretty-print JSON output. Default: true */
+    pretty?: boolean;
+  };
+
+  /** Behavior manifest JSON specific options */
+  behaviorManifestJson?: {
     /** Pretty-print JSON output. Default: true */
     pretty?: boolean;
   };
@@ -300,6 +312,12 @@ export interface ResolvedFormatterOptions {
     pretty: boolean;
   };
   storyReportJson: {
+    pretty: boolean;
+  };
+  scenarioIndexJson: {
+    pretty: boolean;
+  };
+  behaviorManifestJson: {
     pretty: boolean;
   };
   cucumberMessages: {

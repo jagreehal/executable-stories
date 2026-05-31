@@ -71,6 +71,8 @@ export interface StoryDocs {
 export interface StoryOptions {
   tags?: string[];
   ticket?: TicketInput | TicketInput[];
+  /** Product-code paths/globs this scenario exercises (project-root-relative). */
+  covers?: string[];
   meta?: Record<string, unknown>;
   traceUrlTemplate?: string;
 }

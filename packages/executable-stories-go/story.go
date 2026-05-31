@@ -38,6 +38,7 @@ type S struct {
 	steps            []StoryStep
 	tags             []string
 	tickets          []Ticket
+	covers           []string
 	meta             map[string]any
 	docs             []DocEntry // story-level docs
 	currentStep      *StoryStep
@@ -67,6 +68,13 @@ func WithTicket(tickets ...string) Option {
 		for _, t := range tickets {
 			s.tickets = append(s.tickets, Ticket{ID: t})
 		}
+	}
+}
+
+// WithCovers declares the product-code paths/globs this story exercises.
+func WithCovers(covers ...string) Option {
+	return func(s *S) {
+		s.covers = append(s.covers, covers...)
 	}
 }
 
@@ -182,6 +190,7 @@ func Init(t TestingT, scenario string, opts ...Option) *S {
 			Steps:       s.steps,
 			Tags:        s.tags,
 			Tickets:     s.tickets,
+			Covers:      s.covers,
 			Meta:        s.meta,
 			Docs:        s.docs,
 			SourceOrder: &order,

@@ -27,6 +27,7 @@ it('admin deletes user', () => {
   story.init({
     tags: ['admin', 'destructive'],
     ticket: 'JIRA-456',
+    covers: ['src/admin/users.ts'],
     traceUrlTemplate: 'https://grafana.example.com/explore?traceId={traceId}',
   });
   story.given('the admin is logged in');

@@ -129,6 +129,8 @@ export default {
         // cucumberJson: {
         //   pretty: true,  // Pretty-print JSON
         // },
+
+        rawRunPath: 'reports/raw-run.json',
       },
     ],
   ],

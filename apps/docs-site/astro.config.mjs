@@ -175,6 +175,18 @@ export default defineConfig({
               slug: 'guides/formatting-and-metadata',
             },
             {
+              label: 'Agent artifact contract',
+              slug: 'guides/agent-artifact-contract',
+            },
+            {
+              label: 'MCP server',
+              slug: 'guides/mcp-server',
+            },
+            {
+              label: 'Setup decision tree',
+              slug: 'guides/setup-decision-tree',
+            },
+            {
               label: 'Converting existing Vitest tests',
               slug: 'guides/converting-vitest',
             },
@@ -204,6 +216,8 @@ export default defineConfig({
         {
           label: 'Reference',
           items: [
+            { label: 'Package map', slug: 'reference/package-map' },
+            { label: 'Cross-language parity', slug: 'reference/cross-language-parity' },
             { label: 'Core types & constants', slug: 'reference/core-api' },
             { label: 'Other adapters', slug: 'reference/other-adapters' },
             { label: 'Formatters API', slug: 'reference/formatters-api' },

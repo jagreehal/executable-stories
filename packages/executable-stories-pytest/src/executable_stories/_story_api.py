@@ -30,6 +30,7 @@ class _StoryContext:
         "steps",
         "tags",
         "tickets",
+        "covers",
         "meta",
         "suite_path",
         "docs",
@@ -48,12 +49,14 @@ class _StoryContext:
         *,
         tags: list[str] | None = None,
         tickets: list[dict[str, Any]] | None = None,
+        covers: list[str] | None = None,
         meta: dict[str, Any] | None = None,
     ) -> None:
         self.scenario = scenario
         self.steps: list[dict[str, Any]] = []
         self.tags = tags or []
         self.tickets: list[dict[str, Any]] = tickets or []
+        self.covers = covers or []
         self.meta = meta or {}
         self.suite_path: list[str] = []
         self.docs: list[dict[str, Any]] = []
@@ -96,12 +99,13 @@ class Story:
         *,
         tags: list[str] | None = None,
         ticket: str | list[str] | dict | list[dict | str] | None = None,
+        covers: list[str] | None = None,
         meta: dict[str, Any] | None = None,
         trace_url_template: str | None = None,
     ) -> None:
         """Start a new story context for the current test."""
         tickets = self._normalize_tickets(ticket)
-        self._local.ctx = _StoryContext(scenario, tags=tags, tickets=tickets, meta=meta)
+        self._local.ctx = _StoryContext(scenario, tags=tags, tickets=tickets, covers=covers, meta=meta)
 
         # OTel bridge: detect active span, flow data bidirectionally
         ctx = self._local.ctx
@@ -150,6 +154,8 @@ class Story:
             result["tags"] = list(ctx.tags)
         if ctx.tickets:
             result["tickets"] = list(ctx.tickets)
+        if ctx.covers:
+            result["covers"] = list(ctx.covers)
         if ctx.meta:
             result["meta"] = dict(ctx.meta)
         if ctx.suite_path:

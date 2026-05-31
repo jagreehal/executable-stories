@@ -8,16 +8,17 @@ require_relative "collector"
 
 module ExecutableStories
   class Story
-    attr_accessor :scenario, :steps, :tags, :tickets, :meta, :docs,
+    attr_accessor :scenario, :steps, :tags, :tickets, :covers, :meta, :docs,
                   :current_step, :seen_primary, :start_time, :end_time,
                   :source_order, :step_counter, :attachments, :active_timers,
                   :timer_counter, :otel_spans, :trace_url_template, :suite_path
 
-    def initialize(scenario, tags: nil, ticket: nil, meta: nil, trace_url_template: nil)
+    def initialize(scenario, tags: nil, ticket: nil, covers: nil, meta: nil, trace_url_template: nil)
       @scenario = scenario
       @steps = []
       @tags = tags
       @tickets = normalize_tickets(ticket)
+      @covers = covers
       @meta = meta&.dup
       @docs = []
       @current_step = nil
@@ -260,6 +261,7 @@ module ExecutableStories
         steps: @steps,
         tags: @tags,
         tickets: @tickets,
+        covers: @covers,
         meta: @meta,
         suite_path: @suite_path,
         docs: @docs.empty? ? nil : @docs,
