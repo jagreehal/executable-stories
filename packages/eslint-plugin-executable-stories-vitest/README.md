@@ -1,6 +1,6 @@
 # eslint-plugin-executable-stories-vitest
 
-ESLint rules for [executable-stories-vitest](https://github.com/jagreehal/executable-stories). Use with Vitest to catch common mistakes: steps outside story context, `doc.story(title)` outside a test callback, or `doc.story("Title")` without the required `task` argument.
+ESLint rules for [executable-stories-vitest](https://github.com/jagreehal/executable-stories). Use with Vitest to catch common mistakes when writing story tests. Current Vitest usage is `story.init(task)` plus `story.given` / `story.when` / `story.then`.
 
 ## Install
 
@@ -37,11 +37,11 @@ export default [...vitestExecutableStories.configs.recommended];
 
 ## Rules
 
-| Rule                                 | Description                                                                                                                       | Config      |
-| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- | ----------- |
-| `require-story-context-for-steps`    | Step functions (`given`, `when`, `then`, etc.) must be called inside a `story()` or `doc.story()` callback.                       | recommended |
-| `require-test-context-for-doc-story` | `doc.story(title)` must be called inside a `test`/`it` callback when using the native pattern (without a story callback).         | recommended |
-| `require-task-for-doc-story`         | In Vitest, `doc.story(title, task)` requires the task argument. Use `it('...', ({ task }) => { doc.story('Title', task); ... })`. | recommended |
+| Rule                                      | Description                                                                                  | Config      |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------- | ----------- |
+| `require-task-for-story-init`             | `story.init(task)` must receive the Vitest `task` argument from the test callback.            | recommended |
+| `require-test-context-for-story-init`     | `story.init(...)` must be called inside a `test`/`it` callback.                              | recommended |
+| `require-init-before-steps`               | Step and doc calls on `story` must follow `story.init(...)` in the same test.                | recommended |
 
 ## Configs
 

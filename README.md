@@ -37,6 +37,9 @@ If a test is skipped, failed, or todo, the docs reflect that.
 | [executable-stories-junit5](./packages/executable-stories-junit5)         | Kotlin / JUnit 5             | JVM module in repo                       |
 | [executable-stories-xunit](./packages/executable-stories-xunit)           | C# / xUnit                   | .NET package in repo                     |
 | [executable-stories-formatters](./packages/executable-stories-formatters) | Cross-runner formatter CLI   | `npm i -D executable-stories-formatters` |
+| [executable-stories-react](./packages/executable-stories-react)           | React StoryReport renderer   | `npm i executable-stories-react`         |
+| [executable-stories-mcp](./packages/executable-stories-mcp)               | Read-only MCP behavior tools | `npm i -D executable-stories-mcp`        |
+| [executable-stories-init](./packages/executable-stories-init)             | JS/TS onboarding CLI         | `npm i -D executable-stories-init`       |
 | [executable-stories-demo](./packages/executable-stories-demo)             | Demo site/report tooling     | workspace package                        |
 | [eslint-plugin-executable-stories-vitest](./packages/eslint-plugin-executable-stories-vitest) | ESLint plugin (Vitest) | `npm i -D eslint-plugin-executable-stories-vitest` |
 | [eslint-plugin-executable-stories-jest](./packages/eslint-plugin-executable-stories-jest) | ESLint plugin (Jest)   | `npm i -D eslint-plugin-executable-stories-jest` |
@@ -49,15 +52,15 @@ Example apps: [apps/jest-example](./apps/jest-example), [apps/vitest-example](./
 
 | Feature                           | Jest                                                                          | Vitest                                                       | Playwright                                           | Cypress                                              |
 | --------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------ | ---------------------------------------------------- | ---------------------------------------------------- |
-| **API**                           | Top-level `given` / `when` / `then`                                           | Callback `steps.given` / `steps.when` / `steps.then`         | Top-level `given` / `when` / `then`                  | Top-level `story.init()` + `given` / `when` / `then` |
+| **API**                           | `story.init()` + `story.given` / `story.when` / `story.then`; top-level step helpers also exported | `story.init(task)` + `story.given` / `story.when` / `story.then`; no top-level `then` export | `story.init(testInfo)` + `story.given` / `story.when` / `story.then`; top-level step helpers also exported | `story.init()` + `story.given` / `story.when` / `story.then`; top-level step helpers also exported |
 | **Step modifiers**                | `.skip` `.only` `.todo` `.fails` `.concurrent`                                | `.skip` `.only` `.todo` `.fails` `.concurrent`               | `.skip` `.only` `.fixme` `.todo` `.fail` `.slow`     | `.skip` `.only` `.todo` `.fails` `.concurrent`       |
 | **Scenario modifiers**            | `story.skip` `story.only`                                                     | `story.skip` `story.only`                                    | `story.skip` `story.only` `story.fixme` `story.slow` | `story.skip` `story.only`                            |
 | **Output modes**                  | Colocated, aggregated, mixed                                                  | Colocated, aggregated, mixed                                 | Colocated, aggregated, mixed                         | Colocated, aggregated, mixed                         |
-| **Rich step docs** (`doc` API)    | ✅ note, kv, code, table, link, section, mermaid, screenshot, runtime, custom | ✅ same                                                      | ✅ same                                              | ✅ same                                              |
+| **Rich step docs**                | ✅ note, kv, code, table, link, section, mermaid, screenshot, runtime, custom | ✅ same                                                      | ✅ same                                              | ✅ same                                              |
 | **Scenario options**              | `tags`, `meta`, `ticket`, `traceUrlTemplate`                                  | `tags`, `meta`, `ticket`, `traceUrlTemplate`                 | `tags`, `meta`, `ticket`, `traceUrlTemplate`         | `tags`, `meta`, `ticket`, `traceUrlTemplate`         |
 | **OTel trace link**               | ✅ auto-detect via `@opentelemetry/api`                                       | ✅ same                                                      | ✅ same                                              | — (browser env)                                      |
 | **OTel trace waterfall**          | —                                                                             | ✅ via [autotel](https://github.com/jagreehal/autotel) `task.meta.otelSpans` | ✅ via autotel `otel-spans` annotation               | —                                                    |
-| **Attach story to plain it/test** | `doc.story("Title")` inside `test()`                                          | `doc.story("Title", task)` with `it(..., ({ task }) => ...)` | `doc.story("Title")` inside `test()`                 | `doc.story("Title")` inside `it()`                  |
+| **Attach story to plain it/test** | `story.init()` inside `test()`                                                | `story.init(task)` with `it(..., ({ task }) => ...)`         | `story.init(testInfo)` inside `test()`               | `story.init()` or `doc.story("Title")` inside `it()` |
 | **Step callbacks**                | `story.given('text', () => ...)` on all steps                                 | ✅ same                                                      | ✅ same                                              | ✅ same                                              |
 | **AAA aliases**                   | arrange/act/assert, setup/context, etc.                                       | arrange/act/assert, setup/context, etc.                      | arrange/act/assert, setup/context, etc.              | arrange/act/assert, setup/context, etc.              |
 | **CLI collate**                   | ✅                                                                            | ✅                                                           | ✅                                                   | ✅                                                   |
@@ -77,33 +80,37 @@ Details and reporter options: see each package's README.
 
 ## Quick example
 
-**Jest or Playwright** (top-level steps):
+**Jest** (`story.init()` plus step markers):
 
 ```ts
-import { expect } from '@jest/globals'; // or from "vitest" / "@playwright/test"
-import { given, story, then, when } from 'executable-stories-jest'; // or executable-stories-playwright
+import { expect, it } from '@jest/globals';
+import { story } from 'executable-stories-jest';
 
-story('User logs in', () => {
-  given('user is on login page');
-  when('user submits valid credentials');
-  then('user sees the dashboard', () => {
+it('User logs in', () => {
+  story.init();
+  story.given('user is on login page');
+  story.when('user submits valid credentials');
+  story.then('user sees the dashboard', () => {
     expect(true).toBe(true); // or real assertion
   });
 });
 ```
 
+Playwright uses the same `story.given` / `story.when` / `story.then` style, but pass `testInfo` to `story.init(testInfo)`.
+
 **Cypress** (call `story.init()` at the start of each `it`, then use step markers; see [Cypress README](./packages/executable-stories-cypress/README.md)).
 
-**Vitest** (steps on callback only; no top-level `then`):
+**Vitest** (`story.init(task)`; no top-level `then`):
 
 ```ts
+import { expect, it } from 'vitest';
 import { story } from 'executable-stories-vitest';
-import { expect } from 'vitest';
 
-story('User logs in', (steps) => {
-  steps.given('user is on login page');
-  steps.when('user submits valid credentials');
-  steps.then('user sees the dashboard', () => {
+it('User logs in', ({ task }) => {
+  story.init(task);
+  story.given('user is on login page');
+  story.when('user submits valid credentials');
+  story.then('user sees the dashboard', () => {
     expect(true).toBe(true);
   });
 });
@@ -130,11 +137,13 @@ Playwright step callbacks can use fixtures: `given("...", async ({ page }) => { 
 
 See each package's README for detailed setup instructions.
 
+**Agent workflows:** Publish StoryReport JSON and a scenario index from CI — see the [agent artifact contract](https://executablestories.com/guides/agent-artifact-contract/) and [MCP server guide](https://executablestories.com/guides/mcp-server/). Package roles: [package map](https://executablestories.com/reference/package-map/). Cross-language parity policy: [parity matrix](https://executablestories.com/reference/cross-language-parity/).
+
 ## Development
 
 From the repo root: `pnpm quality` runs build, lint, type-check, and test for all packages.
 
-For contributor and AI agent guidance (conventions, framework APIs, ESLint plugins, verification), see [AGENTS.md](./AGENTS.md). [CLAUDE.md](./CLAUDE.md) is a symlink to the same file. Example apps in `apps/` use the workspace packages. JUnit 5, pytest, Go, Rust, and xUnit example apps are not part of `pnpm quality`. When Java 21 and Maven are available (e.g. in the devcontainer), run `pnpm run verify:junit5` to run [junit5-example](./apps/junit5-example). When Python 3.12+ is available, run `pnpm run verify:pytest` to run [pytest-example](./apps/pytest-example). When Go 1.22+ is available, run `pnpm run verify:go` to run [go-example](./apps/go-example). When Rust is available, run `pnpm run verify:rust` to run [rust-example](./apps/rust-example). When .NET 8 is available, run `pnpm run verify:xunit` to run [xunit-example](./apps/xunit-example).
+For contributor and AI agent guidance (conventions, framework APIs, ESLint plugins, verification), see [AGENTS.md](./AGENTS.md). [CLAUDE.md](./CLAUDE.md) is a symlink to the same file. Example apps in `apps/` use the workspace packages. JUnit 5, pytest, Go, Rust, Ruby, and xUnit example apps are not part of `pnpm quality`. When Java 21 and Maven are available (e.g. in the devcontainer), run `pnpm run verify:junit5` to run [junit5-example](./apps/junit5-example). When Python 3.12+ is available, run `pnpm run verify:pytest` to run [pytest-example](./apps/pytest-example). When Go 1.22+ is available, run `pnpm run verify:go` to run [go-example](./apps/go-example). When Rust is available, run `pnpm run verify:rust` to run [rust-example](./apps/rust-example). When Ruby and Bundler are available, run `pnpm run verify:ruby` for [executable-stories-ruby](./packages/executable-stories-ruby). When .NET 8 is available, run `pnpm run verify:xunit` to run [xunit-example](./apps/xunit-example).
 
 ### Formatters standalone binary
 

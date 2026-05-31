@@ -1,0 +1,622 @@
+---
+const reportPath = "/stories/story-report.json";
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Scenario Explorer</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #f7f8f5;
+        --panel: #ffffff;
+        --panel-2: #eef1ea;
+        --line: #d8ded1;
+        --text: #172017;
+        --muted: #657260;
+        --accent: #246b42;
+        --passed: #16803c;
+        --failed: #bd2c2c;
+        --skipped: #9a6b16;
+        --pending: #6654b8;
+        --shadow: 0 12px 30px rgb(24 32 20 / 0.08);
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #111610;
+          --panel: #181f17;
+          --panel-2: #20291e;
+          --line: #33402f;
+          --text: #eef4ea;
+          --muted: #a5b39e;
+          --accent: #85d39d;
+          --shadow: none;
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+      }
+
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+
+      .shell {
+        display: grid;
+        grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+        min-height: 100vh;
+      }
+
+      .sidebar {
+        border-right: 1px solid var(--line);
+        background: var(--panel);
+        padding: 20px;
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        overflow: auto;
+      }
+
+      .brand {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 18px;
+      }
+
+      h1 {
+        font-size: 19px;
+        line-height: 1.2;
+        margin: 0;
+        letter-spacing: 0;
+      }
+
+      .meta {
+        color: var(--muted);
+        font-size: 12px;
+        white-space: nowrap;
+      }
+
+      .controls {
+        display: grid;
+        gap: 10px;
+        margin-bottom: 16px;
+      }
+
+      .search,
+      .select {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--bg);
+        color: var(--text);
+        padding: 10px 12px;
+      }
+
+      .summary {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 6px;
+        margin-bottom: 16px;
+      }
+
+      .metric {
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 8px;
+        background: var(--panel-2);
+      }
+
+      .metric strong {
+        display: block;
+        font-size: 18px;
+        line-height: 1;
+      }
+
+      .metric span {
+        color: var(--muted);
+        display: block;
+        font-size: 11px;
+        margin-top: 4px;
+      }
+
+      .scenario-list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .scenario-button {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: var(--bg);
+        color: var(--text);
+        cursor: pointer;
+        display: grid;
+        gap: 6px;
+        padding: 10px;
+        text-align: left;
+      }
+
+      .scenario-button:hover,
+      .scenario-button[aria-current="true"] {
+        border-color: var(--accent);
+        background: var(--panel-2);
+      }
+
+      .scenario-title {
+        font-size: 13px;
+        font-weight: 650;
+        line-height: 1.35;
+      }
+
+      .scenario-source {
+        color: var(--muted);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 11px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .content {
+        padding: 32px;
+        min-width: 0;
+      }
+
+      .scenario-card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        box-shadow: var(--shadow);
+        max-width: 1120px;
+        min-height: calc(100vh - 64px);
+        padding: 28px;
+      }
+
+      .status {
+        align-items: center;
+        border: 1px solid currentColor;
+        border-radius: 999px;
+        display: inline-flex;
+        font-size: 11px;
+        font-weight: 700;
+        gap: 6px;
+        letter-spacing: 0.08em;
+        padding: 4px 8px;
+        text-transform: uppercase;
+      }
+
+      .covers-row {
+        color: var(--muted);
+        font-size: 13px;
+        margin-top: 8px;
+      }
+
+      .covers-path {
+        background: var(--panel-2);
+        border-radius: 4px;
+        font-size: 12px;
+        padding: 2px 6px;
+      }
+
+      .status-passed {
+        color: var(--passed);
+      }
+
+      .status-failed {
+        color: var(--failed);
+      }
+
+      .status-skipped {
+        color: var(--skipped);
+      }
+
+      .status-pending {
+        color: var(--pending);
+      }
+
+      .scenario-heading {
+        display: grid;
+        gap: 12px;
+        margin-bottom: 22px;
+      }
+
+      .scenario-heading h2 {
+        font-size: clamp(28px, 4vw, 54px);
+        line-height: 0.98;
+        letter-spacing: 0;
+        margin: 0;
+        max-width: 13ch;
+      }
+
+      .feature-line {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .source-link {
+        color: var(--accent);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+
+      .section {
+        border-top: 1px solid var(--line);
+        padding-top: 20px;
+        margin-top: 20px;
+      }
+
+      .section h3 {
+        font-size: 13px;
+        letter-spacing: 0.08em;
+        margin: 0 0 12px;
+        text-transform: uppercase;
+      }
+
+      .steps {
+        display: grid;
+        gap: 10px;
+        margin: 0;
+        padding: 0;
+      }
+
+      .step {
+        align-items: start;
+        background: var(--panel-2);
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        display: grid;
+        gap: 10px;
+        grid-template-columns: 76px minmax(0, 1fr) auto;
+        list-style: none;
+        padding: 11px 12px;
+      }
+
+      .keyword {
+        color: var(--accent);
+        font-weight: 750;
+      }
+
+      .doc-grid,
+      .tag-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .pill {
+        background: var(--panel-2);
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        color: var(--muted);
+        font-size: 12px;
+        padding: 5px 8px;
+      }
+
+      .doc-entry {
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: var(--panel-2);
+        overflow: hidden;
+        padding: 12px;
+        width: 100%;
+      }
+
+      pre {
+        overflow: auto;
+        margin: 8px 0 0;
+        white-space: pre-wrap;
+      }
+
+      .empty {
+        color: var(--muted);
+        display: grid;
+        min-height: 60vh;
+        place-items: center;
+        text-align: center;
+      }
+
+      .error {
+        color: var(--failed);
+        white-space: pre-wrap;
+      }
+
+      @media (max-width: 820px) {
+        .shell {
+          display: block;
+        }
+
+        .sidebar {
+          height: auto;
+          position: relative;
+        }
+
+        .content {
+          padding: 16px;
+        }
+
+        .scenario-card {
+          min-height: auto;
+          padding: 18px;
+        }
+
+        .summary {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .step {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <aside class="sidebar" aria-label="Scenario navigation">
+        <div class="brand">
+          <h1>Scenario Explorer</h1>
+          <span class="meta" id="run-meta">Loading</span>
+        </div>
+        <div class="controls">
+          <input class="search" id="search" type="search" placeholder="Search scenarios, tags, or file paths" />
+          <select class="select" id="status-filter" aria-label="Filter by status">
+            <option value="all">All statuses</option>
+            <option value="passed">Passed</option>
+            <option value="failed">Failed</option>
+            <option value="skipped">Skipped</option>
+            <option value="pending">Pending</option>
+          </select>
+        </div>
+        <div class="summary" id="summary" aria-label="Run summary"></div>
+        <div class="scenario-list" id="scenario-list"></div>
+      </aside>
+      <section class="content">
+        <article class="scenario-card" id="scenario-detail">
+          <div class="empty">Load `story-report.json` to browse executable stories.</div>
+        </article>
+      </section>
+    </main>
+    <script define:vars={{ reportPath }}>
+      const state = {
+        report: null,
+        scenarios: [],
+        selectedId: "",
+        query: "",
+        status: "all",
+      };
+
+      const elements = {
+        meta: document.querySelector("#run-meta"),
+        search: document.querySelector("#search"),
+        status: document.querySelector("#status-filter"),
+        summary: document.querySelector("#summary"),
+        list: document.querySelector("#scenario-list"),
+        detail: document.querySelector("#scenario-detail"),
+      };
+
+      const escapeHtml = (value) =>
+        String(value ?? "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;");
+
+      const statusClass = (status) => `status status-${status}`;
+
+      const flattenReport = (report) =>
+        report.features.flatMap((feature) =>
+          feature.scenarios.map((scenario) => ({
+            ...scenario,
+            featureTitle: feature.title,
+            sourceFile: feature.sourceFile,
+          })),
+        );
+
+      const filteredScenarios = () => {
+        const q = state.query.trim().toLowerCase();
+        return state.scenarios.filter((scenario) => {
+          const matchesStatus = state.status === "all" || scenario.status === state.status;
+          const haystack = [
+            scenario.title,
+            scenario.featureTitle,
+            scenario.sourceFile,
+            ...(scenario.tags ?? []),
+            ...(scenario.covers ?? []),
+          ]
+            .join(" ")
+            .toLowerCase();
+          return matchesStatus && (!q || haystack.includes(q));
+        });
+      };
+
+      const renderSummary = () => {
+        const summary = state.report?.summary ?? {
+          total: 0,
+          passed: 0,
+          failed: 0,
+          skipped: 0,
+          pending: 0,
+        };
+        elements.summary.innerHTML = ["total", "passed", "failed", "skipped", "pending"]
+          .map(
+            (key) => `
+              <div class="metric">
+                <strong>${summary[key] ?? 0}</strong>
+                <span>${key}</span>
+              </div>
+            `,
+          )
+          .join("");
+      };
+
+      const renderList = () => {
+        const scenarios = filteredScenarios();
+        if (!state.selectedId && scenarios[0]) {
+          state.selectedId = scenarios[0].id;
+        }
+
+        elements.list.innerHTML = scenarios
+          .map(
+            (scenario) => `
+              <button class="scenario-button" type="button" data-scenario-id="${escapeHtml(
+                scenario.id,
+              )}" aria-current="${scenario.id === state.selectedId}">
+                <span class="${statusClass(scenario.status)}">${escapeHtml(scenario.status)}</span>
+                <span class="scenario-title">${escapeHtml(scenario.title)}</span>
+                <span class="scenario-source">${escapeHtml(scenario.sourceFile)}${
+                  scenario.sourceLine ? `:${scenario.sourceLine}` : ""
+                }</span>
+              </button>
+            `,
+          )
+          .join("");
+
+        elements.list.querySelectorAll("[data-scenario-id]").forEach((button) => {
+          button.addEventListener("click", () => {
+            state.selectedId = button.dataset.scenarioId;
+            render();
+          });
+        });
+      };
+
+      const renderDocs = (docs) => {
+        if (!docs?.length) return '<p class="meta">No docs attached.</p>';
+        return docs
+          .map((doc) => {
+            if (doc.kind === "note") return `<div class="doc-entry">${escapeHtml(doc.text)}</div>`;
+            if (doc.kind === "link") {
+              return `<a class="doc-entry" href="${escapeHtml(doc.url)}">${escapeHtml(doc.label)}</a>`;
+            }
+            if (doc.kind === "code") {
+              return `<div class="doc-entry"><strong>${escapeHtml(
+                doc.label,
+              )}</strong><pre><code>${escapeHtml(doc.content)}</code></pre></div>`;
+            }
+            if (doc.kind === "table") {
+              return `<div class="doc-entry"><strong>${escapeHtml(doc.label)}</strong><pre>${escapeHtml(
+                JSON.stringify({ columns: doc.columns, rows: doc.rows }, null, 2),
+              )}</pre></div>`;
+            }
+            return `<div class="doc-entry"><strong>${escapeHtml(doc.kind)}</strong><pre>${escapeHtml(
+              JSON.stringify(doc, null, 2),
+            )}</pre></div>`;
+          })
+          .join("");
+      };
+
+      const renderDetail = () => {
+        const scenario =
+          state.scenarios.find((item) => item.id === state.selectedId) ?? filteredScenarios()[0];
+
+        if (!scenario) {
+          elements.detail.innerHTML = '<div class="empty">No scenarios match current filters.</div>';
+          return;
+        }
+
+        state.selectedId = scenario.id;
+        if (location.hash.slice(1) !== scenario.id) {
+          history.replaceState(null, "", `#${encodeURIComponent(scenario.id)}`);
+        }
+        elements.detail.innerHTML = `
+          <header class="scenario-heading">
+            <span class="${statusClass(scenario.status)}">${escapeHtml(scenario.status)}</span>
+            <h2>${escapeHtml(scenario.title)}</h2>
+            <div class="feature-line">${escapeHtml(scenario.featureTitle)} · <a class="source-link" href="#${escapeHtml(
+              scenario.id,
+            )}">${escapeHtml(scenario.sourceFile)}${scenario.sourceLine ? `:${scenario.sourceLine}` : ""}</a></div>
+            <div class="tag-row">${(scenario.tags ?? [])
+              .map((tag) => `<span class="pill">#${escapeHtml(tag)}</span>`)
+              .join("")}</div>
+            ${
+              (scenario.covers ?? []).length
+                ? `<div class="covers-row">Covers ${(scenario.covers ?? [])
+                    .map((p) => `<code class="covers-path">${escapeHtml(p)}</code>`)
+                    .join(" ")}</div>`
+                : ""
+            }
+          </header>
+          <section class="section">
+            <h3>Steps</h3>
+            <ol class="steps">
+              ${(scenario.steps ?? [])
+                .map(
+                  (step) => `
+                    <li class="step">
+                      <span class="keyword">${escapeHtml(step.keyword)}</span>
+                      <span>${escapeHtml(step.text)}</span>
+                      <span class="${statusClass(step.status)}">${escapeHtml(step.status)}</span>
+                    </li>
+                  `,
+                )
+                .join("")}
+            </ol>
+          </section>
+          <section class="section">
+            <h3>Docs</h3>
+            <div class="doc-grid">${renderDocs(scenario.docEntries)}</div>
+          </section>
+          ${
+            scenario.errorMessage
+              ? `<section class="section"><h3>Error</h3><pre class="error">${escapeHtml(
+                  scenario.errorMessage,
+                )}</pre></section>`
+              : ""
+          }
+        `;
+      };
+
+      const render = () => {
+        renderSummary();
+        renderList();
+        renderDetail();
+      };
+
+      elements.search.addEventListener("input", (event) => {
+        state.query = event.target.value;
+        state.selectedId = "";
+        render();
+      });
+
+      elements.status.addEventListener("change", (event) => {
+        state.status = event.target.value;
+        state.selectedId = "";
+        render();
+      });
+
+      fetch(reportPath)
+        .then((response) => {
+          if (!response.ok) throw new Error(`Could not load ${reportPath}`);
+          return response.json();
+        })
+        .then((report) => {
+          state.report = report;
+          state.scenarios = flattenReport(report);
+          state.selectedId = decodeURIComponent(location.hash.slice(1));
+          elements.meta.textContent = `${report.summary.total} scenarios`;
+          render();
+        })
+        .catch((error) => {
+          elements.meta.textContent = "No report";
+          elements.detail.innerHTML = `<pre class="error">${escapeHtml(error.message)}</pre>`;
+          renderSummary();
+        });
+    </script>
+  </body>
+</html>

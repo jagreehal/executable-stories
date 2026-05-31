@@ -21,7 +21,7 @@ module ExecutableStories
   )
 
   StoryMeta = Struct.new(
-    :scenario, :steps, :tags, :tickets, :meta, :suite_path, :docs,
+    :scenario, :steps, :tags, :tickets, :covers, :meta, :suite_path, :docs,
     :source_order, :otel_spans,
     keyword_init: true
   )
@@ -61,6 +61,7 @@ module ExecutableStories
     }
     h["tags"] = meta.tags if meta.tags && !meta.tags.empty?
     h["tickets"] = meta.tickets.map { |t| t.is_a?(Ticket) ? ticket_to_h(t) : t } if meta.tickets && !meta.tickets.empty?
+    h["covers"] = meta.covers if meta.covers && !meta.covers.empty?
     h["meta"] = meta.meta if meta.meta
     h["suitePath"] = meta.suite_path if meta.suite_path
     h["docs"] = meta.docs if meta.docs && !meta.docs.empty?

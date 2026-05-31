@@ -379,6 +379,7 @@ function init(options?: StoryOptions, scenarioOverride?: string): void {
     suitePath,
     tags: options?.tags,
     tickets: normalizeTickets(options?.ticket),
+    covers: options?.covers,
     meta: options?.meta,
     sourceOrder: sourceOrderCounter++,
   };

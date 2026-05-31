@@ -24,7 +24,7 @@ import { story, given, when, then } from "executable-stories-jest";
 
 describe("Cart checkout", () => {
   it("applies discount code", () => {
-    story.init({ tags: ["checkout"], ticket: "CART-42" });
+    story.init({ tags: ["checkout"], ticket: "CART-42", covers: ["src/checkout.ts"] });
 
     given("a cart with items totaling $100");
     const cart = createCart([{ name: "Shirt", price: 100 }]);

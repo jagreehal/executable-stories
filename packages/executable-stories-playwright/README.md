@@ -156,7 +156,7 @@ story.init(testInfo, {
 
 - **API:** Top-level step functions: `given`, `when`, `then`, `and`, `but` from `executable-stories-playwright`, plus `story` object with `story.init()` and the same steps on `story` for a consistent entry point. Use `story.init(testInfo)` and then `story.given` / `story.when` / `story.then`, etc.
 - **Modifiers:** Playwright’s `.skip`, `.only`, `.fixme`, `.todo`, `.fail`, `.slow` on tests; use `story.skip` / `story.only` / `story.fixme` / `story.slow` for scenario-level modifiers.
-- **Attach story to a plain test:** Use `doc.story('Title', testInfo)` or `doc.story('Title', (s) => { s.given(...); ... })` inside a normal `test()` so that test still appears in generated docs.
+- **Attach story to a plain test:** Call `story.init(testInfo)` inside a normal `test()` so that test appears in generated docs. Playwright does not export `doc`; scenario title comes from the Playwright test title.
 - **Rich step docs:** `story.note()`, `story.json()`, `story.code()`, `story.mermaid()`, etc., or pass a `StoryDocs` object as the second argument when not using a callback. See the root [Features matrix](https://github.com/jagreehal/executable-stories#features-matrix).
 
 ---

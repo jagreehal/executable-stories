@@ -45,6 +45,7 @@ story.then("the user should see the dashboard")
 
 - `tags:` - array of tags for the story
 - `ticket:` - string, array, or ticket objects with `id` and optional `url`
+- `covers:` - array of product-code paths/globs this scenario exercises (powers code→scenario lookup)
 - `meta:` - arbitrary metadata hash
 - `trace_url_template:` - template used to generate a trace link when OTel is active
 

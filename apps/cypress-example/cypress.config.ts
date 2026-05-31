@@ -30,5 +30,6 @@ export default defineConfig({
       sortScenarios: "source",
       suiteSeparator: " - ",
     },
+    rawRunPath: "reports/raw-run.json",
   },
 });

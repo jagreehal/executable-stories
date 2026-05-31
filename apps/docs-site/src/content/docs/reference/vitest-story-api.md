@@ -12,7 +12,7 @@ Initializes a story for the current test. Must be called at the start of each te
 | Item        | Description                                                                            |
 | ----------- | -------------------------------------------------------------------------------------- |
 | **task**    | The Vitest task from `it('...', ({ task }) => { ... })`.                               |
-| **options** | Optional `StoryOptions`: `tags`, `ticket`, `meta`, `traceUrlTemplate`.                 |
+| **options** | Optional `StoryOptions`: `tags`, `ticket`, `covers`, `meta`, `traceUrlTemplate`.       |
 | **Example** | `it('adds two numbers', ({ task }) => { story.init(task); story.given('...'); ... });` |
 
 **Example with options:**
@@ -134,6 +134,7 @@ it('login with credentials', ({ task }) => {
 | -------- | ------------------------- | ------- | --------------------------------------------------------------- |
 | `tags`   | `string[]`                | —       | Tags for filtering and categorizing (e.g. `["smoke", "auth"]`). |
 | `ticket` | `string \| string[]`      | —       | Ticket/issue reference(s) for requirements traceability.        |
+| `covers` | `string[]`                | —       | Product-code paths/globs this scenario exercises (e.g. `["src/auth/**"]`). Powers the `get_scenarios_for_paths` MCP verb. |
 | `meta`   | `Record<string, unknown>` | —       | Arbitrary user-defined metadata.                                |
 | `traceUrlTemplate` | `string`         | —       | Trace URL template using `{traceId}`. Also supported via `OTEL_TRACE_URL_TEMPLATE`. |
 

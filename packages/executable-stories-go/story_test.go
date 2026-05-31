@@ -316,6 +316,17 @@ func TestOptions(t *testing.T) {
 	}
 }
 
+func TestWithCovers(t *testing.T) {
+	reset()
+
+	mt := &mockT{name: "TestWithCovers"}
+	s := Init(mt, "covers test", WithCovers("src/auth/login.go", "src/session.go"))
+
+	if len(s.covers) != 2 || s.covers[0] != "src/auth/login.go" || s.covers[1] != "src/session.go" {
+		t.Errorf("unexpected covers: %v", s.covers)
+	}
+}
+
 func TestTableDoc(t *testing.T) {
 	reset()
 

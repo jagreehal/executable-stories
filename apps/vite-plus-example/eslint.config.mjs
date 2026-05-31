@@ -4,6 +4,9 @@ import vitestExecutableStories from 'eslint-plugin-executable-stories-vitest';
 export default [
   ...baseConfig,
   {
+    ignores: ['scripts/**'],
+  },
+  {
     plugins: {
       'executable-stories-vitest': vitestExecutableStories,
     },

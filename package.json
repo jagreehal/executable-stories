@@ -21,7 +21,8 @@
     "verify:pytest": "./scripts/verify-pytest.sh",
     "verify:go": "./scripts/verify-go.sh",
     "verify:rust": "./scripts/verify-rust.sh",
-    "verify:xunit": "./scripts/verify-xunit.sh"
+    "verify:xunit": "./scripts/verify-xunit.sh",
+    "verify:ruby": "./scripts/verify-ruby.sh"
   },
   "devDependencies": {
     "@changesets/cli": "^2.31.0",

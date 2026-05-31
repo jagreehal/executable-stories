@@ -15,6 +15,7 @@ class StoryMeta {
     var steps: List<StoryStep>? = null
     var tags: List<String>? = null
     var tickets: List<Ticket>? = null
+    var covers: List<String>? = null
     var meta: Map<String, Any?>? = null
     var suitePath: List<String>? = null
     var docs: List<DocEntry>? = null

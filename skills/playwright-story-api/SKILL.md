@@ -24,7 +24,7 @@ import { story, given, when, then } from "executable-stories-playwright";
 
 test.describe("Login page", () => {
   test("authenticates with valid credentials", async ({ page }, testInfo) => {
-    story.init(testInfo, { tags: ["auth"], ticket: "AUTH-42" });
+    story.init(testInfo, { tags: ["auth"], ticket: "AUTH-42", covers: ["src/auth.ts"] });
 
     given("the login page is loaded");
     await page.goto("/login");

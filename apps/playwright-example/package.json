@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "test": "node -e \"const fs=require('fs');const {execSync}=require('child_process');const p=require('path').resolve(process.cwd(),'../../packages/executable-stories-playwright/package.json');if(!fs.existsSync(p)){console.log('Skipping test: executable-stories-playwright not in workspace');process.exit(0);}execSync('playwright test',{stdio:'inherit'});\"",
+    "report:agents": "pnpm exec executable-stories format reports/raw-run.json --format story-report-json,scenario-index-json,behavior-manifest-json --output-dir reports --output-name index",
+    "test:report": "pnpm test && pnpm report:agents",
     "test:ui": "playwright test --ui",
     "lint": "eslint .",
     "type-check": "node -e \"const fs=require('fs');const {execSync}=require('child_process');const p=require('path').resolve(process.cwd(),'../../packages/executable-stories-playwright/package.json');if(!fs.existsSync(p)){console.log('Skipping type-check: executable-stories-playwright not in workspace');process.exit(0);}execSync('pnpm --filter executable-stories-playwright run build && tsc --noEmit',{stdio:'inherit'});\""
@@ -17,6 +19,7 @@
     "eslint-config-executable-stories": "workspace:*",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-executable-stories-playwright": "workspace:*",
+    "executable-stories-formatters": "workspace:*",
     "executable-stories-playwright": "workspace:*",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.54.0"

@@ -61,7 +61,7 @@ end
 
 ```ruby
 story = ExecutableStories.init("scenario name")
-story = ExecutableStories.init("scenario name", tags: ["smoke"], ticket: "JIRA-123")
+story = ExecutableStories.init("scenario name", tags: ["smoke"], ticket: "JIRA-123", covers: ["lib/auth.rb"])
 story = ExecutableStories.init("scenario name", ticket: [{ id: "JIRA-200", url: "https://jira.example.com/JIRA-200" }])
 ```
 

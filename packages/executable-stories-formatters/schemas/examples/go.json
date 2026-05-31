@@ -11,7 +11,10 @@
     {
       "externalId": "myapp/auth.TestSuccessfulLogin",
       "title": "Successful login with valid credentials",
-      "titlePath": ["myapp/auth", "TestSuccessfulLogin"],
+      "titlePath": [
+        "myapp/auth",
+        "TestSuccessfulLogin"
+      ],
       "sourceFile": "auth/auth_test.go",
       "sourceLine": 18,
       "status": "pass",
@@ -19,15 +22,37 @@
       "story": {
         "scenario": "Successful login with valid credentials",
         "steps": [
-          { "keyword": "Given", "text": "a registered user with email 'alice@example.com'" },
-          { "keyword": "When", "text": "the user submits login with valid credentials" },
-          { "keyword": "Then", "text": "the response status is 200" },
-          { "keyword": "And", "text": "a JWT token is returned" }
+          {
+            "keyword": "Given",
+            "text": "a registered user with email 'alice@example.com'"
+          },
+          {
+            "keyword": "When",
+            "text": "the user submits login with valid credentials"
+          },
+          {
+            "keyword": "Then",
+            "text": "the response status is 200"
+          },
+          {
+            "keyword": "And",
+            "text": "a JWT token is returned"
+          }
         ],
-        "tags": ["smoke", "auth"],
-        "tickets": ["AUTH-101"],
-        "suitePath": ["myapp/auth"],
-        "sourceOrder": 0
+        "tags": [
+          "smoke",
+          "auth"
+        ],
+        "tickets": [
+          "AUTH-101"
+        ],
+        "suitePath": [
+          "myapp/auth"
+        ],
+        "sourceOrder": 0,
+        "covers": [
+          "src/auth/login.*"
+        ]
       },
       "meta": {
         "framework": "go",
@@ -37,7 +62,10 @@
     {
       "externalId": "myapp/auth.TestLoginInvalidPassword",
       "title": "Login with invalid password returns 401",
-      "titlePath": ["myapp/auth", "TestLoginInvalidPassword"],
+      "titlePath": [
+        "myapp/auth",
+        "TestLoginInvalidPassword"
+      ],
       "sourceFile": "auth/auth_test.go",
       "sourceLine": 45,
       "status": "fail",
@@ -54,7 +82,10 @@
     {
       "externalId": "myapp/auth.TestLoginRateLimiting",
       "title": "Login is rate-limited after 5 failed attempts",
-      "titlePath": ["myapp/auth", "TestLoginRateLimiting"],
+      "titlePath": [
+        "myapp/auth",
+        "TestLoginRateLimiting"
+      ],
       "sourceFile": "auth/auth_test.go",
       "sourceLine": 72,
       "status": "skip",
@@ -68,7 +99,10 @@
     {
       "externalId": "myapp/cart.TestCompleteCheckout",
       "title": "Complete checkout with credit card",
-      "titlePath": ["myapp/cart", "TestCompleteCheckout"],
+      "titlePath": [
+        "myapp/cart",
+        "TestCompleteCheckout"
+      ],
       "sourceFile": "cart/checkout_test.go",
       "sourceLine": 15,
       "status": "pass",
@@ -76,14 +110,34 @@
       "story": {
         "scenario": "Complete checkout with credit card",
         "steps": [
-          { "keyword": "Given", "text": "a cart with 2 items totaling $59.98" },
-          { "keyword": "When", "text": "the user submits payment with a test credit card" },
-          { "keyword": "Then", "text": "the order is confirmed" },
-          { "keyword": "And", "text": "a confirmation email is queued" }
+          {
+            "keyword": "Given",
+            "text": "a cart with 2 items totaling $59.98"
+          },
+          {
+            "keyword": "When",
+            "text": "the user submits payment with a test credit card"
+          },
+          {
+            "keyword": "Then",
+            "text": "the order is confirmed"
+          },
+          {
+            "keyword": "And",
+            "text": "a confirmation email is queued"
+          }
         ],
-        "tags": ["checkout", "payments", "e2e"],
-        "tickets": ["SHOP-200"],
-        "suitePath": ["myapp/cart"],
+        "tags": [
+          "checkout",
+          "payments",
+          "e2e"
+        ],
+        "tickets": [
+          "SHOP-200"
+        ],
+        "suitePath": [
+          "myapp/cart"
+        ],
         "sourceOrder": 0
       },
       "meta": {
@@ -94,7 +148,10 @@
     {
       "externalId": "myapp/cart.TestEmptyCartCheckout",
       "title": "Cannot checkout with an empty cart",
-      "titlePath": ["myapp/cart", "TestEmptyCartCheckout"],
+      "titlePath": [
+        "myapp/cart",
+        "TestEmptyCartCheckout"
+      ],
       "sourceFile": "cart/checkout_test.go",
       "sourceLine": 48,
       "status": "pass",

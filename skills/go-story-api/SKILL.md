@@ -34,6 +34,7 @@ func TestAppliesDiscountCode(t *testing.T) {
     s := es.Init(t, "Applies discount code",
         es.WithTags("checkout"),
         es.WithTicket("CART-42"),
+        es.WithCovers("internal/checkout/total.go"),
     )
 
     s.Given("a cart with items totaling $100")

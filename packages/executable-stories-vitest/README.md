@@ -12,20 +12,20 @@ pnpm add -D executable-stories-vitest executable-stories-formatters
 
 ### 1. Add the reporter
 
-In `vitest.config.ts`, add `StoryReporter` from the **reporter** subpath (do not import it from the main package):
+In `vitest.config.ts`, add `createStoryReporter` from the **reporter** subpath:
 
 ```ts
 import { defineConfig } from 'vitest/config';
-import { StoryReporter } from 'executable-stories-vitest/reporter';
+import { createStoryReporter } from 'executable-stories-vitest/reporter';
 
 export default defineConfig({
   test: {
-    reporters: ['default', new StoryReporter()],
+    reporters: ['default', createStoryReporter()],
   },
 });
 ```
 
-You can pass [reporter options](https://github.com/jagreehal/executable-stories/tree/main/packages/executable-stories-formatters) (e.g. `formats: ['markdown', 'html']`, `outputDir`, `outputName`) as the first argument to `new StoryReporter({ ... })`.
+You can pass [reporter options](https://github.com/jagreehal/executable-stories/tree/main/packages/executable-stories-formatters) (e.g. `formats: ['markdown', 'html']`, `outputDir`, `outputName`) as the first argument to `createStoryReporter({ ... })`.
 
 ### 2. Call `story.init(task)` in each test
 
@@ -154,7 +154,7 @@ story.init(task, {
 
 - **API:** Steps are on the `story` object: `story.given`, `story.when`, `story.then`, `story.and`, `story.but`. There are no top-level `given`/`when`/`then` exports (to avoid `then` being treated as a thenable on the package namespace).
 - **Modifiers:** Use Vitest’s `.skip`, `.only`, `.todo`, `.fails`, `.concurrent` on step calls when needed (e.g. `story.then.skip('...')`). Use `story.skip` / `story.only` for scenario-level modifiers.
-- **Attach story to a plain `it()`:** Use `doc.story('Title', task)` or `doc.story('Title', (s) => { s.given(...); s.when(...); s.then(...); })` inside a normal `it('...', ({ task }) => { ... })` so that test still appears in generated docs. See the main repo [docs](https://github.com/jagreehal/executable-stories#framework-native-tests).
+- **Attach story to a plain `it()`:** Call `story.init(task)` inside a normal `it('...', ({ task }) => { ... })` so that test appears in generated docs. Vitest does not export top-level step helpers or `doc`.
 - **Rich step docs:** Use `story.note()`, `story.json()`, `story.code()`, `story.table()`, `story.mermaid()`, etc., or pass a `StoryDocs` object as the second argument (when not using a callback). See the [Features matrix](https://github.com/jagreehal/executable-stories#features-matrix) in the root README.
 
 ---
@@ -162,6 +162,6 @@ story.init(task, {
 ## Exports
 
 - **Main:** `story`, types from `executable-stories-vitest`.
-- **Reporter:** `StoryReporter` and reporter types from `executable-stories-vitest/reporter`.
+- **Reporter:** `createStoryReporter`, `StoryReporter`, and reporter types from `executable-stories-vitest/reporter`.
 
 For reporter options (formats, output paths, markdown/html options), see [executable-stories-formatters](https://github.com/jagreehal/executable-stories/tree/main/packages/executable-stories-formatters).

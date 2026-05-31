@@ -192,6 +192,13 @@ test.describe("story.init()", () => {
     expect(meta!.tags).toEqual(["admin", "security"]);
   });
 
+  test("accepts options with covers", async ({}, testInfo) => {
+    story.init(testInfo, { covers: ["src/auth/**", "src/session.ts"] });
+
+    const meta = getStoryMeta(testInfo);
+    expect(meta!.covers).toEqual(["src/auth/**", "src/session.ts"]);
+  });
+
   test("accepts options with single ticket", async ({}, testInfo) => {
     story.init(testInfo, { ticket: "JIRA-123" });
 

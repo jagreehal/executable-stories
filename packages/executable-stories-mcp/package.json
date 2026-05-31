@@ -1,0 +1,63 @@
+{
+  "name": "executable-stories-mcp",
+  "version": "0.2.0",
+  "description": "Read-only MCP server for executable-stories StoryReport JSON behavior catalogs.",
+  "author": "Jag Reehal <jag@jagreehal.com>",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./http": {
+      "types": "./dist/http.d.ts",
+      "import": "./dist/http.js",
+      "require": "./dist/http.cjs"
+    }
+  },
+  "bin": {
+    "executable-stories-mcp": "./dist/server.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsup",
+    "lint": "eslint .",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "executable-stories-formatters": "workspace:*",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.5"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jagreehal/executable-stories.git",
+    "directory": "packages/executable-stories-mcp"
+  },
+  "keywords": [
+    "executable-stories",
+    "mcp",
+    "ai",
+    "bdd",
+    "living-documentation"
+  ]
+}

@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "test": "node -e \"const fs=require('fs');const {execSync}=require('child_process');const p=require('path').resolve(process.cwd(),'../../packages/executable-stories-cypress/package.json');if(!fs.existsSync(p)){console.log('Skipping test: executable-stories-cypress not in workspace');process.exit(0);}execSync('cypress run',{stdio:'inherit'});\"",
+    "report:agents": "pnpm exec executable-stories format reports/raw-run.json --format story-report-json,scenario-index-json,behavior-manifest-json --output-dir reports --output-name index",
+    "test:report": "pnpm test && pnpm report:agents",
     "test:open": "cypress open",
     "lint": "eslint .",
     "type-check": "node -e \"const fs=require('fs');const {execSync}=require('child_process');const p=require('path').resolve(process.cwd(),'../../packages/executable-stories-cypress/package.json');if(!fs.existsSync(p)){console.log('Skipping type-check: executable-stories-cypress not in workspace');process.exit(0);}execSync('pnpm --filter executable-stories-cypress run build && tsc --noEmit',{stdio:'inherit'});\""
@@ -17,6 +19,7 @@
     "eslint-config-executable-stories": "workspace:*",
     "eslint-config-prettier": "^10.1.8",
     "executable-stories-cypress": "workspace:*",
+    "executable-stories-formatters": "workspace:*",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.54.0"
   }

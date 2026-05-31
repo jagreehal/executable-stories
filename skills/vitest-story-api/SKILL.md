@@ -24,7 +24,7 @@ import { story } from "executable-stories-vitest";
 
 describe("Cart checkout", () => {
   it("applies discount code", ({ task }) => {
-    story.init(task, { tags: ["checkout"], ticket: "CART-42" });
+    story.init(task, { tags: ["checkout"], ticket: "CART-42", covers: ["src/checkout.ts"] });
 
     story.given("a cart with items totaling $100");
     const cart = createCart([{ name: "Shirt", price: 100 }]);

@@ -375,6 +375,12 @@ class Story private constructor() {
             requireContext().tickets.add(ticket)
         }
 
+        /** Declare the product-code paths/globs this story exercises. */
+        @JvmStatic
+        fun covers(vararg paths: String) {
+            requireContext().covers.addAll(paths.toList())
+        }
+
         // ====================================================================
         // Attachment methods
         // ====================================================================

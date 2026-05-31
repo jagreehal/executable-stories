@@ -3,6 +3,17 @@
     "target": "ES2022",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+    "baseUrl": ".",
+    "paths": {
+      "executable-stories-vitest": [
+        "../../packages/executable-stories-vitest/dist/index.d.ts",
+        "../../packages/executable-stories-vitest/src/index.ts"
+      ],
+      "executable-stories-vitest/reporter": [
+        "../../packages/executable-stories-vitest/dist/reporter.d.ts",
+        "../../packages/executable-stories-vitest/src/reporter.ts"
+      ]
+    },
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,

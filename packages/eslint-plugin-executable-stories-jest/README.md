@@ -37,12 +37,12 @@ export default [...jestExecutableStories.configs.recommended];
 
 ## Rules
 
-| Rule                                 | Description                                                                                                 | Config      |
-| ------------------------------------ | ----------------------------------------------------------------------------------------------------------- | ----------- |
-| `require-story-context-for-steps`    | Ensure `given/when/then/and/but` (and aliases) are called inside `story(...)` or `doc.story(..., callback)` | recommended |
-| `require-test-context-for-doc-story` | Ensure `doc.story(title)` is called inside a `test/it` callback (framework-native tests)                    | recommended |
+| Rule                                  | Description                                                                                                 | Config      |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ----------- |
+| `require-init-before-steps`           | Step and doc calls must follow `story.init()` in the same test.                                             | recommended |
+| `require-story-context-for-steps`     | Legacy guard: top-level `given/when/then/and/but` must be inside an executable story context.               | recommended |
 
-These rules apply only when the file uses legacy patterns (e.g. top-level steps or `doc.story()`). If you use describe/it + `story.init()` + `story.given`/`story.when`/`story.then`, the rules do not run; the current API has no top-level steps and no `doc.story()`, so no changes are required.
+Prefer describe/it + `story.init()` + `story.given`/`story.when`/`story.then`. Top-level step helpers remain exported for compatibility.
 
 ## Configs
 

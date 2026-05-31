@@ -31,6 +31,10 @@ namespace ExecutableStories.Xunit
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public List<Ticket>? Tickets { get; set; }
 
+        [JsonPropertyName("covers")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public List<string>? Covers { get; set; }
+
         [JsonPropertyName("meta")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public Dictionary<string, object>? Meta { get; set; }

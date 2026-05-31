@@ -52,6 +52,13 @@ describe("story.init()", () => {
     expect(meta.tags).toEqual(["admin", "security"]);
   });
 
+  it("accepts options with covers", ({ task }) => {
+    story.init(task, { covers: ["src/auth/**", "src/session.ts"] });
+
+    const meta = getStoryMeta(task);
+    expect(meta.covers).toEqual(["src/auth/**", "src/session.ts"]);
+  });
+
   it("accepts options with single ticket", ({ task }) => {
     story.init(task, { ticket: "JIRA-123" });
 

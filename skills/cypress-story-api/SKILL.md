@@ -45,7 +45,7 @@ import { story } from "executable-stories-cypress";
 
 describe("Cart checkout", () => {
   it("applies discount code", () => {
-    story.init({ tags: ["checkout"], ticket: "CART-42" });
+    story.init({ tags: ["checkout"], ticket: "CART-42", covers: ["src/checkout.ts"] });
 
     story.given("a cart with items totaling $100");
     cy.visit("/cart");

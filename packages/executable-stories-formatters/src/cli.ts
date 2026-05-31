@@ -22,6 +22,7 @@ import {
   ReportGenerator,
   createPrCommentSummary,
   generateRunComparison,
+  startWatch,
 } from "./index.js";
 import { parseNdjson } from "./converters/ndjson-parser";
 import { buildReview } from "./review/build-review";
@@ -77,6 +78,7 @@ USAGE
 
 SUBCOMMANDS
   format             Read raw test results and generate reports
+  watch              Regenerate reports whenever the raw-run file changes (live agent index)
   compare            Compare two runs and generate a diff report
   review             Generate an Evidence Review of AI-authored changes (correlate a run to the diff)
   list               List scenarios from a test run (text table or JSON)
@@ -86,9 +88,10 @@ SUBCOMMANDS
   publish-jira       Publish an ADF JSON file to a Jira issue (as comment or description)
 
 OPTIONS
-  --format <formats>            Comma-separated formats: html, markdown, junit, cucumber-json, cucumber-messages, cucumber-html, astro, confluence, story-report-json, or custom names from config (default: html)
+  --format <formats>            Comma-separated formats: html, markdown, junit, cucumber-json, cucumber-messages, cucumber-html, astro, confluence, story-report-json, scenario-index-json, behavior-manifest-json, or custom names from config (default: html)
                                   astro             Themed Markdown (for Astro docs sites with matching CSS)
                                   confluence        Atlassian Document Format (ADF) JSON for Confluence / Jira
+                                  behavior-manifest-json Agent-readable behavior manifest and debugger warnings
                                   html              Custom HTML report (accessible, dark mode, mermaid)
                                   cucumber-html     Official Cucumber HTML report
                                   markdown          Markdown documentation
@@ -96,6 +99,7 @@ OPTIONS
                                   cucumber-json     Cucumber JSON
                                   cucumber-messages Raw NDJSON (Cucumber Messages)
                                   story-report-json StoryReport v1 JSON (consumed by executable-stories-react and other UI renderers)
+                                  scenario-index-json Storybook-like scenario index for agents and explorers
   --config <path>               Path to executable-stories.config.js (default: ./executable-stories.config.js)
   --input-type <type>           Input type: raw, canonical, or ndjson (default: raw)
   --output-dir <dir>            Output directory (default: reports)
@@ -201,7 +205,7 @@ EXIT CODES
 `.trim();
 
 interface CliArgs {
-  subcommand: "format" | "compare" | "review" | "list" | "validate";
+  subcommand: "format" | "watch" | "compare" | "review" | "list" | "validate";
   inputFile?: string;
   baselineFile?: string;
   currentFile?: string;
@@ -271,6 +275,7 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
   const subcommand = args[0];
   if (
     subcommand !== "format" &&
+    subcommand !== "watch" &&
     subcommand !== "compare" &&
     subcommand !== "review" &&
     subcommand !== "list" &&
@@ -280,7 +285,7 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
     subcommand !== "publish-jira"
   ) {
     console.error(
-      `Unknown subcommand: "${subcommand}". Use "format", "compare", "review", "list", "validate", "init-astro", "publish-confluence", or "publish-jira".`,
+      `Unknown subcommand: "${subcommand}". Use "format", "watch", "compare", "review", "list", "validate", "init-astro", "publish-confluence", or "publish-jira".`,
     );
     process.exit(EXIT_USAGE);
   }
@@ -325,6 +330,9 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
       console.log("");
       console.log("Generate story docs with:");
       console.log(`  executable-stories format run.json --format astro --output-dir ${result.targetDir}/src/content/docs/stories --asset-mode copy`);
+      console.log("");
+      console.log("Generate the Storybook-like scenario explorer data with:");
+      console.log(`  executable-stories format run.json --format story-report-json --output-dir ${result.targetDir}/public/stories --output-name story-report`);
       process.exit(EXIT_SUCCESS);
     } catch (err) {
       console.error(`Error: ${(err as Error).message}`);
@@ -453,7 +461,7 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
   const pluginConfig = await loadConfig(values["config"] as string | undefined);
   const customFormatterNames = new Set(Object.keys(pluginConfig.formatters ?? {}));
 
-  const builtInFormats = new Set(["astro", "confluence", "html", "markdown", "junit", "cucumber-json", "cucumber-messages", "cucumber-html", "story-report-json"]);
+  const builtInFormats = new Set(["astro", "behavior-manifest-json", "confluence", "html", "markdown", "junit", "cucumber-json", "cucumber-messages", "cucumber-html", "scenario-index-json", "story-report-json"]);
   const formatStr = values.format as string;
   const allRequestedFormats = formatStr.split(",").map((f) => f.trim());
   const builtInRequested = allRequestedFormats.filter((f) => builtInFormats.has(f)) as OutputFormat[];
@@ -462,7 +470,7 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
 
   if (unknownFormats.length > 0) {
     const knownCustom = customFormatterNames.size > 0 ? `, ${[...customFormatterNames].join(", ")}` : "";
-    console.error(`Error: Unknown format(s): ${unknownFormats.join(", ")}. Valid built-in: astro, confluence, html, markdown, junit, cucumber-json, cucumber-messages, cucumber-html, story-report-json${knownCustom}.`);
+    console.error(`Error: Unknown format(s): ${unknownFormats.join(", ")}. Valid built-in: astro, behavior-manifest-json, confluence, html, markdown, junit, cucumber-json, cucumber-messages, cucumber-html, scenario-index-json, story-report-json${knownCustom}.`);
     process.exit(EXIT_USAGE);
   }
 
@@ -580,7 +588,7 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
   }
 
   const cliArgs: CliArgs = {
-    subcommand: subcommand as "format" | "compare" | "review" | "list" | "validate",
+    subcommand: subcommand as "format" | "watch" | "compare" | "review" | "list" | "validate",
     inputFile,
     baselineFile,
     currentFile,
@@ -957,6 +965,26 @@ async function main() {
     );
     console.log(output);
     process.exit(EXIT_SUCCESS);
+  }
+
+  // === watch subcommand: keep agent artifacts fresh on every raw-run change ===
+  if (args.subcommand === "watch") {
+    if (!args.inputFile) {
+      console.error("Error: watch requires an input file (the raw-run JSON the framework writes).");
+      process.exit(EXIT_USAGE);
+    }
+    console.log(
+      `Watching ${args.inputFile} → regenerating [${args.formats.join(", ")}] into ${args.outputDir}/ (Ctrl+C to stop)`,
+    );
+    startWatch({
+      input: args.inputFile,
+      outputDir: args.outputDir,
+      outputName: args.outputName,
+      formats: args.formats,
+      inputType: args.inputType === "canonical" ? "canonical" : "raw",
+      synthesize: args.synthesizeStories,
+    });
+    return; // long-lived; do not exit
   }
 
   // Read input

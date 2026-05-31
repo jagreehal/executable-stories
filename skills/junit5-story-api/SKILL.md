@@ -26,6 +26,7 @@ class CartCheckoutTest {
     @Test
     fun `applies discount code`() {
         Story.init("Applies discount code", "checkout")
+        Story.covers("src/main/kotlin/checkout/Total.kt")
 
         Story.given("a cart with items totaling $100")
         val cart = createCart(listOf(Item("Shirt", 100)))

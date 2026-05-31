@@ -31,6 +31,12 @@ class TestInit:
         assert meta is not None
         assert meta["tickets"] == [{"id": "A-1"}, {"id": "B-2"}]
 
+    def test_covers(self, fresh_story: Story):
+        fresh_story.init("Test", covers=["src/auth/login.py", "src/session.py"])
+        meta = fresh_story._get_meta()
+        assert meta is not None
+        assert meta["covers"] == ["src/auth/login.py", "src/session.py"]
+
     def test_meta_dict(self, fresh_story: Story):
         fresh_story.init("Test", meta={"priority": "high"})
         meta = fresh_story._get_meta()

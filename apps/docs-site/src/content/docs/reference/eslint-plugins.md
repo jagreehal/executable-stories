@@ -109,7 +109,7 @@ Legacy top-level step helpers (`given`, `when`, `then`, `and`, `but` and aliases
 
 ### require-test-context-for-doc-story
 
-If you use `doc.story(title)` in a framework-native test, it must be inside a `test()` or `it()` callback.
+Legacy guard. If older code uses `doc.story(title)`, it must be inside a `test()` or `it()` callback. Current Jest usage is `story.init()` inside the test callback.
 
 ## Vitest rules
 
@@ -198,31 +198,7 @@ test.describe('Login', () => {
 
 ### require-test-context-for-doc-story
 
-If you use **`doc.story(title)`** to attach story metadata to a plain `test()` (framework-native pattern), it must be called **inside** the test callback, not at the top level or in a describe. This rule ensures the story title is associated with the correct test.
-
-**Invalid:**
-
-```typescript
-test.describe('Login', () => {
-  doc.story('User logs in'); // reported: doc.story must be inside a test
-  test('user logs in', async ({ page }, testInfo) => {
-    story.init(testInfo);
-    story.given('user is on login page');
-  });
-});
-```
-
-**Valid:**
-
-```typescript
-test('user logs in', async ({ page }, testInfo) => {
-  doc.story('User logs in');
-  story.init(testInfo);
-  story.given('user is on login page');
-  story.when('user submits credentials');
-  story.then('user sees dashboard');
-});
-```
+Legacy guard. If older code uses `doc.story(title)`, it must be inside a `test()` callback. Current Playwright usage is `story.init(testInfo)` inside the test callback.
 
 ## Using with official framework ESLint plugins
 

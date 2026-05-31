@@ -134,6 +134,8 @@ export interface ScopedAttachment extends AttachmentOptions {
 export interface StoryOptions {
   tags?: string[];
   ticket?: TicketInput | TicketInput[];
+  /** Product-code paths/globs this scenario exercises (project-root-relative). */
+  covers?: string[];
   meta?: Record<string, unknown>;
   /** URL template for OTel trace links. Uses {traceId} placeholder. Also settable via OTEL_TRACE_URL_TEMPLATE env var. */
   traceUrlTemplate?: string;

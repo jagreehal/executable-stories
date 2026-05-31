@@ -65,7 +65,7 @@
     "then"
   ],
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && node scripts/verify-dist.mjs",
     "type-check": "tsc --noEmit",
     "lint": "eslint .",
     "clean": "rm -rf dist",

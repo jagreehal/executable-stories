@@ -32,6 +32,15 @@ fn test_story_with_tickets() {
 }
 
 #[test]
+fn test_story_with_covers() {
+    let mut s = Story::new("covered scenario").with_covers(&["src/auth/login.rs", "src/session.rs"]);
+    s.given("a setup");
+    s.when("something happens");
+    s.then("it works");
+    s.pass();
+}
+
+#[test]
 fn test_doc_methods() {
     let mut s = Story::new("test docs");
     s.given("something");

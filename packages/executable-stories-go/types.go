@@ -36,6 +36,7 @@ type StoryMeta struct {
 	Steps       []StoryStep    `json:"steps"`
 	Tags        []string       `json:"tags,omitempty"`
 	Tickets     []Ticket       `json:"tickets,omitempty"`
+	Covers      []string       `json:"covers,omitempty"`
 	Meta        map[string]any `json:"meta,omitempty"`
 	SuitePath   []string       `json:"suitePath,omitempty"`
 	Docs        []DocEntry     `json:"docs,omitempty"`

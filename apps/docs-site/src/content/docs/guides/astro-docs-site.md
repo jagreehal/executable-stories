@@ -45,6 +45,8 @@ pnpm dev
 
 Your stories are at `http://localhost:4321/stories/`.
 
+The bundled **Scenario Explorer** (`/stories/`) is a single browsable front door over the StoryReport JSON: a scenario list with status, a status filter, and a search box that matches titles, tags, and **`covers` file paths** — so you can type a product-code path and find the behavior that exercises it (the same code→scenario link the MCP `get_scenarios_for_paths` tool uses). Each scenario's detail panel lists its steps and the paths it covers.
+
 ## What gets generated
 
 Each run produces a Markdown file with Starlight-compatible YAML frontmatter:

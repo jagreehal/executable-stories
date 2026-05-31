@@ -27,11 +27,11 @@ function readFlushedReports(): Array<{ testFilePath: string; scenarios: unknown[
   return reports;
 }
 
-function getLastScenario(): { scenario: string; steps: unknown[]; docs?: unknown[]; tags?: string[]; tickets?: Array<{ id: string; url?: string }>; meta?: unknown } | null {
+function getLastScenario(): { scenario: string; steps: unknown[]; docs?: unknown[]; tags?: string[]; tickets?: Array<{ id: string; url?: string }>; covers?: string[]; meta?: unknown } | null {
   const reports = readFlushedReports();
   if (reports.length === 0) return null;
   const lastReport = reports[reports.length - 1];
-  const scenarios = lastReport.scenarios as Array<{ scenario: string; steps: unknown[]; docs?: unknown[]; tags?: string[]; tickets?: Array<{ id: string; url?: string }>; meta?: unknown }>;
+  const scenarios = lastReport.scenarios as Array<{ scenario: string; steps: unknown[]; docs?: unknown[]; tags?: string[]; tickets?: Array<{ id: string; url?: string }>; covers?: string[]; meta?: unknown }>;
   return scenarios.length > 0 ? scenarios[scenarios.length - 1] : null;
 }
 
@@ -74,6 +74,14 @@ describe("story API", () => {
 
       const s = getLastScenario();
       expect(s!.tags).toEqual(["admin", "security"]);
+    });
+
+    it("accepts options with covers", () => {
+      story.init({ covers: ["src/auth/**", "src/session.ts"] });
+      _internal.flushStories();
+
+      const s = getLastScenario();
+      expect(s!.covers).toEqual(["src/auth/**", "src/session.ts"]);
     });
 
     it("accepts options with single ticket", () => {

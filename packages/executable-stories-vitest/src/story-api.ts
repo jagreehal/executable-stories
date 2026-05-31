@@ -327,6 +327,7 @@ function init(task: TaskLike, options?: StoryOptions): void {
     suitePath: extractSuitePath(task),
     tags: options?.tags,
     tickets: normalizeTickets(options?.ticket),
+    covers: options?.covers,
     meta: options?.meta,
     sourceOrder: sourceOrderCounter++,
   };

@@ -1,357 +1,392 @@
 {
   "schemaVersion" : 1,
   "testCases" : [ {
+    "title" : "storyWithOnlyInitDoesNotThrow()",
+    "status" : "pass",
+    "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.IntegrationTest]/[method:storyWithOnlyInitDoesNotThrow()]",
+    "durationMs" : 13.134208,
+    "retry" : 0,
+    "retries" : 0
+  }, {
+    "title" : "minimalStoryDoesNotThrow()",
+    "status" : "pass",
+    "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.IntegrationTest]/[method:minimalStoryDoesNotThrow()]",
+    "durationMs" : 2.79275,
+    "retry" : 0,
+    "retries" : 0
+  }, {
+    "title" : "fullStoryFlowDoesNotThrow()",
+    "status" : "pass",
+    "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.IntegrationTest]/[method:fullStoryFlowDoesNotThrow()]",
+    "durationMs" : 94.813958,
+    "retry" : 0,
+    "retries" : 0
+  }, {
     "title" : "jsonProducesCodeEntryWithLangJson()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:jsonProducesCodeEntryWithLangJson()]",
-    "durationMs" : 91.215959,
+    "durationMs" : 5.535083,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "ticketWithIdOnly()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:ticketWithIdOnly()]",
-    "durationMs" : 1.414208,
+    "durationMs" : 1.137208,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "screenshotDocEntryWithoutAlt()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:screenshotDocEntryWithoutAlt()]",
-    "durationMs" : 0.666666,
+    "durationMs" : 0.994583,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "customDocEntry()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:customDocEntry()]",
-    "durationMs" : 0.976542,
+    "durationMs" : 0.826791,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "doubleEndTimerIsNoOp()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:doubleEndTimerIsNoOp()]",
-    "durationMs" : 38.921291,
+    "durationMs" : 35.993541,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "mermaidDocEntry()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:mermaidDocEntry()]",
-    "durationMs" : 0.930167,
+    "durationMs" : 0.725,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "fnAutoAndConversion()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:fnAutoAndConversion()]",
-    "durationMs" : 1.247416,
+    "durationMs" : 0.701666,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "stepMethodsAddSteps()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:stepMethodsAddSteps()]",
-    "durationMs" : 0.690167,
+    "durationMs" : 0.450917,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "codeDocEntry()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:codeDocEntry()]",
-    "durationMs" : 0.515333,
+    "durationMs" : 0.436375,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "docEntryWithChildrenSerializesCorrectly()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:docEntryWithChildrenSerializesCorrectly()]",
-    "durationMs" : 200.242916,
+    "durationMs" : 183.6335,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "tableDocEntry()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:tableDocEntry()]",
-    "durationMs" : 1.234375,
+    "durationMs" : 0.618417,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "initCreatesContext()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:initCreatesContext()]",
-    "durationMs" : 0.580959,
+    "durationMs" : 0.396625,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "toStoryMetaConvertsCorrectly()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:toStoryMetaConvertsCorrectly()]",
-    "durationMs" : 0.705042,
+    "durationMs" : 0.395834,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "docEntryWithoutChildrenOmitsField()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:docEntryWithoutChildrenOmitsField()]",
-    "durationMs" : 1.287667,
+    "durationMs" : 1.281666,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "expectPropagatesExceptions()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:expectPropagatesExceptions()]",
-    "durationMs" : 0.980792,
+    "durationMs" : 0.917625,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "fnCreatesWrappedStep()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:fnCreatesWrappedStep()]",
-    "durationMs" : 0.511625,
+    "durationMs" : 0.793625,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "expectCreatesWrappedThenStep()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:expectCreatesWrappedThenStep()]",
-    "durationMs" : 0.48225,
+    "durationMs" : 0.576959,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "inlineDocsAttachToStep()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:inlineDocsAttachToStep()]",
-    "durationMs" : 0.373583,
+    "durationMs" : 0.661041,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "fnPropagatesExceptions()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:fnPropagatesExceptions()]",
-    "durationMs" : 1.005375,
+    "durationMs" : 0.629709,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "ticketsInStoryMeta()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:ticketsInStoryMeta()]",
-    "durationMs" : 0.559833,
+    "durationMs" : 0.396042,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "extraAliasesProduceCorrectKeywords()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:extraAliasesProduceCorrectKeywords()]",
-    "durationMs" : 0.478541,
+    "durationMs" : 0.532792,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "ticketObjectSerializesCorrectly()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:ticketObjectSerializesCorrectly()]",
-    "durationMs" : 11.451917,
+    "durationMs" : 11.371125,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "tagDocEntry()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:tagDocEntry()]",
-    "durationMs" : 0.639,
+    "durationMs" : 0.45825,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "codeDocEntryWithoutLang()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:codeDocEntryWithoutLang()]",
-    "durationMs" : 0.443625,
+    "durationMs" : 0.441792,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "withTraceUrlTemplateSetsOnContext()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:withTraceUrlTemplateSetsOnContext()]",
-    "durationMs" : 0.381917,
+    "durationMs" : 0.40325,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "docEntryChildrenOnAllKinds()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:docEntryChildrenOnAllKinds()]",
-    "durationMs" : 0.49525,
+    "durationMs" : 0.323167,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "docMethodsReturnDocEntry()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:docMethodsReturnDocEntry()]",
-    "durationMs" : 1.469791,
+    "durationMs" : 1.144459,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "docMethodsAttachToCurrentStep()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:docMethodsAttachToCurrentStep()]",
-    "durationMs" : 0.502916,
+    "durationMs" : 0.408291,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "mermaidDocEntryWithTitle()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:mermaidDocEntryWithTitle()]",
-    "durationMs" : 0.407,
+    "durationMs" : 0.358083,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "sectionDocEntry()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:sectionDocEntry()]",
-    "durationMs" : 0.4395,
+    "durationMs" : 0.609834,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "docChildrenReparentAcrossSteps()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:docChildrenReparentAcrossSteps()]",
-    "durationMs" : 0.569125,
+    "durationMs" : 0.434041,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "requireContextThrowsWithoutInit()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:requireContextThrowsWithoutInit()]",
-    "durationMs" : 0.570958,
+    "durationMs" : 0.500084,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "docMethodsAttachToStoryLevelWhenNoStep()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:docMethodsAttachToStoryLevelWhenNoStep()]",
-    "durationMs" : 0.435292,
+    "durationMs" : 0.332,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "fnWithSupplierReturnsResult()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:fnWithSupplierReturnsResult()]",
-    "durationMs" : 0.734,
+    "durationMs" : 0.392125,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "screenshotDocEntry()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:screenshotDocEntry()]",
-    "durationMs" : 0.474041,
+    "durationMs" : 0.31575,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "orphanedTimerLeavesStepWithoutDuration()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:orphanedTimerLeavesStepWithoutDuration()]",
-    "durationMs" : 0.401375,
+    "durationMs" : 0.289166,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "expectWithSupplierReturnsResult()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:expectWithSupplierReturnsResult()]",
-    "durationMs" : 0.678708,
+    "durationMs" : 0.427958,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "aaaAliasesProduceCorrectKeywords()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:aaaAliasesProduceCorrectKeywords()]",
-    "durationMs" : 0.479875,
+    "durationMs" : 0.340917,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "traceUrlTemplateDefaultsToNull()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:traceUrlTemplateDefaultsToNull()]",
-    "durationMs" : 0.462291,
+    "durationMs" : 0.294333,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "ticketObjectPassedDirectly()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:ticketObjectPassedDirectly()]",
-    "durationMs" : 0.378875,
+    "durationMs" : 0.284083,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "autoAndAppliesAcrossNonConsecutivePrimarySteps()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:autoAndAppliesAcrossNonConsecutivePrimarySteps()]",
-    "durationMs" : 0.42775,
+    "durationMs" : 0.327667,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "startTimerEndTimerSetsDurationMsOnStep()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:startTimerEndTimerSetsDurationMsOnStep()]",
-    "durationMs" : 16.224833,
+    "durationMs" : 19.457167,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "fnRecordsDuration()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:fnRecordsDuration()]",
-    "durationMs" : 19.911708,
+    "durationMs" : 19.8545,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "clearRemovesContext()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:clearRemovesContext()]",
-    "durationMs" : 0.807875,
+    "durationMs" : 0.511083,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "sourceOrderIncrements()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:sourceOrderIncrements()]",
-    "durationMs" : 0.487958,
+    "durationMs" : 0.371333,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "stepEventsWouldIncludeTimedSteps()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:stepEventsWouldIncludeTimedSteps()]",
-    "durationMs" : 13.235833,
+    "durationMs" : 13.169708,
+    "retry" : 0,
+    "retries" : 0
+  }, {
+    "title" : "coversIsRecordedAndSerialized()",
+    "status" : "pass",
+    "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:coversIsRecordedAndSerialized()]",
+    "durationMs" : 0.640625,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "linkDocEntry()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:linkDocEntry()]",
-    "durationMs" : 0.570083,
+    "durationMs" : 0.335916,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "initWithTagsCreatesContextWithTags()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:initWithTagsCreatesContextWithTags()]",
-    "durationMs" : 0.35875,
+    "durationMs" : 0.288167,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "fnIntegrationWithMarkers()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:fnIntegrationWithMarkers()]",
-    "durationMs" : 0.680125,
+    "durationMs" : 0.54525,
     "retry" : 0,
     "retries" : 0
   }, {
     "title" : "ticketWithIdAndUrl()",
     "status" : "pass",
     "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryApiTest]/[method:ticketWithIdAndUrl()]",
-    "durationMs" : 0.550125,
+    "durationMs" : 0.272291,
+    "retry" : 0,
+    "retries" : 0
+  }, {
+    "title" : "statusMappingUsesSchemaValues()",
+    "status" : "pass",
+    "externalId" : "[engine:junit-jupiter]/[class:dev.executablestories.junit5.StoryTestExecutionListenerTest]/[method:statusMappingUsesSchemaValues()]",
+    "durationMs" : 0.54975,
     "retry" : 0,
     "retries" : 0
   } ],
-  "startedAtMs" : 1774988907968,
-  "finishedAtMs" : 1774988908438,
+  "startedAtMs" : 1780249820539,
+  "finishedAtMs" : 1780249821009,
   "projectRoot" : "/Users/jreehal/dev/js/executable-stories/packages/executable-stories-junit5"
 }

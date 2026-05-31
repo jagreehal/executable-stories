@@ -24,6 +24,7 @@ export default defineConfig({
       description: 'Living documentation generated from executable stories.',
       sidebar: [
         { label: 'Home', slug: 'index' },
+        { label: 'Explorer', link: '/stories/' },
         {
           label: 'Stories',
           autogenerate: { directory: 'stories' },

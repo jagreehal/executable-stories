@@ -100,6 +100,33 @@ validate_raw_run() {
     if [ "$THEME_FAIL" -ne 0 ]; then
       return 1
     fi
+
+    # 8. Agent artifacts: StoryReport, scenario index, behavior manifest
+    if node "$CLI" format "$RAW_RUN" --format story-report-json,scenario-index-json,behavior-manifest-json --output-dir "$REPORT_DIR" --output-name index > /dev/null 2>&1; then
+      if [ -f "$REPORT_DIR/index.story-report.json" ]; then
+        echo "[$LABEL] ✓ story-report-json generated"
+      else
+        echo "[$LABEL] ERROR: story-report-json missing at $REPORT_DIR/index.story-report.json" >&2
+        return 1
+      fi
+    else
+      echo "[$LABEL] ERROR: agent artifact format failed" >&2
+      return 1
+    fi
+
+    if node "$CLI" list "$RAW_RUN" --list-format json > /dev/null 2>&1; then
+      echo "[$LABEL] ✓ list --list-format json succeeded"
+    else
+      echo "[$LABEL] ERROR: list --list-format json failed" >&2
+      return 1
+    fi
+
+    if [ -f "$REPORT_DIR/index.scenarios-index.json" ] && [ -f "$REPORT_DIR/index.behavior-manifest.json" ]; then
+      echo "[$LABEL] ✓ scenario-index-json and behavior-manifest-json generated"
+    else
+      echo "[$LABEL] ERROR: missing index.scenarios-index.json or index.behavior-manifest.json" >&2
+      return 1
+    fi
   fi
 
   echo "[$LABEL] OK: all checks passed"

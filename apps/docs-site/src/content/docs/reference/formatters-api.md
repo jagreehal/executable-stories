@@ -85,7 +85,7 @@ Use these when you have framework results and want a canonical run for **ReportG
 
 | Option | Type | Default | Description |
 | ------ | ---- | ------- | ----------- |
-| `formats` | `OutputFormat[]` | `["cucumber-json"]` | Output formats: `"cucumber-json"`, `"cucumber-html"`, `"cucumber-messages"`, `"html"`, `"junit"`, `"markdown"`, `"astro"`, `"confluence"`, `"story-report-json"`. |
+| `formats` | `OutputFormat[]` | `["cucumber-json"]` | Output formats: `"cucumber-json"`, `"cucumber-html"`, `"cucumber-messages"`, `"html"`, `"junit"`, `"markdown"`, `"astro"`, `"confluence"`, `"story-report-json"`, `"scenario-index-json"`, `"behavior-manifest-json"`. |
 | `outputDir` | `string` | `"reports"` | Base directory for output files. |
 | `outputName` | `string` | `"test-results"` | Base filename (without extension) for aggregated output. |
 | `output` | `OutputConfig` | see below | Output routing (mode, colocated style, rules). |
@@ -94,6 +94,8 @@ Use these when you have framework results and want a canonical run for **ReportG
 | `junit` | `JUnitOptions` | — | suiteName, includeOutput. |
 | `markdown` | `MarkdownFormatterOptions` | — | title, includeStatusIcons, includeMetadata, includeErrors, scenarioHeadingLevel, stepStyle, groupBy, sortScenarios, includeFrontMatter, includeSummaryTable, permalinkBaseUrl, ticketUrlTemplate, includeSourceLinks, customRenderers. |
 | `confluence` | `ConfluenceFormatterOptions` | — | title, includeStatusIcons, includeMetadata, includeSummaryTable, includeErrors, scenarioHeadingLevel, groupBy, sortScenarios, pretty, permalinkBaseUrl, ticketUrlTemplate. |
+| `scenarioIndexJson` | `{ pretty?: boolean }` | `{ pretty: true }` | Scenario index (`scenario-index` v1) JSON options. |
+| `behaviorManifestJson` | `{ pretty?: boolean }` | `{ pretty: true }` | Behavior manifest JSON options. |
 
 **OutputConfig:**
 
@@ -166,7 +168,8 @@ The formatters package provides an **`executable-stories`** CLI for generating r
 
 **Subcommands:**
 
-- **`executable-stories format <file>`** — Read raw (or canonical) test results and generate reports. Use `--format` to choose one or more of: `html`, `cucumber-html`, `markdown`, `junit`, `cucumber-json`, `cucumber-messages`, `astro`, `confluence`, `story-report-json`. Default format is `html`. The `story-report-json` format emits the [StoryReport v1 contract](/reference/react-renderer#the-storyreport-contract) consumed by `executable-stories-react`.
+- **`executable-stories format <file>`** — Read raw (or canonical) test results and generate reports. Use `--format` to choose one or more of: `html`, `cucumber-html`, `markdown`, `junit`, `cucumber-json`, `cucumber-messages`, `astro`, `confluence`, `story-report-json`, `scenario-index-json`, `behavior-manifest-json`. Default format is `html`. The `story-report-json` format emits the [StoryReport v1 contract](/reference/react-renderer#the-storyreport-contract) consumed by `executable-stories-react`; `scenario-index-json` and `behavior-manifest-json` emit the agent artifacts described in the [Agent artifact contract](/guides/agent-artifact-contract/).
+- **`executable-stories watch <file>`** — Watch the raw-run file and regenerate the chosen `--format` artifacts on every change (live agent index). Pairs with the framework's own watch mode; long-lived until interrupted.
 - **`executable-stories compare <current>`** — Compare two runs and generate a diff report.
 - **`executable-stories list <file>`** — List scenarios from a test run.
 - **`executable-stories validate <file>`** — Validate a JSON file against the schema (no output generated).
@@ -198,7 +201,7 @@ The formatters package provides an **`executable-stories`** CLI for generating r
 
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
-| `--format` | string | `html` | Output format(s): `html`, `cucumber-html`, `markdown`, `junit`, `cucumber-json`, `cucumber-messages`, `astro`, `confluence`, `story-report-json` |
+| `--format` | string | `html` | Output format(s): `html`, `cucumber-html`, `markdown`, `junit`, `cucumber-json`, `cucumber-messages`, `astro`, `confluence`, `story-report-json`, `scenario-index-json`, `behavior-manifest-json` |
 | `--output-dir` | string | `reports` | Directory to write output files |
 | `--output-name` | string | `test-results` | Base filename (without extension) for aggregated output |
 | `--input-type` | string | `raw` | Input type: `raw`, `canonical`, or `ndjson` |
