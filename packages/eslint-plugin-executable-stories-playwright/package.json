@@ -1,6 +1,6 @@
 {
   "name": "eslint-plugin-executable-stories-playwright",
-  "version": "2.1.6",
+  "version": "2.1.7",
   "type": "module",
   "description": "ESLint rules for executable-stories-playwright: story.init and legacy story context guards",
   "main": "./dist/index.cjs",
