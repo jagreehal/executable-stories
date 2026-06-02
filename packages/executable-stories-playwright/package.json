@@ -1,6 +1,6 @@
 {
   "name": "executable-stories-playwright",
-  "version": "8.4.1",
+  "version": "8.4.2",
   "description": "BDD-style executable stories for Playwright Test with documentation generation",
   "type": "module",
   "sideEffects": false,
