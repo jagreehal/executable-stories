@@ -1,5 +1,12 @@
 # executable-stories-react
 
+## 0.1.5
+
+### Patch Changes
+
+- Updated dependencies [00854ee]
+  - executable-stories-formatters@0.11.0
+
 ## 0.1.4
 
 ### Patch Changes
