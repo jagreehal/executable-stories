@@ -38,6 +38,7 @@ import { BehaviorManifestJsonFormatter } from "./formatters/behavior-manifest-js
 import { HtmlFormatter } from "./formatters/html/index";
 import { JUnitFormatter } from "./formatters/junit-xml";
 import { MarkdownFormatter } from "./formatters/markdown";
+import { ReleaseManifestFormatter } from "./formatters/release-manifest";
 import { CucumberMessagesFormatter } from "./formatters/cucumber-messages/index";
 import { CucumberHtmlFormatter } from "./formatters/cucumber-html";
 import { diffRuns } from "./compare/index";
@@ -465,6 +466,7 @@ const FORMAT_EXTENSIONS: Record<OutputFormat, string> = {
   astro: ".md",
   "behavior-manifest-json": ".behavior-manifest.json",
   markdown: ".md",
+  "release-manifest": ".release-manifest.md",
   html: ".html",
   "cucumber-html": ".cucumber.html",
   junit: ".junit.xml",
@@ -1014,6 +1016,11 @@ export class ReportGenerator {
         return formatter.format(run);
       }
 
+      case "release-manifest": {
+        const formatter = new ReleaseManifestFormatter();
+        return formatter.format(run);
+      }
+
       case "story-report-json": {
         const formatter = new StoryReportJsonFormatter({
           pretty: this.options.storyReportJson.pretty,
@@ -1181,3 +1188,8 @@ export function normalizePlaywrightResults(
   const raw: RawRun = adaptPlaywrightRun(testResults, adapterOptions);
   return canonicalizeRun(raw, canonicalizeOptions);
 }
+
+export type { DeploymentEntry, DeploymentLedger } from "./deploy/ledger";
+export type { DeploymentStatus, EnvironmentDrift, RecordDeploymentArgs, RecordDeploymentResult } from "./deploy/index";
+export { recordDeployment, getDeploymentStatus, getEnvironmentDrift } from "./deploy/index";
+export { ReleaseManifestFormatter, toReleaseManifest, type ReleaseManifest } from "./formatters/release-manifest";

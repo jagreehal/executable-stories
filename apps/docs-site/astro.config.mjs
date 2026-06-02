@@ -143,6 +143,10 @@ export default defineConfig({
               slug: 'guides/github-action',
             },
             {
+              label: 'Release confidence',
+              slug: 'guides/release-confidence',
+            },
+            {
               label: 'Developer experience',
               slug: 'guides/developer-experience',
             },
