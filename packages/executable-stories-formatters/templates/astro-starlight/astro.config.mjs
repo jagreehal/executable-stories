@@ -1,6 +1,7 @@
 // @ts-check
 import starlight from '@astrojs/starlight';
 import astroMermaid from 'astro-mermaid';
+import remarkGfm from 'remark-gfm';
 import { defineConfig } from 'astro/config';
 
 /*
@@ -17,14 +18,31 @@ import { defineConfig } from 'astro/config';
  */
 
 export default defineConfig({
+  // GFM tables don't render in .mdx by default — enable them so hand-written
+  // and generated .mdx pages (ADRs, API coverage, decision logs) show tables.
+  markdown: {
+    remarkPlugins: [remarkGfm],
+  },
   integrations: [
     astroMermaid(),
     starlight({
       title: 'Story Docs',
       description: 'Living documentation generated from executable stories.',
+      // Renders a live verification badge under the title of any page that
+      // declares `verifiedBy` in its frontmatter.
+      components: {
+        PageTitle: './src/components/PageTitle.astro',
+      },
       sidebar: [
         { label: 'Home', slug: 'index' },
-        { label: 'Explorer', link: '/stories/' },
+        { label: 'Explorer', link: '/explorer/' },
+        // Hand-written content — edited by the team, never overwritten by a regenerate.
+        { label: 'Guides', autogenerate: { directory: 'guides' } },
+        {
+          label: 'Examples',
+          items: [{ label: 'ADR — transfer fee', slug: 'example-adr' }],
+        },
+        // Generated from tests by `format --format astro`.
         {
           label: 'Stories',
           autogenerate: { directory: 'stories' },

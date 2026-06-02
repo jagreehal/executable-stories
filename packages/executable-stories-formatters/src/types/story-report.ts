@@ -66,6 +66,7 @@ export type ReportDocEntry =
   | ReportDocSection
   | ReportDocMermaid
   | ReportDocScreenshot
+  | ReportDocVideo
   | ReportDocCustom;
 
 export interface ReportDocNote {
@@ -136,6 +137,15 @@ export interface ReportDocScreenshot {
   kind: "screenshot";
   path: string;
   alt?: string;
+  phase: DocPhase;
+  children?: ReportDocEntry[];
+}
+
+export interface ReportDocVideo {
+  kind: "video";
+  path: string;
+  caption?: string;
+  poster?: string;
   phase: DocPhase;
   children?: ReportDocEntry[];
 }

@@ -402,6 +402,17 @@ export class ConfluenceFormatter {
         );
         break;
 
+      case "video":
+        // ADF has no inline video node, so surface a captioned link.
+        content.push(
+          paragraph([
+            text(entry.caption ?? "Video", strong()),
+            text(": "),
+            link(entry.path, entry.path),
+          ]),
+        );
+        break;
+
       case "custom":
         content.push(paragraph([text(`[${entry.type}]`, strong())]));
         content.push(codeBlock(JSON.stringify(entry.data ?? null, null, 2), "json"));

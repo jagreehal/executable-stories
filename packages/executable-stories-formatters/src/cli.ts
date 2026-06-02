@@ -40,6 +40,10 @@ import { selectTestCases } from "./select-test-cases";
 import type { RawRun } from "./types/raw";
 import type { TestRunResult } from "./types/test-result";
 import { initAstro as initAstroFn } from "./init-astro";
+import { scaffoldDoc, TEMPLATES } from "./scaffold-doc";
+import { checkLinks, formatLinkReport } from "./check-links";
+import { importOpenApi } from "./import-openapi";
+import { buildDocs, BuildDocsError } from "./build-docs";
 import { publishConfluencePage } from "./publishers/confluence";
 import { publishJiraIssue, type JiraPublishMode } from "./publishers/jira";
 import { loadConfig } from "./config.js";
@@ -73,6 +77,9 @@ USAGE
   executable-stories validate <file>
   executable-stories validate --stdin
   executable-stories init-astro [directory]
+  executable-stories new <template> "<name>" [options]
+  executable-stories check-links <dir> [options]
+  executable-stories import-openapi <spec> [options]
   executable-stories publish-confluence <file.adf.json> [options]
   executable-stories publish-jira <file.adf.json> [options]
 
@@ -84,6 +91,9 @@ SUBCOMMANDS
   list               List scenarios from a test run (text table or JSON)
   validate           Validate a JSON file against the schema (no output generated)
   init-astro         Scaffold an Astro docs site for story output (Starlight with themed CSS)
+  new                Scaffold a docs page from a template (adr, runbook, decision-log, incident)
+  check-links        Scan docs for broken internal/external links (CI-friendly exit code)
+  import-openapi     Generate API doc pages from an OpenAPI spec, linked to verifying stories
   publish-confluence Publish an ADF JSON file to a Confluence page via REST API
   publish-jira       Publish an ADF JSON file to a Jira issue (as comment or description)
 
@@ -281,11 +291,15 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
     subcommand !== "list" &&
     subcommand !== "validate" &&
     subcommand !== "init-astro" &&
+    subcommand !== "build-docs" &&
+    subcommand !== "new" &&
+    subcommand !== "check-links" &&
+    subcommand !== "import-openapi" &&
     subcommand !== "publish-confluence" &&
     subcommand !== "publish-jira"
   ) {
     console.error(
-      `Unknown subcommand: "${subcommand}". Use "format", "watch", "compare", "review", "list", "validate", "init-astro", "publish-confluence", or "publish-jira".`,
+      `Unknown subcommand: "${subcommand}". Use "format", "watch", "compare", "review", "list", "validate", "init-astro", "build-docs", "new", "check-links", "import-openapi", "publish-confluence", or "publish-jira".`,
     );
     process.exit(EXIT_USAGE);
   }
@@ -307,9 +321,17 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
     const initArgs = args.slice(1);
     const targetDir = initArgs.find((a) => !a.startsWith("--")) ?? "./story-docs";
     const force = initArgs.includes("--force");
+    // --update refreshes only framework files (components, lib, styles, explorer)
+    // and never touches your content (ADRs, runbooks), astro.config, or package.json.
+    const update = initArgs.includes("--update");
 
     try {
-      const result = initAstroFn({ targetDir, force });
+      const result = initAstroFn({ targetDir, force, update });
+      if (update) {
+        console.log(`Updated framework files in ${result.targetDir} (content left untouched)`);
+        console.log(`  Refreshed: ${result.updatedFiles?.length ?? 0} file(s)`);
+        process.exit(EXIT_SUCCESS);
+      }
       console.log(`Scaffolded Astro docs site at ${result.targetDir}`);
       console.log("");
       console.log("Themes available in src/styles/themes/:");
@@ -322,23 +344,29 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
       console.log("");
       console.log("To change theme, edit astro.config.mjs customCss array.");
       console.log("");
-      console.log("");
       console.log("Next steps:");
       console.log(`  cd ${result.targetDir}`);
       console.log("  pnpm install    # or npm install");
       console.log("  pnpm dev        # start the dev server");
       console.log("");
-      console.log("Generate story docs with:");
-      console.log(`  executable-stories format run.json --format astro --output-dir ${result.targetDir}/src/content/docs/stories --asset-mode copy`);
+      console.log("Generate everything (story pages, explorer data, API pages) in one step:");
+      console.log(`  executable-stories build-docs run.json --site-dir ${result.targetDir} [--openapi spec.json]`);
       console.log("");
-      console.log("Generate the Storybook-like scenario explorer data with:");
-      console.log(`  executable-stories format run.json --format story-report-json --output-dir ${result.targetDir}/public/stories --output-name story-report`);
+      console.log("Later, pull template/design improvements without losing your content:");
+      console.log(`  executable-stories init-astro ${result.targetDir} --update`);
       process.exit(EXIT_SUCCESS);
     } catch (err) {
       console.error(`Error: ${(err as Error).message}`);
       process.exit(EXIT_USAGE);
     }
   }
+
+  // Docs-site subcommands have their own arg shapes — each owns its parsing and
+  // exit code, mirroring runPublishConfluence/runPublishJira below.
+  if (subcommand === "new") process.exit(runNew(args.slice(1)));
+  if (subcommand === "check-links") process.exit(await runCheckLinks(args.slice(1)));
+  if (subcommand === "import-openapi") process.exit(await runImportOpenApi(args.slice(1)));
+  if (subcommand === "build-docs") process.exit(await runBuildDocs(args.slice(1)));
 
   // Parse remaining args with node:util parseArgs
   const { values, positionals } = parseArgs({
@@ -1908,6 +1936,160 @@ Generate an API token at https://id.atlassian.com/manage-profile/security/api-to
   } catch (err) {
     console.error(`Error: ${(err as Error).message}`);
     process.exit(EXIT_GENERATION);
+  }
+}
+
+/** `new <template> "<name>"` — scaffold a verified-by-wired docs page. Returns an exit code. */
+function runNew(rawArgs: string[]): number {
+  const { values, positionals } = parseArgs({
+    args: rawArgs,
+    options: { dir: { type: "string" }, force: { type: "boolean", default: false } },
+    allowPositionals: true,
+    strict: true,
+  });
+
+  const template = positionals[0];
+  const name = positionals.slice(1).join(" ");
+  if (!template) {
+    console.error(`Usage: executable-stories new <template> "<name>" [--dir <docs-dir>] [--force]`);
+    console.error(`Templates: ${TEMPLATES.join(", ")}`);
+    return EXIT_USAGE;
+  }
+
+  try {
+    const result = scaffoldDoc({
+      template,
+      name,
+      baseDir: values.dir as string | undefined,
+      force: values.force as boolean,
+    });
+    console.log(`Created ${result.template}: ${result.path}`);
+    console.log(`  Title: ${result.title}`);
+    console.log("");
+    console.log("Next: fill in the content and link verifying stories in `verifiedBy`.");
+    return EXIT_SUCCESS;
+  } catch (err) {
+    console.error(`Error: ${(err as Error).message}`);
+    return EXIT_USAGE;
+  }
+}
+
+/** `check-links <dir>` — fail on broken docs links. Returns a CI-friendly exit code. */
+async function runCheckLinks(rawArgs: string[]): Promise<number> {
+  const { values, positionals } = parseArgs({
+    args: rawArgs,
+    options: {
+      external: { type: "boolean", default: false },
+      json: { type: "boolean", default: false },
+    },
+    allowPositionals: true,
+    strict: true,
+  });
+
+  try {
+    const report = await checkLinks({
+      target: positionals[0] ?? ".",
+      checkExternal: values.external as boolean,
+    });
+    console.log(values.json ? JSON.stringify(report, null, 2) : formatLinkReport(report));
+    return report.brokenCount > 0 ? EXIT_GENERATION : EXIT_SUCCESS;
+  } catch (err) {
+    console.error(`Error: ${(err as Error).message}`);
+    return EXIT_USAGE;
+  }
+}
+
+/** `import-openapi <spec>` — generate API pages with per-endpoint coverage. Returns an exit code. */
+async function runImportOpenApi(rawArgs: string[]): Promise<number> {
+  const { values, positionals } = parseArgs({
+    args: rawArgs,
+    options: {
+      "output-dir": { type: "string" },
+      run: { type: "string" },
+      force: { type: "boolean", default: false },
+    },
+    allowPositionals: true,
+    strict: true,
+  });
+
+  const spec = positionals[0];
+  if (!spec) {
+    console.error(`Usage: executable-stories import-openapi <spec.json|yaml> [--output-dir <dir>] [--run <story-report.json>] [--force]`);
+    return EXIT_USAGE;
+  }
+
+  try {
+    const result = await importOpenApi({
+      specPath: spec,
+      outputDir: values["output-dir"] as string | undefined,
+      runFile: values.run as string | undefined,
+      force: values.force as boolean,
+    });
+    console.log(`Generated ${result.pageCount} API page(s) at ${result.outputDir}`);
+    console.log(`  Covered endpoints: ${result.coveredCount} / ${result.endpointCount}`);
+    if (result.uncoveredCount > 0) {
+      console.log(`  ⚠ ${result.uncoveredCount} endpoint(s) have no verifying story`);
+    }
+    return EXIT_SUCCESS;
+  } catch (err) {
+    console.error(`Error: ${(err as Error).message}`);
+    return EXIT_USAGE;
+  }
+}
+
+// ============================================================================
+// build-docs — thin CLI wrapper around src/build-docs.ts
+// ============================================================================
+
+async function runBuildDocs(rawArgs: string[]): Promise<number> {
+  const { values, positionals } = parseArgs({
+    args: rawArgs,
+    options: {
+      "site-dir": { type: "string" },
+      openapi: { type: "string" },
+      "no-synthesize-stories": { type: "boolean", default: false },
+    },
+    allowPositionals: true,
+    strict: true,
+  });
+
+  const rawRunPath = positionals[0];
+  if (!rawRunPath) {
+    console.error(
+      `Usage: executable-stories build-docs <raw-run.json> [--site-dir <dir>] [--openapi <spec>]`,
+    );
+    return EXIT_USAGE;
+  }
+
+  try {
+    const result = await buildDocs({
+      rawRunPath,
+      siteDir: (values["site-dir"] as string | undefined) ?? ".",
+      openapiPath: values.openapi as string | undefined,
+      synthesizeStories: !values["no-synthesize-stories"],
+    });
+
+    console.log(`✓ Living docs generated in ${result.siteDir}`);
+    console.log(`  • Explorer data   → public/stories/story-report.json`);
+    console.log(`  • Story pages     → src/content/docs/stories`);
+    if (result.bundledAssets > 0) {
+      console.log(`  • Bundled assets  → public/stories/assets (${result.bundledAssets})`);
+    }
+    if (result.apiPages > 0) {
+      console.log(`  • API pages       → src/content/docs/api (${result.apiPages})`);
+    }
+    const rel = path.relative(process.cwd(), result.siteDir) || ".";
+    console.log(`\nPreview: cd ${rel} && npm run dev`);
+    return EXIT_SUCCESS;
+  } catch (err) {
+    if (err instanceof BuildDocsError) {
+      console.error(err.message);
+      if (err.kind === "schema") return EXIT_SCHEMA_VALIDATION;
+      if (err.kind === "generation") return EXIT_GENERATION;
+      return EXIT_USAGE;
+    }
+    console.error(`Error: ${(err as Error).message}`);
+    return EXIT_USAGE;
   }
 }
 

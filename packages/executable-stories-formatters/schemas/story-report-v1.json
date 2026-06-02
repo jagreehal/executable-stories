@@ -252,6 +252,7 @@
         { "$ref": "#/$defs/DocSection" },
         { "$ref": "#/$defs/DocMermaid" },
         { "$ref": "#/$defs/DocScreenshot" },
+        { "$ref": "#/$defs/DocVideo" },
         { "$ref": "#/$defs/DocCustom" }
       ]
     },
@@ -387,6 +388,22 @@
         "kind": { "const": "screenshot" },
         "path": { "type": "string" },
         "alt": { "type": "string" },
+        "phase": { "$ref": "#/$defs/DocPhase" },
+        "children": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/DocEntry" }
+        }
+      },
+      "required": ["kind", "path", "phase"],
+      "additionalProperties": false
+    },
+    "DocVideo": {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "video" },
+        "path": { "type": "string" },
+        "caption": { "type": "string" },
+        "poster": { "type": "string" },
         "phase": { "$ref": "#/$defs/DocPhase" },
         "children": {
           "type": "array",

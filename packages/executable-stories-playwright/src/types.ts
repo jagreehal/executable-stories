@@ -74,6 +74,15 @@ export interface ScreenshotOptions {
   alt?: string;
 }
 
+export interface VideoOptions {
+  /** Path to the video file, relative to the report output (or an http(s) URL). */
+  path: string;
+  /** Caption shown beneath the player. */
+  caption?: string;
+  /** Path to a poster image shown before playback. */
+  poster?: string;
+}
+
 export interface CustomOptions {
   type: string;
   data: unknown;
@@ -95,6 +104,7 @@ export interface StoryDocs {
   section?: SectionOptions;
   mermaid?: MermaidOptions;
   screenshot?: ScreenshotOptions;
+  video?: VideoOptions;
   custom?: CustomOptions;
 }
 
@@ -109,6 +119,13 @@ export interface StoryOptions {
   traceUrlTemplate?: string;
   /** Playwright fixtures (first argument of the test callback). When set, step callbacks receive this as their first argument. */
   fixtures?: unknown;
+  /**
+   * Auto-promote the Playwright screen recording (requires `video: "on"` in the
+   * Playwright config) into a featured inline video doc entry. The reporter
+   * surfaces the recorded `.webm` so the scenario shows a playable walkthrough
+   * with no per-test `story.video()` call.
+   */
+  featureVideo?: boolean;
 }
 
 /** Options for story.console() – captures page console messages as a doc entry. */

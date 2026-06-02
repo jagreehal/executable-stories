@@ -135,6 +135,41 @@ const generator = new ReportGenerator({
 });
 ```
 
+## Living docs site (Confluence replacement)
+
+Scaffold an Astro/Starlight site whose pages stay honest because the tests keep
+them verified. These commands operate on the canonical story report, so they
+work for stories written in **any language** (TypeScript, Python, Go, Ruby,
+Java/Kotlin, Rust, C#).
+
+```bash
+# 1. Scaffold the site (ships verified-by badges, a health dashboard, explorer)
+executable-stories init-astro story-docs
+
+# 2. Generate story pages + report data from any test run
+executable-stories format run.json --format astro --output-dir story-docs/src/content/docs/stories --asset-mode copy
+executable-stories format run.json --format story-report-json --output-dir story-docs/public/stories --output-name story-report
+
+# 3. Start hand-written pages from a verified template
+executable-stories new adr "Cap combined discount at 30%"   # also: runbook, decision-log, incident
+
+# 4. Generate API docs with per-endpoint test coverage
+executable-stories import-openapi openapi.json --run run.json --output-dir story-docs/src/content/docs/api
+
+# 5. Fail CI if docs links rot
+executable-stories check-links story-docs/src/content/docs
+```
+
+Any page can declare the stories that prove it. The badge under the title turns
+red the moment a linked story fails:
+
+```yaml
+---
+title: ADR 0007 — Cap combined discount at 30%
+verifiedBy: [pricing, checkout--caps-the-discount-at-30-percent]
+---
+```
+
 ## Architecture
 
 ```

@@ -75,6 +75,13 @@ export interface ScreenshotOptions {
   alt?: string;
 }
 
+/** Options for video() - video reference */
+export interface VideoOptions {
+  path: string;
+  caption?: string;
+  poster?: string;
+}
+
 /** Options for custom() - custom doc entry */
 export interface CustomOptions {
   type: string;
@@ -100,6 +107,7 @@ export interface StoryDocs {
   section?: SectionOptions;
   mermaid?: MermaidOptions;
   screenshot?: ScreenshotOptions;
+  video?: VideoOptions;
   custom?: CustomOptions;
 }
 

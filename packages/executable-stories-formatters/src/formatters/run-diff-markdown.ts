@@ -142,6 +142,8 @@ function formatDocEntry(doc: DocEntry): string {
       return `${doc.title ?? "mermaid diagram"}: \`${doc.code}\``;
     case "screenshot":
       return `${doc.alt ? `${doc.alt}: ` : ""}${doc.path}`;
+    case "video":
+      return `${doc.caption ? `${doc.caption}: ` : ""}${doc.path}`;
     case "custom":
       return `${doc.type}: ${JSON.stringify(doc.data)}`;
   }

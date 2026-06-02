@@ -53,5 +53,6 @@ export type {
   SectionOptions,
   MermaidOptions,
   ScreenshotOptions,
+  VideoOptions,
   CustomOptions,
 } from './types';

@@ -64,6 +64,7 @@ export interface StoryDocs {
   section?: SectionOptions;
   mermaid?: MermaidOptions;
   screenshot?: ScreenshotOptions;
+  video?: VideoOptions;
   custom?: CustomOptions;
 }
 
@@ -125,6 +126,12 @@ export interface MermaidOptions {
 export interface ScreenshotOptions {
   path: string;
   alt?: string;
+}
+
+export interface VideoOptions {
+  path: string;
+  caption?: string;
+  poster?: string;
 }
 
 export interface CustomOptions {

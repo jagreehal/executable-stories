@@ -1,14 +1,12 @@
 ---
-title: Acme Cloud Stories
+title: Onboarding
 description: 1 scenario — passed
 sidebar:
   badge:
     text: Passed
     variant: success
 ---
-## tests/onboarding-flow.story.spec.ts
-
-### Onboarding
+## Onboarding
 
 ### ✅ Onboarding flow
 Tags: `demo`, `onboarding`

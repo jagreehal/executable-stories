@@ -53,6 +53,13 @@ describe("scanMarkdownAssets", () => {
     expect(refs).toContain("./demo.mp4");
   });
 
+  it("finds video poster frames", () => {
+    const md = `<video controls poster="./poster.png"><source src="./clip.webm" /></video>`;
+    const refs = scanMarkdownAssets(md);
+    expect(refs).toContain("./poster.png");
+    expect(refs).toContain("./clip.webm");
+  });
+
   it("does NOT include http URLs", () => {
     const md = "![remote](http://example.com/image.png)";
     expect(scanMarkdownAssets(md)).toHaveLength(0);

@@ -13,6 +13,7 @@ import {
   renderDocSection,
   renderDocMermaid,
   renderDocScreenshot,
+  renderDocVideo,
   renderDocCustom,
   renderDocEntry,
 } from "../../../../src/formatters/html/renderers/doc-entries";
@@ -299,6 +300,54 @@ describe("renderDocScreenshot", () => {
     );
     expect(called).toBe(false);
     expect(html).toContain("/absolute/runner/path/foo.png");
+  });
+});
+
+describe("renderDocVideo", () => {
+  it("renders a <video> player with src, poster and caption", () => {
+    const html = renderDocVideo(
+      {
+        kind: "video",
+        path: "attachments/abc/video.webm",
+        caption: "Recorded walkthrough",
+        poster: "attachments/abc/poster.png",
+        phase: "runtime",
+      },
+      baseDeps,
+    );
+    expect(html).toContain("doc-video");
+    expect(html).toContain("<video");
+    expect(html).toContain('src="attachments/abc/video.webm"');
+    expect(html).toContain('poster="attachments/abc/poster.png"');
+    expect(html).toContain("Recorded walkthrough");
+  });
+
+  it("renders a placeholder for absolute filesystem paths instead of a broken <video>", () => {
+    const html = renderDocVideo(
+      {
+        kind: "video",
+        path: "/home/runner/work/foo/test-results/video.webm",
+        caption: "Walkthrough",
+        phase: "runtime",
+      },
+      { ...baseDeps, embedScreenshots: true },
+    );
+    expect(html).toContain("doc-video-missing");
+    expect(html).toContain("Video unavailable");
+    expect(html).not.toMatch(/<video\s/);
+  });
+
+  it("keeps the <video> for remote URLs", () => {
+    const html = renderDocVideo(
+      {
+        kind: "video",
+        path: "https://cdn.example.com/clip.mp4",
+        phase: "runtime",
+      },
+      { ...baseDeps, embedScreenshots: true },
+    );
+    expect(html).toContain("<video");
+    expect(html).toContain("https://cdn.example.com/clip.mp4");
   });
 });
 

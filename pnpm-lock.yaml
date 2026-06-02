@@ -501,6 +501,9 @@ importers:
       ajv:
         specifier: ^8.20.0
         version: 8.20.0
+      yaml:
+        specifier: ^2.8.3
+        version: 2.8.3
     devDependencies:
       '@faker-js/faker':
         specifier: ^10.4.0

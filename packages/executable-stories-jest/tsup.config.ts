@@ -8,7 +8,11 @@ export default defineConfig({
   },
   format: ["esm", "cjs"],
   dts: true,
-  clean: true,
+  // Overwrite in place rather than emptying dist first: under `turbo run type-check`
+  // a dependent app may read this dist while it rebuilds, and a clean step
+  // would briefly remove the .d.ts files (race). Entrypoints are fixed, so
+  // nothing stale lingers.
+  clean: false,
   splitting: false,
   sourcemap: true,
   external: ["jest", "@jest/globals"],

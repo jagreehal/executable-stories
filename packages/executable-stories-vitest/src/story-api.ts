@@ -280,6 +280,17 @@ function convertStoryDocsToEntries(docs: StoryDocs): DocEntry[] {
     });
   }
 
+  // video(path, caption?, poster?)
+  if (docs.video) {
+    entries.push({
+      kind: 'video',
+      path: docs.video.path,
+      caption: docs.video.caption,
+      poster: docs.video.poster,
+      phase: 'runtime',
+    });
+  }
+
   // custom(type, data)
   if (docs.custom) {
     entries.push({
@@ -529,6 +540,13 @@ interface ScreenshotOptions {
   alt?: string;
 }
 
+/** Options for video() - video reference */
+interface VideoOptions {
+  path: string;
+  caption?: string;
+  poster?: string;
+}
+
 /** Options for custom() - custom doc entry */
 interface CustomOptions {
   type: string;
@@ -670,6 +688,20 @@ function screenshot(options: ScreenshotOptions, children?: DocEntry[]): DocEntry
     kind: 'screenshot',
     path: options.path,
     alt: options.alt,
+    phase: 'runtime',
+  }, children);
+}
+
+/**
+ * Add a video reference to the current step or story-level.
+ * @example story.video({ path: '/videos/run.mp4', caption: 'Full run', poster: '/videos/run.jpg' })
+ */
+function video(options: VideoOptions, children?: DocEntry[]): DocEntry {
+  return attachDoc({
+    kind: 'video',
+    path: options.path,
+    caption: options.caption,
+    poster: options.poster,
     phase: 'runtime',
   }, children);
 }
@@ -944,6 +976,7 @@ export const story = {
   section,
   mermaid,
   screenshot,
+  video,
   tag,
   custom,
 

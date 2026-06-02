@@ -114,6 +114,15 @@ function copyDocEntry(entry: DocEntry): ReportDocEntry {
         phase: entry.phase,
         ...children,
       };
+    case "video":
+      return {
+        kind: "video",
+        path: entry.path,
+        ...(entry.caption ? { caption: entry.caption } : {}),
+        ...(entry.poster ? { poster: entry.poster } : {}),
+        phase: entry.phase,
+        ...children,
+      };
     case "custom":
       return {
         kind: "custom",

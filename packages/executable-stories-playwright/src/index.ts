@@ -56,6 +56,7 @@ export type {
   SectionOptions,
   MermaidOptions,
   ScreenshotOptions,
+  VideoOptions,
   CustomOptions,
   ConsoleOptions,
   ObservePageErrorsOptions,

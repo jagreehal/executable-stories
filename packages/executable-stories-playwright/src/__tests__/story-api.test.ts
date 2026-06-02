@@ -417,6 +417,46 @@ test.describe("step with inline docs", () => {
     expect(step.docs![0].kind).toBe("table");
   });
 
+  test("adds video inline doc", async ({}, testInfo) => {
+    story.init(testInfo);
+    story.then("the transfer completes", {
+      video: {
+        path: "attachments/walkthrough.webm",
+        caption: "Recorded walkthrough",
+        poster: "attachments/poster.png",
+      },
+    });
+
+    const meta = getStoryMeta(testInfo);
+    const step = meta!.steps[0];
+    expect(step.docs).toHaveLength(1);
+    expect(step.docs![0]).toEqual({
+      kind: "video",
+      path: "attachments/walkthrough.webm",
+      caption: "Recorded walkthrough",
+      poster: "attachments/poster.png",
+      phase: "runtime",
+    });
+  });
+
+  test("story.video() returns a video doc entry", async ({}, testInfo) => {
+    story.init(testInfo);
+    const entry = story.video({ path: "clip.webm", caption: "Demo" }) as {
+      kind: string;
+      path: string;
+      caption?: string;
+    };
+    expect(entry.kind).toBe("video");
+    expect(entry.path).toBe("clip.webm");
+    expect(entry.caption).toBe("Demo");
+  });
+
+  test("featureVideo flag is recorded on story meta", async ({}, testInfo) => {
+    story.init(testInfo, { featureVideo: true });
+    const meta = getStoryMeta(testInfo);
+    expect((meta!.meta as { featureVideo?: boolean }).featureVideo).toBe(true);
+  });
+
   test("adds kv inline docs", async ({}, testInfo) => {
     story.init(testInfo);
     story.when("payment processed", {

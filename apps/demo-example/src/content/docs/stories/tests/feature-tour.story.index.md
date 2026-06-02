@@ -1,14 +1,12 @@
 ---
-title: Acme Cloud Stories
+title: Feature Tour
 description: 1 scenario — passed
 sidebar:
   badge:
     text: Passed
     variant: success
 ---
-## tests/feature-tour.story.spec.ts
-
-### Feature Tour
+## Feature Tour
 
 ### ✅ Feature tour
 Tags: `analytics`, `demo`

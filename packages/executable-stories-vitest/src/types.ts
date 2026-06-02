@@ -63,6 +63,8 @@ export interface StoryDocs {
   mermaid?: { code: string; title?: string };
   /** Add a screenshot reference */
   screenshot?: { path: string; alt?: string };
+  /** Add a video reference with optional caption and poster image */
+  video?: { path: string; caption?: string; poster?: string };
   /** Add a custom documentation entry */
   custom?: { type: string; data: unknown };
 }

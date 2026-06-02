@@ -5,6 +5,89 @@
  */
 
 /* ============================================================================
+   Design tokens (--es-*)
+   ----------------------------------------------------------------------------
+   The single source of truth for the custom components (VerifiedBy badge,
+   API operations table, Scenario Explorer). Derived from Starlight's semantic
+   --sl-color-* / font variables so they adapt to whichever theme is active and
+   flip correctly between light and dark. Status + HTTP-method hues are fixed
+   (they carry meaning); their "soft" fills are mixed into the page background
+   with color-mix, so they read correctly in both modes from one definition.
+   ============================================================================ */
+
+:root {
+  /* Surfaces & structure */
+  --es-bg: var(--sl-color-black);
+  --es-surface: var(--sl-color-gray-7);
+  --es-surface-2: var(--sl-color-gray-6);
+  --es-line: var(--sl-color-gray-5);
+  --es-line-strong: var(--sl-color-gray-4);
+  --es-text: var(--sl-color-white);
+  --es-text-soft: var(--sl-color-gray-1);
+  --es-text-muted: var(--sl-color-gray-3);
+
+  --es-accent: var(--sl-color-accent);
+  --es-accent-high: var(--sl-color-accent-high);
+  --es-accent-soft: var(--sl-color-accent-low);
+
+  --es-mono: var(--sl-font-mono);
+  --es-radius: 0.625rem;
+  --es-radius-sm: 0.375rem;
+  --es-radius-pill: 999px;
+  --es-shadow: var(--sl-shadow-lg);
+  --es-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.06), 0 1px 1px rgb(0 0 0 / 0.04);
+
+  /* Status hues (meaningful, theme-independent) */
+  --es-passed: hsl(145 63% 38%);
+  --es-failed: hsl(0 72% 48%);
+  --es-skipped: hsl(38 92% 40%);
+  --es-pending: hsl(262 55% 55%);
+  --es-unverified: hsl(38 92% 40%);
+
+  /* Soft status fills — mix the hue into the current background */
+  --es-passed-soft: color-mix(in oklab, var(--es-passed) 12%, var(--es-bg));
+  --es-failed-soft: color-mix(in oklab, var(--es-failed) 12%, var(--es-bg));
+  --es-skipped-soft: color-mix(in oklab, var(--es-skipped) 12%, var(--es-bg));
+  --es-pending-soft: color-mix(in oklab, var(--es-pending) 12%, var(--es-bg));
+
+  /* HTTP method hues (API operations) */
+  --es-method-get: hsl(145 63% 38%);
+  --es-method-post: hsl(212 80% 48%);
+  --es-method-put: hsl(33 92% 44%);
+  --es-method-patch: hsl(280 55% 54%);
+  --es-method-delete: hsl(0 72% 48%);
+  --es-method-default: var(--sl-color-gray-3);
+}
+
+/* Brighten status hues a touch in dark mode for legibility on dark fills. */
+[data-theme='dark'] {
+  --es-passed: hsl(145 60% 52%);
+  --es-failed: hsl(0 78% 64%);
+  --es-skipped: hsl(38 92% 56%);
+  --es-pending: hsl(262 70% 72%);
+  --es-unverified: hsl(38 92% 56%);
+  --es-method-get: hsl(145 60% 52%);
+  --es-method-post: hsl(212 85% 66%);
+  --es-method-put: hsl(38 92% 58%);
+  --es-method-patch: hsl(280 70% 72%);
+  --es-method-delete: hsl(0 78% 66%);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --es-passed: hsl(145 60% 52%);
+    --es-failed: hsl(0 78% 64%);
+    --es-skipped: hsl(38 92% 56%);
+    --es-pending: hsl(262 70% 72%);
+    --es-unverified: hsl(38 92% 56%);
+    --es-method-get: hsl(145 60% 52%);
+    --es-method-post: hsl(212 85% 66%);
+    --es-method-put: hsl(38 92% 58%);
+    --es-method-patch: hsl(280 70% 72%);
+    --es-method-delete: hsl(0 78% 66%);
+  }
+}
+
+/* ============================================================================
    Typography
    ============================================================================ */
 

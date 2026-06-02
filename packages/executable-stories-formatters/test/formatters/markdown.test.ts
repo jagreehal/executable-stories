@@ -114,6 +114,39 @@ describe("MarkdownFormatter", () => {
       expect(result).toContain("| user | pass |");
       expect(result).toContain("| alice | secret |");
     });
+
+    it("should render video doc entries as inline <video> with caption", () => {
+      const raw = createRawRun({
+        testCases: [
+          createTestCase({
+            story: createStory({
+              steps: [
+                {
+                  keyword: "When",
+                  text: "they complete the transfer",
+                  docs: [
+                    {
+                      kind: "video",
+                      path: "attachments/abc/walkthrough.webm",
+                      caption: "Recorded walkthrough",
+                      poster: "attachments/abc/poster.png",
+                      phase: "runtime",
+                    },
+                  ],
+                },
+              ],
+            }),
+          }),
+        ],
+      });
+      const run = canonicalizeRun(raw);
+      const result = formatter.format(run);
+
+      expect(result).toContain("<video controls preload=\"metadata\"");
+      expect(result).toContain("poster=\"attachments/abc/poster.png\"");
+      expect(result).toContain("<source src=\"attachments/abc/walkthrough.webm\" />");
+      expect(result).toContain("*Recorded walkthrough*");
+    });
   });
 
   describe("status icons", () => {

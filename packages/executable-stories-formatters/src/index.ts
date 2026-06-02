@@ -46,6 +46,7 @@ import { RunDiffMarkdownFormatter } from "./formatters/run-diff-markdown";
 import { matchesPattern, selectTestCases } from "./select-test-cases";
 import { bundleAssets } from "./bundler/bundle-assets";
 import { AstroFormatter } from "./formatters/astro";
+import { cleanTestStem } from "./utils/source-file";
 import { ConfluenceFormatter } from "./formatters/confluence";
 import { copyMarkdownAssets } from "./formatters/astro-assets";
 
@@ -474,6 +475,18 @@ const FORMAT_EXTENSIONS: Record<OutputFormat, string> = {
   "story-report-json": ".story-report.json",
 };
 
+/**
+ * Join an output name with a format extension, collapsing a stutter when the
+ * chosen name already carries the format's tag. With the default name "index",
+ * `story-report-json` writes `index.story-report.json`; but if the caller names
+ * the file `story-report`, this yields `story-report.json`, not
+ * `story-report.story-report.json`.
+ */
+export function joinNameAndExt(name: string, ext: string): string {
+  const stutter = `.${name}.`;
+  return ext.startsWith(stutter) ? `${name}.${ext.slice(stutter.length)}` : `${name}${ext}`;
+}
+
 /** Known test file extensions to strip for colocated naming */
 const TEST_EXTENSIONS = [
   ".test.ts", ".test.tsx", ".spec.ts", ".spec.tsx",
@@ -523,7 +536,7 @@ function computeOutputPath(
 
   if (mode === "aggregated") {
     // Aggregated: single file in outputDir
-    return toPosix(path.join(baseOutputDir, `${effectiveName}${ext}`));
+    return toPosix(path.join(baseOutputDir, joinNameAndExt(effectiveName, ext)));
   }
 
   // Colocated mode - normalize source file to posix first
@@ -544,6 +557,12 @@ function computeOutputPath(
   if (colocatedStyle === "adjacent") {
     // Adjacent: write next to source file (ignores outputDir)
     return toPosix(path.posix.join(dirOfSource, fileName));
+  }
+
+  if (colocatedStyle === "flat") {
+    // Flat: one cleanly-named page per file directly under outputDir, for a
+    // browsable docs nav with tidy URLs (e.g. /stories/convert-currency/).
+    return toPosix(path.posix.join(baseOutputDir, `${cleanTestStem(normalizedSource)}${ext}`));
   }
 
   // Mirrored: preserve directory structure under outputDir
@@ -853,7 +872,7 @@ export class ReportGenerator {
     if (groups.size === 0 && this.options.output.mode === "aggregated") {
       const ext = FORMAT_EXTENSIONS[format];
       const effectiveName = this.options.outputName + (outputNameSuffix ?? "");
-      const outputPath = toPosix(path.join(this.options.outputDir, `${effectiveName}${ext}`));
+      const outputPath = toPosix(path.join(this.options.outputDir, joinNameAndExt(effectiveName, ext)));
       const content = await this.formatContent(run, format);
       const dir = path.dirname(outputPath);
       await fsPromises.mkdir(dir, { recursive: true });
@@ -949,6 +968,8 @@ export class ReportGenerator {
       case "astro": {
         const formatter = new AstroFormatter({
           assetsBaseUrl: this.options.astro.assetsBaseUrl,
+          // Colocated = one page per file, so title each by its own suite/file.
+          perFileTitle: this.options.output.mode === "colocated",
           markdown: this.options.astro.markdown,
         });
         return formatter.format(run);
