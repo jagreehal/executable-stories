@@ -5,6 +5,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { afterEach, describe, expect, it } from "vitest";
+import { generateTestCaseId } from "../src/converters/acl/ids";
 
 const testDir = dirname(fileURLToPath(import.meta.url));
 const packageDir = resolve(testDir, "..");
@@ -138,6 +139,103 @@ describe("packaged CLI", () => {
         expect(content).toContain("test-format: 1 tests");
       },
       60_000
+    );
+  });
+
+  describe("gate-release", () => {
+    let tmpDir: string | undefined;
+
+    afterEach(() => {
+      if (tmpDir) {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+        tmpDir = undefined;
+      }
+    });
+
+    it(
+      "applies release policy exceptions by exact scenario id",
+      () => {
+        ensurePackagedCliBuilt();
+
+        tmpDir = fs.mkdtempSync(join(os.tmpdir(), "es-gate-release-"));
+        const sourceFile = "src/release.story.test.ts";
+        const omittedScenario = "Feature B ships";
+        const wrongScenario = "Feature C ships";
+        const omittedId = generateTestCaseId(sourceFile, omittedScenario);
+        const wrongId = generateTestCaseId(sourceFile, wrongScenario);
+        const devRun = {
+          schemaVersion: 1,
+          projectRoot: tmpDir,
+          startedAtMs: 1706745600000,
+          finishedAtMs: 1706745610000,
+          testCases: [
+            {
+              title: "Feature A ships",
+              sourceFile,
+              sourceLine: 1,
+              status: "pass",
+              story: { scenario: "Feature A ships", steps: [{ keyword: "Given", text: "A is tested" }] },
+            },
+            {
+              title: omittedScenario,
+              sourceFile,
+              sourceLine: 10,
+              status: "pass",
+              story: { scenario: omittedScenario, steps: [{ keyword: "Given", text: "B is tested" }] },
+            },
+          ],
+        };
+        const rcRun = {
+          ...devRun,
+          finishedAtMs: 1706745620000,
+          testCases: [devRun.testCases[0]],
+        };
+        const devPath = join(tmpDir, "dev.json");
+        const rcPath = join(tmpDir, "rc.json");
+        const wrongPolicyPath = join(tmpDir, "wrong-policy.json");
+        const correctPolicyPath = join(tmpDir, "correct-policy.json");
+        fs.writeFileSync(devPath, JSON.stringify(devRun), "utf8");
+        fs.writeFileSync(rcPath, JSON.stringify(rcRun), "utf8");
+        fs.writeFileSync(wrongPolicyPath, JSON.stringify({ allowedOmissions: [wrongId] }), "utf8");
+        fs.writeFileSync(correctPolicyPath, JSON.stringify({ allowedOmissions: [omittedId] }), "utf8");
+
+        const wrong = spawnSync(
+          "node",
+          [
+            packagedCliPath,
+            "gate-release",
+            devPath,
+            rcPath,
+            "--format",
+            "markdown",
+            "--output-dir",
+            tmpDir,
+            "--release-policy",
+            wrongPolicyPath,
+          ],
+          { cwd: packageDir, encoding: "utf8" },
+        );
+        expect(wrong.status).toBe(6);
+
+        const correct = spawnSync(
+          "node",
+          [
+            packagedCliPath,
+            "gate-release",
+            devPath,
+            rcPath,
+            "--format",
+            "markdown",
+            "--output-dir",
+            tmpDir,
+            "--release-policy",
+            correctPolicyPath,
+          ],
+          { cwd: packageDir, encoding: "utf8" },
+        );
+        expect(correct.status).toBe(0);
+      },
+      60_000,
     );
   });
 

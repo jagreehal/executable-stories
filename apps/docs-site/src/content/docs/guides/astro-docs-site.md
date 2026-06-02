@@ -19,7 +19,45 @@ This creates a ready-to-run Starlight project with the right directory structure
 
 ## Generating docs from test results
 
-After running your tests and producing a `raw-run.json` (or whatever your reporter outputs), feed it to the formatter:
+### build-docs (recommended)
+
+The `build-docs` subcommand runs the full pipeline in one step. From a single raw run it generates story pages, Explorer data, and bundles referenced media — no flags to get wrong:
+
+```bash
+npx executable-stories build-docs raw-run.json --site-dir ./my-docs
+```
+
+With an OpenAPI spec it also generates API coverage pages:
+
+```bash
+npx executable-stories build-docs raw-run.json \
+  --site-dir ./my-docs \
+  --openapi ./openapi.yaml
+```
+
+Then start the dev server:
+
+```bash
+cd my-docs
+pnpm dev
+```
+
+Your stories are at `http://localhost:4321/stories/`.
+
+#### What build-docs generates
+
+| Output | Location |
+|--------|----------|
+| Story pages (one per source file) | `src/content/docs/stories/` |
+| StoryReport JSON (Explorer data) | `public/stories/story-report.json` |
+| Copied screenshots/videos | `public/stories/assets/` |
+| API coverage pages (if `--openapi`) | `src/content/docs/api/` |
+
+The bundled **Scenario Explorer** (`/stories/`) is a single browsable front door over the StoryReport JSON: a scenario list with status, a status filter, and a search box that matches titles, tags, and **`covers` file paths** — so you can type a product-code path and find the behavior that exercises it (the same code→scenario link the MCP `get_scenarios_for_paths` tool uses). Each scenario's detail panel lists its steps and the paths it covers.
+
+### format --format astro (manual)
+
+If you need finer control over artifact placement, use `format --format astro` directly:
 
 ```bash
 npx executable-stories format raw-run.json \
@@ -35,17 +73,6 @@ npx executable-stories format raw-run.json \
   --output-dir ./my-docs/src/content/docs/stories \
   --asset-mode copy
 ```
-
-Then start the dev server:
-
-```bash
-cd my-docs
-pnpm dev
-```
-
-Your stories are at `http://localhost:4321/stories/`.
-
-The bundled **Scenario Explorer** (`/stories/`) is a single browsable front door over the StoryReport JSON: a scenario list with status, a status filter, and a search box that matches titles, tags, and **`covers` file paths** — so you can type a product-code path and find the behavior that exercises it (the same code→scenario link the MCP `get_scenarios_for_paths` tool uses). Each scenario's detail panel lists its steps and the paths it covers.
 
 ## What gets generated
 
@@ -116,6 +143,19 @@ npx executable-stories init-astro [directory]
 |--------|---------|-------------|
 | `directory` | `story-docs` | Where to create the site |
 | `--force` | `false` | Overwrite if directory exists |
+| `--update` | `false` | Refresh framework files (components, styles, explorer) without touching your content or config |
+
+### build-docs
+
+```bash
+npx executable-stories build-docs <raw-run.json> --site-dir <dir> [options]
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--site-dir` | (required) | Root of the `init-astro`-scaffolded site |
+| `--openapi` | — | Path to an OpenAPI spec for API coverage pages |
+| `--no-synthesize-stories` | `false` | Skip synthesizing story metadata from test structure |
 
 ### format --format astro
 

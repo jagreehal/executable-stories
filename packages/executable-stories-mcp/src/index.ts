@@ -11,12 +11,16 @@ import type {
   ScenarioIndex,
   ScenarioIndexFilters,
   ScenarioIndexItem,
+  DeploymentStatus,
+  EnvironmentDrift,
 } from "executable-stories-formatters";
 import {
   diffStoryReports,
   scenariosCoveringPaths,
   toBehaviorManifest,
   toScenarioIndex,
+  getDeploymentStatus as getDeploymentStatusCore,
+  getEnvironmentDrift as getEnvironmentDriftCore,
 } from "executable-stories-formatters";
 
 // Scenario serialization is owned by the formatters package; re-export so MCP
@@ -100,6 +104,19 @@ export function getScenarioIndex(report: StoryReport): ScenarioIndex {
 
 export function getBehaviorManifest(report: StoryReport): BehaviorManifest {
   return toBehaviorManifest(report);
+}
+
+export interface DeploymentQueryResult {
+  status: DeploymentStatus;
+  ledgerPath: string;
+}
+
+export function getDeploymentStatus(ledgerPath?: string): DeploymentStatus {
+  return getDeploymentStatusCore(ledgerPath ?? ".executable-stories/deployments.json");
+}
+
+export function getEnvironmentDrift(envA: string, envB: string, ledgerPath?: string): EnvironmentDrift {
+  return getEnvironmentDriftCore(ledgerPath ?? ".executable-stories/deployments.json", envA, envB);
 }
 
 /**

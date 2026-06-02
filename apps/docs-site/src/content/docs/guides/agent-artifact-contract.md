@@ -66,6 +66,21 @@ executable-stories format .executable-stories/raw-run.json \
 
 Output: `reports/index.behavior-manifest.json` — source file rollups, tag index, doc coverage, debugger warnings (missing tags, missing source lines, etc.).
 
+## Release Manifest
+
+For release evidence, generate a tested-together manifest:
+
+```bash
+executable-stories format .executable-stories/raw-run.json \
+  --format release-manifest \
+  --output-dir reports \
+  --output-name index
+```
+
+Output: `reports/index.release-manifest.md`.
+
+The manifest records scenario ids, titles, statuses, source files, tags, branch/commit metadata when present, and a SHA-256 hash built from the exact scenario/status set. Use it when an agent or reviewer needs to confirm what batch was tested before a release.
+
 ## Agent Loop
 
 1. Run framework tests.
@@ -96,6 +111,8 @@ Read-only tools:
 - `get_scenario_index`
 - `get_behavior_manifest`
 - `get_behavior_diff` — regressed / fixed / added / removed between two reports
+- `get_deployment_status` — latest recorded deployment per environment
+- `get_environment_drift` — scenarios only in one environment and status drift for shared scenarios
 
 Execution tool:
 
@@ -129,7 +146,7 @@ Recommended CI flow:
 ```bash
 pnpm test
 executable-stories format reports/raw-run.json \
-  --format story-report-json,scenario-index-json,behavior-manifest-json,html,markdown \
+  --format story-report-json,scenario-index-json,behavior-manifest-json,release-manifest,html,markdown \
   --output-dir reports \
   --output-name index
 ```
@@ -139,5 +156,6 @@ Publish as CI artifacts:
 - `reports/index.story-report.json`
 - `reports/index.scenarios-index.json`
 - `reports/index.behavior-manifest.json`
+- `reports/index.release-manifest.md`
 
 Example apps expose `pnpm report:agents` with this recipe.

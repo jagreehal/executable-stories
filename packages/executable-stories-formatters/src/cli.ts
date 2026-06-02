@@ -46,8 +46,10 @@ import { importOpenApi } from "./import-openapi";
 import { buildDocs, BuildDocsError } from "./build-docs";
 import { publishConfluencePage } from "./publishers/confluence";
 import { publishJiraIssue, type JiraPublishMode } from "./publishers/jira";
+import { recordDeployment, getDeploymentStatus, getEnvironmentDrift } from "./deploy/index";
 import { loadConfig } from "./config.js";
 import type { Formatter } from "./types/formatter.js";
+import type { ScenarioDiff } from "./types/compare";
 
 // ============================================================================
 // Exit Codes
@@ -60,6 +62,7 @@ const EXIT_GENERATION = 3;
 const EXIT_USAGE = 4;
 const EXIT_COMPARE_GATE = 5;
 const EXIT_REVIEW_GATE = 5;
+const EXIT_RELEASE_GATE = 6;
 
 // ============================================================================
 // CLI Argument Parsing
@@ -72,6 +75,7 @@ USAGE
   executable-stories format <file> [options]
   executable-stories format --stdin [options]
   executable-stories compare <baseline-file> <current-file> [options]
+  executable-stories gate-release <dev-run.json> <rc-run.json> [options]
   executable-stories review <file> --changed-files <path> [options]
   executable-stories list <file> [options]
   executable-stories validate <file>
@@ -82,11 +86,15 @@ USAGE
   executable-stories import-openapi <spec> [options]
   executable-stories publish-confluence <file.adf.json> [options]
   executable-stories publish-jira <file.adf.json> [options]
+  executable-stories deploy record <file> --env <env> [--tag <tag>] [options]
+  executable-stories deploy status [options]
+  executable-stories deploy diff <env-a> <env-b> [options]
 
 SUBCOMMANDS
   format             Read raw test results and generate reports
   watch              Regenerate reports whenever the raw-run file changes (live agent index)
   compare            Compare two runs and generate a diff report
+  gate-release       Verify a release candidate against the dev test baseline (RC gate)
   review             Generate an Evidence Review of AI-authored changes (correlate a run to the diff)
   list               List scenarios from a test run (text table or JSON)
   validate           Validate a JSON file against the schema (no output generated)
@@ -96,9 +104,10 @@ SUBCOMMANDS
   import-openapi     Generate API doc pages from an OpenAPI spec, linked to verifying stories
   publish-confluence Publish an ADF JSON file to a Confluence page via REST API
   publish-jira       Publish an ADF JSON file to a Jira issue (as comment or description)
+  deploy             Record deployments, show environment status, detect drift
 
 OPTIONS
-  --format <formats>            Comma-separated formats: html, markdown, junit, cucumber-json, cucumber-messages, cucumber-html, astro, confluence, story-report-json, scenario-index-json, behavior-manifest-json, or custom names from config (default: html)
+  --format <formats>            Comma-separated formats: html, markdown, release-manifest, junit, cucumber-json, cucumber-messages, cucumber-html, astro, confluence, story-report-json, scenario-index-json, behavior-manifest-json, or custom names from config (default: html)
                                   astro             Themed Markdown (for Astro docs sites with matching CSS)
                                   confluence        Atlassian Document Format (ADF) JSON for Confluence / Jira
                                   behavior-manifest-json Agent-readable behavior manifest and debugger warnings
@@ -142,7 +151,10 @@ OPTIONS
   --pr-summary-file <path>      Write the PR-friendly markdown summary to a file
   --fail-on-regression          Exit non-zero when any regression is detected in compare
   --fail-on-added-failures      Exit non-zero when newly added scenarios are failing
+  --fail-on-removal             Exit non-zero when scenarios are removed from the baseline
+  --fail-on-new                 Exit non-zero when new scenarios appear that weren't in the baseline
   --max-regressions <n>         Exit non-zero when regressions exceed threshold
+  --release-policy <path>       (gate-release) Path to JSON policy file with allowed exceptions
   --changed-files <path>        (review) Changed files: JSON (ChangedFile[] or {changedFiles,baseRef,headRef}) or "git diff --name-status" text
   --base-ref <ref>              (review) Base ref label shown in the report (informational)
   --head-ref <ref>              (review) Head ref label shown in the report (informational)
@@ -160,6 +172,24 @@ LIST
 COMPARE
   compare supports --format html,markdown
   compare uses the same --input-type for both baseline and current files
+
+GATE-RELEASE
+  gate-release compares a dev environment test run (baseline) against a
+  release candidate test run to verify the RC matches what was tested in dev.
+  By default, fails if scenarios are omitted or regressed.
+  --fail-on-regression and --fail-on-removal are enabled by default.
+  Supports --release-policy for exception lists.
+
+DEPLOY
+  executable-stories deploy record <file> --env <env> [--tag <tag>]
+    Record a deployment of a test run to an environment (e.g. dev, staging, prod).
+    The deployment ledger is at .executable-stories/deployments.json by default.
+
+  executable-stories deploy status [--ledger <path>]
+    Show the latest deployment for each environment.
+
+  executable-stories deploy diff <env-a> <env-b> [--ledger <path>]
+    Show scenario drift between two environments (what's in one but not the other).
 
 INIT-ASTRO
   executable-stories init-astro [directory]   Scaffold into directory (default: ./story-docs)
@@ -212,10 +242,11 @@ EXIT CODES
   3  Formatter/generation failure
   4  Bad arguments / usage error
   5  Compare gate failed
+  6  Release gate failed
 `.trim();
 
 interface CliArgs {
-  subcommand: "format" | "watch" | "compare" | "review" | "list" | "validate";
+  subcommand: "format" | "watch" | "compare" | "gate-release" | "review" | "list" | "validate";
   inputFile?: string;
   baselineFile?: string;
   currentFile?: string;
@@ -264,7 +295,10 @@ interface CliArgs {
   prSummaryFile?: string;
   failOnRegression: boolean;
   failOnAddedFailures: boolean;
+  failOnRemoval: boolean;
+  failOnNew: boolean;
   maxRegressions?: number;
+  releasePolicy?: string;
   changedFilesPath?: string;
   baseRef?: string;
   headRef?: string;
@@ -287,6 +321,8 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
     subcommand !== "format" &&
     subcommand !== "watch" &&
     subcommand !== "compare" &&
+    subcommand !== "gate-release" &&
+    subcommand !== "deploy" &&
     subcommand !== "review" &&
     subcommand !== "list" &&
     subcommand !== "validate" &&
@@ -299,7 +335,7 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
     subcommand !== "publish-jira"
   ) {
     console.error(
-      `Unknown subcommand: "${subcommand}". Use "format", "watch", "compare", "review", "list", "validate", "init-astro", "build-docs", "new", "check-links", "import-openapi", "publish-confluence", or "publish-jira".`,
+      `Unknown subcommand: "${subcommand}". Use "format", "watch", "compare", "gate-release", "deploy", "review", "list", "validate", "init-astro", "build-docs", "new", "check-links", "import-openapi", "publish-confluence", or "publish-jira".`,
     );
     process.exit(EXIT_USAGE);
   }
@@ -314,6 +350,11 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
   if (subcommand === "publish-jira") {
     await runPublishJira(args.slice(1));
     process.exit(EXIT_SUCCESS);
+  }
+
+  // Handle deploy early (has its own arg shape — exits after completion)
+  if (subcommand === "deploy") {
+    process.exit(await runDeploy(args.slice(1)));
   }
 
   // Handle init-astro early (no parseArgs needed)
@@ -418,7 +459,10 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
       "pr-summary-file": { type: "string" },
       "fail-on-regression": { type: "boolean", default: false },
       "fail-on-added-failures": { type: "boolean", default: false },
+      "fail-on-removal": { type: "boolean", default: false },
+      "fail-on-new": { type: "boolean", default: false },
       "max-regressions": { type: "string" },
+      "release-policy": { type: "string" },
       "changed-files": { type: "string" },
       "base-ref": { type: "string" },
       "head-ref": { type: "string" },
@@ -439,9 +483,10 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
   const useStdin = values.stdin as boolean;
   const baselineValue = values.baseline as string | undefined;
   const baselineMode = baselineValue === "auto" ? "auto" : "explicit";
-  const inputFile = subcommand === "compare" ? undefined : positionals[0];
+  const isCompareLike = subcommand === "compare" || subcommand === "gate-release";
+  const inputFile = isCompareLike ? undefined : positionals[0];
   const baselineFile =
-    subcommand === "compare"
+    isCompareLike
       ? baselineMode === "auto"
         ? baselineValue && baselineValue !== "auto"
           ? baselineValue
@@ -455,23 +500,23 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
             : undefined
       : undefined;
   const currentFile =
-    subcommand === "compare"
+    isCompareLike
       ? positionals.length > 1
         ? positionals[1]
         : positionals[0]
       : undefined;
 
-  if (subcommand === "compare") {
+  if (isCompareLike) {
     if (useStdin) {
-      console.error("Error: compare does not support --stdin. Pass baseline and current files.");
+      console.error(`Error: ${subcommand} does not support --stdin. Pass baseline and current files.`);
       process.exit(EXIT_USAGE);
     }
     if (!currentFile) {
-      console.error("Error: compare requires <current-file>, and either <baseline-file> or --baseline auto.");
+      console.error(`Error: ${subcommand} requires <current-file>, and either <baseline-file> or --baseline auto.`);
       process.exit(EXIT_USAGE);
     }
     if (baselineMode === "explicit" && !baselineFile) {
-      console.error("Error: compare requires <baseline-file> and <current-file>, or use --baseline auto.");
+      console.error(`Error: ${subcommand} requires <baseline-file> and <current-file>, or use --baseline auto.`);
       process.exit(EXIT_USAGE);
     }
   } else if (!useStdin && !inputFile) {
@@ -489,7 +534,7 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
   const pluginConfig = await loadConfig(values["config"] as string | undefined);
   const customFormatterNames = new Set(Object.keys(pluginConfig.formatters ?? {}));
 
-  const builtInFormats = new Set(["astro", "behavior-manifest-json", "confluence", "html", "markdown", "junit", "cucumber-json", "cucumber-messages", "cucumber-html", "scenario-index-json", "story-report-json"]);
+  const builtInFormats = new Set(["astro", "behavior-manifest-json", "confluence", "html", "markdown", "release-manifest", "junit", "cucumber-json", "cucumber-messages", "cucumber-html", "scenario-index-json", "story-report-json"]);
   const formatStr = values.format as string;
   const allRequestedFormats = formatStr.split(",").map((f) => f.trim());
   const builtInRequested = allRequestedFormats.filter((f) => builtInFormats.has(f)) as OutputFormat[];
@@ -498,7 +543,7 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
 
   if (unknownFormats.length > 0) {
     const knownCustom = customFormatterNames.size > 0 ? `, ${[...customFormatterNames].join(", ")}` : "";
-    console.error(`Error: Unknown format(s): ${unknownFormats.join(", ")}. Valid built-in: astro, behavior-manifest-json, confluence, html, markdown, junit, cucumber-json, cucumber-messages, cucumber-html, scenario-index-json, story-report-json${knownCustom}.`);
+    console.error(`Error: Unknown format(s): ${unknownFormats.join(", ")}. Valid built-in: astro, behavior-manifest-json, confluence, html, markdown, release-manifest, junit, cucumber-json, cucumber-messages, cucumber-html, scenario-index-json, story-report-json${knownCustom}.`);
     process.exit(EXIT_USAGE);
   }
 
@@ -616,7 +661,7 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
   }
 
   const cliArgs: CliArgs = {
-    subcommand: subcommand as "format" | "watch" | "compare" | "review" | "list" | "validate",
+    subcommand: subcommand as "format" | "watch" | "compare" | "gate-release" | "review" | "list" | "validate",
     inputFile,
     baselineFile,
     currentFile,
@@ -665,7 +710,10 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
     prSummaryFile: values["pr-summary-file"] as string | undefined,
     failOnRegression: values["fail-on-regression"] as boolean,
     failOnAddedFailures: values["fail-on-added-failures"] as boolean,
+    failOnRemoval: values["fail-on-removal"] as boolean,
+    failOnNew: values["fail-on-new"] as boolean,
     maxRegressions,
+    releasePolicy: values["release-policy"] as string | undefined,
     changedFilesPath: values["changed-files"] as string | undefined,
     baseRef: values["base-ref"] as string | undefined,
     headRef: values["head-ref"] as string | undefined,
@@ -946,6 +994,64 @@ async function main() {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error(`Comparison failed: ${msg}`);
+      process.exit(EXIT_GENERATION);
+    }
+  }
+
+  if (args.subcommand === "gate-release") {
+    // Gate-release enforces stricter defaults: --fail-on-regression and --fail-on-removal
+    const gatedArgs = {
+      ...args,
+      failOnRegression: true,
+      failOnRemoval: true,
+      // failOnNew is opt-in via --fail-on-new flag
+    };
+
+    // Load release policy if specified
+    let policy: ReleasePolicy | undefined;
+    if (args.releasePolicy) {
+      policy = loadReleasePolicy(args.releasePolicy);
+    }
+
+    const currentText = readFileInput(gatedArgs.currentFile!);
+    const current = applySelection(normalizeRunFromText(currentText, gatedArgs).run, gatedArgs);
+    const baselineFile =
+      gatedArgs.baselineMode === "auto"
+        ? resolveBaselineAuto(gatedArgs.currentFile!, current, gatedArgs)
+        : gatedArgs.baselineFile!;
+    const baselineText = readFileInput(baselineFile);
+    const baseline = applySelection(normalizeRunFromText(baselineText, gatedArgs).run, gatedArgs);
+
+    try {
+      const result = await generateCompareReports(baseline, current, baselineFile, gatedArgs);
+
+      // Apply release policy exceptions
+      const effectiveResult = policy
+        ? applyReleasePolicy(result, policy)
+        : result;
+
+      printCompareResult(effectiveResult, gatedArgs, startMs);
+      const gateFailures = evaluateCompareGate(effectiveResult, gatedArgs);
+      if (gateFailures.length > 0) {
+        for (const failure of gateFailures) {
+          console.error(`Release gate failed: ${failure}`);
+        }
+        if (policy) {
+          console.error(`Release policy: ${args.releasePolicy}`);
+          if (policy.allowedOmissions && policy.allowedOmissions.length > 0) {
+            console.error(`  Allowed omissions: ${policy.allowedOmissions.join(", ")}`);
+          }
+          if (policy.allowedRegressions && policy.allowedRegressions.length > 0) {
+            console.error(`  Allowed regressions: ${policy.allowedRegressions.join(", ")}`);
+          }
+        }
+        process.exit(EXIT_RELEASE_GATE);
+      }
+      console.error("Release gate passed: RC matches dev baseline.");
+      process.exit(EXIT_SUCCESS);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`Release gate check failed: ${msg}`);
       process.exit(EXIT_GENERATION);
     }
   }
@@ -1376,6 +1482,7 @@ interface CompareCliResult {
     fixed: number;
     unchanged: number;
   };
+  scenarios: ScenarioDiff[];
   prSummary?: string;
 }
 
@@ -1462,6 +1569,7 @@ async function generateCompareReports(
         scenario.kind === "added" && scenario.current?.status === "failed"
     ).length,
     summary: result.diff.summary,
+    scenarios: result.diff.scenarios,
     prSummary: args.prSummary || args.prSummaryFile ? createPrCommentSummary(result.diff) : undefined,
   };
 }
@@ -1671,6 +1779,57 @@ function printCompareResult(
   }
 }
 
+interface ReleasePolicy {
+  allowedOmissions?: string[];
+  allowedRegressions?: string[];
+  allowNewScenarios?: boolean;
+}
+
+function loadReleasePolicy(policyPath: string): ReleasePolicy {
+  const resolved = path.resolve(policyPath);
+  if (!fs.existsSync(resolved)) {
+    console.error(`Error: release policy file not found: ${resolved}`);
+    process.exit(EXIT_USAGE);
+  }
+  try {
+    const raw = JSON.parse(fs.readFileSync(resolved, "utf8"));
+    return {
+      allowedOmissions: Array.isArray(raw.allowedOmissions) ? raw.allowedOmissions : [],
+      allowedRegressions: Array.isArray(raw.allowedRegressions) ? raw.allowedRegressions : [],
+      allowNewScenarios: Boolean(raw.allowNewScenarios),
+    };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`Error reading release policy: ${msg}`);
+    process.exit(EXIT_USAGE);
+  }
+}
+
+function applyReleasePolicy(
+  result: CompareCliResult,
+  policy: ReleasePolicy,
+): CompareCliResult {
+  const allowedOmissionSet = new Set(policy.allowedOmissions ?? []);
+  const allowedRegressionSet = new Set(policy.allowedRegressions ?? []);
+  const adjustedOmissions = result.scenarios.filter(
+    (scenario) => scenario.kind === "removed" && !allowedOmissionSet.has(scenario.id),
+  ).length;
+  const adjustedRegressions = result.scenarios.filter(
+    (scenario) => scenario.kind === "regressed" && !allowedRegressionSet.has(scenario.id),
+  ).length;
+
+  const adjustedSummary = {
+    ...result.summary,
+    removed: adjustedOmissions,
+    regressed: adjustedRegressions,
+  };
+
+  return {
+    ...result,
+    summary: adjustedSummary,
+  };
+}
+
 function evaluateCompareGate(
   result: CompareCliResult,
   args: CliArgs,
@@ -1684,6 +1843,16 @@ function evaluateCompareGate(
   if (args.failOnAddedFailures && result.addedFailures > 0) {
     failures.push(
       `new failing scenarios detected (${result.addedFailures}) with --fail-on-added-failures`
+    );
+  }
+  if (args.failOnRemoval && result.summary.removed > 0) {
+    failures.push(
+      `removed scenarios detected (${result.summary.removed}) with --fail-on-removal`
+    );
+  }
+  if (args.failOnNew && result.summary.added > 0) {
+    failures.push(
+      `new scenarios detected (${result.summary.added}) with --fail-on-new`
     );
   }
   if (
@@ -2091,6 +2260,227 @@ async function runBuildDocs(rawArgs: string[]): Promise<number> {
     console.error(`Error: ${(err as Error).message}`);
     return EXIT_USAGE;
   }
+}
+
+async function runDeploy(rawArgs: string[]): Promise<number> {
+  const mode = rawArgs[0];
+  if (!mode || !["record", "status", "diff"].includes(mode)) {
+    console.error("Usage: executable-stories deploy <record|status|diff> [options]");
+    console.error("  deploy record <file> --env <env> [--tag <tag>] [--ledger <path>]");
+    console.error("  deploy status [--ledger <path>] [--json]");
+    console.error("  deploy diff <env-a> <env-b> [--ledger <path>] [--json]");
+    return EXIT_USAGE;
+  }
+
+  const { values, positionals } = parseArgs({
+    args: rawArgs.slice(1),
+    options: {
+      env: { type: "string" },
+      tag: { type: "string" },
+      ledger: { type: "string", default: ".executable-stories/deployments.json" },
+      json: { type: "boolean", default: false },
+      help: { type: "boolean", default: false },
+    },
+    allowPositionals: true,
+    strict: true,
+  });
+
+  if (values.help) {
+    console.log(`executable-stories deploy — Track deployments across environments.
+
+USAGE
+  executable-stories deploy record <file> --env <env> [--tag <tag>] [--ledger <path>]
+  executable-stories deploy status [--ledger <path>] [--json]
+  executable-stories deploy diff <env-a> <env-b> [--ledger <path>] [--json]
+
+OPTIONS
+  --env <env>       Environment name (e.g. dev, staging, production)
+  --tag <tag>       Optional Git tag for this deployment (e.g. v1.2.3)
+  --ledger <path>   Path to deployment ledger JSON (default: .executable-stories/deployments.json)
+  --json            Output as JSON instead of text`);
+    return EXIT_SUCCESS;
+  }
+
+  const ledgerPath = values.ledger as string;
+
+  if (mode === "record") {
+    const inputFile = positionals[0];
+    if (!inputFile) {
+      console.error("Error: deploy record requires an input file.");
+      return EXIT_USAGE;
+    }
+    const env = values.env as string | undefined;
+    if (!env) {
+      console.error("Error: deploy record requires --env <environment>.");
+      return EXIT_USAGE;
+    }
+
+    const text = readFileInput(inputFile);
+    const { run } = normalizeRunFromText(text, {
+      ...createDefaultCliArgs(),
+      inputType: "raw",
+      inputFile,
+    });
+    const applied = applySelection(run, createDefaultCliArgs());
+
+    const result = recordDeployment({
+      run: applied,
+      environment: env,
+      tag: values.tag as string | undefined,
+      ledgerPath,
+      runFilePath: inputFile,
+    });
+
+    console.error(
+      `Recorded deployment to "${result.entry.environment}" at ${result.entry.timestamp}`,
+    );
+    console.error(
+      `  Scenarios: ${result.entry.summary.total} (${result.entry.summary.passed} passed, ${result.entry.summary.failed} failed)`,
+    );
+    if (result.entry.tag) {
+      console.error(`  Tag: ${result.entry.tag}`);
+    }
+    console.error(`  Ledger: ${result.ledgerPath}`);
+    return EXIT_SUCCESS;
+  }
+
+  if (mode === "status") {
+    const status = getDeploymentStatus(ledgerPath);
+    const envs = Object.keys(status.environments);
+
+    if (envs.length === 0) {
+      console.error("No deployments recorded yet.");
+      return EXIT_SUCCESS;
+    }
+
+    if (values.json as boolean) {
+      console.log(JSON.stringify(status, null, 2));
+    } else {
+      for (const envName of envs) {
+        const env = status.environments[envName];
+        if (!env) continue;
+        const e = env.latest;
+        console.log(`${envName}:`);
+        console.log(`  Deployed: ${e.timestamp}`);
+        console.log(`  SHA: ${e.sha ?? "unknown"}`);
+        console.log(`  Tag: ${e.tag ?? "none"}`);
+        console.log(`  Scenarios: ${e.summary.total} (${e.summary.passed} passed, ${e.summary.failed} failed, ${e.summary.skipped} skipped, ${e.summary.pending} pending)`);
+        if (env.previousDeployment) {
+          const prev = env.previousDeployment;
+          const added = e.scenarioIds.filter((id) => !new Set(prev.scenarioIds).has(id)).length;
+          const removed = prev.scenarioIds.filter((id) => !new Set(e.scenarioIds).has(id)).length;
+          if (added > 0 || removed > 0) {
+            console.log(`  Drift from previous: +${added} added, -${removed} removed`);
+          }
+        }
+        console.log();
+      }
+      console.log(`Ledger: ${ledgerPath}`);
+    }
+    return EXIT_SUCCESS;
+  }
+
+  if (mode === "diff") {
+    const envA = positionals[0];
+    const envB = positionals[1];
+    if (!envA || !envB) {
+      console.error("Error: deploy diff requires two environment names.");
+      return EXIT_USAGE;
+    }
+
+    try {
+      const drift = getEnvironmentDrift(ledgerPath, envA, envB);
+
+      if (values.json as boolean) {
+        console.log(JSON.stringify(drift, null, 2));
+      } else {
+        console.log(`Environment drift: ${envA} ↔ ${envB}`);
+        console.log(`  ${envA}: ${drift.aEntry.summary.total} scenarios (${drift.aEntry.timestamp})`);
+        console.log(`  ${envB}: ${drift.bEntry.summary.total} scenarios (${drift.bEntry.timestamp})`);
+        console.log(`  In both: ${drift.inBoth.length}`);
+        console.log(`  Only in ${envA}: ${drift.onlyInA.length}`);
+        console.log(`  Only in ${envB}: ${drift.onlyInB.length}`);
+        console.log(`  Status changed: ${drift.statusChanged.length}`);
+
+        if (drift.onlyInA.length > 0) {
+          console.log(`\n  Only in ${envA}:`);
+          for (const id of drift.onlyInA.slice(0, 20)) {
+            console.log(`    - ${id}`);
+          }
+          if (drift.onlyInA.length > 20) {
+            console.log(`    ... and ${drift.onlyInA.length - 20} more`);
+          }
+        }
+        if (drift.onlyInB.length > 0) {
+          console.log(`\n  Only in ${envB}:`);
+          for (const id of drift.onlyInB.slice(0, 20)) {
+            console.log(`    - ${id}`);
+          }
+          if (drift.onlyInB.length > 20) {
+            console.log(`    ... and ${drift.onlyInB.length - 20} more`);
+          }
+        }
+        if (drift.statusChanged.length > 0) {
+          console.log("\n  Status changed:");
+          for (const item of drift.statusChanged.slice(0, 20)) {
+            console.log(`    - ${item.id}: ${item.statusA} -> ${item.statusB}`);
+          }
+          if (drift.statusChanged.length > 20) {
+            console.log(`    ... and ${drift.statusChanged.length - 20} more`);
+          }
+        }
+      }
+    } catch (err) {
+      console.error(`Error: ${(err as Error).message}`);
+      return EXIT_USAGE;
+    }
+    return EXIT_SUCCESS;
+  }
+
+  return EXIT_USAGE;
+}
+
+function createDefaultCliArgs(): CliArgs {
+  return {
+    subcommand: "format",
+    stdin: false,
+    formats: [],
+    inputType: "raw",
+    outputDir: "reports",
+    outputName: "index",
+    outputNameTimestamp: false,
+    sortTestCases: "none",
+    include: [],
+    exclude: [],
+    includeTags: [],
+    excludeTags: [],
+    synthesizeStories: true,
+    htmlTitle: "Test Results",
+    htmlTheme: "default",
+    htmlNoSyntaxHighlighting: false,
+    htmlNoMermaid: false,
+    htmlNoMarkdown: false,
+    htmlNoToc: false,
+    htmlThemePicker: false,
+    jsonSummary: false,
+    listFormat: "text",
+    notify: "never",
+    maxFailedTests: 5,
+    maxHistoryRuns: 10,
+    webhookUrls: [],
+    webhookHeaders: {},
+    webhookMethod: "POST",
+    webhookHmacHeader: "X-Signature",
+    webhookHmacTimestamp: false,
+    assetMode: "none",
+    allowMissingAssets: false,
+    prSummary: false,
+    failOnRegression: false,
+    failOnAddedFailures: false,
+    failOnRemoval: false,
+    failOnNew: false,
+    baselineMode: "explicit",
+  };
 }
 
 main().catch((err) => {

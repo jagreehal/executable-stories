@@ -69,6 +69,8 @@ Ensure `reports/index.story-report.json` exists in `cwd`, or pass `reportPath` o
 | `get_scenario_index` | Full `scenario-index` v1 artifact |
 | `get_behavior_manifest` | Tags, source files, doc coverage, debugger warnings (incl. `missing-covers`) |
 | `get_behavior_diff` | Compare two StoryReports by scenario id: regressed / fixed / added / removed |
+| `get_deployment_status` | Latest recorded deployment per environment from the deployment ledger |
+| `get_environment_drift` | Scenarios only in one environment plus status drift for shared scenarios |
 
 ### Code → scenario (`covers`)
 
@@ -130,6 +132,8 @@ Every GET accepts a `?reportPath=` query parameter; `POST /run-scenarios` takes 
 6. Full test run + regenerate artifacts
 
 Storybook MCP indexes components; executable-stories indexes **behavior scenarios with execution truth**.
+
+For release and branch workflows, pair `get_behavior_diff` with deployment tools. Agents can answer whether dev and production contain the same behavior scenarios, whether shared scenarios have different statuses, and what changed between a dev baseline and a release candidate. See [Release confidence](/guides/release-confidence/).
 
 ## Related
 

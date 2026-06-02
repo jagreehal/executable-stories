@@ -4,6 +4,8 @@ import { z } from "zod";
 
 import {
   getBehaviorDiff,
+  getDeploymentStatus as getDeploymentStatusFn,
+  getEnvironmentDrift as getEnvironmentDriftFn,
   getScenario,
   getScenariosForPaths,
   listScenarios,
@@ -174,6 +176,44 @@ server.registerTool(
       ...result,
     });
   },
+);
+
+server.registerTool(
+  "get_deployment_status",
+  {
+    title: "Get deployment status",
+    description:
+      "Show the latest deployment for each environment from the deployment ledger. Which scenarios are deployed to dev, staging, and production?",
+    inputSchema: {
+      ledgerPath: z
+        .string()
+        .optional()
+        .describe(
+          "Path to the deployment ledger JSON. Defaults to .executable-stories/deployments.json.",
+        ),
+    },
+  },
+  async ({ ledgerPath }) => json(getDeploymentStatusFn(ledgerPath)),
+);
+
+server.registerTool(
+  "get_environment_drift",
+  {
+    title: "Get environment drift",
+    description:
+      "Compare two environments to find which scenarios exist in one but not the other. Use this to detect configuration/code drift between dev and prod.",
+    inputSchema: {
+      envA: z.string().describe("First environment name (e.g. dev)."),
+      envB: z.string().describe("Second environment name (e.g. production)."),
+      ledgerPath: z
+        .string()
+        .optional()
+        .describe(
+          "Path to the deployment ledger JSON. Defaults to .executable-stories/deployments.json.",
+        ),
+    },
+  },
+  async ({ envA, envB, ledgerPath }) => json(getEnvironmentDriftFn(envA, envB, ledgerPath)),
 );
 
 const transport = new StdioServerTransport();

@@ -7,6 +7,31 @@ The reporter supports options that control **title**, **description**, **front-m
 
 Under the hood, framework reporters use the **`executable-stories-formatters`** package to produce Markdown and other formats. For **programmatic** report generation (custom scripts, multiple formats, or CI tooling), see the [Formatters API](../reference/formatters-api/) reference.
 
+## Output formats
+
+Common formats:
+
+- `html` — interactive report
+- `markdown` — human-readable docs
+- `release-manifest` — release evidence with scenario statuses and a tested-together hash
+- `story-report-json` — canonical machine contract for agents and embedded renderers
+- `scenario-index-json` — compact scenario index for search and triage
+- `behavior-manifest-json` — behavior coverage, tag/source rollups, debugger warnings
+- `junit` — CI test result XML
+- `cucumber-json`, `cucumber-html`, `cucumber-messages` — Cucumber-compatible outputs
+- `confluence` — Atlassian Document Format JSON
+
+Example:
+
+```bash
+executable-stories format reports/raw-run.json \
+  --format html,markdown,release-manifest,story-report-json \
+  --output-dir reports \
+  --output-name index
+```
+
+`release-manifest` is designed for release tickets and Confluence pages. See [Release confidence](./release-confidence/).
+
 ## Title and description
 
 - **`title`** — Report title (e.g. first line `# User Stories`). Default: `"User Stories"`.

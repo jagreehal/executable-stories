@@ -77,10 +77,12 @@ import PersonaCards from '../../components/PersonaCards.astro';
       <li>Stable StoryReport v1 JSON contract</li>
       <li>Scenario index via <code>list --list-format json</code></li>
       <li>Read-only MCP tools (<code>list_scenarios</code>, <code>get_failing_scenarios</code>, …)</li>
+      <li>Release gates, deployment drift, and tested-together manifests</li>
     </ul>
     <div class="agent-section__links">
       <a href="guides/agent-artifact-contract/" class="hero-btn hero-btn--primary">Agent artifact contract</a>
       <a href="guides/mcp-server/" class="hero-btn hero-btn--secondary">MCP server</a>
+      <a href="guides/release-confidence/" class="hero-btn hero-btn--secondary">Release confidence</a>
     </div>
   </div>
 </div>
@@ -382,6 +384,7 @@ it('user logs in', () => {
     <div class="format-list">
       <span class="format-tag"><code>.html</code> HTML Report</span>
       <span class="format-tag"><code>.md</code> Markdown</span>
+      <span class="format-tag"><code>.release-manifest.md</code> Release Manifest</span>
       <span class="format-tag"><code>.junit.xml</code> JUnit XML</span>
       <span class="format-tag"><code>.cucumber.json</code> Cucumber JSON</span>
       <span class="format-tag"><code>.html</code> Cucumber HTML</span>

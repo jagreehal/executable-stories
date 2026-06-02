@@ -1,9 +1,15 @@
 ---
 title: GitHub Action
-description: Surface executable stories in pull requests — Markdown summary as a PR comment, full HTML report as a workflow artifact, optional inline screenshots.
+description: Surface executable stories in pull requests, gate release candidates, and record deployments.
 ---
 
 The [executable-stories-action](https://github.com/jagreehal/executable-stories-action) posts your story output directly into pull requests. Each PR gets a collapsible Markdown summary as a comment and the full HTML report as a downloadable artifact.
+
+It also supports release workflows:
+
+- `report` — default PR report mode
+- `gate-release` — compare a release candidate against a dev baseline
+- `deploy` — record a deployment in the environment ledger
 
 Works with all supported frameworks. Zero configuration for the common case.
 
@@ -273,6 +279,69 @@ You can run the action more than once per workflow — for example, separate Vit
 
 The `hashFiles(...)` guards skip the action when a test suite produced no output (e.g. an earlier suite errored before writing).
 
+### Gate a release candidate
+
+Use `mode: gate-release` when a release branch or release candidate must match the behavior already tested in dev:
+
+```yaml
+jobs:
+  release-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: pnpm install
+      - run: pnpm test
+
+      - uses: jagreehal/executable-stories-action@v1
+        with:
+          mode: gate-release
+          gate-dev-run: reports/dev.raw-run.json
+          raw-run: .executable-stories/raw-run.json
+          report-dir: reports/release
+          output-name: rc-gate
+```
+
+The gate fails if scenarios from the dev baseline are missing from the release candidate, or if previously passing scenarios regress. Add `gate-fail-on-new: "true"` when new scenarios in the release candidate should fail the gate too.
+
+Allowed exceptions can be stored in a policy file:
+
+```json
+{
+  "allowedOmissions": ["src-checkout-story-test--legacy-coupon-flow"],
+  "allowedRegressions": []
+}
+```
+
+```yaml
+      - uses: jagreehal/executable-stories-action@v1
+        with:
+          mode: gate-release
+          gate-dev-run: reports/dev.raw-run.json
+          raw-run: reports/rc.raw-run.json
+          gate-release-policy: .executable-stories/release-policy.json
+```
+
+See [Release confidence](/guides/release-confidence/) for the CLI equivalent.
+
+### Record a deployment
+
+Use `mode: deploy` after a deployment step to record which scenario set is now live in an environment:
+
+```yaml
+      - uses: jagreehal/executable-stories-action@v1
+        with:
+          mode: deploy
+          raw-run: reports/prod.raw-run.json
+          deploy-env: production
+          deploy-tag: v2.4.0
+          deploy-ledger: .executable-stories/deployments.json
+```
+
+The ledger is written in the job workspace. Persist it as an artifact, cache, or committed release-evidence file if another job should compare environments later.
+
 ### Render screenshots inline in PR comments (opt-in)
 
 By default, screenshots referenced in your stories stay in the HTML artifact only — the PR comment shows a `📎 alt (see HTML report)` placeholder. This is because GitHub blocks `data:` URIs in comment markdown for security, so even a well-formed `![alt](data:image/png;base64,…)` would not render inline.
@@ -343,6 +412,7 @@ Pin the `executable-stories` CLI version that the action downloads (only relevan
 
 | Input | Default | Description |
 |---|---|---|
+| `mode` | `report` | `report`, `gate-release`, or `deploy` |
 | `report-dir` | `reports` | Directory containing or receiving generated reports |
 | `output-name` | `test-results` | Base filename for reports (without extension) |
 | `raw-run` | `.executable-stories/raw-run.json` | Path to raw run JSON |
@@ -351,6 +421,14 @@ Pin the `executable-stories` CLI version that the action downloads (only relevan
 | `comment-title` | `Executable Stories` | Header text for the PR comment; also used as the marker that lets the action find and update its own comment on subsequent runs |
 | `host-images` | `false` | Set to `branch` to commit screenshots to an orphan branch and render them inline in the PR comment. Requires `contents: write`. See [Render screenshots inline](#render-screenshots-inline-in-pr-comments-opt-in). |
 | `images-branch` | `executable-stories-images` | Branch used when `host-images: branch`. Created as orphan on first use. |
+| `gate-dev-run` | — | `gate-release`: dev baseline raw run JSON |
+| `gate-fail-on-regression` | `true` | `gate-release`: regression check is enabled by default |
+| `gate-fail-on-removal` | `true` | `gate-release`: missing-scenario check is enabled by default |
+| `gate-fail-on-new` | `false` | `gate-release`: fail when the RC contains scenarios absent from dev |
+| `gate-release-policy` | — | `gate-release`: path to allowed omissions/regressions JSON |
+| `deploy-env` | — | `deploy`: environment name, e.g. `dev`, `staging`, `production` |
+| `deploy-tag` | — | `deploy`: optional tag or release label |
+| `deploy-ledger` | `.executable-stories/deployments.json` | `deploy`: ledger path |
 
 ## Outputs
 
@@ -359,6 +437,8 @@ Pin the `executable-stories` CLI version that the action downloads (only relevan
 | `html-report-path` | Path to the generated HTML report file |
 | `markdown-report-path` | Path to the generated Markdown report file |
 | `comment-id` | Numeric ID of the PR comment that was created or updated. Empty string when the action runs outside a `pull_request` event. |
+| `gate-failed` | `true` when `gate-release` detected a release gate failure |
+| `deploy-ledger-path` | Ledger path written in `deploy` mode |
 
 ## Permissions
 
