@@ -1,5 +1,11 @@
 # executable-stories-formatters
 
+## 0.11.1
+
+### Patch Changes
+
+- c6890c9: Add release confidence workflows: gate-release CLI subcommand, deployment tracking (record/status/diff), ReleaseManifestFormatter, and new MCP tools for deployment status and environment drift.
+
 ## 0.11.0
 
 ### Minor Changes
