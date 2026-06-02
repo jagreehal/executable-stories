@@ -177,6 +177,36 @@ export function renderDocScreenshot(
 </div>`;
 }
 
+export function renderDocVideo(
+  entry: Extract<DocEntry, { kind: "video" }>,
+  deps: DocEntryDeps,
+): string {
+  const isRemote = /^(?:https?:|data:)/i.test(entry.path);
+  // Video bytes are large — never inline as a data URI. A relative path
+  // resolves alongside the report; an absolute filesystem path would 404 when
+  // the report is opened on another machine, so render a placeholder instead
+  // of a broken <video> tag. Matches the screenshot/attachment behaviour.
+  const isAbsoluteFsPath =
+    !isRemote && /^(?:[/\\]|[A-Za-z]:[/\\])/.test(entry.path);
+  const captionHtml = entry.caption
+    ? `<div class="doc-video-caption">${deps.escapeHtml(entry.caption)}</div>`
+    : "";
+
+  if ((deps.embedScreenshots ?? true) && isAbsoluteFsPath) {
+    return `<div class="doc-video doc-video-missing">
+  <div class="doc-video-missing-label">Video unavailable</div>
+  <div class="doc-video-missing-path">${deps.escapeHtml(entry.path)}</div>
+  ${captionHtml}
+</div>`;
+  }
+
+  const poster = entry.poster ? ` poster="${deps.escapeHtml(entry.poster)}"` : "";
+  return `<div class="doc-video">
+  <video class="doc-video-player" controls preload="metadata"${poster} src="${deps.escapeHtml(entry.path)}"></video>
+  ${captionHtml}
+</div>`;
+}
+
 export function renderDocCustom(
   entry: Extract<DocEntry, { kind: "custom" }>,
   deps: DocEntryDeps,
@@ -239,6 +269,9 @@ export function renderDocEntry(entry: DocEntry, deps: DocEntryDeps): string {
       break;
     case "screenshot":
       html = renderDocScreenshot(entry, deps);
+      break;
+    case "video":
+      html = renderDocVideo(entry, deps);
       break;
     case "custom":
       html = renderDocCustom(entry, deps);

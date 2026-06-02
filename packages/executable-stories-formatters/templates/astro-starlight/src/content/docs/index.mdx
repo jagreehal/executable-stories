@@ -1,0 +1,41 @@
+---
+title: Story Docs
+description: Living documentation generated from your executable stories.
+---
+
+import HealthDashboard from '../../components/HealthDashboard.astro';
+
+<HealthDashboard />
+
+Living documentation for your whole team — product owners, testers, and
+engineers — generated from your executable stories and kept honest by the tests
+themselves. Works the same whether your stories are written in TypeScript,
+Python, Go, Ruby, Java/Kotlin, Rust, or C#: it all flows through one report.
+
+## What you can do here
+
+- **Browse stories** — the [Scenario Explorer](/explorer/) is a searchable, filterable
+  view of every executable story.
+- **Verify any page** — add `verifiedBy: [story-id]` to a page's frontmatter and a
+  live badge shows whether the tests that prove it currently pass.
+- **Start from a template** — `executable-stories new adr "…"` (also `runbook`,
+  `decision-log`, `incident`), each pre-wired to verifying stories.
+- **Document your API** — `executable-stories import-openapi spec.json --run story-report.json`
+  generates endpoint pages with a coverage badge per route.
+- **Keep links honest** — `executable-stories check-links src/content/docs` fails CI
+  on broken links.
+
+## Getting started
+
+Generate Astro-formatted docs and the explorer data from any test run:
+
+```bash
+executable-stories format run.json --format astro --output-dir src/content/docs/stories --asset-mode copy
+executable-stories format run.json --format story-report-json --output-dir public/stories --output-name story-report
+```
+
+Then start the dev server:
+
+```bash
+npm run dev
+```

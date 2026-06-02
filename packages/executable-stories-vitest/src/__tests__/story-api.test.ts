@@ -426,6 +426,22 @@ describe("standalone doc methods", () => {
     });
   });
 
+  it("story.video() attaches to current step with caption and poster", ({ task }) => {
+    story.init(task);
+    story.then("the workflow runs end-to-end");
+    story.video({ path: "/videos/run.mp4", caption: "Full run", poster: "/videos/run.jpg" });
+
+    const meta = getStoryMeta(task);
+    expect(meta.steps[0].docs).toHaveLength(1);
+    expect(meta.steps[0].docs![0]).toEqual({
+      kind: "video",
+      path: "/videos/run.mp4",
+      caption: "Full run",
+      poster: "/videos/run.jpg",
+      phase: "runtime",
+    });
+  });
+
   it("story.tag() attaches to current step", ({ task }) => {
     story.init(task);
     story.given("admin user");

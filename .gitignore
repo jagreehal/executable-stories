@@ -28,6 +28,7 @@ ___temp
 **/docs
 !apps/docs-site/src/content/docs/
 !apps/demo-example/src/content/docs/
+!packages/executable-stories-formatters/templates/astro-starlight/src/content/docs/
 
 **/reports/
 .pnpm-store

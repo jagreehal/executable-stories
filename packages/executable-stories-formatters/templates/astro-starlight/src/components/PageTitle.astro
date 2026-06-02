@@ -1,0 +1,16 @@
+---
+/**
+ * Starlight PageTitle override.
+ *
+ * Renders the default page title, then — if the page declares `verifiedBy` in
+ * its frontmatter — a live verification badge underneath it. Any page (ADR,
+ * runbook, hand-written prose) gets the badge for free, no component import.
+ */
+import Default from '@astrojs/starlight/components/PageTitle.astro';
+import VerifiedBy from './VerifiedBy.astro';
+
+const verifiedBy = Astro.locals.starlightRoute?.entry?.data?.verifiedBy;
+---
+
+<Default><slot /></Default>
+{verifiedBy && <VerifiedBy refs={verifiedBy} />}

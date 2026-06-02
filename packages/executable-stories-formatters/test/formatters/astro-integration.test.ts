@@ -199,6 +199,46 @@ describe("Astro format integration", () => {
         expect(content, `${p} should have variant:`).toContain("variant:");
       }
     });
+
+    it("flat style writes one cleanly-named page per file, titled by its suite", async () => {
+      const tempDir = makeTempDir();
+      const generator = new ReportGenerator({
+        formats: ["astro"],
+        outputDir: tempDir,
+        outputName: "index",
+        output: { mode: "colocated", colocatedStyle: "flat" },
+      });
+
+      const run = canonicalizeRun(createMultiFileRun());
+      const paths = (await generator.generate(run)).get("astro")!;
+
+      // Flat: files sit directly under outputDir, named by their clean stem —
+      // no mirrored subdirs, no ".index" infix.
+      const names = paths.map((p) => path.basename(p)).sort();
+      expect(names).toEqual(["login.md", "logout.md", "stats.md"]);
+      for (const p of paths) {
+        expect(path.dirname(p)).toBe(tempDir);
+      }
+
+      // Per-file title comes from the suite/describe, not the static fallback.
+      const logout = fs.readFileSync(paths.find((p) => p.endsWith("logout.md"))!, "utf8");
+      expect(logout).toContain("title: Authentication");
+      expect(logout).not.toContain("title: User Stories");
+    });
+
+    it("aggregated mode keeps the configured title across all files", async () => {
+      const tempDir = makeTempDir();
+      const generator = new ReportGenerator({
+        formats: ["astro"],
+        outputDir: tempDir,
+        outputName: "index",
+        output: { mode: "aggregated" },
+      });
+
+      const run = canonicalizeRun(createMultiFileRun());
+      const paths = (await generator.generate(run)).get("astro")!;
+      expect(fs.readFileSync(paths[0], "utf8")).toContain("title: User Stories");
+    });
   });
 
   describe("asset copy mode", () => {

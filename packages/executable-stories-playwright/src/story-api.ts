@@ -55,6 +55,7 @@ import type {
   SectionOptions,
   MermaidOptions,
   ScreenshotOptions,
+  VideoOptions,
   CustomOptions,
   ConsoleOptions,
   ObservePageErrorsOptions,
@@ -205,6 +206,15 @@ function convertStoryDocsToEntries(docs: StoryDocs): DocEntry[] {
       kind: 'screenshot',
       path: docs.screenshot.path,
       alt: docs.screenshot.alt,
+      phase: 'runtime',
+    });
+  }
+  if (docs.video) {
+    entries.push({
+      kind: 'video',
+      path: docs.video.path,
+      caption: docs.video.caption,
+      poster: docs.video.poster,
       phase: 'runtime',
     });
   }
@@ -437,6 +447,12 @@ function init(
     meta: options?.meta,
     sourceOrder: sourceOrderCounter++,
   };
+
+  // Flag the scenario so the reporter promotes the Playwright screen recording
+  // into a featured inline video doc entry (see reporter onTestEnd).
+  if (options?.featureVideo) {
+    meta.meta = { ...meta.meta, featureVideo: true };
+  }
 
   // OTel bridge: detect active span, flow data bidirectionally
   const otelCtx = tryGetActiveOtelContext();
@@ -672,6 +688,18 @@ export const story = {
     // path for remote URLs or unreadable files.
     const resolvedPath = inlineScreenshotIfPossible(options.path);
     return attachDoc({ kind: 'screenshot', path: resolvedPath, alt: options.alt, phase: 'runtime' }, children);
+  },
+
+  video(options: VideoOptions, children?: DocEntry[]): DocEntry {
+    // Unlike screenshots, video bytes are never inlined as a data URI — they're
+    // too large. The path is kept as-is so the formatter's asset bundler copies
+    // the file into the report/docs site. Pass a path relative to the output, or
+    // use `featureVideo: true` on story.init() to auto-promote the Playwright
+    // recording instead.
+    return attachDoc(
+      { kind: 'video', path: options.path, caption: options.caption, poster: options.poster, phase: 'runtime' },
+      children,
+    );
   },
 
   custom(options: CustomOptions, children?: DocEntry[]): DocEntry {

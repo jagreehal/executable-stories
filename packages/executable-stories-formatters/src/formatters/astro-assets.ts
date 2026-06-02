@@ -70,6 +70,15 @@ export function scanMarkdownAssets(markdown: string): string[] {
     }
   }
 
+  // Video poster frames: <video ... poster="...">
+  const posterRe = /<video[^>]+\bposter=["']([^"']+)["'][^>]*>/gi;
+  while ((match = posterRe.exec(stripped)) !== null) {
+    const src = match[1].trim();
+    if (isLocalPath(src)) {
+      found.add(src);
+    }
+  }
+
   return Array.from(found);
 }
 
@@ -130,6 +139,21 @@ function rewriteProseSegment(
   // Rewrite HTML src attributes in img/source/video tags
   result = result.replace(
     /(<(?:img|source|video)[^>]+\bsrc=["'])([^"']+)(["'][^>]*>)/gi,
+    (full, pre, src, post) => {
+      const trimmed = src.trim();
+      if (!isLocalPath(trimmed)) return full;
+      if (pathMap) {
+        const mapped = pathMap.get(trimmed);
+        if (mapped === undefined) return full;
+        return `${pre}${assetsBaseUrl}/${mapped}${post}`;
+      }
+      return `${pre}${assetsBaseUrl}/${trimmed}${post}`;
+    },
+  );
+
+  // Rewrite poster attributes on video tags
+  result = result.replace(
+    /(<video[^>]+\bposter=["'])([^"']+)(["'][^>]*>)/gi,
     (full, pre, src, post) => {
       const trimmed = src.trim();
       if (!isLocalPath(trimmed)) return full;

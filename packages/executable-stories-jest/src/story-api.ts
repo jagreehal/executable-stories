@@ -49,6 +49,7 @@ import type {
   SectionOptions,
   MermaidOptions,
   ScreenshotOptions,
+  VideoOptions,
   CustomOptions,
 } from './types';
 
@@ -259,6 +260,9 @@ function convertStoryDocsToEntries(docs: StoryDocs): DocEntry[] {
   }
   if (docs.screenshot) {
     entries.push({ kind: "screenshot", path: docs.screenshot.path, alt: docs.screenshot.alt, phase: "runtime" });
+  }
+  if (docs.video) {
+    entries.push({ kind: "video", path: docs.video.path, caption: docs.video.caption, poster: docs.video.poster, phase: "runtime" });
   }
   if (docs.custom) {
     entries.push({ kind: "custom", type: docs.custom.type, data: docs.custom.data, phase: "runtime" });
@@ -645,6 +649,10 @@ export const story = {
 
   screenshot(options: ScreenshotOptions, children?: DocEntry[]): DocEntry {
     return attachDoc({ kind: "screenshot", path: options.path, alt: options.alt, phase: "runtime" }, children);
+  },
+
+  video(options: VideoOptions, children?: DocEntry[]): DocEntry {
+    return attachDoc({ kind: "video", path: options.path, caption: options.caption, poster: options.poster, phase: "runtime" }, children);
   },
 
   custom(options: CustomOptions, children?: DocEntry[]): DocEntry {

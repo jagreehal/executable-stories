@@ -12,24 +12,34 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export interface InitAstroOptions {
   targetDir?: string;
   force?: boolean;
+  /**
+   * Refresh only the framework files (components, lib, styles, explorer page,
+   * tsconfig) and merge any new framework dependencies, leaving your content
+   * (ADRs, runbooks, stories), astro.config, and existing deps untouched. Lets
+   * an existing site adopt template/design improvements safely.
+   */
+  update?: boolean;
 }
 
 export interface InitAstroResult {
   targetDir: string;
+  /** Files refreshed by an `update` run (relative to the site root). */
+  updatedFiles?: string[];
 }
+
+/**
+ * Framework directories owned by the template — safe to overwrite on update
+ * because users put their own work in src/content/docs, astro.config, and
+ * package.json, never here.
+ */
+const FRAMEWORK_DIRS = ["src/components", "src/lib", "src/styles", "src/pages"];
+/** Framework files refreshed on update (the @components alias lives in tsconfig). */
+const FRAMEWORK_FILES = ["tsconfig.json"];
 
 export function initAstro(options: InitAstroOptions = {}): InitAstroResult {
   const targetDir = options.targetDir ?? "./story-docs";
   const force = options.force ?? false;
-
-  if (fs.existsSync(targetDir)) {
-    const entries = fs.readdirSync(targetDir);
-    if (entries.length > 0 && !force) {
-      throw new Error(
-        `Directory "${targetDir}" already exists and is not empty. Use --force to overwrite.`,
-      );
-    }
-  }
+  const update = options.update ?? false;
 
   // Template is at: <package-root>/templates/astro-starlight/
   // Includes Starlight with 6 theme overrides matching HTML report themes.
@@ -41,20 +51,98 @@ export function initAstro(options: InitAstroOptions = {}): InitAstroResult {
     );
   }
 
+  if (update) {
+    return updateFrameworkFiles(templateDir, targetDir);
+  }
+
+  if (fs.existsSync(targetDir)) {
+    const entries = fs.readdirSync(targetDir);
+    if (entries.length > 0 && !force) {
+      throw new Error(
+        `Directory "${targetDir}" already exists and is not empty. Use --force to overwrite, or --update to refresh framework files only.`,
+      );
+    }
+  }
+
   copyDirRecursive(templateDir, targetDir);
   return { targetDir };
 }
 
-function copyDirRecursive(src: string, dest: string): void {
+/**
+ * Refresh framework files in an existing site without touching content/config.
+ */
+function updateFrameworkFiles(templateDir: string, targetDir: string): InitAstroResult {
+  if (!fs.existsSync(targetDir) || !fs.existsSync(path.join(targetDir, "astro.config.mjs"))) {
+    throw new Error(
+      `"${targetDir}" does not look like a scaffolded docs site. Run init-astro (without --update) first.`,
+    );
+  }
+
+  const updated: string[] = [];
+
+  for (const dir of FRAMEWORK_DIRS) {
+    const src = path.join(templateDir, dir);
+    if (!fs.existsSync(src)) continue;
+    copyDirRecursive(src, path.join(targetDir, dir), (rel) => updated.push(path.join(dir, rel)));
+  }
+
+  for (const file of FRAMEWORK_FILES) {
+    const src = path.join(templateDir, file);
+    if (!fs.existsSync(src)) continue;
+    fs.copyFileSync(src, path.join(targetDir, file));
+    updated.push(file);
+  }
+
+  // Add any framework dependencies the template gained, keeping the user's deps
+  // and pinned versions intact.
+  if (mergeDependencies(templateDir, targetDir)) updated.push("package.json (deps)");
+
+  return { targetDir, updatedFiles: updated };
+}
+
+/** Add template deps missing from the target's package.json. Returns true if changed. */
+function mergeDependencies(templateDir: string, targetDir: string): boolean {
+  const tmplPkgPath = path.join(templateDir, "package.json");
+  const userPkgPath = path.join(targetDir, "package.json");
+  if (!fs.existsSync(tmplPkgPath) || !fs.existsSync(userPkgPath)) return false;
+
+  const tmpl = JSON.parse(fs.readFileSync(tmplPkgPath, "utf8")) as {
+    dependencies?: Record<string, string>;
+  };
+  const user = JSON.parse(fs.readFileSync(userPkgPath, "utf8")) as {
+    dependencies?: Record<string, string>;
+  };
+  user.dependencies = user.dependencies ?? {};
+
+  let changed = false;
+  for (const [name, version] of Object.entries(tmpl.dependencies ?? {})) {
+    if (!(name in user.dependencies)) {
+      user.dependencies[name] = version;
+      changed = true;
+    }
+  }
+  if (changed) {
+    fs.writeFileSync(userPkgPath, `${JSON.stringify(user, null, 2)}\n`, "utf8");
+  }
+  return changed;
+}
+
+function copyDirRecursive(
+  src: string,
+  dest: string,
+  onFile?: (relPath: string) => void,
+  baseSrc = src,
+): void {
   fs.mkdirSync(dest, { recursive: true });
   const entries = fs.readdirSync(src, { withFileTypes: true });
   for (const entry of entries) {
     const srcPath = path.join(src, entry.name);
     const destPath = path.join(dest, entry.name);
     if (entry.isDirectory()) {
-      copyDirRecursive(srcPath, destPath);
+      copyDirRecursive(srcPath, destPath, onFile, baseSrc);
     } else {
       fs.copyFileSync(srcPath, destPath);
+      onFile?.(path.relative(baseSrc, srcPath));
     }
   }
 }

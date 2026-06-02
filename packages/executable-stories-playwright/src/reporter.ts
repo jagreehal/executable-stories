@@ -384,6 +384,34 @@ export default class StoryReporter implements Reporter {
       // Keep only the last video attachment per name, which is the real recording.
       const attachments = deduplicateVideoAttachments(allAttachments);
 
+      // Auto-promote the Playwright screen recording into a featured inline
+      // video doc entry when story.init(..., { featureVideo: true }) was set.
+      // The recording already rides along as an attachment; this surfaces it as
+      // a playable walkthrough at the top of the scenario rather than a footer
+      // attachment. Referenced by a path relative to the report output dir so
+      // the generated HTML/Markdown resolves it alongside the report.
+      const featureVideo =
+        (meta.meta as { featureVideo?: boolean } | undefined)?.featureVideo === true;
+      if (featureVideo) {
+        const videoAtt = attachments.find(
+          (a) => a.mediaType?.startsWith("video/") && a.path,
+        );
+        if (videoAtt?.path) {
+          const outDir = this.options.outputDir ?? "reports";
+          const relPath = path
+            .relative(outDir, videoAtt.path)
+            .split(path.sep)
+            .join("/");
+          meta.docs = meta.docs ?? [];
+          meta.docs.unshift({
+            kind: "video",
+            path: relPath,
+            caption: "Recorded walkthrough",
+            phase: "runtime",
+          });
+        }
+      }
+
       // Extract step events (timing) from story steps
       const stepEvents: RawStepEvent[] = meta.steps
         .filter((s: { durationMs?: number }) => s.durationMs !== undefined)

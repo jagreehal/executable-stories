@@ -38,8 +38,14 @@ export type SortTestCasesMode = "id" | "source" | "none";
 /** Output mode for report routing */
 export type OutputMode = "aggregated" | "colocated";
 
-/** Colocated output style */
-export type ColocatedStyle = "mirrored" | "adjacent";
+/**
+ * Colocated output style:
+ * - `mirrored`  — preserve the source directory tree under outputDir (default)
+ * - `adjacent`  — write next to each source file (ignores outputDir)
+ * - `flat`      — one page per file directly under outputDir, named by its clean
+ *                 stem (e.g. `convert-currency.md`); best for a browsable docs nav
+ */
+export type ColocatedStyle = "mirrored" | "adjacent" | "flat";
 
 /** Output rule for routing reports based on source file patterns */
 export interface OutputRule {

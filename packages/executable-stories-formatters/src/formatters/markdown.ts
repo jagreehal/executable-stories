@@ -566,6 +566,23 @@ export class MarkdownFormatter {
         lines.push(`${indent}![${entry.alt ?? "Screenshot"}](${entry.path})`);
         break;
 
+      case "video": {
+        // Raw HTML so a real, playable clip renders inline — Markdown and
+        // Astro/Starlight MDX both pass <video> through untouched. The asset
+        // bundler scans <source src> and copies the file into the docs site.
+        const poster = entry.poster ? ` poster="${entry.poster}"` : "";
+        lines.push(`${indent}`);
+        lines.push(`${indent}<video controls preload="metadata"${poster} class="doc-video">`);
+        lines.push(`${indent}  <source src="${entry.path}" />`);
+        lines.push(`${indent}</video>`);
+        if (entry.caption) {
+          lines.push(`${indent}`);
+          lines.push(`${indent}*${entry.caption}*`);
+        }
+        lines.push(`${indent}`);
+        break;
+      }
+
       case "custom":
         if (entry.type === "visual" && entry.data && typeof entry.data === "object") {
           const data = entry.data as Record<string, unknown>;

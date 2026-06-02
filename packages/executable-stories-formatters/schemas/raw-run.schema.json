@@ -198,6 +198,11 @@
           "type": "integer",
           "minimum": 0,
           "description": "Order in which the story was defined in source (for stable sorting)."
+        },
+        "otelSpans": {
+          "type": "array",
+          "items": { "type": "object" },
+          "description": "OpenTelemetry spans captured for this scenario (from autotel), used to render a trace waterfall."
         }
       },
       "required": ["scenario"],
@@ -380,6 +385,20 @@
             "kind": { "const": "screenshot" },
             "path": { "type": "string" },
             "alt": { "type": "string" },
+            "phase": { "$ref": "#/$defs/DocPhase" },
+            "children": { "type": "array", "items": { "$ref": "#/$defs/DocEntry" }, "description": "Nested child doc entries for grouping." }
+          },
+          "required": ["kind", "path", "phase"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "Video reference with optional caption and poster image.",
+          "properties": {
+            "kind": { "const": "video" },
+            "path": { "type": "string" },
+            "caption": { "type": "string" },
+            "poster": { "type": "string" },
             "phase": { "$ref": "#/$defs/DocPhase" },
             "children": { "type": "array", "items": { "$ref": "#/$defs/DocEntry" }, "description": "Nested child doc entries for grouping." }
           },

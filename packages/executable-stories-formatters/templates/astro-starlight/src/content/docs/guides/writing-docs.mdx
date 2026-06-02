@@ -1,0 +1,40 @@
+---
+title: Writing hand-written docs
+description: How prose pages live alongside generated story docs.
+---
+
+This page is hand-written — proof that any author can add prose to the same site
+as the generated story docs, with the same navigation, search, and theming.
+
+## Where pages live
+
+- **Generated** story pages are written to `src/content/docs/stories/` by
+  `executable-stories format … --format astro`. Don't edit these by hand — they
+  are regenerated from tests.
+- **Hand-written** pages (guides, ADRs, runbooks, incidents, API docs) live in
+  their own folders under `src/content/docs/`. They are never overwritten by a
+  regenerate.
+
+Both kinds share one sidebar, one search index, and one set of themes.
+
+## Keep prose honest, too
+
+Hand-written pages can link to the tests that back them. Add `verifiedBy` to the
+frontmatter and a live badge appears under the title:
+
+```yaml
+---
+title: How transfers are priced
+verifiedBy: [pricing, transfer-fee]
+---
+```
+
+If a linked story starts failing, the badge turns red — so even your prose
+can't quietly drift away from the code.
+
+## Start from a template
+
+```bash
+executable-stories new adr "Cap combined discount at 30%"
+executable-stories new runbook "Restart the payments service"
+```
