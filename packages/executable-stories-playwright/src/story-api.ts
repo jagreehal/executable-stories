@@ -96,6 +96,8 @@ interface StoryContext {
   activeTimers: Map<number, TimerEntry>;
   timerCounter: number;
   fixtures?: Record<string, unknown>;
+  /** Trace-link URL template, captured at init for later use by attachSpans. */
+  traceUrlTemplate?: string;
 }
 
 // ============================================================================
@@ -455,20 +457,12 @@ function init(
   }
 
   // OTel bridge: detect active span, flow data bidirectionally
+  const traceUrlTemplate =
+    options?.traceUrlTemplate ?? process.env.OTEL_TRACE_URL_TEMPLATE;
   const otelCtx = tryGetActiveOtelContext();
   if (otelCtx) {
-    // OTel -> Story: capture traceId in structured meta
-    meta.meta = { ...meta.meta, otel: { traceId: otelCtx.traceId, spanId: otelCtx.spanId } };
-
-    // OTel -> Story: inject human-readable doc entries
-    meta.docs = meta.docs ?? [];
-    meta.docs.push({ kind: 'kv', label: 'Trace ID', value: otelCtx.traceId, phase: 'runtime' });
-
-    const template = options?.traceUrlTemplate ?? process.env.OTEL_TRACE_URL_TEMPLATE;
-    const url = resolveTraceUrl(template, otelCtx.traceId);
-    if (url) {
-      meta.docs.push({ kind: 'link', label: 'View Trace', url, phase: 'runtime' });
-    }
+    // OTel -> Story: capture traceId + docs from the active span.
+    applyTraceToMeta(meta, otelCtx.traceId, otelCtx.spanId, traceUrlTemplate);
 
     // Story -> OTel: enrich active span with story attributes
     try {
@@ -509,6 +503,7 @@ function init(
     activeTimers: new Map(),
     timerCounter: 0,
     fixtures: fixtures as Record<string, unknown> | undefined,
+    traceUrlTemplate,
   };
   activeTestInfo = testInfo;
 }
@@ -524,6 +519,37 @@ function syncAnnotationToTest(): void {
   );
   if (annotation) {
     annotation.description = JSON.stringify(activeContext.meta);
+  }
+}
+
+/**
+ * Bridge an OTel trace into the story's meta + docs: structured `otel` meta, a
+ * "Trace ID" key-value, and a "View Trace" link when the template resolves.
+ * Idempotent — once a traceId is recorded it is not overwritten, so the
+ * active-span path in init() and the explicit path in attachSpans() compose
+ * without duplicating entries.
+ */
+function applyTraceToMeta(
+  meta: StoryMeta,
+  traceId: string,
+  spanId: string | undefined,
+  template: string | undefined,
+): void {
+  const existing = (meta.meta as { otel?: { traceId?: string } } | undefined)
+    ?.otel;
+  if (existing?.traceId) return;
+
+  meta.meta = { ...meta.meta, otel: { traceId, spanId } };
+  meta.docs = meta.docs ?? [];
+  meta.docs.push({
+    kind: 'kv',
+    label: 'Trace ID',
+    value: traceId,
+    phase: 'runtime',
+  });
+  const url = resolveTraceUrl(template, traceId);
+  if (url) {
+    meta.docs.push({ kind: 'link', label: 'View Trace', url, phase: 'runtime' });
   }
 }
 
@@ -798,7 +824,10 @@ export const story = {
   attach: playwrightAttach,
 
   // OTel span attachment
-  attachSpans(spans: ReadonlyArray<Record<string, unknown>>): void {
+  attachSpans(
+    spans: ReadonlyArray<Record<string, unknown>>,
+    options?: { traceId?: string; spanId?: string },
+  ): void {
     if (!activeTestInfo) return;
     const existing = activeTestInfo.annotations.find(
       (a) => a.type === 'story-otel-spans',
@@ -811,6 +840,17 @@ export const story = {
         type: 'story-otel-spans',
         description,
       });
+    }
+    // Capture-then-attach: wire the trace badge + "View Trace" link when the
+    // trace was created after init() (so the init-time bridge couldn't see it).
+    if (options?.traceId && activeContext) {
+      applyTraceToMeta(
+        activeContext.meta,
+        options.traceId,
+        options.spanId,
+        activeContext.traceUrlTemplate,
+      );
+      syncAnnotationToTest();
     }
   },
 
