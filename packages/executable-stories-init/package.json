@@ -1,6 +1,6 @@
 {
   "name": "executable-stories-init",
-  "version": "0.1.1",
+  "version": "0.1.3",
   "description": "Bootstrap executable-stories (Vitest + Playwright) into a TypeScript repo.",
   "author": "Jag Reehal <jag@jagreehal.com>",
   "license": "MIT",

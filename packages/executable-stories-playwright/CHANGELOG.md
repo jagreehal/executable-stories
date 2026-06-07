@@ -1,5 +1,11 @@
 # executable-stories-playwright
 
+## 8.4.4
+
+### Patch Changes
+
+- Republish of 8.4.2; no functional changes.
+
 ## 8.4.2
 
 ### Patch Changes

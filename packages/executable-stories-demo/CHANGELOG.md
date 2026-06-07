@@ -1,5 +1,11 @@
 # executable-stories-demo
 
+## 0.1.12
+
+### Patch Changes
+
+- Republish of 0.1.10; no functional changes.
+
 ## 0.1.10
 
 ### Patch Changes

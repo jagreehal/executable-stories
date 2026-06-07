@@ -1,5 +1,11 @@
 # executable-stories-react
 
+## 0.1.8
+
+### Patch Changes
+
+- Republish of 0.1.6; no functional changes.
+
 ## 0.1.6
 
 ### Patch Changes

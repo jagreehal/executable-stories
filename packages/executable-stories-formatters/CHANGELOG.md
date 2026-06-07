@@ -1,5 +1,11 @@
 # executable-stories-formatters
 
+## 0.11.3
+
+### Patch Changes
+
+- Republish of 0.11.1; no functional changes.
+
 ## 0.11.1
 
 ### Patch Changes

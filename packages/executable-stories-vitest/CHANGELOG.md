@@ -1,5 +1,11 @@
 # executable-stories-vitest
 
+## 8.3.4
+
+### Patch Changes
+
+- Republish of 8.3.2; no functional changes.
+
 ## 8.3.2
 
 ### Patch Changes

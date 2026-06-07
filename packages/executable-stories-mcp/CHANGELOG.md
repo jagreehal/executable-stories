@@ -1,5 +1,11 @@
 # executable-stories-mcp
 
+## 0.3.4
+
+### Patch Changes
+
+- Republish of 0.3.2; no functional changes.
+
 ## 0.3.2
 
 ### Patch Changes

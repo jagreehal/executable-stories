@@ -1,5 +1,11 @@
 # executable-stories-cypress
 
+## 8.3.3
+
+### Patch Changes
+
+- Republish of 8.3.1; no functional changes.
+
 ## 8.3.1
 
 ### Patch Changes

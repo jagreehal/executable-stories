@@ -1,5 +1,11 @@
 # eslint-plugin-executable-stories-playwright
 
+## 2.1.9
+
+### Patch Changes
+
+- Republish of 2.1.7; no functional changes.
+
 ## 2.1.7
 
 ### Patch Changes
