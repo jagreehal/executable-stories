@@ -6,9 +6,7 @@ on:
       - main
 
 permissions:
-  id-token: write      # Required for OIDC provenance
-  contents: write      # Required for creating releases/tags
-  pull-requests: write # Required for creating Version Packages PR
+  contents: read
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
@@ -16,12 +14,18 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
+    if: github.repository_owner == 'jagreehal'
+    environment: release
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
     outputs:
       published: ${{ steps.changesets.outputs.published }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           # npm trusted publishing currently requires npm CLI 11.5.1+.
           # Using Node 24 ensures the bundled npm meets that bar without a
@@ -42,7 +46,7 @@ jobs:
           pnpm --version
 
       - name: Cache pnpm dependencies
-        uses: actions/cache@v5
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: ~/.pnpm-store
           key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
@@ -54,7 +58,7 @@ jobs:
 
       - name: Create Release Pull Request or Publish to npm
         id: changesets
-        uses: changesets/action@v1
+        uses: changesets/action@3841a0683d3cfa6dae0f9bb335290003010fe3f0 # v1.9.0
         with:
           publish: pnpm release
           commit: "chore: release packages"
@@ -66,12 +70,14 @@ jobs:
   formatters-binaries:
     name: Build and attach formatters binaries
     needs: release
-    if: needs.release.outputs.published == 'true'
+    if: github.repository_owner == 'jagreehal' && needs.release.outputs.published == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version: 24
 
@@ -88,7 +94,7 @@ jobs:
           pnpm --version
 
       - name: Cache pnpm dependencies
-        uses: actions/cache@v5
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: ~/.pnpm-store
           key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
@@ -99,7 +105,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: "1.2.0"
 
@@ -113,7 +119,7 @@ jobs:
           bun build src/cli.ts --compile --target=bun-windows-x64 --outfile executable-stories-windows-x64
 
       - name: Upload formatters binaries
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: formatters-binaries
           path: |
