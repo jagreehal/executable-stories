@@ -19,7 +19,7 @@
     "picocolors": "^1.1.1"
   },
   "devDependencies": {
-    "@types/node": "^25.6.0",
+    "@types/node": "^25.9.2",
     "eslint-config-executable-stories": "workspace:*",
     "executable-stories-vitest": "workspace:*",
     "tsup": "^8.5.1",
