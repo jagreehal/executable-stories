@@ -1,6 +1,6 @@
 {
   "name": "eslint-plugin-executable-stories-vitest",
-  "version": "2.1.7",
+  "version": "2.1.9",
   "type": "module",
   "description": "ESLint rules for executable-stories-vitest: story.init(task) and legacy story context guards",
   "main": "./dist/index.cjs",
