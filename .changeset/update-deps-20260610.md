@@ -18,8 +18,6 @@ Routine dependency refresh via npm-check-updates (3-day publish cooldown). Notab
 - **executable-stories-formatters**: `yaml` 2.8 → 2.9
 - Peer-minimum raises: `cypress >=15.16.0`, `jest >=30.4.2`, `@playwright/test >=1.60.0`, `autotel >=3.4.4`
 
-Two adjustments applied so the workspace builds cleanly:
-- `@types/estree` pinned to `1.0.9` via a pnpm override to dedupe with eslint 10.4.1 (a split `1.0.8`/`1.0.9` broke the eslint-plugin type-checks).
-- `@vitejs/plugin-react` held at `^4.3.4` (its v6 requires vite 8; deferred to a separate vite 8 migration).
+Also migrated the workspace build/test tooling to **vite 8** (`vite: ^8` pnpm override; `@vitejs/plugin-react` 4 → 6). vitest 4.1.8 and storybook-vite 10.4.2 already support vite 8, and the astro example/docs apps build cleanly on it. `@types/estree` is pinned to `1.0.9` via a pnpm override to dedupe with eslint 10.4.1 (a split `1.0.8`/`1.0.9` otherwise breaks the eslint-plugin type-checks).
 
-(Dev-tooling-only bumps — eslint, vitest, turbo, storybook, @types/node — are not released as they don't affect consumers.)
+(Dev-tooling-only bumps — eslint, vitest, turbo, storybook, @types/node, vite — are not released as they don't affect consumers of the published packages.)
