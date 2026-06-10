@@ -34,19 +34,19 @@
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.config.mjs --passWithNoTests"
   },
   "peerDependencies": {
-    "jest": ">=30.3.0"
+    "jest": ">=30.4.2"
   },
   "dependencies": {
     "executable-stories-formatters": "workspace:*",
     "fast-glob": "^3.3.3"
   },
   "devDependencies": {
-    "@jest/globals": "^30.3.0",
+    "@jest/globals": "^30.4.1",
     "@opentelemetry/api": "^1.9.1",
     "@types/jest": "^30.0.0",
-    "@types/node": "^25.6.0",
+    "@types/node": "^25.9.2",
     "jest": "^30.3.0",
-    "ts-jest": "^29.4.9",
+    "ts-jest": "^29.4.11",
     "tsup": "^8.5.1",
     "typescript": "~6.0.3"
   },
