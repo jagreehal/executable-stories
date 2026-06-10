@@ -1,5 +1,12 @@
 # executable-stories-demo
 
+## 0.1.13
+
+### Patch Changes
+
+- Updated dependencies [bed366d]
+  - executable-stories-formatters@0.11.4
+
 ## 0.1.10
 
 ### Patch Changes

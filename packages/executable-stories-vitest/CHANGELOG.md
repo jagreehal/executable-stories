@@ -1,5 +1,12 @@
 # executable-stories-vitest
 
+## 8.3.5
+
+### Patch Changes
+
+- Updated dependencies [bed366d]
+  - executable-stories-formatters@0.11.4
+
 ## 8.3.2
 
 ### Patch Changes
