@@ -149,6 +149,32 @@ describe("toStoryReport", () => {
     expect(scenario.steps[0]!.docEntries.map((d) => d.kind)).toEqual(["kv"]);
   });
 
+  it("copies html doc entries with only their defined fields and passes validation", () => {
+    const run = makeRun([
+      makeTestCase({
+        id: "1",
+        story: {
+          scenario: "Has html docs",
+          docs: [
+            { kind: "html", path: "reports/coverage.html", title: "Coverage", phase: "runtime" },
+            { kind: "html", url: "https://dash.example.com/run/42", height: 600, phase: "runtime" },
+            { kind: "html", content: "<h1>Chart</h1>", height: "60vh", phase: "runtime" },
+          ],
+          steps: [],
+        },
+        stepResults: [],
+      }),
+    ]);
+    const report = toStoryReport(run);
+    expect(validateStoryReport(report).errors).toEqual([]);
+    const docs = report.features[0]!.scenarios[0]!.docEntries;
+    expect(docs).toEqual([
+      { kind: "html", path: "reports/coverage.html", title: "Coverage", phase: "runtime" },
+      { kind: "html", url: "https://dash.example.com/run/42", height: 600, phase: "runtime" },
+      { kind: "html", content: "<h1>Chart</h1>", height: "60vh", phase: "runtime" },
+    ]);
+  });
+
   it("attaches errorMessage and errorStack at the scenario level for failures", () => {
     const run = makeRun([
       makeTestCase({ id: "1", status: "failed", errorMessage: "expected x", errorStack: "trace" }),

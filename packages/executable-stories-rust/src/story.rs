@@ -52,6 +52,10 @@ impl StepDoc {
         StepDoc(DocEntry::screenshot(path, alt))
     }
     #[must_use]
+    pub fn html(opts: crate::doc_entry::HtmlOptions) -> Self {
+        StepDoc(DocEntry::html(opts))
+    }
+    #[must_use]
     pub fn custom(type_name: &str, data: serde_json::Value) -> Self {
         StepDoc(DocEntry::custom(type_name, data))
     }
@@ -454,6 +458,13 @@ impl Story {
     /// Attach a screenshot reference to the current step or story.
     pub fn screenshot(&mut self, path: &str, alt: Option<&str>) -> &mut Self {
         self.attach_doc(DocEntry::screenshot(path, alt))
+    }
+
+    /// Attach an embedded-HTML doc entry to the current step or story.
+    ///
+    /// Exactly one of `opts.path`, `opts.url`, or `opts.content` must be set.
+    pub fn html(&mut self, opts: crate::doc_entry::HtmlOptions) -> &mut Self {
+        self.attach_doc(DocEntry::html(opts))
     }
 
     /// Attach a custom doc entry to the current step or story.

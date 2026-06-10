@@ -359,13 +359,14 @@ func TestAllDocKinds(t *testing.T) {
 	s.Section("sec", "# Hello")
 	s.Mermaid("graph TD; A-->B", "diagram")
 	s.Screenshot("/path/to/img.png", "alt text")
+	s.Html(HtmlOptions{Content: "<h1>Report</h1>", Title: "Coverage"})
 	s.Custom("myType", map[string]string{"foo": "bar"})
 
-	if len(s.steps[0].Docs) != 10 {
-		t.Fatalf("expected 10 docs, got %d", len(s.steps[0].Docs))
+	if len(s.steps[0].Docs) != 11 {
+		t.Fatalf("expected 11 docs, got %d", len(s.steps[0].Docs))
 	}
 
-	expectedKinds := []string{"note", "tag", "kv", "code", "table", "link", "section", "mermaid", "screenshot", "custom"}
+	expectedKinds := []string{"note", "tag", "kv", "code", "table", "link", "section", "mermaid", "screenshot", "html", "custom"}
 	for i, kind := range expectedKinds {
 		if s.steps[0].Docs[i]["kind"] != kind {
 			t.Errorf("doc %d: expected kind=%s, got %v", i, kind, s.steps[0].Docs[i]["kind"])
@@ -373,6 +374,53 @@ func TestAllDocKinds(t *testing.T) {
 		if s.steps[0].Docs[i]["phase"] != "runtime" {
 			t.Errorf("doc %d: expected phase=runtime, got %v", i, s.steps[0].Docs[i]["phase"])
 		}
+	}
+}
+
+func TestHtmlDoc(t *testing.T) {
+	reset()
+
+	mt := &mockT{name: "TestHtml"}
+	s := Init(mt, "html doc")
+	s.Given("a step")
+
+	entry := s.Html(HtmlOptions{Path: "./coverage/index.html", Title: "Coverage", Height: 600})
+	if entry["kind"] != "html" {
+		t.Errorf("expected kind=html, got %v", entry["kind"])
+	}
+	if entry["path"] != "./coverage/index.html" {
+		t.Errorf("expected path set, got %v", entry["path"])
+	}
+	if entry["height"] != 600 {
+		t.Errorf("expected height=600, got %v", entry["height"])
+	}
+	// url/content must be absent when path is the chosen source.
+	if _, ok := entry["url"]; ok {
+		t.Error("expected url to be absent")
+	}
+	if _, ok := entry["content"]; ok {
+		t.Error("expected content to be absent")
+	}
+}
+
+func TestHtmlDocRequiresExactlyOneSource(t *testing.T) {
+	cases := []struct {
+		name string
+		opts HtmlOptions
+	}{
+		{"none", HtmlOptions{Title: "x"}},
+		{"two", HtmlOptions{Path: "a.html", URL: "https://x.test"}},
+		{"three", HtmlOptions{Path: "a.html", URL: "https://x.test", Content: "<p>x</p>"}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			defer func() {
+				if r := recover(); r == nil {
+					t.Errorf("expected panic for %s source(s)", tc.name)
+				}
+			}()
+			_ = HtmlEntry(tc.opts)
+		})
 	}
 }
 

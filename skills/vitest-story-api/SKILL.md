@@ -4,7 +4,7 @@ description: >
   Write BDD stories in Vitest using executable-stories-vitest. Callback-only
   API: story.init(task) with ({ task }) destructuring. Steps: given, when,
   then, and, but. Doc entries: json, kv, code, table, link, section, mermaid,
-  note, tag, screenshot, custom. Auto-And keyword conversion. No top-level
+  note, tag, screenshot, video, html, custom. Auto-And keyword conversion. No top-level
   then export. Aliases: arrange, act, assert. Inline docs via second argument.
 type: core
 library: executable-stories-vitest
@@ -85,6 +85,34 @@ it("processes payment", ({ task }) => {
   story.note("Payment processed in sandbox mode");
 });
 ```
+
+### Embedded HTML (story.html)
+
+Embed generated HTML (charts, single-file reports, skill/agent output) in a
+sandboxed iframe in the HTML report. Exactly one of `path` / `url` / `content`
+is required; optional `title` and `height` (number → px, string passed
+through; default 400px).
+
+```typescript
+// Generated in-test — never touches disk. The safest option: inherently
+// self-contained, nothing to resolve.
+story.html({ content: chartHtml, title: "Latency chart", height: "60vh" });
+
+// Remote URL — rendered via iframe src with an open-in-new-tab button.
+story.html({ url: "https://dash.example.com/run/42", height: 600 });
+
+// Local file — inlined into the report so it stays portable.
+story.html({ path: "./reports/summary.html", title: "Summary" });
+```
+
+**The embedded HTML must be self-contained (a single file).** Local files are
+inlined as the iframe's `srcdoc`; relative references to sibling CSS/JS/images
+are **not** rewritten or bundled, so a multi-file report (e.g. a default
+coverage report) will render broken. Use your tool's single-file/inline mode,
+or pass the markup via `content`. Directory bundling is planned.
+
+All embedded HTML renders inside `<iframe sandbox="allow-scripts">` — scripts
+run (charts work) but cannot touch the report DOM, cookies, or storage.
 
 ### Inline docs via second argument
 

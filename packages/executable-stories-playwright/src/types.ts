@@ -88,6 +88,19 @@ export interface CustomOptions {
   data: unknown;
 }
 
+/** Options for html() - HTML embedded in a sandboxed iframe. Exactly one of path/url/content. */
+export interface HtmlOptions {
+  /** Local HTML file path (inlined into the report by default). */
+  path?: string;
+  /** Remote URL rendered via iframe src. */
+  url?: string;
+  /** Inline HTML content rendered via iframe srcdoc. */
+  content?: string;
+  title?: string;
+  /** Iframe height: number → px, string passed through (e.g. '60vh'). Default 400px. */
+  height?: number | string;
+}
+
 // ============================================================================
 // Playwright-specific types
 // ============================================================================
@@ -105,6 +118,7 @@ export interface StoryDocs {
   mermaid?: MermaidOptions;
   screenshot?: ScreenshotOptions;
   video?: VideoOptions;
+  html?: HtmlOptions;
   custom?: CustomOptions;
 }
 

@@ -155,6 +155,64 @@ func ScreenshotEntry(path, alt string, children ...DocEntry) DocEntry {
 	return screenshotEntry(path, alt, children...)
 }
 
+// HtmlOptions configures an embedded-HTML doc entry. Exactly one of Path, URL,
+// or Content must be set. The HTML is rendered inside an always-sandboxed iframe.
+type HtmlOptions struct {
+	// Path is a local HTML file (inlined into the report by default).
+	Path string
+	// URL is a remote document rendered via iframe src.
+	URL string
+	// Content is inline HTML rendered via iframe srcdoc.
+	Content string
+	// Title is shown in the embed's chrome bar.
+	Title string
+	// Height sets the iframe height: an int → px, a string passed through (e.g. "60vh"). Default 400px.
+	Height any
+}
+
+// htmlEntry creates a DocEntry of kind "html", panicking unless exactly one of
+// Path/URL/Content is set (matching the throw semantics of the JS adapters).
+func htmlEntry(opts HtmlOptions, children ...DocEntry) DocEntry {
+	sources := 0
+	if opts.Path != "" {
+		sources++
+	}
+	if opts.URL != "" {
+		sources++
+	}
+	if opts.Content != "" {
+		sources++
+	}
+	if sources != 1 {
+		panic("story.Html requires exactly one of Path, URL, or Content")
+	}
+	entry := DocEntry{
+		"kind":  "html",
+		"phase": "runtime",
+	}
+	if opts.Path != "" {
+		entry["path"] = opts.Path
+	}
+	if opts.URL != "" {
+		entry["url"] = opts.URL
+	}
+	if opts.Content != "" {
+		entry["content"] = opts.Content
+	}
+	if opts.Title != "" {
+		entry["title"] = opts.Title
+	}
+	if opts.Height != nil {
+		entry["height"] = opts.Height
+	}
+	return applyChildren(entry, children)
+}
+
+// HtmlEntry creates a DocEntry of kind "html" without pushing it to a story.
+func HtmlEntry(opts HtmlOptions, children ...DocEntry) DocEntry {
+	return htmlEntry(opts, children...)
+}
+
 // customEntry creates a DocEntry of kind "custom".
 func customEntry(typeName string, data any, children ...DocEntry) DocEntry {
 	return applyChildren(DocEntry{

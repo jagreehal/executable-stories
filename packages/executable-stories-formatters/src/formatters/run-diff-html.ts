@@ -77,6 +77,8 @@ function formatDocEntry(doc: DocEntry): string {
       return `${doc.alt ? `${escapeHtml(doc.alt)}: ` : ""}${escapeHtml(doc.path)}`;
     case "video":
       return `${doc.caption ? `${escapeHtml(doc.caption)}: ` : ""}${escapeHtml(doc.path)}`;
+    case "html":
+      return `${doc.title ? `${escapeHtml(doc.title)}: ` : ""}${escapeHtml(doc.url ?? doc.path ?? "(inline html)")}`;
     case "custom":
       return `${escapeHtml(doc.type)}: ${escapeHtml(JSON.stringify(doc.data))}`;
   }

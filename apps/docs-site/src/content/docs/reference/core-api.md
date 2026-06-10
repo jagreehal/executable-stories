@@ -69,6 +69,17 @@ type DocEntry =
   | { kind: 'section'; title: string; markdown: string; phase: DocPhase }
   | { kind: 'mermaid'; code: string; title?: string; phase: DocPhase }
   | { kind: 'screenshot'; path: string; alt?: string; phase: DocPhase }
+  | { kind: 'video'; path: string; caption?: string; poster?: string; phase: DocPhase }
+  | {
+      kind: 'html';
+      // exactly one of path / url / content
+      path?: string;
+      url?: string;
+      content?: string;
+      title?: string;
+      height?: number | string;
+      phase: DocPhase;
+    }
   | { kind: 'custom'; type: string; data: unknown; phase: DocPhase };
 ```
 
@@ -130,6 +141,8 @@ interface StoryDocs {
   section?: { title: string; markdown: string };
   mermaid?: { code: string; title?: string };
   screenshot?: { path: string; alt?: string };
+  video?: { path: string; caption?: string; poster?: string };
+  html?: { path?: string; url?: string; content?: string; title?: string; height?: number | string };
   custom?: { type: string; data: unknown };
 }
 ```

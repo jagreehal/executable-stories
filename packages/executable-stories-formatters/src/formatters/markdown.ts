@@ -583,6 +583,30 @@ export class MarkdownFormatter {
         break;
       }
 
+      case "html": {
+        // The sandboxed iframe is HTML-report-only. Markdown degrades to a
+        // link for url/path sources; inline content goes in a collapsible
+        // fenced block (dumping live HTML into MD is unpredictable across
+        // renderers, and GitHub strips iframes anyway).
+        const htmlLabel = entry.title ?? "Embedded HTML";
+        if (entry.url !== undefined || entry.path !== undefined) {
+          lines.push(`${indent}[${htmlLabel}](${entry.url ?? entry.path})`);
+          break;
+        }
+        lines.push(`${indent}<details>`);
+        lines.push(`${indent}<summary>${htmlLabel}</summary>`);
+        lines.push(`${indent}`);
+        lines.push(`${indent}\`\`\`html`);
+        for (const line of (entry.content ?? "").split("\n")) {
+          lines.push(`${indent}${line}`);
+        }
+        lines.push(`${indent}\`\`\``);
+        lines.push(`${indent}`);
+        lines.push(`${indent}</details>`);
+        lines.push(`${indent}`);
+        break;
+      }
+
       case "custom":
         if (entry.type === "visual" && entry.data && typeof entry.data === "object") {
           const data = entry.data as Record<string, unknown>;

@@ -184,6 +184,38 @@ class DocEntry {
                 if (!children.isNullOrEmpty()) set("children", children)
             }
 
+        /**
+         * Embedded HTML rendered inside an always-sandboxed iframe.
+         *
+         * Exactly one of [path], [url], or [content] must be non-null, or an
+         * [IllegalArgumentException] is thrown.
+         */
+        @JvmStatic
+        @JvmOverloads
+        fun html(
+            path: String? = null,
+            url: String? = null,
+            content: String? = null,
+            title: String? = null,
+            height: Any? = null,
+            children: List<DocEntry>? = null,
+        ): DocEntry {
+            val sources = listOfNotNull(path, url, content)
+            require(sources.size == 1) {
+                "Story.html requires exactly one of path, url, or content"
+            }
+            return DocEntry().apply {
+                set("kind", "html")
+                set("phase", "runtime")
+                if (path != null) set("path", path)
+                if (url != null) set("url", url)
+                if (content != null) set("content", content)
+                if (title != null) set("title", title)
+                if (height != null) set("height", height)
+                if (!children.isNullOrEmpty()) set("children", children)
+            }
+        }
+
         @JvmStatic
         @JvmOverloads
         fun custom(

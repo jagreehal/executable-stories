@@ -144,6 +144,8 @@ function formatDocEntry(doc: DocEntry): string {
       return `${doc.alt ? `${doc.alt}: ` : ""}${doc.path}`;
     case "video":
       return `${doc.caption ? `${doc.caption}: ` : ""}${doc.path}`;
+    case "html":
+      return `${doc.title ? `${doc.title}: ` : ""}${doc.url ?? doc.path ?? "(inline html)"}`;
     case "custom":
       return `${doc.type}: ${JSON.stringify(doc.data)}`;
   }

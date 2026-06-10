@@ -158,11 +158,12 @@ class TestStory < Minitest::Test
     s.section("sec", "# Hello")
     s.mermaid("graph TD; A-->B", title: "diagram")
     s.screenshot("/path/img.png", alt: "alt text")
+    s.html(content: "<h1>Report</h1>", title: "Coverage")
     s.custom("myType", { "foo" => "bar" })
 
-    assert_equal 11, s.steps[0].docs.length
+    assert_equal 12, s.steps[0].docs.length
 
-    expected_kinds = %w[note tag kv code code table link section mermaid screenshot custom]
+    expected_kinds = %w[note tag kv code code table link section mermaid screenshot html custom]
     s.steps[0].docs.each_with_index do |doc, i|
       assert_equal expected_kinds[i], doc["kind"]
       assert_equal "runtime", doc["phase"]
@@ -536,6 +537,28 @@ class TestDocEntry < Minitest::Test
     assert_equal "custom", entry["kind"]
     assert_equal "metrics", entry["type"]
     assert_equal 42, entry["data"]["latency_ms"]
+  end
+
+  def test_html_with_path
+    entry = ExecutableStories::DocEntry.html(path: "./coverage/index.html", title: "Coverage", height: 600)
+    assert_equal "html", entry["kind"]
+    assert_equal "./coverage/index.html", entry["path"]
+    assert_equal "Coverage", entry["title"]
+    assert_equal 600, entry["height"]
+    assert_nil entry["url"]
+    assert_nil entry["content"]
+  end
+
+  def test_html_with_content
+    entry = ExecutableStories::DocEntry.html(content: "<h1>Hi</h1>")
+    assert_equal "html", entry["kind"]
+    assert_equal "<h1>Hi</h1>", entry["content"]
+    assert_nil entry["path"]
+  end
+
+  def test_html_requires_exactly_one_source
+    assert_raises(ArgumentError) { ExecutableStories::DocEntry.html(title: "x") }
+    assert_raises(ArgumentError) { ExecutableStories::DocEntry.html(path: "a.html", url: "https://x.test") }
   end
 
   def test_children

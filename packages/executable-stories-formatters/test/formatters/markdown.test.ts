@@ -147,6 +147,39 @@ describe("MarkdownFormatter", () => {
       expect(result).toContain("<source src=\"attachments/abc/walkthrough.webm\" />");
       expect(result).toContain("*Recorded walkthrough*");
     });
+
+    it("should render html doc entries as links (path/url) and details (content)", () => {
+      const raw = createRawRun({
+        testCases: [
+          createTestCase({
+            story: createStory({
+              steps: [
+                {
+                  keyword: "Then",
+                  text: "the reports are generated",
+                  docs: [
+                    { kind: "html", path: "reports/coverage.html", title: "Coverage", phase: "runtime" },
+                    { kind: "html", url: "https://dash.example.com/run/42", phase: "runtime" },
+                    { kind: "html", content: "<h1>Chart</h1>", title: "Chart", phase: "runtime" },
+                  ],
+                },
+              ],
+            }),
+          }),
+        ],
+      });
+      const run = canonicalizeRun(raw);
+      const result = formatter.format(run);
+
+      expect(result).toContain("[Coverage](reports/coverage.html)");
+      expect(result).toContain("[Embedded HTML](https://dash.example.com/run/42)");
+      expect(result).toContain("<details>");
+      expect(result).toContain("<summary>Chart</summary>");
+      expect(result).toContain("```html");
+      expect(result).toContain("<h1>Chart</h1>");
+      // Markdown never embeds a live iframe — that's HTML-report-only.
+      expect(result).not.toContain("<iframe");
+    });
   });
 
   describe("status icons", () => {

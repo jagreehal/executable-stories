@@ -4,8 +4,8 @@ description: >
   Write BDD stories in Playwright using executable-stories-playwright.
   Top-level exports with TestInfo: story.init(testInfo). Async steps with
   fixtures ({ page }). Steps: given, when, then, and, but. Doc entries:
-  json, kv, code, table, link, section, mermaid, screenshot, note, tag.
-  Auto-And keyword conversion. Aliases: arrange, act, assert.
+  json, kv, code, table, link, section, mermaid, screenshot, video, html,
+  note, tag. Auto-And keyword conversion. Aliases: arrange, act, assert.
 type: core
 library: executable-stories-playwright
 library_version: "7.0.1"
@@ -90,6 +90,35 @@ test("checkout flow", async ({ page }, testInfo) => {
   });
 });
 ```
+
+### Embedded HTML (story.html)
+
+Embed generated HTML (charts, single-file reports, skill/agent output) in a
+sandboxed iframe in the HTML report. Exactly one of `path` / `url` / `content`
+is required; optional `title` and `height` (number → px, string passed
+through; default 400px).
+
+```typescript
+// Generated in-test — never touches disk. The safest option: inherently
+// self-contained, nothing to resolve.
+story.html({ content: chartHtml, title: "Latency chart", height: "60vh" });
+
+// Remote URL — rendered via iframe src with an open-in-new-tab button.
+story.html({ url: "https://dash.example.com/run/42", height: 600 });
+
+// Local file — read at capture time and inlined, so an absolute runner path
+// still resolves when the report is downloaded as a CI artifact.
+story.html({ path: testInfo.outputPath("summary.html"), title: "Summary" });
+```
+
+**The embedded HTML must be self-contained (a single file).** Local files are
+read at capture time and inlined as the iframe's `srcdoc`; relative references
+to sibling CSS/JS/images are **not** rewritten or bundled, so a multi-file
+report will render broken. Use your tool's single-file/inline mode, or pass the
+markup via `content`. Directory bundling is planned.
+
+All embedded HTML renders inside `<iframe sandbox="allow-scripts">` — scripts
+run (charts work) but cannot touch the report DOM, cookies, or storage.
 
 ### Step wrappers with timing
 

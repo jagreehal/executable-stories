@@ -424,6 +424,44 @@ namespace ExecutableStories.Xunit.Tests
         }
 
         [Fact]
+        public void HtmlAttachesHtmlDocEntryWithPath()
+        {
+            Story.Init("Doc test");
+            Story.Given("a step");
+            _ = Story.Html(path: "./coverage/index.html", title: "Coverage", height: 600);
+
+            StoryContext ctx = Story.GetContext()!;
+            _ = Assert.Single(ctx.CurrentStep!.Docs!);
+            DocEntry entry = ctx.CurrentStep.Docs![0];
+            Assert.Equal("html", entry.Kind);
+            Assert.Equal("./coverage/index.html", entry.Get("path"));
+            Assert.Equal("Coverage", entry.Get("title"));
+            Assert.Equal(600, entry.Get("height"));
+            Assert.Null(entry.Get("url"));
+            Assert.Null(entry.Get("content"));
+        }
+
+        [Fact]
+        public void HtmlAttachesHtmlDocEntryWithContent()
+        {
+            Story.Init("Doc test");
+            Story.Given("a step");
+            _ = Story.Html(content: "<h1>Hi</h1>");
+
+            StoryContext ctx = Story.GetContext()!;
+            Assert.Equal("<h1>Hi</h1>", ctx.CurrentStep!.Docs![0].Get("content"));
+        }
+
+        [Fact]
+        public void HtmlRequiresExactlyOneSource()
+        {
+            Story.Init("Doc test");
+            Story.Given("a step");
+            _ = Assert.Throws<ArgumentException>(() => Story.Html(title: "x"));
+            _ = Assert.Throws<ArgumentException>(() => Story.Html(path: "a.html", url: "https://x.test"));
+        }
+
+        [Fact]
         public void CustomAttachesCustomDocEntry()
         {
             Story.Init("Doc test");

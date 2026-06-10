@@ -296,6 +296,24 @@ namespace ExecutableStories.Xunit
         }
 
         /// <summary>
+        /// Embed HTML in an always-sandboxed iframe. Exactly one of
+        /// <paramref name="path"/>, <paramref name="url"/>, or <paramref name="content"/> must be set.
+        /// </summary>
+        public static DocEntry Html(
+            string? path = null,
+            string? url = null,
+            string? content = null,
+            string? title = null,
+            object? height = null,
+            DocEntry[]? children = null)
+        {
+            StoryContext ctx = RequireContext();
+            var entry = DocEntry.Html(path, url, content, title, height, children);
+            ctx.AddDoc(entry);
+            return entry;
+        }
+
+        /// <summary>
         /// Add a custom documentation entry.
         /// </summary>
         public static DocEntry Custom(string type, object data, DocEntry[]? children = null)

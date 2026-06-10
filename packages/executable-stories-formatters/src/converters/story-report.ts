@@ -123,6 +123,17 @@ function copyDocEntry(entry: DocEntry): ReportDocEntry {
         phase: entry.phase,
         ...children,
       };
+    case "html":
+      return {
+        kind: "html",
+        ...(entry.path !== undefined ? { path: entry.path } : {}),
+        ...(entry.url !== undefined ? { url: entry.url } : {}),
+        ...(entry.content !== undefined ? { content: entry.content } : {}),
+        ...(entry.title !== undefined ? { title: entry.title } : {}),
+        ...(entry.height !== undefined ? { height: entry.height } : {}),
+        phase: entry.phase,
+        ...children,
+      };
     case "custom":
       return {
         kind: "custom",

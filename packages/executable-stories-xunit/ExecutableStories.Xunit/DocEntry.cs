@@ -194,6 +194,54 @@ namespace ExecutableStories.Xunit
             return entry;
         }
 
+        /// <summary>
+        /// Embedded HTML rendered inside an always-sandboxed iframe. Exactly one of
+        /// <paramref name="path"/>, <paramref name="url"/>, or <paramref name="content"/>
+        /// must be set, or an <see cref="ArgumentException"/> is thrown.
+        /// </summary>
+        public static DocEntry Html(
+            string? path = null,
+            string? url = null,
+            string? content = null,
+            string? title = null,
+            object? height = null,
+            DocEntry[]? children = null)
+        {
+            var sources = (path != null ? 1 : 0) + (url != null ? 1 : 0) + (content != null ? 1 : 0);
+            if (sources != 1)
+            {
+                throw new ArgumentException("Story.Html requires exactly one of path, url, or content");
+            }
+            var entry = new DocEntry();
+            entry.Set("kind", "html");
+            entry.Set("phase", "runtime");
+            if (path != null)
+            {
+                entry.Set("path", path);
+            }
+            if (url != null)
+            {
+                entry.Set("url", url);
+            }
+            if (content != null)
+            {
+                entry.Set("content", content);
+            }
+            if (title != null)
+            {
+                entry.Set("title", title);
+            }
+            if (height != null)
+            {
+                entry.Set("height", height);
+            }
+            if (children is { Length: > 0 })
+            {
+                entry.Set("children", children);
+            }
+            return entry;
+        }
+
         public static DocEntry Custom(string type, object data, DocEntry[]? children = null)
         {
             var entry = new DocEntry();

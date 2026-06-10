@@ -20,6 +20,18 @@ describe("scanHtmlAssets", () => {
     expect(refs).toEqual(["../test-results/trace/trace.zip"]);
   });
 
+  it("finds iframe src attributes with local paths (doc-html entries)", () => {
+    const html = `<iframe class="doc-html-frame" sandbox="allow-scripts" loading="lazy" style="height: 400px;" title="Coverage" src="../reports/coverage.html"></iframe>`;
+    const refs = scanHtmlAssets(html);
+    expect(refs).toEqual(["../reports/coverage.html"]);
+  });
+
+  it("skips iframe srcdoc content", () => {
+    const html = `<iframe class="doc-html-frame" sandbox="allow-scripts" srcdoc="&lt;h1&gt;Chart&lt;/h1&gt;"></iframe>`;
+    const refs = scanHtmlAssets(html);
+    expect(refs).toEqual([]);
+  });
+
   it("skips data: URIs", () => {
     const html = `<img src="data:image/png;base64,iVBOR..." alt="Screenshot" />`;
     const refs = scanHtmlAssets(html);

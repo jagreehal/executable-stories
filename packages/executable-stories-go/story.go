@@ -464,6 +464,14 @@ func (s *S) Screenshot(path string, altAndChildren ...any) DocEntry {
 	return entry
 }
 
+// Html attaches an embedded-HTML doc entry and returns it. Exactly one of
+// opts.Path, opts.URL, or opts.Content must be set.
+func (s *S) Html(opts HtmlOptions, children ...DocEntry) DocEntry {
+	entry := htmlEntry(opts, children...)
+	s.addDoc(entry)
+	return entry
+}
+
 // Custom attaches a custom doc entry with the given type name and data and returns it.
 func (s *S) Custom(typeName string, data any, children ...DocEntry) DocEntry {
 	entry := customEntry(typeName, data, children...)

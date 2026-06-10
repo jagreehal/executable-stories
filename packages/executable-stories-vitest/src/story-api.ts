@@ -30,6 +30,7 @@ import { createRequire } from 'node:module';
 import {
   tryGetActiveOtelContext,
   resolveTraceUrl,
+  buildHtmlDocEntry,
 } from 'executable-stories-formatters';
 import type {
   DocEntry,
@@ -324,6 +325,11 @@ function convertStoryDocsToEntries(docs: StoryDocs): DocEntry[] {
     });
   }
 
+  // html(path | url | content, title?, height?)
+  if (docs.html) {
+    entries.push(buildHtmlDocEntry(docs.html));
+  }
+
   // custom(type, data)
   if (docs.custom) {
     entries.push({
@@ -573,11 +579,25 @@ interface VideoOptions {
   poster?: string;
 }
 
+/** Options for html() - HTML embedded in a sandboxed iframe */
+interface HtmlOptions {
+  /** Local HTML file path (inlined into the report by default) */
+  path?: string;
+  /** Remote URL rendered via iframe src */
+  url?: string;
+  /** Inline HTML content rendered via iframe srcdoc */
+  content?: string;
+  title?: string;
+  /** Iframe height: number → px, string passed through (e.g. '60vh'). Default 400px. */
+  height?: number | string;
+}
+
 /** Options for custom() - custom doc entry */
 interface CustomOptions {
   type: string;
   data: unknown;
 }
+
 
 // ============================================================================
 // Helper to attach doc entry to current step or story-level
@@ -730,6 +750,20 @@ function video(options: VideoOptions, children?: DocEntry[]): DocEntry {
     poster: options.poster,
     phase: 'runtime',
   }, children);
+}
+
+/**
+ * Embed HTML in a sandboxed iframe in the current step or story-level docs.
+ * Exactly one of path/url/content is required. Local files are inlined into
+ * the report by default so it stays self-contained — the HTML must therefore
+ * be self-contained too (use your tool's single-file mode); relative
+ * sub-asset references won't resolve.
+ * @example story.html({ path: './coverage/index.html', title: 'Coverage' })
+ * @example story.html({ url: 'https://dash.example.com/run/42', height: 600 })
+ * @example story.html({ content: chartHtml, title: 'Latency chart' })
+ */
+function html(options: HtmlOptions, children?: DocEntry[]): DocEntry {
+  return attachDoc(buildHtmlDocEntry(options), children);
 }
 
 /**
@@ -1021,6 +1055,7 @@ export const story = {
   mermaid,
   screenshot,
   video,
+  html,
   tag,
   custom,
 

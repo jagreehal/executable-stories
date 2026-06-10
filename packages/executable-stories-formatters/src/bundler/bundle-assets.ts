@@ -64,7 +64,7 @@ export function bundleAssets(
 
 /**
  * Replace an asset reference only in bundleable contexts:
- * - src="..." on <img>/<video> elements
+ * - src="..." on <img>/<video>/<iframe> elements
  * - href="..." on <a class="attachment"> elements
  *
  * Ordinary doc links sharing the same path are left untouched.
@@ -72,9 +72,9 @@ export function bundleAssets(
 function replaceAssetRef(html: string, original: string, replacement: string): string {
   const escaped = original.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-  // Rewrite src= on <img> and <video>
+  // Rewrite src= on <img>, <video>, and <iframe>
   const srcPattern = new RegExp(
-    `(<(?:img|video)\\b[^>]*?\\bsrc=["'])${escaped}(["'])`,
+    `(<(?:img|video|iframe)\\b[^>]*?\\bsrc=["'])${escaped}(["'])`,
     "g",
   );
   html = html.replace(srcPattern, `$1${replacement}$2`);

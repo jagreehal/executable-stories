@@ -33,6 +33,7 @@ import type { TestInfo, PlaywrightTestArgs, PlaywrightTestOptions } from '@playw
 import {
   tryGetActiveOtelContext,
   resolveTraceUrl,
+  buildHtmlDocEntry,
 } from 'executable-stories-formatters';
 import type {
   StepKeyword,
@@ -56,6 +57,7 @@ import type {
   MermaidOptions,
   ScreenshotOptions,
   VideoOptions,
+  HtmlOptions,
   CustomOptions,
   ConsoleOptions,
   ObservePageErrorsOptions,
@@ -220,6 +222,9 @@ function convertStoryDocsToEntries(docs: StoryDocs): DocEntry[] {
       phase: 'runtime',
     });
   }
+  if (docs.html) {
+    entries.push(buildHtmlEntry(docs.html));
+  }
   if (docs.custom) {
     entries.push({
       kind: 'custom',
@@ -230,6 +235,48 @@ function convertStoryDocsToEntries(docs: StoryDocs): DocEntry[] {
   }
 
   return entries;
+}
+
+/**
+ * Capture-time inlining for the html doc kind. Playwright is the only adapter
+ * that pre-resolves a source before building the entry; the exactly-one-of rule
+ * and the entry shape come from the canonical `buildHtmlDocEntry`.
+ *
+ * An *absolute* local path (e.g. `/home/runner/work/.../x.html`, or anything
+ * under `testInfo.outputPath()`) is read now and inlined as iframe srcdoc: that
+ * path 404s once the HTML report is downloaded as a CI artifact and opened on
+ * another machine, so we capture the bytes while they exist — the same
+ * reasoning as screenshot data-URI inlining.
+ *
+ * A *relative* path is left as-is so it behaves exactly like the Vitest adapter:
+ * the formatter reads it at format time (default), or copies it as a hashed
+ * asset under `assetMode: "copy"`. Inlining relative paths early would needlessly
+ * foreclose copy mode. The embedded HTML must be self-contained (single-file):
+ * relative references to sibling CSS/JS are not rewritten (directory bundling is planned).
+ */
+function buildHtmlEntry(options: HtmlOptions): DocEntry {
+  let { path: htmlPath, content } = options;
+  // Only inline when `path` is the lone source: that keeps an invalid
+  // multi-source call (e.g. path + content) reaching the canonical validator
+  // instead of being silently "fixed" by overwriting content from disk. Listing
+  // `htmlPath !== undefined` first in the chain narrows it for the rest.
+  if (
+    htmlPath !== undefined &&
+    options.url === undefined &&
+    content === undefined &&
+    !/^https?:/i.test(htmlPath) &&
+    path.isAbsolute(htmlPath)
+  ) {
+    try {
+      if (fs.existsSync(htmlPath)) {
+        content = fs.readFileSync(htmlPath, 'utf8');
+        htmlPath = undefined;
+      }
+    } catch {
+      // keep the path — the formatter retries at format time
+    }
+  }
+  return buildHtmlDocEntry({ ...options, path: htmlPath, content });
 }
 
 const SCREENSHOT_MIME_BY_EXT: Record<string, string> = {
@@ -726,6 +773,20 @@ export const story = {
       { kind: 'video', path: options.path, caption: options.caption, poster: options.poster, phase: 'runtime' },
       children,
     );
+  },
+
+  /**
+   * Embed HTML in a sandboxed iframe in the current step or story-level docs.
+   * Exactly one of path/url/content is required. Local files are inlined so
+   * the report stays self-contained — the HTML must therefore be
+   * self-contained too (use your tool's single-file mode); relative sub-asset
+   * references won't resolve.
+   * @example story.html({ path: './coverage/index.html', title: 'Coverage' })
+   * @example story.html({ url: 'https://dash.example.com/run/42', height: 600 })
+   * @example story.html({ content: chartHtml, title: 'Latency chart' })
+   */
+  html(options: HtmlOptions, children?: DocEntry[]): DocEntry {
+    return attachDoc(buildHtmlEntry(options), children);
   },
 
   custom(options: CustomOptions, children?: DocEntry[]): DocEntry {
