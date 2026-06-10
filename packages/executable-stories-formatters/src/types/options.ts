@@ -147,6 +147,8 @@ export interface FormatterOptions {
     startCollapsed?: boolean;
     /** Embed screenshots inline (base64). Default: true */
     embedScreenshots?: boolean;
+    /** Inline local html doc files as iframe srcdoc. Default: true ("none" asset mode), false under "copy". */
+    embedHtmlFiles?: boolean;
     /** Enable syntax highlighting for code blocks (via highlight.js CDN). Default: true */
     syntaxHighlighting?: boolean;
     /** Enable live Mermaid diagram rendering (via Mermaid.js CDN). Default: true */
@@ -338,6 +340,7 @@ export interface ResolvedFormatterOptions {
     searchable: boolean;
     startCollapsed: boolean;
     embedScreenshots: boolean;
+    embedHtmlFiles: boolean;
     syntaxHighlighting: boolean;
     mermaidEnabled: boolean;
     markdownEnabled: boolean;

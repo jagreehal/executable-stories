@@ -253,6 +253,7 @@
         { "$ref": "#/$defs/DocMermaid" },
         { "$ref": "#/$defs/DocScreenshot" },
         { "$ref": "#/$defs/DocVideo" },
+        { "$ref": "#/$defs/DocHtml" },
         { "$ref": "#/$defs/DocCustom" }
       ]
     },
@@ -411,6 +412,29 @@
         }
       },
       "required": ["kind", "path", "phase"],
+      "additionalProperties": false
+    },
+    "DocHtml": {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "html" },
+        "path": { "type": "string" },
+        "url": { "type": "string" },
+        "content": { "type": "string" },
+        "title": { "type": "string" },
+        "height": { "oneOf": [{ "type": "number" }, { "type": "string" }] },
+        "phase": { "$ref": "#/$defs/DocPhase" },
+        "children": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/DocEntry" }
+        }
+      },
+      "required": ["kind", "phase"],
+      "oneOf": [
+        { "required": ["path"] },
+        { "required": ["url"] },
+        { "required": ["content"] }
+      ],
       "additionalProperties": false
     },
     "DocCustom": {

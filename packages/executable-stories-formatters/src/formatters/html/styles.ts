@@ -1481,6 +1481,82 @@ body {
 }
 
 /* ============================================================================
+   Documentation Entries - Embedded HTML
+   ============================================================================ */
+.doc-html {
+  margin-bottom: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) - 2px);
+  overflow: hidden;
+}
+
+.doc-html:last-child {
+  margin-bottom: 0;
+}
+
+.doc-html-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  background: var(--muted, transparent);
+  border-bottom: 1px solid var(--border);
+}
+
+.doc-html-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.doc-html-open {
+  font-size: 0.875rem;
+  line-height: 1;
+  padding: 0.125rem 0.375rem;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) - 4px);
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.doc-html-open:hover {
+  color: var(--foreground);
+  border-color: var(--foreground);
+}
+
+.doc-html-frame {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: #fff;
+}
+
+.doc-html-missing {
+  padding: 0.75rem 1rem;
+  border: 1px dashed var(--border);
+  background: var(--muted, transparent);
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+}
+
+.doc-html-missing-label {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.doc-html-missing-path {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.75rem;
+  word-break: break-all;
+  opacity: 0.8;
+}
+
+/* ============================================================================
    Documentation Entries - Visual Check
    ============================================================================ */
 .doc-visual {

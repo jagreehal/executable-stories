@@ -87,7 +87,7 @@ export function bundleExplorerAssets(
   const visit = (entries: unknown[] | undefined): void => {
     for (const entry of entries ?? []) {
       const e = entry as { kind?: string; path?: string; poster?: string; children?: unknown[] };
-      if (e.kind === "screenshot" || e.kind === "video") {
+      if (e.kind === "screenshot" || e.kind === "video" || e.kind === "html") {
         if (typeof e.path === "string" && !isRemote(e.path) && fs.existsSync(e.path)) {
           e.path = bundle(e.path);
         }

@@ -87,7 +87,7 @@ story.then('the user is logged in', {
 });
 ```
 
-Supported keys: `note`, `tag`, `kv`, `code`, `json`, `table`, `link`, `section`, `mermaid`, `screenshot`, `custom`. Same shapes as the standalone doc methods below.
+Supported keys: `note`, `tag`, `kv`, `code`, `json`, `table`, `link`, `section`, `mermaid`, `screenshot`, `video`, `html`, `custom`. Same shapes as the standalone doc methods below.
 
 ## AAA and other aliases
 
@@ -113,6 +113,8 @@ Attach rich documentation to the **current step** (or story-level if called befo
 | `story.section(options)`    | Section with markdown.                            | `story.section({ title: "Notes", markdown: "**Bold**" });`                  |
 | `story.mermaid(options)`    | Mermaid diagram.                                  | `story.mermaid({ code: "graph LR; A-->B" });`                               |
 | `story.screenshot(options)` | Screenshot reference.                             | `story.screenshot({ path: "screen.png" });`                                 |
+| `story.video(options)`      | Video reference.                                  | `story.video({ path: "run.webm", caption: "Full run" });`                   |
+| `story.html(options)`       | Embed self-contained HTML in a sandboxed iframe (one of `path` / `url` / `content`). | `story.html({ content: chartHtml, title: "Chart" });`           |
 | `story.custom(options)`     | Custom entry (use `customRenderers` in reporter). | `story.custom({ type: "myType", data });`                                   |
 
 **Example:**

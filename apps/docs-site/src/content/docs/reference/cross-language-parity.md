@@ -10,7 +10,7 @@ Go, Ruby, Rust, Python, JVM, and .NET adapters must reach parity with the JavaSc
 | Dimension | Required outcome | JS/TS baseline | Non-JS status |
 | --- | --- | --- | --- |
 | **Behavior semantics** | Given/When/Then/And/But keywords, auto-And for repeated keywords, explicit `but()` | Vitest/Jest/Playwright/Cypress adapters | Implemented; verified via RawRun fixtures and `pnpm run verify:*` |
-| **Doc model** | Same doc entry kinds and schema meaning (`json`, `table`, `code`, `section`, `link`, `mermaid`, `screenshot`, `custom`, `note`, `tag`, …) | Full surface in JS adapters | Implemented where host allows; gaps must be documented |
+| **Doc model** | Same doc entry kinds and schema meaning (`json`, `table`, `code`, `section`, `link`, `mermaid`, `screenshot`, `html`, `custom`, `note`, `tag`, …) | Full surface in JS adapters | Implemented where host allows; gaps must be documented |
 | **Artifact outputs** | RawRun JSON → StoryReport v1 via formatters CLI | Reporter `rawRunPath` + formatters | RawRun default `.executable-stories/raw-run.json`; format with `executable-stories format` |
 | **Agent workflow** | StoryReport JSON + `list --list-format json` index | [Agent artifact contract](/guides/agent-artifact-contract/) | Same formatter pipeline for all languages |
 | **Verification** | Per-language verify script + formatter acceptance tests | Example apps + `pnpm quality` | `verify:go`, `verify:pytest`, `verify:rust`, `verify:junit5`, `verify:xunit`, `verify:ruby` |

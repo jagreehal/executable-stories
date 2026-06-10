@@ -378,6 +378,7 @@ export {
   resolveTraceUrl,
   type OtelTraceContext,
 } from "./utils/otel-detect";
+export { buildHtmlDocEntry, type HtmlDocOptions } from "./utils/doc-builders";
 
 // ============================================================================
 // Notifier Exports
@@ -721,6 +722,9 @@ export class ReportGenerator {
         searchable: options.html?.searchable ?? true,
         startCollapsed: options.html?.startCollapsed ?? false,
         embedScreenshots: options.html?.embedScreenshots ?? true,
+        // Under "copy" asset mode local html files become hashed assets with
+        // an iframe src instead of being inlined into the report.
+        embedHtmlFiles: options.html?.embedHtmlFiles ?? (options.assetMode ?? "none") !== "copy",
         syntaxHighlighting: options.html?.syntaxHighlighting ?? true,
         mermaidEnabled: options.html?.mermaidEnabled ?? true,
         markdownEnabled: options.html?.markdownEnabled ?? true,
@@ -926,6 +930,7 @@ export class ReportGenerator {
           searchable: this.options.html.searchable,
           startCollapsed: this.options.html.startCollapsed,
           embedScreenshots: this.options.html.embedScreenshots,
+          embedHtmlFiles: this.options.html.embedHtmlFiles,
           syntaxHighlighting: this.options.html.syntaxHighlighting,
           mermaidEnabled: this.options.html.mermaidEnabled,
           markdownEnabled: this.options.html.markdownEnabled,

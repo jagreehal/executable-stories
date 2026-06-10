@@ -229,6 +229,33 @@ class TestDocMethods:
         assert meta is not None
         assert "alt" not in meta["docs"][0]
 
+    def test_html_doc_with_path(self, fresh_story: Story):
+        fresh_story.init("Test")
+        fresh_story.html(path="./coverage/index.html", title="Coverage", height=600)
+        meta = fresh_story._get_meta()
+        assert meta is not None
+        doc = meta["docs"][0]
+        assert doc["kind"] == "html"
+        assert doc["path"] == "./coverage/index.html"
+        assert doc["title"] == "Coverage"
+        assert doc["height"] == 600
+        assert "url" not in doc
+        assert "content" not in doc
+
+    def test_html_doc_with_content(self, fresh_story: Story):
+        fresh_story.init("Test")
+        fresh_story.html(content="<h1>Hi</h1>")
+        meta = fresh_story._get_meta()
+        assert meta is not None
+        assert meta["docs"][0]["content"] == "<h1>Hi</h1>"
+
+    def test_html_requires_exactly_one_source(self, fresh_story: Story):
+        fresh_story.init("Test")
+        with pytest.raises(ValueError, match="exactly one"):
+            fresh_story.html(title="x")
+        with pytest.raises(ValueError, match="exactly one"):
+            fresh_story.html(path="a.html", url="https://x.test")
+
     def test_custom_doc(self, fresh_story: Story):
         fresh_story.init("Test")
         fresh_story.custom("widget", {"color": "red"})

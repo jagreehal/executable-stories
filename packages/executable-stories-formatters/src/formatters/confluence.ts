@@ -413,6 +413,24 @@ export class ConfluenceFormatter {
         );
         break;
 
+      case "html":
+        // ADF has no iframe node — surface a captioned link for url/path,
+        // a code block for inline content.
+        if (entry.url !== undefined || entry.path !== undefined) {
+          const target = entry.url ?? entry.path ?? "";
+          content.push(
+            paragraph([
+              text(entry.title ?? "Embedded HTML", strong()),
+              text(": "),
+              link(target, target),
+            ]),
+          );
+          break;
+        }
+        content.push(paragraph([text(entry.title ?? "Embedded HTML", strong())]));
+        content.push(codeBlock(entry.content ?? "", "html"));
+        break;
+
       case "custom":
         content.push(paragraph([text(`[${entry.type}]`, strong())]));
         content.push(codeBlock(JSON.stringify(entry.data ?? null, null, 2), "json"));

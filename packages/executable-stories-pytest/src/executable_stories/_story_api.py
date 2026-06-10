@@ -541,6 +541,40 @@ class Story:
         self._attach_doc(entry)
         return entry
 
+    def html(
+        self,
+        *,
+        path: str | None = None,
+        url: str | None = None,
+        content: str | None = None,
+        title: str | None = None,
+        height: int | str | None = None,
+        children: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
+        """Embed HTML in an always-sandboxed iframe.
+
+        Exactly one of ``path``, ``url``, or ``content`` must be provided.
+        """
+        sources = [s for s in (path, url, content) if s is not None]
+        if len(sources) != 1:
+            raise ValueError("story.html() requires exactly one of path, url, or content")
+        entry: dict[str, Any] = {"kind": "html", "phase": "runtime"}
+        if path is not None:
+            entry["path"] = path
+        if url is not None:
+            entry["url"] = url
+        if content is not None:
+            entry["content"] = content
+        if title is not None:
+            entry["title"] = title
+        if height is not None:
+            entry["height"] = height
+        if children:
+            entry["children"] = children
+            self._dedup_children(children)
+        self._attach_doc(entry)
+        return entry
+
     def custom(self, type: str, data: Any, *, children: list[dict[str, Any]] | None = None) -> dict[str, Any]:
         """Add a custom doc entry."""
         entry: dict[str, Any] = {

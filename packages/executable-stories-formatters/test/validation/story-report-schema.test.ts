@@ -72,6 +72,9 @@ const fullyPopulated: StoryReport = {
             { kind: "section", title: "Background", markdown: "_Why this matters_", phase: "static" },
             { kind: "mermaid", code: "graph TD\nA-->B", title: "Flow", phase: "static" },
             { kind: "screenshot", path: "screenshots/added.png", alt: "Todo added", phase: "runtime" },
+            { kind: "html", path: "reports/coverage.html", title: "Coverage", phase: "runtime" },
+            { kind: "html", url: "https://dash.example.com/run/42", height: 600, phase: "runtime" },
+            { kind: "html", content: "<h1>Chart</h1>", title: "Chart", height: "60vh", phase: "runtime" },
             { kind: "custom", type: "chart", data: { type: "bar", points: [1, 2, 3] }, phase: "runtime" },
           ],
           steps: [
@@ -205,6 +208,29 @@ describe("StoryReport JSON Schema (v1)", () => {
   it("rejects an invalid step keyword", () => {
     const bad = structuredClone(fullyPopulated);
     (bad.features[0]!.scenarios[0]!.steps[0] as unknown as { keyword: string }).keyword = "Suppose";
+    const result = validateStoryReport(bad);
+    expect(result.valid).toBe(false);
+  });
+
+  it("rejects an html DocEntry with no source", () => {
+    const bad = structuredClone(fullyPopulated);
+    bad.features[0]!.scenarios[0]!.docEntries.push({
+      kind: "html",
+      title: "No source",
+      phase: "runtime",
+    } as never);
+    const result = validateStoryReport(bad);
+    expect(result.valid).toBe(false);
+  });
+
+  it("rejects an html DocEntry with two sources", () => {
+    const bad = structuredClone(fullyPopulated);
+    bad.features[0]!.scenarios[0]!.docEntries.push({
+      kind: "html",
+      path: "reports/coverage.html",
+      url: "https://example.com",
+      phase: "runtime",
+    } as never);
     const result = validateStoryReport(bad);
     expect(result.valid).toBe(false);
   });

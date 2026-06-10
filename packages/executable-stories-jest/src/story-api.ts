@@ -29,7 +29,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { createHash } from "node:crypto";
 import { createRequire } from 'node:module';
-import { tryGetActiveOtelContext, resolveTraceUrl } from 'executable-stories-formatters';
+import { tryGetActiveOtelContext, resolveTraceUrl, buildHtmlDocEntry } from 'executable-stories-formatters';
 import type {
   DocEntry,
   NormalizedTicket,
@@ -50,6 +50,7 @@ import type {
   MermaidOptions,
   ScreenshotOptions,
   VideoOptions,
+  HtmlOptions,
   CustomOptions,
 } from './types';
 
@@ -263,6 +264,9 @@ function convertStoryDocsToEntries(docs: StoryDocs): DocEntry[] {
   }
   if (docs.video) {
     entries.push({ kind: "video", path: docs.video.path, caption: docs.video.caption, poster: docs.video.poster, phase: "runtime" });
+  }
+  if (docs.html) {
+    entries.push(buildHtmlDocEntry(docs.html));
   }
   if (docs.custom) {
     entries.push({ kind: "custom", type: docs.custom.type, data: docs.custom.data, phase: "runtime" });
@@ -653,6 +657,10 @@ export const story = {
 
   video(options: VideoOptions, children?: DocEntry[]): DocEntry {
     return attachDoc({ kind: "video", path: options.path, caption: options.caption, poster: options.poster, phase: "runtime" }, children);
+  },
+
+  html(options: HtmlOptions, children?: DocEntry[]): DocEntry {
+    return attachDoc(buildHtmlDocEntry(options), children);
   },
 
   custom(options: CustomOptions, children?: DocEntry[]): DocEntry {

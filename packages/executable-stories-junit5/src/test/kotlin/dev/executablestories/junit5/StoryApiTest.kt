@@ -285,6 +285,43 @@ class StoryApiTest {
     }
 
     @Test
+    fun htmlDocEntryWithPath() {
+        Story.init("Html doc test")
+        Story.given("some step")
+        Story.html(path = "./coverage/index.html", title = "Coverage", height = 600)
+
+        val step = Story.getContext()!!.steps[0]
+        val entry = step.docs!![0]
+        assertEquals("html", entry.kind)
+        assertEquals("./coverage/index.html", entry["path"])
+        assertEquals("Coverage", entry["title"])
+        assertEquals(600, entry["height"])
+        assertNull(entry["url"])
+        assertNull(entry["content"])
+    }
+
+    @Test
+    fun htmlDocEntryWithContent() {
+        Story.init("Html content test")
+        Story.given("some step")
+        Story.html(content = "<h1>Hi</h1>")
+
+        val entry = Story.getContext()!!.steps[0].docs!![0]
+        assertEquals("html", entry.kind)
+        assertEquals("<h1>Hi</h1>", entry["content"])
+    }
+
+    @Test
+    fun htmlDocEntryRequiresExactlyOneSource() {
+        Story.init("Html validation test")
+        Story.given("some step")
+        assertThrows(IllegalArgumentException::class.java) { Story.html(title = "x") }
+        assertThrows(IllegalArgumentException::class.java) {
+            Story.html(path = "a.html", url = "https://x.test")
+        }
+    }
+
+    @Test
     fun customDocEntry() {
         Story.init("Custom doc test")
         Story.given("some step")

@@ -5,7 +5,7 @@ description: >
   import { given, when, then, and, but } from executable-stories-jest.
   story.init() takes no arguments. Auto-And keyword conversion. Suite path
   from expect.getState().currentTestName. Aliases: arrange, act, assert.
-  Doc entries: json, kv, code, table, link, section, mermaid, note, tag.
+  Doc entries: json, kv, code, table, link, section, mermaid, html, note, tag.
 type: core
 library: executable-stories-jest
 library_version: "7.0.1"
@@ -83,6 +83,30 @@ it("processes payment", () => {
   story.note("Payment processed in sandbox mode");
 });
 ```
+
+### Embedded HTML
+
+Embed generated HTML (charts, single-file reports, skill/agent output) in an
+always-sandboxed iframe in the report. Exactly one of `path` / `url` / `content`
+is required; optional `title` and `height` (number → px, string passed through; default 400px).
+
+```ts
+story.html({ content: chartHtml, title: "Latency chart", height: "60vh" });
+story.html({ url: "https://dash.example.com/run/42", height: 600 });
+story.html({ path: "./reports/summary.html", title: "Summary" });
+```
+
+**Source guidance:** generated/ephemeral HTML (a skill writing to a temp dir) → pass `content`
+(captured now, survives temp-dir cleanup). Stable on-disk artifact → pass `path` (inlined at format time).
+
+**The embedded HTML must be self-contained (a single file).** Local files are inlined as the
+iframe's `srcdoc`; relative references to sibling CSS/JS/images are not rewritten, so a multi-file
+report renders broken. Use a single-file/inline mode or pass markup via `content`. Directory bundling is planned.
+
+**Sandbox-safe contract:** renders inside `<iframe sandbox="allow-scripts">` (opaque origin, no
+allow-same-origin). CDN scripts (Tailwind, Mermaid) and inline DOM scripts work; `localStorage`/
+`sessionStorage`/cookies throw `SecurityError` (and an unguarded access aborts the rest of that
+script block) — guard with try/catch or avoid. No `window.top`/parent access; no popups.
 
 ### Step wrappers with timing
 

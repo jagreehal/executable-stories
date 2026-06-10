@@ -110,6 +110,24 @@ describe("step callbacks", () => {
     expect(step.durationMs).toBeUndefined();
   });
 
+  it("html: inline content attaches a sandboxed html doc entry", () => {
+    story.init();
+    story.html({ content: "<h1>Report</h1>", title: "Coverage", height: 600 });
+
+    const payload = getAndClearMeta();
+    const docs = payload!.meta.docs;
+    expect(docs).toContainEqual(
+      expect.objectContaining({ kind: "html", content: "<h1>Report</h1>", title: "Coverage", height: 600 }),
+    );
+  });
+
+  it("html: throws unless exactly one of path/url/content is set", () => {
+    story.init();
+    expect(() => story.html({})).toThrow(/exactly one/);
+    expect(() => story.html({ path: "a.html", content: "<p>x</p>" })).toThrow(/exactly one/);
+    getAndClearMeta();
+  });
+
   it("backward compat: inline docs still work", () => {
     story.init();
     story.given("valid credentials", {

@@ -249,6 +249,38 @@ describe("CucumberJsonFormatter", () => {
       expect(lastStep.embeddings?.[0].mime_type).toBe("image/png");
     });
 
+    it("should embed inline html doc content as a text/html embedding", () => {
+      const raw = createRawRun({
+        testCases: [
+          createTestCase({
+            story: createStory({
+              steps: [
+                {
+                  keyword: "Then",
+                  text: "the chart is generated",
+                  docs: [
+                    { kind: "html", content: "<h1>Chart</h1>", title: "Chart", phase: "runtime" },
+                    { kind: "html", url: "https://dash.example.com/run/42", phase: "runtime" },
+                  ],
+                },
+              ],
+            }),
+          }),
+        ],
+      });
+      const run = canonicalizeRun(raw);
+      const result = formatter.format(run);
+
+      const step = result[0].elements[0].steps[0];
+      expect(step.embeddings).toBeDefined();
+      const htmlEmbedding = step.embeddings!.find((e) => e.mime_type === "text/html");
+      expect(htmlEmbedding).toBeDefined();
+      expect(Buffer.from(htmlEmbedding!.data, "base64").toString("utf8")).toBe("<h1>Chart</h1>");
+      expect(htmlEmbedding!.name).toBe("Chart");
+      // url variant degrades to a step argument, not an embedding
+      expect(step.embeddings!.filter((e) => e.mime_type === "text/html")).toHaveLength(1);
+    });
+
     it("should attach embeddings to the failing step only when failure is not last", () => {
       const raw = createRawRun({
         testCases: [

@@ -47,8 +47,10 @@ import type {
   MermaidOptions,
   ScreenshotOptions,
   VideoOptions,
+  HtmlOptions,
   CustomOptions,
 } from './types';
+import { buildHtmlDocEntry } from 'executable-stories-formatters';
 
 // Re-export types for consumers
 export type {
@@ -213,6 +215,9 @@ function convertStoryDocsToEntries(docs: StoryDocs): DocEntry[] {
       phase: 'runtime',
     });
   }
+  if (docs.html) {
+    entries.push(buildHtmlDocEntry(docs.html));
+  }
   if (docs.custom) {
     entries.push({
       kind: 'custom',
@@ -224,6 +229,7 @@ function convertStoryDocsToEntries(docs: StoryDocs): DocEntry[] {
 
   return entries;
 }
+
 
 function attachDoc(entry: DocEntry, children?: DocEntry[]): DocEntry {
   const ctx = getContext();
@@ -584,6 +590,10 @@ export const story = {
 
   video(options: VideoOptions, children?: DocEntry[]): DocEntry {
     return attachDoc({ kind: 'video', path: options.path, caption: options.caption, poster: options.poster, phase: 'runtime' }, children);
+  },
+
+  html(options: HtmlOptions, children?: DocEntry[]): DocEntry {
+    return attachDoc(buildHtmlDocEntry(options), children);
   },
 
   custom(options: CustomOptions, children?: DocEntry[]): DocEntry {

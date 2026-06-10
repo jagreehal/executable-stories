@@ -280,6 +280,9 @@ export class JUnitFormatter {
       case "screenshot":
         return `${indent}Screenshot: ${entry.alt ?? entry.path}`;
 
+      case "html":
+        return `${indent}HTML: ${entry.title ?? "Embedded HTML"} (${entry.url ?? entry.path ?? "inline"})`;
+
       case "custom": {
         const dataStr = JSON.stringify(entry.data, null, 2);
         const lines: string[] = [];

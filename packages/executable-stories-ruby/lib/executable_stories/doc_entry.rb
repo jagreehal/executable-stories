@@ -59,6 +59,21 @@ module ExecutableStories
       apply_children(entry, children)
     end
 
+    # Embedded HTML rendered inside an always-sandboxed iframe. Exactly one of
+    # path/url/content must be set, or an ArgumentError is raised.
+    def html(path: nil, url: nil, content: nil, title: nil, height: nil, children: nil)
+      sources = [path, url, content].compact
+      raise ArgumentError, "story.html requires exactly one of path, url, or content" unless sources.length == 1
+
+      entry = { "kind" => "html", "phase" => "runtime" }
+      entry["path"] = path if path
+      entry["url"] = url if url
+      entry["content"] = content if content
+      entry["title"] = title if title
+      entry["height"] = height unless height.nil?
+      apply_children(entry, children)
+    end
+
     def custom(type, data, children: nil)
       entry = { "kind" => "custom", "type" => type, "data" => data, "phase" => "runtime" }
       apply_children(entry, children)

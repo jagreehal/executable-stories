@@ -139,6 +139,39 @@ impl DocEntry {
         DocEntry(map)
     }
 
+    /// Embedded HTML rendered inside an always-sandboxed iframe.
+    ///
+    /// # Panics
+    /// Panics unless exactly one of `path`, `url`, or `content` is set.
+    #[must_use]
+    pub fn html(opts: HtmlOptions) -> Self {
+        let count = u8::from(opts.path.is_some())
+            + u8::from(opts.url.is_some())
+            + u8::from(opts.content.is_some());
+        assert!(
+            count == 1,
+            "DocEntry::html requires exactly one of path, url, or content"
+        );
+        let mut map = Self::base();
+        map.insert("kind".to_string(), serde_json::Value::String("html".to_string()));
+        if let Some(p) = opts.path {
+            map.insert("path".to_string(), serde_json::Value::String(p.to_string()));
+        }
+        if let Some(u) = opts.url {
+            map.insert("url".to_string(), serde_json::Value::String(u.to_string()));
+        }
+        if let Some(c) = opts.content {
+            map.insert("content".to_string(), serde_json::Value::String(c.to_string()));
+        }
+        if let Some(t) = opts.title {
+            map.insert("title".to_string(), serde_json::Value::String(t.to_string()));
+        }
+        if let Some(h) = opts.height {
+            map.insert("height".to_string(), h);
+        }
+        DocEntry(map)
+    }
+
     /// A custom doc entry with arbitrary type and data.
     #[must_use]
     pub fn custom(type_name: &str, data: serde_json::Value) -> Self {
@@ -162,6 +195,24 @@ impl DocEntry {
         }
         self
     }
+}
+
+/// Options for an embedded-HTML doc entry ([`DocEntry::html`]).
+///
+/// Exactly one of `path`, `url`, or `content` must be `Some`. Build with
+/// [`HtmlOptions::default`] and set the fields you need.
+#[derive(Default)]
+pub struct HtmlOptions<'a> {
+    /// Local HTML file path (inlined into the report by default).
+    pub path: Option<&'a str>,
+    /// Remote URL rendered via iframe src.
+    pub url: Option<&'a str>,
+    /// Inline HTML content rendered via iframe srcdoc.
+    pub content: Option<&'a str>,
+    /// Title shown in the embed's chrome bar.
+    pub title: Option<&'a str>,
+    /// Iframe height: a JSON number → px, a JSON string passed through (e.g. "60vh"). Default 400px.
+    pub height: Option<serde_json::Value>,
 }
 
 #[cfg(test)]
@@ -256,6 +307,54 @@ mod tests {
         assert_eq!(json["kind"], "screenshot");
         assert_eq!(json["path"], "/tmp/shot.png");
         assert_eq!(json["alt"], "Login page");
+    }
+
+    #[test]
+    fn html_serializes_correctly() {
+        let entry = DocEntry::html(HtmlOptions {
+            path: Some("./coverage/index.html"),
+            title: Some("Coverage"),
+            height: Some(serde_json::json!(600)),
+            ..Default::default()
+        });
+        let json = serde_json::to_value(&entry).unwrap();
+        assert_eq!(json["kind"], "html");
+        assert_eq!(json["path"], "./coverage/index.html");
+        assert_eq!(json["title"], "Coverage");
+        assert_eq!(json["height"], 600);
+        assert!(json.get("url").is_none());
+        assert!(json.get("content").is_none());
+    }
+
+    #[test]
+    fn html_accepts_string_height_and_content() {
+        let entry = DocEntry::html(HtmlOptions {
+            content: Some("<h1>Hi</h1>"),
+            height: Some(serde_json::json!("60vh")),
+            ..Default::default()
+        });
+        let json = serde_json::to_value(&entry).unwrap();
+        assert_eq!(json["content"], "<h1>Hi</h1>");
+        assert_eq!(json["height"], "60vh");
+    }
+
+    #[test]
+    #[should_panic(expected = "exactly one")]
+    fn html_panics_without_a_source() {
+        let _ = DocEntry::html(HtmlOptions {
+            title: Some("x"),
+            ..Default::default()
+        });
+    }
+
+    #[test]
+    #[should_panic(expected = "exactly one")]
+    fn html_panics_with_two_sources() {
+        let _ = DocEntry::html(HtmlOptions {
+            path: Some("a.html"),
+            url: Some("https://x.test"),
+            ..Default::default()
+        });
     }
 
     #[test]

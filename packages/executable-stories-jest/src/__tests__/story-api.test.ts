@@ -278,6 +278,34 @@ describe("story API", () => {
       );
     });
 
+    it("html adds story-level doc for inline content", () => {
+      story.init();
+      story.html({ content: "<h1>Report</h1>", title: "Coverage", height: 600 });
+      _internal.flushStories();
+
+      const s = getLastScenario();
+      expect(s!.docs).toContainEqual(
+        expect.objectContaining({ kind: "html", content: "<h1>Report</h1>", title: "Coverage", height: 600 })
+      );
+    });
+
+    it("html accepts a local path source", () => {
+      story.init();
+      story.html({ path: "./coverage/index.html" });
+      _internal.flushStories();
+
+      const s = getLastScenario();
+      expect(s!.docs).toContainEqual(
+        expect.objectContaining({ kind: "html", path: "./coverage/index.html" })
+      );
+    });
+
+    it("html throws unless exactly one of path/url/content is set", () => {
+      story.init();
+      expect(() => story.html({})).toThrow(/exactly one/);
+      expect(() => story.html({ path: "a.html", url: "https://x.test" })).toThrow(/exactly one/);
+    });
+
     it("custom adds story-level doc", () => {
       story.init();
       story.custom({ type: "my-type", data: { foo: "bar" } });

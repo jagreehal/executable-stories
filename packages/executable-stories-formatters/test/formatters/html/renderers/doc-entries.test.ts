@@ -14,6 +14,7 @@ import {
   renderDocMermaid,
   renderDocScreenshot,
   renderDocVideo,
+  renderDocHtml,
   renderDocCustom,
   renderDocEntry,
 } from "../../../../src/formatters/html/renderers/doc-entries";
@@ -441,5 +442,112 @@ describe("children rendering", () => {
     const matches = html.match(/doc-children/g);
     expect(matches).toHaveLength(2);
     expect(html).toContain("Level 2");
+  });
+});
+
+describe("renderDocHtml", () => {
+  it("renders url source as sandboxed iframe with src and open link", () => {
+    const html = renderDocHtml(
+      { kind: "html", url: "https://dash.example.com/run/42", title: "Dashboard", phase: "runtime" },
+      baseDeps,
+    );
+    expect(html).toContain('<div class="doc-html">');
+    expect(html).toContain('sandbox="allow-scripts"');
+    expect(html).not.toContain("allow-same-origin");
+    expect(html).toContain('src="https://dash.example.com/run/42"');
+    expect(html).toContain("Dashboard");
+    expect(html).toContain('class="doc-html-open"');
+    expect(html).toContain('target="_blank"');
+  });
+
+  it("renders inline content as srcdoc with the blob open button", () => {
+    const html = renderDocHtml(
+      { kind: "html", content: "<h1>Chart</h1>", phase: "runtime" },
+      baseDeps,
+    );
+    expect(html).toContain('srcdoc="<h1>Chart</h1>"');
+    expect(html).toContain("doc-html-open-srcdoc");
+    expect(html).not.toContain(' src=');
+  });
+
+  it("escapes inline content via escapeHtml for the srcdoc attribute", () => {
+    const html = renderDocHtml(
+      { kind: "html", content: '<div data-x="1">hi</div>', phase: "runtime" },
+      {
+        ...baseDeps,
+        escapeHtml: (s: string) => s.replace(/"/g, "&quot;"),
+      },
+    );
+    expect(html).toContain('srcdoc="<div data-x=&quot;1&quot;>hi</div>"');
+  });
+
+  it("inlines local path files into srcdoc via readHtmlFile", () => {
+    const html = renderDocHtml(
+      { kind: "html", path: "/reports/coverage.html", phase: "runtime" },
+      {
+        ...baseDeps,
+        readHtmlFile: () => "<!doctype html><h1>Coverage</h1>",
+      },
+    );
+    expect(html).toContain('srcdoc="<!doctype html><h1>Coverage</h1>"');
+    expect(html).toContain("doc-html-open-srcdoc");
+  });
+
+  it("renders placeholder for unreadable absolute paths when readHtmlFile is provided", () => {
+    const html = renderDocHtml(
+      { kind: "html", path: "/home/runner/work/report.html", title: "Report", phase: "runtime" },
+      {
+        ...baseDeps,
+        readHtmlFile: () => undefined,
+      },
+    );
+    expect(html).toContain("doc-html-missing");
+    expect(html).toContain("HTML unavailable");
+    expect(html).toContain("/home/runner/work/report.html");
+    expect(html).not.toContain("<iframe");
+  });
+
+  it("keeps relative paths as iframe src for the asset bundler", () => {
+    const html = renderDocHtml(
+      { kind: "html", path: "assets/report-abc123.html", phase: "runtime" },
+      { ...baseDeps, readHtmlFile: () => undefined },
+    );
+    expect(html).toContain('src="assets/report-abc123.html"');
+  });
+
+  it("treats an http(s) path like a url", () => {
+    const html = renderDocHtml(
+      { kind: "html", path: "https://example.com/report.html", phase: "runtime" },
+      baseDeps,
+    );
+    expect(html).toContain('src="https://example.com/report.html"');
+  });
+
+  it("defaults height to 400px and accepts number and string heights", () => {
+    const def = renderDocHtml(
+      { kind: "html", url: "https://example.com", phase: "runtime" },
+      baseDeps,
+    );
+    expect(def).toContain("height: 400px;");
+
+    const num = renderDocHtml(
+      { kind: "html", url: "https://example.com", height: 600, phase: "runtime" },
+      baseDeps,
+    );
+    expect(num).toContain("height: 600px;");
+
+    const str = renderDocHtml(
+      { kind: "html", url: "https://example.com", height: "60vh", phase: "runtime" },
+      baseDeps,
+    );
+    expect(str).toContain("height: 60vh;");
+  });
+
+  it("dispatches via renderDocEntry", () => {
+    const html = renderDocEntry(
+      { kind: "html", url: "https://example.com", phase: "runtime" },
+      baseDeps,
+    );
+    expect(html).toContain('class="doc-html-frame"');
   });
 });

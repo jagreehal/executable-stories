@@ -34,6 +34,8 @@ export interface HtmlFormatterOptions {
   searchable?: boolean;
   startCollapsed?: boolean;
   embedScreenshots?: boolean;
+  /** Inline local html doc files as iframe srcdoc (self-contained report). Default: true */
+  embedHtmlFiles?: boolean;
   syntaxHighlighting?: boolean;
   mermaidEnabled?: boolean;
   markdownEnabled?: boolean;
@@ -78,6 +80,29 @@ function readScreenshotAsDataUri(filePath: string): string | undefined {
   }
 }
 
+/** Warn when inlining HTML files larger than this into the report. */
+const HTML_INLINE_WARN_BYTES = 1024 * 1024;
+
+/**
+ * Read a local HTML file for srcdoc inlining. Returns undefined if the file is
+ * missing or unreadable. Self-contained reports rely on this so doc-html
+ * iframes survive when the report is shared off-machine.
+ */
+function readHtmlFileContent(filePath: string): string | undefined {
+  try {
+    if (!fs.existsSync(filePath)) return undefined;
+    const buf = fs.readFileSync(filePath);
+    if (buf.byteLength > HTML_INLINE_WARN_BYTES) {
+      console.warn(
+        `[executable-stories] Inlining large HTML file (${Math.round(buf.byteLength / 1024)} KiB) into the report: ${filePath}. Consider --asset-mode copy.`,
+      );
+    }
+    return buf.toString("utf8");
+  } catch {
+    return undefined;
+  }
+}
+
 function normalizeOptions(options: HtmlFormatterOptions = {}) {
   return {
     title: options.title ?? "Test Results",
@@ -85,6 +110,7 @@ function normalizeOptions(options: HtmlFormatterOptions = {}) {
     searchable: options.searchable ?? true,
     startCollapsed: options.startCollapsed ?? false,
     embedScreenshots: options.embedScreenshots ?? true,
+    embedHtmlFiles: options.embedHtmlFiles ?? true,
     syntaxHighlighting: options.syntaxHighlighting ?? true,
     mermaidEnabled: options.mermaidEnabled ?? true,
     markdownEnabled: options.markdownEnabled ?? true,
@@ -111,6 +137,11 @@ export function createHtmlFormatter(
     mermaidEnabled: opts.mermaidEnabled,
     embedScreenshots: opts.embedScreenshots,
     readScreenshot: (filePath: string) => readScreenshotAsDataUri(filePath),
+    // When html-file inlining is off (e.g. --asset-mode copy), omit the read
+    // hook so doc-html iframes keep their src path for the asset bundler.
+    ...(opts.embedHtmlFiles
+      ? { readHtmlFile: (filePath: string) => readHtmlFileContent(filePath) }
+      : {}),
   };
 
   const renderDocs = (
@@ -246,6 +277,7 @@ export {
   renderDocSection,
   renderDocMermaid,
   renderDocScreenshot,
+  renderDocHtml,
   renderDocCustom,
 } from "./doc-entries";
 export { highlightStepParams } from "./step-params";

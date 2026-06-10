@@ -343,6 +343,24 @@ class Story private constructor() {
             return entry
         }
 
+        /**
+         * Attach an embedded-HTML doc entry. Exactly one of [path], [url], or
+         * [content] must be non-null.
+         */
+        @JvmStatic
+        @JvmOverloads
+        fun html(
+            path: String? = null,
+            url: String? = null,
+            content: String? = null,
+            title: String? = null,
+            height: Any? = null,
+        ): DocEntry {
+            val entry = DocEntry.html(path, url, content, title, height)
+            requireContext().addDoc(entry)
+            return entry
+        }
+
         @JvmStatic
         fun custom(
             type: String,

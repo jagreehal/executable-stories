@@ -289,5 +289,6 @@ When working in these areas, load the linked skill file into context for accurat
 | Writing specs as living documentation (Gojko Adzic)          | `skills/spec-living-documentation/SKILL.md`                                                    |
 | Authoring changes for the Evidence Review report             | `skills/spec-evidence-review/SKILL.md`                                                         |
 | Posting Evidence Review receipts to Linear via MCP           | `skills/linear-evidence-review/SKILL.md`                                                       |
+| Authoring technical/coding lessons as executable story tests | `skills/executable-lessons/SKILL.md`                                                           |
 
 <!-- intent-skills:end -->

@@ -83,6 +83,17 @@ class ScreenshotDoc(TypedDict):
     children: NotRequired[list["DocEntry"]]
 
 
+class HtmlDoc(TypedDict):
+    kind: str  # "html"
+    phase: str
+    path: NotRequired[str]
+    url: NotRequired[str]
+    content: NotRequired[str]
+    title: NotRequired[str]
+    height: NotRequired[int | str]
+    children: NotRequired[list["DocEntry"]]
+
+
 class CustomDoc(TypedDict):
     kind: str  # "custom"
     type: str
@@ -92,7 +103,7 @@ class CustomDoc(TypedDict):
 
 
 # Union of all doc entry types
-DocEntry = NoteDoc | TagDoc | KvDoc | CodeDoc | TableDoc | LinkDoc | SectionDoc | MermaidDoc | ScreenshotDoc | CustomDoc
+DocEntry = NoteDoc | TagDoc | KvDoc | CodeDoc | TableDoc | LinkDoc | SectionDoc | MermaidDoc | ScreenshotDoc | HtmlDoc | CustomDoc
 
 
 # ── Ticket ────────────────────────────────────────────────────────

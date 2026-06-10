@@ -164,6 +164,10 @@ export default defineConfig({
               slug: 'guides/publishing-to-atlassian',
             },
             {
+              label: 'Embedding skill & agent HTML output',
+              slug: 'guides/embedding-skill-html-output',
+            },
+            {
               label: 'Understanding the report',
               slug: 'guides/understanding-the-report',
             },

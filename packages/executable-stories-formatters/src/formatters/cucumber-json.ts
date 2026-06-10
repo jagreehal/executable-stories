@@ -282,6 +282,17 @@ export class CucumberJsonFormatter {
     const embeddings: IJsonEmbedding[] = [];
 
     for (const doc of step.docs) {
+      // Inline html content embeds as text/html — Cucumber HTML reporters
+      // render it natively. url/path variants degrade to step arguments.
+      if (doc.kind === "html" && doc.content !== undefined) {
+        embeddings.push({
+          data: Buffer.from(doc.content, "utf8").toString("base64"),
+          mime_type: "text/html",
+          name: doc.title,
+        });
+        continue;
+      }
+
       if (doc.kind !== "screenshot" || !doc.path.startsWith("data:")) {
         continue;
       }
@@ -499,6 +510,20 @@ export class CucumberJsonFormatter {
 
       case "screenshot":
         // Screenshots are handled as embeddings, not arguments
+        return null;
+
+      case "html":
+        // Inline html content is handled as a text/html embedding; url/path
+        // degrade to a markdown link argument so the reference survives.
+        if (doc.url !== undefined || doc.path !== undefined) {
+          return {
+            doc_string: {
+              content: `[${doc.title ?? "Embedded HTML"}](${doc.url ?? doc.path})`,
+              content_type: "text/markdown",
+              line: 0,
+            },
+          };
+        }
         return null;
 
       default:

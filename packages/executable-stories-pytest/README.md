@@ -20,7 +20,7 @@ def test_login_success():
 
 - BDD steps: `given`, `when`, `then`, `and_`, `but`
 - Aliases: `arrange`, `act`, `assert_`, `setup`, `context`, `execute`, `action`, `verify`
-- Rich docs: `note`, `tag`, `kv`, `json`, `code`, `table`, `link`, `section`, `mermaid`, `screenshot`, `custom`
+- Rich docs: `note`, `tag`, `kv`, `json`, `code`, `table`, `link`, `section`, `mermaid`, `screenshot`, `html`, `custom`
 - Step timing: `start_timer` / `end_timer`
 - Attachments: `attach(...)`
 - OTel spans + trace links: `attach_spans(...)`, `trace_url_template` in `story.init(...)`, `OTEL_TRACE_URL_TEMPLATE`

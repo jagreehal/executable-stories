@@ -67,6 +67,7 @@ export type ReportDocEntry =
   | ReportDocMermaid
   | ReportDocScreenshot
   | ReportDocVideo
+  | ReportDocHtml
   | ReportDocCustom;
 
 export interface ReportDocNote {
@@ -146,6 +147,21 @@ export interface ReportDocVideo {
   path: string;
   caption?: string;
   poster?: string;
+  phase: DocPhase;
+  children?: ReportDocEntry[];
+}
+
+export interface ReportDocHtml {
+  kind: "html";
+  /** Local HTML file path (exactly one of path/url/content) */
+  path?: string;
+  /** Remote URL rendered via iframe src (exactly one of path/url/content) */
+  url?: string;
+  /** Inline HTML content rendered via iframe srcdoc (exactly one of path/url/content) */
+  content?: string;
+  title?: string;
+  /** Iframe height: number → px, string passed through (e.g. "60vh"). Default 400px. */
+  height?: number | string;
   phase: DocPhase;
   children?: ReportDocEntry[];
 }

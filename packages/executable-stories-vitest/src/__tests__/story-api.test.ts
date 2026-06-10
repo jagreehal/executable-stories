@@ -442,6 +442,57 @@ describe("standalone doc methods", () => {
     });
   });
 
+  it("story.html() attaches to current step with path source", ({ task }) => {
+    story.init(task);
+    story.then("the coverage report is generated");
+    story.html({ path: "./coverage/index.html", title: "Coverage" });
+
+    const meta = getStoryMeta(task);
+    expect(meta.steps[0].docs).toHaveLength(1);
+    expect(meta.steps[0].docs![0]).toEqual({
+      kind: "html",
+      path: "./coverage/index.html",
+      url: undefined,
+      content: undefined,
+      title: "Coverage",
+      height: undefined,
+      phase: "runtime",
+    });
+  });
+
+  it("story.html() accepts url and content sources with height", ({ task }) => {
+    story.init(task);
+    story.then("dashboards are linked");
+    story.html({ url: "https://dash.example.com/run/42", height: 600 });
+    story.html({ content: "<div>chart</div>", title: "Chart", height: "60vh" });
+
+    const meta = getStoryMeta(task);
+    expect(meta.steps[0].docs).toHaveLength(2);
+    expect(meta.steps[0].docs![0]).toMatchObject({
+      kind: "html",
+      url: "https://dash.example.com/run/42",
+      height: 600,
+    });
+    expect(meta.steps[0].docs![1]).toMatchObject({
+      kind: "html",
+      content: "<div>chart</div>",
+      title: "Chart",
+      height: "60vh",
+    });
+  });
+
+  it("story.html() throws unless exactly one of path/url/content is set", ({ task }) => {
+    story.init(task);
+    story.then("validation fires");
+
+    expect(() => story.html({} as never)).toThrow(
+      "story.html() requires exactly one of path, url, or content",
+    );
+    expect(() =>
+      story.html({ path: "./a.html", url: "https://example.com" }),
+    ).toThrow("story.html() requires exactly one of path, url, or content");
+  });
+
   it("story.tag() attaches to current step", ({ task }) => {
     story.init(task);
     story.given("admin user");

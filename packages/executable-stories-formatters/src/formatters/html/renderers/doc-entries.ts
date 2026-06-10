@@ -14,6 +14,8 @@ export interface DocEntryDeps {
   embedScreenshots?: boolean;
   /** Read a local image file and return a `data:` URI; return undefined to leave the path untouched. */
   readScreenshot?: (path: string) => string | undefined;
+  /** Read a local HTML file and return its content for srcdoc inlining; return undefined if missing/unreadable. */
+  readHtmlFile?: (path: string) => string | undefined;
 }
 
 export function renderDocNote(
@@ -207,6 +209,79 @@ export function renderDocVideo(
 </div>`;
 }
 
+/**
+ * Resolve an html doc entry to a single iframe mode. Every source variant
+ * collapses to one of three outcomes, so the renderer stays a flat dispatch:
+ * - `src`: load the iframe from a URL/relative path (remote, or a path the
+ *   asset bundler will serve alongside the report)
+ * - `srcdoc`: inline the HTML directly (remote URLs aside, this keeps the
+ *   report self-contained)
+ * - `missing`: an absolute local path we were asked to inline but couldn't read
+ *   (would 404 off-machine) — render a placeholder, as screenshots/videos do
+ */
+type HtmlSource =
+  | { mode: "src"; value: string }
+  | { mode: "srcdoc"; value: string }
+  | { mode: "missing"; value: string };
+
+function resolveHtmlSource(
+  entry: Extract<DocEntry, { kind: "html" }>,
+  deps: DocEntryDeps,
+): HtmlSource {
+  if (entry.url !== undefined) return { mode: "src", value: entry.url };
+  if (entry.content !== undefined) return { mode: "srcdoc", value: entry.content };
+
+  const filePath = entry.path ?? "";
+  // A path that's actually a URL behaves like a url source.
+  if (/^https?:/i.test(filePath)) return { mode: "src", value: filePath };
+
+  // Local file → inline as srcdoc so the report stays self-contained.
+  const inlined = deps.readHtmlFile?.(filePath);
+  if (inlined !== undefined) return { mode: "srcdoc", value: inlined };
+
+  // Inlining was requested (readHtmlFile present) but the absolute path was
+  // unreadable — a relative path is left as src for the bundler to resolve.
+  const isAbsoluteFsPath = /^(?:[/\\]|[A-Za-z]:[/\\])/.test(filePath);
+  if (deps.readHtmlFile && isAbsoluteFsPath) return { mode: "missing", value: filePath };
+  return { mode: "src", value: filePath };
+}
+
+export function renderDocHtml(
+  entry: Extract<DocEntry, { kind: "html" }>,
+  deps: DocEntryDeps,
+): string {
+  const source = resolveHtmlSource(entry, deps);
+
+  if (source.mode === "missing") {
+    return `<div class="doc-html doc-html-missing">
+  <div class="doc-html-missing-label">HTML unavailable</div>
+  <div class="doc-html-missing-path">${deps.escapeHtml(source.value)}</div>
+</div>`;
+  }
+
+  const heightCss =
+    typeof entry.height === "number" ? `${entry.height}px` : (entry.height ?? "400px");
+  // All embedded HTML is untrusted: render exclusively inside a sandboxed
+  // iframe (allow-scripts only — no allow-same-origin) so embedded scripts run
+  // (charts work) but can't touch the report DOM, cookies, or storage.
+  const frame = `<iframe class="doc-html-frame" sandbox="allow-scripts" loading="lazy" style="height: ${deps.escapeHtml(heightCss)};" title="${deps.escapeHtml(entry.title ?? "Embedded HTML")}" ${source.mode}="${deps.escapeHtml(source.value)}"></iframe>`;
+
+  // ↗ open-in-new-tab: a plain anchor when we have a URL/path; for srcdoc the
+  // report JS (initHtmlEmbeds) turns the inline content into a blob URL.
+  const openBtn =
+    source.mode === "src"
+      ? `<a class="doc-html-open" href="${deps.escapeHtml(source.value)}" target="_blank" rel="noopener noreferrer" title="Open in new tab" aria-label="Open in new tab">&#x2197;</a>`
+      : `<button type="button" class="doc-html-open doc-html-open-srcdoc" title="Open in new tab" aria-label="Open in new tab">&#x2197;</button>`;
+
+  return `<div class="doc-html">
+  <div class="doc-html-header">
+    <span class="doc-html-title">${deps.escapeHtml(entry.title ?? "HTML")}</span>
+    ${openBtn}
+  </div>
+  ${frame}
+</div>`;
+}
+
 export function renderDocCustom(
   entry: Extract<DocEntry, { kind: "custom" }>,
   deps: DocEntryDeps,
@@ -272,6 +347,9 @@ export function renderDocEntry(entry: DocEntry, deps: DocEntryDeps): string {
       break;
     case "video":
       html = renderDocVideo(entry, deps);
+      break;
+    case "html":
+      html = renderDocHtml(entry, deps);
       break;
     case "custom":
       html = renderDocCustom(entry, deps);

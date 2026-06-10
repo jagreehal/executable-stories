@@ -31,7 +31,7 @@ func TestAddition(t *testing.T) {
 
 - BDD steps: `Given`, `When`, `Then`, `And`, `But`
 - Aliases: `Arrange`, `Act`, `Assert`, `Setup`, `Context`, `Execute`, `Action`, `Verify`
-- Rich docs: note, kv, json, code, table, link, section, mermaid, screenshot, custom
+- Rich docs: note, kv, json, code, table, link, section, mermaid, screenshot, html, custom
 - Step timing: `StartTimer` / `EndTimer`
 - Trace links: `WithTraceUrlTemplate(...)` or `OTEL_TRACE_URL_TEMPLATE`
 - Ticket/tag/meta options at `Init(...)`

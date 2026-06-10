@@ -59,6 +59,7 @@ export type {
   MermaidOptions,
   ScreenshotOptions,
   VideoOptions,
+  HtmlOptions,
   CustomOptions,
 } from "./types";
 

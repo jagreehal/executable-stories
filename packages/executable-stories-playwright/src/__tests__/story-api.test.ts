@@ -627,6 +627,86 @@ test.describe("standalone doc methods", () => {
     expect(Buffer.from(base64, "base64").equals(pngBytes)).toBe(true);
   });
 
+  test("story.html() inlines existing absolute local files as content", async ({}, testInfo) => {
+    // Absolute paths (e.g. anything under outputPath) 404 once the report is
+    // downloaded as an artifact, so we read at capture time and inline.
+    const htmlPath = testInfo.outputPath("lesson.html");
+    fs.writeFileSync(htmlPath, "<!doctype html><h1>Lesson</h1>");
+
+    story.init(testInfo);
+    story.then("the lesson is generated");
+    story.html({ path: htmlPath, title: "Lesson", height: 600 });
+
+    const meta = getStoryMeta(testInfo);
+    expect(meta!.steps[0].docs).toHaveLength(1);
+    expect(meta!.steps[0].docs![0]).toMatchObject({
+      kind: "html",
+      content: "<!doctype html><h1>Lesson</h1>",
+      title: "Lesson",
+      height: 600,
+      phase: "runtime",
+    });
+    const entry = meta!.steps[0].docs![0] as { path?: string };
+    // The runner-only filesystem path must not leak into the doc entry.
+    expect(entry.path).toBeUndefined();
+  });
+
+  test("story.html() keeps relative local paths so the formatter can read/copy them", async ({}, testInfo) => {
+    // A relative path behaves like the Vitest adapter: the formatter resolves
+    // it at format time (default inline) or bundles it under assetMode: "copy".
+    // Inlining it early would foreclose copy mode.
+    story.init(testInfo);
+    story.then("the summary is attached");
+    story.html({ path: "./reports/summary.html", title: "Summary" });
+
+    const meta = getStoryMeta(testInfo);
+    expect(meta!.steps[0].docs![0]).toMatchObject({
+      kind: "html",
+      path: "./reports/summary.html",
+      title: "Summary",
+      phase: "runtime",
+    });
+    const entry = meta!.steps[0].docs![0] as { content?: string };
+    expect(entry.content).toBeUndefined();
+  });
+
+  test("story.html() preserves path when file is missing and keeps url/content sources", async ({}, testInfo) => {
+    story.init(testInfo);
+    story.then("docs are attached");
+    story.html({ path: "/definitely/does/not/exist/report.html" });
+    story.html({ url: "https://dash.example.com/run/42", height: "60vh" });
+    story.html({ content: "<div>chart</div>", title: "Chart" });
+
+    const meta = getStoryMeta(testInfo);
+    expect(meta!.steps[0].docs).toHaveLength(3);
+    expect(meta!.steps[0].docs![0]).toMatchObject({
+      kind: "html",
+      path: "/definitely/does/not/exist/report.html",
+    });
+    expect(meta!.steps[0].docs![1]).toMatchObject({
+      kind: "html",
+      url: "https://dash.example.com/run/42",
+      height: "60vh",
+    });
+    expect(meta!.steps[0].docs![2]).toMatchObject({
+      kind: "html",
+      content: "<div>chart</div>",
+      title: "Chart",
+    });
+  });
+
+  test("story.html() throws unless exactly one of path/url/content is set", async ({}, testInfo) => {
+    story.init(testInfo);
+    story.then("validation fires");
+
+    expect(() => story.html({})).toThrow(
+      "story.html() requires exactly one of path, url, or content",
+    );
+    expect(() =>
+      story.html({ path: "./a.html", content: "<div/>" }),
+    ).toThrow("story.html() requires exactly one of path, url, or content");
+  });
+
   test("story.screenshot() preserves path when file is missing", async ({}, testInfo) => {
     story.init(testInfo);
     story.then("page renders correctly");

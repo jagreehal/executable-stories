@@ -65,6 +65,8 @@ export interface StoryDocs {
   screenshot?: { path: string; alt?: string };
   /** Add a video reference with optional caption and poster image */
   video?: { path: string; caption?: string; poster?: string };
+  /** Embed HTML in a sandboxed iframe. Exactly one of path/url/content. */
+  html?: { path?: string; url?: string; content?: string; title?: string; height?: number | string };
   /** Add a custom documentation entry */
   custom?: { type: string; data: unknown };
 }

@@ -407,6 +407,27 @@
         },
         {
           "type": "object",
+          "description": "Embedded HTML rendered in a sandboxed iframe. Exactly one of path/url/content.",
+          "properties": {
+            "kind": { "const": "html" },
+            "path": { "type": "string", "description": "Local HTML file path (inlined into the report by default)." },
+            "url": { "type": "string", "description": "Remote URL rendered via iframe src." },
+            "content": { "type": "string", "description": "Inline HTML content rendered via iframe srcdoc." },
+            "title": { "type": "string" },
+            "height": { "oneOf": [{ "type": "number" }, { "type": "string" }], "description": "Iframe height: number → px, string passed through (e.g. '60vh'). Default 400px." },
+            "phase": { "$ref": "#/$defs/DocPhase" },
+            "children": { "type": "array", "items": { "$ref": "#/$defs/DocEntry" }, "description": "Nested child doc entries for grouping." }
+          },
+          "required": ["kind", "phase"],
+          "oneOf": [
+            { "required": ["path"] },
+            { "required": ["url"] },
+            { "required": ["content"] }
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
           "description": "Custom documentation entry with arbitrary data.",
           "properties": {
             "kind": { "const": "custom" },

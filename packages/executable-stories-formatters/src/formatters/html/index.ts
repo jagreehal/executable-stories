@@ -22,6 +22,8 @@ export interface HtmlOptions {
   startCollapsed?: boolean;
   /** Embed screenshots inline (base64). Default: true */
   embedScreenshots?: boolean;
+  /** Inline local html doc files as iframe srcdoc (self-contained report). Default: true */
+  embedHtmlFiles?: boolean;
   /** Enable syntax highlighting for code blocks (via highlight.js CDN). Default: true */
   syntaxHighlighting?: boolean;
   /** Enable live Mermaid diagram rendering (via Mermaid.js CDN). Default: true */
@@ -89,6 +91,7 @@ export {
   renderDocSection,
   renderDocMermaid,
   renderDocScreenshot,
+  renderDocHtml,
   renderDocCustom,
   renderSteps,
   renderStep,
