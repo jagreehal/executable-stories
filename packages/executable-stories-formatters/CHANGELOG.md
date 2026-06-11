@@ -1,5 +1,17 @@
 # executable-stories-formatters
 
+## 0.13.0
+
+### Minor Changes
+
+- e75d26f: Add agent-loop reporting primitives to `executable-stories-formatters`.
+
+  This release adds the `check`, `goal`, and `triage` CLI commands for
+  backpressure, definition-of-done, and failure worklist flows, plus a new
+  `traceability-matrix` output format for requirement-first coverage reporting.
+  It also fixes raw-run schema validation gaps so runs that include story
+  `covers` metadata and step `stepId` fields validate correctly.
+
 ## 0.12.0
 
 ### Minor Changes
