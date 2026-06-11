@@ -59,6 +59,9 @@ executable-stories format run.json --format html --format markdown
 # Validate a run file against the schema
 executable-stories validate run.json
 
+# Backpressure summary for coding agents: compress passing, expand failing
+executable-stories check .executable-stories/raw-run.json
+
 # Include only test cases from matching source files (glob patterns)
 executable-stories format raw-run.json --include "**/*.Story*.cs" --format html
 
@@ -80,6 +83,23 @@ executable-stories compare baseline.json current.json --format html --max-regres
 # Compare and fail on newly added failing scenarios
 executable-stories compare baseline.json current.json --format markdown --fail-on-added-failures
 ```
+
+### Agent backpressure (`check`)
+
+`check` is the inner-loop feedback view for coding agents — run it after your tests. Passing scenarios collapse to a single count line; each failing scenario expands to its Given/When/Then steps, the step that broke, the error, and the product code it `covers`:
+
+```bash
+# Exits 5 when any scenario failed (so an agent loop reacts); --no-fail to report only
+executable-stories check .executable-stories/raw-run.json
+
+# Add "N regressed / N fixed" since a prior run
+executable-stories check current.json --baseline previous.json   # or --baseline auto
+
+# Structured output for agents
+executable-stories check raw-run.json --check-format json
+```
+
+Add the command to your `CLAUDE.md` / `AGENTS.md` so the agent runs it after every change and fixes what it reports before asking for review.
 
 ### Compare gating
 

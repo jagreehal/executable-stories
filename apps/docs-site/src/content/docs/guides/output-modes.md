@@ -158,6 +158,8 @@ Generate multiple output formats from a single run:
 | story-report-json      | `.story-report.json`     |
 | scenario-index-json    | `.scenarios-index.json`  |
 | behavior-manifest-json | `.behavior-manifest.json`|
+| release-manifest       | `.release-manifest.md`   |
+| traceability-matrix    | `.traceability-matrix.md`|
 
 ## Framework defaults
 

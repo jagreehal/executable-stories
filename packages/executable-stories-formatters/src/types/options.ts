@@ -30,7 +30,7 @@ export interface CanonicalizeOptions {
 }
 
 /** Output format for report generation */
-export type OutputFormat = "astro" | "behavior-manifest-json" | "confluence" | "cucumber-json" | "cucumber-messages" | "cucumber-html" | "html" | "junit" | "markdown" | "release-manifest" | "scenario-index-json" | "story-report-json";
+export type OutputFormat = "astro" | "behavior-manifest-json" | "confluence" | "cucumber-json" | "cucumber-messages" | "cucumber-html" | "html" | "junit" | "markdown" | "release-manifest" | "scenario-index-json" | "story-report-json" | "traceability-matrix";
 
 /** Sort order for test cases in reports (deterministic for diff-friendly output) */
 export type SortTestCasesMode = "id" | "source" | "none";

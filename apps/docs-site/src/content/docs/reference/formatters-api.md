@@ -85,7 +85,7 @@ Use these when you have framework results and want a canonical run for **ReportG
 
 | Option | Type | Default | Description |
 | ------ | ---- | ------- | ----------- |
-| `formats` | `OutputFormat[]` | `["cucumber-json"]` | Output formats: `"cucumber-json"`, `"cucumber-html"`, `"cucumber-messages"`, `"html"`, `"junit"`, `"markdown"`, `"release-manifest"`, `"astro"`, `"confluence"`, `"story-report-json"`, `"scenario-index-json"`, `"behavior-manifest-json"`. |
+| `formats` | `OutputFormat[]` | `["cucumber-json"]` | Output formats: `"cucumber-json"`, `"cucumber-html"`, `"cucumber-messages"`, `"html"`, `"junit"`, `"markdown"`, `"release-manifest"`, `"traceability-matrix"`, `"astro"`, `"confluence"`, `"story-report-json"`, `"scenario-index-json"`, `"behavior-manifest-json"`. |
 | `outputDir` | `string` | `"reports"` | Base directory for output files. |
 | `outputName` | `string` | `"test-results"` | Base filename (without extension) for aggregated output. |
 | `output` | `OutputConfig` | see below | Output routing (mode, colocated style, rules). |
@@ -168,12 +168,15 @@ The formatters package provides an **`executable-stories`** CLI for generating r
 
 **Subcommands:**
 
-- **`executable-stories format <file>`** — Read raw (or canonical) test results and generate reports. Use `--format` to choose one or more of: `html`, `cucumber-html`, `markdown`, `release-manifest`, `junit`, `cucumber-json`, `cucumber-messages`, `astro`, `confluence`, `story-report-json`, `scenario-index-json`, `behavior-manifest-json`. Default format is `html`. The `story-report-json` format emits the [StoryReport v1 contract](/reference/react-renderer#the-storyreport-contract) consumed by `executable-stories-react`; `scenario-index-json` and `behavior-manifest-json` emit the agent artifacts described in the [Agent artifact contract](/guides/agent-artifact-contract/); `release-manifest` emits the signed-off scenario manifest used by the [Release confidence](/guides/release-confidence/) workflow.
+- **`executable-stories format <file>`** — Read raw (or canonical) test results and generate reports. Use `--format` to choose one or more of: `html`, `cucumber-html`, `markdown`, `release-manifest`, `traceability-matrix`, `junit`, `cucumber-json`, `cucumber-messages`, `astro`, `confluence`, `story-report-json`, `scenario-index-json`, `behavior-manifest-json`. Default format is `html`. The `story-report-json` format emits the [StoryReport v1 contract](/reference/react-renderer#the-storyreport-contract) consumed by `executable-stories-react`; `scenario-index-json` and `behavior-manifest-json` emit the agent artifacts described in the [Agent artifact contract](/guides/agent-artifact-contract/); `release-manifest` emits the signed-off scenario manifest used by the [Release confidence](/guides/release-confidence/) workflow; `traceability-matrix` emits a requirement-first matrix (ticket → scenarios → covered code → status), described in [Agent loops and backpressure](/guides/agent-loops/).
 - **`executable-stories watch <file>`** — Watch the raw-run file and regenerate the chosen `--format` artifacts on every change (live agent index). Pairs with the framework's own watch mode; long-lived until interrupted.
 - **`executable-stories compare <current>`** — Compare two runs and generate a diff report.
 - **`executable-stories gate-release <dev-run.json> <rc-run.json>`** — Verify a release candidate against the dev test baseline (RC gate). See [Release confidence](/guides/release-confidence/).
 - **`executable-stories review <file> --changed-files <path>`** — Generate an Evidence Review of AI-authored changes, correlating a run to the diff.
 - **`executable-stories list <file>`** — List scenarios from a test run.
+- **`executable-stories check <file>`** — Backpressure summary for coding agents: passing scenarios collapse to a count, each failing scenario expands to its Given/When/Then, failing step, error, and the code it `covers`. Exits non-zero on failures. See [Agent loops and backpressure](/guides/agent-loops/).
+- **`executable-stories goal <file>`** — Behavioral definition-of-done for agent loops: met when the required scenarios/tags/tickets pass, nothing regressed, and no scenario was removed or weakened versus a baseline. Exit 0 = met, 5 = not yet.
+- **`executable-stories triage <file>`** — Discovery worklist for agent loops: failing scenarios, regressions first, each with the code it `covers`, the error, and its tickets.
 - **`executable-stories validate <file>`** — Validate a JSON file against the schema (no output generated).
 - **`executable-stories init-astro [directory]`** — Scaffold an Astro/Starlight docs site for story output.
 - **`executable-stories new <template> "<name>"`** — Scaffold a docs page from a template (`adr`, `runbook`, `decision-log`, `incident`).
@@ -207,7 +210,7 @@ The formatters package provides an **`executable-stories`** CLI for generating r
 
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
-| `--format` | string | `html` | Output format(s): `html`, `cucumber-html`, `markdown`, `release-manifest`, `junit`, `cucumber-json`, `cucumber-messages`, `astro`, `confluence`, `story-report-json`, `scenario-index-json`, `behavior-manifest-json` |
+| `--format` | string | `html` | Output format(s): `html`, `cucumber-html`, `markdown`, `release-manifest`, `traceability-matrix`, `junit`, `cucumber-json`, `cucumber-messages`, `astro`, `confluence`, `story-report-json`, `scenario-index-json`, `behavior-manifest-json` |
 | `--output-dir` | string | `reports` | Directory to write output files |
 | `--output-name` | string | `test-results` | Base filename (without extension) for aggregated output |
 | `--input-type` | string | `raw` | Input type: `raw`, `canonical`, or `ndjson` |
@@ -289,6 +292,54 @@ executable-stories list raw-run.json
 | `--exclude-tags` | string | — | Comma-separated tags to exclude |
 | `--json-summary` | boolean | `false` | Output as JSON instead of text table |
 | `--input-type` | string | `raw` | Input type: `raw`, `canonical`, or `ndjson` |
+| `--stdin` | boolean | `false` | Read from stdin |
+
+### `check`
+
+Backpressure summary for coding agents: passing scenarios collapse to one line, each failing scenario expands to its Given/When/Then, the failing step, the error, and the code it `covers`. Exits `5` when any scenario failed, so an agent loop reacts before a human. See [Agent loops and backpressure](/guides/agent-loops/).
+
+```bash
+executable-stories check .executable-stories/raw-run.json --baseline reports/previous.json
+```
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--baseline` | string | — | Prior run (path or `auto`) to add "N regressed / N fixed" deltas |
+| `--check-format` | string | `text` | `text` or `json` |
+| `--no-fail` | boolean | `false` | Report only — always exit 0 even when scenarios failed |
+| `--stdin` | boolean | `false` | Read from stdin |
+
+### `goal`
+
+Behavioral definition-of-done for an agent loop (the `/goal` stopping condition). Met when the required scenarios pass, nothing regressed (`--no-regressions`), and no scenario was removed, disabled, or had steps deleted versus `--baseline` (the ratchet, on by default with a baseline). Exit `0` = met, `5` = not yet, so a loop runs until the verdict flips.
+
+```bash
+executable-stories goal raw-run.json --require-tickets US-101 --baseline prev.json --no-regressions
+```
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--require-tags` | string | — | Every scenario carrying any of these tags must pass |
+| `--require-tickets` | string | — | Every scenario carrying any of these tickets must pass |
+| `--require-scenarios` | string | — | These scenarios (by id or exact title) must pass |
+| `--baseline` | string | — | Prior run (path or `auto`) for regression and ratchet checks |
+| `--no-regressions` | boolean | `false` | Not met if any scenario regressed vs baseline |
+| `--no-ratchet` | boolean | `false` | Disable the removed/weakened-scenario guard (on by default with `--baseline`) |
+| `--goal-format` | string | `text` | `text` or `json` |
+| `--stdin` | boolean | `false` | Read from stdin |
+
+### `triage`
+
+Discovery-phase worklist for an agent loop: failing scenarios, regressions first, each with the product code it `covers`, the error, and its tickets. Failures with no `covers` are flagged. Always exits `0` — it reports work, it does not gate.
+
+```bash
+executable-stories triage raw-run.json --baseline reports/last-green.json --triage-format json
+```
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--baseline` | string | — | Prior run (path or `auto`) to flag and rank regressions first |
+| `--triage-format` | string | `text` | `text` or `json` |
 | `--stdin` | boolean | `false` | Read from stdin |
 
 ### `publish-confluence`
