@@ -39,6 +39,7 @@ import { HtmlFormatter } from "./formatters/html/index";
 import { JUnitFormatter } from "./formatters/junit-xml";
 import { MarkdownFormatter } from "./formatters/markdown";
 import { ReleaseManifestFormatter } from "./formatters/release-manifest";
+import { TraceabilityMatrixFormatter } from "./formatters/traceability-matrix";
 import { CucumberMessagesFormatter } from "./formatters/cucumber-messages/index";
 import { CucumberHtmlFormatter } from "./formatters/cucumber-html";
 import { diffRuns } from "./compare/index";
@@ -434,6 +435,32 @@ export type {
 export { listScenarios } from "./list-scenarios";
 export type { ListScenariosArgs, ListScenariosDeps } from "./list-scenarios";
 
+export { buildCheck, renderCheck } from "./check";
+export type {
+  CheckArgs,
+  CheckDeps,
+  CheckReport,
+  CheckFailure,
+  CheckStep,
+} from "./check";
+
+export { buildGoal, renderGoal } from "./goal";
+export type {
+  GoalArgs,
+  GoalDeps,
+  GoalReport,
+  GoalRequirementResult,
+  RatchetViolation,
+} from "./goal";
+
+export { buildTriage, renderTriage } from "./triage";
+export type {
+  TriageArgs,
+  TriageDeps,
+  TriageReport,
+  TriageItem,
+} from "./triage";
+
 // ============================================================================
 // ReportGenerator Types (fn(args, deps) pattern)
 // ============================================================================
@@ -468,6 +495,7 @@ const FORMAT_EXTENSIONS: Record<OutputFormat, string> = {
   "behavior-manifest-json": ".behavior-manifest.json",
   markdown: ".md",
   "release-manifest": ".release-manifest.md",
+  "traceability-matrix": ".traceability-matrix.md",
   html: ".html",
   "cucumber-html": ".cucumber.html",
   junit: ".junit.xml",
@@ -1026,6 +1054,11 @@ export class ReportGenerator {
         return formatter.format(run);
       }
 
+      case "traceability-matrix": {
+        const formatter = new TraceabilityMatrixFormatter();
+        return formatter.format(run);
+      }
+
       case "story-report-json": {
         const formatter = new StoryReportJsonFormatter({
           pretty: this.options.storyReportJson.pretty,
@@ -1198,3 +1231,9 @@ export type { DeploymentEntry, DeploymentLedger } from "./deploy/ledger";
 export type { DeploymentStatus, EnvironmentDrift, RecordDeploymentArgs, RecordDeploymentResult } from "./deploy/index";
 export { recordDeployment, getDeploymentStatus, getEnvironmentDrift } from "./deploy/index";
 export { ReleaseManifestFormatter, toReleaseManifest, type ReleaseManifest } from "./formatters/release-manifest";
+export {
+  TraceabilityMatrixFormatter,
+  toTraceabilityMatrix,
+  type TraceabilityMatrix,
+  type TraceabilityRequirement,
+} from "./formatters/traceability-matrix";

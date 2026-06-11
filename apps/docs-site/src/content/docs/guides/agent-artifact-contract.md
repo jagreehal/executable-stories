@@ -93,6 +93,8 @@ The manifest records scenario ids, titles, statuses, source files, tags, branch/
 
 The framework remains the execution layer. Executable Stories supplies behavior context and evidence.
 
+For loop-shaped, unattended agents, three commands wrap this loop: `triage` (the worklist of what to fix), `check` (the per-turn backpressure signal), and `goal` (a behavioral definition-of-done with an anti-fake-done ratchet). See [Agent loops and backpressure](/guides/agent-loops/).
+
 ## MCP
 
 Use `executable-stories-mcp` when an MCP-capable agent needs direct tools:
@@ -146,7 +148,7 @@ Recommended CI flow:
 ```bash
 pnpm test
 executable-stories format reports/raw-run.json \
-  --format story-report-json,scenario-index-json,behavior-manifest-json,release-manifest,html,markdown \
+  --format story-report-json,scenario-index-json,behavior-manifest-json,release-manifest,traceability-matrix,html,markdown \
   --output-dir reports \
   --output-name index
 ```
@@ -157,5 +159,6 @@ Publish as CI artifacts:
 - `reports/index.scenarios-index.json`
 - `reports/index.behavior-manifest.json`
 - `reports/index.release-manifest.md`
+- `reports/index.traceability-matrix.md`
 
 Example apps expose `pnpm report:agents` with this recipe.

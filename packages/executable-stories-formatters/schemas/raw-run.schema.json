@@ -180,6 +180,11 @@
           },
           "description": "Ticket/issue references. Each item is either a string ID or an object with id and optional url."
         },
+        "covers": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Product-code paths/globs this scenario exercises (project-root-relative). Used to map code changes to at-risk scenarios."
+        },
         "meta": {
           "type": "object",
           "description": "User-defined metadata for this story."
@@ -500,6 +505,10 @@
           "type": "integer",
           "minimum": 0,
           "description": "Step index (0-based)."
+        },
+        "stepId": {
+          "type": "string",
+          "description": "Stable step ID when the framework provides one (correlates with StoryStep.id)."
         },
         "title": {
           "type": "string",

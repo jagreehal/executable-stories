@@ -137,6 +137,19 @@ Add scripts: `"test:e2e": "playwright test"`.
 - Run the test command — should pass and write to `reports/`
 - Show the user the generated `reports/executable-stories.html` and `reports/executable-stories.md`
 
+### 6. Wire agent backpressure (recommended)
+
+Give a coding agent (or a `/loop`) a signal it can act on after every change. In `CLAUDE.md` / `AGENTS.md`:
+
+```text
+After changing code:
+- run the test command
+- run: executable-stories check reports/raw-run.json
+- fix every failure it reports before asking for review. Do not edit a scenario to make it pass.
+```
+
+`check` compresses passing scenarios to a count and expands each failure with its Given/When/Then, the failing step, and the code it `covers`; it exits non-zero on failures. For unattended loops, `goal` gives a definition-of-done and `triage` a worklist. See the `formatters-cli` skill and the docs guide "Agent loops and backpressure".
+
 ## When to stop and ask
 
 - Monorepo with multiple candidate packages → ask which to bootstrap (don't assume root)

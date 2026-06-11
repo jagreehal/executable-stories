@@ -1,16 +1,21 @@
 ---
 name: formatters-cli
 description: >
-  executable-stories CLI: format, compare, list, validate, init-astro, and
-  Atlassian publish subcommands. Pipeline: RawRun JSON from stdin or file,
-  canonicalizeRun() normalization, and 8 output formats (Astro, Confluence,
-  HTML, Markdown, JUnit, Cucumber JSON/HTML/Messages). fn(args, deps)
-  dependency injection. Exit codes 0=success, 1=schema, 2=canonical,
-  3=generation, 4=usage. ReportGenerator and publish API. Aggregated and
-  colocated output modes. canonicalizeRun, assertValidRun, validateCanonicalRun.
+  executable-stories CLI: format, compare, gate-release, review, list, check,
+  goal, triage, validate, init-astro, and Atlassian publish subcommands.
+  Pipeline: RawRun JSON from stdin or file, canonicalizeRun() normalization,
+  and output formats (Astro, Confluence, HTML, Markdown, JUnit, Cucumber
+  JSON/HTML/Messages, story-report-json, scenario-index-json,
+  behavior-manifest-json, release-manifest, traceability-matrix). Agent-loop
+  commands: check (backpressure signal), triage (worklist), goal
+  (definition-of-done with ratchet). fn(args, deps) dependency injection.
+  Exit codes 0=success, 1=schema, 2=canonical, 3=generation, 4=usage,
+  5=compare/review/check/goal gate not met, 6=release gate. ReportGenerator and
+  publish API. Aggregated and colocated output modes. canonicalizeRun,
+  assertValidRun, validateCanonicalRun.
 type: core
 library: executable-stories-formatters
-library_version: "0.7.8"
+library_version: "0.12.0"
 sources:
   - "jagreehal/executable-stories:packages/executable-stories-formatters/src/cli.ts"
   - "jagreehal/executable-stories:packages/executable-stories-formatters/src/index.ts"
@@ -86,7 +91,9 @@ Test code (story.given/when/then)
   → Framework adapter (vitest/jest/playwright/cypress)
     → RawRun JSON (schemaVersion: 1)
       → canonicalizeRun() → TestRunResult
-        → Formatters (Astro, Confluence, HTML, Markdown, JUnit, Cucumber JSON/HTML/Messages)
+        → Formatters (Astro, Confluence, HTML, Markdown, JUnit, Cucumber JSON/HTML/Messages,
+          release-manifest, traceability-matrix, story-report-json, scenario-index-json, behavior-manifest-json)
+        → Agent-loop commands (check, triage, goal) read the same TestRunResult
 ```
 
 ### Individual formatters
@@ -116,7 +123,7 @@ const confluenceAdfJson = new ConfluenceFormatter().format(canonical);
 
 ```bash
 # Output control
---format html,markdown,junit,cucumber-json,cucumber-html,cucumber-messages,astro,confluence
+--format html,markdown,junit,cucumber-json,cucumber-html,cucumber-messages,astro,confluence,release-manifest,traceability-matrix,story-report-json,scenario-index-json,behavior-manifest-json
 --output-dir reports          # Base directory (default: reports)
 --output-name test-results    # Base filename (default: test-results)
 --output-name-timestamp       # Append run timestamp (UTC seconds) to filename for before/after diffs
@@ -258,6 +265,41 @@ executable-stories format raw-run.json \
   --max-failed-tests 5
 ```
 
+## Agent loop commands
+
+Three subcommands turn a run into signals a coding agent (or an unattended loop) can act on. They read the same RawRun/canonical JSON as `format`.
+
+### check — backpressure signal (run after every change)
+
+Compress success, expand failure. Passing scenarios collapse to a count; each failing scenario expands to its Given/When/Then, the failing step, the error, and the product code it `covers`.
+
+```bash
+executable-stories check .executable-stories/raw-run.json --baseline reports/previous.json
+# --check-format json  → structured report
+# --no-fail            → report only (always exit 0)
+# exits 5 when any scenario failed, so an agent loop reacts before a human
+```
+
+### triage — discovery worklist (start of a loop)
+
+Failing scenarios, regressions first, each with the code it `covers`, the error, and tickets. Failures with no `covers` are flagged. Always exits 0 (reports, does not gate).
+
+```bash
+executable-stories triage .executable-stories/raw-run.json --baseline reports/last-green.json --triage-format json
+```
+
+### goal — behavioral definition-of-done (loop stopping condition)
+
+Met when the required scenarios pass, nothing regressed (`--no-regressions`), and no scenario was removed, disabled, or had steps deleted vs `--baseline` (the ratchet, on by default with a baseline — it blocks an agent from faking "done" by deleting the failing scenario). Exit 0 = met, 5 = not yet.
+
+```bash
+executable-stories goal raw-run.json --require-tickets US-101 --baseline prev.json --no-regressions
+# selectors: --require-tags / --require-tickets / --require-scenarios (none → "all scenarios pass")
+# --no-ratchet disables the removed/weakened guard; --goal-format json for machines
+```
+
+Put `check` and `goal` in `CLAUDE.md`/`AGENTS.md` so the loop runs them without being asked. See the docs guide "Agent loops and backpressure".
+
 ## Common Mistakes
 
 ### HIGH Passing invalid RawRun JSON
@@ -317,6 +359,8 @@ executable-stories format raw-run.json --format markdown
 # Exit 2: canonical validation failure
 # Exit 3: formatter/generation failure
 # Exit 4: bad arguments
+# Exit 5: compare/review/check gate failed, or goal not met
+# Exit 6: release gate failed (gate-release)
 ```
 
 Source: packages/executable-stories-formatters/src/cli.ts

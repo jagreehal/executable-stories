@@ -191,6 +191,10 @@ export default defineConfig({
               slug: 'guides/mcp-server',
             },
             {
+              label: 'Agent loops and backpressure',
+              slug: 'guides/agent-loops',
+            },
+            {
               label: 'Setup decision tree',
               slug: 'guides/setup-decision-tree',
             },

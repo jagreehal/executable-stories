@@ -36,9 +36,12 @@ import type { NotifyCondition, GenericWebhookNotifierOptions, WebhookSignerHmac 
 import { loadHistory, saveHistory, updateHistory } from "./history";
 import { pickAutoBaseline } from "./compare/auto-baseline";
 import { listScenarios } from "./list-scenarios";
+import { buildCheck, renderCheck } from "./check";
+import { buildGoal, renderGoal } from "./goal";
+import { buildTriage, renderTriage } from "./triage";
 import { selectTestCases } from "./select-test-cases";
 import type { RawRun } from "./types/raw";
-import type { TestRunResult } from "./types/test-result";
+import type { TestRunResult, TestStatus } from "./types/test-result";
 import { initAstro as initAstroFn } from "./init-astro";
 import { scaffoldDoc, TEMPLATES } from "./scaffold-doc";
 import { checkLinks, formatLinkReport } from "./check-links";
@@ -62,6 +65,7 @@ const EXIT_GENERATION = 3;
 const EXIT_USAGE = 4;
 const EXIT_COMPARE_GATE = 5;
 const EXIT_REVIEW_GATE = 5;
+const EXIT_AGENT_GATE = 5; // check / goal: condition not met
 const EXIT_RELEASE_GATE = 6;
 
 // ============================================================================
@@ -78,6 +82,9 @@ USAGE
   executable-stories gate-release <dev-run.json> <rc-run.json> [options]
   executable-stories review <file> --changed-files <path> [options]
   executable-stories list <file> [options]
+  executable-stories check <file> [--baseline <path|auto>] [--check-format text|json] [--no-fail]
+  executable-stories goal <file> [--require-tags <csv>] [--require-tickets <csv>] [--require-scenarios <csv>] [--baseline <path|auto>] [--no-regressions] [--goal-format text|json]
+  executable-stories triage <file> [--baseline <path|auto>] [--triage-format text|json]
   executable-stories validate <file>
   executable-stories validate --stdin
   executable-stories init-astro [directory]
@@ -97,6 +104,9 @@ SUBCOMMANDS
   gate-release       Verify a release candidate against the dev test baseline (RC gate)
   review             Generate an Evidence Review of AI-authored changes (correlate a run to the diff)
   list               List scenarios from a test run (text table or JSON)
+  check              Backpressure summary: compress passing, expand failing (GWT + error + covers); non-zero exit on failures
+  goal               Behavioral definition-of-done for agent loops: required scenarios pass, no regressions, no weakened scenarios (exit 0 = met, 5 = not)
+  triage             Discovery worklist for agent loops: failing scenarios, regressions first, each with the code it covers
   validate           Validate a JSON file against the schema (no output generated)
   init-astro         Scaffold an Astro docs site for story output (Starlight with themed CSS)
   new                Scaffold a docs page from a template (adr, runbook, decision-log, incident)
@@ -107,7 +117,7 @@ SUBCOMMANDS
   deploy             Record deployments, show environment status, detect drift
 
 OPTIONS
-  --format <formats>            Comma-separated formats: html, markdown, release-manifest, junit, cucumber-json, cucumber-messages, cucumber-html, astro, confluence, story-report-json, scenario-index-json, behavior-manifest-json, or custom names from config (default: html)
+  --format <formats>            Comma-separated formats: html, markdown, release-manifest, traceability-matrix, junit, cucumber-json, cucumber-messages, cucumber-html, astro, confluence, story-report-json, scenario-index-json, behavior-manifest-json, or custom names from config (default: html)
                                   astro             Themed Markdown (for Astro docs sites with matching CSS)
                                   confluence        Atlassian Document Format (ADF) JSON for Confluence / Jira
                                   behavior-manifest-json Agent-readable behavior manifest and debugger warnings
@@ -119,6 +129,7 @@ OPTIONS
                                   cucumber-messages Raw NDJSON (Cucumber Messages)
                                   story-report-json StoryReport v1 JSON (consumed by executable-stories-react and other UI renderers)
                                   scenario-index-json Storybook-like scenario index for agents and explorers
+                                  traceability-matrix Requirement-first matrix (ticket -> scenarios -> covered code -> status)
   --config <path>               Path to executable-stories.config.js (default: ./executable-stories.config.js)
   --input-type <type>           Input type: raw, canonical, or ndjson (default: raw)
   --output-dir <dir>            Output directory (default: reports)
@@ -145,6 +156,15 @@ OPTIONS
   --stdin                       Read JSON from stdin instead of file
   --list-format <format>        list output format: text (default), json, csv, markdown-table
   --json-summary                Deprecated alias for --list-format json
+  --check-format <format>       check output format: text (default) or json
+  --no-fail                     (check) Report only — always exit 0 even when scenarios failed
+  --require-tags <csv>          (goal) Every scenario carrying any of these tags must pass
+  --require-tickets <csv>       (goal) Every scenario carrying any of these tickets must pass
+  --require-scenarios <csv>     (goal) These scenarios (by id or exact title) must pass
+  --no-regressions              (goal) Not met if any scenario regressed vs --baseline
+  --no-ratchet                  (goal) Disable the removed/weakened-scenario guard (on by default with --baseline)
+  --goal-format <format>        goal output format: text (default) or json
+  --triage-format <format>      triage output format: text (default) or json
   --baseline <path|auto>        Compare baseline file, or auto-pick a prior run for compare
   --baseline-dir <dir>          Directory to scan when --baseline auto is used
   --pr-summary                  Print a PR-friendly markdown summary after compare
@@ -168,6 +188,31 @@ LIST
   list --list-format json outputs machine-parsable JSON (--json-summary is a deprecated alias)
   list supports --include-tags, --exclude-tags for filtering
   list supports --input-type and --stdin
+
+CHECK
+  check is the inner-loop "backpressure" view for coding agents: run it after tests.
+  Passing scenarios collapse to a single count line; each failing scenario expands
+  to its Given/When/Then steps, the step that broke, the error, and the product
+  code it covers — so the agent gets an actionable signal, not a wall of green.
+  check exits 5 when any scenario failed (so the agent loop pushes back); pass
+  --no-fail to report only. --baseline <path|auto> adds "N regressed / N fixed"
+  since the prior run. --check-format json emits the structured report.
+
+GOAL
+  goal is the behavioral stopping condition for an agent loop (the /goal pattern).
+  It is "met" when the required scenarios pass, nothing regressed (with
+  --no-regressions), and no scenario was removed, disabled, or had steps deleted
+  versus --baseline (the ratchet, on by default when a baseline is given). Declare
+  the target with --require-tags / --require-tickets / --require-scenarios; with
+  none given, the goal is "every scenario passes". Exit 0 means met, 5 means not
+  yet, so a loop can run until the verdict flips. --goal-format json for machines.
+
+TRIAGE
+  triage is the discovery-phase worklist for a loop. It lists failing scenarios,
+  regressions first (with --baseline), each with the product code it covers, the
+  error, and its tickets, so the loop can route each fix to a sub-agent. Failures
+  with no covers are flagged. --triage-format json emits the work queue. triage
+  always exits 0 — it reports work, it does not gate.
 
 COMPARE
   compare supports --format html,markdown
@@ -241,14 +286,16 @@ EXIT CODES
   2  Canonical validation failure
   3  Formatter/generation failure
   4  Bad arguments / usage error
-  5  Compare gate failed
+  5  Compare / review / check gate failed
   6  Release gate failed
 `.trim();
 
 interface CliArgs {
-  subcommand: "format" | "watch" | "compare" | "gate-release" | "review" | "list" | "validate";
+  subcommand: "format" | "watch" | "compare" | "gate-release" | "review" | "list" | "check" | "goal" | "triage" | "validate";
   inputFile?: string;
   baselineFile?: string;
+  /** Raw --baseline value (path or "auto"), used by check for delta detection. */
+  baselineArg?: string;
   currentFile?: string;
   baselineMode: "explicit" | "auto";
   baselineDir?: string;
@@ -275,6 +322,15 @@ interface CliArgs {
   htmlThemePicker: boolean;
   jsonSummary: boolean;
   listFormat: "text" | "json" | "csv" | "markdown-table";
+  checkFormat: "text" | "json";
+  noFail: boolean;
+  requireTags: string[];
+  requireTickets: string[];
+  requireScenarios: string[];
+  noRegressions: boolean;
+  noRatchet: boolean;
+  goalFormat: "text" | "json";
+  triageFormat: "text" | "json";
   emitCanonical?: string;
   slackWebhook?: string;
   teamsWebhook?: string;
@@ -307,6 +363,15 @@ interface CliArgs {
   config?: string;
 }
 
+/** Validate a `--*-format text|json` flag, exiting with a usage error otherwise. */
+function parseTextJsonFormat(flag: string, value: string): "text" | "json" {
+  if (value !== "text" && value !== "json") {
+    console.error(`Error: ${flag} must be "text" or "json", got "${value}".`);
+    process.exit(EXIT_USAGE);
+  }
+  return value;
+}
+
 async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConfig: Awaited<ReturnType<typeof loadConfig>>; customRequested: string[] }> {
   // Strip node + script path
   const args = argv.slice(2);
@@ -325,6 +390,9 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
     subcommand !== "deploy" &&
     subcommand !== "review" &&
     subcommand !== "list" &&
+    subcommand !== "check" &&
+    subcommand !== "goal" &&
+    subcommand !== "triage" &&
     subcommand !== "validate" &&
     subcommand !== "init-astro" &&
     subcommand !== "build-docs" &&
@@ -335,7 +403,7 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
     subcommand !== "publish-jira"
   ) {
     console.error(
-      `Unknown subcommand: "${subcommand}". Use "format", "watch", "compare", "gate-release", "deploy", "review", "list", "validate", "init-astro", "build-docs", "new", "check-links", "import-openapi", "publish-confluence", or "publish-jira".`,
+      `Unknown subcommand: "${subcommand}". Use "format", "watch", "compare", "gate-release", "deploy", "review", "list", "check", "goal", "triage", "validate", "init-astro", "build-docs", "new", "check-links", "import-openapi", "publish-confluence", or "publish-jira".`,
     );
     process.exit(EXIT_USAGE);
   }
@@ -439,6 +507,15 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
       stdin: { type: "boolean", default: false },
       "json-summary": { type: "boolean", default: false },
       "list-format": { type: "string", default: "text" },
+      "check-format": { type: "string", default: "text" },
+      "no-fail": { type: "boolean", default: false },
+      "require-tags": { type: "string" },
+      "require-tickets": { type: "string" },
+      "require-scenarios": { type: "string" },
+      "no-regressions": { type: "boolean", default: false },
+      "no-ratchet": { type: "boolean", default: false },
+      "goal-format": { type: "string", default: "text" },
+      "triage-format": { type: "string", default: "text" },
       "emit-canonical": { type: "string" },
       "slack-webhook": { type: "string" },
       "teams-webhook": { type: "string" },
@@ -534,7 +611,7 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
   const pluginConfig = await loadConfig(values["config"] as string | undefined);
   const customFormatterNames = new Set(Object.keys(pluginConfig.formatters ?? {}));
 
-  const builtInFormats = new Set(["astro", "behavior-manifest-json", "confluence", "html", "markdown", "release-manifest", "junit", "cucumber-json", "cucumber-messages", "cucumber-html", "scenario-index-json", "story-report-json"]);
+  const builtInFormats = new Set(["astro", "behavior-manifest-json", "confluence", "html", "markdown", "release-manifest", "traceability-matrix", "junit", "cucumber-json", "cucumber-messages", "cucumber-html", "scenario-index-json", "story-report-json"]);
   const formatStr = values.format as string;
   const allRequestedFormats = formatStr.split(",").map((f) => f.trim());
   const builtInRequested = allRequestedFormats.filter((f) => builtInFormats.has(f)) as OutputFormat[];
@@ -543,7 +620,7 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
 
   if (unknownFormats.length > 0) {
     const knownCustom = customFormatterNames.size > 0 ? `, ${[...customFormatterNames].join(", ")}` : "";
-    console.error(`Error: Unknown format(s): ${unknownFormats.join(", ")}. Valid built-in: astro, behavior-manifest-json, confluence, html, markdown, release-manifest, junit, cucumber-json, cucumber-messages, cucumber-html, scenario-index-json, story-report-json${knownCustom}.`);
+    console.error(`Error: Unknown format(s): ${unknownFormats.join(", ")}. Valid built-in: astro, behavior-manifest-json, confluence, html, markdown, release-manifest, traceability-matrix, junit, cucumber-json, cucumber-messages, cucumber-html, scenario-index-json, story-report-json${knownCustom}.`);
     process.exit(EXIT_USAGE);
   }
 
@@ -660,10 +737,15 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
     process.exit(EXIT_USAGE);
   }
 
+  const checkFormat = parseTextJsonFormat("--check-format", values["check-format"] as string);
+  const goalFormat = parseTextJsonFormat("--goal-format", values["goal-format"] as string);
+  const triageFormat = parseTextJsonFormat("--triage-format", values["triage-format"] as string);
+
   const cliArgs: CliArgs = {
-    subcommand: subcommand as "format" | "watch" | "compare" | "gate-release" | "review" | "list" | "validate",
+    subcommand: subcommand as "format" | "watch" | "compare" | "gate-release" | "review" | "list" | "check" | "validate",
     inputFile,
     baselineFile,
+    baselineArg: baselineValue,
     currentFile,
     baselineMode,
     baselineDir: values["baseline-dir"] as string | undefined,
@@ -690,6 +772,15 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
     htmlThemePicker: values["html-theme-picker"] as boolean,
     jsonSummary: values["json-summary"] as boolean,
     listFormat: (values["list-format"] as string) as "text" | "json" | "csv" | "markdown-table",
+    checkFormat,
+    noFail: values["no-fail"] as boolean,
+    requireTags: parseGlobs(values["require-tags"] as string | undefined),
+    requireTickets: parseGlobs(values["require-tickets"] as string | undefined),
+    requireScenarios: parseGlobs(values["require-scenarios"] as string | undefined),
+    noRegressions: values["no-regressions"] as boolean,
+    noRatchet: values["no-ratchet"] as boolean,
+    goalFormat,
+    triageFormat,
     emitCanonical: values["emit-canonical"] as string | undefined,
     slackWebhook,
     teamsWebhook,
@@ -962,6 +1053,37 @@ function resolveBaselineAuto(
   return picked.file;
 }
 
+/**
+ * Resolve the baseline run for the gate-style subcommands (check, goal, triage).
+ * Returns undefined when no --baseline was given. Supports an explicit path or
+ * "auto" (pick a prior run from the output directory).
+ */
+function resolveBaselineRun(args: CliArgs, currentRun: TestRunResult): TestRunResult | undefined {
+  if (!args.baselineArg) return undefined;
+  let baselineFile: string;
+  if (args.baselineArg === "auto") {
+    if (!args.inputFile) {
+      console.error("Error: --baseline auto requires a current input file (not --stdin).");
+      process.exit(EXIT_USAGE);
+    }
+    baselineFile = resolveBaselineAuto(args.inputFile, currentRun, args);
+  } else {
+    baselineFile = args.baselineArg;
+  }
+  return applySelection(normalizeRunFromText(readFileInput(baselineFile), args).run, args);
+}
+
+/** Baseline scenario statuses by id, for the commands that only need regression deltas. */
+function resolveBaselineStatusMap(
+  args: CliArgs,
+  currentRun: TestRunResult,
+): Map<string, TestStatus> | undefined {
+  const baselineRun = resolveBaselineRun(args, currentRun);
+  return baselineRun
+    ? new Map(baselineRun.testCases.map((tc) => [tc.id, tc.status]))
+    : undefined;
+}
+
 // ============================================================================
 // Main
 // ============================================================================
@@ -1098,6 +1220,70 @@ async function main() {
       {}
     );
     console.log(output);
+    process.exit(EXIT_SUCCESS);
+  }
+
+  // === check subcommand: context-efficient backpressure for coding agents ===
+  // Compress success (a count line), expand failure (GWT + failing step + error
+  // + covers). Exits non-zero when any scenario failed so the agent's loop pushes
+  // back before a human is involved. --no-fail forces exit 0 (report-only).
+  if (args.subcommand === "check") {
+    const text = await readInput(args);
+    const run = applySelection(normalizeRunFromText(text, args).run, args);
+
+    const baseline = resolveBaselineStatusMap(args, run);
+
+    const report = buildCheck(
+      { testCases: run.testCases, baseline, format: args.checkFormat },
+      {},
+    );
+    console.log(renderCheck(report, args.checkFormat));
+
+    if (report.summary.failed > 0 && !args.noFail) {
+      process.exit(EXIT_AGENT_GATE);
+    }
+    process.exit(EXIT_SUCCESS);
+  }
+
+  // === goal subcommand: behavioral definition-of-done for agent loops ===
+  // Met when the required scenarios/tags/tickets pass, nothing regressed (with
+  // --no-regressions), and nothing was removed or weakened vs baseline (ratchet,
+  // on when a baseline is given; disable with --no-ratchet). Exit 0 = met, 5 = not.
+  if (args.subcommand === "goal") {
+    const text = await readInput(args);
+    const run = applySelection(normalizeRunFromText(text, args).run, args);
+    const baseline = resolveBaselineRun(args, run);
+
+    const report = buildGoal(
+      {
+        run,
+        baseline,
+        requireTags: args.requireTags,
+        requireTickets: args.requireTickets,
+        requireScenarios: args.requireScenarios,
+        enforceNoRegressions: args.noRegressions,
+        enforceRatchet: !args.noRatchet,
+        format: args.goalFormat,
+      },
+      {},
+    );
+    console.log(renderGoal(report, args.goalFormat));
+    process.exit(report.met ? EXIT_SUCCESS : EXIT_AGENT_GATE);
+  }
+
+  // === triage subcommand: discovery worklist for an agent loop ===
+  // Failing scenarios, regressions first, each with the code it covers. JSON for
+  // the loop to hand to sub-agents; text for humans. Always exits 0 (it reports).
+  if (args.subcommand === "triage") {
+    const text = await readInput(args);
+    const run = applySelection(normalizeRunFromText(text, args).run, args);
+    const baseline = resolveBaselineStatusMap(args, run);
+
+    const report = buildTriage(
+      { testCases: run.testCases, baseline, format: args.triageFormat },
+      {},
+    );
+    console.log(renderTriage(report, args.triageFormat));
     process.exit(EXIT_SUCCESS);
   }
 
@@ -2464,6 +2650,15 @@ function createDefaultCliArgs(): CliArgs {
     htmlThemePicker: false,
     jsonSummary: false,
     listFormat: "text",
+    checkFormat: "text",
+    noFail: false,
+    requireTags: [],
+    requireTickets: [],
+    requireScenarios: [],
+    noRegressions: false,
+    noRatchet: false,
+    goalFormat: "text",
+    triageFormat: "text",
     notify: "never",
     maxFailedTests: 5,
     maxHistoryRuns: 10,
