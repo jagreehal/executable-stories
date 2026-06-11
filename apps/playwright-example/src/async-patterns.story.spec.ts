@@ -175,11 +175,11 @@ test('Working with timeouts and delays', async ({}, testInfo) => {
   story.note('Async operations can include deliberate delays for timing');
 
   story.given('timer starts');
-  const startTime = Date.now();
+  const startTime = performance.now();
 
   story.when('operation with delay completes');
   await delay(50);
-  const endTime = Date.now();
+  const endTime = performance.now();
 
   story.then('elapsed time is measurable');
   const elapsed = endTime - startTime;
