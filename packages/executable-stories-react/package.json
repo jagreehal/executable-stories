@@ -1,6 +1,6 @@
 {
   "name": "executable-stories-react",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "description": "React components for rendering executable-stories StoryReport JSON. Semantic, SSR-safe, themeable via CSS variables.",
   "author": "Jag Reehal <jag@jagreehal.com>",
   "homepage": "https://github.com/jagreehal/executable-stories#readme",
