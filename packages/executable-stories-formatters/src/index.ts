@@ -813,6 +813,8 @@ export class ReportGenerator {
           ticketUrlTemplate: options.astro?.markdown?.ticketUrlTemplate,
           traceUrlTemplate: options.astro?.markdown?.traceUrlTemplate,
           customRenderers: options.astro?.markdown?.customRenderers,
+          scenarioAnchor: options.astro?.markdown?.scenarioAnchor,
+          scenarioBadge: options.astro?.markdown?.scenarioBadge,
         },
       },
       assetMode: options.assetMode ?? "none",

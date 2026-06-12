@@ -2,7 +2,9 @@
 name: formatters-cli
 description: >
   executable-stories CLI: format, compare, gate-release, review, list, check,
-  goal, triage, validate, init-astro, and Atlassian publish subcommands.
+  goal, triage, validate, init-astro, build-docs (living-docs portal:
+  audience-split URLs, deep-link index, what's-changed page), and Atlassian
+  publish subcommands.
   Pipeline: RawRun JSON from stdin or file, canonicalizeRun() normalization,
   and output formats (Astro, Confluence, HTML, Markdown, JUnit, Cucumber
   JSON/HTML/Messages, story-report-json, scenario-index-json,
@@ -15,10 +17,12 @@ description: >
   assertValidRun, validateCanonicalRun.
 type: core
 library: executable-stories-formatters
-library_version: "0.12.0"
+library_version: "0.13.0"
 sources:
   - "jagreehal/executable-stories:packages/executable-stories-formatters/src/cli.ts"
   - "jagreehal/executable-stories:packages/executable-stories-formatters/src/index.ts"
+  - "jagreehal/executable-stories:packages/executable-stories-formatters/src/build-docs.ts"
+  - "jagreehal/executable-stories:packages/executable-stories-formatters/src/scenario-links.ts"
   - "jagreehal/executable-stories:apps/docs-site/src/content/docs/reference/formatters-api.md"
 ---
 
@@ -53,6 +57,15 @@ executable-stories validate raw-run.json
 
 # Scaffold Starlight docs site for themed story output
 executable-stories init-astro story-docs
+
+# Build the living-docs site into a scaffolded Astro site (Explorer data,
+# story pages, bundled assets, deep-link index, overview page)
+executable-stories build-docs raw-run.json --site-dir story-docs
+
+# Build the audience-categorized "portal" with a what's-changed page
+executable-stories build-docs raw-run.json --site-dir story-docs \
+  --audience-split \
+  --baseline prev-story-report.json
 
 # Publish ADF to Atlassian (dry run first)
 executable-stories publish-confluence reports/test-results.adf.json --page-id 12345 --dry-run
@@ -152,6 +165,36 @@ const confluenceAdfJson = new ConfluenceFormatter().format(canonical);
 --asset-mode none|copy        # Asset bundling strategy (default: none)
 --allow-missing-assets        # Warn on missing assets instead of failing
 ```
+
+### Living-docs portal (`build-docs`)
+
+`build-docs` runs the whole living-docs pipeline in one step against a scaffolded Astro site (`init-astro` first). From a single raw run it writes, under the site:
+
+- `public/stories/story-report.json` — StoryReport v1 (the Scenario Explorer's data)
+- `public/stories/scenario-links.json` — **deep-link index** keyed by stable scenario id (`{ url, anchor, deepLink, audience, status }`); the contract external tools (Linear/Confluence/MCP) resolve against
+- `src/content/docs/stories/**` — one browsable page per source file (assets bundled to `public/stories/assets`)
+- `src/content/docs/stories/index.md` — **overview/landing** page with per-audience cards (pass/fail counts, failures-first deep links)
+- with `--baseline`: `public/stories/changes.json` + `stories/changes.md` — **what's-changed** (added/removed/regressed/fixed), and 🆕/✅/⚠️ badges baked onto changed scenario pages
+
+```bash
+# Flat layout (default — backward-compatible URLs /stories/<file>/)
+executable-stories build-docs raw-run.json --site-dir story-docs
+
+# Portal: audience-categorized URLs /stories/<engineer|stakeholder>/<file>/
+#   audience is derived (e2e/*.spec.* → stakeholder, else engineer; @audience:* tag overrides)
+executable-stories build-docs raw-run.json --site-dir story-docs --audience-split
+
+# Living portal: also emit the what's-changed page + per-scenario badges
+executable-stories build-docs raw-run.json --site-dir story-docs \
+  --audience-split --baseline prev-story-report.json
+```
+
+Flags & contracts:
+
+- `--audience-split` is **opt-in** (default flat). Turning it on changes every page URL, so existing bookmarks/deep links to `/stories/<file>/` would 404 — enable it deliberately (the GitHub Action's `mode: portal` defaults it on).
+- `--baseline <prev story-report.json>` is **strict**: a path that can't be read is a hard error (exit 4), never a silent "no changes". When a run produces no diff, any stale `changes.json`/`changes.md` from a prior run is removed.
+- The exported `buildScenarioLinks()` helper defaults `audienceSplit: false`, matching the CLI — pass `{ audienceSplit: true }` when pages were generated with the split.
+- Deploy the built site anywhere, or use the GitHub Action `mode: portal` (host-agnostic artifact, optional GitHub Pages).
 
 ### Atlassian publishing
 

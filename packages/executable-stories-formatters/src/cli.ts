@@ -2403,6 +2403,8 @@ async function runBuildDocs(rawArgs: string[]): Promise<number> {
       "site-dir": { type: "string" },
       openapi: { type: "string" },
       "no-synthesize-stories": { type: "boolean", default: false },
+      "audience-split": { type: "boolean", default: false },
+      baseline: { type: "string" },
     },
     allowPositionals: true,
     strict: true,
@@ -2411,10 +2413,12 @@ async function runBuildDocs(rawArgs: string[]): Promise<number> {
   const rawRunPath = positionals[0];
   if (!rawRunPath) {
     console.error(
-      `Usage: executable-stories build-docs <raw-run.json> [--site-dir <dir>] [--openapi <spec>]`,
+      `Usage: executable-stories build-docs <raw-run.json> [--site-dir <dir>] [--openapi <spec>] [--baseline <prev-story-report.json>] [--audience-split]`,
     );
     return EXIT_USAGE;
   }
+
+  const audienceSplit = values["audience-split"] as boolean;
 
   try {
     const result = await buildDocs({
@@ -2422,16 +2426,33 @@ async function runBuildDocs(rawArgs: string[]): Promise<number> {
       siteDir: (values["site-dir"] as string | undefined) ?? ".",
       openapiPath: values.openapi as string | undefined,
       synthesizeStories: !values["no-synthesize-stories"],
+      audienceSplit,
+      baselinePath: values.baseline as string | undefined,
     });
 
     console.log(`✓ Living docs generated in ${result.siteDir}`);
     console.log(`  • Explorer data   → public/stories/story-report.json`);
-    console.log(`  • Story pages     → src/content/docs/stories`);
+    console.log(`  • Deep links      → public/stories/scenario-links.json (${result.scenarioLinks})`);
+    if (audienceSplit) {
+      console.log(
+        `  • Story pages     → src/content/docs/stories/{engineer,stakeholder} ` +
+          `(engineer: ${result.audiences.engineer}, stakeholder: ${result.audiences.stakeholder})`,
+      );
+    } else {
+      console.log(`  • Story pages     → src/content/docs/stories`);
+    }
     if (result.bundledAssets > 0) {
       console.log(`  • Bundled assets  → public/stories/assets (${result.bundledAssets})`);
     }
     if (result.apiPages > 0) {
       console.log(`  • API pages       → src/content/docs/api (${result.apiPages})`);
+    }
+    if (result.changes) {
+      const c = result.changes;
+      console.log(
+        `  • What's changed  → src/content/docs/stories/changes.md ` +
+          `(+${c.added} added, ${c.regressed} regressed, ${c.fixed} fixed, ${c.removed} removed)`,
+      );
     }
     const rel = path.relative(process.cwd(), result.siteDir) || ".";
     console.log(`\nPreview: cd ${rel} && npm run dev`);

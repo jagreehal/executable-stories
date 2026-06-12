@@ -225,6 +225,39 @@ describe("copyMarkdownAssets", () => {
     expect(fs.existsSync(assetsDir)).toBe(false);
   });
 
+  it("bundles an absolute-path video that exists on disk (Playwright case)", () => {
+    const videoPath = writeFile(tmpDir, "demo.webm", "WEBM_DATA"); // absolute path
+    const md = `<video controls><source src="${videoPath}" /></video>`;
+    const assetsDir = path.join(tmpDir, "assets");
+
+    const result = copyMarkdownAssets({
+      markdown: md,
+      markdownDir: path.join(tmpDir, "pages"), // markdownDir != the file's dir, proving abs resolution
+      assetsDir,
+      assetsBaseUrl: "/stories/assets",
+    });
+
+    expect(result.copiedCount).toBe(1);
+    expect(result.markdown).toMatch(/<source src="\/stories\/assets\/demo-[a-f0-9]+\.webm" \/>/);
+    expect(result.markdown).not.toContain(videoPath);
+    expect(fs.readdirSync(assetsDir).some((f) => f.endsWith(".webm"))).toBe(true);
+  });
+
+  it("leaves an absolute served URL untouched without erroring (allowMissing=false)", () => {
+    const md = `<video><source src="/stories/assets/already.webm" /></video>`;
+    const assetsDir = path.join(tmpDir, "assets");
+
+    const result = copyMarkdownAssets({
+      markdown: md,
+      markdownDir: tmpDir,
+      assetsDir,
+      assetsBaseUrl: "/stories/assets",
+    });
+
+    expect(result.copiedCount).toBe(0);
+    expect(result.markdown).toBe(md);
+  });
+
   it("throws on missing files with allowMissing=false (default)", () => {
     const md = "![missing](./no-such-file.png)";
     const assetsDir = path.join(tmpDir, "assets");

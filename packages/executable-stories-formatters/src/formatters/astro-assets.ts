@@ -19,15 +19,27 @@ export interface CopyMarkdownAssetsOptions {
 
 const SKIP_PREFIXES = ["http://", "https://", "data:", "#"];
 
-function isLocalPath(src: string): boolean {
+/** Remote (http/data) or in-page anchor refs — never copied or rewritten. */
+function isRemoteRef(src: string): boolean {
   const trimmed = src.trim();
-  if (SKIP_PREFIXES.some((prefix) => trimmed.startsWith(prefix))) {
-    return false;
-  }
+  return SKIP_PREFIXES.some((prefix) => trimmed.startsWith(prefix));
+}
 
-  // Root-relative, protocol-relative, and absolute filesystem paths are not
-  // relative to the markdown file and should not be copied from markdownDir.
-  return !path.posix.isAbsolute(trimmed) && !path.win32.isAbsolute(trimmed);
+/** An absolute filesystem path (posix or windows). */
+function isAbsoluteRef(src: string): boolean {
+  const trimmed = src.trim();
+  return path.posix.isAbsolute(trimmed) || path.win32.isAbsolute(trimmed);
+}
+
+/**
+ * A path that should be copied from `markdownDir` — i.e. a relative local ref.
+ * Absolute paths are handled separately (resolved as-is, and only bundled when
+ * they point at a real file) because story doc entries — notably Playwright
+ * videos — frequently carry absolute paths, while served URLs like
+ * `/stories/assets/x` are also absolute but must be left untouched.
+ */
+function isRelativeLocalPath(src: string): boolean {
+  return !isRemoteRef(src) && !isAbsoluteRef(src);
 }
 
 /** Strip fenced code blocks and inline code spans so their contents aren't treated as real references. */
@@ -56,7 +68,7 @@ export function scanMarkdownAssets(markdown: string): string[] {
   let match: RegExpExecArray | null;
   while ((match = mdImageRe.exec(stripped)) !== null) {
     const src = match[1].trim();
-    if (isLocalPath(src)) {
+    if (!isRemoteRef(src)) {
       found.add(src);
     }
   }
@@ -65,7 +77,7 @@ export function scanMarkdownAssets(markdown: string): string[] {
   const htmlSrcRe = /<(?:img|source|video)[^>]+\bsrc=["']([^"']+)["'][^>]*>/gi;
   while ((match = htmlSrcRe.exec(stripped)) !== null) {
     const src = match[1].trim();
-    if (isLocalPath(src)) {
+    if (!isRemoteRef(src)) {
       found.add(src);
     }
   }
@@ -74,7 +86,7 @@ export function scanMarkdownAssets(markdown: string): string[] {
   const posterRe = /<video[^>]+\bposter=["']([^"']+)["'][^>]*>/gi;
   while ((match = posterRe.exec(stripped)) !== null) {
     const src = match[1].trim();
-    if (isLocalPath(src)) {
+    if (!isRemoteRef(src)) {
       found.add(src);
     }
   }
@@ -113,60 +125,45 @@ function isCode(segment: string): boolean {
   return trimmed.startsWith("`") || trimmed.startsWith("~") || trimmed.startsWith("<pre") || trimmed.startsWith("<code");
 }
 
+/**
+ * Resolve a single asset ref to its served path, or null when it should be left
+ * unchanged. Remote/anchor refs are skipped. With a pathMap (the copy pipeline),
+ * only refs that were actually copied are rewritten — so absolute paths bundle
+ * correctly and unknown served URLs pass through. Without a pathMap, only
+ * relative local refs get the base-url prefix.
+ */
+function resolveRewrite(
+  trimmed: string,
+  assetsBaseUrl: string,
+  pathMap?: Map<string, string>,
+): string | null {
+  if (isRemoteRef(trimmed)) return null;
+  if (pathMap) {
+    const mapped = pathMap.get(trimmed);
+    return mapped === undefined ? null : `${assetsBaseUrl}/${mapped}`;
+  }
+  if (!isRelativeLocalPath(trimmed)) return null;
+  return `${assetsBaseUrl}/${trimmed}`;
+}
+
 /** Rewrite asset paths in a single prose (non-fenced) segment. */
 function rewriteProseSegment(
   prose: string,
   assetsBaseUrl: string,
   pathMap?: Map<string, string>,
 ): string {
-  let result = prose;
+  const rewrite = (full: string, pre: string, src: string, post: string): string => {
+    const target = resolveRewrite(src.trim(), assetsBaseUrl, pathMap);
+    return target === null ? full : `${pre}${target}${post}`;
+  };
 
-  // Rewrite markdown image syntax: ![alt](path) or ![alt](path "title")
-  result = result.replace(
-    /(!\[[^\]]*\]\()([^)"'\s]+)((?:\s+["'][^"']*["'])?\s*\))/g,
-    (full, pre, src, post) => {
-      const trimmed = src.trim();
-      if (!isLocalPath(trimmed)) return full;
-      if (pathMap) {
-        const mapped = pathMap.get(trimmed);
-        if (mapped === undefined) return full;
-        return `${pre}${assetsBaseUrl}/${mapped}${post}`;
-      }
-      return `${pre}${assetsBaseUrl}/${trimmed}${post}`;
-    },
-  );
-
-  // Rewrite HTML src attributes in img/source/video tags
-  result = result.replace(
-    /(<(?:img|source|video)[^>]+\bsrc=["'])([^"']+)(["'][^>]*>)/gi,
-    (full, pre, src, post) => {
-      const trimmed = src.trim();
-      if (!isLocalPath(trimmed)) return full;
-      if (pathMap) {
-        const mapped = pathMap.get(trimmed);
-        if (mapped === undefined) return full;
-        return `${pre}${assetsBaseUrl}/${mapped}${post}`;
-      }
-      return `${pre}${assetsBaseUrl}/${trimmed}${post}`;
-    },
-  );
-
-  // Rewrite poster attributes on video tags
-  result = result.replace(
-    /(<video[^>]+\bposter=["'])([^"']+)(["'][^>]*>)/gi,
-    (full, pre, src, post) => {
-      const trimmed = src.trim();
-      if (!isLocalPath(trimmed)) return full;
-      if (pathMap) {
-        const mapped = pathMap.get(trimmed);
-        if (mapped === undefined) return full;
-        return `${pre}${assetsBaseUrl}/${mapped}${post}`;
-      }
-      return `${pre}${assetsBaseUrl}/${trimmed}${post}`;
-    },
-  );
-
-  return result;
+  return prose
+    // Markdown image syntax: ![alt](path) or ![alt](path "title")
+    .replace(/(!\[[^\]]*\]\()([^)"'\s]+)((?:\s+["'][^"']*["'])?\s*\))/g, rewrite)
+    // HTML src attributes in img/source/video tags
+    .replace(/(<(?:img|source|video)[^>]+\bsrc=["'])([^"']+)(["'][^>]*>)/gi, rewrite)
+    // poster attributes on video tags
+    .replace(/(<video[^>]+\bposter=["'])([^"']+)(["'][^>]*>)/gi, rewrite);
 }
 
 /**
@@ -202,8 +199,11 @@ export function copyMarkdownAssets(options: CopyMarkdownAssetsOptions): AstroAss
   const missing: string[] = [];
 
   for (const ref of refs) {
-    const absPath = path.resolve(markdownDir, ref);
+    const absPath = isAbsoluteRef(ref) ? ref : path.resolve(markdownDir, ref);
     if (!fs.existsSync(absPath)) {
+      // An absolute path that isn't a real file is an already-served URL
+      // (e.g. /stories/assets/x, /demo-assets/x) — leave it untouched, never error.
+      if (isAbsoluteRef(ref)) continue;
       if (!allowMissing) {
         throw new Error(`Asset not found: ${absPath}`);
       }

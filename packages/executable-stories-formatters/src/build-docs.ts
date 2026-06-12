@@ -22,8 +22,41 @@ import { assertValidRun } from "./converters/acl/validate";
 import { ReportGenerator } from "./index.js";
 import { importOpenApi } from "./import-openapi";
 import { copyAsset } from "./bundler/copy-asset";
+import { deriveAudience } from "./review/conventions";
+import { buildScenarioLinks, scenarioAnchor, type ScenarioLinksIndex } from "./scenario-links";
+import { diffStoryReports, type BehaviorDiff } from "./behavior-diff";
+import { renderChangesPage } from "./changes-page";
+import { renderOverviewPage } from "./overview-page";
 import type { RawRun } from "./types/raw";
-import type { TestRunResult } from "./types/test-result";
+import type { ReviewAudience } from "./types/review";
+import type { StoryReport } from "./types/story-report";
+import type { TestCaseResult, TestRunResult } from "./types/test-result";
+
+/** Top-level audiences, in nav order. Engineer first (internals), then stakeholder. */
+export const AUDIENCES = ["engineer", "stakeholder"] as const;
+
+/**
+ * Split a run into per-audience sub-runs using the same convention-based
+ * `deriveAudience` the review report uses (e2e/spec → stakeholder, else
+ * engineer; `@audience:*` tag overrides). Each sub-run carries the full run
+ * metadata so its generated pages still know the gitSha/CI/etc. Zero authoring
+ * burden: nothing in the test API changes.
+ */
+export function partitionByAudience(
+  run: TestRunResult,
+): Record<ReviewAudience, TestRunResult> {
+  const buckets: Record<ReviewAudience, TestCaseResult[]> = {
+    engineer: [],
+    stakeholder: [],
+  };
+  for (const tc of run.testCases) {
+    buckets[deriveAudience(tc.sourceFile, tc.tags)].push(tc);
+  }
+  return {
+    engineer: { ...run, testCases: buckets.engineer },
+    stakeholder: { ...run, testCases: buckets.stakeholder },
+  };
+}
 
 export interface BuildDocsOptions {
   /** Raw run (schemaVersion 1) produced by a framework's StoryReporter. */
@@ -34,12 +67,35 @@ export interface BuildDocsOptions {
   openapiPath?: string;
   /** Synthesize missing story metadata (default true). */
   synthesizeStories?: boolean;
+  /**
+   * Group generated story pages by derived audience (engineer = unit/integration,
+   * stakeholder = e2e) into `stories/<audience>/` subdirs, so the Starlight sidebar
+   * reflects the split.
+   *
+   * **Default false** — opt-in, because enabling it changes every page URL from
+   * `/stories/<file>/` to `/stories/<audience>/<file>/`, which would 404 existing
+   * bookmarks and stored deep links on upgrade. The portal (action `mode: portal`)
+   * turns this on deliberately; plain `build-docs` stays backward-compatible.
+   */
+  audienceSplit?: boolean;
+  /**
+   * Previous run's `story-report.json`. When supplied, build-docs computes a
+   * scenario-level diff (added/removed/regressed/fixed) and emits a "What's
+   * changed" page + `changes.json`, so the portal reads as living, not a snapshot.
+   */
+  baselinePath?: string;
 }
 
 export interface BuildDocsResult {
   siteDir: string;
   bundledAssets: number;
   apiPages: number;
+  /** Scenario count per audience (0 means no pages were generated for it). */
+  audiences: Record<ReviewAudience, number>;
+  /** Number of scenarios written to the deep-link index. */
+  scenarioLinks: number;
+  /** Change summary vs the baseline (undefined when no baseline was supplied). */
+  changes?: BehaviorDiff["summary"];
 }
 
 /** Why a build-docs run failed — lets the CLI pick the right exit code. */
@@ -111,6 +167,62 @@ export function bundleExplorerAssets(
   return copied;
 }
 
+/** Markdown badge line for a what's-changed kind, or undefined for no badge. */
+const CHANGE_BADGE: Partial<Record<BehaviorDiff["scenarios"][number]["kind"], string>> = {
+  added: "🆕 **New** _since last run_",
+  fixed: "✅ **Fixed** _since last run_",
+  regressed: "⚠️ **Regressed** _since last run_",
+};
+
+/**
+ * Build a per-scenario badge lookup from a diff, keyed by `sourceFile\u0000title`
+ * (the markdown formatter only knows a test case's file + scenario name, not the
+ * StoryReport id). Returns undefined when there's nothing worth badging.
+ */
+function changeBadgeLookup(
+  diff: BehaviorDiff | undefined,
+): ((tc: TestCaseResult) => string | undefined) | undefined {
+  if (!diff) return undefined;
+  const byKey = new Map<string, string>();
+  for (const s of diff.scenarios) {
+    const badge = CHANGE_BADGE[s.kind];
+    if (badge) byKey.set(`${s.sourceFile}\u0000${s.title}`, badge);
+  }
+  if (byKey.size === 0) return undefined;
+  return (tc) => byKey.get(`${tc.sourceFile}\u0000${tc.story.scenario}`);
+}
+
+/** Parse a story-report JSON file, returning null if missing or unreadable. */
+function readStoryReport(reportPath: string): StoryReport | null {
+  if (!fs.existsSync(reportPath)) return null;
+  try {
+    return JSON.parse(fs.readFileSync(reportPath, "utf8")) as StoryReport;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Read the generated story-report and write `scenario-links.json` beside it.
+ * Returns the index (null if the report is missing/unreadable — the index is a
+ * convenience, never a reason to fail the build).
+ */
+export function writeScenarioLinks(
+  reportPath: string,
+  outDir: string,
+  options: { audienceSplit?: boolean } = {},
+): ScenarioLinksIndex | null {
+  const report = readStoryReport(reportPath);
+  if (!report) return null;
+  const index = buildScenarioLinks(report, { audienceSplit: options.audienceSplit });
+  fs.writeFileSync(
+    path.join(outDir, "scenario-links.json"),
+    JSON.stringify(index, null, 2),
+    "utf8",
+  );
+  return index;
+}
+
 /** Remove generated story pages (.md/.mdx) under a dir, keeping .gitkeep and dirs. */
 function clearGeneratedPages(dir: string): void {
   if (!fs.existsSync(dir)) return;
@@ -168,21 +280,105 @@ export async function buildDocs(options: BuildDocsOptions): Promise<BuildDocsRes
       outputName: "story-report",
     }).generate(canonical);
 
+    // Diff vs a previous run is computed up-front (before pages) so per-scenario
+    // "what changed" badges can be baked into the generated pages. A baseline that
+    // was asked for but can't be read is a hard error, not a silent "no changes" —
+    // otherwise a typo'd or corrupt path produces a green build with stale/empty
+    // change data that downstream tooling would read as current truth.
+    let diff: BehaviorDiff | undefined;
+    if (options.baselinePath) {
+      const baselineResolved = path.resolve(options.baselinePath);
+      const baseline = readStoryReport(baselineResolved);
+      if (!baseline) {
+        throw new BuildDocsError(
+          `Baseline story-report not found or unreadable: ${baselineResolved}`,
+          "input",
+        );
+      }
+      const current = readStoryReport(reportPath);
+      if (current) diff = diffStoryReports(baseline, current);
+    }
+    const scenarioBadge = changeBadgeLookup(diff);
+
     // Story pages — one browsable page per source file (colocated), so the
     // docs nav mirrors the test suite instead of one giant aggregated dump.
     // Clear previously-generated pages first so a renamed/removed test doesn't
     // leave a stale page behind.
     clearGeneratedPages(storyPagesDir);
-    await new ReportGenerator({
-      formats: ["astro"],
-      outputDir: storyPagesDir,
-      outputName: "index",
-      output: { mode: "colocated", colocatedStyle: "flat" },
-      assetMode: "copy",
-      astro: { assetsDir, assetsBaseUrl: "/stories/assets" },
-    }).generate(canonical);
+
+    const genPages = (run: TestRunResult, outDir: string): Promise<unknown> =>
+      new ReportGenerator({
+        formats: ["astro"],
+        outputDir: outDir,
+        outputName: "index",
+        output: { mode: "colocated", colocatedStyle: "flat" },
+        assetMode: "copy",
+        astro: {
+          assetsDir,
+          assetsBaseUrl: "/stories/assets",
+          markdown: {
+            // Emit the same anchor scenario-links.json points at, so fragments resolve.
+            scenarioAnchor: (tc) => scenarioAnchor(tc.story.scenario),
+            scenarioBadge,
+          },
+        },
+      }).generate(run);
+
+    const audiences: Record<ReviewAudience, number> = { engineer: 0, stakeholder: 0 };
+
+    if (options.audienceSplit ?? false) {
+      // One subdir per audience → the `autogenerate: { directory: 'stories' }`
+      // sidebar nests Engineer / Stakeholder groups for free.
+      const partitioned = partitionByAudience(canonical);
+      for (const audience of AUDIENCES) {
+        const sub = partitioned[audience];
+        audiences[audience] = sub.testCases.length;
+        if (sub.testCases.length === 0) continue;
+        await genPages(sub, path.join(storyPagesDir, audience));
+      }
+    } else {
+      await genPages(canonical, storyPagesDir);
+    }
 
     const bundledAssets = bundleExplorerAssets(reportPath, assetsDir);
+
+    // Deep-link index — the stable contract external tools (Linear/Confluence/MCP)
+    // resolve against. Built from the report on disk so its scenario ids match the
+    // Explorer's exactly.
+    const linksIndex = writeScenarioLinks(reportPath, storiesPublicDir, {
+      audienceSplit: options.audienceSplit ?? false,
+    });
+    const scenarioLinks = linksIndex ? Object.keys(linksIndex.scenarios).length : 0;
+
+    // Stories overview — the audience-first landing at `/stories/` (cards with
+    // pass/fail counts + deep-linked scenario lists), built from the link index.
+    if (linksIndex) {
+      fs.writeFileSync(
+        path.join(storyPagesDir, "index.md"),
+        renderOverviewPage(linksIndex),
+        "utf8",
+      );
+    }
+
+    // What's-changed — scenario-level diff vs a previous run, so the portal shows
+    // what moved since last publish rather than just a static snapshot.
+    //
+    // When no diff is produced this run (no baseline given), remove any change
+    // artifacts a *previous* run left behind — otherwise a stale changes.json/.md
+    // lingers and reads as current truth. (changes.md also lives under
+    // storyPagesDir, which clearGeneratedPages already wipes; removing it here too
+    // keeps the contract explicit regardless of layout.)
+    const changesJsonPath = path.join(storiesPublicDir, "changes.json");
+    const changesMdPath = path.join(storyPagesDir, "changes.md");
+    let changes: BehaviorDiff["summary"] | undefined;
+    if (diff && linksIndex) {
+      fs.writeFileSync(changesJsonPath, JSON.stringify(diff, null, 2), "utf8");
+      fs.writeFileSync(changesMdPath, renderChangesPage(diff, linksIndex), "utf8");
+      changes = diff.summary;
+    } else {
+      fs.rmSync(changesJsonPath, { force: true });
+      fs.rmSync(changesMdPath, { force: true });
+    }
 
     let apiPages = 0;
     if (options.openapiPath) {
@@ -195,7 +391,7 @@ export async function buildDocs(options: BuildDocsOptions): Promise<BuildDocsRes
       apiPages = res.pageCount;
     }
 
-    return { siteDir, bundledAssets, apiPages };
+    return { siteDir, bundledAssets, apiPages, audiences, scenarioLinks, changes };
   } catch (err) {
     if (err instanceof BuildDocsError) throw err;
     throw new BuildDocsError(`Generation failed: ${(err as Error).message}`, "generation");
