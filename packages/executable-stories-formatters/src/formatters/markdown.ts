@@ -43,6 +43,19 @@ export interface MarkdownOptions {
   includeSourceLinks?: boolean;
   /** Custom renderers for doc entries */
   customRenderers?: MarkdownRenderers;
+  /**
+   * Emit a stable in-page anchor before each scenario heading, so external tools
+   * can deep-link to a scenario by fragment. Given a test case, return the anchor
+   * id (without `#`), or undefined to skip. Off by default — only the living-docs
+   * site opts in, so plain markdown output is unchanged.
+   */
+  scenarioAnchor?: (tc: TestCaseResult) => string | undefined;
+  /**
+   * Render a short badge line directly under a scenario heading (e.g. a
+   * what's-changed marker like "🆕 New" / "⚠️ Regressed"). Return the markdown
+   * line, or undefined to skip. Off by default — only the living-docs site opts in.
+   */
+  scenarioBadge?: (tc: TestCaseResult) => string | undefined;
 }
 
 /** Resolved options with all defaults */
@@ -63,6 +76,8 @@ type ResolvedMarkdownOptions = {
   traceUrlTemplate?: string;
   includeSourceLinks: boolean;
   customRenderers?: MarkdownRenderers;
+  scenarioAnchor?: (tc: TestCaseResult) => string | undefined;
+  scenarioBadge?: (tc: TestCaseResult) => string | undefined;
 };
 
 /**
@@ -92,6 +107,8 @@ export class MarkdownFormatter {
       traceUrlTemplate: options.traceUrlTemplate,
       includeSourceLinks: options.includeSourceLinks ?? true,
       customRenderers: options.customRenderers,
+      scenarioAnchor: options.scenarioAnchor,
+      scenarioBadge: options.scenarioBadge,
     };
   }
 
@@ -320,6 +337,15 @@ export class MarkdownFormatter {
    * Render a single scenario.
    */
   private renderScenario(lines: string[], tc: TestCaseResult): void {
+    // Stable deep-link target — an explicit anchor just above the heading, so a
+    // fragment like `#scenario-foo` resolves regardless of how the renderer slugs
+    // heading text. Opt-in (living-docs site only); see `scenarioAnchor` option.
+    const anchorId = this.options.scenarioAnchor?.(tc);
+    if (anchorId) {
+      lines.push(`<a id="${anchorId}"></a>`);
+      lines.push("");
+    }
+
     // Check for custom scenario header renderer
     if (this.options.customRenderers?.renderScenarioHeader) {
       const custom = this.options.customRenderers.renderScenarioHeader(tc);
@@ -342,6 +368,12 @@ export class MarkdownFormatter {
 
     // Scenario heading
     lines.push(`${headingPrefix} ${icon}${tc.story.scenario}`);
+
+    // What's-changed badge (opt-in) — sits directly under the heading.
+    const badge = this.options.scenarioBadge?.(tc);
+    if (badge) {
+      lines.push(badge);
+    }
 
     // Source link
     if (this.options.includeSourceLinks && this.options.permalinkBaseUrl && tc.sourceFile !== "unknown") {
