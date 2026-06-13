@@ -178,7 +178,8 @@ test('Working with timeouts and delays', async ({}, testInfo) => {
   const startTime = performance.now();
 
   story.when('operation with delay completes');
-  await delay(50);
+  // Leave headroom above the asserted threshold to avoid flaking on scheduler jitter.
+  await delay(60);
   const endTime = performance.now();
 
   story.then('elapsed time is measurable');

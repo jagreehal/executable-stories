@@ -535,4 +535,44 @@ describe("MarkdownFormatter", () => {
       expect(result).toContain("`PROJ-42`");
     });
   });
+
+  describe("scenarioNoteLink", () => {
+    it("injects the returned line under the scenario heading", () => {
+      const run = canonicalizeRun(createRawRun());
+      const withLink = new MarkdownFormatter({
+        scenarioNoteLink: () => "[Business context →](/notes/some-scenario/)",
+      });
+      const result = withLink.format(run);
+
+      expect(result).toContain("### ✅ User logs in successfully");
+      expect(result).toContain("[Business context →](/notes/some-scenario/)");
+      // Sits directly under the heading.
+      expect(result).toMatch(
+        /### ✅ User logs in successfully\n\[Business context →\]\(\/notes\/some-scenario\/\)/,
+      );
+    });
+
+    it("omits the line entirely when the callback returns undefined", () => {
+      const run = canonicalizeRun(createRawRun());
+      const noLink = new MarkdownFormatter({ scenarioNoteLink: () => undefined });
+      expect(noLink.format(run)).not.toContain("Business context");
+    });
+
+    it("is absent by default (plain markdown output unchanged)", () => {
+      const run = canonicalizeRun(createRawRun());
+      expect(new MarkdownFormatter().format(run)).not.toContain("Business context");
+    });
+
+    it("renders heading → badge → note link, in that order, when both are set", () => {
+      const run = canonicalizeRun(createRawRun());
+      const both = new MarkdownFormatter({
+        scenarioBadge: () => "🆕 **New** _since last run_",
+        scenarioNoteLink: () => "[Business context →](/notes/some-scenario/)",
+      });
+
+      expect(both.format(run)).toMatch(
+        /### ✅ User logs in successfully\n🆕 \*\*New\*\* _since last run_\n\[Business context →\]\(\/notes\/some-scenario\/\)/,
+      );
+    });
+  });
 });

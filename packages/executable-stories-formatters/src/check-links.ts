@@ -13,6 +13,8 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
+import { collectMarkdownFiles } from "./utils/markdown-files";
+
 export interface CheckLinksOptions {
   /** Directory (or single file) to scan. */
   target: string;
@@ -95,22 +97,6 @@ function resolvesOnDisk(fromFile: string, link: string): boolean {
   );
 }
 
-function collectDocFiles(target: string): string[] {
-  const stat = fs.statSync(target);
-  if (stat.isFile()) return [target];
-  const out: string[] = [];
-  const walk = (dir: string) => {
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-      if (entry.name.startsWith(".") || entry.name === "node_modules") continue;
-      const full = path.join(dir, entry.name);
-      if (entry.isDirectory()) walk(full);
-      else if (/\.mdx?$/.test(entry.name)) out.push(full);
-    }
-  };
-  walk(target);
-  return out;
-}
-
 async function isExternalAlive(url: string, timeoutMs: number): Promise<boolean> {
   const attempt = async (method: "HEAD" | "GET") => {
     const controller = new AbortController();
@@ -140,7 +126,7 @@ export async function checkLinks(options: CheckLinksOptions): Promise<LinkReport
     throw new Error(`Path not found: ${target}`);
   }
 
-  const files = collectDocFiles(target);
+  const files = collectMarkdownFiles(target);
   const broken: BrokenLink[] = [];
   let linksChecked = 0;
   let externalChecked = 0;

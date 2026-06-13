@@ -148,7 +148,9 @@ describe("buildDocs", () => {
     const siteDir = path.join(dir, "site");
     const result = await buildDocs({ rawRunPath, siteDir });
     expect(result.apiPages).toBe(0);
+    expect(result.notesIndexed).toBe(0);
     expect(fs.existsSync(path.join(siteDir, "public/stories/story-report.json"))).toBe(true);
+    expect(fs.existsSync(path.join(siteDir, "public/stories/notes-index.json"))).toBe(true);
   });
 
   it("throws a schema-kind BuildDocsError on an unsupported schemaVersion", async () => {
@@ -315,6 +317,117 @@ describe("buildDocs audience split", () => {
     expect(content).toContain("title: Stories");
     expect(content).toContain("## 🔧 Engineer");
     expect(content).toContain("## 🎬 Stakeholder");
+  });
+
+  it("adds business-context links to the overview when scenario notes exist", async () => {
+    const siteDir = path.join(dir, "site");
+    const notesDir = path.join(siteDir, "src/content/docs/notes");
+    fs.mkdirSync(notesDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(notesDir, "feature-e2e-checkout-story-spec--guest-can-check-out.mdx"),
+      `---
+title: "Checkout business context"
+scenarioId: feature-e2e-checkout-story-spec--guest-can-check-out
+verifiedBy: [feature-e2e-checkout-story-spec--guest-can-check-out]
+---
+`,
+      "utf8",
+    );
+
+    await buildDocs({ rawRunPath: writeRawRun(), siteDir });
+    const overview = fs.readFileSync(path.join(siteDir, "src/content/docs/stories/index.md"), "utf8");
+    // The route slug must keep the `--` separator so it matches Astro's
+    // github-slugger route — collapsing it to `-` would 404.
+    expect(overview).toContain("[Business context →](/notes/feature-e2e-checkout-story-spec--guest-can-check-out/)");
+  });
+
+  it("indexes human-authored scenario notes for explorer linking", async () => {
+    const siteDir = path.join(dir, "site");
+    const notesDir = path.join(siteDir, "src/content/docs/notes");
+    fs.mkdirSync(notesDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(notesDir, "feature-tests-transfer-story-test--creates-a-transfer.mdx"),
+      `---
+title: "Transfer business context"
+scenarioId: feature-tests-transfer-story-test--creates-a-transfer
+verifiedBy: [feature-tests-transfer-story-test--creates-a-transfer]
+---
+
+Business context.
+`,
+      "utf8",
+    );
+
+    const result = await buildDocs({ rawRunPath: writeRawRun(), siteDir });
+
+    expect(result.notesIndexed).toBe(1);
+    const notesIndex = JSON.parse(
+      fs.readFileSync(path.join(siteDir, "public/stories/notes-index.json"), "utf8"),
+    );
+    expect(notesIndex.notes).toEqual([
+      {
+        scenarioId: "feature-tests-transfer-story-test--creates-a-transfer",
+        slug: "feature-tests-transfer-story-test--creates-a-transfer",
+        title: "Transfer business context",
+      },
+    ]);
+  });
+
+  it("links a generated story page to its scenario note, and leaves note-less scenarios untouched", async () => {
+    const siteDir = path.join(dir, "site");
+    const notesDir = path.join(siteDir, "src/content/docs/notes");
+    fs.mkdirSync(notesDir, { recursive: true });
+    // Note for the checkout scenario only; the math scenario has none.
+    fs.writeFileSync(
+      path.join(notesDir, "feature-e2e-checkout-story-spec--guest-can-check-out.mdx"),
+      `---
+title: "Checkout business context"
+scenarioId: feature-e2e-checkout-story-spec--guest-can-check-out
+---
+`,
+      "utf8",
+    );
+
+    await buildDocs({ rawRunPath: writeRawRun(), siteDir });
+
+    // The link is baked into the generated page, under the scenario heading, and
+    // its route matches the note's Astro slug (the `--` separator is preserved).
+    const checkoutPage = fs.readFileSync(
+      path.join(siteDir, "src/content/docs/stories/checkout.md"),
+      "utf8",
+    );
+    expect(checkoutPage).toContain(
+      "[Business context →](/notes/feature-e2e-checkout-story-spec--guest-can-check-out/)",
+    );
+
+    // A scenario with no matching note gets no extra line — no empty placeholders.
+    const mathPage = fs.readFileSync(
+      path.join(siteDir, "src/content/docs/stories/math.md"),
+      "utf8",
+    );
+    expect(mathPage).not.toContain("Business context");
+  });
+
+  it("does not link a story page when a note's scenarioId matches no scenario", async () => {
+    const siteDir = path.join(dir, "site");
+    const notesDir = path.join(siteDir, "src/content/docs/notes");
+    fs.mkdirSync(notesDir, { recursive: true });
+    // Orphan note — a typo'd / stale scenario id the run no longer contains.
+    fs.writeFileSync(
+      path.join(notesDir, "feature-does-not-exist--ghost.mdx"),
+      `---\ntitle: "Ghost"\nscenarioId: feature-does-not-exist--ghost\n---\n`,
+      "utf8",
+    );
+
+    const result = await buildDocs({ rawRunPath: writeRawRun(), siteDir });
+
+    // Still indexed (the note page itself surfaces a stale banner via PageTitle),
+    // but no generated story page gets a link to it.
+    expect(result.notesIndexed).toBe(1);
+    for (const page of ["checkout.md", "math.md"]) {
+      const md = fs.readFileSync(path.join(siteDir, "src/content/docs/stories", page), "utf8");
+      expect(md).not.toContain("Business context");
+    }
   });
 
   it("bakes what's-changed badges into the pages of added/regressed scenarios", async () => {

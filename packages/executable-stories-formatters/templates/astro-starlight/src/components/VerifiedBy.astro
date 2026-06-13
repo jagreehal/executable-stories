@@ -16,7 +16,12 @@
  * PageTitle override render it automatically.
  */
 import { report, explorerUrl } from "../lib/config";
-import { resolveVerification, presentStatus } from "../lib/verification";
+import {
+  resolveVerification,
+  presentStatus,
+  verificationAgeDays,
+  isVerificationStale,
+} from "../lib/verification";
 import type { ScenarioLike } from "../lib/verification";
 
 interface Props {
@@ -26,6 +31,11 @@ interface Props {
 const { refs } = Astro.props;
 const result = resolveVerification(refs, report);
 const present = presentStatus(result);
+const staleAfterDays = Number(import.meta.env.PUBLIC_VERIFICATION_STALE_DAYS ?? 14);
+const ageDays = verificationAgeDays(result);
+const ageWarning = Number.isFinite(staleAfterDays)
+  ? isVerificationStale(result, staleAfterDays)
+  : false;
 
 // Flatten the per-reference matches into a single de-duplicated story list so
 // the badge lists stories (the thing a reader cares about), not raw refs.
@@ -63,8 +73,21 @@ const lastVerified = result.lastVerifiedMs
     <span class="verified-by__icon" aria-hidden="true">{present.icon}</span>
     <span class="verified-by__label">{present.label}</span>
     <span class="verified-by__summary">{present.summary}</span>
-    {lastVerified && <span class="verified-by__meta">verified {lastVerified}</span>}
+    {lastVerified && (
+      <span class="verified-by__meta">
+        verified {lastVerified}
+        {typeof ageDays === "number" ? ` · ${ageDays}d ago` : ""}
+      </span>
+    )}
   </div>
+
+  {
+    ageWarning && (
+      <p class="verified-by__age-warning">
+        Verification is {ageDays} days old. Rerun the stories if freshness matters.
+      </p>
+    )
+  }
 
   {
     matched.length > 0 && (
@@ -239,6 +262,13 @@ const lastVerified = result.lastVerifiedMs
     margin: 0.75rem 0 0;
     color: var(--es-text);
     font-size: var(--sl-text-xs);
+  }
+
+  .verified-by__age-warning {
+    margin: 0.75rem 0 0;
+    color: var(--es-text);
+    font-size: var(--sl-text-xs);
+    font-weight: 600;
   }
 
   .verified-by__missing code {

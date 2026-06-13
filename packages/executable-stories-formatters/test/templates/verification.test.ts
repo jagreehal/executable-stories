@@ -8,7 +8,11 @@ import { describe, it, expect } from "vitest";
 import {
   resolveVerification,
   flattenReport,
+  findScenarioById,
+  hasScenarioId,
+  isVerificationStale,
   presentStatus,
+  verificationAgeDays,
   type StoryReportLike,
 } from "../../templates/astro-starlight/src/lib/verification";
 
@@ -111,10 +115,24 @@ describe("resolveVerification", () => {
     expect(r.runId).toBeUndefined();
   });
 
+  it("treats an empty verifiedBy list as explicitly unverified", () => {
+    const r = resolveVerification([], report([{ id: "a" }]));
+    expect(r.status).toBe("unverified");
+    expect(r.total).toBe(0);
+    expect(r.missingRefs).toEqual([]);
+  });
+
   it("flattenReport carries feature context onto scenarios", () => {
     const flat = flattenReport(report([{ id: "a" }]));
     expect(flat[0].feature).toBe("Checkout");
     expect(flat[0].sourceFile).toBe("checkout.story.ts");
+  });
+
+  it("finds scenarios by id for scenario-note staleness checks", () => {
+    const rep = report([{ id: "a" }]);
+    expect(findScenarioById(rep, "a")?.title).toBe("Scenario 0");
+    expect(hasScenarioId(rep, "a")).toBe(true);
+    expect(hasScenarioId(rep, "ghost")).toBe(false);
   });
 });
 
@@ -129,5 +147,12 @@ describe("presentStatus", () => {
     const p = presentStatus(resolveVerification("ghost", report([{ id: "a" }])));
     expect(p.label).toBe("Unverified");
     expect(p.summary).toContain("ghost");
+  });
+
+  it("computes verification age and stale thresholds", () => {
+    const result = resolveVerification("a", report([{ id: "a" }]));
+    expect(verificationAgeDays(result, 1_700_000_000_000 + 15 * 86_400_000)).toBe(15);
+    expect(isVerificationStale(result, 14, 1_700_000_000_000 + 15 * 86_400_000)).toBe(true);
+    expect(isVerificationStale(result, 30, 1_700_000_000_000 + 15 * 86_400_000)).toBe(false);
   });
 });

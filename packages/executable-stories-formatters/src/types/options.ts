@@ -271,6 +271,8 @@ export interface MarkdownFormatterOptions {
   scenarioAnchor?: (tc: TestCaseResult) => string | undefined;
   /** Render a badge line under a scenario heading (e.g. a what's-changed marker). Undefined to skip. */
   scenarioBadge?: (tc: TestCaseResult) => string | undefined;
+  /** Render a business-context link line under a scenario heading. Undefined to skip. */
+  scenarioNoteLink?: (tc: TestCaseResult) => string | undefined;
 }
 
 import type { DocEntry, StoryStep } from "./story";
@@ -407,6 +409,7 @@ export interface ResolvedFormatterOptions {
       customRenderers?: MarkdownRenderers;
       scenarioAnchor?: (tc: TestCaseResult) => string | undefined;
       scenarioBadge?: (tc: TestCaseResult) => string | undefined;
+      scenarioNoteLink?: (tc: TestCaseResult) => string | undefined;
     };
   };
   assetMode: "none" | "copy";

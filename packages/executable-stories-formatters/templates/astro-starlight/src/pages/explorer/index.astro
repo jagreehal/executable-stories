@@ -1,5 +1,5 @@
 ---
-import { REPORT_URL, SOURCE_BASE_URL } from "../../lib/config";
+import { NOTES_INDEX_URL, REPORT_URL, SOURCE_BASE_URL } from "../../lib/config";
 // Share the design tokens (--es-*) and theme palette (--sl-*) with the rest of
 // the docs so the explorer reads as one product, not a bolted-on page.
 import "../../styles/themes/default.css";
@@ -10,6 +10,7 @@ import "../../styles/global.css";
 import "./explorer.css";
 
 const reportPath = REPORT_URL;
+const notesIndexPath = NOTES_INDEX_URL;
 const sourceBaseUrl = SOURCE_BASE_URL;
 const baseUrl = import.meta.env.BASE_URL ?? "/";
 ---
@@ -66,8 +67,8 @@ const baseUrl = import.meta.env.BASE_URL ?? "/";
       </section>
     </main>
 
-    <script is:inline define:vars={{ reportPath, sourceBaseUrl }}>
-      window.__EXPLORER_CONFIG__ = { reportPath, sourceBaseUrl };
+    <script is:inline define:vars={{ reportPath, notesIndexPath, sourceBaseUrl, baseUrl }}>
+      window.__EXPLORER_CONFIG__ = { reportPath, notesIndexPath, sourceBaseUrl, baseUrl };
     </script>
     <script>
       // Rendering libraries are bundled with the site (no CDN), so the Explorer
@@ -80,9 +81,11 @@ const baseUrl = import.meta.env.BASE_URL ?? "/";
       // Pure, unit-tested doc-entry → HTML renderer.
       import { renderDocs, escapeHtml } from "../../lib/render-doc-entry";
 
-      const { reportPath, sourceBaseUrl } = window.__EXPLORER_CONFIG__ ?? {
+      const { reportPath, notesIndexPath, sourceBaseUrl, baseUrl } = window.__EXPLORER_CONFIG__ ?? {
         reportPath: "/stories/story-report.json",
+        notesIndexPath: "/stories/notes-index.json",
         sourceBaseUrl: "",
+        baseUrl: "/",
       };
 
       const libs = { marked, hljs, mermaid };
@@ -97,6 +100,7 @@ const baseUrl = import.meta.env.BASE_URL ?? "/";
       const state = {
         report: null,
         scenarios: [],
+        notesByScenarioId: {},
         selectedId: "",
         query: "",
         status: "all",
@@ -112,6 +116,11 @@ const baseUrl = import.meta.env.BASE_URL ?? "/";
       };
 
       const statusClass = (status) => `status status-${status}`;
+      const withBase = (value) => {
+        const base = (baseUrl || "/").replace(/\/$/, "");
+        const normalized = String(value || "").replace(/^\/+/, "");
+        return base ? `${base}/${normalized}` : `/${normalized}`;
+      };
 
       const flattenReport = (report) =>
         (report.features ?? []).flatMap((feature) =>
@@ -171,6 +180,11 @@ const baseUrl = import.meta.env.BASE_URL ?? "/";
               )}" aria-current="${scenario.id === state.selectedId}">
                 <span class="row-dot dot-${escapeHtml(scenario.status)}"></span>
                 <span class="scenario-title">${escapeHtml(scenario.title)}</span>
+                ${
+                  state.notesByScenarioId[scenario.id]
+                    ? '<span class="scenario-context-flag">Context</span>'
+                    : ""
+                }
                 <span class="scenario-source">${escapeHtml(scenario.sourceFile ?? "")}${
                   scenario.sourceLine ? `:${scenario.sourceLine}` : ""
                 }</span>
@@ -252,6 +266,7 @@ const baseUrl = import.meta.env.BASE_URL ?? "/";
           return;
         }
 
+        const note = state.notesByScenarioId[scenario.id];
         state.selectedId = scenario.id;
 
         elements.detail.innerHTML = `
@@ -262,6 +277,13 @@ const baseUrl = import.meta.env.BASE_URL ?? "/";
               ${scenario.featureTitle ? `<span>${escapeHtml(scenario.featureTitle)}</span><span class="sep">·</span>` : ""}
               ${sourceMarkup(scenario)}
             </div>
+            ${
+              note
+                ? `<div class="context-row"><a class="context-link" href="${escapeHtml(
+                    withBase(`notes/${note.slug}/`),
+                  )}">Business context →</a></div>`
+                : ""
+            }
             ${
               (scenario.tags ?? []).length
                 ? `<div class="tag-row">${scenario.tags
@@ -352,14 +374,22 @@ const baseUrl = import.meta.env.BASE_URL ?? "/";
         render();
       });
 
-      fetch(reportPath)
-        .then((response) => {
-          if (!response.ok) throw new Error(`Could not load ${reportPath}`);
+      const loadJson = (url, { allowMissing = false } = {}) =>
+        fetch(url).then((response) => {
+          if (!response.ok) {
+            if (allowMissing && response.status === 404) return null;
+            throw new Error(`Could not load ${url}`);
+          }
           return response.json();
-        })
-        .then((report) => {
+        });
+
+      Promise.all([loadJson(reportPath), loadJson(notesIndexPath, { allowMissing: true })])
+        .then(([report, notesIndex]) => {
           state.report = report;
           state.scenarios = flattenReport(report);
+          state.notesByScenarioId = Object.fromEntries(
+            (notesIndex?.notes ?? []).map((note) => [note.scenarioId, note]),
+          );
           state.selectedId = decodeURIComponent(location.hash.slice(1));
           elements.meta.textContent = `${report.summary.total} scenarios`;
           render();

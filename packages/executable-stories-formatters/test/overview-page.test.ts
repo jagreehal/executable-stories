@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { renderOverviewPage } from "../src/overview-page";
+import type { ScenarioNotesIndex } from "../src/notes-index";
 import type { ScenarioLinksIndex, ScenarioLink } from "../src/scenario-links";
 
 function link(partial: Partial<ScenarioLink> & Pick<ScenarioLink, "id" | "title" | "audience" | "status">): ScenarioLink {
@@ -18,6 +19,13 @@ function index(links: ScenarioLink[]): ScenarioLinksIndex {
     runId: "r",
     baseUrl: "/stories",
     scenarios: Object.fromEntries(links.map((l) => [l.id, l])),
+  };
+}
+
+function notesIndex(notes: ScenarioNotesIndex["notes"]): ScenarioNotesIndex {
+  return {
+    schemaVersion: "1.0",
+    notes,
   };
 }
 
@@ -56,5 +64,20 @@ describe("renderOverviewPage", () => {
     );
     expect(page).toContain("## 🔧 Engineer");
     expect(page).not.toContain("Stakeholder");
+  });
+
+  it("links scenario notes beside scenarios when context exists", () => {
+    const page = renderOverviewPage(
+      index([link({ id: "s1", title: "Guest checkout", audience: "stakeholder", status: "passed" })]),
+      notesIndex([
+        {
+          scenarioId: "s1",
+          slug: "guest-checkout-context",
+          title: "Guest checkout context",
+        },
+      ]),
+    );
+
+    expect(page).toContain("[Guest checkout](/stories/stakeholder/x/#scenario-s1) · [Business context →](/notes/guest-checkout-context/)");
   });
 });

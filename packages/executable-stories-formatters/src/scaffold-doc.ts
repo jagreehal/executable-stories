@@ -14,14 +14,27 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-export type TemplateName = "adr" | "runbook" | "decision-log" | "incident";
+export type TemplateName =
+  | "adr"
+  | "runbook"
+  | "decision-log"
+  | "incident"
+  | "scenario-note";
 
-export const TEMPLATES: TemplateName[] = ["adr", "runbook", "decision-log", "incident"];
+export const TEMPLATES: TemplateName[] = [
+  "adr",
+  "runbook",
+  "decision-log",
+  "incident",
+  "scenario-note",
+];
 
 export interface ScaffoldOptions {
   template: string;
   /** Human title for the page; falls back to a generic name. */
   name?: string;
+  /** Stable story-report scenario id for scenario-note templates. */
+  scenarioId?: string;
   /** Docs root. Default: "src/content/docs". */
   baseDir?: string;
   force?: boolean;
@@ -47,6 +60,7 @@ interface TemplateSpec {
 interface BuildContext {
   name: string;
   slug: string;
+  scenarioId?: string;
   isoDate: string;
   /** Next ADR-style sequence number, zero-padded; computed from existing files. */
   seq: string;
@@ -198,6 +212,31 @@ _How it was fixed._
   becomes a failing badge.
 `,
   },
+
+  "scenario-note": {
+    subdir: "notes",
+    filename: (_slug, ctx) => ctx.scenarioId ?? ctx.slug,
+    content: (ctx) => `---
+title: 'Business context — ${ctx.name}'
+description: 'Stakeholder context for ${ctx.name}'
+scenarioId: ${ctx.scenarioId}
+# Link this note back to the scenario it explains so the badge and explorer stay aligned.
+verifiedBy: [${ctx.scenarioId}]
+---
+
+This page is hand-written commentary for a generated scenario. It is never
+overwritten by \`build-docs\`.
+
+## Why this behavior matters
+
+_Describe the business rule, policy, customer promise, or operational nuance._
+
+## Caveats
+
+- _What readers should know when this scenario passes_
+- _Any assumptions, exclusions, or follow-up links_
+`,
+  },
 };
 
 export function isTemplateName(value: string): value is TemplateName {
@@ -217,11 +256,17 @@ export function scaffoldDoc(options: ScaffoldOptions): ScaffoldResult {
   const today = options.today ?? new Date();
   const name = (options.name ?? "").trim() || defaultName(template);
   const slug = slugify(name);
+  const scenarioId = normalizeScenarioId(options.scenarioId);
   const dir = path.join(baseDir, spec.subdir);
+
+  if (template === "scenario-note" && !scenarioId) {
+    throw new Error(`Template "scenario-note" requires --scenario-id.`);
+  }
 
   const ctx: BuildContext = {
     name,
     slug,
+    scenarioId,
     isoDate: isoDate(today),
     seq: nextSeq(dir),
   };
@@ -251,6 +296,8 @@ function defaultName(template: TemplateName): string {
       return "Decisions";
     case "incident":
       return "Untitled incident";
+    case "scenario-note":
+      return "Untitled scenario note";
   }
 }
 
@@ -264,5 +311,16 @@ function titleFor(template: TemplateName, ctx: BuildContext): string {
       return `Decision log — ${ctx.name}`;
     case "incident":
       return `Incident — ${ctx.name}`;
+    case "scenario-note":
+      return `Business context — ${ctx.name}`;
   }
+}
+
+function normalizeScenarioId(input: string | undefined): string | undefined {
+  const value = input?.trim();
+  if (!value) return undefined;
+  if (value.includes("/") || value.includes("\\")) {
+    throw new Error(`scenarioId must not contain path separators.`);
+  }
+  return value;
 }

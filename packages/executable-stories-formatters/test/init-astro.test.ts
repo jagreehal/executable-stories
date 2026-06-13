@@ -21,6 +21,7 @@ describe("initAstro", () => {
 
     expect(fs.existsSync(path.join(target, "package.json"))).toBe(true);
     expect(fs.existsSync(path.join(target, "astro.config.mjs"))).toBe(true);
+    expect(fs.existsSync(path.join(target, ".gitignore"))).toBe(true);
     expect(fs.existsSync(path.join(target, "tsconfig.json"))).toBe(true);
     expect(fs.existsSync(path.join(target, "src/content/docs/index.mdx"))).toBe(true);
     expect(fs.existsSync(path.join(target, "src/components/VerifiedBy.astro"))).toBe(true);
@@ -30,6 +31,7 @@ describe("initAstro", () => {
     expect(fs.existsSync(path.join(target, "src/content/docs/stories/.gitkeep"))).toBe(true);
     expect(fs.existsSync(path.join(target, "public/stories/assets/.gitkeep"))).toBe(true);
     expect(fs.existsSync(path.join(target, "public/stories/story-report.json"))).toBe(true);
+    expect(fs.existsSync(path.join(target, "public/stories/notes-index.json"))).toBe(true);
     expect(fs.existsSync(path.join(target, "src/pages/explorer/index.astro"))).toBe(true);
   });
 
@@ -41,10 +43,12 @@ describe("initAstro", () => {
     expect(explorer).toContain("Scenario Explorer");
     // The report URL now comes from the central config, not a hardcoded literal.
     expect(explorer).toContain("REPORT_URL");
+    expect(explorer).toContain("NOTES_INDEX_URL");
     expect(explorer).toContain("Search scenarios");
     expect(explorer).toContain("status-filter");
     expect(explorer).toContain("history.replaceState");
     expect(explorer).toContain("source-link");
+    expect(explorer).toContain("Business context");
   });
 
   it("routes the report location through a single config module", () => {
@@ -54,6 +58,7 @@ describe("initAstro", () => {
     const config = fs.readFileSync(path.join(target, "src/lib/config.ts"), "utf8");
     expect(config).toContain("public/stories/story-report.json");
     expect(config).toContain("REPORT_URL");
+    expect(config).toContain("NOTES_INDEX_URL");
 
     // The badge/dashboard/checklist components read the report via config,
     // not by importing the JSON path directly.
@@ -116,6 +121,17 @@ describe("initAstro", () => {
     expect(fs.existsSync(path.join(target, "src/styles/themes/minimal.css"))).toBe(true);
     expect(fs.existsSync(path.join(target, "src/styles/themes/dashboard.css"))).toBe(true);
     expect(fs.existsSync(path.join(target, "src/styles/themes/playful.css"))).toBe(true);
+  });
+
+  it("ships a gitignore that ignores generated portal output but keeps human docs tracked", () => {
+    const target = path.join(tmpDir, "story-docs");
+    initAstro({ targetDir: target });
+
+    const gitignore = fs.readFileSync(path.join(target, ".gitignore"), "utf8");
+    expect(gitignore).toContain("src/content/docs/stories/*");
+    expect(gitignore).toContain("!src/content/docs/stories/.gitkeep");
+    expect(gitignore).toContain("public/stories/story-report.json");
+    expect(gitignore).toContain("public/stories/notes-index.json");
   });
 
   it("should include tsconfig with types and rootDir", () => {

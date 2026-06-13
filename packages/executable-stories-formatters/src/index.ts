@@ -815,6 +815,7 @@ export class ReportGenerator {
           customRenderers: options.astro?.markdown?.customRenderers,
           scenarioAnchor: options.astro?.markdown?.scenarioAnchor,
           scenarioBadge: options.astro?.markdown?.scenarioBadge,
+          scenarioNoteLink: options.astro?.markdown?.scenarioNoteLink,
         },
       },
       assetMode: options.assetMode ?? "none",

@@ -70,4 +70,24 @@ describe("scaffoldDoc", () => {
   it("rejects unknown templates", () => {
     expect(() => scaffoldDoc({ template: "wiki", baseDir: dir })).toThrow(/Unknown template/);
   });
+
+  it("creates a scenario note keyed by scenario id", () => {
+    const r = scaffoldDoc({
+      template: "scenario-note",
+      name: "Checkout happy path",
+      scenarioId: "feature-checkout--happy-path",
+      baseDir: dir,
+      today: FIXED,
+    });
+    expect(r.path).toContain(path.join("notes", "feature-checkout--happy-path.mdx"));
+    const content = fs.readFileSync(r.path, "utf8");
+    expect(content).toContain("scenarioId: feature-checkout--happy-path");
+    expect(content).toContain("verifiedBy: [feature-checkout--happy-path]");
+  });
+
+  it("requires a scenario id for scenario notes", () => {
+    expect(() =>
+      scaffoldDoc({ template: "scenario-note", name: "Checkout happy path", baseDir: dir, today: FIXED }),
+    ).toThrow(/requires --scenario-id/);
+  });
 });

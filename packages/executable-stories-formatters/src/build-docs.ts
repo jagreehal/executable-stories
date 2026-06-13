@@ -26,6 +26,13 @@ import { deriveAudience } from "./review/conventions";
 import { buildScenarioLinks, scenarioAnchor, type ScenarioLinksIndex } from "./scenario-links";
 import { diffStoryReports, type BehaviorDiff } from "./behavior-diff";
 import { renderChangesPage } from "./changes-page";
+import {
+  buildScenarioNotesIndex,
+  writeNotesIndex,
+  notesByScenarioId,
+  noteLinkMarkdown,
+  type ScenarioNotesIndex,
+} from "./notes-index";
 import { renderOverviewPage } from "./overview-page";
 import type { RawRun } from "./types/raw";
 import type { ReviewAudience } from "./types/review";
@@ -94,6 +101,8 @@ export interface BuildDocsResult {
   audiences: Record<ReviewAudience, number>;
   /** Number of scenarios written to the deep-link index. */
   scenarioLinks: number;
+  /** Number of human-authored scenario notes indexed for explorer linking. */
+  notesIndexed: number;
   /** Change summary vs the baseline (undefined when no baseline was supplied). */
   changes?: BehaviorDiff["summary"];
 }
@@ -175,9 +184,18 @@ const CHANGE_BADGE: Partial<Record<BehaviorDiff["scenarios"][number]["kind"], st
 };
 
 /**
- * Build a per-scenario badge lookup from a diff, keyed by `sourceFile\u0000title`
- * (the markdown formatter only knows a test case's file + scenario name, not the
- * StoryReport id). Returns undefined when there's nothing worth badging.
+ * Join key for matching a `TestCaseResult` to per-scenario data the markdown
+ * formatter doesn't carry (what's-changed badges, note links): it knows a case's
+ * file + scenario name, not the StoryReport id. `\u0000` can't appear in either
+ * field. One helper so the badge and note lookups can never drift apart.
+ */
+function scenarioKey(sourceFile: string, title: string): string {
+  return `${sourceFile}\u0000${title}`;
+}
+
+/**
+ * Build a per-scenario badge lookup from a diff, keyed by {@link scenarioKey}.
+ * Returns undefined when there's nothing worth badging.
  */
 function changeBadgeLookup(
   diff: BehaviorDiff | undefined,
@@ -186,10 +204,10 @@ function changeBadgeLookup(
   const byKey = new Map<string, string>();
   for (const s of diff.scenarios) {
     const badge = CHANGE_BADGE[s.kind];
-    if (badge) byKey.set(`${s.sourceFile}\u0000${s.title}`, badge);
+    if (badge) byKey.set(scenarioKey(s.sourceFile, s.title), badge);
   }
   if (byKey.size === 0) return undefined;
-  return (tc) => byKey.get(`${tc.sourceFile}\u0000${tc.story.scenario}`);
+  return (tc) => byKey.get(scenarioKey(tc.sourceFile, tc.story.scenario));
 }
 
 /** Parse a story-report JSON file, returning null if missing or unreadable. */
@@ -200,6 +218,34 @@ function readStoryReport(reportPath: string): StoryReport | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * Build a per-scenario "business context" link lookup. Notes key on the
+ * canonical scenario id, which the markdown formatter's `TestCaseResult` doesn't
+ * carry — so we bridge through the report: tc → {@link scenarioKey} →
+ * scenario.id → note. Returns undefined when there are no notes to link, or when
+ * the report can't be read (links are omitted, never a hard failure).
+ */
+function noteLinkLookup(
+  report: StoryReport | null,
+  notesIndex: ScenarioNotesIndex,
+): ((tc: TestCaseResult) => string | undefined) | undefined {
+  if (!report) return undefined;
+  const noteById = notesByScenarioId(notesIndex);
+  if (noteById.size === 0) return undefined;
+
+  const idByKey = new Map<string, string>();
+  for (const feature of report.features) {
+    for (const scenario of feature.scenarios) {
+      idByKey.set(scenarioKey(feature.sourceFile, scenario.title), scenario.id);
+    }
+  }
+  return (tc) => {
+    const id = idByKey.get(scenarioKey(tc.sourceFile, tc.story.scenario));
+    const note = id ? noteById.get(id) : undefined;
+    return note ? noteLinkMarkdown(note) : undefined;
+  };
 }
 
 /**
@@ -267,6 +313,7 @@ export async function buildDocs(options: BuildDocsOptions): Promise<BuildDocsRes
   const storiesPublicDir = path.join(siteDir, "public", "stories");
   const assetsDir = path.join(storiesPublicDir, "assets");
   const storyPagesDir = path.join(siteDir, "src", "content", "docs", "stories");
+  const notesDir = path.join(siteDir, "src", "content", "docs", "notes");
   const apiDir = path.join(siteDir, "src", "content", "docs", "api");
   const reportPath = path.join(storiesPublicDir, "story-report.json");
 
@@ -285,6 +332,9 @@ export async function buildDocs(options: BuildDocsOptions): Promise<BuildDocsRes
     // was asked for but can't be read is a hard error, not a silent "no changes" —
     // otherwise a typo'd or corrupt path produces a green build with stale/empty
     // change data that downstream tooling would read as current truth.
+    // The report on disk — read once and reused for the diff and the note bridge.
+    const currentReport = readStoryReport(reportPath);
+
     let diff: BehaviorDiff | undefined;
     if (options.baselinePath) {
       const baselineResolved = path.resolve(options.baselinePath);
@@ -295,10 +345,14 @@ export async function buildDocs(options: BuildDocsOptions): Promise<BuildDocsRes
           "input",
         );
       }
-      const current = readStoryReport(reportPath);
-      if (current) diff = diffStoryReports(baseline, current);
+      if (currentReport) diff = diffStoryReports(baseline, currentReport);
     }
     const scenarioBadge = changeBadgeLookup(diff);
+
+    // Scenario notes (hand-written business context). Scanned once here so the
+    // generated story pages can link to them; the index is written to public/ below.
+    const notesIndex = buildScenarioNotesIndex(notesDir);
+    const scenarioNoteLink = noteLinkLookup(currentReport, notesIndex);
 
     // Story pages — one browsable page per source file (colocated), so the
     // docs nav mirrors the test suite instead of one giant aggregated dump.
@@ -320,6 +374,7 @@ export async function buildDocs(options: BuildDocsOptions): Promise<BuildDocsRes
             // Emit the same anchor scenario-links.json points at, so fragments resolve.
             scenarioAnchor: (tc) => scenarioAnchor(tc.story.scenario),
             scenarioBadge,
+            scenarioNoteLink,
           },
         },
       }).generate(run);
@@ -349,13 +404,15 @@ export async function buildDocs(options: BuildDocsOptions): Promise<BuildDocsRes
       audienceSplit: options.audienceSplit ?? false,
     });
     const scenarioLinks = linksIndex ? Object.keys(linksIndex.scenarios).length : 0;
+    writeNotesIndex(notesIndex, path.join(storiesPublicDir, "notes-index.json"));
+    const notesIndexed = notesIndex.notes.length;
 
     // Stories overview — the audience-first landing at `/stories/` (cards with
     // pass/fail counts + deep-linked scenario lists), built from the link index.
     if (linksIndex) {
       fs.writeFileSync(
         path.join(storyPagesDir, "index.md"),
-        renderOverviewPage(linksIndex),
+        renderOverviewPage(linksIndex, notesIndex),
         "utf8",
       );
     }
@@ -391,7 +448,7 @@ export async function buildDocs(options: BuildDocsOptions): Promise<BuildDocsRes
       apiPages = res.pageCount;
     }
 
-    return { siteDir, bundledAssets, apiPages, audiences, scenarioLinks, changes };
+    return { siteDir, bundledAssets, apiPages, audiences, scenarioLinks, notesIndexed, changes };
   } catch (err) {
     if (err instanceof BuildDocsError) throw err;
     throw new BuildDocsError(`Generation failed: ${(err as Error).message}`, "generation");

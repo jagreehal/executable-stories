@@ -42,7 +42,7 @@ cd my-docs
 pnpm dev
 ```
 
-Your stories are at `http://localhost:4321/stories/`.
+Your generated story pages are at `http://localhost:4321/stories/` and the Scenario Explorer is at `http://localhost:4321/explorer/`.
 
 #### What build-docs generates
 
@@ -50,10 +50,20 @@ Your stories are at `http://localhost:4321/stories/`.
 |--------|----------|
 | Story pages (one per source file) | `src/content/docs/stories/` |
 | StoryReport JSON (Explorer data) | `public/stories/story-report.json` |
+| Scenario notes index | `public/stories/notes-index.json` |
 | Copied screenshots/videos | `public/stories/assets/` |
 | API coverage pages (if `--openapi`) | `src/content/docs/api/` |
 
-The bundled **Scenario Explorer** (`/stories/`) is a single browsable front door over the StoryReport JSON: a scenario list with status, a status filter, and a search box that matches titles, tags, and **`covers` file paths** — so you can type a product-code path and find the behavior that exercises it (the same code→scenario link the MCP `get_scenarios_for_paths` tool uses). Each scenario's detail panel lists its steps and the paths it covers.
+The bundled **Scenario Explorer** (`/explorer/`) is a single browsable front door over the StoryReport JSON: a scenario list with status, a status filter, and a search box that matches titles, tags, and **`covers` file paths** — so you can type a product-code path and find the behavior that exercises it (the same code→scenario link the MCP `get_scenarios_for_paths` tool uses). Each scenario's detail panel lists its steps, the paths it covers, and a business-context link when a scenario note exists.
+
+For a stakeholder-first portal, generate docs with audience split and a baseline:
+
+```bash
+npx executable-stories build-docs raw-run.json \
+  --site-dir ./my-docs \
+  --audience-split \
+  --baseline ./my-docs/public/stories/story-report.json
+```
 
 ### format --format astro (manual)
 
@@ -155,6 +165,8 @@ npx executable-stories build-docs <raw-run.json> --site-dir <dir> [options]
 |--------|---------|-------------|
 | `--site-dir` | (required) | Root of the `init-astro`-scaffolded site |
 | `--openapi` | — | Path to an OpenAPI spec for API coverage pages |
+| `--baseline` | — | Previous `story-report.json` to generate a what's-changed view |
+| `--audience-split` | `false` | Split generated pages into engineer/stakeholder sections |
 | `--no-synthesize-stories` | `false` | Skip synthesizing story metadata from test structure |
 
 ### format --format astro
