@@ -12,6 +12,13 @@ engineers — generated from your executable stories and kept honest by the test
 themselves. Works the same whether your stories are written in TypeScript,
 Python, Go, Ruby, Java/Kotlin, Rust, or C#: it all flows through one report.
 
+## Trust model
+
+- **Proven** — generated story pages and Explorer data come from the latest test run.
+- **Commentary** — guides, ADRs, runbooks, incidents, and notes are hand-written context.
+- **Linked** — add `verifiedBy` to commentary pages to show which stories still prove them.
+- **Stale** — failing or missing proof shows up as a badge; it is surfaced, not hidden.
+
 ## What you can do here
 
 - **Browse stories** — the [Scenario Explorer](/explorer/) is a searchable, filterable
@@ -19,7 +26,7 @@ Python, Go, Ruby, Java/Kotlin, Rust, or C#: it all flows through one report.
 - **Verify any page** — add `verifiedBy: [story-id]` to a page's frontmatter and a
   live badge shows whether the tests that prove it currently pass.
 - **Start from a template** — `executable-stories new adr "…"` (also `runbook`,
-  `decision-log`, `incident`), each pre-wired to verifying stories.
+  `decision-log`, `incident`, `scenario-note`), each pre-wired to verifying stories.
 - **Document your API** — `executable-stories import-openapi spec.json --run story-report.json`
   generates endpoint pages with a coverage badge per route.
 - **Keep links honest** — `executable-stories check-links src/content/docs` fails CI
@@ -27,11 +34,12 @@ Python, Go, Ruby, Java/Kotlin, Rust, or C#: it all flows through one report.
 
 ## Getting started
 
-Generate Astro-formatted docs and the explorer data from any test run:
+Generate the behavior portal from any test run:
 
 ```bash
-executable-stories format run.json --format astro --output-dir src/content/docs/stories --asset-mode copy
-executable-stories format run.json --format story-report-json --output-dir public/stories --output-name story-report
+executable-stories build-docs run.json \
+  --site-dir . \
+  --audience-split
 ```
 
 Then start the dev server:

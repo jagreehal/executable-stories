@@ -86,6 +86,19 @@ export function flattenReport(report: StoryReportLike): ScenarioLike[] {
   );
 }
 
+/** Resolve a single scenario id against the latest report. */
+export function findScenarioById(
+  report: StoryReportLike,
+  scenarioId: string,
+): ScenarioLike | undefined {
+  return flattenReport(report).find((scenario) => scenario.id === scenarioId);
+}
+
+/** Convenience check for human-authored pages that point at one scenario id. */
+export function hasScenarioId(report: StoryReportLike, scenarioId: string): boolean {
+  return findScenarioById(report, scenarioId) !== undefined;
+}
+
 /** Does a single reference identify this scenario? id, tag, ticket id, or exact title. */
 function scenarioMatchesRef(scenario: ScenarioLike, ref: string): boolean {
   if (scenario.id === ref) return true;
@@ -176,6 +189,25 @@ export interface StatusPresentation {
   icon: string;
   /** Short human sentence describing the verdict. */
   summary: string;
+}
+
+/** Whole days since the verification run completed, if known. */
+export function verificationAgeDays(
+  result: VerificationResult,
+  nowMs = Date.now(),
+): number | undefined {
+  if (!result.lastVerifiedMs) return undefined;
+  return Math.floor(Math.max(0, nowMs - result.lastVerifiedMs) / 86_400_000);
+}
+
+/** Simple freshness heuristic for portal UI warnings. */
+export function isVerificationStale(
+  result: VerificationResult,
+  staleAfterDays: number,
+  nowMs = Date.now(),
+): boolean {
+  const ageDays = verificationAgeDays(result, nowMs);
+  return ageDays !== undefined && ageDays >= staleAfterDays;
 }
 
 /** Presentation metadata for each status — kept here so badge + tests agree. */

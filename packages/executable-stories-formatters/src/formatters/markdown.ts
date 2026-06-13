@@ -56,6 +56,12 @@ export interface MarkdownOptions {
    * line, or undefined to skip. Off by default — only the living-docs site opts in.
    */
   scenarioBadge?: (tc: TestCaseResult) => string | undefined;
+  /**
+   * Render a link line under a scenario heading pointing at hand-written context
+   * (the scenario's note page). Return the markdown line, or undefined to skip.
+   * Off by default — only the living-docs site opts in.
+   */
+  scenarioNoteLink?: (tc: TestCaseResult) => string | undefined;
 }
 
 /** Resolved options with all defaults */
@@ -78,6 +84,7 @@ type ResolvedMarkdownOptions = {
   customRenderers?: MarkdownRenderers;
   scenarioAnchor?: (tc: TestCaseResult) => string | undefined;
   scenarioBadge?: (tc: TestCaseResult) => string | undefined;
+  scenarioNoteLink?: (tc: TestCaseResult) => string | undefined;
 };
 
 /**
@@ -109,6 +116,7 @@ export class MarkdownFormatter {
       customRenderers: options.customRenderers,
       scenarioAnchor: options.scenarioAnchor,
       scenarioBadge: options.scenarioBadge,
+      scenarioNoteLink: options.scenarioNoteLink,
     };
   }
 
@@ -373,6 +381,12 @@ export class MarkdownFormatter {
     const badge = this.options.scenarioBadge?.(tc);
     if (badge) {
       lines.push(badge);
+    }
+
+    // Business-context link (opt-in) — points to the scenario's hand-written note.
+    const noteLink = this.options.scenarioNoteLink?.(tc);
+    if (noteLink) {
+      lines.push(noteLink);
     }
 
     // Source link

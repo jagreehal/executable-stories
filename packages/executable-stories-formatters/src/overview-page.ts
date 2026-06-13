@@ -9,6 +9,7 @@
  * Pure render — `build-docs` writes the file.
  */
 
+import { notesByScenarioId, noteLinkMarkdown, type ScenarioNotesIndex } from "./notes-index";
 import type { ScenarioLink, ScenarioLinksIndex } from "./scenario-links";
 import type { ReviewAudience } from "./types/review";
 import type { TestStatus } from "./types/story-report";
@@ -44,11 +45,15 @@ function yamlScalar(value: string): string {
 }
 
 /** Render the `/stories/` overview page (frontmatter + body) as a Starlight markdown string. */
-export function renderOverviewPage(links: ScenarioLinksIndex): string {
+export function renderOverviewPage(
+  links: ScenarioLinksIndex,
+  notesIndex?: ScenarioNotesIndex,
+): string {
   const all = Object.values(links.scenarios);
   const total = all.length;
   const passed = all.filter((s) => s.status === "passed").length;
   const failed = all.filter((s) => s.status === "failed").length;
+  const notesById = notesByScenarioId(notesIndex ?? { schemaVersion: "1.0", notes: [] });
 
   const frontmatter = [
     "---",
@@ -76,7 +81,9 @@ export function renderOverviewPage(links: ScenarioLinksIndex): string {
     body.push(`## ${card.icon} ${card.label} (${scenarios.length} — ${counts})`, "");
     body.push(`${card.blurb}`, "");
     for (const s of scenariosSorted(scenarios)) {
-      body.push(`- ${STATUS_ICON[s.status] ?? "•"} [${s.title}](${s.deepLink})`);
+      const note = notesById.get(s.id);
+      const noteSuffix = note ? ` · ${noteLinkMarkdown(note)}` : "";
+      body.push(`- ${STATUS_ICON[s.status] ?? "•"} [${s.title}](${s.deepLink})${noteSuffix}`);
     }
     body.push("");
   }

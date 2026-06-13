@@ -174,7 +174,7 @@
   color: var(--es-text);
   cursor: pointer;
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   column-gap: 9px;
   row-gap: 2px;
   padding: 8px 9px;
@@ -214,8 +214,23 @@
   font-weight: 550;
   line-height: 1.35;
 }
+
+.scenario-context-flag {
+  justify-self: end;
+  align-self: start;
+  background: var(--es-accent-soft);
+  color: var(--es-accent);
+  border: 1px solid color-mix(in oklab, var(--es-accent) 24%, var(--es-line));
+  border-radius: var(--es-radius-pill);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 2px 7px;
+  text-transform: uppercase;
+}
+
 .scenario-source {
-  grid-column: 2;
+  grid-column: 2 / span 2;
   color: var(--es-text-muted);
   font-family: var(--es-mono);
   font-size: 11px;
@@ -314,6 +329,25 @@
   font-family: var(--es-mono);
   font-size: 12px;
   color: var(--es-text-muted);
+}
+
+.context-row {
+  display: flex;
+  align-items: center;
+}
+
+.context-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--es-accent);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.context-link:hover {
+  text-decoration: underline;
 }
 
 .tag-row {

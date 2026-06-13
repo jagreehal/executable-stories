@@ -38,6 +38,7 @@ export default defineConfig({
         { label: 'Explorer', link: '/explorer/' },
         // Hand-written content — edited by the team, never overwritten by a regenerate.
         { label: 'Guides', autogenerate: { directory: 'guides' } },
+        { label: 'Notes', autogenerate: { directory: 'notes' } },
         {
           label: 'Examples',
           items: [{ label: 'ADR — transfer fee', slug: 'example-adr' }],

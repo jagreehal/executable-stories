@@ -11,6 +11,7 @@ export const collections = {
     schema: docsSchema({
       extend: z.object({
         verifiedBy: z.union([z.string(), z.array(z.string())]).optional(),
+        scenarioId: z.string().optional(),
       }),
     }),
   }),

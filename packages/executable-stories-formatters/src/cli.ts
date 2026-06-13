@@ -109,7 +109,7 @@ SUBCOMMANDS
   triage             Discovery worklist for agent loops: failing scenarios, regressions first, each with the code it covers
   validate           Validate a JSON file against the schema (no output generated)
   init-astro         Scaffold an Astro docs site for story output (Starlight with themed CSS)
-  new                Scaffold a docs page from a template (adr, runbook, decision-log, incident)
+  new                Scaffold a docs page from a template (adr, runbook, decision-log, incident, scenario-note)
   check-links        Scan docs for broken internal/external links (CI-friendly exit code)
   import-openapi     Generate API doc pages from an OpenAPI spec, linked to verifying stories
   publish-confluence Publish an ADF JSON file to a Confluence page via REST API
@@ -2298,7 +2298,11 @@ Generate an API token at https://id.atlassian.com/manage-profile/security/api-to
 function runNew(rawArgs: string[]): number {
   const { values, positionals } = parseArgs({
     args: rawArgs,
-    options: { dir: { type: "string" }, force: { type: "boolean", default: false } },
+    options: {
+      dir: { type: "string" },
+      force: { type: "boolean", default: false },
+      "scenario-id": { type: "string" },
+    },
     allowPositionals: true,
     strict: true,
   });
@@ -2306,7 +2310,9 @@ function runNew(rawArgs: string[]): number {
   const template = positionals[0];
   const name = positionals.slice(1).join(" ");
   if (!template) {
-    console.error(`Usage: executable-stories new <template> "<name>" [--dir <docs-dir>] [--force]`);
+    console.error(
+      `Usage: executable-stories new <template> "<name>" [--dir <docs-dir>] [--scenario-id <id>] [--force]`,
+    );
     console.error(`Templates: ${TEMPLATES.join(", ")}`);
     return EXIT_USAGE;
   }
@@ -2315,6 +2321,7 @@ function runNew(rawArgs: string[]): number {
     const result = scaffoldDoc({
       template,
       name,
+      scenarioId: values["scenario-id"] as string | undefined,
       baseDir: values.dir as string | undefined,
       force: values.force as boolean,
     });
@@ -2433,6 +2440,7 @@ async function runBuildDocs(rawArgs: string[]): Promise<number> {
     console.log(`✓ Living docs generated in ${result.siteDir}`);
     console.log(`  • Explorer data   → public/stories/story-report.json`);
     console.log(`  • Deep links      → public/stories/scenario-links.json (${result.scenarioLinks})`);
+    console.log(`  • Note links      → public/stories/notes-index.json (${result.notesIndexed})`);
     if (audienceSplit) {
       console.log(
         `  • Story pages     → src/content/docs/stories/{engineer,stakeholder} ` +

@@ -1,0 +1,41 @@
+---
+title: Behavior portal
+description: How proven behavior, commentary, and verification work together.
+---
+
+The portal has one job: make behavior trustworthy for both engineers and stakeholders.
+
+## Three content tiers
+
+- **Proven** lives in generated story pages and the Scenario Explorer. It comes from the latest run and is safe to regenerate at any time.
+- **Commentary** lives in hand-written guides, ADRs, runbooks, incidents, and scenario notes. It explains why behavior matters.
+- **Stale** is visible on purpose. If a commentary page links to failing or missing proof, the badge shows it.
+
+## Where to add context
+
+Use a scenario note when the commentary belongs to one scenario:
+
+```bash
+executable-stories new scenario-note "Checkout happy path" \
+  --scenario-id feature-checkout--happy-path
+```
+
+Use ADRs, runbooks, and guides when the context spans multiple scenarios.
+
+Once a scenario note exists, `build-docs` links to it automatically from every
+surface that shows the scenario — the generated story page, the Scenario
+Explorer, and the `/stories/` overview. You never add those links by hand, and
+they appear or disappear as notes are added or removed.
+
+## What not to edit
+
+Do not hand-edit `src/content/docs/stories/`. Those files are machine-owned and are replaced on each `build-docs` run.
+
+## Recommended CI flow
+
+```bash
+executable-stories build-docs raw-run.json \
+  --site-dir ./story-docs \
+  --audience-split \
+  --baseline ./story-docs/public/stories/story-report.json
+```

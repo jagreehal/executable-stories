@@ -26,6 +26,10 @@ export const report = reportData as StoryReportLike;
 export const REPORT_URL: string =
   import.meta.env.PUBLIC_STORY_REPORT_URL ?? "/stories/story-report.json";
 
+/** Public URL the Explorer fetches the scenario-note index from at runtime. */
+export const NOTES_INDEX_URL: string =
+  import.meta.env.PUBLIC_NOTES_INDEX_URL ?? "/stories/notes-index.json";
+
 /**
  * Base URL of the source repository (e.g. https://github.com/acme/app/blob/main).
  * When set, the Scenario Explorer turns each scenario's file path into a link to
