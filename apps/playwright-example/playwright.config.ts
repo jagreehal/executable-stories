@@ -25,7 +25,7 @@ export default defineConfig({
         // OUTPUT FORMAT SELECTION
         // =================================================================
         // Available formats: "markdown", "html", "junit", "cucumber-json"
-        // Default: ["cucumber-json"]
+        // Default: ["html"]
         formats: ['markdown', 'html'],
         // formats: ["markdown", "html", "junit", "cucumber-json"],
         // formats: ["markdown", "html", "junit", "cucumber-json"],

@@ -1,5 +1,5 @@
 plugins {
-    kotlin("jvm") version "2.1.0"
+    kotlin("jvm") version "2.4.0"
 }
 
 group = "dev.executablestories"
@@ -20,11 +20,11 @@ kotlin {
 
 dependencies {
     implementation(files("../../packages/executable-stories-junit5/build/libs/executable-stories-junit5-0.1.0.jar"))
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.18.2")
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.18.2")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.19.0")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.19.0")
 
-    testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.11.4")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.12.2")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.12.2")
 }
 
 tasks.test {

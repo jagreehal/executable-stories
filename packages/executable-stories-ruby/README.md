@@ -44,6 +44,10 @@ class CalculatorTest < Minitest::Test
 
     story.then("the result is 8")
     assert_equal 8, result
+
+    # REQUIRED for Minitest: records the story so it appears in raw-run.json.
+    # (RSpec records automatically; Minitest has no per-test hook.)
+    story.record(status: "pass", source_file: __FILE__)
   end
 end
 ```
@@ -115,7 +119,8 @@ end
 
 ### Options
 
-- `ExecutableStories.init("scenario", tags: [...], ticket: [...], meta: {...})`
+- `ExecutableStories.init("scenario", tags: [...], ticket: [...], covers: [...], meta: {...})`
+  - `covers:` — array of source file paths the scenario exercises (rendered as coverage links in reports)
 
 ### RSpec
 
@@ -127,7 +132,11 @@ end
 
 After running tests with the Minitest or RSpec plugin, a `raw-run.json` file is written to `.executable-stories/` by default. Set the `EXECUTABLE_STORIES_OUTPUT` environment variable to customize the output path.
 
-That raw run uses the same schema as `executable-stories-formatters`, so you can render it to HTML, Markdown, JUnit, or Cucumber output without a translation step.
+That raw run uses the same schema as `executable-stories-formatters`, so you can render it to HTML, Markdown, JUnit, or Cucumber output without a translation step. Pass the file to the `executable-stories` CLI (a positional argument):
+
+```bash
+npx --package executable-stories-formatters executable-stories format .executable-stories/raw-run.json --format html
+```
 
 ## License
 

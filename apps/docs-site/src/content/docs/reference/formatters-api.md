@@ -49,8 +49,8 @@ const generator = new ReportGenerator({
 });
 
 const written = await generator.generate(run);
-// written.get("markdown") → ["reports/test-results.md"]
-// written.get("cucumber-json") → ["reports/test-results.cucumber.json"]
+// written.get("markdown") → ["reports/index.md"]
+// written.get("cucumber-json") → ["reports/index.cucumber.json"]
 ```
 
 Same idea for Jest or Playwright: use **`normalizeJestResults`** or **`normalizePlaywrightResults`** with the appropriate result shape, then **`ReportGenerator`**.
@@ -87,7 +87,7 @@ Use these when you have framework results and want a canonical run for **ReportG
 | ------ | ---- | ------- | ----------- |
 | `formats` | `OutputFormat[]` | `["cucumber-json"]` | Output formats: `"cucumber-json"`, `"cucumber-html"`, `"cucumber-messages"`, `"html"`, `"junit"`, `"markdown"`, `"release-manifest"`, `"traceability-matrix"`, `"astro"`, `"confluence"`, `"story-report-json"`, `"scenario-index-json"`, `"behavior-manifest-json"`. |
 | `outputDir` | `string` | `"reports"` | Base directory for output files. |
-| `outputName` | `string` | `"test-results"` | Base filename (without extension) for aggregated output. |
+| `outputName` | `string` | `"index"` | Base filename (without extension) for aggregated output. |
 | `output` | `OutputConfig` | see below | Output routing (mode, colocated style, rules). |
 | `cucumberJson` | `{ pretty?: boolean }` | `{ pretty: false }` | Cucumber JSON options. |
 | `html` | `HtmlOptions` | — | Title, darkMode, searchable, startCollapsed, embedScreenshots. |
@@ -110,7 +110,7 @@ Use these when you have framework results and want a canonical run for **ReportG
 
 ### Output routing
 
-- **Aggregated** — All test cases in one file per format under `outputDir` (e.g. `reports/test-results.md`).
+- **Aggregated** — All test cases in one file per format under `outputDir` (e.g. `reports/index.md`).
 - **Colocated mirrored** — One file per source file, directory structure mirrored under `outputDir`.
 - **Colocated adjacent** — One file per source file, written next to the test file (ignores `outputDir` for that rule).
 
@@ -212,7 +212,7 @@ The formatters package provides an **`executable-stories`** CLI for generating r
 |------|------|---------|-------------|
 | `--format` | string | `html` | Output format(s): `html`, `cucumber-html`, `markdown`, `release-manifest`, `traceability-matrix`, `junit`, `cucumber-json`, `cucumber-messages`, `astro`, `confluence`, `story-report-json`, `scenario-index-json`, `behavior-manifest-json` |
 | `--output-dir` | string | `reports` | Directory to write output files |
-| `--output-name` | string | `test-results` | Base filename (without extension) for aggregated output |
+| `--output-name` | string | `index` | Base filename (without extension) for aggregated output |
 | `--input-type` | string | `raw` | Input type: `raw`, `canonical`, or `ndjson` |
 | `--sort-test-cases` | string | `none` | Sort scenarios: `id`, `source`, or `none` |
 | `--include-tags` | string | — | Comma-separated tags to include (any match) |

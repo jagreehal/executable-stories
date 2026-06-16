@@ -36,6 +36,16 @@ const FRAMEWORK_DIRS = ["src/components", "src/lib", "src/styles", "src/pages"];
 /** Framework files refreshed on update (the @components alias lives in tsconfig). */
 const FRAMEWORK_FILES = ["tsconfig.json"];
 
+/**
+ * A scaffolded Astro docs site is identified by its astro.config.mjs. Single
+ * source of truth for the check, shared by `init-astro --update` and
+ * `build-docs` (which both refuse to operate on a non-scaffolded directory).
+ * existsSync on the joined path is also false when `dir` itself is missing.
+ */
+export function isScaffoldedAstroSite(dir: string): boolean {
+  return fs.existsSync(path.join(dir, "astro.config.mjs"));
+}
+
 export function initAstro(options: InitAstroOptions = {}): InitAstroResult {
   const targetDir = options.targetDir ?? "./story-docs";
   const force = options.force ?? false;
@@ -72,7 +82,7 @@ export function initAstro(options: InitAstroOptions = {}): InitAstroResult {
  * Refresh framework files in an existing site without touching content/config.
  */
 function updateFrameworkFiles(templateDir: string, targetDir: string): InitAstroResult {
-  if (!fs.existsSync(targetDir) || !fs.existsSync(path.join(targetDir, "astro.config.mjs"))) {
+  if (!isScaffoldedAstroSite(targetDir)) {
     throw new Error(
       `"${targetDir}" does not look like a scaffolded docs site. Run init-astro (without --update) first.`,
     );
@@ -137,7 +147,10 @@ function copyDirRecursive(
   const entries = fs.readdirSync(src, { withFileTypes: true });
   for (const entry of entries) {
     const srcPath = path.join(src, entry.name);
-    const destPath = path.join(dest, entry.name);
+    // npm strips files named ".gitignore" from published tarballs, so the
+    // template ships it as "gitignore"; restore the leading dot on copy.
+    const destName = entry.name === "gitignore" ? ".gitignore" : entry.name;
+    const destPath = path.join(dest, destName);
     if (entry.isDirectory()) {
       copyDirRecursive(srcPath, destPath, onFile, baseSrc);
     } else {

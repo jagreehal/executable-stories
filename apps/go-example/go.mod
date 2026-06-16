@@ -1,8 +1,8 @@
 module example
 
-go 1.22.0
+go 1.25.0
 
-toolchain go1.24.3
+toolchain go1.25.4
 
 require github.com/anthropics/executable-stories/packages/executable-stories-go v0.0.0
 

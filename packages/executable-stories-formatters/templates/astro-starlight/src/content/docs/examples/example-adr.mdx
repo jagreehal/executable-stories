@@ -6,7 +6,7 @@ verifiedBy:
   - send-money--charges-a-35-bps-fee
 ---
 
-import VerifiedBy from '../../components/VerifiedBy.astro';
+import VerifiedBy from '../../../components/VerifiedBy.astro';
 
 The badge directly under the title is rendered automatically from the
 `verifiedBy` field in this page's frontmatter — it links this decision to the
@@ -15,8 +15,8 @@ stories that prove it still holds.
 :::note
 On a fresh scaffold the badge reads **Unverified**, because no test run has
 populated `public/stories/story-report.json` yet. That is the point: the page
-tells you it is unproven until a real run backs it up. Generate a report with
-`executable-stories format run.json --format story-report-json --output-dir public/stories`
+tells you it is unproven until a real run backs it up. Generate the report with
+`executable-stories build-docs reports/raw-run.json --site-dir .`
 and the badge turns green when the linked stories pass.
 :::
 

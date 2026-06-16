@@ -27,7 +27,7 @@ import "executable-stories-react/styles.css";
 
 ```bash
 executable-stories format raw-run.json --format story-report-json
-# writes reports/test-results.story-report.json
+# writes reports/index.story-report.json
 ```
 
 The schema is **pre-grouped** (features → scenarios → steps) with **pre-computed summaries** at every level. It's the canonical UI-facing shape — distinct from the internal `TestRunResult` formatters use. Schema version follows semver (`"1.0"` today; additive-only within `1.x`).

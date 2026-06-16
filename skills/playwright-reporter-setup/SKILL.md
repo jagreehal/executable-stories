@@ -7,7 +7,7 @@ description: >
   Aggregated and colocated modes. rawRunPath for CLI.
 type: core
 library: executable-stories-playwright
-library_version: "7.0.1"
+library_version: "8.5.3"
 sources:
   - "jagreehal/executable-stories:packages/executable-stories-playwright/src/reporter.ts"
 ---
@@ -35,7 +35,7 @@ export default defineConfig({
 });
 ```
 
-Peer dependency: `executable-stories-formatters` must be installed.
+`executable-stories-formatters` is a bundled dependency (installed automatically with `executable-stories-playwright`).
 
 ## Core Patterns
 
@@ -124,8 +124,8 @@ Playwright's reporter config expects a string path and options object tuple, not
 
 Source: packages/executable-stories-playwright/src/reporter.ts
 
-### MEDIUM Default format is cucumber-json, not markdown
+### MEDIUM Default format is html, not markdown
 
-The default `formats` is `["cucumber-json"]`. Always specify `formats: ["markdown"]` explicitly to get readable markdown output.
+The default `formats` is `["html"]`. Always specify `formats: ["markdown"]` explicitly to get readable markdown output.
 
 Source: packages/executable-stories-playwright/src/reporter.ts

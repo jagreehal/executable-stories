@@ -50,6 +50,10 @@ Example apps: [apps/jest-example](./apps/jest-example), [apps/vitest-example](./
 
 ### Features matrix
 
+The matrix below covers the JS/TS adapters. The same story structure and doc model
+are mirrored across the Go, Ruby, Rust, pytest, JUnit 5 (Kotlin), and xUnit (C#)
+adapters — see the [cross-language parity policy](https://executablestories.com/reference/cross-language-parity/).
+
 | Feature                           | Jest                                                                          | Vitest                                                       | Playwright                                           | Cypress                                              |
 | --------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------ | ---------------------------------------------------- | ---------------------------------------------------- |
 | **API**                           | `story.init()` + `story.given` / `story.when` / `story.then`; top-level step helpers also exported | `story.init(task)` + `story.given` / `story.when` / `story.then`; no top-level `then` export | `story.init(testInfo)` + `story.given` / `story.when` / `story.then`; top-level step helpers also exported | `story.init()` + `story.given` / `story.when` / `story.then`; top-level step helpers also exported |
@@ -136,9 +140,35 @@ Playwright step callbacks can use fixtures: `given("...", async ({ page }) => { 
 3. Run your tests
 4. Open the generated Markdown
 
+The reporter writes `reports/raw-run.json`; turn it into any report format with the CLI:
+
+```bash
+npx --package executable-stories-formatters executable-stories format reports/raw-run.json --format html,markdown
+```
+
 See each package's README for detailed setup instructions.
 
 **Agent workflows:** Publish StoryReport JSON and a scenario index from CI — see the [agent artifact contract](https://executablestories.com/guides/agent-artifact-contract/) and [MCP server guide](https://executablestories.com/guides/mcp-server/). Package roles: [package map](https://executablestories.com/reference/package-map/). Cross-language parity policy: [parity matrix](https://executablestories.com/reference/cross-language-parity/).
+
+## Living documentation site
+
+Generate a multi-page Astro site from your stories — one page per story file plus a
+scenario Explorer. It auto-picks-up: add a `*.story.test.ts` and re-run, its page
+appears; delete it and the page is pruned. Zero per-test wiring.
+
+The `executable-stories` CLI ships in the `executable-stories-formatters` package
+(install it, or invoke via `npx --package executable-stories-formatters executable-stories …`).
+
+```bash
+npx --package executable-stories-formatters executable-stories init-astro site   # scaffold the Astro/Starlight site
+# vitest.config: createStoryReporter({ rawRunPath: 'reports/raw-run.json' })
+pnpm test                                      # writes reports/raw-run.json (auto-includes all stories)
+npx --package executable-stories-formatters executable-stories build-docs reports/raw-run.json --site-dir site
+cd site && npm install && npm run build        # static dist/
+```
+
+`build-docs` is the headline command — `format --format astro` is a lower-level
+primitive that emits a single aggregated page, not a site.
 
 ## Development
 

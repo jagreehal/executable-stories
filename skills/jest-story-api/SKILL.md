@@ -8,7 +8,7 @@ description: >
   Doc entries: json, kv, code, table, link, section, mermaid, html, note, tag.
 type: core
 library: executable-stories-jest
-library_version: "7.0.1"
+library_version: "8.4.3"
 sources:
   - "jagreehal/executable-stories:packages/executable-stories-jest/src/index.ts"
   - "jagreehal/executable-stories:packages/executable-stories-jest/src/story-api.ts"

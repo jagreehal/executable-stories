@@ -6,7 +6,7 @@ description: >
   File naming .story.test.ts. Progressive enhancement without rewriting.
 type: lifecycle
 library: executable-stories-jest
-library_version: "7.0.1"
+library_version: "8.4.3"
 requires:
   - jest-story-api
 sources:

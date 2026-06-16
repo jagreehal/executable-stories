@@ -16,6 +16,14 @@ sources:
 
 # executable-stories-go — Story API
 
+## Install
+
+The canonical module path is `github.com/jagreehal/executable-stories/packages/executable-stories-go`. Release tags are prefixed (e.g. `go-executable-stories-v0.1.0`), not bare `v0.1.0`, so target the tag explicitly:
+
+```bash
+go get github.com/jagreehal/executable-stories/packages/executable-stories-go@go-executable-stories-v0.1.0
+```
+
 ## Setup
 
 ```go
@@ -23,7 +31,7 @@ package cart_test
 
 import (
     "testing"
-    es "github.com/jagreehal/executable-stories-go"
+    es "github.com/jagreehal/executable-stories/packages/executable-stories-go"
 )
 
 func TestMain(m *testing.M) {

@@ -10,8 +10,12 @@ RAW_RUN="$ROOT/apps/junit5-example/.executable-stories/raw-run.json"
 # shellcheck source=lib/validate-raw-run.sh
 source "$ROOT/scripts/lib/validate-raw-run.sh"
 
+# `build` produces build/libs/*.jar, which the example consumes via a files()
+# dependency. We intentionally do NOT publishToMavenLocal here: signAllPublications()
+# requires a GPG key the verify environment doesn't have, and the example never
+# resolves the artifact from mavenLocal.
 echo "[verify-junit5] Building executable-stories-junit5..."
-cd "$ROOT/packages/executable-stories-junit5" && ./gradlew build publishToMavenLocal
+cd "$ROOT/packages/executable-stories-junit5" && ./gradlew build
 
 echo "[verify-junit5] Running junit5-example tests..."
 cd "$ROOT/apps/junit5-example" && ./gradlew test

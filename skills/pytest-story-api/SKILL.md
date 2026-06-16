@@ -134,9 +134,10 @@ def test_fetches_user_profile():
 
     profile = story.fn("When", "the profile is fetched", lambda: fetch_profile("user-123"))
 
-    story.expect("the profile contains the correct name", lambda: (
+    def check_name():
         assert profile.name == "Alice"
-    ))
+
+    story.expect("the profile contains the correct name", check_name)
 ```
 
 `fn` and `expect` wrap a callable with automatic timing. Exceptions propagate after duration is recorded. Both return the callable's result.

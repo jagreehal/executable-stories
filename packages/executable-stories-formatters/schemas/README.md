@@ -172,7 +172,7 @@ SUBCOMMANDS
 | `--format <formats>`         | `html`         | Comma-separated: `html`, `markdown`, `junit`, `cucumber-json`, `cucumber-html`, `cucumber-messages` |
 | `--input-type <type>`        | `raw`          | Input type: `raw`, `canonical`, or `ndjson`                   |
 | `--output-dir <dir>`         | `reports`      | Output directory                                              |
-| `--output-name <name>`       | `test-results` | Base filename                                                 |
+| `--output-name <name>`       | `index` | Base filename                                                 |
 | `--synthesize-stories`       | on             | Synthesize story metadata for plain test results              |
 | `--no-synthesize-stories`    |                | Disable story synthesis (strict mode)                         |
 | `--html-title <title>`           | `Test Results` | HTML report title                                             |

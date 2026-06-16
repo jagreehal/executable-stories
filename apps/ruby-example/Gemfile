@@ -1,0 +1,9 @@
+# frozen_string_literal: true
+
+source "https://rubygems.org"
+
+# Use the workspace gem directly (no separate install/publish step needed).
+gem "executable-stories-ruby", path: "../../packages/executable-stories-ruby"
+
+gem "minitest", "~> 5.0"
+gem "rake", "~> 13.0"

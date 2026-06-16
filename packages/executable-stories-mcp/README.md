@@ -6,6 +6,10 @@ It consumes `story-report-json` output from `executable-stories-formatters` and 
 
 ## Create the Report
 
+First run your test suite so the adapter writes a raw run (JS/TS reporters write
+`reports/raw-run.json`; the non-JS adapters write `.executable-stories/raw-run.json`).
+Then turn it into the StoryReport the server reads:
+
 ```bash
 executable-stories format .executable-stories/raw-run.json \
   --format story-report-json,scenario-index-json,behavior-manifest-json \
@@ -25,7 +29,21 @@ reports/index.story-report.json
 npx executable-stories-mcp
 ```
 
-The binary speaks the MCP stdio transport. For an HTTP interface, see [HTTP API](#http-api-optional) below.
+The binary speaks the MCP stdio transport. To register it with an MCP client
+(Claude Code, Claude Desktop, Cursor), add it to the client's `mcpServers` config:
+
+```json
+{
+  "mcpServers": {
+    "executable-stories": {
+      "command": "npx",
+      "args": ["executable-stories-mcp"]
+    }
+  }
+}
+```
+
+For an HTTP interface, see [HTTP API](#http-api-optional) below.
 
 ## Tools
 
@@ -39,6 +57,8 @@ The binary speaks the MCP stdio transport. For an HTTP interface, see [HTTP API]
 - `get_scenario_index` — Storybook-like `scenario-index` v1 artifact
 - `get_behavior_manifest` — tags, source files, doc coverage, debugger warnings (incl. `missing-covers`)
 - `get_behavior_diff` — compare two StoryReports by scenario id (regressed / fixed / added / removed)
+- `get_deployment_status` — latest recorded deployment per environment (from the deployment ledger)
+- `get_environment_drift` — scenario drift between two environments (what's in one but not the other)
 
 ### Execution
 

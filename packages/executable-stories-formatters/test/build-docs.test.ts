@@ -13,6 +13,11 @@ import type { TestRunResult } from "../src/types/test-result";
 let dir: string;
 beforeEach(() => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "es-build-docs-"));
+  // buildDocs requires --site-dir to be a scaffolded Astro site (asserted by an
+  // astro.config.mjs). Tests build into `<dir>/site`, so stamp the marker.
+  const siteDir = path.join(dir, "site");
+  fs.mkdirSync(siteDir, { recursive: true });
+  fs.writeFileSync(path.join(siteDir, "astro.config.mjs"), "// test fixture\n");
 });
 afterEach(() => {
   fs.rmSync(dir, { recursive: true, force: true });
@@ -162,6 +167,17 @@ describe("buildDocs", () => {
     await expect(buildDocs({ rawRunPath, siteDir: path.join(dir, "site") })).rejects.toMatchObject({
       kind: "schema",
     });
+  });
+
+  it("refuses a --site-dir that is not a scaffolded Astro site (no astro.config.mjs)", async () => {
+    const rawRunPath = writeRawRun();
+    const notASite = path.join(dir, "not-a-site");
+    fs.mkdirSync(notASite, { recursive: true });
+    await expect(buildDocs({ rawRunPath, siteDir: notASite })).rejects.toMatchObject({
+      kind: "usage",
+    });
+    // and it must NOT have scattered output into the wrong directory
+    expect(fs.existsSync(path.join(notASite, "public/stories"))).toBe(false);
   });
 });
 

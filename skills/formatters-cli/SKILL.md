@@ -17,7 +17,7 @@ description: >
   assertValidRun, validateCanonicalRun.
 type: core
 library: executable-stories-formatters
-library_version: "0.13.0"
+library_version: "0.15.0"
 sources:
   - "jagreehal/executable-stories:packages/executable-stories-formatters/src/cli.ts"
   - "jagreehal/executable-stories:packages/executable-stories-formatters/src/index.ts"
@@ -138,17 +138,22 @@ const confluenceAdfJson = new ConfluenceFormatter().format(canonical);
 # Output control
 --format html,markdown,junit,cucumber-json,cucumber-html,cucumber-messages,astro,confluence,release-manifest,traceability-matrix,story-report-json,scenario-index-json,behavior-manifest-json
 --output-dir reports          # Base directory (default: reports)
---output-name test-results    # Base filename (default: test-results)
+--output-name index           # Base filename (default: index)
 --output-name-timestamp       # Append run timestamp (UTC seconds) to filename for before/after diffs
 --sort-test-cases id|source|none  # Deterministic scenario order (default: none). Use id for diff-friendly output
 --input-type raw              # raw | canonical | ndjson
+--config ./executable-stories.config.js  # Custom formats / config (default: ./executable-stories.config.js)
 
 # Filtering
---include "test/api/**"       # Glob patterns to include
---exclude "test/fixtures/**"  # Glob patterns to exclude
+--include "test/api/**"       # Glob patterns to include (by sourceFile)
+--exclude "test/fixtures/**"  # Glob patterns to exclude (by sourceFile)
+--include-tags smoke,api      # Include test cases carrying any of these tags
+--exclude-tags wip,flaky      # Exclude test cases carrying any of these tags
 
 # HTML options
 --html-title "Test Report"
+--html-theme dashboard        # default | corporate | terminal | minimal | dashboard | playful
+--html-theme-picker           # Embed all CSS-only themes with a live picker
 --html-no-syntax-highlighting
 --html-no-mermaid
 --html-no-markdown
@@ -220,7 +225,7 @@ Use `--asset-mode copy` to produce a portable report directory. All locally-refe
 and HTML paths are rewritten.
 
 ```bash
-executable-stories format raw-run.json --format html --output-dir report --asset-mode copy
+executable-stories format raw-run.json --format html --output-dir reports --asset-mode copy
 ```
 
 Output:
@@ -235,7 +240,7 @@ report/
 ### GitHub Actions usage
 
 ```yaml
-- run: npx executable-stories format .executable-stories/raw-run.json --format html --output-dir report --asset-mode copy
+- run: npx executable-stories format .executable-stories/raw-run.json --format html --output-dir reports --asset-mode copy
 - uses: actions/upload-artifact@v4
   with:
     name: test-report
@@ -343,6 +348,27 @@ executable-stories goal raw-run.json --require-tickets US-101 --baseline prev.js
 
 Put `check` and `goal` in `CLAUDE.md`/`AGENTS.md` so the loop runs them without being asked. See the docs guide "Agent loops and backpressure".
 
+### list — scenario discovery / failure triage
+
+```bash
+executable-stories list raw-run.json --list-format json   # text (default) | json | csv | markdown-table
+# supports --include-tags / --exclude-tags, --input-type, --stdin
+```
+
+The discovery index for agents and explorers — one scenario per line (text) or machine-parsable JSON. Use it for triage before reading source tests.
+
+### watch — keep agent artifacts fresh
+
+```bash
+executable-stories watch raw-run.json --format story-report-json,scenario-index-json --output-dir reports
+```
+
+Regenerates the chosen reports whenever the raw-run file changes — keeps the live agent index (StoryReport JSON + scenario index) up to date during a coding loop without re-invoking `format` by hand.
+
+### Other subcommands
+
+`compare` (diff two runs), `gate-release` (verify an RC run against a dev baseline), `review` (Evidence Review of AI-authored changes vs the diff), and `deploy record|status|diff` (deployment ledger + environment drift) round out the CLI — run `executable-stories --help` for the full list and `<subcommand> --help` per command.
+
 ## Common Mistakes
 
 ### HIGH Passing invalid RawRun JSON
@@ -358,19 +384,18 @@ Correct:
 ```json
 {
   "schemaVersion": 1,
-  "metadata": { "startedAt": "2024-01-01T00:00:00Z" },
+  "projectRoot": "/abs/path/to/project",
   "testCases": [
     {
-      "id": "test-1",
-      "name": "my test",
+      "title": "my test",
       "sourceFile": "test/example.test.ts",
-      "status": "passed"
+      "status": "pass"
     }
   ]
 }
 ```
 
-The CLI validates against the RawRun schema. Invalid input exits with code 1. The `schemaVersion`, `metadata`, and `testCases` fields are required.
+The CLI validates against the RawRun schema (`additionalProperties: false`, so unknown keys are rejected). Invalid input exits with code 1. Required at the top level: `schemaVersion`, `testCases`, and `projectRoot`. On each test case only `status` is required; the human-readable name field is `title` (not `name`). Valid `status` values: `pass`, `fail`, `skip`, `todo`, `pending`, `timeout`, `interrupted`, `unknown`. For arbitrary runner data use the optional `meta` object — there is no top-level `metadata` field.
 
 Source: packages/executable-stories-formatters/src/cli.ts
 

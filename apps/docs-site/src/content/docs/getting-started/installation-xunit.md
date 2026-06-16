@@ -18,7 +18,7 @@ The `Story` class uses static methods. Because xUnit creates a new test class in
 The recommended pattern is to implement `IDisposable` on your test class:
 
 ```csharp
-using ExecutableStories;
+using ExecutableStories.Xunit;
 using Xunit;
 
 public class LoginTests : IDisposable
@@ -50,16 +50,17 @@ The raw run JSON is written to `.executable-stories/raw-run.json` when the test 
 
 ## Generate a report
 
-Pass the raw run JSON to `executable-stories-formatters` to render Markdown, HTML, JUnit XML, or Cucumber formats:
+Pass the raw run JSON to the `executable-stories` CLI (shipped in the `executable-stories-formatters` package) to render Markdown, HTML, JUnit XML, or Cucumber formats. The input file is a positional argument:
 
 ```bash
-npx executable-stories-formatters format --input .executable-stories/raw-run.json --format markdown
+npx --package executable-stories-formatters executable-stories format .executable-stories/raw-run.json --format markdown
 ```
 
-Install the formatters package once in your Node project or CI job:
+Or install the formatters package once in your Node project or CI job and call the `executable-stories` binary directly:
 
 ```bash
 npm install -D executable-stories-formatters
+npx executable-stories format .executable-stories/raw-run.json --format markdown
 ```
 
 ## Next

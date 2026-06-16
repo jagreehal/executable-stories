@@ -8,7 +8,7 @@ description: >
   config enables all at error level.
 type: core
 library: eslint-plugin-executable-stories-vitest
-library_version: "0.2.0"
+library_version: "2.1.9"
 sources:
   - "jagreehal/executable-stories:packages/eslint-plugin-executable-stories-vitest/src/index.ts"
 ---

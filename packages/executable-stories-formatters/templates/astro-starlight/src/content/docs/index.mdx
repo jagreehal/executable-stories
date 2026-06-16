@@ -37,9 +37,9 @@ Python, Go, Ruby, Java/Kotlin, Rust, or C#: it all flows through one report.
 Generate the behavior portal from any test run:
 
 ```bash
-executable-stories build-docs run.json \
-  --site-dir . \
-  --audience-split
+# run your tests first (StoryReporter writes reports/raw-run.json), then:
+executable-stories build-docs reports/raw-run.json --site-dir .
+# add --audience-split to split pages into business vs technical URLs
 ```
 
 Then start the dev server:

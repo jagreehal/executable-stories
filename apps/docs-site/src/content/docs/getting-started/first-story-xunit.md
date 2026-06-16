@@ -8,87 +8,95 @@ description: Write your first C# scenario with given/when/then steps and doc ent
 Create a test file such as `LoginTests.cs`:
 
 ```csharp
-using ExecutableStories;
+using ExecutableStories.Xunit;
 using Xunit;
 
-public class LoginTests : IDisposable
+public class LoginTests
 {
-    public void Dispose()
-    {
-        Story.RecordAndClear();
-    }
-
     [Fact]
     public void UserLogsInSuccessfully()
     {
         Story.Init("user logs in successfully");
+        try
+        {
+            Story.Given("the user is on the login page");
+            var email = "user@example.com";
+            var password = "secret";
 
-        Story.Given("the user is on the login page");
-        var email = "user@example.com";
-        var password = "secret";
+            Story.When("the user submits valid credentials");
+            var authenticated = email == "user@example.com" && password == "secret";
 
-        Story.When("the user submits valid credentials");
-        var authenticated = email == "user@example.com" && password == "secret";
+            Story.Then("the user should see the dashboard");
+            Assert.True(authenticated);
 
-        Story.Then("the user should see the dashboard");
-        Assert.True(authenticated);
+            Story.RecordAndClear();
+        }
+        catch
+        {
+            Story.RecordAndClear("fail");
+            throw;
+        }
     }
 }
 ```
 
-`Story.RecordAndClear()` in `Dispose()` flushes the scenario after each test. xUnit constructs a new class instance per test, so without this call data from one test carries over into the next.
+`Story.RecordAndClear()` flushes the scenario after each test. Wrap the body in `try/catch` and call `Story.RecordAndClear("fail")` when the test throws — `RecordAndClear()` defaults to a `"pass"` status, so recording in a plain `Dispose()` would mark every test green even when assertions fail.
 
 ## Richer example with doc entries
 
 Use tags, tickets, and doc entries to add context to your scenarios:
 
 ```csharp
-using ExecutableStories;
+using ExecutableStories.Xunit;
 using System.Text.Json;
 using Xunit;
 
-public class PasswordPolicyTests : IDisposable
+public class PasswordPolicyTests
 {
-    public void Dispose()
-    {
-        Story.RecordAndClear();
-    }
-
     [Fact]
     public void PasswordRulesAreEnforced()
     {
         Story.Init("password rules are enforced", "auth", "security");
         Story.Ticket("AUTH-42");
+        try
+        {
+            Story.Given("the user is registering a new account");
+            Story.Note("Password policy: min 12 chars, one uppercase, one digit, one symbol");
 
-        Story.Given("the user is registering a new account");
-        Story.Note("Password policy: min 12 chars, one uppercase, one digit, one symbol");
+            Story.When("the user submits a password that is too short");
+            var password = "short";
+            var valid = password.Length >= 12;
 
-        Story.When("the user submits a password that is too short");
-        var password = "short";
-        var valid = password.Length >= 12;
+            Story.Then("the registration should be rejected");
+            Story.Json(
+                "validation result",
+                new { valid, reason = "too short" }
+            );
+            Story.Code(
+                "password policy",
+                "min_length: 12\nrequire_uppercase: true\nrequire_digit: true",
+                "yaml"
+            );
+            Story.Table(
+                "rule summary",
+                new[] { "Rule", "Required", "Met" },
+                new[]
+                {
+                    new[] { "min length 12", "yes", "no" },
+                    new[] { "uppercase letter", "yes", "yes" },
+                    new[] { "digit", "yes", "no" },
+                }
+            );
 
-        Story.Then("the registration should be rejected");
-        Story.Json(
-            "validation result",
-            new { valid, reason = "too short" }
-        );
-        Story.Code(
-            "password policy",
-            "min_length: 12\nrequire_uppercase: true\nrequire_digit: true",
-            "yaml"
-        );
-        Story.Table(
-            "rule summary",
-            new[] { "Rule", "Required", "Met" },
-            new[]
-            {
-                new[] { "min length 12", "yes", "no" },
-                new[] { "uppercase letter", "yes", "yes" },
-                new[] { "digit", "yes", "no" },
-            }
-        );
+            Assert.False(valid);
 
-        Assert.False(valid);
+            Story.RecordAndClear();
+        }
+        catch
+        {
+            Story.RecordAndClear("fail");
+            throw;
+        }
     }
 }
 ```
@@ -114,7 +122,7 @@ dotnet test
 ## Generate a report
 
 ```bash
-npx executable-stories-formatters format --input .executable-stories/raw-run.json --format html
+npx --package executable-stories-formatters executable-stories format .executable-stories/raw-run.json --format html
 ```
 
 ## Next

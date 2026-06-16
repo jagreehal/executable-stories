@@ -1,7 +1,7 @@
 plugins {
-    kotlin("jvm") version "2.1.0"
+    kotlin("jvm") version "2.4.0"
     id("com.vanniktech.maven.publish") version "0.30.0"
-    id("org.jlleitschuh.gradle.ktlint") version "14.1.0"
+    id("org.jlleitschuh.gradle.ktlint") version "14.2.0"
     id("io.gitlab.arturbosch.detekt") version "1.23.8"
 }
 
@@ -53,16 +53,16 @@ kotlin {
 }
 
 dependencies {
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.18.2")
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.18.2")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.19.0")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.19.0")
 
-    compileOnly("org.junit.jupiter:junit-jupiter:5.11.4")
-    compileOnly("org.junit.platform:junit-platform-launcher:1.11.4")
+    compileOnly("org.junit.jupiter:junit-jupiter:5.12.2")
+    compileOnly("org.junit.platform:junit-platform-launcher:1.12.2")
     compileOnly("io.opentelemetry:opentelemetry-api:1.44.1")
 
-    testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
-    testImplementation("org.junit.platform:junit-platform-launcher:1.11.4")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.11.4")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.12.2")
+    testImplementation("org.junit.platform:junit-platform-launcher:1.12.2")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.12.2")
 }
 
 tasks.test {

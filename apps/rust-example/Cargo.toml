@@ -1,7 +1,7 @@
 [package]
 name = "rust-example"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 description = "Example app using executable-stories (Rust)"
 license = "MIT"
 
@@ -13,4 +13,5 @@ path = "src/lib.rs"
 
 [dev-dependencies]
 executable-stories = { path = "../../packages/executable-stories-rust" }
-ctor = "0.2"
+# Destructors moved out of `ctor` into the companion `dtor` crate at ctor 1.0.
+dtor = "1.0"

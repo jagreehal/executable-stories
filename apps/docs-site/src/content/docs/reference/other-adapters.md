@@ -425,14 +425,14 @@ class CheckoutTest {
 
 | | |
 |---|---|
-| Package | `ExecutableStories.XUnit` |
-| Install | `dotnet add package ExecutableStories.XUnit` |
+| Package | `ExecutableStories.Xunit` |
+| Install | `dotnet add package ExecutableStories.Xunit` |
 | Min version | .NET 8, xUnit 2.x |
 
 ### Story initialization
 
 ```csharp
-using ExecutableStories;
+using ExecutableStories.Xunit;
 
 public class LoginTests : IDisposable
 {
