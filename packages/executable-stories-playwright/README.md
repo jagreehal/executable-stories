@@ -5,7 +5,7 @@ BDD-style executable stories for Playwright Test with documentation generation. 
 ## Install
 
 ```bash
-pnpm add -D executable-stories-playwright executable-stories-formatters
+pnpm add -D executable-stories-playwright
 ```
 
 ## Usage
@@ -155,7 +155,7 @@ story.init(testInfo, {
 ## Developer experience
 
 - **API:** Top-level step functions: `given`, `when`, `then`, `and`, `but` from `executable-stories-playwright`, plus `story` object with `story.init()` and the same steps on `story` for a consistent entry point. Use `story.init(testInfo)` and then `story.given` / `story.when` / `story.then`, etc.
-- **Modifiers:** Playwright’s `.skip`, `.only`, `.fixme`, `.todo`, `.fail`, `.slow` on tests; use `story.skip` / `story.only` / `story.fixme` / `story.slow` for scenario-level modifiers.
+- **Modifiers:** Use Playwright’s native test modifiers — `test.skip`, `test.only`, `test.fixme`, `test.slow`, `test.fail` (and `.todo`) — for scenario-level control. The `story` object does not provide its own modifiers.
 - **Attach story to a plain test:** Call `story.init(testInfo)` inside a normal `test()` so that test appears in generated docs. Playwright does not export `doc`; scenario title comes from the Playwright test title.
 - **Rich step docs:** `story.note()`, `story.json()`, `story.code()`, `story.mermaid()`, etc., or pass a `StoryDocs` object as the second argument when not using a callback. See the root [Features matrix](https://github.com/jagreehal/executable-stories#features-matrix).
 

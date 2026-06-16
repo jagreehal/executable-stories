@@ -7,10 +7,14 @@
  * ```js
  * // jest.config.js
  * export default {
- *   setupFilesAfterEnv: ['jest-executable-stories/setup'],
+ *   setupFilesAfterEnv: ['executable-stories-jest/setup'],
  *   reporters: [
  *     'default',
- *     ['jest-executable-stories/reporter', { outputFile: 'docs/user-stories.md' }]
+ *     ['executable-stories-jest/reporter', {
+ *       formats: ['markdown', 'html'],
+ *       outputDir: 'docs',
+ *       outputName: 'user-stories',
+ *     }],
  *   ],
  * };
  * ```

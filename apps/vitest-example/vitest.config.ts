@@ -1,15 +1,11 @@
-import { createRequire } from 'node:module';
-import type { Reporter } from 'vitest/node';
 import { defineConfig } from 'vitest/config';
-
-const require = createRequire(import.meta.url);
-const { StoryReporter } = require('executable-stories-vitest/reporter');
+import { createStoryReporter } from 'executable-stories-vitest/reporter';
 
 export default defineConfig({
   test: {
     reporters: [
       'default',
-      new StoryReporter({
+      createStoryReporter({
         // =================================================================
         // OUTPUT FORMAT SELECTION
         // =================================================================
@@ -126,7 +122,7 @@ export default defineConfig({
         // =================================================================
         // Append report to GitHub Actions job summary (when GITHUB_ACTIONS env)
         // enableGithubActionsSummary: true,
-      }) as unknown as Reporter,
+      }),
     ],
   },
 });

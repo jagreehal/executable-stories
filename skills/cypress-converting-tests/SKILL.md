@@ -6,7 +6,7 @@ description: >
   Requires plugin + support file wiring. Progressive enhancement.
 type: lifecycle
 library: executable-stories-cypress
-library_version: "7.0.1"
+library_version: "8.4.3"
 requires:
   - cypress-story-api
 sources:

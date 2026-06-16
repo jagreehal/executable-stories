@@ -1,6 +1,6 @@
 module github.com/jagreehal/executable-stories/packages/executable-stories-go
 
-go 1.22.0
+go 1.25.0
 
 require (
 	go.opentelemetry.io/otel v1.34.0

@@ -23,6 +23,7 @@ import { ReportGenerator } from "./index.js";
 import { importOpenApi } from "./import-openapi";
 import { copyAsset } from "./bundler/copy-asset";
 import { deriveAudience } from "./review/conventions";
+import { isScaffoldedAstroSite } from "./init-astro";
 import { buildScenarioLinks, scenarioAnchor, type ScenarioLinksIndex } from "./scenario-links";
 import { diffStoryReports, type BehaviorDiff } from "./behavior-diff";
 import { renderChangesPage } from "./changes-page";
@@ -108,7 +109,7 @@ export interface BuildDocsResult {
 }
 
 /** Why a build-docs run failed — lets the CLI pick the right exit code. */
-export type BuildDocsErrorKind = "input" | "schema" | "generation";
+export type BuildDocsErrorKind = "input" | "schema" | "generation" | "usage";
 
 export class BuildDocsError extends Error {
   constructor(
@@ -310,6 +311,19 @@ function loadCanonicalRun(rawRunPath: string, synthesize: boolean): TestRunResul
 
 export async function buildDocs(options: BuildDocsOptions): Promise<BuildDocsResult> {
   const siteDir = path.resolve(options.siteDir);
+
+  // Guard against pointing at a non-scaffolded directory (e.g. forgetting
+  // --site-dir, which defaults to "."). Without this, build-docs would mkdir
+  // public/stories and src/content/docs/stories into the wrong place and report
+  // success. A real site always has an astro.config.mjs.
+  if (!isScaffoldedAstroSite(siteDir)) {
+    throw new BuildDocsError(
+      `"${siteDir}" is not a scaffolded Astro docs site (no astro.config.mjs). ` +
+        `Run "executable-stories init-astro <dir>" first, then pass it with --site-dir <dir>.`,
+      "usage",
+    );
+  }
+
   const storiesPublicDir = path.join(siteDir, "public", "stories");
   const assetsDir = path.join(storiesPublicDir, "assets");
   const storyPagesDir = path.join(siteDir, "src", "content", "docs", "stories");

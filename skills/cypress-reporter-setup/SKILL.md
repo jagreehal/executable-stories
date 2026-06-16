@@ -7,7 +7,7 @@ description: >
   formats, directory, naming.
 type: core
 library: executable-stories-cypress
-library_version: "7.0.1"
+library_version: "8.4.3"
 sources:
   - "jagreehal/executable-stories:packages/executable-stories-cypress/src/reporter.ts"
 ---
@@ -20,7 +20,7 @@ sources:
 
 ```bash
 cypress run \
-  --reporter executable-stories-cypress/reporter \
+  --reporter executable-stories-cypress/reporter.cjs \
   --reporter-options "outputDir=docs,outputName=user-stories,formats=markdown"
 ```
 
@@ -53,7 +53,7 @@ await generateReportsFromRawRun(rawRun, {
 });
 ```
 
-Peer dependency: `executable-stories-formatters` must be installed.
+`executable-stories-formatters` is a bundled dependency (installed automatically with `executable-stories-cypress`).
 
 ## Core Patterns
 
@@ -61,7 +61,7 @@ Peer dependency: `executable-stories-formatters` must be installed.
 
 ```bash
 cypress run \
-  --reporter executable-stories-cypress/reporter \
+  --reporter executable-stories-cypress/reporter.cjs \
   --reporter-options "outputDir=reports,outputName=test-results,formats=markdown+html+junit"
 ```
 
@@ -104,7 +104,7 @@ export default defineConfig({
       registerExecutableStoriesPlugin(on);
     },
   },
-  reporter: "executable-stories-cypress/reporter",
+  reporter: "executable-stories-cypress/reporter.cjs",
 });
 ```
 

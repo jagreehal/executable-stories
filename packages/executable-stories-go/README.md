@@ -4,6 +4,14 @@ Go adapter for executable-stories.
 
 Provides framework-native BDD-style story helpers for `testing.T` and writes raw story run JSON that can be formatted by `executable-stories-formatters`.
 
+## Install
+
+The canonical module path is `github.com/jagreehal/executable-stories/packages/executable-stories-go`. Release tags are prefixed (e.g. `go-executable-stories-v0.1.0`), not bare `v0.1.0`, so target the tag explicitly:
+
+```bash
+go get github.com/jagreehal/executable-stories/packages/executable-stories-go@go-executable-stories-v0.1.0
+```
+
 ## Usage
 
 ```go
@@ -30,7 +38,6 @@ func TestAddition(t *testing.T) {
 ## Features
 
 - BDD steps: `Given`, `When`, `Then`, `And`, `But`
-- Aliases: `Arrange`, `Act`, `Assert`, `Setup`, `Context`, `Execute`, `Action`, `Verify`
 - Rich docs: note, kv, json, code, table, link, section, mermaid, screenshot, html, custom
 - Step timing: `StartTimer` / `EndTimer`
 - Trace links: `WithTraceUrlTemplate(...)` or `OTEL_TRACE_URL_TEMPLATE`
@@ -43,6 +50,21 @@ The adapter writes raw run JSON to:
 - default: `.executable-stories/raw-run.json`
 
 Use `executable-stories-formatters` to generate HTML/Markdown/JUnit/Cucumber output.
+
+## CLI handoff
+
+After running tests, turn the raw-run JSON into reports with the `executable-stories` CLI:
+
+```bash
+# Generate an HTML report
+executable-stories format .executable-stories/raw-run.json --format html
+
+# Canonical StoryReport v1 JSON (machine contract)
+executable-stories format .executable-stories/raw-run.json --format story-report-json --output-dir reports --output-name index
+
+# List scenarios (discovery / failure triage)
+executable-stories list .executable-stories/raw-run.json --list-format json
+```
 
 ## Verify
 

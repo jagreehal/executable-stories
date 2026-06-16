@@ -57,8 +57,7 @@ const failing: FailingScenario[] = health.failing;
   {
     health.empty && (
       <p class="health__hint">
-        Generate a run with <code>executable-stories format run.json --format story-report-json
-        --output-dir public/stories --output-name story-report</code> to light up this dashboard.
+        Generate a run with <code>executable-stories build-docs reports/raw-run.json --site-dir .</code> to light up this dashboard.
       </p>
     )
   }

@@ -78,6 +78,7 @@ executable-stories — Generate reports from test results JSON.
 USAGE
   executable-stories format <file> [options]
   executable-stories format --stdin [options]
+  executable-stories watch <raw-run.json> [options]
   executable-stories compare <baseline-file> <current-file> [options]
   executable-stories gate-release <dev-run.json> <rc-run.json> [options]
   executable-stories review <file> --changed-files <path> [options]
@@ -88,6 +89,7 @@ USAGE
   executable-stories validate <file>
   executable-stories validate --stdin
   executable-stories init-astro [directory]
+  executable-stories build-docs <raw-run.json> [--site-dir <dir>] [options]
   executable-stories new <template> "<name>" [options]
   executable-stories check-links <dir> [options]
   executable-stories import-openapi <spec> [options]
@@ -109,6 +111,7 @@ SUBCOMMANDS
   triage             Discovery worklist for agent loops: failing scenarios, regressions first, each with the code it covers
   validate           Validate a JSON file against the schema (no output generated)
   init-astro         Scaffold an Astro docs site for story output (Starlight with themed CSS)
+  build-docs         Build the living-docs site: one page per story file + Explorer data (auto-pickup, prunes deleted stories)
   new                Scaffold a docs page from a template (adr, runbook, decision-log, incident, scenario-note)
   check-links        Scan docs for broken internal/external links (CI-friendly exit code)
   import-openapi     Generate API doc pages from an OpenAPI spec, linked to verifying stories
@@ -118,7 +121,7 @@ SUBCOMMANDS
 
 OPTIONS
   --format <formats>            Comma-separated formats: html, markdown, release-manifest, traceability-matrix, junit, cucumber-json, cucumber-messages, cucumber-html, astro, confluence, story-report-json, scenario-index-json, behavior-manifest-json, or custom names from config (default: html)
-                                  astro             Themed Markdown (for Astro docs sites with matching CSS)
+                                  astro             Themed Markdown primitive (single aggregated page; for a full site use "build-docs")
                                   confluence        Atlassian Document Format (ADF) JSON for Confluence / Jira
                                   behavior-manifest-json Agent-readable behavior manifest and debugger warnings
                                   html              Custom HTML report (accessible, dark mode, mermaid)
@@ -239,6 +242,20 @@ DEPLOY
 INIT-ASTRO
   executable-stories init-astro [directory]   Scaffold into directory (default: ./story-docs)
   --force                                      Overwrite existing directory
+  --update                                     Refresh framework files only (keeps your content + config)
+
+BUILD-DOCS
+  Build the multi-page living-docs site from a raw run: one Astro page per story
+  file plus Explorer data (scenario-links.json, story-report.json). Auto-pickup —
+  a new *.story.test.ts becomes a new page on the next run; deleting a story
+  prunes its page. This is the headline living-docs flow; "format --format astro"
+  is a low-level primitive that emits a single aggregated page, not a site.
+
+  executable-stories build-docs <raw-run.json> [--site-dir <dir>]
+  --site-dir <dir>             Target site dir (default: a scaffolded init-astro site)
+  --openapi <spec>             Link generated API pages to verifying stories
+  --baseline <prev-report>     Diff against a prior story-report.json for change markers
+  --audience-split             Split pages by audience (business vs technical)
 
 PUBLISH-CONFLUENCE
   executable-stories publish-confluence <file.adf.json> [options]
@@ -454,12 +471,17 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
       console.log("To change theme, edit astro.config.mjs customCss array.");
       console.log("");
       console.log("Next steps:");
-      console.log(`  cd ${result.targetDir}`);
-      console.log("  pnpm install    # or npm install");
-      console.log("  pnpm dev        # start the dev server");
-      console.log("");
-      console.log("Generate everything (story pages, explorer data, API pages) in one step:");
-      console.log(`  executable-stories build-docs run.json --site-dir ${result.targetDir} [--openapi spec.json]`);
+      console.log(`  1. cd ${result.targetDir} && pnpm install      # or npm install`);
+      console.log("  2. In your TEST project, add the StoryReporter with a rawRunPath, e.g.");
+      console.log("       StoryReporter({ rawRunPath: 'reports/raw-run.json' })");
+      console.log("     (this is what writes the raw run that build-docs reads)");
+      console.log("  3. Run your tests to produce reports/raw-run.json:");
+      console.log("       pnpm test");
+      console.log("  4. Build the living-docs site (story pages, explorer data, API pages):");
+      console.log(
+        `       executable-stories build-docs reports/raw-run.json --site-dir ${result.targetDir} [--openapi spec.json]`,
+      );
+      console.log(`  5. Preview it:  cd ${result.targetDir} && pnpm dev`);
       console.log("");
       console.log("Later, pull template/design improvements without losing your content:");
       console.log(`  executable-stories init-astro ${result.targetDir} --update`);

@@ -195,7 +195,7 @@ public void My_test()
 }
 ```
 
-xUnit's VSTest runner does not support `IRunnerReporter` for automatic recording. You must call `RecordAndClear()` manually at the end of each test.
+There is no automatic test-lifecycle hook. You must call `RecordAndClear()` at the end of each test; recorded cases are collected in-process and flushed to `.executable-stories/raw-run.json` on process exit.
 
 Source: packages/executable-stories-xunit/ExecutableStories.Xunit/Story.cs
 

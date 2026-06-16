@@ -2,25 +2,31 @@
 
 Example app using [executable-stories-junit5](../../packages/executable-stories-junit5). Demonstrates the Story API with calculator scenarios, story options (tags), step aliases (and/but), and Gherkin-style patterns.
 
+Both this example and the adapter package are Gradle projects (there is no Maven `pom.xml`); use the bundled `./gradlew` wrapper.
+
 ## Prerequisites
 
 - Java 21
-- Maven
+- No global Gradle install needed — use the `./gradlew` wrapper
 
 ## Verification
 
-1. **Install the package** into your local Maven repository (from repo root):
+1. **Build the adapter** so its JAR exists in `packages/executable-stories-junit5/build/libs/` (this example depends on that JAR directly). From `packages/executable-stories-junit5`:
 
    ```bash
-   mvn -f packages/executable-stories-junit5/pom.xml install
+   ./gradlew build
    ```
 
-2. **Run tests** (from repo root or from this directory):
+   To consume the adapter via a coordinate instead of the JAR path, publish it to your local Maven repository:
 
    ```bash
-   mvn -f apps/junit5-example/pom.xml test
-   # or, from apps/junit5-example:
-   mvn test
+   ./gradlew publishToMavenLocal
+   ```
+
+2. **Run tests** from this directory (`apps/junit5-example`):
+
+   ```bash
+   ./gradlew test
    ```
 
 3. **Check output** — After tests, `apps/junit5-example/.executable-stories/raw-run.json` should exist and contain run/specs/scenarios with story titles and steps.
@@ -31,4 +37,4 @@ Example app using [executable-stories-junit5](../../packages/executable-stories-
    pnpm exec executable-stories format apps/junit5-example/.executable-stories/raw-run.json --output-dir apps/junit5-example/reports --format markdown,html
    ```
 
-You can also run the full verification script from the repo root when Java 21 and Maven are available (e.g. in the devcontainer): `pnpm run verify:junit5` or `./scripts/verify-junit5.sh`.
+You can also run the full verification script from the repo root when Java 21 is available (e.g. in the devcontainer): `pnpm run verify:junit5` or `./scripts/verify-junit5.sh`.

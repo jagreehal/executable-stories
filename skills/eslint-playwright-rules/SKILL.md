@@ -9,7 +9,7 @@ description: >
   modifiers: only, skip, fixme, fail, slow.
 type: core
 library: eslint-plugin-executable-stories-playwright
-library_version: "0.1.0"
+library_version: "2.1.9"
 sources:
   - "jagreehal/executable-stories:packages/eslint-plugin-executable-stories-playwright/src/index.ts"
 ---

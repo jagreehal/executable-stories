@@ -8,7 +8,7 @@ description: >
   GitHub Actions summary. rawRunPath for CLI consumption.
 type: core
 library: executable-stories-vitest
-library_version: "7.0.1"
+library_version: "8.4.3"
 sources:
   - "jagreehal/executable-stories:packages/executable-stories-vitest/src/reporter.ts"
   - "jagreehal/executable-stories:apps/docs-site/src/content/docs/vitest/vitest-config.md"
@@ -21,13 +21,13 @@ sources:
 ```typescript
 // vitest.config.ts
 import { defineConfig } from "vitest/config";
-import { StoryReporter } from "executable-stories-vitest/reporter";
+import { createStoryReporter } from "executable-stories-vitest/reporter";
 
 export default defineConfig({
   test: {
     reporters: [
       "default",
-      new StoryReporter({
+      createStoryReporter({
         formats: ["markdown", "html"],
         outputDir: "docs",
         outputName: "user-stories",
@@ -37,6 +37,8 @@ export default defineConfig({
 });
 ```
 
+Use the `createStoryReporter()` factory: it returns a correctly typed reporter, so you avoid the `new StoryReporter(...) as unknown as Reporter` cast.
+
 Peer dependency: `executable-stories-formatters` must be installed.
 
 ## Core Patterns
@@ -45,7 +47,7 @@ Peer dependency: `executable-stories-formatters` must be installed.
 
 ```typescript
 // Aggregated (default) — one file per format
-new StoryReporter({
+createStoryReporter({
   formats: ["markdown"],
   outputDir: "docs",
   outputName: "user-stories",
@@ -54,7 +56,7 @@ new StoryReporter({
 // → docs/user-stories.md
 
 // Colocated mirrored — one file per source, directory mirrored
-new StoryReporter({
+createStoryReporter({
   formats: ["markdown"],
   outputDir: "docs",
   output: { mode: "colocated", colocatedStyle: "mirrored" },
@@ -62,7 +64,7 @@ new StoryReporter({
 // test/auth/login.story.test.ts → docs/test/auth/login.story.md
 
 // Colocated adjacent — written next to the test file
-new StoryReporter({
+createStoryReporter({
   formats: ["markdown"],
   output: { mode: "colocated", colocatedStyle: "adjacent" },
 })
@@ -72,7 +74,7 @@ new StoryReporter({
 ### Format-specific options
 
 ```typescript
-new StoryReporter({
+createStoryReporter({
   formats: ["markdown", "html", "junit", "cucumber-json"],
   outputDir: "reports",
   markdown: {
@@ -101,7 +103,7 @@ new StoryReporter({
 ### Pattern-based output rules
 
 ```typescript
-new StoryReporter({
+createStoryReporter({
   formats: ["markdown"],
   output: {
     mode: "aggregated",
@@ -125,7 +127,7 @@ new StoryReporter({
 ### Raw run output for CLI
 
 ```typescript
-new StoryReporter({
+createStoryReporter({
   formats: ["markdown"],
   rawRunPath: "reports/raw-run.json",
   enableGithubActionsSummary: true,
@@ -157,13 +159,13 @@ Source: packages/executable-stories-vitest/src/index.ts
 Wrong:
 
 ```typescript
-new StoryReporter({ output: "docs/user-stories.md" })
+createStoryReporter({ output: "docs/user-stories.md" })
 ```
 
 Correct:
 
 ```typescript
-new StoryReporter({
+createStoryReporter({
   formats: ["markdown"],
   outputDir: "docs",
   outputName: "user-stories",
@@ -180,14 +182,14 @@ Wrong assumption:
 
 ```typescript
 // Expecting markdown output
-new StoryReporter({ outputDir: "docs" })
+createStoryReporter({ outputDir: "docs" })
 // → docs/test-results.cucumber.json (not .md)
 ```
 
 Correct:
 
 ```typescript
-new StoryReporter({
+createStoryReporter({
   formats: ["markdown"],
   outputDir: "docs",
 })

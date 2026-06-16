@@ -8,7 +8,7 @@ description: >
   note, tag. Auto-And keyword conversion. Aliases: arrange, act, assert.
 type: core
 library: executable-stories-playwright
-library_version: "7.0.1"
+library_version: "8.5.3"
 sources:
   - "jagreehal/executable-stories:packages/executable-stories-playwright/src/story-api.ts"
   - "jagreehal/executable-stories:apps/docs-site/src/content/docs/playwright/playwright-story-api.md"
@@ -237,7 +237,7 @@ Source: packages/eslint-plugin-executable-stories-playwright/src/rules/require-s
 
 ## Parameterized Scenarios (Scenario Outline equivalent)
 
-Use Playwright's data-driven pattern with `story()` to produce one scenario per data row — the framework-native replacement for Cucumber's Scenario Outline + Examples.
+Use Playwright's data-driven pattern with a `for...of` loop to produce one scenario per data row — the framework-native replacement for Cucumber's Scenario Outline + Examples. The scenario name comes from the `test()` title.
 
 ```ts
 import { test } from "@playwright/test";
@@ -250,8 +250,8 @@ const cases = [
 ];
 
 for (const { input, expected } of cases) {
-  test(`doubles ${input} to ${expected}`, async ({ page }) => {
-    story(`Doubles ${input} to ${expected}`);
+  test(`doubles ${input} to ${expected}`, async ({ page }, testInfo) => {
+    story.init(testInfo);
     given(`the input is ${input}`);
     when("the doubler runs");
     then(`the result is ${expected}`);

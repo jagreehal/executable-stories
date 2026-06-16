@@ -178,6 +178,6 @@ npx executable-stories format <input> --format astro [options]
 | Option | Default | Description |
 |--------|---------|-------------|
 | `--output-dir` | `reports` | Where to write the `.md` files |
-| `--output-name` | `test-results` | Base filename (without extension) |
+| `--output-name` | `index` | Base filename (without extension) |
 | `--asset-mode` | (none) | Set to `copy` to copy local assets |
 | `--allow-missing-assets` | `false` | Warn instead of failing on missing assets |

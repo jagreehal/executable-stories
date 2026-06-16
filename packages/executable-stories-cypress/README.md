@@ -103,7 +103,7 @@ When `traceUrlTemplate` is set and spans are attached via `story.attachSpans(...
 
 The package outputs to the **executable-stories-formatters** schema (RawRun). You can:
 
-- Use the Mocha reporter (when Cypress invokes it) with `--reporter executable-stories-cypress/reporter` and `--reporter-options outputDir=...,outputName=...`.
+- Use the Mocha reporter (when Cypress invokes it) with `--reporter executable-stories-cypress/reporter.cjs` and `--reporter-options outputDir=...,outputName=...`.
 - Or use the Module API: after `cypress.run()`, call `buildRawRunFromCypressResult(result, options)` then `generateReportsFromRawRun(rawRun, options)` (see exports from `executable-stories-cypress/reporter`).
 
 Options match the formatters’ `FormatterOptions` (e.g. `formats`, `outputDir`, `outputName`, `markdown`, `rawRunPath`).

@@ -9,8 +9,8 @@ as the generated story docs, with the same navigation, search, and theming.
 ## Where pages live
 
 - **Generated** story pages are written to `src/content/docs/stories/` by
-  `executable-stories format … --format astro`. Don't edit these by hand — they
-  are regenerated from tests.
+  `executable-stories build-docs reports/raw-run.json --site-dir .`. Don't edit
+  these by hand — they are regenerated from tests.
 - **Hand-written** pages (guides, ADRs, runbooks, incidents, API docs) live in
   their own folders under `src/content/docs/`. They are never overwritten by a
   regenerate.

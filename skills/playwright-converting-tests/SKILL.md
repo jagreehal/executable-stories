@@ -6,7 +6,7 @@ description: >
   TestInfo from test callback second argument. Progressive enhancement.
 type: lifecycle
 library: executable-stories-playwright
-library_version: "7.0.1"
+library_version: "8.5.3"
 requires:
   - playwright-story-api
 sources:

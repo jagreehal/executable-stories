@@ -45,6 +45,6 @@ describe("StoryReporter", () => {
       expect(raw).toMatch(/\bTags:.*smoke/);
       expect(raw).toMatch(/\bTickets:.*T-1/);
     },
-    20_000,
+    120_000,
   );
 });

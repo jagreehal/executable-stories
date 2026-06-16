@@ -189,7 +189,11 @@ class DocEntry {
          *
          * Exactly one of [path], [url], or [content] must be non-null, or an
          * [IllegalArgumentException] is thrown.
+         *
+         * One optional parameter per supported source/option mirrors the
+         * cross-language doc model — hence the LongParameterList suppression.
          */
+        @Suppress("LongParameterList")
         @JvmStatic
         @JvmOverloads
         fun html(

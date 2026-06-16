@@ -136,6 +136,7 @@ Pass options as the second argument to `story.init(task, options)`:
 | -------------------- | ----------- |
 | `tags`               | String array for categorization and filtering (e.g. `['smoke', 'auth']`). |
 | `ticket`             | Ticket/issue ID(s) for traceability (e.g. `'JIRA-123'` or `['JIRA-123', 'JIRA-456']`). |
+| `covers`             | Product-code paths/globs this scenario exercises (project-root-relative), for coverage/traceability (e.g. `['src/auth/**']`). |
 | `meta`               | Arbitrary key-value metadata. |
 | `traceUrlTemplate`   | URL template for OTel trace links; use `{traceId}` placeholder. Can also be set via `OTEL_TRACE_URL_TEMPLATE`. |
 

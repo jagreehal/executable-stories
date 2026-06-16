@@ -8,6 +8,7 @@ description: >
   act, assert_that.
 type: core
 library: executable-stories-ruby
+library_version: "0.1.1"
 sources:
   - "jagreehal/executable-stories:packages/executable-stories-ruby/lib/executable_stories"
 ---
@@ -51,9 +52,20 @@ class CalculatorTest < Minitest::Test
 
     story.then("the result is 8")
     assert_equal 8, result
+
+    # REQUIRED: Minitest has no per-test hook, so the story only appears in the
+    # generated raw-run.json if you record it. Record after the assertions pass.
+    story.record(status: "pass", source_file: __FILE__)
   end
 end
 ```
+
+> **Minitest requires an explicit `story.record(...)`.** `ExecutableStories.init`
+> only builds the story; nothing is written until you call `record`. The
+> `require "executable_stories/minitest"` integration flushes all recorded
+> stories to `.executable-stories/raw-run.json` on `Minitest.after_run` (override
+> the path with the `EXECUTABLE_STORIES_OUTPUT` env var). RSpec records
+> automatically; Minitest does not.
 
 ## API Reference
 

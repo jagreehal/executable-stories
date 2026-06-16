@@ -40,7 +40,7 @@
     "test:e2e": "cypress run"
   },
   "peerDependencies": {
-    "cypress": ">=15.16.0"
+    "cypress": ">=13.0.0"
   },
   "dependencies": {
     "executable-stories-formatters": "workspace:*"

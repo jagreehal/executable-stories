@@ -4,6 +4,32 @@ JUnit 5 Kotlin adapter for executable-stories.
 
 Provides a static Story API for framework-native JUnit 5 tests and emits raw story metadata for formatter pipelines.
 
+## Install
+
+> **Not yet published to Maven Central.** Until a release is published, consume the adapter from your local Maven repository.
+
+Publish the adapter to Maven Local (from this package directory, using the bundled wrapper):
+
+```bash
+./gradlew publishToMavenLocal
+```
+
+Then add `mavenLocal()` and the coordinate to your consuming Gradle project:
+
+```kotlin
+// build.gradle.kts
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation("io.github.jagreehal:executable-stories-junit5:0.1.0")
+}
+```
+
+The coordinate is `io.github.jagreehal:executable-stories-junit5:0.1.0` (group, artifact, and version come from this package's `build.gradle.kts`).
+
 ## Usage
 
 ```kotlin

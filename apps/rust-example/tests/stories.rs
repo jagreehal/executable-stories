@@ -4,7 +4,7 @@ use executable_stories::Story;
 use rust_example::{add, divide, multiply, subtract};
 
 // Register destructor to write raw-run.json when the test binary exits.
-#[ctor::dtor]
+#[dtor::dtor]
 fn write_story_results() {
     executable_stories::write_results();
 }

@@ -8,7 +8,7 @@ description: >
   bridge via cy.task. Aliases: arrange, act, assert.
 type: core
 library: executable-stories-cypress
-library_version: "7.0.1"
+library_version: "8.4.3"
 sources:
   - "jagreehal/executable-stories:packages/executable-stories-cypress/src/story-api.ts"
   - "jagreehal/executable-stories:packages/executable-stories-cypress/src/index.ts"

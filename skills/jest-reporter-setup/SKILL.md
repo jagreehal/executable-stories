@@ -6,7 +6,7 @@ description: >
   Output formats, directory, naming. Aggregated and colocated modes.
 type: core
 library: executable-stories-jest
-library_version: "7.0.1"
+library_version: "8.4.3"
 sources:
   - "jagreehal/executable-stories:packages/executable-stories-jest/src/reporter.ts"
 ---

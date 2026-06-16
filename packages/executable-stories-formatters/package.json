@@ -36,7 +36,8 @@
   "files": [
     "dist",
     "skills",
-    "schemas"
+    "schemas",
+    "templates"
   ],
   "engines": {
     "node": ">=22"

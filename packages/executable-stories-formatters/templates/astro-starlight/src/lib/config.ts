@@ -6,9 +6,8 @@
  * file in the browser (`REPORT_URL`). If you move the report, change it here —
  * nowhere else references the path.
  *
- * Generate the report with:
- *   executable-stories format run.json --format story-report-json \
- *     --output-dir public/stories --output-name story-report
+ * Generate the report with (writes public/stories/story-report.json for you):
+ *   executable-stories build-docs reports/raw-run.json --site-dir .
  *
  * `report` (build-time import) and `REPORT_URL` (runtime fetch) must point at
  * the same file — one is a filesystem path, the other the URL it's served at.

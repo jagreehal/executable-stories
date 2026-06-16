@@ -18,8 +18,18 @@ sources:
 
 ## Setup
 
+Add the crate (and `dtor`, used to flush results at exit — destructors moved out of `ctor` into the `dtor` crate at `ctor` 1.0) as dev-dependencies:
+
+```toml
+[dev-dependencies]
+executable-stories = "0.1"
+dtor = "1.0"
+```
+
+The crate name is `executable-stories`, so the import path is `executable_stories` (hyphens become underscores). `write_results` is re-exported at the crate root — the `collector` module itself is private.
+
 ```rust
-use executable_stories::{Story, collector};
+use executable_stories::{Story, write_results};
 
 #[test]
 fn applies_discount_code() {
@@ -43,14 +53,18 @@ fn applies_discount_code() {
     s.pass();
 }
 
-// Call once at the end of the test suite
-// In integration tests, use an atexit handler or explicit call
-fn teardown() {
-    collector::write_results();
+// Write results once when the test binary exits.
+// Register a destructor with #[dtor::dtor] — the test harness never calls a
+// plain teardown() function, so without this nothing is written.
+#[dtor::dtor]
+fn write_story_results() {
+    write_results();
 }
 ```
 
-**Important:** Call `s.pass()` at the end of each passing test. Without it, the test defaults to "fail" status when the `Story` is dropped. Call `collector::write_results()` to write `.executable-stories/raw-run.json`. Override output path with `EXECUTABLE_STORIES_OUTPUT` env var.
+**Important:** Call `s.pass()` at the end of each passing test. Without it, the test defaults to "fail" status when the `Story` is dropped.
+
+`write_results()` writes `.executable-stories/raw-run.json` (override the path with the `EXECUTABLE_STORIES_OUTPUT` env var). It must run after every test in the binary has finished, so register it with `#[dtor::dtor]` (requires the `dtor = "1.0"` dev-dependency). Put all story tests in a single integration-test file so they share one process and one destructor. A bare `fn teardown()` is never invoked by the Rust test harness and silently produces no output.
 
 ## Core Patterns
 
@@ -175,6 +189,15 @@ s.attach("debug.log", "text/plain", "/tmp/debug.log");
 s.attach_inline("config", "application/json", r#"{"key":"val"}"#, "IDENTITY");
 ```
 
+### OTel trace integration (opt-in)
+
+OTel methods and trace-URL templating are gated behind the optional `otel` Cargo feature. Without it enabled, those methods compile as no-ops and emit nothing. Enable it on the dependency:
+
+```toml
+[dev-dependencies]
+executable-stories = { version = "0.1", features = ["otel"] }
+```
+
 ## Common Mistakes
 
 ### CRITICAL Forgetting to call pass()
@@ -216,11 +239,16 @@ Wrong:
 Correct:
 
 ```rust
-// Call at the end of your test suite
-collector::write_results();
+use executable_stories::write_results;
+
+// Register a destructor so it runs after all tests in the binary finish.
+#[dtor::dtor]
+fn write_story_results() {
+    write_results();
+}
 ```
 
-Without `write_results()`, the in-memory test cases are never persisted to disk. The formatters pipeline has nothing to consume.
+Without `write_results()`, the in-memory test cases are never persisted to disk. The formatters pipeline has nothing to consume. A plain `fn teardown()` is never called by the harness — use `#[dtor::dtor]` (the `dtor = "1.0"` dev-dependency). Note `write_results` is re-exported at the crate root; `collector` is a private module and cannot be imported.
 
 Source: packages/executable-stories-rust/src/collector.rs
 

@@ -1,0 +1,13 @@
+# frozen_string_literal: true
+
+require "rake/testtask"
+
+# Run all *_story_test.rb files in one process so the Minitest integration's
+# after_run hook writes a single .executable-stories/raw-run.json.
+Rake::TestTask.new(:test) do |t|
+  t.libs << "."
+  t.pattern = "*_story_test.rb"
+  t.warning = false
+end
+
+task default: :test
