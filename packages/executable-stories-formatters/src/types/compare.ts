@@ -4,6 +4,8 @@ import type { Attachment, TestCaseResult, TestRunResult, TestStatus } from "./te
 export type ScenarioChangeKind =
   | "added"
   | "removed"
+  | "renamed"
+  | "moved"
   | "regressed"
   | "fixed"
   | "changed"
@@ -49,6 +51,12 @@ export interface ScenarioDiff {
   flags: ScenarioChangeFlags;
   changedFields: string[];
   durationDeltaMs?: number;
+  /** For `renamed`/`moved`: the baseline test-case id this behaviour was matched from. */
+  previousId?: string;
+  /** For `renamed`/`moved`: match confidence in 0..1 (1 = exact content fingerprint). */
+  matchConfidence?: number;
+  /** For `renamed`/`moved`: how the baseline/current pair was re-identified. */
+  matchedBy?: "fingerprint" | "similarity";
 }
 
 export interface RunDiffSummary {
@@ -56,6 +64,10 @@ export interface RunDiffSummary {
   totalCurrent: number;
   added: number;
   removed: number;
+  /** Behaviours re-identified across a title change (content preserved). */
+  renamed: number;
+  /** Behaviours re-identified across a file move (content preserved). */
+  moved: number;
   changed: number;
   regressed: number;
   fixed: number;

@@ -15,6 +15,10 @@ function formatStatus(kind: ScenarioDiff["kind"]): string {
       return "Added";
     case "removed":
       return "Removed";
+    case "renamed":
+      return "Renamed";
+    case "moved":
+      return "Moved";
     case "changed":
       return "Changed";
     default:
@@ -181,14 +185,14 @@ export class RunDiffMarkdownFormatter {
       lines.push("No regressions or fixes detected. Remaining changes are neutral.");
     }
     lines.push("");
-    lines.push("| Added | Removed | Regressed | Fixed | Changed | Unchanged |");
-    lines.push("| ---: | ---: | ---: | ---: | ---: | ---: |");
+    lines.push("| Added | Removed | Renamed | Moved | Regressed | Fixed | Changed | Unchanged |");
+    lines.push("| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
     lines.push(
-      `| ${diff.summary.added} | ${diff.summary.removed} | ${diff.summary.regressed} | ${diff.summary.fixed} | ${diff.summary.changed} | ${diff.summary.unchanged} |`
+      `| ${diff.summary.added} | ${diff.summary.removed} | ${diff.summary.renamed} | ${diff.summary.moved} | ${diff.summary.regressed} | ${diff.summary.fixed} | ${diff.summary.changed} | ${diff.summary.unchanged} |`
     );
     lines.push("");
 
-    for (const kind of ["regressed", "fixed", "added", "removed", "changed"] as const) {
+    for (const kind of ["regressed", "fixed", "added", "removed", "renamed", "moved", "changed"] as const) {
       const scenarios = diff.scenarios.filter((scenario) => scenario.kind === kind);
       if (scenarios.length === 0) continue;
       lines.push(`## ${formatStatus(kind)} (${scenarios.length})`);

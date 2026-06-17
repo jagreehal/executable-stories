@@ -10,6 +10,10 @@ function titleFor(kind: ScenarioDiff["kind"]): string {
       return "Added";
     case "removed":
       return "Removed";
+    case "renamed":
+      return "Renamed";
+    case "moved":
+      return "Moved";
     case "changed":
       return "Changed";
     default:
@@ -81,6 +85,8 @@ export function createPrCommentSummary(
   addSection(lines, diff, "fixed", maxScenarios);
   addSection(lines, diff, "added", maxScenarios);
   addSection(lines, diff, "removed", maxScenarios);
+  addSection(lines, diff, "renamed", maxScenarios);
+  addSection(lines, diff, "moved", maxScenarios);
   addSection(lines, diff, "changed", maxScenarios);
 
   return lines.join("\n").trimEnd();

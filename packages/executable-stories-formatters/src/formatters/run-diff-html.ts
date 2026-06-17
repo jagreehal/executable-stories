@@ -1,6 +1,7 @@
-import type { RunDiffResult, ScenarioDiff, ScenarioSnapshot } from "../types/compare";
+import type { RunDiffResult, ScenarioDiff } from "../types/compare";
 import type { DocEntry, StoryStep } from "../types/story";
 import type { HtmlTheme } from "./html/themes/types";
+// eslint-disable-next-line no-restricted-imports -- resolveTheme is defined in the themes barrel itself; there is no concrete module to import it from.
 import { resolveTheme } from "./html/themes/index";
 
 export interface RunDiffHtmlOptions {
@@ -29,6 +30,10 @@ function statusLabel(kind: ScenarioDiff["kind"]): string {
       return "Added";
     case "removed":
       return "Removed";
+    case "renamed":
+      return "Renamed";
+    case "moved":
+      return "Moved";
     case "changed":
       return "Changed";
     default:
@@ -399,6 +404,8 @@ export class RunDiffHtmlFormatter {
         <div class="summary-card"><strong>${diff.summary.fixed}</strong><span>Fixed</span></div>
         <div class="summary-card"><strong>${diff.summary.added}</strong><span>Added</span></div>
         <div class="summary-card"><strong>${diff.summary.removed}</strong><span>Removed</span></div>
+        <div class="summary-card"><strong>${diff.summary.renamed}</strong><span>Renamed</span></div>
+        <div class="summary-card"><strong>${diff.summary.moved}</strong><span>Moved</span></div>
         <div class="summary-card"><strong>${diff.summary.changed}</strong><span>Changed</span></div>
         <div class="summary-card"><strong>${diff.summary.unchanged}</strong><span>Unchanged</span></div>
       </section>

@@ -77,7 +77,12 @@ export function diffStoryReports(baseline: StoryReport, current: StoryReport): B
   });
 
   const summary = { added: 0, removed: 0, regressed: 0, fixed: 0, changed: 0, unchanged: 0 };
-  for (const s of scenarios) summary[s.kind] += 1;
+  for (const s of scenarios) {
+    // This status-only diff is keyed by scenario id and never re-identifies renames/moves
+    // (that is the full compare engine's job), so those kinds cannot occur here.
+    if (s.kind === "renamed" || s.kind === "moved") continue;
+    summary[s.kind] += 1;
+  }
 
   return { schemaVersion: "1.0", summary, scenarios };
 }

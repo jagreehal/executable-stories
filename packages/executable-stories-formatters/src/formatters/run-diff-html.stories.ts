@@ -49,6 +49,8 @@ function buildDiff(scenarios: ScenarioDiff[]): RunDiffResult {
     totalCurrent: scenarios.filter((s) => s.current).length,
     added: scenarios.filter((s) => s.kind === 'added').length,
     removed: scenarios.filter((s) => s.kind === 'removed').length,
+    renamed: scenarios.filter((s) => s.kind === 'renamed').length,
+    moved: scenarios.filter((s) => s.kind === 'moved').length,
     changed: scenarios.filter((s) => s.kind === 'changed').length,
     regressed: scenarios.filter((s) => s.kind === 'regressed').length,
     fixed: scenarios.filter((s) => s.kind === 'fixed').length,
