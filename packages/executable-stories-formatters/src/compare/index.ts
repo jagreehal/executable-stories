@@ -6,6 +6,11 @@ import type {
   ScenarioDiff,
 } from "../types/compare";
 import { toScenarioSnapshot } from "../types/compare";
+import {
+  behaviourFingerprint,
+  behaviourSimilarity,
+  type BehaviourIdentityInput,
+} from "../converters/acl/ids";
 
 function compareStringArrays(a: string[], b: string[]): boolean {
   if (a.length !== b.length) return false;
@@ -65,8 +70,10 @@ function sortDiffs(scenarios: ScenarioDiff[]): ScenarioDiff[] {
     fixed: 1,
     added: 2,
     removed: 3,
-    changed: 4,
-    unchanged: 5,
+    renamed: 4,
+    moved: 5,
+    changed: 6,
+    unchanged: 7,
   };
 
   return [...scenarios].sort((a, b) => {
@@ -83,6 +90,119 @@ function sortDiffs(scenarios: ScenarioDiff[]): ScenarioDiff[] {
   });
 }
 
+/** Only re-pair fuzzy matches at or above this content similarity (0..1). */
+const SIMILARITY_THRESHOLD = 0.75;
+
+function identityInput(tc: TestCaseResult): BehaviourIdentityInput {
+  return {
+    scenario: tc.story.scenario,
+    sourceFile: tc.sourceFile,
+    steps: tc.story.steps,
+    covers: tc.story.covers,
+  };
+}
+
+function changedFieldsOf(flags: ScenarioChangeFlags): string[] {
+  return Object.entries(flags)
+    .filter(([, changed]) => changed)
+    .map(([field]) => field);
+}
+
+/** Flags for a wholesale add/remove — every dimension differs from nothing. */
+function allChangedFlags(errorMessage?: string): ScenarioChangeFlags {
+  return {
+    status: true,
+    steps: true,
+    docs: true,
+    tags: true,
+    tickets: true,
+    source: true,
+    duration: true,
+    attachments: true,
+    error: Boolean(errorMessage),
+    titlePath: true,
+  };
+}
+
+interface IdentityPair {
+  before: TestCaseResult;
+  after: TestCaseResult;
+  confidence: number;
+  matchedBy: "fingerprint" | "similarity";
+}
+
+/**
+ * Re-pair id-unmatched removals and additions that are the same behaviour relabelled or
+ * relocated. Conservative by design — a wrong pairing would hide a real deletion inside a
+ * release gate, so we only match (1) one-to-one exact content fingerprints, then (2) a
+ * unique fuzzy best above {@link SIMILARITY_THRESHOLD}. Anything ambiguous stays add/remove.
+ */
+function matchIdentities(
+  removed: TestCaseResult[],
+  added: TestCaseResult[]
+): { pairs: IdentityPair[]; unmatchedRemoved: TestCaseResult[]; unmatchedAdded: TestCaseResult[] } {
+  const pairs: IdentityPair[] = [];
+  const remainingRemoved = new Set(removed);
+  const remainingAdded = new Set(added);
+
+  // Pass 1 — exact content fingerprint, one-to-one only.
+  const removedByFp = new Map<string, TestCaseResult[]>();
+  const addedByFp = new Map<string, TestCaseResult[]>();
+  for (const tc of remainingRemoved) {
+    const fp = behaviourFingerprint(identityInput(tc));
+    if (fp === "") continue;
+    (removedByFp.get(fp) ?? removedByFp.set(fp, []).get(fp)!).push(tc);
+  }
+  for (const tc of remainingAdded) {
+    const fp = behaviourFingerprint(identityInput(tc));
+    if (fp === "") continue;
+    (addedByFp.get(fp) ?? addedByFp.set(fp, []).get(fp)!).push(tc);
+  }
+  for (const [fp, removedGroup] of removedByFp) {
+    const addedGroup = addedByFp.get(fp);
+    if (removedGroup.length === 1 && addedGroup && addedGroup.length === 1) {
+      pairs.push({ before: removedGroup[0], after: addedGroup[0], confidence: 1, matchedBy: "fingerprint" });
+      remainingRemoved.delete(removedGroup[0]);
+      remainingAdded.delete(addedGroup[0]);
+    }
+  }
+
+  // Pass 2 — guarded fuzzy: a unique best match above threshold.
+  for (const before of [...remainingRemoved]) {
+    let best: TestCaseResult | undefined;
+    let bestScore = 0;
+    let tied = false;
+    for (const after of remainingAdded) {
+      const score = behaviourSimilarity(identityInput(before), identityInput(after));
+      if (score > bestScore) {
+        bestScore = score;
+        best = after;
+        tied = false;
+      } else if (score === bestScore) {
+        tied = true;
+      }
+    }
+    if (best && !tied && bestScore >= SIMILARITY_THRESHOLD) {
+      pairs.push({ before, after: best, confidence: Math.round(bestScore * 100) / 100, matchedBy: "similarity" });
+      remainingRemoved.delete(before);
+      remainingAdded.delete(best);
+    }
+  }
+
+  return {
+    pairs,
+    unmatchedRemoved: [...remainingRemoved],
+    unmatchedAdded: [...remainingAdded],
+  };
+}
+
+/** A content-preserving identity change is a move when only the file differs, else a rename. */
+function identityKind(before: TestCaseResult, after: TestCaseResult): "renamed" | "moved" {
+  const titleChanged = before.story.scenario !== after.story.scenario;
+  const fileChanged = before.sourceFile !== after.sourceFile;
+  return fileChanged && !titleChanged ? "moved" : "renamed";
+}
+
 export function diffRuns(
   baseline: TestRunResult,
   current: TestRunResult
@@ -92,75 +212,27 @@ export function diffRuns(
   const ids = new Set([...baselineById.keys(), ...currentById.keys()]);
 
   const scenarios: ScenarioDiff[] = [];
+  const removedCases: TestCaseResult[] = [];
+  const addedCases: TestCaseResult[] = [];
 
+  // First pass: id-matched scenarios diff in place; id-unique ones are collected so we can
+  // try to re-pair renames/moves before declaring them genuine additions/deletions.
   for (const id of ids) {
     const before = baselineById.get(id);
     const after = currentById.get(id);
 
     if (!before && after) {
-      const flags: ScenarioChangeFlags = {
-        status: true,
-        steps: true,
-        docs: true,
-        tags: true,
-        tickets: true,
-        source: true,
-        duration: true,
-        attachments: true,
-        error: Boolean(after.errorMessage),
-        titlePath: true,
-      };
-      scenarios.push({
-        kind: "added",
-        id,
-        scenario: after.story.scenario,
-        sourceFile: after.sourceFile,
-        sourceLine: after.sourceLine,
-        current: toScenarioSnapshot(after),
-        flags,
-        changedFields: Object.entries(flags)
-          .filter(([, changed]) => changed)
-          .map(([field]) => field),
-      });
+      addedCases.push(after);
       continue;
     }
-
     if (before && !after) {
-      const flags: ScenarioChangeFlags = {
-        status: true,
-        steps: true,
-        docs: true,
-        tags: true,
-        tickets: true,
-        source: true,
-        duration: true,
-        attachments: true,
-        error: Boolean(before.errorMessage),
-        titlePath: true,
-      };
-      scenarios.push({
-        kind: "removed",
-        id,
-        scenario: before.story.scenario,
-        sourceFile: before.sourceFile,
-        sourceLine: before.sourceLine,
-        baseline: toScenarioSnapshot(before),
-        flags,
-        changedFields: Object.entries(flags)
-          .filter(([, changed]) => changed)
-          .map(([field]) => field),
-      });
+      removedCases.push(before);
       continue;
     }
-
-    if (!before || !after) {
-      continue;
-    }
+    if (!before || !after) continue;
 
     const flags = buildFlags(before, after);
-    const changedFields = Object.entries(flags)
-      .filter(([, changed]) => changed)
-      .map(([field]) => field);
+    const changedFields = changedFieldsOf(flags);
     const kind = getPrimaryKind(before, after, changedFields.length > 0);
 
     scenarios.push({
@@ -177,12 +249,65 @@ export function diffRuns(
     });
   }
 
+  // Second pass: re-pair relabelled/relocated behaviours so a rename is not a false
+  // delete + add. Matched pairs become `renamed`/`moved`; leftovers stay added/removed.
+  const { pairs, unmatchedRemoved, unmatchedAdded } = matchIdentities(removedCases, addedCases);
+
+  for (const { before, after, confidence, matchedBy } of pairs) {
+    const flags = buildFlags(before, after);
+    scenarios.push({
+      kind: identityKind(before, after),
+      id: after.id,
+      previousId: before.id,
+      scenario: after.story.scenario,
+      sourceFile: after.sourceFile,
+      sourceLine: after.sourceLine,
+      baseline: toScenarioSnapshot(before),
+      current: toScenarioSnapshot(after),
+      flags,
+      changedFields: changedFieldsOf(flags),
+      durationDeltaMs: after.durationMs - before.durationMs,
+      matchConfidence: confidence,
+      matchedBy,
+    });
+  }
+
+  for (const after of unmatchedAdded) {
+    const flags = allChangedFlags(after.errorMessage);
+    scenarios.push({
+      kind: "added",
+      id: after.id,
+      scenario: after.story.scenario,
+      sourceFile: after.sourceFile,
+      sourceLine: after.sourceLine,
+      current: toScenarioSnapshot(after),
+      flags,
+      changedFields: changedFieldsOf(flags),
+    });
+  }
+
+  for (const before of unmatchedRemoved) {
+    const flags = allChangedFlags(before.errorMessage);
+    scenarios.push({
+      kind: "removed",
+      id: before.id,
+      scenario: before.story.scenario,
+      sourceFile: before.sourceFile,
+      sourceLine: before.sourceLine,
+      baseline: toScenarioSnapshot(before),
+      flags,
+      changedFields: changedFieldsOf(flags),
+    });
+  }
+
   const sorted = sortDiffs(scenarios);
   const summary = {
     totalBaseline: baseline.testCases.length,
     totalCurrent: current.testCases.length,
     added: sorted.filter((s) => s.kind === "added").length,
     removed: sorted.filter((s) => s.kind === "removed").length,
+    renamed: sorted.filter((s) => s.kind === "renamed").length,
+    moved: sorted.filter((s) => s.kind === "moved").length,
     changed: sorted.filter((s) => s.kind === "changed").length,
     regressed: sorted.filter((s) => s.kind === "regressed").length,
     fixed: sorted.filter((s) => s.kind === "fixed").length,

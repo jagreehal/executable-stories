@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import { createPrCommentSummary, diffRuns } from "../src/compare";
+import {
+  behaviourFingerprint,
+  behaviourSimilarity,
+} from "../src/converters/acl/ids";
 import { RunDiffHtmlFormatter } from "../src/formatters/run-diff-html";
 import { RunDiffMarkdownFormatter } from "../src/formatters/run-diff-markdown";
 import { stubs } from "./stubs";
@@ -865,5 +869,215 @@ A-->C`,
     expect(summary).toContain("## Executable Stories Review Summary");
     expect(summary).toContain("Priority signal: 1 regressed");
     expect(summary).toContain("Regressions detected");
+  });
+});
+
+describe("behaviour identity (rename / move)", () => {
+  const steps = (...texts: string[]) =>
+    texts.map((text, i) =>
+      stubs.step({ keyword: i === 0 ? "Given" : i === texts.length - 1 ? "Then" : "When", text })
+    );
+
+  const story = (scenario: string, stepTexts: string[]) =>
+    stubs.storyMeta({
+      scenario,
+      tags: [],
+      tickets: [],
+      suitePath: [],
+      docs: [],
+      steps: steps(...stepTexts),
+    });
+
+  // A renamed test gets a new derived id (id = hash(file + title)), so without identity
+  // re-matching a pure rename shows up as a false removed + added — which fails the release
+  // gate. These tests pin the conservative re-identification that defuses that.
+
+  it("classifies a renamed scenario (same content, new title) as `renamed`, not removed+added", () => {
+    const content = ["a registered user exists", "they sign in", "the dashboard is shown"];
+    const baseline = stubs.testRunResult({
+      testCases: [
+        stubs.testCaseResult({
+          id: "id-before",
+          sourceFile: "src/auth.story.test.ts",
+          sourceLine: 10,
+          status: "passed",
+          story: story("User logs in", content),
+        }),
+      ],
+    });
+    const current = stubs.testRunResult({
+      testCases: [
+        stubs.testCaseResult({
+          id: "id-after",
+          sourceFile: "src/auth.story.test.ts",
+          sourceLine: 10,
+          status: "passed",
+          story: story("User signs in successfully", content),
+        }),
+      ],
+    });
+
+    const diff = diffRuns(baseline, current);
+
+    expect(diff.summary).toMatchObject({ renamed: 1, moved: 0, added: 0, removed: 0 });
+    const renamed = diff.scenarios.find((s) => s.kind === "renamed");
+    expect(renamed?.previousId).toBe("id-before");
+    expect(renamed?.id).toBe("id-after");
+    expect(renamed?.matchedBy).toBe("fingerprint");
+    expect(renamed?.matchConfidence).toBe(1);
+  });
+
+  it("classifies a moved scenario (same content + title, new file) as `moved`", () => {
+    const content = ["a paid order", "a refund is requested", "money is returned"];
+    const baseline = stubs.testRunResult({
+      testCases: [
+        stubs.testCaseResult({
+          id: "id-old-file",
+          sourceFile: "src/legacy/payments.story.test.ts",
+          sourceLine: 5,
+          status: "passed",
+          story: story("Refund is processed", content),
+        }),
+      ],
+    });
+    const current = stubs.testRunResult({
+      testCases: [
+        stubs.testCaseResult({
+          id: "id-new-file",
+          sourceFile: "src/billing/refunds.story.test.ts",
+          sourceLine: 5,
+          status: "passed",
+          story: story("Refund is processed", content),
+        }),
+      ],
+    });
+
+    const diff = diffRuns(baseline, current);
+
+    expect(diff.summary).toMatchObject({ moved: 1, renamed: 0, added: 0, removed: 0 });
+    expect(diff.scenarios.find((s) => s.kind === "moved")?.matchedBy).toBe("fingerprint");
+  });
+
+  it("uses guarded fuzzy matching to detect a rename that also edited a step", () => {
+    const baseline = stubs.testRunResult({
+      testCases: [
+        stubs.testCaseResult({
+          id: "fuzzy-before",
+          sourceFile: "src/refunds.story.test.ts",
+          sourceLine: 8,
+          status: "passed",
+          story: story("Refund is processed", [
+            "a paid order",
+            "a refund is requested",
+            "money is returned",
+          ]),
+        }),
+      ],
+    });
+    const current = stubs.testRunResult({
+      testCases: [
+        stubs.testCaseResult({
+          id: "fuzzy-after",
+          sourceFile: "src/refunds.story.test.ts",
+          sourceLine: 8,
+          status: "passed",
+          story: story("Refund is processed quickly", [
+            "a paid order",
+            "a refund is requested",
+            "money is returned promptly",
+          ]),
+        }),
+      ],
+    });
+
+    const diff = diffRuns(baseline, current);
+
+    expect(diff.summary).toMatchObject({ renamed: 1, added: 0, removed: 0 });
+    const renamed = diff.scenarios.find((s) => s.kind === "renamed");
+    expect(renamed?.matchedBy).toBe("similarity");
+    expect(renamed?.matchConfidence ?? 0).toBeGreaterThanOrEqual(0.75);
+  });
+
+  it("does NOT pair unrelated add/remove (stays added + removed)", () => {
+    const baseline = stubs.testRunResult({
+      testCases: [
+        stubs.testCaseResult({
+          id: "gone",
+          sourceFile: "src/auth.story.test.ts",
+          sourceLine: 3,
+          status: "passed",
+          story: story("Login works", ["a user", "they log in", "the dashboard appears"]),
+        }),
+      ],
+    });
+    const current = stubs.testRunResult({
+      testCases: [
+        stubs.testCaseResult({
+          id: "fresh",
+          sourceFile: "src/export.story.test.ts",
+          sourceLine: 3,
+          status: "passed",
+          story: story("Export CSV", ["a report", "the user exports it", "a file downloads"]),
+        }),
+      ],
+    });
+
+    const diff = diffRuns(baseline, current);
+
+    expect(diff.summary).toMatchObject({ added: 1, removed: 1, renamed: 0, moved: 0 });
+  });
+
+  it("a rename produces zero removals/additions — so a removal-gate does not fire", () => {
+    const content = ["an order exists", "it is cancelled", "stock is restored"];
+    const baseline = stubs.testRunResult({
+      testCases: [
+        stubs.testCaseResult({
+          id: "before",
+          sourceFile: "src/orders.story.test.ts",
+          sourceLine: 1,
+          status: "passed",
+          story: story("Cancelling an order restocks", content),
+        }),
+      ],
+    });
+    const current = stubs.testRunResult({
+      testCases: [
+        stubs.testCaseResult({
+          id: "after",
+          sourceFile: "src/orders.story.test.ts",
+          sourceLine: 1,
+          status: "passed",
+          story: story("Order cancellation restores stock", content),
+        }),
+      ],
+    });
+
+    const diff = diffRuns(baseline, current);
+
+    // The release gate fails on summary.removed > 0 / summary.added > 0.
+    expect(diff.summary.removed).toBe(0);
+    expect(diff.summary.added).toBe(0);
+  });
+
+  it("fingerprint is title- and file-independent; empty for content-less scenarios", () => {
+    const a = {
+      scenario: "User logs in",
+      sourceFile: "src/auth.test.ts",
+      steps: [{ keyword: "Given", text: "a user" }, { keyword: "Then", text: "they are in" }],
+    };
+    const b = {
+      scenario: "Completely different title",
+      sourceFile: "src/elsewhere.test.ts",
+      steps: [{ keyword: "given", text: "A USER!" }, { keyword: "then", text: "they  are in" }],
+    };
+    expect(behaviourFingerprint(a)).toBe(behaviourFingerprint(b));
+    expect(behaviourFingerprint({ scenario: "x", sourceFile: "y", steps: [] })).toBe("");
+    // No step content on either side → no signal, similarity is 0 (conservative).
+    expect(
+      behaviourSimilarity(
+        { scenario: "Removed case", sourceFile: "a", steps: [] },
+        { scenario: "Added case", sourceFile: "b", steps: [] }
+      )
+    ).toBe(0);
   });
 });
