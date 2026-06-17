@@ -15,6 +15,7 @@ import type {
 import type { DocEntry, StoryStep } from "../types/story";
 import type { TestCaseResult } from "../types/test-result";
 import type { HtmlTheme } from "./html/themes/types";
+// eslint-disable-next-line no-restricted-imports -- resolveTheme is defined in the themes barrel itself; there is no concrete module to import it from.
 import { resolveTheme } from "./html/themes/index";
 
 export interface ReviewHtmlOptions {
