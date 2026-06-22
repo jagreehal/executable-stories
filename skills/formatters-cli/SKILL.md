@@ -365,6 +365,18 @@ executable-stories watch raw-run.json --format story-report-json,scenario-index-
 
 Regenerates the chosen reports whenever the raw-run file changes — keeps the live agent index (StoryReport JSON + scenario index) up to date during a coding loop without re-invoking `format` by hand.
 
+### serve — live docs URL for an agent loop
+
+```bash
+executable-stories serve raw-run.json --port 4321 --output-dir reports
+```
+
+Like `watch`, but also serves the HTML report at a URL and pushes a browser reload (via SSE — no dependency) whenever the raw-run changes. Built for "loop engineering": kick off a multi-hour coding-agent loop, leave `serve` running, and watch the behaviour catalogue update in realtime.
+
+What a plain static server (e.g. `live-server reports/`) **cannot** do — and the reason this exists — is the **delta strip** above the report: it pins a baseline on the first run and shows *what changed since you started the loop* ("since you started: +2 passing, 1 regressed") plus the per-iteration delta, computed from the rename/move-resilient `compare` engine. HTML is generated automatically even if not in `--format`. Flags: `--port` (default 4321), `--host` (default 127.0.0.1).
+
+> Zero-install alternative for plain reload (no delta): run `live-server reports/` alongside your loop — the JS reporters rewrite `reports/test-results.html` each run, which live-server reloads on.
+
 ### Other subcommands
 
 `compare` (diff two runs), `gate-release` (verify an RC run against a dev baseline), `review` (Evidence Review of AI-authored changes vs the diff), and `deploy record|status|diff` (deployment ledger + environment drift) round out the CLI — run `executable-stories --help` for the full list and `<subcommand> --help` per command.

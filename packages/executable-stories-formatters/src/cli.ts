@@ -23,6 +23,7 @@ import {
   createPrCommentSummary,
   generateRunComparison,
   startWatch,
+  startServe,
 } from "./index.js";
 import { parseNdjson } from "./converters/ndjson-parser";
 import { buildReview } from "./review/build-review";
@@ -79,6 +80,7 @@ USAGE
   executable-stories format <file> [options]
   executable-stories format --stdin [options]
   executable-stories watch <raw-run.json> [options]
+  executable-stories serve <raw-run.json> [--port <n>] [--host <host>] [options]
   executable-stories compare <baseline-file> <current-file> [options]
   executable-stories gate-release <dev-run.json> <rc-run.json> [options]
   executable-stories review <file> --changed-files <path> [options]
@@ -102,6 +104,7 @@ USAGE
 SUBCOMMANDS
   format             Read raw test results and generate reports
   watch              Regenerate reports whenever the raw-run file changes (live agent index)
+  serve              Live docs URL: regenerate + browser reload + "what changed since you started" (for agent loops)
   compare            Compare two runs and generate a diff report
   gate-release       Verify a release candidate against the dev test baseline (RC gate)
   review             Generate an Evidence Review of AI-authored changes (correlate a run to the diff)
@@ -308,7 +311,7 @@ EXIT CODES
 `.trim();
 
 interface CliArgs {
-  subcommand: "format" | "watch" | "compare" | "gate-release" | "review" | "list" | "check" | "goal" | "triage" | "validate";
+  subcommand: "format" | "watch" | "serve" | "compare" | "gate-release" | "review" | "list" | "check" | "goal" | "triage" | "validate";
   inputFile?: string;
   baselineFile?: string;
   /** Raw --baseline value (path or "auto"), used by check for delta detection. */
@@ -378,6 +381,10 @@ interface CliArgs {
   failOn?: "uncovered" | "weak";
   minEvidence?: EvidenceStrength;
   config?: string;
+  /** serve: port for the live docs server. */
+  servePort: number;
+  /** serve: host to bind the live docs server. */
+  serveHost: string;
 }
 
 /** Validate a `--*-format text|json` flag, exiting with a usage error otherwise. */
@@ -402,6 +409,7 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
   if (
     subcommand !== "format" &&
     subcommand !== "watch" &&
+    subcommand !== "serve" &&
     subcommand !== "compare" &&
     subcommand !== "gate-release" &&
     subcommand !== "deploy" &&
@@ -420,7 +428,7 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
     subcommand !== "publish-jira"
   ) {
     console.error(
-      `Unknown subcommand: "${subcommand}". Use "format", "watch", "compare", "gate-release", "deploy", "review", "list", "check", "goal", "triage", "validate", "init-astro", "build-docs", "new", "check-links", "import-openapi", "publish-confluence", or "publish-jira".`,
+      `Unknown subcommand: "${subcommand}". Use "format", "watch", "serve", "compare", "gate-release", "deploy", "review", "list", "check", "goal", "triage", "validate", "init-astro", "build-docs", "new", "check-links", "import-openapi", "publish-confluence", or "publish-jira".`,
     );
     process.exit(EXIT_USAGE);
   }
@@ -554,6 +562,8 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
       "webhook-hmac-timestamp": { type: "boolean", default: false },
       "asset-mode": { type: "string", default: "none" },
       "allow-missing-assets": { type: "boolean", default: false },
+      port: { type: "string" },
+      host: { type: "string" },
       "pr-summary": { type: "boolean", default: false },
       "pr-summary-file": { type: "string" },
       "fail-on-regression": { type: "boolean", default: false },
@@ -764,7 +774,7 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
   const triageFormat = parseTextJsonFormat("--triage-format", values["triage-format"] as string);
 
   const cliArgs: CliArgs = {
-    subcommand: subcommand as "format" | "watch" | "compare" | "gate-release" | "review" | "list" | "check" | "validate",
+    subcommand: subcommand as "format" | "watch" | "serve" | "compare" | "gate-release" | "review" | "list" | "check" | "validate",
     inputFile,
     baselineFile,
     baselineArg: baselineValue,
@@ -833,6 +843,8 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
     failOn: failOnRaw as "uncovered" | "weak" | undefined,
     minEvidence: minEvidenceRaw as EvidenceStrength | undefined,
     config: values["config"] as string | undefined,
+    servePort: values["port"] ? Number.parseInt(values["port"] as string, 10) : 4321,
+    serveHost: (values["host"] as string | undefined) ?? "127.0.0.1",
   };
 
   return { args: cliArgs, pluginConfig, customRequested };
@@ -1325,6 +1337,29 @@ async function main() {
       formats: args.formats,
       inputType: args.inputType === "canonical" ? "canonical" : "raw",
       synthesize: args.synthesizeStories,
+    });
+    return; // long-lived; do not exit
+  }
+
+  // === serve subcommand: live docs URL — regenerate + reload + "what changed" ===
+  if (args.subcommand === "serve") {
+    if (!args.inputFile) {
+      console.error("Error: serve requires an input file (the raw-run JSON the framework writes).");
+      process.exit(EXIT_USAGE);
+    }
+    // HTML is the surface we serve; ensure it is generated even if not requested.
+    const serveFormats = args.formats.includes("html")
+      ? args.formats
+      : ([...args.formats, "html"] as OutputFormat[]);
+    startServe({
+      input: args.inputFile,
+      outputDir: args.outputDir,
+      outputName: args.outputName,
+      formats: serveFormats,
+      inputType: args.inputType === "canonical" ? "canonical" : "raw",
+      synthesize: args.synthesizeStories,
+      port: args.servePort,
+      host: args.serveHost,
     });
     return; // long-lived; do not exit
   }
@@ -2726,6 +2761,8 @@ function createDefaultCliArgs(): CliArgs {
     failOnRemoval: false,
     failOnNew: false,
     baselineMode: "explicit",
+    servePort: 4321,
+    serveHost: "127.0.0.1",
   };
 }
 

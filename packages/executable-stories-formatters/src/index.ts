@@ -261,11 +261,25 @@ export { scenariosCoveringPaths } from "./coverage-index";
 
 export {
   regenerateArtifacts,
+  regenerateRun,
   startWatch,
   type WatchOptions,
   type WatchDeps,
   type WatchHandle,
 } from "./watch";
+
+export {
+  startServe,
+  advanceState,
+  computeDeltas,
+  renderDeltaStrip,
+  injectLiveBits,
+  type ServeOptions,
+  type ServeDeps,
+  type ServeHandle,
+  type RunState,
+  type RunDeltas,
+} from "./serve";
 
 export {
   diffStoryReports,

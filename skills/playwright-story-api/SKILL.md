@@ -11,7 +11,7 @@ library: executable-stories-playwright
 library_version: "8.5.3"
 sources:
   - "jagreehal/executable-stories:packages/executable-stories-playwright/src/story-api.ts"
-  - "jagreehal/executable-stories:apps/docs-site/src/content/docs/playwright/playwright-story-api.md"
+  - "jagreehal/executable-stories:apps/docs-site/src/content/docs/reference/playwright-story-api.md"
 ---
 
 # executable-stories-playwright — Story API
@@ -30,12 +30,12 @@ test.describe("Login page", () => {
     await page.goto("/login");
 
     when("valid credentials are entered");
-    await page.fill("#email", "alice@example.com");
-    await page.fill("#password", "secret");
-    await page.click('button[type="submit"]');
+    await page.getByLabel("Email").fill("alice@example.com");
+    await page.getByLabel("Password").fill("secret");
+    await page.getByRole("button", { name: "Sign in" }).click();
 
     then("the dashboard is shown");
-    await expect(page.locator("h1")).toHaveText("Dashboard");
+    await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
   });
 });
 ```
@@ -57,11 +57,11 @@ test("blocks suspended user login", async ({ page }, testInfo) => {
   given("the user account exists");          // renders "Given"
   given("the account is suspended");          // renders "And" (auto-converted)
   when("the user submits valid credentials");
-  await page.fill("#email", "user@test.com");
-  await page.click("#submit");
+  await page.getByLabel("Email").fill("user@test.com");
+  await page.getByRole("button", { name: "Sign in" }).click();
 
   then("the user sees an error message");
-  await expect(page.locator(".error")).toBeVisible();
+  await expect(page.getByRole("alert")).toBeVisible();
 
   but("the user is not logged in");           // renders "But" (always)
   await expect(page).toHaveURL("/login");
@@ -78,7 +78,7 @@ test("checkout flow", async ({ page }, testInfo) => {
   story.json({ label: "Cart", value: { items: 3, total: 150 } });
 
   when("the user completes checkout");
-  await page.click("#checkout");
+  await page.getByRole("button", { name: "Checkout" }).click();
   await page.waitForURL("/confirmation");
 
   then("the confirmation page is shown");
