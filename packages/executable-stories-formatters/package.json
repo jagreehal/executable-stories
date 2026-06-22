@@ -73,7 +73,7 @@
   },
   "devDependencies": {
     "@faker-js/faker": "^10.4.0",
-    "@storybook/html": "^10.4.2",
+    "@storybook/html": "^10.4.6",
     "@storybook/html-vite": "^10.4.2",
     "@types/node": "^25.9.2",
     "storybook": "^10.4.2",
