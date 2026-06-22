@@ -65,3 +65,4 @@ skills-lock.json
 .worktrees/
 .playwright-cli
 storybook-static/
+.claude/

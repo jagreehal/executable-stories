@@ -19,9 +19,9 @@ test.describe('Login', () => {
     await page.goto('/login');
 
     story.when('the user submits valid credentials');
-    await page.fill('[name=email]', 'user@example.com');
-    await page.fill('[name=password]', 'secret');
-    await page.click('button[type=submit]');
+    await page.getByLabel('Email').fill('user@example.com');
+    await page.getByLabel('Password').fill('secret');
+    await page.getByRole('button', { name: 'Sign in' }).click();
 
     story.then('the user sees the dashboard');
     await expect(page).toHaveURL(/dashboard/);

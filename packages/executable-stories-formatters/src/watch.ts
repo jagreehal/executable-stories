@@ -34,15 +34,16 @@ function toRun(data: unknown, inputType: "raw" | "canonical", synthesize: boolea
 }
 
 /**
- * Read a raw-run (or canonical) file and regenerate the requested agent
- * artifacts via the canonical {@link ReportGenerator}. Returns the written
- * file paths. This is the unit of work the watcher repeats; it is also useful
- * standalone for a one-shot regenerate.
+ * Read a raw-run (or canonical) file once, canonicalize it, and regenerate the
+ * requested agent artifacts via the canonical {@link ReportGenerator}. Returns
+ * both the written file paths and the canonical run, so a caller that also needs
+ * the run (e.g. `serve`, to diff it) does not read and canonicalize a second
+ * time. This is the unit of work the watcher repeats.
  */
-export async function regenerateArtifacts(
+export async function regenerateRun(
   options: WatchOptions,
   deps: RegenerateDeps = {},
-): Promise<string[]> {
+): Promise<{ files: string[]; run: TestRunResult }> {
   const read = deps.readFile ?? ((filePath: string) => fs.readFileSync(filePath, "utf8"));
   const data: unknown = JSON.parse(read(path.resolve(options.input)));
   const run = toRun(data, options.inputType ?? "raw", options.synthesize !== false);
@@ -53,7 +54,15 @@ export async function regenerateArtifacts(
     outputName: options.outputName,
   });
   const result = await generator.generate(run);
-  return [...result.values()].flat();
+  return { files: [...result.values()].flat(), run };
+}
+
+/** Regenerate artifacts and return just the written file paths. */
+export async function regenerateArtifacts(
+  options: WatchOptions,
+  deps: RegenerateDeps = {},
+): Promise<string[]> {
+  return (await regenerateRun(options, deps)).files;
 }
 
 export interface WatchDeps extends RegenerateDeps {
