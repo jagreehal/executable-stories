@@ -66,3 +66,6 @@ skills-lock.json
 .playwright-cli
 storybook-static/
 .claude/
+
+# Local design/planning docs (not committed)
+.plans/

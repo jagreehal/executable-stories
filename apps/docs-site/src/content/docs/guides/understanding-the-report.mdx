@@ -8,6 +8,13 @@ import ReportScreenshot from '../../../components/ReportScreenshot.astro';
 The reporter turns story metadata and test results into Markdown and HTML. Each scenario gets a **status icon** and optional headings, metadata, and source links.
 
 <ReportScreenshot
+  src="screenshots/hero-report.png"
+  href="examples/report.html"
+  alt="The full Executable Stories HTML report: run summary, search and status filters, and Given/When/Then scenarios with inline code and tables"
+  caption="The HTML report your tests generate. Search it, filter by status or tag, and toggle dark mode. Click to open the live one."
+/>
+
+<ReportScreenshot
   src="screenshots/feature-search.png"
   alt="Report header showing summary cards, search input, and tag filter bar"
   caption="Summary cards, search, and tag filters at the top of every report"
@@ -44,6 +51,34 @@ You can override with `scenarioHeadingLevel` / `storyHeadingLevel` in reporter o
   src="screenshots/feature-code.png"
   alt="A scenario with Given/When/Then steps and syntax-highlighted code blocks"
   caption="Scenarios render with status icons, step keywords, and inline documentation"
+/>
+
+Inline documentation renders as semantic HTML. You author tables and diagrams in your test; the report draws them, so there are no image files to keep in sync:
+
+<ReportScreenshot
+  src="screenshots/feature-tables.png"
+  alt="A data table rendered in the report with header row and aligned columns"
+  caption="story.table renders as a real, accessible HTML table."
+/>
+
+<ReportScreenshot
+  src="screenshots/feature-mermaid.png"
+  alt="A Mermaid flowchart diagram rendered inside the report"
+  caption="story.mermaid draws the diagram live from its source."
+/>
+
+<ReportScreenshot
+  src="screenshots/feature-traces.png"
+  alt="An OpenTelemetry trace waterfall showing spans and durations"
+  caption="An OpenTelemetry trace renders as a span waterfall, so you can see where the time went."
+/>
+
+When a scenario fails, the report leads with the error and the step that failed:
+
+<ReportScreenshot
+  src="screenshots/feature-failure.png"
+  alt="A failed scenario showing the error message, the failing Then step, and a trace"
+  caption="A failure shows the assertion error and points at the exact step that broke."
 />
 
 ## Enabling or hiding elements

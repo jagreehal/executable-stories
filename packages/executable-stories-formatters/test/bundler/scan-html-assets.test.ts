@@ -109,4 +109,16 @@ describe("scanHtmlAssets", () => {
     const refs = scanHtmlAssets(html);
     expect(refs).toEqual(["../test-results/trace.zip"]);
   });
+
+  it("ignores src=-like text inside <script> and <style> blocks", () => {
+    // The interactive island inlines minified JS that contains src= patterns;
+    // only the real element outside the script should be returned.
+    const html = `
+      <img src="assets/real.png">
+      <script>var t='<video src="${"${e}"}"></video>'; createElement('img',{src:'fake.png'});</script>
+      <style>.x{background:url(also-fake.png)}</style>
+    `;
+    const refs = scanHtmlAssets(html);
+    expect(refs).toEqual(["assets/real.png"]);
+  });
 });

@@ -48,4 +48,29 @@ describe("parseStoryReport", () => {
     const r = parseStoryReport(bad);
     expect(r.ok).toBe(false);
   });
+
+  it("accepts video doc entries", () => {
+    const r = parseStoryReport(withDoc({ kind: "video", path: "https://x/d.mp4", caption: "Demo", phase: "runtime" }));
+    expect(r.ok).toBe(true);
+  });
+
+  it("accepts html doc entries", () => {
+    const r = parseStoryReport(withDoc({ kind: "html", content: "<p>hi</p>", title: "Widget", height: 140, phase: "runtime" }));
+    expect(r.ok).toBe(true);
+  });
+
+  it("accepts otelSpans on a scenario", () => {
+    const withSpans = JSON.parse(JSON.stringify(passingReport));
+    withSpans.features[0].scenarios[0].otelSpans = [
+      { spanId: "a", name: "root", startTimeMs: 0, durationMs: 10, status: "ok" },
+    ];
+    const r = parseStoryReport(withSpans);
+    expect(r.ok).toBe(true);
+  });
 });
+
+function withDoc(entry: unknown): unknown {
+  const copy = JSON.parse(JSON.stringify(passingReport));
+  copy.features[0].scenarios[0].docEntries.push(entry);
+  return copy;
+}

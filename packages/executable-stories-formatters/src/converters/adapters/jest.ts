@@ -4,8 +4,8 @@
  * Transforms Jest test results and story reports into RawRun.
  */
 
-import type { StoryMeta } from "../../types/story";
-import type { RawRun, RawTestCase, RawStatus } from "../../types/raw";
+import type { StoryMeta } from "executable-stories-core/types/story";
+import type { RawRun, RawTestCase, RawStatus } from "executable-stories-core/types/raw";
 
 /** Jest test result shape (subset of what Jest provides) */
 export interface JestTestResult {

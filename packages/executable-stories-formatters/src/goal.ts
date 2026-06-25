@@ -8,7 +8,7 @@
  * left, so the loop and the human reading after it can both trust "done".
  */
 
-import type { TestCaseResult, TestRunResult, TestStatus } from "./types/test-result";
+import type { TestCaseResult, TestRunResult, TestStatus } from "executable-stories-core/types/test-result";
 
 /** Result of one required selector (a tag, ticket, or scenario that must pass). */
 export interface GoalRequirementResult {

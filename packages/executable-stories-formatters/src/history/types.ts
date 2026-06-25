@@ -2,7 +2,7 @@
  * Types for history tracking and test metrics.
  */
 
-import type { CIProvider } from "../types/ci";
+import type { CIProvider } from "executable-stories-core/types/ci";
 
 export interface HistoryEntry {
   runId: string;

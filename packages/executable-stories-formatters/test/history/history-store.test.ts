@@ -5,7 +5,7 @@ import {
   updateHistory,
 } from "../../src/history/history-store";
 import type { HistoryStore } from "../../src/history/types";
-import type { TestRunResult } from "../../src/types/test-result";
+import type { TestRunResult } from "executable-stories-core/types/test-result";
 
 function makeStore(overrides: Partial<HistoryStore> = {}): HistoryStore {
   return {

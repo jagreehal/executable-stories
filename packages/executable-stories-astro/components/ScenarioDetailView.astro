@@ -1,0 +1,49 @@
+---
+/**
+ * ScenarioDetailView — the shared body of a story-detail page. Takes a single
+ * `story` prop (the resolved scenario) so the wrapping route owns
+ * `getStaticPaths` and this component only renders.
+ *
+ * The scenario body — status, tags, steps, the failure box, docs, attachments,
+ * the trace waterfall — is rendered by the React `<ReportScenario/>` component
+ * as a STATIC island (build-time SSR, no client JS): the SAME component the
+ * standalone single-file HTML report uses, so there is no second renderer to
+ * drift from. `hideTitle` drops the card's own title row because the page
+ * already shows the scenario title as its heading (Starlight's page `<h1>`).
+ *
+ * `shell` controls the wrapper: "standalone" (default) for the bare Astro route,
+ * "starlight" when embedded inside Starlight's content column (adds `es-embed`).
+ */
+import { ReportScenario } from "executable-stories-react";
+// The report components ship their own compiled, preflight-free stylesheet
+// scoped to `.es-report-island` (so it never leaks onto the host page).
+import "executable-stories-react/tailwind.css";
+import { joinHref } from "executable-stories-astro";
+import type { StoryEntryData } from "executable-stories-astro";
+import DocHydration from "./DocHydration.astro";
+// Resolved by the integration so the back link honours the config.
+import { routeBase } from "virtual:executable-stories/config";
+
+interface Props {
+  story: StoryEntryData;
+  shell?: "standalone" | "starlight";
+}
+const { story: s, shell = "standalone" } = Astro.props as Props;
+const embed = shell === "starlight" ? " es-embed" : "";
+---
+
+<div class={`es-story${embed}`}>
+  <a class="es-back" href={joinHref(routeBase)}>← All stories</a>
+  <header class="es-story__header">
+    {shell !== "starlight" && <h1 data-testid="title">{s.title}</h1>}
+    <div class="es-story__meta">
+      <span class={`es-status es-status--${s.status}`} data-testid="status">{s.status}</span>
+      <span class="es-story__feature">{s.feature?.title} · <code>{s.feature?.sourceFile}</code></span>
+    </div>
+  </header>
+  <div class="es-report-island font-sans text-foreground">
+    <ReportScenario scenario={s} hideTitle />
+  </div>
+
+  <DocHydration />
+</div>

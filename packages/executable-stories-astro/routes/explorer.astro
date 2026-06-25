@@ -1,0 +1,22 @@
+---
+/**
+ * Scenario Explorer — a searchable/filterable browser over every scenario in the
+ * `stories` collection. Injected by executableStories() at /explorer for
+ * NON-Starlight sites. Standalone markup (own <html>/<body>, no Starlight
+ * dependency); the shared body lives in ExplorerView so the Starlight variant
+ * can reuse it.
+ */
+import "../styles/es.css"; // default styling so the page is themed out of the box
+import ExplorerView from "../components/ExplorerView.astro";
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Scenario Explorer — Executable Stories</title>
+  </head>
+  <body>
+    <ExplorerView shell="standalone" />
+  </body>
+</html>

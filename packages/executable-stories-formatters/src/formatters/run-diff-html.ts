@@ -1,13 +1,9 @@
 import type { RunDiffResult, ScenarioDiff } from "../types/compare";
-import type { DocEntry, StoryStep } from "../types/story";
-import type { HtmlTheme } from "./html/themes/types";
-// eslint-disable-next-line no-restricted-imports -- resolveTheme is defined in the themes barrel itself; there is no concrete module to import it from.
-import { resolveTheme } from "./html/themes/index";
+import type { DocEntry, StoryStep } from "executable-stories-core/types/story";
+import { REPORT_THEME_CSS } from "./report-theme-css";
 
 export interface RunDiffHtmlOptions {
   title?: string;
-  /** Theme name or custom theme object. Default: "default" */
-  theme?: string | HtmlTheme;
   /** Enable dark mode toggle. Default: true */
   darkMode?: boolean;
 }
@@ -346,12 +342,10 @@ function applyTheme(theme) {
 
 export class RunDiffHtmlFormatter {
   private title: string;
-  private theme: HtmlTheme;
   private darkMode: boolean;
 
   constructor(options: RunDiffHtmlOptions = {}) {
     this.title = options.title ?? "Run Comparison";
-    this.theme = resolveTheme(options.theme ?? "default");
     this.darkMode = options.darkMode ?? true;
   }
 
@@ -384,7 +378,7 @@ export class RunDiffHtmlFormatter {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${escapeHtml(this.title)}</title>
     <style>
-      ${this.theme.css}
+      ${REPORT_THEME_CSS}
       ${DIFF_CSS}
     </style>
   </head>

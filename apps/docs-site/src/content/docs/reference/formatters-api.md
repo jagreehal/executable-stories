@@ -85,7 +85,7 @@ Use these when you have framework results and want a canonical run for **ReportG
 
 | Option | Type | Default | Description |
 | ------ | ---- | ------- | ----------- |
-| `formats` | `OutputFormat[]` | `["cucumber-json"]` | Output formats: `"cucumber-json"`, `"cucumber-html"`, `"cucumber-messages"`, `"html"`, `"junit"`, `"markdown"`, `"release-manifest"`, `"traceability-matrix"`, `"astro"`, `"confluence"`, `"story-report-json"`, `"scenario-index-json"`, `"behavior-manifest-json"`. |
+| `formats` | `OutputFormat[]` | `["cucumber-json"]` | Output formats: `"cucumber-json"`, `"cucumber-html"`, `"cucumber-messages"`, `"html"`, `"junit"`, `"markdown"`, `"release-manifest"`, `"traceability-matrix"`, `"astro-markdown"`, `"confluence"`, `"story-report-json"`, `"scenario-index-json"`, `"behavior-manifest-json"`. |
 | `outputDir` | `string` | `"reports"` | Base directory for output files. |
 | `outputName` | `string` | `"index"` | Base filename (without extension) for aggregated output. |
 | `output` | `OutputConfig` | see below | Output routing (mode, colocated style, rules). |
@@ -130,11 +130,12 @@ const result: Map<OutputFormat, string[]> = await generator.generate(run);
 You can use formatters without **ReportGenerator** if you already have a **`TestRunResult`**:
 
 - **CucumberJsonFormatter** — `formatToString(run)` → string
-- **HtmlFormatter** — `format(run)` → string
 - **JUnitFormatter** — `format(run)` → string
 - **MarkdownFormatter** — `format(run)` → string
 - **AstroFormatter** — `format(run)` → string (themed Markdown with Starlight frontmatter)
 - **ConfluenceFormatter** — `format(run)` → string (ADF JSON); also `formatToAdf(run)` → the `{ version, type: "doc", content }` object
+
+The HTML report renders via **`executable-stories-react`**: `renderReportToHtml(toStoryReport(run))` from `executable-stories-react/ssr`.
 
 Instantiate with the same options as in **ReportGenerator** (e.g. `MarkdownFormatterOptions` for Markdown, `ConfluenceFormatterOptions` for Confluence).
 
@@ -196,7 +197,6 @@ The formatters package provides an **`executable-stories`** CLI for generating r
 - Step text in the HTML report highlights **quoted strings** and **standalone numbers** (step parameter highlighting) for readability.
 - **`--html-no-syntax-highlighting`** — Disable syntax highlighting in HTML.
 - **`--html-no-mermaid`** — Disable Mermaid diagram rendering in HTML.
-- **`--html-no-markdown`** — Disable Markdown parsing in HTML.
 
 **CI detection:** When the CLI runs in a CI environment, it auto-detects the provider (GitHub Actions, GitLab, CircleCI, Azure DevOps, Buildkite, Jenkins, Travis) from environment variables and attaches branch, commit SHA, PR number, and build URL to the run. The HTML report shows this in a **CI** meta block. No flags required.
 
@@ -223,11 +223,6 @@ The formatters package provides an **`executable-stories`** CLI for generating r
 | `--no-synthesize-stories` | boolean | — | Disable story synthesis (strict mode) |
 | `--html-no-syntax-highlighting` | boolean | `false` | Disable syntax highlighting in HTML |
 | `--html-no-mermaid` | boolean | `false` | Disable Mermaid diagram rendering in HTML |
-| `--html-no-markdown` | boolean | `false` | Disable Markdown parsing in HTML |
-| `--html-permalink-base-url` | string | — | Base URL for source file permalinks (e.g. `https://github.com/org/repo/blob/main`) |
-| `--html-ticket-url-template` | string | — | URL template for ticket links (use `{ticket}` placeholder) |
-| `--html-no-toc` | boolean | `false` | Disable table of contents sidebar |
-| `--html-theme-picker` | boolean | `false` | Embed all themes with a picker UI |
 | `--asset-mode` | string | `none` | Asset bundling: `none` or `copy` |
 | `--allow-missing-assets` | boolean | `false` | Warn instead of fail on missing assets |
 | `--output-name-timestamp` | boolean | `false` | Append UTC timestamp to output filename |

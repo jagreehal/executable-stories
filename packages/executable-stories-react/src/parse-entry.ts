@@ -18,4 +18,4 @@ export type {
   ReportStep as StoryReportStep,
   ReportDocEntry as StoryReportDocEntry,
   ReportSummary as StoryReportSummary,
-} from "executable-stories-formatters";
+} from "executable-stories-core";

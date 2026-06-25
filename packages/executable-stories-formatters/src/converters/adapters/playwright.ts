@@ -4,8 +4,8 @@
  * Transforms Playwright test results into RawRun.
  */
 
-import type { StoryMeta } from "../../types/story";
-import type { RawRun, RawTestCase, RawStatus, RawAttachment } from "../../types/raw";
+import type { StoryMeta } from "executable-stories-core/types/story";
+import type { RawRun, RawTestCase, RawStatus, RawAttachment } from "executable-stories-core/types/raw";
 
 /** Playwright test status */
 export type PlaywrightStatus =

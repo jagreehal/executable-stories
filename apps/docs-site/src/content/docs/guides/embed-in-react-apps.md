@@ -217,4 +217,4 @@ Both surfaces consume the same data model and share the same `--es-*` theme toke
 
 - [React renderer reference](/reference/react-renderer) — components, props, primitives, schema validation.
 - [Formatters API](/reference/formatters-api) — emit `story-report-json` from any framework adapter.
-- [HTML themes](/reference/themes) — the shared `--es-*` token catalog.
+- [Theming](/reference/themes) — the shared `--es-*` token catalog.

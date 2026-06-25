@@ -48,8 +48,8 @@ describe("DocCode", () => {
     const { container } = render(
       <DocCode entry={{ kind: "code", label: "Request", content: "const x = 1", lang: "ts", phase: "static" }} />
     );
-    expect(container.querySelector("figure.es-doc-code")).toBeInTheDocument();
-    expect(container.querySelector("code")?.className).toBe("language-ts");
+    expect(container.querySelector("figure")).toBeInTheDocument();
+    expect(container.querySelector("code")?.className).toContain("language-ts");
     expect(screen.getByText("const x = 1")).toBeInTheDocument();
   });
 
@@ -198,9 +198,9 @@ describe("DocEntry dispatcher", () => {
     const { rerender, container } = render(
       <DocEntry entry={{ kind: "note", text: "n", phase: "static" }} />,
     );
-    expect(container.querySelector(".es-doc-note")).toBeInTheDocument();
+    expect(container.querySelector("p")).toHaveTextContent("n");
 
     rerender(<DocEntry entry={{ kind: "kv", label: "k", value: "v", phase: "static" }} />);
-    expect(container.querySelector(".es-doc-kv")).toBeInTheDocument();
+    expect(container.querySelector("dl")).toBeInTheDocument();
   });
 });

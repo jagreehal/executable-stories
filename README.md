@@ -152,23 +152,29 @@ See each package's README for detailed setup instructions.
 
 ## Living documentation site
 
-Generate a multi-page Astro site from your stories — one page per story file plus a
-scenario Explorer. It auto-picks-up: add a `*.story.test.ts` and re-run, its page
-appears; delete it and the page is pruned. Zero per-test wiring.
+Render your stories as a live Astro site — a stories index, one page per
+scenario, and a searchable Explorer. The `executable-stories-astro` integration
+loads your test run JSON as a hot-reloading `stories` collection: add a
+`*.story.test.ts` and re-run, its page appears; delete it and the page is pruned.
+Zero per-test wiring.
 
 The `executable-stories` CLI ships in the `executable-stories-formatters` package
 (install it, or invoke via `npx --package executable-stories-formatters executable-stories …`).
 
 ```bash
-npx --package executable-stories-formatters executable-stories init-astro site   # scaffold the Astro/Starlight site
+npx --package executable-stories-formatters executable-stories init-astro site   # scaffold the thin Astro/Starlight site
 # vitest.config: createStoryReporter({ rawRunPath: 'reports/raw-run.json' })
-pnpm test                                      # writes reports/raw-run.json (auto-includes all stories)
-npx --package executable-stories-formatters executable-stories build-docs reports/raw-run.json --site-dir site
-cd site && npm install && npm run build        # static dist/
+cd site && npm install
+pnpm test            # (in your project) writes reports/raw-run.json — auto-includes all stories
+npm run dev          # live docs at /stories, hot-reloading as tests re-run; npm run build for static dist/
 ```
 
-`build-docs` is the headline command — `format --format astro` is a lower-level
-primitive that emits a single aggregated page, not a site.
+> **Removed:** the old `build-docs` command (a one-shot Markdown generator that
+> wrote story pages into a scaffold) has been removed — stories now render live
+> from the run JSON via the `executable-stories-astro` integration, with no
+> Markdown-generation step. Use `init-astro` + `astro dev`. The
+> `format --format astro-markdown` output (a single aggregated Markdown page)
+> still exists for one-off exports but is not the recommended path for a site.
 
 ## Development
 

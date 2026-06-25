@@ -1,4 +1,4 @@
-import type { ReportDocKv } from "executable-stories-formatters";
+import type { ReportDocKv } from "executable-stories-core";
 
 function formatValue(value: unknown): string {
   if (value === null) return "null";
@@ -13,9 +13,9 @@ function formatValue(value: unknown): string {
 
 export function DocKv({ entry }: { entry: ReportDocKv }) {
   return (
-    <dl className="es-doc es-doc-kv">
-      <dt>{entry.label}</dt>
-      <dd>{formatValue(entry.value)}</dd>
+    <dl className="my-2 flex flex-wrap items-baseline gap-x-2 text-sm">
+      <dt className="font-semibold text-muted-foreground">{entry.label}</dt>
+      <dd className="font-mono text-foreground">{formatValue(entry.value)}</dd>
     </dl>
   );
 }

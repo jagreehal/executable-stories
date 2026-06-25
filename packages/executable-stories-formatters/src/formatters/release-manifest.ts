@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import type { TestCaseResult, TestRunResult } from "../types/test-result";
+import type { TestCaseResult, TestRunResult } from "executable-stories-core/types/test-result";
 
 export interface ReleaseManifest {
   schemaVersion: "1.0";

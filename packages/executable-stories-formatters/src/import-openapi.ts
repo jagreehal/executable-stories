@@ -213,7 +213,7 @@ title: 'API — ${yamlQuote(tag)}'
 description: 'Endpoints for ${yamlQuote(tag)}, linked to the stories that exercise them.'
 ---
 
-import ApiOperations from '@components/ApiOperations.astro';
+import ApiOperations from 'executable-stories-astro/components/ApiOperations.astro';
 
 <ApiOperations
   tag={${JSON.stringify(tag)}}

@@ -7,10 +7,10 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { toStoryReport } from "../../src/converters/story-report";
+import { toStoryReport } from "executable-stories-core/converters/story-report";
 import { StoryReportJsonFormatter } from "../../src/formatters/story-report-json";
 import { validateStoryReport } from "../../src/validation/story-report-validator";
-import type { TestCaseResult, TestRunResult } from "../../src/types/test-result";
+import type { TestCaseResult, TestRunResult } from "executable-stories-core/types/test-result";
 
 function makeTestCase(overrides: Partial<TestCaseResult> = {}): TestCaseResult {
   return {

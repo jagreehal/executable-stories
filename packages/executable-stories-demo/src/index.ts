@@ -249,7 +249,7 @@ export async function buildDemo(options: BuildDemoOptions): Promise<BuildDemoRes
   fs.mkdirSync(assetsDir, { recursive: true });
 
   const generator = new ReportGenerator({
-    formats: ["astro"],
+    formats: ["astro-markdown"],
     outputDir: storiesDir,
     output: {
       mode: "colocated",
@@ -267,7 +267,7 @@ export async function buildDemo(options: BuildDemoOptions): Promise<BuildDemoRes
   });
 
   const output = await generator.generate(run);
-  const astroFiles = output.get("astro") ?? [];
+  const astroFiles = output.get("astro-markdown") ?? [];
   appendAttachmentsToPages({
     astroFiles,
     run,

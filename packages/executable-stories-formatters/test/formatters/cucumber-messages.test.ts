@@ -4,7 +4,7 @@
 
 import { describe, it, expect } from "vitest";
 import { CucumberMessagesFormatter } from "../../src/formatters/cucumber-messages/index";
-import { canonicalizeRun } from "../../src/converters/acl/index";
+import { canonicalizeRun } from "executable-stories-core/converters/acl/index";
 import {
   createRawRun,
   createMultipleTestCasesRun,
@@ -12,7 +12,7 @@ import {
   createTestCase,
   createStory,
 } from "../fixtures/raw-runs/basic";
-import type { Envelope } from "../../src/types/cucumber-messages";
+import type { Envelope } from "executable-stories-core/types/cucumber-messages";
 
 // Helper to get typed envelope field
 function getEnvelopes<K extends keyof Envelope>(
@@ -1301,7 +1301,7 @@ describe("CucumberMessagesFormatter", () => {
 
   describe("retry/attempt support", () => {
     // Retry tests use TestRunResult directly since attempts aren't in RawTestCase
-    function makeRetryRun(): import("../../src/types/test-result.js").TestRunResult {
+    function makeRetryRun(): import("executable-stories-core/types/test-result").TestRunResult {
       const raw = createRawRun();
       const run = canonicalizeRun(raw);
       // Augment with retry data

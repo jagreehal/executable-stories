@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/html';
 import { toScenarioSnapshot } from '../types/compare';
 import type { RunDiffResult, ScenarioDiff } from '../types/compare';
-import type { TestRunResult } from '../types/test-result';
+import type { TestRunResult } from 'executable-stories-core/types/test-result';
 import {
   createFixtureRun,
   failedScenario,
@@ -146,6 +146,77 @@ function removedDiff(): ScenarioDiff {
   };
 }
 
+function renamedDiff(): ScenarioDiff {
+  const before = passedScenario({
+    id: 'rn-1',
+    story: { ...passedScenario().story, scenario: 'User can log in' },
+  });
+  const after = passedScenario({
+    id: 'rn-1',
+    story: { ...passedScenario().story, scenario: 'Registered user signs in with email' },
+  });
+  return {
+    kind: 'renamed',
+    id: 'rn-1',
+    scenario: after.story.scenario,
+    sourceFile: after.sourceFile,
+    sourceLine: after.sourceLine,
+    baseline: toScenarioSnapshot(before),
+    current: toScenarioSnapshot(after),
+    flags: { ...noFlags(), titlePath: true },
+    changedFields: ['title'],
+  };
+}
+
+function movedDiff(): ScenarioDiff {
+  const before = passedScenario({
+    id: 'mv-1',
+    sourceFile: 'src/auth/legacy/login.test.ts',
+    story: { ...passedScenario().story, scenario: 'Session persists across reload' },
+  });
+  const after = passedScenario({
+    id: 'mv-1',
+    sourceFile: 'src/auth/session.test.ts',
+    story: { ...passedScenario().story, scenario: 'Session persists across reload' },
+  });
+  return {
+    kind: 'moved',
+    id: 'mv-1',
+    scenario: after.story.scenario,
+    sourceFile: after.sourceFile,
+    sourceLine: after.sourceLine,
+    baseline: toScenarioSnapshot(before),
+    current: toScenarioSnapshot(after),
+    flags: { ...noFlags(), source: true },
+    changedFields: ['sourceFile'],
+  };
+}
+
+function changedDiff(): ScenarioDiff {
+  const before = passedScenario({
+    id: 'ch-1',
+    durationMs: 120,
+    story: { ...passedScenario().story, scenario: 'Checkout applies the loyalty discount', tags: ['checkout'] },
+  });
+  const after = passedScenario({
+    id: 'ch-1',
+    durationMs: 410,
+    story: { ...passedScenario().story, scenario: 'Checkout applies the loyalty discount', tags: ['checkout', 'slow'] },
+  });
+  return {
+    kind: 'changed',
+    id: 'ch-1',
+    scenario: after.story.scenario,
+    sourceFile: after.sourceFile,
+    sourceLine: after.sourceLine,
+    baseline: toScenarioSnapshot(before),
+    current: toScenarioSnapshot(after),
+    flags: { ...noFlags(), tags: true, duration: true },
+    changedFields: ['tags', 'duration'],
+    durationDeltaMs: after.durationMs - before.durationMs,
+  };
+}
+
 export const Regressions: StoryObj = {
   render: () => {
     const formatter = new RunDiffHtmlFormatter({ title: 'Run Comparison' });
@@ -178,6 +249,29 @@ export const NoChanges: StoryObj = {
   render: () => {
     const formatter = new RunDiffHtmlFormatter({ title: 'Run Comparison' });
     const html = formatter.format(buildDiff([]));
+    return inIframe(html);
+  },
+};
+
+export const RenamedMovedAndChanged: StoryObj = {
+  name: 'Renamed, moved, and changed',
+  render: () => {
+    const formatter = new RunDiffHtmlFormatter({ title: 'Run Comparison' });
+    const html = formatter.format(
+      buildDiff([renamedDiff(), movedDiff(), changedDiff()]),
+    );
+    return inIframe(html);
+  },
+};
+
+export const LargeComparison: StoryObj = {
+  name: 'Large comparison',
+  render: () => {
+    const formatter = new RunDiffHtmlFormatter({ title: 'Sprint 24 vs Sprint 25' });
+    const scenarios: ScenarioDiff[] = [];
+    for (let i = 0; i < 6; i++) scenarios.push(regressedDiff(), fixedDiff());
+    for (let i = 0; i < 4; i++) scenarios.push(addedDiff(), removedDiff(), changedDiff());
+    const html = formatter.format(buildDiff(scenarios));
     return inIframe(html);
   },
 };

@@ -1,5 +1,6 @@
-import type { ReportSummary as ReportSummaryT } from "executable-stories-formatters";
+import type { ReportSummary as ReportSummaryT } from "executable-stories-core";
 import { useReport } from "../hooks/useReport";
+import { cn } from "@/lib/utils";
 
 export interface ReportSummaryProps {
   className?: string;
@@ -24,27 +25,25 @@ export interface ReportSummaryViewProps {
 
 export function ReportSummaryView({ summary, className, ariaLabel }: ReportSummaryViewProps) {
   return (
-    <p
-      className={["es-report-summary", className].filter(Boolean).join(" ")}
-      aria-label={ariaLabel}
-    >
+    <p className={cn("text-sm text-muted-foreground", className)} aria-label={ariaLabel}>
       <span>
-        <strong>{summary.total}</strong> scenario{summary.total === 1 ? "" : "s"}
+        <strong className="font-semibold text-foreground">{summary.total}</strong> scenario
+        {summary.total === 1 ? "" : "s"}
       </span>
       {" · "}
-      <span data-status="passed">{summary.passed} passed</span>
+      <span data-status="passed" className="text-pass">{summary.passed} passed</span>
       {" · "}
-      <span data-status="failed">{summary.failed} failed</span>
+      <span data-status="failed" className="text-fail">{summary.failed} failed</span>
       {summary.skipped > 0 ? (
         <>
           {" · "}
-          <span data-status="skipped">{summary.skipped} skipped</span>
+          <span data-status="skipped" className="text-skip">{summary.skipped} skipped</span>
         </>
       ) : null}
       {summary.pending > 0 ? (
         <>
           {" · "}
-          <span data-status="pending">{summary.pending} pending</span>
+          <span data-status="pending" className="text-pend">{summary.pending} pending</span>
         </>
       ) : null}
     </p>

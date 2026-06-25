@@ -1,0 +1,203 @@
+/*
+ * Tailwind v4 + shadcn token foundation for the report component surfaces.
+ *
+ * The shadcn semantic tokens (--background, --primary, --card, --destructive …)
+ * are themed to the executable-stories HTML report palette — the report's
+ * styles.ts is itself "shadcn/ui base theme with cucumber accent", so this map
+ * is faithful, not invented. Status text colours are deliberately darkened from
+ * the report so the component-tier a11y gate (WCAG AA, 4.5:1) passes.
+ *
+ * The canonical --es-color-* tokens (kept in lockstep with
+ * executable-stories-core via test/theme-tokens-sync.test.ts) are still
+ * imported from ../styles.css for the legacy stylesheet + the public token
+ * contract; the shadcn layer here is additive.
+ */
+/*
+ * NOTE: we import Tailwind's theme + utilities but NOT preflight. This
+ * stylesheet ships into host sites (Astro/Starlight) where a global reset would
+ * wreck the host chrome. The few resets the shadcn components actually need
+ * (box-sizing, border defaults) are scoped to `.es-report-island` below.
+ */
+@layer theme, base, components, utilities;
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap");
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+@import "../styles.css";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* Scoped equivalent of preflight's border + box-sizing normalization, so
+   `border`/`rounded` utilities render inside the report island without a global
+   reset leaking onto the host page. */
+@layer base {
+  .es-report-island,
+  .es-report-island *,
+  .es-report-island ::before,
+  .es-report-island ::after {
+    box-sizing: border-box;
+    border-width: 0;
+    border-style: solid;
+    border-color: var(--border);
+  }
+  /* Neutralise host (Starlight) flow margins + default list markers inside the
+     island; component utilities (mt-*, list-*) still win via the utilities
+     layer. :where() keeps specificity at 0. */
+  .es-report-island :where(h1, h2, h3, h4, h5, h6, p, ul, ol, figure, pre, blockquote) {
+    margin: 0;
+  }
+  .es-report-island :where(ul, ol) {
+    list-style: none;
+    padding: 0;
+  }
+  /* DocSection renders sanitized markdown HTML — restore prose basics for its
+     inner elements (utilities can't reach into dangerouslySetInnerHTML). */
+  .es-report-island .es-doc-prose :where(p, ul, ol) {
+    margin: 0.4rem 0;
+  }
+  .es-report-island .es-doc-prose :where(ul, ol) {
+    padding-left: 1.25rem;
+    list-style: revert;
+  }
+  .es-report-island .es-doc-prose :where(code) {
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+    background: var(--muted);
+    padding: 0.1em 0.3em;
+    border-radius: 4px;
+  }
+  .es-report-island .es-doc-prose :where(a) {
+    color: var(--es-link);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .es-report-island .es-doc-prose :where(strong) {
+    color: var(--foreground);
+    font-weight: 600;
+  }
+  /* Detail-level toggle: "minimal" hides doc entries, leaving steps/errors. */
+  [data-detail-level="minimal"] [data-es-docs] {
+    display: none;
+  }
+}
+
+:root,
+[data-theme="light"] {
+  --background: hsl(0 0% 100%);
+  --foreground: hsl(0 0% 9%);
+  --card: hsl(0 0% 100%);
+  --card-foreground: hsl(0 0% 9%);
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(0 0% 9%);
+  --primary: hsl(145 63% 36%);
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(0 0% 96.5%);
+  --secondary-foreground: hsl(0 0% 9%);
+  --muted: hsl(0 0% 96.5%);
+  --muted-foreground: hsl(0 0% 38%);
+  --accent: hsl(0 0% 96.5%);
+  --accent-foreground: hsl(0 0% 9%);
+  --destructive: hsl(0 72% 42%);
+  --destructive-foreground: hsl(0 0% 100%);
+  --border: hsl(0 0% 90%);
+  --input: hsl(0 0% 90%);
+  --ring: hsl(145 63% 42%);
+
+  /* Status system: AA-safe text + the report's light tint + border. */
+  --es-pass: hsl(145 63% 28%);
+  --es-pass-bg: hsl(145 55% 96%);
+  --es-pass-border: hsl(145 50% 80%);
+  --es-fail: hsl(0 70% 40%);
+  --es-fail-bg: hsl(0 86% 97%);
+  --es-fail-border: hsl(0 70% 86%);
+  --es-skip: hsl(36 60% 28%);
+  --es-skip-bg: hsl(48 100% 95%);
+  --es-skip-border: hsl(45 70% 78%);
+  --es-pend: hsl(262 48% 42%);
+  --es-pend-bg: hsl(262 55% 97%);
+  --es-pend-border: hsl(262 45% 85%);
+  --es-keyword: hsl(145 63% 28%);
+  --es-step-param: hsl(220 70% 50%);
+  /* On-brand green for prose links; darker than --primary to meet AA on white. */
+  --es-link: hsl(145 63% 28%);
+}
+
+[data-theme="dark"] {
+  --background: hsl(0 0% 6%);
+  --foreground: hsl(0 0% 95%);
+  --card: hsl(0 0% 9%);
+  --card-foreground: hsl(0 0% 95%);
+  --popover: hsl(0 0% 9%);
+  --popover-foreground: hsl(0 0% 95%);
+  --primary: hsl(145 63% 50%);
+  --primary-foreground: hsl(0 0% 6%);
+  --secondary: hsl(0 0% 13%);
+  --secondary-foreground: hsl(0 0% 95%);
+  --muted: hsl(0 0% 13%);
+  --muted-foreground: hsl(0 0% 64%);
+  --accent: hsl(0 0% 14%);
+  --accent-foreground: hsl(0 0% 95%);
+  --destructive: hsl(0 72% 58%);
+  --destructive-foreground: hsl(0 0% 100%);
+  --border: hsl(0 0% 17%);
+  --input: hsl(0 0% 17%);
+  --ring: hsl(145 63% 50%);
+
+  --es-pass: hsl(145 60% 62%);
+  --es-pass-bg: hsl(145 45% 11%);
+  --es-pass-border: hsl(145 40% 24%);
+  --es-fail: hsl(0 80% 72%);
+  --es-fail-bg: hsl(0 50% 12%);
+  --es-fail-border: hsl(0 50% 28%);
+  --es-skip: hsl(45 85% 65%);
+  --es-skip-bg: hsl(45 40% 11%);
+  --es-skip-border: hsl(45 35% 26%);
+  --es-pend: hsl(262 70% 76%);
+  --es-pend-bg: hsl(262 35% 15%);
+  --es-pend-border: hsl(262 30% 32%);
+  --es-keyword: hsl(145 63% 60%);
+  --es-step-param: hsl(220 70% 70%);
+  --es-link: hsl(145 63% 62%);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-pass: var(--es-pass);
+  --color-pass-bg: var(--es-pass-bg);
+  --color-pass-border: var(--es-pass-border);
+  --color-fail: var(--es-fail);
+  --color-fail-bg: var(--es-fail-bg);
+  --color-fail-border: var(--es-fail-border);
+  --color-skip: var(--es-skip);
+  --color-skip-bg: var(--es-skip-bg);
+  --color-skip-border: var(--es-skip-border);
+  --color-pend: var(--es-pend);
+  --color-pend-bg: var(--es-pend-bg);
+  --color-pend-border: var(--es-pend-border);
+  --color-keyword: var(--es-keyword);
+  --color-step-param: var(--es-step-param);
+  --color-link: var(--es-link);
+
+  --font-sans: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --radius: 0.5rem;
+}

@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import type { NormalizedTicket, StoryMeta } from "../../src/types/story";
+import type { NormalizedTicket, StoryMeta } from "executable-stories-core/types/story";
 
 describe("NormalizedTicket type", () => {
   it("should accept {id: string}", () => {

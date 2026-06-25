@@ -11,9 +11,9 @@
  * Never throws. Never logs webhook URLs.
  */
 
-import type { TestRunResult } from "../types/test-result";
-import type { CIInfo } from "../types/ci";
-import type { RawCIInfo } from "../types/raw";
+import type { TestRunResult } from "executable-stories-core/types/test-result";
+import type { CIInfo } from "executable-stories-core/types/ci";
+import type { RawCIInfo } from "executable-stories-core/types/raw";
 import type { NotificationSummary, NotifyCondition, GenericWebhookNotifierOptions } from "./types";
 import { sendSlackNotification } from "./slack";
 import { sendTeamsNotification } from "./teams";

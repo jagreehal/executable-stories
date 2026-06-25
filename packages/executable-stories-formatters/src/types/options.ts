@@ -2,35 +2,20 @@
  * Configuration options for ACL and formatters.
  */
 
-/** Options for canonicalizing raw run data */
-export interface CanonicalizeOptions {
-  /** Attachment handling options */
-  attachments?: {
-    /** Max bytes before attachment becomes external link. Default: 512KB (524288) */
-    maxEmbedBytes?: number;
-    /** Directory for external attachments */
-    externalDir?: string;
-  };
-
-  /** Cucumber compatibility options */
-  cucumber?: {
-    /** Include trailing space in keywords (e.g., "Given "). Default: true */
-    keywordSpacing?: boolean;
-    /** Generate deterministic line numbers. Default: true */
-    deterministicLines?: boolean;
-  };
-
-  /** Default timestamps if not provided in raw data */
-  defaults?: {
-    /** Default start time (epoch ms). Default: Date.now() */
-    startedAtMs?: number;
-    /** Default finish time (epoch ms). Default: Date.now() */
-    finishedAtMs?: number;
-  };
-}
+// CanonicalizeOptions is owned by executable-stories-core (the ACL lives there).
+// Re-exported here so existing `../types/options` imports keep resolving.
+export type { CanonicalizeOptions } from "executable-stories-core/types/canonicalize";
 
 /** Output format for report generation */
-export type OutputFormat = "astro" | "behavior-manifest-json" | "confluence" | "cucumber-json" | "cucumber-messages" | "cucumber-html" | "html" | "junit" | "markdown" | "release-manifest" | "scenario-index-json" | "story-report-json" | "traceability-matrix";
+export type OutputFormat = "astro-markdown" | "behavior-manifest-json" | "confluence" | "cucumber-json" | "cucumber-messages" | "cucumber-html" | "html" | "junit" | "markdown" | "release-manifest" | "scenario-index-json" | "story-report-json" | "traceability-matrix";
+
+/**
+ * Format names accepted as INPUT. Adds `"astro"` as a deprecated alias for
+ * `"astro-markdown"` — it is normalised (with a warning) wherever formats enter
+ * the pipeline, so existing programmatic/config callers keep working.
+ * @deprecated `"astro"` — use `"astro-markdown"`.
+ */
+export type FormatInput = OutputFormat | "astro";
 
 /** Sort order for test cases in reports (deterministic for diff-friendly output) */
 export type SortTestCasesMode = "id" | "source" | "none";
@@ -60,7 +45,7 @@ export interface OutputRule {
   /** Output filename override (without extension) */
   outputName?: string;
   /** Formats to generate for matched files */
-  formats?: OutputFormat[];
+  formats?: FormatInput[];
 }
 
 /** Output configuration for report routing */
@@ -94,7 +79,7 @@ export interface FormatterOptions {
   /** Tags to exclude test cases (any match). Applied after includeTags. */
   excludeTags?: string[];
   /** Output formats to generate. Default: ["html"] */
-  formats?: OutputFormat[];
+  formats?: FormatInput[];
 
   /** Output directory for generated reports. Default: "reports" */
   outputDir?: string;
@@ -135,36 +120,19 @@ export interface FormatterOptions {
     pretty?: boolean;
   };
 
-  /** HTML specific options */
+  /**
+   * HTML specific options. The HTML report renders via executable-stories-react;
+   * only these CDN toggles and the title affect it. The string renderer's
+   * darkMode, searchable, startCollapsed, embed, toc, and markdown options were
+   * removed with it — the React report owns that behavior.
+   */
   html?: {
     /** Report title. Default: "Test Results" */
     title?: string;
-    /** Include dark mode toggle. Default: true */
-    darkMode?: boolean;
-    /** Include search/filter functionality. Default: true */
-    searchable?: boolean;
-    /** Start with scenarios collapsed. Default: false */
-    startCollapsed?: boolean;
-    /** Embed screenshots inline (base64). Default: true */
-    embedScreenshots?: boolean;
-    /** Inline local html doc files as iframe srcdoc. Default: true ("none" asset mode), false under "copy". */
-    embedHtmlFiles?: boolean;
     /** Enable syntax highlighting for code blocks (via highlight.js CDN). Default: true */
     syntaxHighlighting?: boolean;
     /** Enable live Mermaid diagram rendering (via Mermaid.js CDN). Default: true */
     mermaidEnabled?: boolean;
-    /** Enable Markdown parsing for section doc entries (via marked.js CDN). Default: true */
-    markdownEnabled?: boolean;
-    /** Base URL for source permalinks. E.g., "https://github.com/user/repo/blob/main" */
-    permalinkBaseUrl?: string;
-    /** URL template for ticket links. Use {ticket} as placeholder. E.g., "https://jira.example.com/browse/{ticket}" */
-    ticketUrlTemplate?: string;
-    /** Theme name. Default: "default". Available: default, corporate, terminal, minimal, dashboard, playful */
-    theme?: string;
-    /** Show table of contents sidebar. Default: true */
-    tocEnabled?: boolean;
-    /** Include theme picker with all CSS-only themes embedded. Default: false */
-    themePickerEnabled?: boolean;
   };
 
   /** JUnit XML specific options */
@@ -275,8 +243,8 @@ export interface MarkdownFormatterOptions {
   scenarioNoteLink?: (tc: TestCaseResult) => string | undefined;
 }
 
-import type { DocEntry, StoryStep } from "./story";
-import type { TestCaseResult, TestRunResult } from "./test-result";
+import type { DocEntry, StoryStep } from "executable-stories-core/types/story";
+import type { TestCaseResult, TestRunResult } from "executable-stories-core/types/test-result";
 import type { NotifyCondition, GenericWebhookNotifierOptions } from "../notifiers/types";
 import type { ConfluenceFormatterOptions as ConfluenceFormatterOptionsType } from "../formatters/confluence";
 
@@ -342,19 +310,8 @@ export interface ResolvedFormatterOptions {
   };
   html: {
     title: string;
-    darkMode: boolean;
-    searchable: boolean;
-    startCollapsed: boolean;
-    embedScreenshots: boolean;
-    embedHtmlFiles: boolean;
     syntaxHighlighting: boolean;
     mermaidEnabled: boolean;
-    markdownEnabled: boolean;
-    permalinkBaseUrl?: string;
-    ticketUrlTemplate?: string;
-    theme: string;
-    tocEnabled: boolean;
-    themePickerEnabled: boolean;
   };
   junit: {
     suiteName: string;

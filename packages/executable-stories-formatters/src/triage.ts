@@ -8,7 +8,7 @@
  * them to code, so a human or a covers annotation is needed first.
  */
 
-import type { TestCaseResult, TestStatus } from "./types/test-result";
+import type { TestCaseResult, TestStatus } from "executable-stories-core/types/test-result";
 import { failingScenarioMessage } from "./scenario-failure";
 
 export interface TriageItem {

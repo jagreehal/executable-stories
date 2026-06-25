@@ -60,7 +60,7 @@ Or install the formatters package once in your Node project or CI job and call t
 
 ```bash
 npm install -D executable-stories-formatters
-npx executable-stories format .executable-stories/raw-run.json --format markdown
+npx --package executable-stories-formatters executable-stories format .executable-stories/raw-run.json --format markdown
 ```
 
 ## Next

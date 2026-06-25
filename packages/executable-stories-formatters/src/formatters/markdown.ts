@@ -5,8 +5,8 @@
  * Compatible with existing markdown output from framework reporters.
  */
 
-import type { StoryStep, DocEntry } from "../types/story";
-import type { TestRunResult, TestCaseResult, TestStatus } from "../types/test-result";
+import type { StoryStep, DocEntry } from "executable-stories-core/types/story";
+import type { TestRunResult, TestCaseResult, TestStatus } from "executable-stories-core/types/test-result";
 import type { MarkdownRenderers } from "../types/options";
 
 /** Options for Markdown formatting */
@@ -676,7 +676,7 @@ export class MarkdownFormatter {
     }
 
     // Render children with increased indentation
-    if (entry.children && entry.children.length > 0) {
+    if (Array.isArray(entry.children) && entry.children.length > 0) {
       const childIndent = indent + "  ";
       for (const child of entry.children) {
         this.renderDocEntry(lines, child, childIndent);

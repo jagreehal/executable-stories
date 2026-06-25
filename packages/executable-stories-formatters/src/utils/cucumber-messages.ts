@@ -9,9 +9,9 @@ import type {
   KeywordType,
   PickleStepType,
   TestStepResultStatus,
-} from "../types/cucumber-messages";
-import type { TestStatus } from "../types/test-result";
-import type { StepKeyword } from "../types/story";
+} from "executable-stories-core/types/cucumber-messages";
+import type { TestStatus } from "executable-stories-core/types/test-result";
+import type { StepKeyword } from "executable-stories-core/types/story";
 
 /**
  * Convert epoch milliseconds to protobuf Timestamp.

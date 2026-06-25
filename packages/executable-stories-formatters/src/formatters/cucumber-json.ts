@@ -5,13 +5,13 @@
  * compatible with cucumber-js v11.x output.
  */
 
-import type { StoryStep, DocEntry } from "../types/story";
+import type { StoryStep, DocEntry } from "executable-stories-core/types/story";
 import type {
   TestRunResult,
   TestCaseResult,
   StepResult,
   Attachment,
-} from "../types/test-result";
+} from "executable-stories-core/types/test-result";
 import type {
   IJsonFeature,
   IJsonScenario,
@@ -20,8 +20,8 @@ import type {
   IJsonEmbedding,
   IJsonStepResult,
 } from "../types/cucumber-json";
-import { slugify, generateFeatureId, generateScenarioId } from "../converters/acl/ids";
-import { createLineContext, advancePastFeature, advancePastScenario, generateStepLine } from "../converters/acl/lines";
+import { slugify, generateFeatureId, generateScenarioId } from "executable-stories-core/converters/acl/ids";
+import { createLineContext, advancePastFeature, advancePastScenario, generateStepLine } from "executable-stories-core/converters/acl/lines";
 
 /** Options for Cucumber JSON formatting */
 export interface CucumberJsonOptions {

@@ -1,0 +1,63 @@
+---
+/**
+ * StoriesIndexView — the shared body of the stories index. Rebuilds the full
+ * StoryReport from the `stories` collection and renders it as ONE interactive
+ * React island (`<ReportInteractiveIsland client:load/>`) — the SAME component
+ * tree the standalone single-file HTML report uses, so the docs site and the
+ * single-file report look and behave identically (search, status/tag filters,
+ * collapse, copy actions). One renderer, two surfaces.
+ *
+ * The island bakes in React-OWNED highlighting + mermaid renderers (Astro can't
+ * serialize function props to a client island), so those enhancements live in
+ * the React tree and survive every re-render. Crucially, this page does NOT use
+ * the DocHydration post-processor: that script mutates `<pre data-mermaid>` /
+ * `<pre><code>` nodes the island OWNS, which both clobbers them on re-render AND
+ * desyncs SSR vs client markup (hydration mismatch). The static scenario-detail
+ * pages keep DocHydration — they render no island, so nothing fights it there.
+ *
+ * `shell` controls the wrapper: "standalone" (default) for the bare Astro route,
+ * "starlight" when embedded in Starlight's content column. Under Starlight the
+ * page already shows a "Stories" `<h1>`, so the island drops its own title block
+ * via `hideHeader` (the search + filter controls stay).
+ */
+import { getCollection } from "astro:content";
+import { storyEntries, storyReportFromEntries } from "executable-stories-astro";
+import { ReportInteractiveIsland } from "executable-stories-react/interactive";
+// The report components ship their own compiled, preflight-free stylesheet
+// scoped to `.es-report-island` (so it never leaks onto the Starlight layout).
+import "executable-stories-react/tailwind.css";
+import EmptyState from "./EmptyState.astro";
+// Resolved by the integration so the collection + first-run hints honour the config.
+import { collection, sources } from "virtual:executable-stories/config";
+
+interface Props {
+  shell?: "standalone" | "starlight";
+}
+const { shell = "standalone" } = Astro.props as Props;
+const embed = shell === "starlight" ? " es-embed" : "";
+const starlight = shell === "starlight";
+
+const scenarios = storyEntries(await getCollection(collection));
+const isSample = scenarios.length > 0 && scenarios.every((s) => s.sample);
+const report = storyReportFromEntries(scenarios);
+---
+
+<div class={`es-index not-content${embed}`}>
+  {isSample && (
+    <aside class="es-sample-banner" data-testid="sample-banner" role="note">
+      <strong>Sample data.</strong> These scenarios ship with the scaffold so the
+      site is populated on first run. They vanish automatically the moment your
+      tests write their run JSON (<code>{sources[0] ?? "reports/raw-run.json"}</code>).
+    </aside>
+  )}
+  {scenarios.length === 0 ? (
+    <>
+      {!starlight && <h1>Stories</h1>}
+      <EmptyState sources={sources} />
+    </>
+  ) : (
+    <div class="es-report-island font-sans text-foreground">
+      <ReportInteractiveIsland client:load report={report} title="Stories" hideHeader={starlight} />
+    </div>
+  )}
+</div>

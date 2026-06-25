@@ -34,9 +34,9 @@ describe("Report — server-side rendering", () => {
     expect(html).toContain("src/auth.story.test.ts");
   });
 
-  it("emits one <article> per scenario with stable id and aria-labelledby", () => {
+  it("emits one scenario card per scenario with stable id and aria-labelledby", () => {
     const html = ssr(<Report report={mixedReport} />);
-    expect(html).toMatch(/<article[^>]*id="feature-todos--delete"[^>]*aria-labelledby="feature-todos--delete-title"/);
+    expect(html).toMatch(/id="feature-todos--delete"[^>]*aria-labelledby="feature-todos--delete-title"/);
     expect(html).toMatch(/data-status="failed"/);
   });
 
@@ -65,7 +65,7 @@ describe("Report — server-side rendering", () => {
 
   it("does not crash on an empty report; emits the empty-state element", () => {
     const html = ssr(<Report report={minimalReport} />);
-    expect(html).toContain("es-empty");
+    expect(html).toContain('data-slot="empty"');
     expect(html).toContain("No scenarios in this report.");
   });
 
@@ -94,9 +94,9 @@ describe("Report — server-side rendering", () => {
 
     const html = ssr(<Report report={report} />);
     expect(html).toContain("introductory note");
-    expect(html).toContain("<dt>");
+    expect(html).toContain("<dt");
     expect(html).toContain("endpoint");
-    expect(html).toContain("<pre>");
+    expect(html).toContain("<pre");
     expect(html).toContain("let x = 1");
     expect(html).toContain("language-ts");
     expect(html).toMatch(/href="https:\/\/example\.com"/);

@@ -4,6 +4,7 @@ description: Bootstrap executable-stories into your project with a single comman
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
+import ReportScreenshot from '../../../components/ReportScreenshot.astro';
 
 Use the `executable-stories-init` CLI to install everything in a single command. Run this inside your project's root directory:
 
@@ -150,6 +151,13 @@ open reports/executable-stories.html
 </Tabs>
 
 You should see one passing story and two report files in `reports/`: `executable-stories.html` (open in a browser) and `executable-stories.md` (commit alongside your code as living documentation).
+
+<ReportScreenshot
+  src="screenshots/hero-report.png"
+  href="examples/report.html"
+  alt="The generated HTML report: run summary, search and status filters, and a passing scenario with Given/When/Then steps, code, and a table"
+  caption="This is executable-stories.html from the test you just ran. Search it, filter it, toggle dark mode. Click to open the live one."
+/>
 
 If you chose Playwright, also install the browser binaries:
 

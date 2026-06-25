@@ -109,10 +109,8 @@ export default {
         // =================================================================
         // html: {
         //   title: "Test Report",
-        //   darkMode: false,
-        //   searchable: true,
-        //   startCollapsed: false,
-        //   embedScreenshots: true,
+        //   syntaxHighlighting: true,
+        //   mermaidEnabled: true,
         // },
 
         // =================================================================

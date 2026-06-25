@@ -1,5 +1,5 @@
 import type { ScenarioChangeKind } from "./types/compare";
-import type { ReportScenario, StoryReport, TestStatus } from "./types/story-report";
+import type { ReportScenario, StoryReport, TestStatus } from "executable-stories-core/types/story-report";
 
 export interface BehaviorDiffEntry {
   id: string;

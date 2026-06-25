@@ -8,15 +8,15 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { toStoryReport } from "../../src/converters/story-report";
+import { toStoryReport } from "executable-stories-core/converters/story-report";
 import type {
   ReportDocEntry,
   ReportFeature,
   ReportScenario,
   ReportStep,
   StoryReport,
-} from "../../src/types/story-report";
-import type { TestCaseResult, TestRunResult } from "../../src/types/test-result";
+} from "executable-stories-core/types/story-report";
+import type { TestCaseResult, TestRunResult } from "executable-stories-core/types/test-result";
 
 function escape(s: string): string {
   return s

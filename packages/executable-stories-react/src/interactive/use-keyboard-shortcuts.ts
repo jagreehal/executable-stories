@@ -8,6 +8,8 @@ export interface KeyboardShortcutHandlers {
   onPrevFailure?: () => void;
   onToggleHelp?: () => void;
   onEscape?: () => void;
+  onExpandAll?: () => void;
+  onCollapseAll?: () => void;
 }
 
 function isEditableTarget(target: EventTarget | null): boolean {
@@ -54,6 +56,14 @@ export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers): void {
           return;
         case "F":
           h.onPrevFailure?.();
+          e.preventDefault();
+          return;
+        case "e":
+          h.onExpandAll?.();
+          e.preventDefault();
+          return;
+        case "c":
+          h.onCollapseAll?.();
           e.preventDefault();
           return;
         default:

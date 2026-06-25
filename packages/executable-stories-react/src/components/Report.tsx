@@ -1,11 +1,12 @@
-import type { StoryReport } from "executable-stories-formatters";
+import type { StoryReport } from "executable-stories-core";
 import type { Result } from "../result";
+import { unwrapReport } from "../result";
 import type { BuiltinRenderers, CustomRenderers } from "../renderers";
 import { ReportRoot } from "../context/ReportRoot";
-import { ReportSummary } from "./ReportSummary";
 import { ReportFeatureList } from "./ReportFeatureList";
 import { ReportEmpty } from "./ReportEmpty";
-import { ReportSchemaError } from "./ReportSchemaError";
+import { ReportTitleBlock, ReportErrorShell } from "./ReportShell";
+import { cn } from "../lib/utils";
 
 export interface ReportProps {
   /** A StoryReport, or a Result-wrapped one (e.g., from parseStoryReport). */
@@ -22,78 +23,19 @@ export interface ReportProps {
   dataTheme?: "light" | "dark";
 }
 
-function isResult(value: ReportProps["report"]): value is Result<StoryReport> {
-  return typeof value === "object"
-    && value !== null
-    && "ok" in (value as object)
-    && typeof (value as { ok: unknown }).ok === "boolean";
-}
-
 export function Report(props: ReportProps) {
   const { report, customRenderers, renderers, className, title, dataTheme } = props;
-  if (isResult(report)) {
-    if (!report.ok) {
-      return (
-        <main
-          className={["es-report", className].filter(Boolean).join(" ")}
-          aria-label={title ?? "Test report"}
-          data-theme={dataTheme}
-        >
-          <ReportSchemaError error={report.error} />
-        </main>
-      );
-    }
-    return (
-      <ReportView
-        report={report.data}
-        customRenderers={customRenderers}
-        renderers={renderers}
-        className={className}
-        title={title}
-        dataTheme={dataTheme}
-      />
-    );
+  const result = unwrapReport(report);
+  if (!result.ok) {
+    return <ReportErrorShell error={result.error} className={className} title={title} dataTheme={dataTheme} />;
   }
+  const data = result.data;
+  const hasContent = data.features.length > 0;
   return (
-    <ReportView
-      report={report}
-      customRenderers={customRenderers}
-      renderers={renderers}
-      className={className}
-      title={title}
-      dataTheme={dataTheme}
-    />
-  );
-}
-
-interface ReportViewProps {
-  report: StoryReport;
-  customRenderers?: CustomRenderers;
-  renderers?: BuiltinRenderers;
-  className?: string;
-  title?: string;
-  dataTheme?: "light" | "dark";
-}
-
-function ReportView({
-  report,
-  customRenderers,
-  renderers,
-  className,
-  title,
-  dataTheme,
-}: ReportViewProps) {
-  const hasContent = report.features.length > 0;
-  return (
-    <ReportRoot report={report} customRenderers={customRenderers} renderers={renderers}>
-      <main
-        className={["es-report", className].filter(Boolean).join(" ")}
-        aria-label={title ?? "Test report"}
-        data-theme={dataTheme}
-      >
+    <ReportRoot report={data} customRenderers={customRenderers} renderers={renderers}>
+      <main className={cn("es-report", className)} aria-label={title ?? "Test report"} data-theme={dataTheme}>
         <header className="es-report-header">
-          <h1>{title ?? "Story Report"}</h1>
-          <ReportSummary />
+          <ReportTitleBlock title={title} />
         </header>
         {hasContent ? <ReportFeatureList /> : <ReportEmpty />}
       </main>

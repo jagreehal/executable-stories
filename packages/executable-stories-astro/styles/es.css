@@ -1,0 +1,529 @@
+/**
+ * Default styling for the injected executable-stories routes (stories index,
+ * story detail, scenario explorer). Imported by the route .astro files so the
+ * pages are styled out of the box in ANY Astro site — they do NOT depend on the
+ * consumer wiring a stylesheet (Starlight's customCss only reaches Starlight
+ * pages, not these standalone routes).
+ *
+ * Design language mirrors the HTML report the formatters produce (the `default`
+ * theme in executable-stories-formatters): a refined, card-based, shadcn-style
+ * surface — IBM Plex type, status-tinted cards, soft shadows, green primary.
+ * Surface/text colours read Starlight's --sl-* tokens so the pages adopt the
+ * host's light/dark palette; status tints are colour-mixed with `transparent`
+ * so they adapt to either mode. Consumers override any es-* rule from a
+ * later-loaded stylesheet; `theme.*` config injects token overrides.
+ */
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap");
+
+:root {
+  /* Surfaces + text inherit the host (Starlight) palette → free light/dark. */
+  --es-fg: var(--sl-color-white, #1c1e21);
+  --es-muted: var(--sl-color-gray-3, #6b7280);
+  --es-border: var(--sl-color-gray-5, #d9dbe0);
+  --es-surface: var(--sl-color-gray-6, #f1f2f4);
+  --es-card: var(--sl-color-bg, #fff);
+  --es-bg: var(--sl-color-bg, #fff);
+
+  /* Status system — base colour + a tint (card bg) + a border, the report's
+     three-stop pattern. color-mix keeps the tints legible in light AND dark. */
+  /* Status text colours are darkened to clear WCAG AA (4.5:1) on their light
+     tints — the e2e a11y gate (axe) enforces this on the index/explorer. */
+  --es-pass: #0f5a23;
+  --es-fail: #c11d28;
+  --es-warn: #8a3f06;
+  --es-pending: #6b27c9;
+  --es-keyword: hsl(145 63% 32%); /* the report's --keyword-color */
+  --es-pass-tint: color-mix(in srgb, var(--es-pass) 11%, transparent);
+  --es-fail-tint: color-mix(in srgb, var(--es-fail) 10%, transparent);
+  --es-warn-tint: color-mix(in srgb, var(--es-warn) 11%, transparent);
+  --es-pending-tint: color-mix(in srgb, var(--es-pending) 11%, transparent);
+  --es-pass-edge: color-mix(in srgb, var(--es-pass) 38%, transparent);
+  --es-fail-edge: color-mix(in srgb, var(--es-fail) 32%, transparent);
+  --es-warn-edge: color-mix(in srgb, var(--es-warn) 36%, transparent);
+  --es-pending-edge: color-mix(in srgb, var(--es-pending) 34%, transparent);
+
+  /* --es-accent stays undefined so a per-page accent (theme.accent) wins; read
+     it with fallbacks. Default accent tracks the green primary. */
+  --es-radius: 0.6rem;
+  --es-radius-sm: 0.4rem;
+  --es-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.04), 0 1px 3px rgb(0 0 0 / 0.06);
+  --es-shadow: 0 2px 4px rgb(0 0 0 / 0.04), 0 4px 12px rgb(0 0 0 / 0.07);
+  --es-font:
+    "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --es-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.es-story,
+.es-index,
+.es-explorer {
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+  color: var(--es-fg);
+  font-family: var(--es-font);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+.es-story code,
+.es-index code,
+.es-explorer code { font-family: var(--es-mono); }
+
+/* Embedded in Starlight's content column: drop the standalone width/spacing. */
+.es-embed { max-width: none; margin: 0; padding: 0; }
+
+/* Starlight's `.sl-markdown-content` injects `margin-top` on flow-content
+   siblings, which misaligns the children of our flex/grid layouts (e.g. the
+   stat cards — the second+ cards' contents drop by a line). Neutralise it on
+   the direct children of every es- layout container; intentional gaps are set
+   on specific elements further down (those win by source order). */
+.es-stats > *,
+.es-stat > *,
+.es-tags > *,
+.es-steps > *,
+.es-index__list > *,
+.es-index__group-head > *,
+.es-index__group-info > *,
+.es-index__group-stats > *,
+.es-story__meta > *,
+.es-explorer__list > *,
+.es-explorer__controls > *,
+.es-health__counts > *,
+.es-trajectory > * {
+  margin-top: 0;
+}
+
+/* Starlight sets `.sl-markdown-content table { display: block }` for mobile
+   scroll. In our embedded views that breaks doc tables: the table becomes a
+   content-width block inside a full-width border (dead space on the right).
+   Restore real table layout so the columns fill their wrapper. Scoped to
+   `.es-embed` (only the Starlight-embedded views); loads after Starlight
+   (customCss) so it wins the same-specificity tie. */
+.es-embed table {
+  display: table;
+  width: 100%;
+}
+
+/* Doc entries are rendered by the shared formatters renderer (`doc-*` markup,
+   styled by DOC_ENTRY_CSS). Those rules read the report's shadcn-style tokens;
+   map them onto the site's `--es-*` tokens here, scoped to the view roots so
+   the doc content themes with the site (incl. dark mode) and nothing leaks to
+   the Starlight shell. */
+.es-story,
+.es-index,
+.es-explorer {
+  --border: var(--es-border);
+  --card: var(--es-card);
+  --foreground: var(--es-fg);
+  --muted-foreground: var(--es-muted);
+  --muted: var(--es-surface);
+  --primary: var(--es-accent);
+  --primary-foreground: var(--es-bg);
+  --radius: var(--es-radius);
+  --font-mono: var(--es-mono);
+  --keyword-color: var(--es-keyword);
+  --step-param-color: var(--es-keyword);
+  --tag-bg: var(--es-surface);
+  --tag-border: var(--es-border);
+  --tag-color: var(--es-muted);
+  --success: var(--es-pass);
+  --error: var(--es-fail);
+  --error-light: var(--es-fail-tint);
+  --error-border: var(--es-fail-edge);
+  --pending: var(--es-pending);
+  --accent: var(--es-surface);
+  --ring: var(--es-accent);
+  --warning: var(--es-warn);
+  --warning-light: var(--es-warn-tint);
+  --warning-border: var(--es-warn-edge);
+  --accordion-header-hover: var(--es-surface);
+}
+
+/* Back link */
+.es-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--es-accent, var(--sl-color-text-accent, #1a7f37));
+  text-decoration: none;
+}
+.es-back:hover { text-decoration: underline; }
+
+/* Status pills — tinted surface, coloured text + edge (matches the report). */
+/* Status pill — tint + colour carry meaning; no border or dot (less heavy, the
+   uppercase label keeps it non-colour-reliant for a11y). */
+.es-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.14rem 0.5rem;
+  border-radius: 0.3rem;
+  font-family: var(--es-mono);
+  font-size: 0.66rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: var(--es-surface);
+  color: var(--es-muted);
+}
+/* Opaque tints (mixed with the card, not transparent) so the pill keeps its AA
+   contrast even when the row behind it has a hover/open background. */
+.es-status--passed { background: color-mix(in srgb, var(--es-pass) 13%, var(--es-card)); color: var(--es-pass); }
+.es-status--failed { background: color-mix(in srgb, var(--es-fail) 13%, var(--es-card)); color: var(--es-fail); }
+.es-status--skipped { background: color-mix(in srgb, var(--es-warn) 13%, var(--es-card)); color: var(--es-warn); }
+.es-status--pending { background: color-mix(in srgb, var(--es-pending) 13%, var(--es-card)); color: var(--es-pending); }
+
+/* Tags — light pills */
+.es-tags { display: flex; gap: 0.35rem; flex-wrap: wrap; margin-top: 0.65rem; }
+/* Tags are neutral metadata, not a status — surface/neutral, never tinted.
+   Text darkened toward fg so it clears WCAG AA on the surface fill. */
+.es-tag {
+  background: var(--es-surface);
+  border: 1px solid var(--es-border);
+  color: color-mix(in srgb, var(--es-muted) 40%, var(--es-fg));
+  padding: 0.08rem 0.5rem;
+  border-radius: 0.3rem;
+  font-size: 0.7rem;
+  font-weight: 500;
+  font-family: var(--es-mono);
+}
+
+/* ── Stat summary cards (index) ──────────────────────────────────── */
+.es-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  gap: 0.85rem;
+  margin: 1.5rem 0 2rem;
+}
+.es-stat {
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--es-border);
+  border-radius: var(--es-radius);
+  background: var(--es-card);
+}
+.es-stat__label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--es-muted);
+}
+.es-stat__value { font-size: 1.6rem; font-weight: 700; line-height: 1.1; margin-top: 0.15rem; font-family: var(--es-mono); font-variant-numeric: tabular-nums; }
+.es-stat--passed { background: var(--es-pass-tint); border-color: var(--es-pass-edge); }
+.es-stat--passed .es-stat__value { color: var(--es-pass); }
+.es-stat--failed { background: var(--es-fail-tint); border-color: var(--es-fail-edge); }
+.es-stat--failed .es-stat__value { color: var(--es-fail); }
+.es-stat--skipped { background: var(--es-warn-tint); border-color: var(--es-warn-edge); }
+.es-stat--skipped .es-stat__value { color: var(--es-warn); }
+
+/* ── Story detail ───────────────────────────────────────────────── */
+.es-story__header { margin: 0.5rem 0 1.75rem; }
+.es-story__header h1 { margin: 0.75rem 0 0.35rem; font-size: 1.95rem; line-height: 1.2; letter-spacing: -0.01em; }
+.es-story__meta { display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap; margin-top: 0.35rem; }
+.es-story__feature { color: var(--es-muted); font-size: 0.9rem; margin: 0; }
+.es-story__feature code { font-size: 0.82rem; padding: 0.05rem 0.3rem; border-radius: 4px; background: var(--es-surface); }
+
+/* Steps render through the formatters' shared renderer (`.step`/`status-*`
+   markup, styled by the injected STEP_CSS). STEP_CSS reads the report's tokens,
+   mapped onto `--es-*` in the view-root block above plus the status/param tokens
+   added here; the wrapper margin and per-step doc indent are the only local
+   additions. */
+/* The whole scenario body (story docs, steps, error box, attachments) renders
+   through the report's shared renderer + its exported stylesheets. es.css owns
+   only the wrapper spacing + the doc-container indents the report styles
+   report-side but doesn't export. */
+.es-story .es-content { margin-top: 1.25rem; }
+.es-story .story-docs { margin-bottom: 1rem; }
+.es-story .step-docs { margin: 0.5rem 0 0 1.6rem; }
+
+/* Doc entries */
+.es-doc-entry {
+  margin: 0.75rem 0;
+  padding: 0.7rem 0.95rem;
+  background: var(--es-card);
+  border: 1px solid var(--es-border);
+  border-radius: var(--es-radius-sm);
+}
+.es-doc-entry__label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  color: var(--es-muted);
+  margin-bottom: 0.3rem;
+}
+.es-doc-kv__label { font-weight: 600; margin-right: 0.5rem; }
+.es-doc-html { width: 100%; min-height: 12rem; border: 1px solid var(--es-border); border-radius: var(--es-radius-sm); }
+.es-doc-children { margin-left: 1rem; border-left: 1px dashed var(--es-border); padding-left: 0.75rem; }
+
+/* ── Stories index ──────────────────────────────────────────────── */
+.es-index__head { margin-bottom: 0.5rem; }
+.es-index__head h1 { margin: 0 0 0.4rem; letter-spacing: -0.01em; }
+.es-index__summary { color: var(--es-muted); font-size: 0.92rem; margin: 0; }
+.es-index__summary a { color: var(--es-accent, var(--sl-color-text-accent, #1a7f37)); font-weight: 500; }
+
+.es-index__group {
+  margin: 1.1rem 0;
+  border: 1px solid var(--es-border);
+  border-radius: var(--es-radius);
+  background: var(--es-card);
+  overflow: hidden;
+}
+/* Group header bar — ported from the report's `.feature-header` /
+   `.feature-stats`: title + mono file path on the left, ✓/✗/○ counts on the
+   right. */
+.es-index__group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--es-border);
+  background: var(--es-surface);
+  cursor: pointer;
+  list-style: none; /* drop the native disclosure triangle (custom chevron below) */
+}
+/* Tighter than the default head gap so the caret sits next to the title, not
+   floating at the far edge. */
+.es-index__group-head { gap: 0.6rem; }
+/* Hide the native disclosure marker across engines (list-style alone isn't
+   enough when the summary is a flex container). */
+.es-index__group-head::-webkit-details-marker { display: none; }
+.es-index__group-head::marker { content: ""; }
+.es-index__group-head:focus-visible {
+  outline: 2px solid var(--es-accent, var(--es-link));
+  outline-offset: -2px;
+}
+/* Leading disclosure triangle: a crisp solid caret (border trick) that reads
+   cleanly at small sizes. Points right when collapsed, rotates to point down
+   when open. */
+.es-index__group-head::before {
+  content: "";
+  flex: none;
+  width: 0;
+  height: 0;
+  border-left: 0.36rem solid var(--es-muted);
+  border-top: 0.3rem solid transparent;
+  border-bottom: 0.3rem solid transparent;
+  transition: transform 0.15s ease;
+}
+.es-index__group[open] .es-index__group-head::before { transform: rotate(90deg); }
+.es-index__group:not([open]) .es-index__group-head { border-bottom: none; }
+@media (prefers-reduced-motion: reduce) {
+  .es-index__group-head::before { transition: none; }
+}
+.es-index__group-info { flex: 1; min-width: 0; }
+.es-index__group-title { margin: 0; font-size: 1rem; font-weight: 600; letter-spacing: -0.01em; }
+.es-index__group-path {
+  margin: 0.15rem 0 0;
+  font-size: 0.75rem;
+  font-family: var(--es-mono);
+  color: var(--es-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.es-index__group-stats {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  flex-shrink: 0;
+  font-family: var(--es-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.es-index__group-stats .is-passed { color: var(--es-pass); }
+.es-index__group-stats .is-failed { color: var(--es-fail); }
+.es-index__group-stats .is-skipped { color: var(--es-warn); }
+/* Zero counts step back (achromatic + lighter weight) so the eye lands on the
+   coloured non-zero counts — without dropping below AA via opacity. */
+.es-index__group-stats .is-zero { color: var(--es-muted); font-weight: 400; }
+.es-index__list { list-style: none; padding: 0.4rem; margin: 0; display: flex; flex-direction: column; }
+.es-index__item { border-radius: var(--es-radius-sm); }
+/* Hairline divider between collapsed rows (not on the last) — keeps the list
+   compact and scannable. */
+.es-index__item + .es-index__item { border-top: 1px solid var(--es-border); }
+
+/* ── Scenario accordion ─────────────────────────────────────────────
+   Each scenario expands IN PLACE (native <details>, no JS, no navigation) to
+   reveal its full content via the report's shared renderer — like the single-
+   file HTML report. */
+.es-scenario { border-radius: var(--es-radius-sm); }
+/* Block summary + hidden native marker (reliable across engines); the inner row
+   is the flex container so there's exactly ONE disclosure caret. */
+.es-scenario__summary {
+  display: block;
+  padding: 0.5rem 0.65rem;
+  border-radius: var(--es-radius-sm);
+  color: var(--es-fg);
+  cursor: pointer;
+  /* !important wins over Starlight's .sl-markdown-content list styling, which
+     otherwise re-shows the native ::marker disclosure triangle. */
+  list-style: none !important;
+  transition: background 0.12s ease;
+}
+.es-scenario__summary::-webkit-details-marker { display: none; }
+.es-scenario__summary::marker { content: none; }
+.es-scenario__summary:hover { background: var(--es-surface); }
+.es-scenario__summary:focus-visible { outline: 2px solid var(--es-accent, var(--sl-color-text-accent, #1a7f37)); outline-offset: -2px; }
+.es-scenario__row { display: flex; align-items: center; gap: 0.85rem; }
+/* Fixed-width status column so every scenario title starts at the same x. */
+.es-scenario__row .es-status { flex: none; width: 4.9rem; justify-content: center; }
+.es-index__title { font-weight: 500; font-size: 0.95rem; line-height: 1.35; flex: 1; min-width: 0; }
+.es-scenario__row .es-tags { margin: 0; flex: none; }
+/* The single disclosure caret — points right collapsed, rotates down when open. */
+.es-scenario__chevron {
+  flex: none;
+  width: 0;
+  height: 0;
+  border-left: 0.34rem solid var(--es-muted);
+  border-top: 0.28rem solid transparent;
+  border-bottom: 0.28rem solid transparent;
+  transition: transform 0.15s ease;
+}
+.es-scenario[open] > .es-scenario__summary .es-scenario__chevron { transform: rotate(90deg); }
+@media (prefers-reduced-motion: reduce) { .es-scenario__chevron { transition: none; } }
+/* The expanded content sits under the summary, set off by a hairline. */
+.es-scenario__body {
+  padding: 0.4rem 0.7rem 0.85rem;
+  margin: 0.1rem 0 0.35rem;
+  border-top: 1px solid var(--es-border);
+}
+.es-scenario__body .es-content { margin-top: 0.75rem; }
+
+/* ── Scenario explorer ──────────────────────────────────────────── */
+.es-explorer__head h1 { margin: 0 0 0.4rem; letter-spacing: -0.01em; }
+.es-explorer__summary { color: var(--es-muted); font-size: 0.92rem; margin: 0 0 1.25rem; }
+.es-explorer__controls { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 1.5rem; }
+.es-explorer__controls input,
+.es-explorer__controls select {
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--es-border);
+  border-radius: var(--es-radius-sm);
+  font: inherit;
+  background: var(--es-card);
+  color: var(--es-fg);
+  box-shadow: var(--es-shadow-sm);
+}
+.es-explorer__controls input { flex: 1; min-width: 13rem; }
+.es-explorer__controls input:focus,
+.es-explorer__controls select:focus { outline: 2px solid var(--es-pass-edge); outline-offset: 1px; }
+.es-explorer__empty { color: var(--es-muted); font-style: italic; }
+.es-explorer__list { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.7rem; }
+.es-card {
+  border: 1px solid var(--es-border);
+  border-radius: var(--es-radius);
+  padding: 0.95rem 1.1rem;
+  background: var(--es-card);
+  box-shadow: var(--es-shadow-sm);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+.es-card:hover { box-shadow: var(--es-shadow); transform: translateY(-1px); }
+.es-card__link { display: flex; align-items: center; gap: 0.7rem; text-decoration: none; color: var(--es-fg); }
+.es-card__title { font-weight: 600; }
+.es-card__meta { margin-top: 0.5rem; display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; color: var(--es-muted); font-size: 0.8rem; }
+.es-card__meta code { font-size: 0.78rem; font-family: var(--es-mono); }
+
+/* ── Living-doc components (VerifiedBy / HealthDashboard / Trajectory) ── */
+.es-verify {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.8rem;
+  border-radius: var(--es-radius-sm);
+  border: 1px solid var(--es-border);
+  background: var(--es-card);
+  font-size: 0.9rem;
+  margin: 0.75rem 0;
+  box-shadow: var(--es-shadow-sm);
+}
+.es-verify__icon { font-weight: 700; }
+.es-verify__label { font-weight: 600; }
+.es-verify__summary { color: var(--es-muted); font-size: 0.85rem; }
+.es-verify--verified { border-color: var(--es-pass-edge); background: var(--es-pass-tint); color: var(--es-pass); }
+.es-verify--verified .es-verify__label { color: var(--es-pass); }
+.es-verify--failing { border-color: var(--es-fail-edge); background: var(--es-fail-tint); color: var(--es-fail); }
+.es-verify--failing .es-verify__label { color: var(--es-fail); }
+.es-verify--not-run,
+.es-verify--unverified { border-color: var(--es-warn-edge); background: var(--es-warn-tint); color: var(--es-warn); }
+.es-verify--not-run .es-verify__label,
+.es-verify--unverified .es-verify__label { color: var(--es-warn); }
+
+.es-health {
+  border: 1px solid var(--es-border);
+  border-radius: var(--es-radius);
+  padding: 1.1rem 1.3rem;
+  background: var(--es-card);
+  box-shadow: var(--es-shadow-sm);
+  margin: 1rem 0;
+}
+.es-health__headline { display: flex; align-items: baseline; gap: 0.6rem; }
+.es-health__pct { font-size: 2.1rem; font-weight: 700; line-height: 1; color: var(--es-pass); font-family: var(--es-mono); }
+.es-health[data-pass-rate="100"] .es-health__pct { color: var(--es-pass); }
+.es-health__label { color: var(--es-muted); font-size: 0.9rem; }
+.es-health__counts { list-style: none; display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; padding: 0; margin: 0.75rem 0 0; font-size: 0.85rem; }
+.es-health__counts .is-passed { color: var(--es-pass); }
+.es-health__counts .is-failed { color: var(--es-fail); }
+.es-health__counts .is-skipped,
+.es-health__counts .is-pending { color: var(--es-warn); }
+.es-health__failing { margin-top: 0.85rem; }
+.es-health__failing > summary { cursor: pointer; font-weight: 600; color: var(--es-fail); }
+.es-health__failing ul { margin: 0.5rem 0 0; padding-left: 1.1rem; }
+.es-health__failing li { margin: 0.2rem 0; }
+.es-health__failing code { font-size: 0.8rem; color: var(--es-muted); }
+.es-health__empty { color: var(--es-muted); font-style: italic; margin: 0.75rem 0 0; }
+
+.es-trajectory {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 0.85rem;
+  padding: 0.6rem 0.95rem;
+  border-radius: var(--es-radius-sm);
+  background: var(--es-card);
+  border: 1px solid var(--es-border);
+  box-shadow: var(--es-shadow-sm);
+  margin: 0.75rem 0;
+  font-size: 0.9rem;
+}
+.es-trajectory__run { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--es-muted); font-family: var(--es-mono); }
+.es-trajectory__now { font-weight: 700; }
+.es-trajectory__delta.is-up { color: var(--es-pass); }
+.es-trajectory__delta.is-down { color: var(--es-fail); }
+.es-trajectory__iter { color: var(--es-muted); font-size: 0.85rem; }
+
+/* Doc placeholders before hydration */
+.es-doc-section pre,
+pre.mermaid { white-space: pre-wrap; word-break: break-word; margin: 0; font-size: 0.85rem; }
+
+/* Empty / getting-started panel */
+.es-empty {
+  margin: 1.5rem 0;
+  padding: 1.75rem 2rem;
+  border: 1px solid var(--es-border);
+  border-radius: var(--es-radius);
+  background: var(--es-card);
+  box-shadow: var(--es-shadow-sm);
+}
+.es-empty__title { margin: 0 0 0.5rem; font-size: 1.25rem; }
+.es-empty__lead { margin: 0 0 1rem; color: var(--es-muted); }
+.es-empty__watching { margin: 0 0 1.1rem; }
+.es-empty__steps { margin: 0; padding-left: 1.25rem; display: flex; flex-direction: column; gap: 0.6rem; }
+.es-empty code { font-size: 0.82rem; padding: 0.1rem 0.35rem; border-radius: 4px; background: var(--es-surface); font-family: var(--es-mono); }
+
+/* Sample-data banner */
+.es-sample-banner {
+  margin: 1.25rem 0;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--es-warn-edge);
+  border-radius: var(--es-radius-sm);
+  background: var(--es-warn-tint);
+  color: var(--es-fg);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+.es-sample-banner strong { color: var(--es-warn); }
+.es-sample-banner code { font-size: 0.85em; padding: 0.05em 0.35em; border-radius: 4px; background: var(--es-card); font-family: var(--es-mono); }

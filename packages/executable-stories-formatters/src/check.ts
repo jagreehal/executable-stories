@@ -12,8 +12,8 @@
  * feedback. Reuses the same status-transition vocabulary as {@link classifyStatusChange}.
  */
 
-import type { TestCaseResult, TestStatus } from "./types/test-result";
-import type { StepKeyword } from "./types/story";
+import type { TestCaseResult, TestStatus } from "executable-stories-core/types/test-result";
+import type { StepKeyword } from "executable-stories-core/types/story";
 import { failingScenarioMessage } from "./scenario-failure";
 
 export interface CheckArgs {

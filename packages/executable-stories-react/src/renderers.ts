@@ -13,7 +13,7 @@ import type {
   ReportDocCustom,
   ReportDocMermaid,
   ReportDocSection,
-} from "executable-stories-formatters";
+} from "executable-stories-core";
 
 export type CustomRenderer = (entry: ReportDocCustom) => ReactNode;
 export type CustomRenderers = Record<string, CustomRenderer>;

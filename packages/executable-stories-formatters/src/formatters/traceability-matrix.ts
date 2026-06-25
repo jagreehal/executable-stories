@@ -1,4 +1,4 @@
-import type { TestCaseResult, TestRunResult, TestStatus } from "../types/test-result";
+import type { TestCaseResult, TestRunResult, TestStatus } from "executable-stories-core/types/test-result";
 
 /**
  * Requirement-first view of a run. Groups scenarios under the ticket/user-story

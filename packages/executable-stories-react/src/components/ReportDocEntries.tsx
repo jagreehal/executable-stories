@@ -1,4 +1,4 @@
-import type { ReportDocEntry } from "executable-stories-formatters";
+import type { ReportDocEntry } from "executable-stories-core";
 import { DocEntry } from "./doc/DocEntry";
 
 export interface ReportDocEntriesProps {

@@ -3,10 +3,11 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { parseNdjson, parseEnvelopes } from "../../src/converters/ndjson-parser";
+import { parseNdjson, parseEnvelopes } from "executable-stories-core/converters/ndjson-parser";
 import { CucumberMessagesFormatter } from "../../src/formatters/cucumber-messages/index";
-import { HtmlFormatter } from "../../src/formatters/html/index";
-import { canonicalizeRun } from "../../src/converters/acl/index";
+import { renderReportToHtml } from "executable-stories-react/ssr";
+import { toStoryReport } from "executable-stories-core/converters/story-report";
+import { canonicalizeRun } from "executable-stories-core/converters/acl/index";
 import {
   createRawRun,
   createMultipleTestCasesRun,
@@ -14,7 +15,7 @@ import {
   createTestCase,
   createStory,
 } from "../fixtures/raw-runs/basic";
-import type { Envelope } from "../../src/types/cucumber-messages";
+import type { Envelope } from "executable-stories-core/types/cucumber-messages";
 
 describe("parseNdjson", () => {
   const formatter = new CucumberMessagesFormatter();
@@ -440,7 +441,7 @@ describe("DocString/DataTable round-trip", () => {
 describe("retry/attempt round-trip", () => {
   const formatter = new CucumberMessagesFormatter();
 
-  function makeRetryRun(): import("../../src/types/test-result.js").TestRunResult {
+  function makeRetryRun(): import("executable-stories-core/types/test-result").TestRunResult {
     const raw = createRawRun();
     const run = canonicalizeRun(raw);
     run.testCases[0].retry = 1;
@@ -509,7 +510,6 @@ describe("retry/attempt round-trip", () => {
 
 describe("round-trip: TestRunResult → NDJSON → TestRunResult → HTML", () => {
   const messagesFormatter = new CucumberMessagesFormatter();
-  const htmlFormatter = new HtmlFormatter();
 
   it("should produce HTML from round-tripped data", () => {
     const raw = createMultipleTestCasesRun();
@@ -521,8 +521,8 @@ describe("round-trip: TestRunResult → NDJSON → TestRunResult → HTML", () =
     // NDJSON → TestRunResult
     const parsedRun = parseNdjson(ndjson);
 
-    // TestRunResult → HTML
-    const html = htmlFormatter.format(parsedRun);
+    // TestRunResult → HTML (via the React report renderer — the single renderer)
+    const html = renderReportToHtml(toStoryReport(parsedRun));
 
     expect(html).toContain("<!DOCTYPE html>");
   });
@@ -657,7 +657,7 @@ describe("round-trip: TestRunResult → NDJSON → TestRunResult → HTML", () =
       const originalRun = canonicalizeRun(raw);
       const ndjson = messagesFormatter.formatToString(originalRun);
       const parsedRun = parseNdjson(ndjson);
-      const html = htmlFormatter.format(parsedRun);
+      const html = renderReportToHtml(toStoryReport(parsedRun));
 
       // HTML should contain all scenario names
       for (const tc of originalRun.testCases) {
@@ -670,7 +670,7 @@ describe("round-trip: TestRunResult → NDJSON → TestRunResult → HTML", () =
       const originalRun = canonicalizeRun(raw);
       const ndjson = messagesFormatter.formatToString(originalRun);
       const parsedRun = parseNdjson(ndjson);
-      const html = htmlFormatter.format(parsedRun);
+      const html = renderReportToHtml(toStoryReport(parsedRun));
 
       // Should contain at least one step text from the original
       const hasStep = originalRun.testCases[0].story.steps.some((s) =>

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { mergeStepResults } from "../../src/converters/acl/steps";
+import { mergeStepResults } from "executable-stories-core/converters/acl/steps";
 
 describe("mergeStepResults stepId matching", () => {
   it("prefers stepId over index when both are present", () => {

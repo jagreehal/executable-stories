@@ -178,7 +178,6 @@ SUBCOMMANDS
 | `--html-title <title>`           | `Test Results` | HTML report title                                             |
 | `--html-no-syntax-highlighting`  |                | Disable syntax highlighting in HTML (enabled by default)     |
 | `--html-no-mermaid`              |                | Disable Mermaid diagrams in HTML (enabled by default)         |
-| `--html-no-markdown`             |                | Disable markdown parsing in HTML (enabled by default)          |
 | `--stdin`                        |                | Read JSON from stdin instead of file                          |
 | `--json-summary`             | off            | Print machine-parsable JSON summary                           |
 | `--emit-canonical <path>`    |                | Write canonical JSON to given path                            |

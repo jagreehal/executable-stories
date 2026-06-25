@@ -3,12 +3,14 @@
  * Produces text table or JSON output.
  */
 
-import type { TestCaseResult } from "./types/test-result";
-import type { StoryStep } from "./types/story";
+import type { TestCaseResult } from "executable-stories-core/types/test-result";
+import type { StoryStep } from "executable-stories-core/types/story";
 
 export interface ListScenariosArgs {
   testCases: TestCaseResult[];
   format: "text" | "json" | "csv" | "markdown-table";
+  /** Emit compact (single-line) JSON for agent consumption. Only affects "json". Default false. */
+  minify?: boolean;
 }
 
 export type ListScenariosDeps = Record<string, never>;
@@ -24,7 +26,7 @@ export function listScenarios(
   args: ListScenariosArgs,
   _deps: ListScenariosDeps,
 ): string {
-  const { testCases, format } = args;
+  const { testCases, format, minify = false } = args;
 
   if (format === "json") {
     const items = testCases.map((tc) => ({
@@ -47,7 +49,7 @@ export function listScenarios(
       steps: tc.story.steps.map((step, index) => toScenarioStep(step, index, tc)),
       docKinds: collectDocKinds(tc),
     }));
-    return JSON.stringify(items, null, 2);
+    return minify ? JSON.stringify(items) : JSON.stringify(items, null, 2);
   }
 
   if (format === "csv") {

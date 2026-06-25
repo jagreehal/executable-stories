@@ -1,5 +1,5 @@
 import type { SortTestCasesMode, Logger } from "./types/options";
-import type { TestCaseResult } from "./types/test-result";
+import type { TestCaseResult } from "executable-stories-core/types/test-result";
 
 export interface SelectTestCasesArgs {
   testCases: TestCaseResult[];

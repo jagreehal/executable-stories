@@ -1,6 +1,6 @@
 /**
  * Drift guard: the --es-* token block in src/styles.css must stay in lockstep
- * with ES_THEME_TOKENS_CSS exported from executable-stories-formatters.
+ * with ES_THEME_TOKENS_CSS exported from executable-stories-core.
  *
  * We normalize whitespace and compare token-name → token-value maps. A
  * mismatch fails the test and points at the diverging tokens.
@@ -10,7 +10,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
-import { ES_THEME_TOKENS_CSS } from "executable-stories-formatters";
+import { ES_THEME_TOKENS_CSS } from "executable-stories-core";
 
 type ScopeKey = "root" | "dark-media" | "dark-attr";
 

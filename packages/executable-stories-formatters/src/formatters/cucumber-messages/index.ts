@@ -6,8 +6,8 @@
  * [TestCase, TestCaseStarted, TestStep*, TestCaseFinished]* → TestRunFinished
  */
 
-import type { TestRunResult, TestCaseResult } from "../../types/test-result";
-import type { Envelope, Meta } from "../../types/cucumber-messages";
+import type { TestRunResult, TestCaseResult } from "executable-stories-core/types/test-result";
+import type { Envelope, Meta } from "executable-stories-core/types/cucumber-messages";
 import { synthesizeFeature } from "./synthesize-feature";
 import { buildGherkinDocumentEnvelopes } from "./build-gherkin-document";
 import { buildPickleEnvelopes } from "./build-pickles";

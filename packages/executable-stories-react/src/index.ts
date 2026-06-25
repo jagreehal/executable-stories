@@ -16,6 +16,10 @@ export type { ReportRootProps } from "./context/ReportRoot";
 export { ReportSummary, ReportSummaryView } from "./components/ReportSummary";
 export type { ReportSummaryProps, ReportSummaryViewProps } from "./components/ReportSummary";
 
+export { ReportMeta } from "./components/ReportMeta";
+export { ReportAttachments } from "./components/ReportAttachments";
+export { ReportTrace } from "./components/ReportTrace";
+
 export { ReportFeatureList } from "./components/ReportFeatureList";
 export { ReportFeature } from "./components/ReportFeature";
 export type { ReportFeatureProps } from "./components/ReportFeature";
@@ -40,9 +44,17 @@ export { DocCode } from "./components/doc/DocCode";
 export { DocTable } from "./components/doc/DocTable";
 export { DocLink } from "./components/doc/DocLink";
 export { DocSection } from "./components/doc/DocSection";
-export { DocMermaid } from "./components/doc/DocMermaid";
+export { DocMermaid, MermaidSource } from "./components/doc/DocMermaid";
+// Opt-in client renderer that draws mermaid diagrams (dynamically imports the
+// `mermaid` peer dep). Wire via `renderers={{ mermaid: (e) => <MermaidDiagram entry={e} /> }}`.
+export { MermaidDiagram } from "./components/doc/MermaidDiagram";
 export { DocScreenshot } from "./components/doc/DocScreenshot";
+export { DocVideo } from "./components/doc/DocVideo";
+export { DocHtml } from "./components/doc/DocHtml";
 export { DocCustom } from "./components/doc/DocCustom";
+
+export { ScenarioExplorer } from "./components/ScenarioExplorer";
+export type { ScenarioExplorerProps, ExplorerScenario, ExplorerStatus } from "./components/ScenarioExplorer";
 
 export { useCustomRenderers, useBuiltinRenderers } from "./hooks/useRenderers";
 
@@ -78,4 +90,4 @@ export type {
   ReportStep as StoryReportStep,
   ReportDocEntry as StoryReportDocEntry,
   ReportSummary as StoryReportSummary,
-} from "executable-stories-formatters";
+} from "executable-stories-core";

@@ -1,25 +1,40 @@
-import type { ReportDocMermaid } from "executable-stories-formatters";
+import type { Ref } from "react";
+import type { ReportDocMermaid } from "executable-stories-core";
 import { useBuiltinRenderers } from "../../hooks/useRenderers";
 
 /**
- * Renders mermaid source as a semantic <pre data-mermaid> by default.
+ * The raw mermaid source as a semantic `<pre data-mermaid>`. This is the
+ * default render and the universal fallback: AI agents, screen readers, and
+ * no-JS views all get the readable source. `<MermaidDiagram>` upgrades this to
+ * a drawn diagram on the client.
+ */
+export function MermaidSource({ entry, ref }: { entry: ReportDocMermaid; ref?: Ref<HTMLElement> }) {
+  return (
+    <figure ref={ref} className="my-3" aria-label={entry.title ?? "Diagram"}>
+      {entry.title ? (
+        <figcaption className="mb-1.5 text-xs font-medium text-muted-foreground">{entry.title}</figcaption>
+      ) : null}
+      <pre
+        data-mermaid
+        tabIndex={0}
+        className="overflow-x-auto rounded-md bg-muted p-3 font-mono text-xs text-foreground"
+      >
+        {entry.code}
+      </pre>
+    </figure>
+  );
+}
+
+/**
+ * Renders mermaid source as a semantic `<pre data-mermaid>` by default.
  *
- * AI agents and screen readers get the raw source. To render the diagram
- * visually, supply a `renderers.mermaid` prop with a client-only component
- * (e.g., one that dynamically imports the mermaid library on mount).
+ * To draw the diagram, supply a `renderers.mermaid` prop — e.g. the shipped
+ * `MermaidDiagram` (`renderers={{ mermaid: (e) => <MermaidDiagram entry={e} /> }}`).
  */
 export function DocMermaid({ entry }: { entry: ReportDocMermaid }) {
   const renderers = useBuiltinRenderers();
   if (renderers.mermaid) {
     return <>{renderers.mermaid(entry)}</>;
   }
-  return (
-    <figure
-      className="es-doc es-doc-mermaid"
-      aria-label={entry.title ?? "Diagram"}
-    >
-      {entry.title ? <figcaption>{entry.title}</figcaption> : null}
-      <pre data-mermaid>{entry.code}</pre>
-    </figure>
-  );
+  return <MermaidSource entry={entry} />;
 }

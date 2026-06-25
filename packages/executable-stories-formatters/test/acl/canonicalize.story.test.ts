@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { story } from "executable-stories-vitest";
-import { canonicalizeRun } from "../../src/converters/acl/index";
-import { validateCanonicalRun } from "../../src/converters/acl/validate";
+import { canonicalizeRun } from "executable-stories-core/converters/acl/index";
+import { validateCanonicalRun } from "executable-stories-core/converters/acl/validate";
 import {
   createRawRun,
   createPassingTestCase,

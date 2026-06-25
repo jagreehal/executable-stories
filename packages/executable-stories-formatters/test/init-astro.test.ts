@@ -4,7 +4,7 @@ import * as path from "node:path";
 import * as os from "node:os";
 import { initAstro } from "../src/init-astro";
 
-describe("initAstro", () => {
+describe("initAstro (thin Starlight scaffold)", () => {
   let tmpDir: string;
 
   beforeEach(() => {
@@ -15,180 +15,86 @@ describe("initAstro", () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  it("should scaffold template into target directory", () => {
+  it("scaffolds the thin set of user-owned files", () => {
     const target = path.join(tmpDir, "story-docs");
     initAstro({ targetDir: target });
 
-    expect(fs.existsSync(path.join(target, "package.json"))).toBe(true);
-    expect(fs.existsSync(path.join(target, "astro.config.mjs"))).toBe(true);
-    expect(fs.existsSync(path.join(target, ".gitignore"))).toBe(true);
-    expect(fs.existsSync(path.join(target, "tsconfig.json"))).toBe(true);
-    expect(fs.existsSync(path.join(target, "src/content/docs/index.mdx"))).toBe(true);
-    expect(fs.existsSync(path.join(target, "src/components/VerifiedBy.astro"))).toBe(true);
-    expect(fs.existsSync(path.join(target, "src/components/ApiOperations.astro"))).toBe(true);
-    expect(fs.existsSync(path.join(target, "src/lib/verification.ts"))).toBe(true);
-    expect(fs.existsSync(path.join(target, "src/lib/config.ts"))).toBe(true);
-    expect(fs.existsSync(path.join(target, "src/content/docs/stories/.gitkeep"))).toBe(true);
-    expect(fs.existsSync(path.join(target, "public/stories/assets/.gitkeep"))).toBe(true);
-    expect(fs.existsSync(path.join(target, "public/stories/story-report.json"))).toBe(true);
-    expect(fs.existsSync(path.join(target, "public/stories/notes-index.json"))).toBe(true);
-    expect(fs.existsSync(path.join(target, "src/pages/explorer/index.astro"))).toBe(true);
-  });
-
-  it("should include the static scenario explorer page", () => {
-    const target = path.join(tmpDir, "story-docs");
-    initAstro({ targetDir: target });
-
-    const explorer = fs.readFileSync(path.join(target, "src/pages/explorer/index.astro"), "utf8");
-    expect(explorer).toContain("Scenario Explorer");
-    // The report URL now comes from the central config, not a hardcoded literal.
-    expect(explorer).toContain("REPORT_URL");
-    expect(explorer).toContain("NOTES_INDEX_URL");
-    expect(explorer).toContain("Search scenarios");
-    expect(explorer).toContain("status-filter");
-    expect(explorer).toContain("history.replaceState");
-    expect(explorer).toContain("source-link");
-    expect(explorer).toContain("Business context");
-  });
-
-  it("routes the report location through a single config module", () => {
-    const target = path.join(tmpDir, "story-docs");
-    initAstro({ targetDir: target });
-
-    const config = fs.readFileSync(path.join(target, "src/lib/config.ts"), "utf8");
-    expect(config).toContain("public/stories/story-report.json");
-    expect(config).toContain("REPORT_URL");
-    expect(config).toContain("NOTES_INDEX_URL");
-
-    // The badge/dashboard/checklist components read the report via config,
-    // not by importing the JSON path directly.
-    for (const file of ["VerifiedBy.astro", "HealthDashboard.astro", "VerifiedStep.astro"]) {
-      const src = fs.readFileSync(path.join(target, "src/components", file), "utf8");
-      expect(src).toContain('from "../lib/config"');
-      expect(src).not.toContain("public/stories/story-report.json");
+    for (const f of [
+      "package.json",
+      "astro.config.mjs",
+      "executable-stories.config.mjs",
+      ".gitignore",
+      "tsconfig.json",
+      "src/content.config.ts",
+      "src/content/docs/index.mdx",
+      "src/styles/stories.css",
+    ]) {
+      expect(fs.existsSync(path.join(target, f)), f).toBe(true);
     }
   });
 
-  it("links verifying stories and API endpoints into the explorer", () => {
+  it("wires the executable-stories integration and the stories collection from one config", () => {
     const target = path.join(tmpDir, "story-docs");
     initAstro({ targetDir: target });
 
-    // The shared deep-link helper lives in config and is used by the badge.
-    const config = fs.readFileSync(path.join(target, "src/lib/config.ts"), "utf8");
-    expect(config).toContain("explorerUrl");
-    expect(config).toContain("SOURCE_BASE_URL");
+    // One shared config object drives both halves.
+    const esConfig = fs.readFileSync(path.join(target, "executable-stories.config.mjs"), "utf8");
+    expect(esConfig).toContain("defineExecutableStories");
+    expect(esConfig).toContain("groupBy");
 
-    const badge = fs.readFileSync(path.join(target, "src/components/VerifiedBy.astro"), "utf8");
-    expect(badge).toContain("explorerUrl");
+    const config = fs.readFileSync(path.join(target, "astro.config.mjs"), "utf8");
+    expect(config).toContain("executableStories");
+    expect(config).toContain("@astrojs/starlight");
+    // Nav is built from the config via the sidebar helper.
+    expect(config).toContain("storiesSidebar");
+    expect(config).toContain("./executable-stories.config.mjs");
 
-    const api = fs.readFileSync(path.join(target, "src/components/ApiOperations.astro"), "utf8");
-    expect(api).toContain("explorerUrl");
-
-    // The @components alias keeps generated MDX imports depth-independent.
-    const tsconfig = JSON.parse(fs.readFileSync(path.join(target, "tsconfig.json"), "utf8"));
-    expect(tsconfig.compilerOptions.paths["@components/*"]).toEqual(["src/components/*"]);
+    const content = fs.readFileSync(path.join(target, "src/content.config.ts"), "utf8");
+    expect(content).toContain("storiesLoader");
+    expect(content).toContain("stories:");
+    // Authored docs collection stays alongside the generated stories.
+    expect(content).toContain("docsLoader");
   });
 
-  it("scaffolds the explorer's styles and doc renderer as separate files", () => {
+  it("does NOT copy framework files — those ship in executable-stories-astro", () => {
     const target = path.join(tmpDir, "story-docs");
     initAstro({ targetDir: target });
 
-    // CSS and the doc renderer are split out so the page stays a thin shell.
-    expect(fs.existsSync(path.join(target, "src/pages/explorer/explorer.css"))).toBe(true);
-    expect(fs.existsSync(path.join(target, "src/lib/render-doc-entry.ts"))).toBe(true);
+    // The loader, story route, and render-doc-entry live in the package now.
+    expect(fs.existsSync(path.join(target, "src/lib/render-doc-entry.ts"))).toBe(false);
+    expect(fs.existsSync(path.join(target, "src/pages/explorer/index.astro"))).toBe(false);
+    expect(fs.existsSync(path.join(target, "src/components"))).toBe(false);
 
-    const explorer = fs.readFileSync(path.join(target, "src/pages/explorer/index.astro"), "utf8");
-    expect(explorer).toContain('import "./explorer.css"');
-    expect(explorer).toContain("render-doc-entry");
-
-    // The renderer covers every doc kind, including first-class video.
-    const renderer = fs.readFileSync(path.join(target, "src/lib/render-doc-entry.ts"), "utf8");
-    for (const kind of ["video", "screenshot", "mermaid", "kv", "table", "section", "custom"]) {
-      expect(renderer).toContain(`${kind}:`);
-    }
-    // Tags render as header pills, never as a doc entry.
-    expect(renderer).toContain("tag: () =>");
+    const pkg = JSON.parse(fs.readFileSync(path.join(target, "package.json"), "utf8"));
+    expect(pkg.dependencies["executable-stories-astro"]).toBeDefined();
+    expect(pkg.dependencies["@astrojs/starlight"]).toBeDefined();
   });
 
-  it("should include theme CSS files", () => {
+  it("update mode preserves content + config and merges any new template deps", () => {
     const target = path.join(tmpDir, "story-docs");
     initAstro({ targetDir: target });
 
-    expect(fs.existsSync(path.join(target, "src/styles/global.css"))).toBe(true);
-    expect(fs.existsSync(path.join(target, "src/styles/themes/default.css"))).toBe(true);
-    expect(fs.existsSync(path.join(target, "src/styles/themes/corporate.css"))).toBe(true);
-    expect(fs.existsSync(path.join(target, "src/styles/themes/terminal.css"))).toBe(true);
-    expect(fs.existsSync(path.join(target, "src/styles/themes/minimal.css"))).toBe(true);
-    expect(fs.existsSync(path.join(target, "src/styles/themes/dashboard.css"))).toBe(true);
-    expect(fs.existsSync(path.join(target, "src/styles/themes/playful.css"))).toBe(true);
-  });
-
-  it("ships a gitignore that ignores generated portal output but keeps human docs tracked", () => {
-    const target = path.join(tmpDir, "story-docs");
-    initAstro({ targetDir: target });
-
-    const gitignore = fs.readFileSync(path.join(target, ".gitignore"), "utf8");
-    expect(gitignore).toContain("src/content/docs/stories/*");
-    expect(gitignore).toContain("!src/content/docs/stories/.gitkeep");
-    expect(gitignore).toContain("public/stories/story-report.json");
-    expect(gitignore).toContain("public/stories/notes-index.json");
-  });
-
-  it("scaffolds the sample ADR under examples/ so the build survives clearing it", () => {
-    const target = path.join(tmpDir, "story-docs");
-    initAstro({ targetDir: target });
-
-    // The sample ADR lives in an autogenerated directory, not pinned by an
-    // explicit sidebar slug — deleting it must not 404 the Starlight build.
-    expect(fs.existsSync(path.join(target, "src/content/docs/examples/example-adr.mdx"))).toBe(true);
-
-    const astroConfig = fs.readFileSync(path.join(target, "astro.config.mjs"), "utf8");
-    expect(astroConfig).not.toContain("slug: 'example-adr'");
-    expect(astroConfig).toContain("autogenerate: { directory: 'examples' }");
-  });
-
-  it("should include tsconfig with types and rootDir", () => {
-    const target = path.join(tmpDir, "story-docs");
-    initAstro({ targetDir: target });
-
-    const tsconfig = JSON.parse(fs.readFileSync(path.join(target, "tsconfig.json"), "utf8"));
-    expect(tsconfig.compilerOptions.types).toContain("node");
-    expect(tsconfig.compilerOptions.rootDir).toBe("./src");
-  });
-
-  it("update mode refreshes framework files but never touches content or config", () => {
-    const target = path.join(tmpDir, "story-docs");
-    initAstro({ targetDir: target });
-
-    // Simulate a user who has written content + customized config/deps, and
-    // whose framework files are stale.
     const adrPath = path.join(target, "src/content/docs/adr/0001-mine.mdx");
     fs.mkdirSync(path.dirname(adrPath), { recursive: true });
     fs.writeFileSync(adrPath, "my hand-written ADR");
-    const explorerPath = path.join(target, "src/pages/explorer/index.astro");
-    fs.writeFileSync(explorerPath, "STALE EXPLORER");
     const astroConfig = path.join(target, "astro.config.mjs");
     fs.writeFileSync(astroConfig, "// my customized sidebar/theme");
     const pkgPath = path.join(target, "package.json");
     const userPkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
     userPkg.dependencies = { ...userPkg.dependencies, "my-custom-dep": "^1.0.0" };
+    delete userPkg.dependencies["@astrojs/starlight"]; // pretend a template dep is missing
     fs.writeFileSync(pkgPath, JSON.stringify(userPkg, null, 2));
 
-    const result = initAstro({ targetDir: target, update: true });
+    initAstro({ targetDir: target, update: true });
 
-    // Framework files refreshed from the template.
-    expect(fs.readFileSync(explorerPath, "utf8")).toContain("Scenario Explorer");
-    expect(result.updatedFiles?.some((f) => f.includes("explorer"))).toBe(true);
-
-    // Content + config left exactly as the user wrote them.
+    // Content + config left exactly as the user wrote them (the package owns the framework).
     expect(fs.readFileSync(adrPath, "utf8")).toBe("my hand-written ADR");
     expect(fs.readFileSync(astroConfig, "utf8")).toBe("// my customized sidebar/theme");
 
-    // User deps preserved; new framework deps (marked, highlight.js) merged in.
+    // User deps preserved; the missing template dep was merged back in.
     const merged = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
     expect(merged.dependencies["my-custom-dep"]).toBe("^1.0.0");
-    expect(merged.dependencies["marked"]).toBeDefined();
-    expect(merged.dependencies["highlight.js"]).toBeDefined();
+    expect(merged.dependencies["@astrojs/starlight"]).toBeDefined();
   });
 
   it("update mode refuses a directory that was never scaffolded", () => {
@@ -197,24 +103,22 @@ describe("initAstro", () => {
     expect(() => initAstro({ targetDir: target, update: true })).toThrow(/scaffolded docs site/);
   });
 
-  it("should refuse to overwrite existing non-empty directory without force", () => {
+  it("refuses to overwrite a non-empty directory without force", () => {
     const target = path.join(tmpDir, "story-docs");
     fs.mkdirSync(target);
     fs.writeFileSync(path.join(target, "file.txt"), "existing");
-
     expect(() => initAstro({ targetDir: target })).toThrow(/already exists/);
   });
 
-  it("should overwrite existing directory with force flag", () => {
+  it("overwrites with the force flag", () => {
     const target = path.join(tmpDir, "story-docs");
     fs.mkdirSync(target);
     fs.writeFileSync(path.join(target, "file.txt"), "existing");
-
     initAstro({ targetDir: target, force: true });
     expect(fs.existsSync(path.join(target, "package.json"))).toBe(true);
   });
 
-  it("should return the target directory path", () => {
+  it("returns the target directory path", () => {
     const target = path.join(tmpDir, "story-docs");
     const result = initAstro({ targetDir: target });
     expect(result.targetDir).toBe(target);

@@ -12,16 +12,12 @@ import type {
   ReviewClaim,
   ReviewResult,
 } from "../types/review";
-import type { DocEntry, StoryStep } from "../types/story";
-import type { TestCaseResult } from "../types/test-result";
-import type { HtmlTheme } from "./html/themes/types";
-// eslint-disable-next-line no-restricted-imports -- resolveTheme is defined in the themes barrel itself; there is no concrete module to import it from.
-import { resolveTheme } from "./html/themes/index";
+import type { DocEntry, StoryStep } from "executable-stories-core/types/story";
+import type { TestCaseResult } from "executable-stories-core/types/test-result";
+import { REPORT_THEME_CSS } from "./report-theme-css";
 
 export interface ReviewHtmlOptions {
   title?: string;
-  /** Theme name or custom theme object. Default: "default" */
-  theme?: string | HtmlTheme;
   /** Enable dark mode toggle. Default: true */
   darkMode?: boolean;
 }
@@ -256,12 +252,10 @@ function applyTheme(t) {
 
 export class ReviewHtmlFormatter {
   private title: string;
-  private theme: HtmlTheme;
   private darkMode: boolean;
 
   constructor(options: ReviewHtmlOptions = {}) {
     this.title = options.title ?? "Evidence Review";
-    this.theme = resolveTheme(options.theme ?? "default");
     this.darkMode = options.darkMode ?? true;
   }
 
@@ -308,7 +302,7 @@ export class ReviewHtmlFormatter {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${escapeHtml(this.title)}</title>
     <style>
-      ${this.theme.css}
+      ${REPORT_THEME_CSS}
       ${REVIEW_CSS}
     </style>
   </head>

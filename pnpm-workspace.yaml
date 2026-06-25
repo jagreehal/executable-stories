@@ -2,6 +2,26 @@ packages:
   - 'packages/*'
   - 'apps/*'
 
+# Keep the 7-day supply-chain quarantine in force, but exempt the Astro 7 +
+# Vite 8 ecosystem so this branch can adopt it ahead of the global window
+# (astro@7 released 2026-06-22; window lifts ~2026-06-29). Scoped via an
+# allowlist instead of a blanket `minimumReleaseAge: 0` so every other
+# dependency still gets the quarantine. TEMPORARY — once astro@7 clears the
+# quarantine on its own (~2026-06-29), delete the whole block to restore the
+# unmodified global default.
+minimumReleaseAge: 10080 # 7 days, in minutes
+minimumReleaseAgeExclude:
+  - astro
+  - '@astrojs/*'
+  - astro-mermaid
+  - astro-expressive-code
+  - vite
+  - '@vitejs/*'
+  - satteri # Astro 7's Rust markdown compiler
+  - '@bruits/*' # satteri's per-platform native binaries
+  - '@napi-rs/*' # napi bindings for Astro 7's Rust compiler
+  - '@tybys/*' # wasm runtime helpers under @napi-rs/wasm-runtime
+
 overrides:
   '@types/estree': '1.0.9'
   'vite': '^8.0.0'

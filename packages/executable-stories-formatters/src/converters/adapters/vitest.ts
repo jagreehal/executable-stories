@@ -4,8 +4,8 @@
  * Transforms Vitest test results into RawRun.
  */
 
-import type { StoryMeta } from "../../types/story";
-import type { RawRun, RawTestCase, RawStatus } from "../../types/raw";
+import type { StoryMeta } from "executable-stories-core/types/story";
+import type { RawRun, RawTestCase, RawStatus } from "executable-stories-core/types/raw";
 
 /** Vitest test state */
 export type VitestState = "passed" | "failed" | "skipped" | "pending";

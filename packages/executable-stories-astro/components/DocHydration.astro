@@ -1,0 +1,63 @@
+---
+/**
+ * DocHydration — progressive enhancement for the React-rendered doc markup the
+ * report components emit (scenario detail page + the interactive stories index).
+ * The React components SSR semantic placeholders and the heavy libraries load
+ * from a CDN only when one is actually present, so a page with no rich docs pays
+ * nothing and the package keeps zero runtime deps:
+ *   - `DocCode` emits `<code class="language-*">` -> highlight.js
+ *   - `DocMermaid` emits `<pre data-mermaid>` -> mermaid
+ * Markdown sections are rendered server-side by `DocSection` (no placeholder).
+ *
+ * The index island hydrates with `client:load`, so the doc nodes may appear a
+ * tick after first paint; the pass is idempotent (guarded by `hljs` / a
+ * `data-mermaid-done` marker) and re-runs after hydration settles. If the CDN
+ * is unreachable the raw source still shows, so content is never blank.
+ */
+---
+
+<script is:inline>
+  (function () {
+    const load = (url) => import(url).catch(() => null);
+    let hl = false;
+    let mm = false;
+
+    function highlight() {
+      const els = document.querySelectorAll('pre code[class*="language-"]:not(.hljs)');
+      if (els.length === 0 || hl) return;
+      hl = true;
+      load("https://esm.sh/highlight.js@11/lib/common").then((mod) => {
+        const hljs = mod && (mod.default || mod);
+        if (!hljs || typeof hljs.highlightElement !== "function") { hl = false; return; }
+        document
+          .querySelectorAll('pre code[class*="language-"]:not(.hljs)')
+          .forEach((el) => { try { hljs.highlightElement(el); } catch {} });
+      });
+    }
+
+    function mermaid() {
+      const els = document.querySelectorAll("pre[data-mermaid]:not([data-mermaid-done])");
+      if (els.length === 0 || mm) return;
+      mm = true;
+      load("https://esm.sh/mermaid@11").then((mod) => {
+        const m = mod && (mod.default || mod);
+        if (!m || typeof m.run !== "function") { mm = false; return; }
+        const nodes = [...document.querySelectorAll("pre[data-mermaid]:not([data-mermaid-done])")];
+        nodes.forEach((el) => el.setAttribute("data-mermaid-done", ""));
+        try {
+          const dark = matchMedia && matchMedia("(prefers-color-scheme: dark)").matches;
+          m.initialize({ startOnLoad: false, theme: dark ? "dark" : "default", securityLevel: "loose" });
+          m.run({ nodes });
+        } catch {}
+      });
+    }
+
+    function run() { highlight(); mermaid(); }
+
+    run();
+    // The interactive index hydrates after first paint; catch nodes that the
+    // React island renders a tick later.
+    setTimeout(run, 200);
+    window.addEventListener("load", run);
+  })();
+</script>

@@ -2,24 +2,38 @@
 
 import {
   useCallback,
+  useDeferredValue,
   useMemo,
   useRef,
   useState,
 } from "react";
-import type { StoryReport } from "executable-stories-formatters";
+import type { StoryReport } from "executable-stories-core";
 import type { Result } from "../result";
+import { unwrapReport } from "../result";
 import type { BuiltinRenderers, CustomRenderers } from "../renderers";
 import { ReportRoot } from "../context/ReportRoot";
-import { ReportSummary } from "../components/ReportSummary";
 import { ReportFeatureList } from "../components/ReportFeatureList";
 import { ReportEmpty } from "../components/ReportEmpty";
-import { ReportSchemaError } from "../components/ReportSchemaError";
+import { ReportTitleBlock, ReportErrorShell } from "../components/ReportShell";
+import { cn } from "../lib/utils";
 import { ReportSearch } from "./ReportSearch";
 import { ReportFailureBanner } from "./ReportFailureBanner";
 import { ReportShortcutsHelp } from "./ReportShortcutsHelp";
 import { useKeyboardShortcuts } from "./use-keyboard-shortcuts";
 import { useDeepLinkScroll } from "./use-deep-link-scroll";
-import { filterReport, listFailures } from "./filter";
+import { filterReport, listFailures, allTags, type StatusFilter } from "./filter";
+import { scrollToScenarioId } from "../lib/scroll";
+import { CollapseProvider, useCollapseState } from "./collapse-context";
+import { ReportFilters } from "./ReportFilters";
+import { ReportToc } from "./ReportToc";
+import { useTheme } from "./use-theme";
+import {
+  ScenarioActionsProvider,
+  scenarioToMarkdown,
+  scenarioToPrompt,
+  scenarioPermalink,
+  type ScenarioActions,
+} from "./scenario-actions";
 
 export interface ReportInteractiveProps {
   /** A StoryReport, or a Result-wrapped one (e.g., from parseStoryReport). */
@@ -31,34 +45,22 @@ export interface ReportInteractiveProps {
   className?: string;
   title?: string;
   dataTheme?: "light" | "dark";
-}
-
-function isResult(value: ReportInteractiveProps["report"]): value is Result<StoryReport> {
-  return typeof value === "object"
-    && value !== null
-    && "ok" in (value as object)
-    && typeof (value as { ok: unknown }).ok === "boolean";
+  /**
+   * Drop the report's own title block (`<h1>` + summary + meta) while keeping
+   * the search and filter controls. Use when the surrounding page already shows
+   * the report title as its heading — e.g. the Astro stories index embedded in
+   * Starlight, where Starlight renders the page `<h1>`.
+   */
+  hideHeader?: boolean;
 }
 
 export function ReportInteractive(props: ReportInteractiveProps) {
   const { report, className, title, dataTheme } = props;
-
-  if (isResult(report)) {
-    if (!report.ok) {
-      return (
-        <main
-          className={["es-report", className].filter(Boolean).join(" ")}
-          aria-label={title ?? "Test report"}
-          data-theme={dataTheme}
-        >
-          <ReportSchemaError error={report.error} />
-        </main>
-      );
-    }
-    return <ReportInteractiveView {...props} report={report.data} />;
+  const result = unwrapReport(report);
+  if (!result.ok) {
+    return <ReportErrorShell error={result.error} className={className} title={title} dataTheme={dataTheme} />;
   }
-
-  return <ReportInteractiveView {...props} report={report} />;
+  return <ReportInteractiveView {...props} report={result.data} />;
 }
 
 interface ReportInteractiveViewProps extends Omit<ReportInteractiveProps, "report"> {
@@ -72,26 +74,78 @@ function ReportInteractiveView({
   className,
   title,
   dataTheme,
+  hideHeader = false,
 }: ReportInteractiveViewProps) {
   const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [activeTags, setActiveTags] = useState<string[]>([]);
+  const [detail, setDetail] = useState<"full" | "minimal">("full");
   const [helpOpen, setHelpOpen] = useState(false);
+  const { theme, toggle: toggleTheme } = useTheme();
   const searchRef = useRef<HTMLInputElement>(null);
+  // Defer filtering off the live input value so typing stays responsive even
+  // when the report is large — the input updates immediately, the filtered
+  // tree catches up. (Vercel rerender-use-deferred-value.)
+  const deferredQuery = useDeferredValue(query);
   const failures = useMemo(() => listFailures(report), [report]);
-  const filtered = useMemo(() => filterReport(report, query), [report, query]);
+  const filtered = useMemo(
+    () => filterReport(report, { query: deferredQuery, status: statusFilter, tags: activeTags }),
+    [report, deferredQuery, statusFilter, activeTags],
+  );
+  const isFiltering = query !== deferredQuery;
+
+  const statusOptions = useMemo(() => {
+    const s = report.summary;
+    const opts: Array<{ key: StatusFilter; label: string; count: number }> = [
+      { key: "all", label: "All", count: s.total },
+    ];
+    if (s.passed) opts.push({ key: "passed", label: "Passed", count: s.passed });
+    if (s.failed) opts.push({ key: "failed", label: "Failed", count: s.failed });
+    if (s.skipped) opts.push({ key: "skipped", label: "Skipped", count: s.skipped });
+    if (s.pending) opts.push({ key: "pending", label: "Pending", count: s.pending });
+    return opts;
+  }, [report]);
+  const tagOptions = useMemo(() => allTags(report), [report]);
+  const toggleTag = useCallback(
+    (tag: string) =>
+      setActiveTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag])),
+    [],
+  );
+
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showToast = useCallback((msg: string) => {
+    setToast(msg);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 1800);
+  }, []);
+  const copy = useCallback(
+    (text: string, msg: string) => {
+      if (typeof navigator !== "undefined" && navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(() => showToast(msg), () => showToast("Copy failed"));
+      }
+    },
+    [showToast],
+  );
+  const scenarioActions = useMemo<ScenarioActions>(
+    () => ({
+      copyLink: (s) => copy(scenarioPermalink(s), "Link copied"),
+      copyMarkdown: (s) => copy(scenarioToMarkdown(s), "Markdown copied"),
+      copyPrompt: (s) => copy(scenarioToPrompt(s), "Prompt copied"),
+    }),
+    [copy],
+  );
   const failureIndexRef = useRef(0);
+
+  const collapse = useCollapseState();
+  const allCollapsibleIds = useMemo(
+    () => report.features.flatMap((f) => [f.id, ...f.scenarios.map((s) => s.id)]),
+    [report],
+  );
+  const collapseAll = useCallback(() => collapse.collapseAll(allCollapsibleIds), [collapse, allCollapsibleIds]);
 
   const focusSearch = useCallback(() => {
     searchRef.current?.focus();
-  }, []);
-
-  const scrollToScenario = useCallback((scenarioId: string) => {
-    if (typeof document === "undefined") return;
-    const el = document.getElementById(scenarioId);
-    if (!el) return;
-    el.scrollIntoView({ behavior: "smooth", block: "start" });
-    if (typeof history !== "undefined") {
-      history.replaceState(null, "", `#${scenarioId}`);
-    }
   }, []);
 
   const stepFailure = useCallback(
@@ -100,9 +154,9 @@ function ReportInteractiveView({
       failureIndexRef.current =
         (failureIndexRef.current + direction + failures.length) % failures.length;
       const target = failures[failureIndexRef.current];
-      if (target) scrollToScenario(target.scenarioId);
+      if (target) scrollToScenarioId(target.scenarioId);
     },
-    [failures, scrollToScenario],
+    [failures],
   );
 
   const toggleHelp = useCallback(() => {
@@ -120,6 +174,8 @@ function ReportInteractiveView({
     onPrevFailure: () => stepFailure(-1),
     onToggleHelp: toggleHelp,
     onEscape: escape,
+    onExpandAll: collapse.expandAll,
+    onCollapseAll: collapseAll,
   });
 
   useDeepLinkScroll();
@@ -129,40 +185,107 @@ function ReportInteractiveView({
   const matchedScenarios = filtered.summary.total;
 
   return (
-    <ReportRoot
-      report={filtered}
-      customRenderers={customRenderers}
-      renderers={renderers}
-    >
-      <main
-        className={["es-report", "es-report-interactive", className].filter(Boolean).join(" ")}
-        aria-label={title ?? "Test report"}
-        data-theme={dataTheme}
+    <CollapseProvider value={collapse.api}>
+     <ScenarioActionsProvider value={scenarioActions}>
+      <ReportRoot
+        report={filtered}
+        customRenderers={customRenderers}
+        renderers={renderers}
       >
-        <header className="es-report-header">
-          <h1>{title ?? "Story Report"}</h1>
-          <ReportSummary />
-          <ReportSearch
-            ref={searchRef}
-            value={query}
-            onChange={setQuery}
-            matchedCount={matchedScenarios}
-            totalCount={totalScenarios}
-          />
-        </header>
-        <ReportFailureBanner failures={failures} />
-        {hasContent ? <ReportFeatureList /> : <ReportEmpty message={query ? "No scenarios match the search." : undefined} />}
-        <button
-          type="button"
-          className="es-shortcuts-trigger"
-          aria-label="Keyboard shortcuts"
-          aria-keyshortcuts="Shift+?"
-          onClick={toggleHelp}
+        <main
+          className={cn("es-report", "es-report-interactive", className)}
+          aria-label={title ?? "Test report"}
+          aria-busy={isFiltering}
+          data-theme={dataTheme}
+          data-detail-level={detail}
         >
-          ?
-        </button>
-        <ReportShortcutsHelp open={helpOpen} onClose={() => setHelpOpen(false)} />
-      </main>
-    </ReportRoot>
+          <header className="es-report-header">
+            {hideHeader ? null : <ReportTitleBlock title={title} />}
+            <div className="flex flex-wrap items-center gap-2">
+              <ReportSearch
+                ref={searchRef}
+                value={query}
+                onChange={setQuery}
+                matchedCount={matchedScenarios}
+                totalCount={totalScenarios}
+              />
+              <div className="flex shrink-0 gap-1">
+                <button
+                  type="button"
+                  onClick={collapse.expandAll}
+                  aria-keyshortcuts="e"
+                  className="cursor-pointer rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+                >
+                  Expand all
+                </button>
+                <button
+                  type="button"
+                  onClick={collapseAll}
+                  aria-keyshortcuts="c"
+                  className="cursor-pointer rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+                >
+                  Collapse all
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDetail((d) => (d === "full" ? "minimal" : "full"))}
+                  aria-pressed={detail === "minimal"}
+                  className="cursor-pointer rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+                >
+                  {detail === "full" ? "Hide docs" : "Show docs"}
+                </button>
+                <button
+                  type="button"
+                  onClick={toggleTheme}
+                  aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
+                  className="cursor-pointer rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+                >
+                  {theme === "dark" ? "☀ Light" : "☾ Dark"}
+                </button>
+              </div>
+            </div>
+            <ReportFilters
+              statuses={statusOptions}
+              status={statusFilter}
+              onStatus={setStatusFilter}
+              tags={tagOptions}
+              activeTags={activeTags}
+              onToggleTag={toggleTag}
+            />
+          </header>
+          <ReportFailureBanner failures={failures} />
+          {hasContent ? (
+            <div className="flex gap-6">
+              <ReportToc />
+              <div className="flex min-w-0 flex-1 flex-col gap-4">
+                <ReportFeatureList />
+              </div>
+            </div>
+          ) : (
+            <ReportEmpty message={query ? "No scenarios match the search." : undefined} />
+          )}
+          <button
+            type="button"
+            className="es-shortcuts-trigger"
+            aria-label="Keyboard shortcuts"
+            aria-keyshortcuts="Shift+?"
+            onClick={toggleHelp}
+          >
+            ?
+          </button>
+          <ReportShortcutsHelp open={helpOpen} onClose={() => setHelpOpen(false)} />
+          {toast ? (
+            <div
+              role="status"
+              aria-live="polite"
+              className="fixed bottom-4 left-1/2 -translate-x-1/2 rounded-md bg-foreground px-3 py-1.5 text-xs font-medium text-background shadow-lg"
+            >
+              {toast}
+            </div>
+          ) : null}
+        </main>
+      </ReportRoot>
+     </ScenarioActionsProvider>
+    </CollapseProvider>
   );
 }

@@ -1,4 +1,4 @@
-import type { TestCaseResult, TestRunResult } from "../types/test-result";
+import type { TestCaseResult, TestRunResult } from "executable-stories-core/types/test-result";
 import type {
   RunDiffResult,
   ScenarioChangeFlags,
@@ -10,7 +10,7 @@ import {
   behaviourFingerprint,
   behaviourSimilarity,
   type BehaviourIdentityInput,
-} from "../converters/acl/ids";
+} from "executable-stories-core/converters/acl/ids";
 
 function compareStringArrays(a: string[], b: string[]): boolean {
   if (a.length !== b.length) return false;

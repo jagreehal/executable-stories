@@ -1,6 +1,6 @@
-import { toStoryReport } from "../converters/story-report";
-import type { ReportFeature, ReportScenario, ReportStep, StoryReport, TestStatus } from "../types/story-report";
-import type { TestRunResult } from "../types/test-result";
+import { toStoryReport } from "executable-stories-core/converters/story-report";
+import type { ReportFeature, ReportScenario, ReportStep, StoryReport, TestStatus } from "executable-stories-core/types/story-report";
+import type { TestRunResult } from "executable-stories-core/types/test-result";
 
 export interface ScenarioIndex {
   schemaVersion: "1.0";

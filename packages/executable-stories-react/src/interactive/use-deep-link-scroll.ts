@@ -1,20 +1,20 @@
 "use client";
 
 import { useEffect } from "react";
+import { scrollToScenarioId } from "../lib/scroll";
 
 /**
  * Scrolls to a scenario by URL hash on mount and whenever the hash changes.
- * No-op in SSR (only runs in useEffect).
+ * No-op in SSR (only runs in useEffect). Honours `prefers-reduced-motion`.
  */
 export function useDeepLinkScroll(): void {
   useEffect(() => {
     function scrollToHash() {
       const hash = window.location.hash.replace(/^#/, "");
       if (!hash) return;
-      const el = document.getElementById(hash);
-      if (!el) return;
+      // The hash is already in the URL; don't rewrite history on arrival.
       requestAnimationFrame(() => {
-        el.scrollIntoView({ behavior: "smooth", block: "start" });
+        scrollToScenarioId(hash, { updateHash: false });
       });
     }
     scrollToHash();

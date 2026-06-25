@@ -5,7 +5,7 @@
  * files don't exist (all test cases come from e.g. Jest/Vitest/Playwright).
  */
 
-import type { TestCaseResult } from "../../types/test-result";
+import type { TestCaseResult } from "executable-stories-core/types/test-result";
 
 /** Map from scenario name → { scenarioLine, stepLines: Map<stepIndex, line> } */
 export interface LineMap {

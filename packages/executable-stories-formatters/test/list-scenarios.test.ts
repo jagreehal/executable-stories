@@ -26,6 +26,22 @@ describe("listScenarios", () => {
     expect(result).toContain("smoke, auth");
   });
 
+  it("minify produces single-line JSON; pretty is multi-line, same data", () => {
+    const tc = stubs.testCaseResult({
+      status: "passed",
+      sourceFile: "src/auth/login.test.ts",
+      story: stubs.storyMeta({ scenario: "Login", tags: ["smoke"] }),
+      tags: ["smoke"],
+    });
+    const pretty = listScenarios({ testCases: [tc], format: "json" }, {});
+    const min = listScenarios({ testCases: [tc], format: "json", minify: true }, {});
+
+    expect(min).not.toContain("\n");
+    expect(pretty).toContain("\n");
+    expect(min.length).toBeLessThan(pretty.length);
+    expect(JSON.parse(min)).toEqual(JSON.parse(pretty)); // identical data
+  });
+
   it("orders failures first in text output", () => {
     const failed = stubs.testCaseResult({
       status: "failed",

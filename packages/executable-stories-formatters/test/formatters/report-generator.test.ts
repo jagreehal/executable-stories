@@ -8,22 +8,22 @@ import * as os from "node:os";
 import * as path from "node:path";
 
 import { ReportGenerator } from "../../src/index";
-import { canonicalizeRun } from "../../src/converters/acl/index";
+import { canonicalizeRun } from "executable-stories-core/converters/acl/index";
 import { createRawRun, createMultiFileRun } from "../fixtures/raw-runs/basic";
 
 describe("ReportGenerator", () => {
-  it("should pass startCollapsed to HtmlFormatter", async () => {
+  it("renders the html format via the React report renderer", async () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "formatters-"));
 
     try {
+      // The `html` report renders via executable-stories-react (the single
+      // report renderer), so the html output is the standalone React
+      // report (scoped in `.es-report-island`) with its interactive island.
       const generator = new ReportGenerator({
         formats: ["html"],
         outputDir: tempDir,
         outputName: "report",
         output: { mode: "aggregated" },
-        html: {
-          startCollapsed: true,
-        },
       });
 
       const run = canonicalizeRun(createRawRun());
@@ -34,8 +34,10 @@ describe("ReportGenerator", () => {
       expect(htmlPaths).toHaveLength(1);
 
       const html = fs.readFileSync(htmlPaths![0], "utf8");
-      expect(html).toContain('class="feature collapsed"');
-      expect(html).toContain('class="scenario collapsed"');
+      expect(html).toContain("<!DOCTYPE html>");
+      expect(html).toContain("es-report-island");
+      // The interactive island JSON payload is embedded for client takeover.
+      expect(html).toContain('id="es-report-data"');
     } finally {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }

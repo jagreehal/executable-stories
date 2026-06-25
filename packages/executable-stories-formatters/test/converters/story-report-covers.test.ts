@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { toStoryReport } from "../../src/converters/story-report";
+import { toStoryReport } from "executable-stories-core/converters/story-report";
 import { toScenarioIndex } from "../../src/formatters/scenario-index-json";
-import type { TestRunResult } from "../../src/types/test-result";
+import type { TestRunResult } from "executable-stories-core/types/test-result";
 
 function runWithCovers(covers?: string[]): TestRunResult {
   return {

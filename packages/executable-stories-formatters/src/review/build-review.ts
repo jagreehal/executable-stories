@@ -7,8 +7,8 @@
  * uncovered → weak → covered. The review formatters render the result.
  */
 
-import type { DocEntry } from "../types/story";
-import type { TestCaseResult } from "../types/test-result";
+import type { DocEntry } from "executable-stories-core/types/story";
+import type { TestCaseResult } from "executable-stories-core/types/test-result";
 import type {
   ChangedFileReview,
   EvidenceStrength,

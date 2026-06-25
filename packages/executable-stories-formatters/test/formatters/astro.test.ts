@@ -4,14 +4,14 @@
 
 import { describe, it, expect } from "vitest";
 import { AstroFormatter } from "../../src/formatters/astro";
-import { canonicalizeRun } from "../../src/converters/acl/index";
+import { canonicalizeRun } from "executable-stories-core/converters/acl/index";
 import {
   createRawRun,
   createMultipleTestCasesRun,
   createTestCase,
   createSkippedTestCase,
 } from "../fixtures/raw-runs/basic";
-import type { RawRun } from "../../src/types/raw";
+import type { RawRun } from "executable-stories-core/types/raw";
 
 describe("AstroFormatter", () => {
   const formatter = new AstroFormatter();

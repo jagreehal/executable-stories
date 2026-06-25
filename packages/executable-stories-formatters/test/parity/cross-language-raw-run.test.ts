@@ -4,10 +4,10 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import { canonicalizeRun } from "../../src/converters/acl";
-import { toStoryReport } from "../../src/converters/story-report";
+import { canonicalizeRun } from "executable-stories-core/converters/acl/index";
+import { toStoryReport } from "executable-stories-core/converters/story-report";
 import { listScenarios } from "../../src/list-scenarios";
-import type { RawRun } from "../../src/types/raw";
+import type { RawRun } from "executable-stories-core/types/raw";
 import { validateStoryReport } from "../../src/validation/story-report-validator";
 
 const examplesDir = resolve(

@@ -1,27 +1,36 @@
 import { marked } from "marked";
-import type { ReportDocSection } from "executable-stories-formatters";
+import type { ReportDocSection } from "executable-stories-core";
 import { useBuiltinRenderers } from "../../hooks/useRenderers";
+import { safeUrl } from "../../lib/url";
 
 /**
- * Strips the most common dangerous patterns from marked-generated HTML:
- *   - <script>...</script> blocks
- *   - <style>...</style> blocks
- *   - on* event-handler attributes
- *   - javascript: URLs on href / src
+ * Best-effort sanitizer for marked-generated HTML. `section` markdown is
+ * authored in the test source (developer-trusted), so this is defense-in-depth,
+ * not a hard boundary against hostile input. It:
+ *   - drops <script>/<style> and other active elements (iframe/object/embed/form)
+ *   - strips on* event-handler attributes
+ *   - neutralizes any non-http(s) scheme on href/src via the shared `safeUrl`
+ *     allow-list (covers javascript:/data:/vbscript:/file:, not just javascript:)
  *
- * Not a substitute for a full HTML sanitizer (DOMPurify, sanitize-html).
- * For high-untrust input, supply `renderers.section` with your own sanitizer.
+ * It is NOT a substitute for a full HTML sanitizer (it won't catch entity-
+ * obfuscated schemes). For untrusted markdown, supply `renderers.section` with
+ * your own sanitizer.
  */
+function neutralizeUrl(value: string): string {
+  return safeUrl(value) ?? "#";
+}
+
 function safeMarkdownHtml(markdown: string): string {
   const raw = marked.parse(markdown, { async: false }) as string;
   return raw
     .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
     .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, "")
+    .replace(/<\/?(?:iframe|object|embed|form|base)\b[^>]*>/gi, "")
     .replace(/\son[a-z]+\s*=\s*"[^"]*"/gi, "")
     .replace(/\son[a-z]+\s*=\s*'[^']*'/gi, "")
     .replace(/\son[a-z]+\s*=\s*[^\s>]+/gi, "")
-    .replace(/(href|src)\s*=\s*"\s*javascript:[^"]*"/gi, '$1="#"')
-    .replace(/(href|src)\s*=\s*'\s*javascript:[^']*'/gi, "$1='#'");
+    .replace(/(href|src)\s*=\s*"([^"]*)"/gi, (_m, attr, val) => `${attr}="${neutralizeUrl(val)}"`)
+    .replace(/(href|src)\s*=\s*'([^']*)'/gi, (_m, attr, val) => `${attr}='${neutralizeUrl(val)}'`);
 }
 
 export function DocSection({ entry }: { entry: ReportDocSection }) {
@@ -31,10 +40,10 @@ export function DocSection({ entry }: { entry: ReportDocSection }) {
   }
   const html = safeMarkdownHtml(entry.markdown);
   return (
-    <section className="es-doc es-doc-section" aria-label={entry.title}>
-      {entry.title ? <h4 className="es-doc-section-title">{entry.title}</h4> : null}
+    <section className="my-3 text-sm" aria-label={entry.title}>
+      {entry.title ? <h4 className="mb-1 font-semibold text-foreground">{entry.title}</h4> : null}
       <div
-        className="es-doc-section-content"
+        className="es-doc-prose text-muted-foreground"
         dangerouslySetInnerHTML={{ __html: html }}
       />
     </section>

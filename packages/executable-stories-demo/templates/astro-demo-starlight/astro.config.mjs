@@ -12,8 +12,9 @@ export default defineConfig({
       sidebar: [
         { label: 'Home', slug: 'index' },
         {
+          // Starlight v0.39+ requires autogenerate to live inside `items`.
           label: 'Stories',
-          autogenerate: { directory: 'stories' },
+          items: [{ autogenerate: { directory: 'stories' } }],
         },
         { label: 'Themes', slug: 'themes' },
       ],

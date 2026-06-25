@@ -81,31 +81,31 @@ executable-stories format reports/raw-run.json \
 
 See the [Agent artifact contract](/guides/agent-artifact-contract/) for the StoryReport, scenario index, and behavior manifest an agent also reads.
 
-## `serve` — watch the loop
+## Watch the loop — live docs on the Astro dev server
 
-`check`, `triage`, and `goal` are what the loop reads to act. `serve` is what _you_ read to watch. Kick off a multi-hour loop, leave one URL open, and see the behaviour catalogue change in realtime — no refreshing, no digging through logs.
+`check`, `triage`, and `goal` are what the loop reads to act. The live docs site is what _you_ read to watch. Kick off a multi-hour loop, leave one URL open, and see the behaviour catalogue change in realtime — no refreshing, no digging through logs.
+
+Scaffold the site once, then run two processes — your tests in watch mode and the Astro dev server:
 
 ```bash
-executable-stories serve reports/raw-run.json --port 4321
+executable-stories init-astro            # one-time: scaffolds a thin Astro docs site
+# terminal 1 — your runner in watch mode (rewrites reports/raw-run.json)
+pnpm test --watch
+# terminal 2 — the docs site
+cd story-docs && pnpm dev                 # astro dev
 ```
 
-It serves the HTML report and reloads the page whenever the loop rewrites the raw-run — over Server-Sent Events, so there is no dependency to install. It tolerates the file not existing yet: start it first, and it waits for the loop's first run.
+The site reads `reports/raw-run.json` through a content loader that **watches the file**: every time the loop rewrites the raw-run, the `/stories` pages and Scenario Explorer hot-reload in place (~sub-second, no manual refresh). Nothing is written to disk — the tests stay the source of truth. It tolerates the file not existing yet: start the dev server first and it picks up the loop's first run.
 
-The reload is the easy part; any static server can do that. What `serve` adds is the **delta strip** above the report. On the first run it pins a baseline, then on every run it shows what changed _since you started the loop_ — drawn from the same rename/move-resilient diff as `compare`:
+The reload is the easy part. What the site adds is the **trajectory** — the shipped `Trajectory` component pins a baseline when the dev server starts, then shows what changed _since you started the loop_, drawn from the same run history as `compare`:
 
 ```text
-Live · run #14 · since you started: +6 passing, 1 regressed · this iteration: +1 passing
+Since you started: +6 passing, 1 regressed
 ```
 
-That one line answers the question you actually have at 2am: is the loop making progress or thrashing? The session total tells you the trajectory; the per-iteration delta tells you what the last turn did.
+That answers the question you actually have at 2am: is the loop making progress or thrashing?
 
-For a one-command demo, `apps/vitest-example` runs Vitest in watch mode alongside `serve`:
-
-```bash
-pnpm --filter vitest-example test:live
-```
-
-If you only want the reload and not the delta, you do not need `serve` at all — point any static server at the output, e.g. `live-server reports/`; the framework reporters rewrite `reports/test-results.html` on every run.
+If you only want reloads and not the trajectory, you do not need the Astro site at all — point any static server at the output, e.g. `live-server reports/`; the framework reporters rewrite `reports/test-results.html` on every run.
 
 ## Put it in the loop's instructions
 
@@ -131,4 +131,4 @@ A loop running unattended is also a loop making mistakes unattended. `goal` make
 - [Agent artifact contract](/guides/agent-artifact-contract/) — the StoryReport, scenario index, and behavior manifest.
 - [MCP server](/guides/mcp-server/) — `get_failing_scenarios`, `get_scenarios_for_paths`, `get_behavior_diff`, `run_scenario`.
 - [Release confidence](/guides/release-confidence/) — the before-PR and release gates (`compare`, `gate-release`).
-- `serve` — the live docs URL for watching a loop in realtime (above).
+- Live docs — the Astro dev server for watching a loop in realtime (above).

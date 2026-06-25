@@ -1,183 +1,130 @@
 ---
 title: Astro docs site
-description: Generate a Starlight documentation site from your test results
+description: A live Starlight documentation site from your test results, driven by one config
 ---
 
-The Astro formatter turns your test output into a full [Starlight](https://starlight.astro.build/) documentation site. Run your tests, point the formatter at the results, and you get a browsable site with sidebar navigation, status badges, Mermaid diagrams, and search. Deploy it anywhere you'd deploy a static site.
+The `executable-stories-astro` integration turns your test output into a full
+[Starlight](https://starlight.astro.build/) site — generated scenarios and your
+hand-authored docs side by side, with sidebar navigation, status badges, Mermaid
+diagrams, and search. It is **live**: a content loader watches your run JSON, so
+a fresh test run hot-reloads the open page. Nothing is written to disk — your
+tests stay the source of truth.
 
 ## Getting started
 
-Scaffold a new docs site and install dependencies:
+```bash
+npx --package executable-stories-formatters executable-stories init-astro my-docs
+cd my-docs && pnpm install
+```
+
+This scaffolds a thin, ready-to-run Starlight project. The docs framework itself
+ships in the `executable-stories-astro` package, so the scaffold is just ~8
+user-owned files — chiefly **one config file** you edit.
+
+Then emit the run JSON your reporter must write (see below), run your tests in
+watch mode in one terminal, and `astro dev` in another:
 
 ```bash
-npx executable-stories init-astro my-docs
-cd my-docs
-pnpm install
+pnpm dev   # http://localhost:4321 — /stories, /explorer, and your docs
 ```
 
-This creates a ready-to-run Starlight project with the right directory structure and Mermaid support pre-configured. The generated stories go into `src/content/docs/stories/` and Starlight auto-generates the sidebar from whatever lands there.
+Editing a test re-runs it and the Stories pages update with no reload.
 
-## Generating docs from test results
+## One config drives everything
 
-### build-docs (recommended)
+Everything lives in `executable-stories.config.mjs`, imported by both
+`astro.config.mjs` and `src/content.config.ts`:
 
-The `build-docs` subcommand runs the full pipeline in one step. From a single raw run it generates story pages, Explorer data, and bundles referenced media — no flags to get wrong:
+```js
+import { defineExecutableStories } from 'executable-stories-astro';
 
-```bash
-npx executable-stories build-docs raw-run.json --site-dir ./my-docs
+export default defineExecutableStories({
+  source: '../reports/raw-run.json',         // or `sources: [...]` for several suites
+  include: { tags: ['security'] },           // which scenarios to show (optional)
+  groupBy: 'tag',                            // feature | tag | source | status | none
+  docs: [{ path: 'src/content/docs/runbooks', label: 'Runbooks', base: 'runbooks' }],
+  theme: { preset: 'terminal', tokens: { pass: '#16a34a' } },
+});
 ```
 
-With an OpenAPI spec it also generates API coverage pages:
+| Field | What it does |
+|---|---|
+| `source` / `sources` | One run JSON, or several named suites (combined in one site, groupable by suite). |
+| `include` / `exclude` | Select scenarios by `tags`, `status`, or `features`. |
+| `groupBy` | How the index/Explorer categorise scenarios. |
+| `docs` | Authored markdown folders to surface in the nav. |
+| `collection` | Collection name the loader feeds (default `stories`). |
+| `routeBase` / `explorerBase` | Where the pages mount (default `/stories`, `/explorer`). |
+| `theme` | `preset` (`default`/`terminal`/`minimal`/`vibrant`), `accent` shorthand, and per-token `tokens` overrides. Restyles the story content; the Starlight shell keeps its own theme. |
 
-```bash
-npx executable-stories build-docs raw-run.json \
-  --site-dir ./my-docs \
-  --openapi ./openapi.yaml
+See the full reference in the [`executable-stories-astro` README](https://github.com/jagreehal/executable-stories/tree/main/packages/executable-stories-astro).
+
+## What you get
+
+- **`/stories`** — an index of every scenario, categorised by `groupBy`, each
+  linking to a detail page with its Given/When/Then steps and docs. Styled out
+  of the box; no CSS to wire.
+- **`/explorer`** — a searchable, filterable Scenario Explorer (by text, status,
+  and tag).
+- **Auto-built nav** — spread `storiesSidebar(config)` into your Starlight
+  `sidebar` and the Stories/Explorer links and your docs groups appear without
+  hand-wiring.
+- **Live trajectory** — the shipped `<Trajectory />` component shows
+  "passed N → M since you started" across a watch session.
+
+## Bringing in existing docs
+
+Hand-authored docs live under `src/content/docs`. The scaffold loads them with
+`authoredDocsLoader`, a drop-in for Starlight's `docsLoader()` that makes plain,
+GitHub-style markdown work without edits:
+
+- **Auto-title** from each file's first `# H1` (so frontmatter-free files import
+  cleanly — the one field Starlight requires).
+- **Cross-link rewriting** so relative `./other.md` links resolve to routes
+  instead of 404ing.
+
+Point a `docs` source's `path` at a folder outside the site and set `base` to
+mount an external docs folder (e.g. another package's `docs/`) under a URL prefix.
+
+## Emitting the run JSON
+
+The loader reads the **raw run JSON**, which your reporter writes only when you
+set `rawRunPath`:
+
+```js
+new StoryReporter({ formats: ['html'], rawRunPath: 'reports/raw-run.json' })
 ```
 
-Then start the dev server:
-
-```bash
-cd my-docs
-pnpm dev
-```
-
-Your generated story pages are at `http://localhost:4321/stories/` and the Scenario Explorer is at `http://localhost:4321/explorer/`.
-
-#### What build-docs generates
-
-| Output | Location |
-|--------|----------|
-| Story pages (one per source file) | `src/content/docs/stories/` |
-| StoryReport JSON (Explorer data) | `public/stories/story-report.json` |
-| Scenario notes index | `public/stories/notes-index.json` |
-| Copied screenshots/videos | `public/stories/assets/` |
-| API coverage pages (if `--openapi`) | `src/content/docs/api/` |
-
-The bundled **Scenario Explorer** (`/explorer/`) is a single browsable front door over the StoryReport JSON: a scenario list with status, a status filter, and a search box that matches titles, tags, and **`covers` file paths** — so you can type a product-code path and find the behavior that exercises it (the same code→scenario link the MCP `get_scenarios_for_paths` tool uses). Each scenario's detail panel lists its steps, the paths it covers, and a business-context link when a scenario note exists.
-
-For a stakeholder-first portal, generate docs with audience split and a baseline:
-
-```bash
-npx executable-stories build-docs raw-run.json \
-  --site-dir ./my-docs \
-  --audience-split \
-  --baseline ./my-docs/public/stories/story-report.json
-```
-
-### format --format astro (manual)
-
-If you need finer control over artifact placement, use `format --format astro` directly:
-
-```bash
-npx executable-stories format raw-run.json \
-  --format astro \
-  --output-dir ./my-docs/src/content/docs/stories
-```
-
-If your tests produce screenshots or other local assets, add `--asset-mode copy` so the formatter copies them into the site's public directory with content-hashed filenames:
-
-```bash
-npx executable-stories format raw-run.json \
-  --format astro \
-  --output-dir ./my-docs/src/content/docs/stories \
-  --asset-mode copy
-```
-
-## What gets generated
-
-Each run produces a Markdown file with Starlight-compatible YAML frontmatter:
-
-```yaml
----
-title: User Stories
-description: 3 scenarios — passed
-sidebar:
-  badge:
-    text: Passed
-    variant: success
----
-```
-
-The sidebar badge reflects the overall test status:
-
-| Status | Badge | Color |
-|--------|-------|-------|
-| All passed | Passed | Green |
-| Any failed | Failed | Red |
-| Any pending | Pending | Yellow |
-| All skipped | Skipped | Yellow |
-
-Inside the Markdown, scenarios are grouped by source file and use Gherkin-style formatting (bold Given/When/Then keywords, tags inline, status indicators).
-
-## Combining with other formats
-
-You can generate the Astro site alongside your regular HTML and Markdown reports in a single command:
-
-```bash
-npx executable-stories format raw-run.json \
-  --format astro,html,markdown
-```
-
-The Astro output goes to `--output-dir`, while HTML and Markdown go to `--output-dir` with extensions as usual.
-
-## Asset handling
-
-When `--asset-mode copy` is set, the formatter:
-
-1. Scans the generated Markdown for local image and video references
-2. Copies each file to `public/stories/assets/` with a content hash appended to the filename
-3. Rewrites the paths in the Markdown to point at the hashed copies
-
-URLs, data URIs, and paths inside fenced code blocks are left alone. If a referenced file is missing, the formatter fails by default. Pass `--allow-missing-assets` to get a warning instead.
+Point the config's `source` at that path.
 
 ## Deploying
 
-The scaffolded site is a standard Astro project. Build it and deploy the `dist/` directory:
+The scaffolded site is a standard Astro project — build it and deploy `dist/`:
 
 ```bash
 pnpm build
 ```
 
-Works with Vercel, Netlify, GitHub Pages, Cloudflare Pages, or any static host. See [Astro's deployment guides](https://docs.astro.build/en/guides/deploy/) for platform-specific instructions.
+Run your tests and regenerate the run JSON in CI before `astro build` so the
+deployed site reflects the latest results. Works with Vercel, Netlify, GitHub
+Pages, Cloudflare Pages, or any static host.
 
 ## CLI reference
 
 ### init-astro
 
 ```bash
-npx executable-stories init-astro [directory]
+npx --package executable-stories-formatters executable-stories init-astro [directory]
 ```
 
 | Option | Default | Description |
 |--------|---------|-------------|
 | `directory` | `story-docs` | Where to create the site |
-| `--force` | `false` | Overwrite if directory exists |
-| `--update` | `false` | Refresh framework files (components, styles, explorer) without touching your content or config |
+| `--force` | `false` | Overwrite if the directory exists |
+| `--update` | `false` | Merge any new template deps (the framework updates via `pnpm update executable-stories-astro`) |
 
-### build-docs
-
-```bash
-npx executable-stories build-docs <raw-run.json> --site-dir <dir> [options]
-```
-
-| Option | Default | Description |
-|--------|---------|-------------|
-| `--site-dir` | (required) | Root of the `init-astro`-scaffolded site |
-| `--openapi` | — | Path to an OpenAPI spec for API coverage pages |
-| `--baseline` | — | Previous `story-report.json` to generate a what's-changed view |
-| `--audience-split` | `false` | Split generated pages into engineer/stakeholder sections |
-| `--no-synthesize-stories` | `false` | Skip synthesizing story metadata from test structure |
-
-### format --format astro
-
-```bash
-npx executable-stories format <input> --format astro [options]
-```
-
-| Option | Default | Description |
-|--------|---------|-------------|
-| `--output-dir` | `reports` | Where to write the `.md` files |
-| `--output-name` | `index` | Base filename (without extension) |
-| `--asset-mode` | (none) | Set to `copy` to copy local assets |
-| `--allow-missing-assets` | `false` | Warn instead of failing on missing assets |
+> **Migrating from `build-docs`?** It generated Markdown into
+> `src/content/docs/stories/` and has been removed in favour of the live
+> integration, which renders stories from the run JSON with no generation step.
+> Scaffold with `init-astro` and run `astro dev`. (`format --format astro-markdown`
+> still exists for a one-off single-page Markdown export.)

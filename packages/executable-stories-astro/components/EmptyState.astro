@@ -1,0 +1,41 @@
+---
+/**
+ * Shown when the `stories` collection is empty — i.e. the loader hasn't found
+ * any scenarios in the run JSON yet. This is the first thing most people see
+ * (they scaffold, then open the site before wiring up the reporter), so it
+ * doubles as the getting-started panel: it names the exact file the loader is
+ * waiting on and the two steps to populate it.
+ */
+interface Props {
+  /** The resolved source path(s) the loader watches, for a concrete hint. */
+  sources: string[];
+}
+const { sources } = Astro.props as Props;
+const primary = sources[0] ?? "reports/raw-run.json";
+---
+
+<div class="es-empty" data-testid="empty">
+  <h2 class="es-empty__title">No scenarios yet</h2>
+  <p class="es-empty__lead">
+    This page fills in automatically once your tests write the run JSON — this
+    isn't an error, just nothing to show until the first run lands.
+  </p>
+
+  <p class="es-empty__watching">
+    Waiting for{sources.length > 1 ? " any of" : ""}:
+    {sources.map((s, i) => (
+      <>{i > 0 ? " " : ""}<code>{s}</code></>
+    ))}
+  </p>
+
+  <ol class="es-empty__steps">
+    <li>
+      In your StoryReporter config, set <code>rawRunPath</code> to that path —
+      e.g. <code>{`rawRunPath: '${primary}'`}</code>.
+    </li>
+    <li>
+      Run your tests (use <strong>watch mode</strong> for live updates). Each run
+      rewrites the JSON and these pages refresh — no build step.
+    </li>
+  </ol>
+</div>

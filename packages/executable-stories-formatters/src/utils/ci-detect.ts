@@ -16,7 +16,7 @@
  *   9. Nothing               -> undefined (not in CI)
  */
 
-import type { RawCIInfo } from "../types/raw";
+import type { RawCIInfo } from "executable-stories-core/types/raw";
 
 /**
  * Detect CI environment from process.env.

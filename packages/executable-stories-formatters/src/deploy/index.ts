@@ -1,4 +1,4 @@
-import type { TestRunResult } from "../types/test-result";
+import type { TestRunResult } from "executable-stories-core/types/test-result";
 import {
   type DeploymentEntry,
   type DeploymentLedger,

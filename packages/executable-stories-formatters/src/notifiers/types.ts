@@ -2,7 +2,7 @@
  * Notification types for webhook integrations (Slack, Teams).
  */
 
-import type { CIInfo } from "../types/ci";
+import type { CIInfo } from "executable-stories-core/types/ci";
 
 /** Summary of a test run for notification payloads. */
 export interface NotificationSummary {

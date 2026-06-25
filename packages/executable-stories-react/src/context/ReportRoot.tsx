@@ -1,5 +1,5 @@
 import { useMemo, type ReactNode } from "react";
-import type { StoryReport } from "executable-stories-formatters";
+import type { StoryReport } from "executable-stories-core";
 import type { BuiltinRenderers, CustomRenderers } from "../renderers";
 import { ReportContext, type ReportContextValue } from "./ReportContext";
 

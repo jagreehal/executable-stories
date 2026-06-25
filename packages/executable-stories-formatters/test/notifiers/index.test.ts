@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { sendNotifications } from "../../src/notifiers/index";
-import type { TestRunResult } from "../../src/types/test-result";
-import type { CIInfo } from "../../src/types/ci";
+import type { TestRunResult } from "executable-stories-core/types/test-result";
+import type { CIInfo } from "executable-stories-core/types/ci";
 
 function createRun(overrides: Partial<TestRunResult> = {}): TestRunResult {
   return {

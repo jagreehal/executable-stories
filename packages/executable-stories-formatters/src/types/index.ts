@@ -11,11 +11,11 @@ export type {
   StoryStep,
   StoryMeta,
   NormalizedTicket,
-} from "./story";
-export { STORY_META_KEY } from "./story";
+} from "executable-stories-core/types/story";
+export { STORY_META_KEY } from "executable-stories-core/types/story";
 
 // OTel span types (trace waterfall rendering)
-export type { OtelSpan, OtelAttributeValue } from "./otel";
+export type { OtelSpan, OtelAttributeValue } from "executable-stories-core/types/otel";
 
 // Raw types (Layer 1 - Framework Adapters)
 export type {
@@ -25,7 +25,7 @@ export type {
   RawTestCase,
   RawCIInfo,
   RawRun,
-} from "./raw";
+} from "executable-stories-core/types/raw";
 
 // Canonical types (Layer 2 - ACL output)
 export type {
@@ -35,7 +35,7 @@ export type {
   TestCaseResult,
   CIInfo,
   TestRunResult,
-} from "./test-result";
+} from "executable-stories-core/types/test-result";
 
 // Public report contract (consumed by UI renderers — frozen, additive-only within major)
 export type {
@@ -60,11 +60,11 @@ export type {
   ReportScenario,
   ReportFeature,
   StoryReport,
-} from "./story-report";
+} from "executable-stories-core/types/story-report";
 export {
   STORY_REPORT_SCHEMA_VERSION,
   STORY_REPORT_SCHEMA_MAJOR,
-} from "./story-report";
+} from "executable-stories-core/types/story-report";
 
 // Cucumber JSON types (Layer 3 - Formatter output)
 export type {
@@ -117,7 +117,7 @@ export type {
   TestRunFinished,
   CucumberAttachment,
   Envelope,
-} from "./cucumber-messages";
+} from "executable-stories-core/types/cucumber-messages";
 
 // Options types
 export type {

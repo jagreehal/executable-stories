@@ -1,0 +1,21 @@
+---
+/**
+ * Stories index — the landing page for the story routes, injected by
+ * executableStories() at the route base (default /stories) for NON-Starlight
+ * sites. Standalone markup (own <html>/<body>, no Starlight dependency); the
+ * shared body lives in StoriesIndexView so the Starlight variant can reuse it.
+ */
+import "../styles/es.css"; // default styling so the page is themed out of the box
+import StoriesIndexView from "../components/StoriesIndexView.astro";
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Stories — Executable Stories</title>
+  </head>
+  <body>
+    <StoriesIndexView shell="standalone" />
+  </body>
+</html>

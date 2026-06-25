@@ -39,13 +39,14 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "executable-stories-core": "workspace:*",
     "executable-stories-formatters": "workspace:*",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^25.9.2",
     "tsup": "^8.5.1",
-    "typescript": "^6.0.3",
+    "typescript": "~6.0.3",
     "vitest": "^4.1.8"
   },
   "repository": {

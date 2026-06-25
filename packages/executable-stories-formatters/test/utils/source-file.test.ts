@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { cleanTestStem, humanizeSourceFile } from "../../src/utils/source-file";
+import { cleanTestStem, humanizeSourceFile } from "executable-stories-core/utils/source-file";
 
 describe("cleanTestStem", () => {
   it("strips the story test extension chain", () => {

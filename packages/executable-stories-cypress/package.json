@@ -43,6 +43,7 @@
     "cypress": ">=13.0.0"
   },
   "dependencies": {
+    "executable-stories-core": "workspace:*",
     "executable-stories-formatters": "workspace:*"
   },
   "devDependencies": {

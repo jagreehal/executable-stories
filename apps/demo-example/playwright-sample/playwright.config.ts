@@ -5,7 +5,7 @@ export default defineConfig({
     ['list'],
     ['executable-stories-playwright/reporter', {
       rawRunPath: 'fixtures/raw-run.json',
-      formats: ['astro'],
+      formats: ['astro-markdown'],
       outputDir: 'src/content/docs/stories',
       outputName: 'index',
       output: { mode: 'colocated', colocatedStyle: 'mirrored' },

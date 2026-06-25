@@ -1,0 +1,101 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`html-react content gate > structural snapshot of the React report (catches drift across phases) 1`] = `
+[
+  {
+    "feature": "Authentication",
+    "scenarios": [
+      {
+        "docKinds": [
+          "note",
+          "link",
+        ],
+        "status": "passed",
+        "steps": [
+          "Given a registered user with email 'alice@example.com'",
+          "When the user submits login with valid credentials",
+          "Then the response status is 200",
+          "And a JWT token is returned",
+          "And the token contains the correct user ID",
+        ],
+        "tags": [
+          "auth",
+          "critical",
+          "smoke",
+        ],
+        "title": "Successful login with valid credentials",
+      },
+      {
+        "docKinds": [],
+        "status": "passed",
+        "steps": [
+          "Given a registered user",
+          "When the user submits login with an incorrect password",
+          "Then the response status is 401",
+          "And the error message is 'Invalid credentials'",
+        ],
+        "tags": [
+          "auth",
+        ],
+        "title": "Login with invalid password shows error",
+      },
+      {
+        "docKinds": [
+          "table",
+        ],
+        "status": "failed",
+        "steps": [
+          "Given a registered user",
+          "When the user fails login 5 times in a row",
+          "Then the 6th attempt returns 429 Too Many Requests",
+          "And the Retry-After header is set",
+        ],
+        "tags": [
+          "auth",
+          "rate-limiting",
+          "security",
+        ],
+        "title": "Login is rate-limited after 5 failed attempts",
+      },
+    ],
+  },
+  {
+    "feature": "Shopping Cart",
+    "scenarios": [
+      {
+        "docKinds": [
+          "mermaid",
+        ],
+        "status": "passed",
+        "steps": [
+          "Given a cart with 2 items totaling $59.98",
+          "And a valid shipping address",
+          "When the user submits payment with a test credit card",
+          "Then the order is confirmed",
+          "And a confirmation email is queued",
+          "But no charge is made in test mode",
+        ],
+        "tags": [
+          "checkout",
+          "e2e",
+          "payments",
+        ],
+        "title": "Complete checkout with credit card",
+      },
+      {
+        "docKinds": [],
+        "status": "skipped",
+        "steps": [
+          "Given an empty cart",
+          "When the user attempts to checkout",
+          "Then the checkout is blocked with 'Cart is empty'",
+        ],
+        "tags": [
+          "checkout",
+        ],
+        "title": "Cannot checkout with an empty cart",
+      },
+    ],
+  },
+]
+`;
