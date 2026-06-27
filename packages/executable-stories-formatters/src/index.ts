@@ -11,9 +11,7 @@
  *   HTML report renders via executable-stories-react — the `html` format)
  */
 
-import * as fs from "node:fs";
 import * as path from "node:path";
-import { createRequire } from "node:module";
 
 import * as fsPromises from "node:fs/promises";
 import { toStoryReport } from "executable-stories-core/converters/story-report";
@@ -33,6 +31,7 @@ import type {
 } from "./types/options";
 import type { RawRun } from "executable-stories-core/types/raw";
 import type { RunDiffResult } from "./types/compare";
+import { reactReportCss, reactIslandScript } from "./generated/react-assets";
 
 import { canonicalizeRun } from "executable-stories-core/converters/acl/index";
 import { CucumberJsonFormatter } from "./formatters/cucumber-json";
@@ -1118,45 +1117,20 @@ export class ReportGenerator {
 }
 
 /**
- * Read the compiled Tailwind/shadcn stylesheet shipped by
- * executable-stories-react, resolved through its package exports so it tracks
- * the installed version. Read once and cached for the process lifetime.
+ * The compiled Tailwind/shadcn stylesheet and the self-contained interactive
+ * island IIFE shipped by executable-stories-react, embedded at build time by
+ * scripts/embed-react-assets.mjs. Embedding (rather than resolving from
+ * node_modules at runtime) is what lets `--format html` work from the
+ * bun-compiled single-file binary, which has no node_modules. The reporters and
+ * the binary therefore inline the version of these assets that formatters was
+ * built against.
  */
-/**
- * Build a require that works in both ESM and CJS bundles. In ESM,
- * `import.meta.url` is defined; in the CJS build (tsup output) it is shimmed to
- * undefined, so fall back to `__filename`, which CJS always has. Without this,
- * `--format html` throws from CJS consumers (the Vitest/Jest reporters).
- */
-function getReactRequire(): NodeRequire {
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  const url = import.meta.url
-    ?? (typeof __filename !== "undefined" ? `file://${__filename}` : undefined);
-  if (!url) throw new Error("Cannot determine module URL to resolve executable-stories-react");
-  return createRequire(url);
-}
-
-let cachedReactReportCss: string | undefined;
 function readReactReportCss(): string {
-  if (cachedReactReportCss !== undefined) return cachedReactReportCss;
-  const require = getReactRequire();
-  const cssPath = require.resolve("executable-stories-react/tailwind.css");
-  cachedReactReportCss = fs.readFileSync(cssPath, "utf8");
-  return cachedReactReportCss;
+  return reactReportCss;
 }
 
-/**
- * Read the self-contained interactive island IIFE shipped by
- * executable-stories-react, inlined into the standalone report so search /
- * filters / keyboard work offline. Read once and cached.
- */
-let cachedReactIslandScript: string | undefined;
 function readReactIslandScript(): string {
-  if (cachedReactIslandScript !== undefined) return cachedReactIslandScript;
-  const require = getReactRequire();
-  const scriptPath = require.resolve("executable-stories-react/report-island.js");
-  cachedReactIslandScript = fs.readFileSync(scriptPath, "utf8");
-  return cachedReactIslandScript;
+  return reactIslandScript;
 }
 
 /**

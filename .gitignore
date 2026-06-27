@@ -38,6 +38,10 @@ ___temp
 !apps/astro-example/reports/
 .pnpm-store
 
+# Generated at build time from executable-stories-react's built assets
+# (see packages/executable-stories-formatters/scripts/embed-react-assets.mjs).
+packages/executable-stories-formatters/src/generated/
+
 # Gradle
 .gradle/
 build/
