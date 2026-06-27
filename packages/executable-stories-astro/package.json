@@ -1,6 +1,6 @@
 {
   "name": "executable-stories-astro",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Astro integration for executable-stories: a content loader that turns the test run JSON into a live, hot-reloading docs collection.",
   "type": "module",
   "main": "./dist/index.js",
