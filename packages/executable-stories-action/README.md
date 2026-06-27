@@ -1,23 +1,33 @@
----
-title: GitHub Action
-description: Surface executable stories in pull requests, gate release candidates, and record deployments.
----
+# executable-stories-action
 
-The [executable-stories-action](https://github.com/jagreehal/executable-stories-action) posts your story output directly into pull requests. Each PR gets a collapsible Markdown summary as a comment and the full HTML report as a downloadable artifact.
+Surface [executable-stories](https://github.com/jagreehal/executable-stories) test output in pull requests. Posts a Markdown summary as a PR comment and uploads the full HTML report as a downloadable artifact.
 
-> The action is developed in the [executable-stories monorepo](https://github.com/jagreehal/executable-stories/tree/main/packages/executable-stories-action) and mirrored to `jagreehal/executable-stories-action`, so `uses: jagreehal/executable-stories-action@v2` keeps working. File issues and PRs against the monorepo.
+Works with all supported frameworks — zero configuration for the common case.
 
-It also supports release workflows:
+> **Looking for the user-friendly docs?** See [executablestories.com/guides/github-action](https://executablestories.com/guides/github-action/).
 
-- `report` — default PR report mode
-- `gate-release` — compare a release candidate against a dev baseline
-- `deploy` — record a deployment in the environment ledger
+## Contents
 
-Works with all supported frameworks. Zero configuration for the common case.
+- [Quick start](#quick-start)
+- [Prerequisites](#prerequisites)
+- [How it works](#how-it-works)
+- [Examples by framework](#examples-by-framework)
+- [Recipes](#recipes)
+  - [Always post the comment, even on test failure](#always-post-the-comment-even-on-test-failure)
+  - [Multiple reports per PR](#multiple-reports-per-pr)
+  - [Render screenshots inline (opt-in)](#render-screenshots-inline-in-pr-comments-opt-in)
+  - [Custom output paths](#custom-output-paths)
+  - [Pinned formatter version](#pinned-formatter-version)
+  - [Using the action's outputs](#using-the-actions-outputs)
+- [Inputs](#inputs)
+- [Outputs](#outputs)
+- [Permissions](#permissions)
+- [What you see in PRs](#what-you-see-in-prs)
+- [Troubleshooting](#troubleshooting)
+- [FAQ](#faq)
+- [Supported frameworks](#supported-frameworks)
 
 ## Quick start
-
-Add to your workflow after the test step:
 
 ```yaml
 - uses: jagreehal/executable-stories-action@v2
@@ -31,16 +41,16 @@ The action does **not** run your tests — it surfaces the output of an `executa
 
 | Framework | Setup guide |
 |---|---|
-| Vitest | [Installation (Vitest)](/getting-started/installation-vitest/) |
-| Jest | [Installation (Jest)](/getting-started/installation-jest/) |
-| Playwright | [Installation (Playwright)](/getting-started/installation-playwright/) |
-| Cypress | [Installation (Cypress)](/getting-started/installation-cypress/) |
-| pytest | [Installation (pytest)](/getting-started/installation-pytest/) |
-| Go | [Installation (Go)](/getting-started/installation-go/) |
-| Rust | [Installation (Rust)](/getting-started/installation-rust/) |
-| Ruby (Minitest) | [Installation (Ruby)](/getting-started/installation-ruby/) |
-| JUnit 5 (Kotlin) | [Installation (JUnit 5)](/getting-started/installation-junit5/) |
-| xUnit (C#) | [Installation (xUnit)](/getting-started/installation-xunit/) |
+| Vitest | [Installation (Vitest)](https://executablestories.com/getting-started/installation-vitest/) |
+| Jest | [Installation (Jest)](https://executablestories.com/getting-started/installation-jest/) |
+| Playwright | [Installation (Playwright)](https://executablestories.com/getting-started/installation-playwright/) |
+| Cypress | [Installation (Cypress)](https://executablestories.com/getting-started/installation-cypress/) |
+| pytest | [Installation (pytest)](https://executablestories.com/getting-started/installation-pytest/) |
+| Go | [Installation (Go)](https://executablestories.com/getting-started/installation-go/) |
+| Rust | [Installation (Rust)](https://executablestories.com/getting-started/installation-rust/) |
+| Ruby (Minitest) | [Installation (Ruby)](https://executablestories.com/getting-started/installation-ruby/) |
+| JUnit 5 (Kotlin) | [Installation (JUnit 5)](https://executablestories.com/getting-started/installation-junit5/) |
+| xUnit (C#) | [Installation (xUnit)](https://executablestories.com/getting-started/installation-xunit/) |
 
 If your test command does not produce **either** `reports/test-results.{html,md}` **or** `.executable-stories/raw-run.json`, the action has nothing to surface and will fail with a "no reports found" error. See [Troubleshooting](#troubleshooting).
 
@@ -61,7 +71,7 @@ In both cases the action then:
 
 All examples assume you already have an executable-stories reporter configured (see [Prerequisites](#prerequisites)).
 
-### Vitest, Jest, Playwright
+### Vitest / Jest / Playwright
 
 The reporter generates HTML and Markdown directly:
 
@@ -279,70 +289,7 @@ You can run the action more than once per workflow — for example, separate Vit
           comment-title: Playwright Stories
 ```
 
-The `hashFiles(...)` guards skip the action when a test suite produced no output (e.g. an earlier suite errored before writing).
-
-### Gate a release candidate
-
-Use `mode: gate-release` when a release branch or release candidate must match the behavior already tested in dev:
-
-```yaml
-jobs:
-  release-gate:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - run: pnpm install
-      - run: pnpm test
-
-      - uses: jagreehal/executable-stories-action@v2
-        with:
-          mode: gate-release
-          gate-dev-run: reports/dev.raw-run.json
-          raw-run: .executable-stories/raw-run.json
-          report-dir: reports/release
-          output-name: rc-gate
-```
-
-The gate fails if scenarios from the dev baseline are missing from the release candidate, or if previously passing scenarios regress. Add `gate-fail-on-new: "true"` when new scenarios in the release candidate should fail the gate too.
-
-Allowed exceptions can be stored in a policy file:
-
-```json
-{
-  "allowedOmissions": ["src-checkout-story-test--legacy-coupon-flow"],
-  "allowedRegressions": []
-}
-```
-
-```yaml
-      - uses: jagreehal/executable-stories-action@v2
-        with:
-          mode: gate-release
-          gate-dev-run: reports/dev.raw-run.json
-          raw-run: reports/rc.raw-run.json
-          gate-release-policy: .executable-stories/release-policy.json
-```
-
-See [Release confidence](/guides/release-confidence/) for the CLI equivalent.
-
-### Record a deployment
-
-Use `mode: deploy` after a deployment step to record which scenario set is now live in an environment:
-
-```yaml
-      - uses: jagreehal/executable-stories-action@v2
-        with:
-          mode: deploy
-          raw-run: reports/prod.raw-run.json
-          deploy-env: production
-          deploy-tag: v2.4.0
-          deploy-ledger: .executable-stories/deployments.json
-```
-
-The ledger is written in the job workspace. Persist it as an artifact, cache, or committed release-evidence file if another job should compare environments later.
+The `hashFiles(...)` guards skip the action when a test suite produced no output (e.g. earlier suite errored before writing).
 
 ### Render screenshots inline in PR comments (opt-in)
 
@@ -370,11 +317,9 @@ What this does:
 - Per PR run, the action commits each screenshot to an orphan branch (`executable-stories-images` by default) under `pr-{number}/{run-id}/`
 - The PR comment is rewritten to use `https://raw.githubusercontent.com/...` URLs so images render inline
 - The branch is created automatically on first use, with a small README explaining what it is. Old `pr-*/` directories are safe to delete at any time
-- If the upload fails (for example, `contents: write` is not granted, or a concurrent run races on the ref), the action falls back to placeholder mode and posts a warning. The comment still renders cleanly.
+- If the upload fails (e.g. `contents: write` not granted, or a concurrent run races on the ref), the action falls back to placeholder mode and posts a warning. The comment still renders cleanly.
 
-:::caution[Concurrency note]
-The action commits using the GitHub Git Data API by referencing the branch's current tip as the parent. If two PR runs touch the same `images-branch` simultaneously, the second `updateRef` call will fail with a non-fast-forward error and the action will fall back to placeholders for that run. There is no retry currently. For most repos this is rare; if you regularly run many parallel PRs and need bullet-proof inline images, give each workflow a different `images-branch`, or serialize PR runs with `concurrency: group: ${{ github.ref }}`.
-:::
+> **Concurrency note.** The action commits using the GitHub Git Data API by referencing the branch's current tip as the parent. If two PR runs touch the same `images-branch` simultaneously, the second `updateRef` call will fail with a non-fast-forward error and the action will fall back to placeholders for that run. There's no retry yet — see [executable-stories-action#1](https://github.com/jagreehal/executable-stories-action/pull/1) for context. For most repos this is rare; if you regularly run many parallel PRs and need bullet-proof inline images, consider giving each workflow a different `images-branch`.
 
 ### Custom output paths
 
@@ -408,13 +353,84 @@ Pin the `executable-stories` CLI version that the action downloads (only relevan
           echo "html: ${{ steps.stories.outputs.html-report-path }}"
           echo "md:   ${{ steps.stories.outputs.markdown-report-path }}"
           echo "comment id: ${{ steps.stories.outputs.comment-id }}"
+
+      - name: Reply to the comment with a chained note
+        if: github.event_name == 'pull_request' && steps.stories.outputs.comment-id != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `Stories comment id: ${{ steps.stories.outputs.comment-id }}`,
+            });
 ```
+
+### Gate a release against a dev baseline (`mode: gate-release`)
+
+Fail the build if a release candidate regresses, drops, or (optionally) adds scenarios versus a known-good dev run. The comparison report is uploaded as an artifact and the `gate-failed` output is set.
+
+```yaml
+- uses: jagreehal/executable-stories-action@v2
+  with:
+    mode: gate-release
+    raw-run: .executable-stories/rc-run.json        # the release candidate
+    gate-dev-run: .executable-stories/dev-run.json  # the baseline
+    # gate-fail-on-new: true                          # also fail on unexpected new scenarios
+    # gate-release-policy: .es/release-policy.json    # allow specific exceptions
+```
+
+By default regressions and removals fail the gate; new scenarios do not (`gate-fail-on-new: false`).
+
+### Record a deployment (`mode: deploy`)
+
+Append a deployment to an environment ledger so later runs (and `gate-release`) can reason about what's where.
+
+```yaml
+- uses: jagreehal/executable-stories-action@v2
+  with:
+    mode: deploy
+    deploy-env: production
+    deploy-tag: ${{ github.ref_name }}
+    # deploy-ledger: .executable-stories/deployments.json   # default
+```
+
+Persist the ledger (artifact, cache, or committed file) if later jobs should compare environments. The written path is exposed as `deploy-ledger-path`.
+
+### Living documentation — a deployable docs site
+
+A living-docs site is no longer a mode of this action. It comes from a committed Astro project, so the site is a normal part of your repo you can theme, extend with hand-written guides, and deploy with any static host.
+
+Scaffold it once:
+
+```bash
+npx --package executable-stories-formatters executable-stories init-astro docs-site
+```
+
+Commit `docs-site/` and point its `executable-stories.config.mjs` at your run JSON (`reports/raw-run.json` by default). Then build and deploy it from your own workflow — the site reads the run JSON at build time, so each run only needs to refresh that JSON and rebuild:
+
+```yaml
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: pnpm install
+      - run: pnpm test                 # writes reports/raw-run.json
+      - run: pnpm --filter docs-site build   # astro build → docs-site/dist
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs-site/dist
+```
+
+See the [Astro docs-site guide](https://github.com/jagreehal/executable-stories/blob/main/apps/docs-site/src/content/docs/guides/astro-docs-site.md) for theming, audience grouping, and the "What's changed" view.
 
 ## Inputs
 
 | Input | Default | Description |
 |---|---|---|
-| `mode` | `report` | `report`, `gate-release`, or `deploy` |
+| `mode` | `report` | `report`, `review`, `gate-release`, or `deploy` |
 | `report-dir` | `reports` | Directory containing or receiving generated reports |
 | `output-name` | `test-results` | Base filename for reports (without extension) |
 | `raw-run` | `.executable-stories/raw-run.json` | Path to raw run JSON |
@@ -423,14 +439,20 @@ Pin the `executable-stories` CLI version that the action downloads (only relevan
 | `comment-title` | `Executable Stories` | Header text for the PR comment; also used as the marker that lets the action find and update its own comment on subsequent runs |
 | `host-images` | `false` | Set to `branch` to commit screenshots to an orphan branch and render them inline in the PR comment. Requires `contents: write`. See [Render screenshots inline](#render-screenshots-inline-in-pr-comments-opt-in). |
 | `images-branch` | `executable-stories-images` | Branch used when `host-images: branch`. Created as orphan on first use. |
-| `gate-dev-run` | — | `gate-release`: dev baseline raw run JSON |
-| `gate-fail-on-regression` | `true` | `gate-release`: regression check is enabled by default |
-| `gate-fail-on-removal` | `true` | `gate-release`: missing-scenario check is enabled by default |
-| `gate-fail-on-new` | `false` | `gate-release`: fail when the RC contains scenarios absent from dev |
-| `gate-release-policy` | — | `gate-release`: path to allowed omissions/regressions JSON |
-| `deploy-env` | — | `deploy`: environment name, e.g. `dev`, `staging`, `production` |
-| `deploy-tag` | — | `deploy`: optional tag or release label |
-| `deploy-ledger` | `.executable-stories/deployments.json` | `deploy`: ledger path |
+| `run-json` | — | (review) Path to the run JSON to correlate against the PR diff. Defaults to `raw-run` |
+| `base-ref` | — | (review) Base ref to diff against. Defaults to the PR base branch |
+| `changed-files` | — | (review) Optional precomputed changed-files file. If unset, computed from git |
+| `fail-on` | — | (review) Opt-in gate: `uncovered` or `weak` — fail when changed code lacks evidence |
+| `min-evidence` | — | (review) Opt-in gate: `weak`, `moderate`, or `strong` — fail when claims are below this strength |
+| `formatter-binary` | — | Path to a prebuilt `executable-stories` binary instead of downloading from Releases |
+| `gate-dev-run` | — | (gate-release) Path to the dev test run used as the baseline |
+| `gate-fail-on-regression` | `true` | (gate-release) Fail if scenarios regressed from dev to the RC |
+| `gate-fail-on-removal` | `true` | (gate-release) Fail if scenarios present in dev are missing from the RC |
+| `gate-fail-on-new` | `false` | (gate-release) Fail if the RC adds scenarios not in dev |
+| `gate-release-policy` | — | (gate-release) Path to a release-policy JSON with allowed exceptions |
+| `deploy-env` | — | (deploy) Environment name to record the deployment against (e.g. `staging`) |
+| `deploy-tag` | — | (deploy) Git tag for this deployment (e.g. `v1.2.3`) |
+| `deploy-ledger` | `.executable-stories/deployments.json` | (deploy) Path to the deployment ledger JSON |
 
 ## Outputs
 
@@ -439,8 +461,8 @@ Pin the `executable-stories` CLI version that the action downloads (only relevan
 | `html-report-path` | Path to the generated HTML report file |
 | `markdown-report-path` | Path to the generated Markdown report file |
 | `comment-id` | Numeric ID of the PR comment that was created or updated. Empty string when the action runs outside a `pull_request` event. |
-| `gate-failed` | `true` when `gate-release` detected a release gate failure |
-| `deploy-ledger-path` | Ledger path written in `deploy` mode |
+| `gate-failed` | (gate-release, review) `true`/`false` — whether the gate failed |
+| `deploy-ledger-path` | (deploy) Path to the deployment ledger written in deploy mode |
 
 ## Permissions
 
@@ -496,7 +518,7 @@ This is the default. GitHub blocks `data:` URIs in comment markdown, so inline b
 Two known causes:
 
 1. **Missing `contents: write` permission.** Add it to the workflow permissions block.
-2. **Concurrent run race.** Two simultaneous workflows tried to push to the same `images-branch` and the second `updateRef` lost the race. There is no retry currently. Workaround: serialize PR runs with `concurrency: group: ${{ github.ref }}`, or use a per-workflow `images-branch`.
+2. **Concurrent run race.** Two simultaneous workflows tried to push to the same `images-branch` and the second `updateRef` lost the race. There is no retry currently. Workaround: serialize PR runs (e.g. `concurrency: group: ${{ github.ref }}`), or use a per-workflow `images-branch`.
 
 ### `Schema validation failed` from the formatter binary
 
@@ -527,7 +549,7 @@ At minimum `pull-requests: write`. Add `contents: write` only if using `host-ima
 Yes — there is no automatic cleanup yet. Old `pr-*/` directories are safe to delete manually at any time (they are referenced by historical PR comments, but the comments degrade gracefully to broken-image icons). A cleanup recipe / retention input may land in a future release.
 
 **Where do I report bugs or request features?**
-[github.com/jagreehal/executable-stories/issues](https://github.com/jagreehal/executable-stories/issues) — the action is developed in the monorepo.
+[github.com/jagreehal/executable-stories-action/issues](https://github.com/jagreehal/executable-stories-action/issues)
 
 ## Supported frameworks
 
@@ -543,3 +565,7 @@ Yes — there is no automatic cleanup yet. Old `pr-*/` directories are safe to d
 | Ruby (Minitest) | Raw JSON | None |
 | JUnit 5 (Kotlin) | Raw JSON | None |
 | xUnit (C#) | Raw JSON | None |
+
+## License
+
+[MIT](LICENSE)

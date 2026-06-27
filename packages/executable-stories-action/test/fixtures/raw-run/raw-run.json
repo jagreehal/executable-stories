@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "testCases": [
+    {
+      "title": "adds two numbers",
+      "titlePath": ["example.test.ts", "adds two numbers"],
+      "status": "pass",
+      "sourceFile": "example.test.ts",
+      "sourceLine": 1,
+      "durationMs": 5,
+      "story": {
+        "scenario": "adds two numbers",
+        "steps": [
+          { "keyword": "Given", "text": "two numbers 1 and 2" },
+          { "keyword": "When", "text": "they are added" },
+          { "keyword": "Then", "text": "the result is 3" }
+        ]
+      }
+    }
+  ],
+  "startedAtMs": 1712345678000,
+  "finishedAtMs": 1712345679000,
+  "projectRoot": "/project"
+}

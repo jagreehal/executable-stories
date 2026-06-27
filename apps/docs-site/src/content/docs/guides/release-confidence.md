@@ -126,7 +126,7 @@ The action supports the same release workflow.
 Gate a release candidate:
 
 ```yaml
-- uses: jagreehal/executable-stories-action@v1
+- uses: jagreehal/executable-stories-action@v2
   with:
     mode: gate-release
     gate-dev-run: reports/dev.raw-run.json
@@ -138,7 +138,7 @@ Gate a release candidate:
 Record a deployment:
 
 ```yaml
-- uses: jagreehal/executable-stories-action@v1
+- uses: jagreehal/executable-stories-action@v2
   with:
     mode: deploy
     raw-run: reports/prod.raw-run.json

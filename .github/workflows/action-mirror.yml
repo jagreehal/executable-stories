@@ -1,0 +1,88 @@
+name: Mirror Action
+
+# packages/executable-stories-action is the source of truth. GitHub still resolves
+# `uses: jagreehal/executable-stories-action@v1` from a standalone repo, so this
+# workflow publishes the package subtree to that repo's root and floats the `v1`
+# tag to the new commit.
+#
+# Requires repo secret ACTION_MIRROR_TOKEN: a PAT (or fine-grained token) with
+# contents:write on jagreehal/executable-stories-action.
+#
+# Versioning. A major tag (`v2`) FLOATS to the latest backward-compatible release
+# on that line; an exact tag (`v2.0.0`) is immutable. Push-to-main only syncs the
+# mirror's main branch — it never tags. To cut a release, run this workflow
+# manually with `release-tag` (e.g. v2.0.0): it creates the immutable tag and
+# floats its major. Breaking changes (like dropping portal mode) get a NEW major
+# — leave `v1` pinned to the last portal-capable commit and publish `v2.0.0`.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/executable-stories-action/**"
+      - ".github/workflows/action-mirror.yml"
+  workflow_dispatch:
+    inputs:
+      release-tag:
+        description: "Cut a release, e.g. v2.0.0 — creates the immutable tag and floats its major (v2). Leave blank to only sync main."
+        type: string
+        default: ""
+
+concurrency:
+  group: action-mirror
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout monorepo
+        uses: actions/checkout@v6
+
+      - name: Clone mirror repo
+        env:
+          MIRROR_TOKEN: ${{ secrets.ACTION_MIRROR_TOKEN }}
+        run: |
+          git clone "https://x-access-token:${MIRROR_TOKEN}@github.com/jagreehal/executable-stories-action.git" mirror
+
+      - name: Sync subtree into mirror
+        run: |
+          rsync -a --delete \
+            --exclude='.git/' \
+            packages/executable-stories-action/ mirror/
+
+      - name: Commit, push, and tag
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+          RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release-tag || '' }}
+        run: |
+          cd mirror
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Mirror already up to date — no content change to push."
+          else
+            git commit -m "chore: sync from executable-stories@${SOURCE_SHA}"
+            git push origin HEAD:main
+          fi
+
+          if [[ -n "${RELEASE_TAG}" ]]; then
+            if [[ ! "${RELEASE_TAG}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "::error::release-tag must look like v2.0.0 (got '${RELEASE_TAG}')"
+              exit 1
+            fi
+            MAJOR="${RELEASE_TAG%%.*}"   # v2.0.0 -> v2
+            if git rev-parse -q --verify "refs/tags/${RELEASE_TAG}" >/dev/null; then
+              echo "::error::tag ${RELEASE_TAG} already exists in the mirror — bump the version"
+              exit 1
+            fi
+            git tag "${RELEASE_TAG}"          # immutable exact release
+            git push origin "${RELEASE_TAG}"
+            git tag -f "${MAJOR}"             # floating major → newest compatible
+            git push -f origin "${MAJOR}"
+            echo "Cut ${RELEASE_TAG} and floated ${MAJOR} to the same commit."
+          fi
