@@ -2,9 +2,8 @@
 name: formatters-cli
 description: >
   executable-stories CLI: format, compare, gate-release, review, list, check,
-  goal, triage, validate, init-astro, build-docs (living-docs portal:
-  audience-split URLs, deep-link index, what's-changed page), and Atlassian
-  publish subcommands.
+  goal, triage, validate, init-astro (thin Astro site; live docs at /stories
+  via executable-stories-astro), and Atlassian publish subcommands.
   Pipeline: RawRun JSON from stdin or file, canonicalizeRun() normalization,
   and output formats (Astro, Confluence, HTML, Markdown, JUnit, Cucumber
   JSON/HTML/Messages, story-report-json, scenario-index-json,
@@ -21,8 +20,6 @@ library_version: "0.15.0"
 sources:
   - "jagreehal/executable-stories:packages/executable-stories-formatters/src/cli.ts"
   - "jagreehal/executable-stories:packages/executable-stories-formatters/src/index.ts"
-  - "jagreehal/executable-stories:packages/executable-stories-formatters/src/build-docs.ts"
-  - "jagreehal/executable-stories:packages/executable-stories-formatters/src/scenario-links.ts"
   - "jagreehal/executable-stories:apps/docs-site/src/content/docs/reference/formatters-api.md"
 ---
 
@@ -55,17 +52,8 @@ executable-stories compare baseline.json current.json \
 # Validate JSON against schema
 executable-stories validate raw-run.json
 
-# Scaffold Starlight docs site for themed story output
+# Scaffold a thin Astro docs site; run `astro dev` for live stories at /stories
 executable-stories init-astro story-docs
-
-# Build the living-docs site into a scaffolded Astro site (Explorer data,
-# story pages, bundled assets, deep-link index, overview page)
-executable-stories build-docs raw-run.json --site-dir story-docs
-
-# Build the audience-categorized "portal" with a what's-changed page
-executable-stories build-docs raw-run.json --site-dir story-docs \
-  --audience-split \
-  --baseline prev-story-report.json
 
 # Publish ADF to Atlassian (dry run first)
 executable-stories publish-confluence reports/test-results.adf.json --page-id 12345 --dry-run
@@ -152,11 +140,8 @@ const confluenceAdfJson = new ConfluenceFormatter().format(canonical);
 
 # HTML options
 --html-title "Test Report"
---html-theme dashboard        # default | corporate | terminal | minimal | dashboard | playful
---html-theme-picker           # Embed all CSS-only themes with a live picker
 --html-no-syntax-highlighting
 --html-no-mermaid
---html-no-markdown
 
 # Story synthesis
 --synthesize-stories          # Enabled by default
@@ -171,35 +156,15 @@ const confluenceAdfJson = new ConfluenceFormatter().format(canonical);
 --allow-missing-assets        # Warn on missing assets instead of failing
 ```
 
-### Living-docs portal (`build-docs`)
+### Living docs — `init-astro` + `astro dev`
 
-`build-docs` runs the whole living-docs pipeline in one step against a scaffolded Astro site (`init-astro` first). From a single raw run it writes, under the site:
-
-- `public/stories/story-report.json` — StoryReport v1 (the Scenario Explorer's data)
-- `public/stories/scenario-links.json` — **deep-link index** keyed by stable scenario id (`{ url, anchor, deepLink, audience, status }`); the contract external tools (Linear/Confluence/MCP) resolve against
-- `src/content/docs/stories/**` — one browsable page per source file (assets bundled to `public/stories/assets`)
-- `src/content/docs/stories/index.md` — **overview/landing** page with per-audience cards (pass/fail counts, failures-first deep links)
-- with `--baseline`: `public/stories/changes.json` + `stories/changes.md` — **what's-changed** (added/removed/regressed/fixed), and 🆕/✅/⚠️ badges baked onto changed scenario pages
-
-```bash
-# Flat layout (default — backward-compatible URLs /stories/<file>/)
-executable-stories build-docs raw-run.json --site-dir story-docs
-
-# Portal: audience-categorized URLs /stories/<engineer|stakeholder>/<file>/
-#   audience is derived (e2e/*.spec.* → stakeholder, else engineer; @audience:* tag overrides)
-executable-stories build-docs raw-run.json --site-dir story-docs --audience-split
-
-# Living portal: also emit the what's-changed page + per-scenario badges
-executable-stories build-docs raw-run.json --site-dir story-docs \
-  --audience-split --baseline prev-story-report.json
-```
-
-Flags & contracts:
-
-- `--audience-split` is **opt-in** (default flat). Turning it on changes every page URL, so existing bookmarks/deep links to `/stories/<file>/` would 404 — enable it deliberately (the GitHub Action's `mode: portal` defaults it on).
-- `--baseline <prev story-report.json>` is **strict**: a path that can't be read is a hard error (exit 4), never a silent "no changes". When a run produces no diff, any stale `changes.json`/`changes.md` from a prior run is removed.
-- The exported `buildScenarioLinks()` helper defaults `audienceSplit: false`, matching the CLI — pass `{ audienceSplit: true }` when pages were generated with the split.
-- Deploy the built site anywhere, or use the GitHub Action `mode: portal` (host-agnostic artifact, optional GitHub Pages).
+> **`build-docs` was removed.** The one-shot Markdown generator that wrote story
+> pages into a scaffold is gone; stories now render live from the run JSON via
+> the `executable-stories-astro` integration, with no Markdown-generation step.
+> Calling `executable-stories build-docs` prints a migration message. Use
+> **`init-astro` + `astro dev`** — see "Live docs for an agent loop" below. (For a
+> one-off single-page Markdown export, `format --format astro-markdown` still
+> exists.)
 
 ### Atlassian publishing
 
@@ -240,7 +205,7 @@ report/
 ### GitHub Actions usage
 
 ```yaml
-- run: npx executable-stories format .executable-stories/raw-run.json --format html --output-dir reports --asset-mode copy
+- run: npx --package executable-stories-formatters executable-stories format .executable-stories/raw-run.json --format html --output-dir reports --asset-mode copy
 - uses: actions/upload-artifact@v4
   with:
     name: test-report
@@ -365,17 +330,18 @@ executable-stories watch raw-run.json --format story-report-json,scenario-index-
 
 Regenerates the chosen reports whenever the raw-run file changes — keeps the live agent index (StoryReport JSON + scenario index) up to date during a coding loop without re-invoking `format` by hand.
 
-### serve — live docs URL for an agent loop
+### Live docs for an agent loop — Astro dev server
+
+The `serve` subcommand was **removed**. Live, hot-reloading docs now run on the Astro dev server via `executable-stories-astro`:
 
 ```bash
-executable-stories serve raw-run.json --port 4321 --output-dir reports
+executable-stories init-astro     # one-time: scaffold a thin Astro docs site
+# then, in parallel: your runner in watch mode + `astro dev` (pnpm dev) in the scaffolded site
 ```
 
-Like `watch`, but also serves the HTML report at a URL and pushes a browser reload (via SSE — no dependency) whenever the raw-run changes. Built for "loop engineering": kick off a multi-hour coding-agent loop, leave `serve` running, and watch the behaviour catalogue update in realtime.
+A content loader watches `raw-run.json`; when the loop rewrites it, the `/stories` pages and Scenario Explorer hot-reload in place. The shipped `Trajectory` component is the equivalent of the old delta strip — it pins a baseline when the dev server starts and shows *what changed since you started the loop* ("since you started: +2 passing, 1 regressed"). See the `astro-docs-site` and `agent-loops` guides.
 
-What a plain static server (e.g. `live-server reports/`) **cannot** do — and the reason this exists — is the **delta strip** above the report: it pins a baseline on the first run and shows *what changed since you started the loop* ("since you started: +2 passing, 1 regressed") plus the per-iteration delta, computed from the rename/move-resilient `compare` engine. HTML is generated automatically even if not in `--format`. Flags: `--port` (default 4321), `--host` (default 127.0.0.1).
-
-> Zero-install alternative for plain reload (no delta): run `live-server reports/` alongside your loop — the JS reporters rewrite `reports/test-results.html` each run, which live-server reloads on.
+> Zero-install alternative for plain reload (no trajectory): run `live-server reports/` alongside your loop — the JS reporters rewrite `reports/test-results.html` each run, which live-server reloads on.
 
 ### Other subcommands
 

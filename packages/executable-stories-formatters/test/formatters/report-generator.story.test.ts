@@ -4,7 +4,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { ReportGenerator } from "../../src/index";
-import { canonicalizeRun } from "../../src/converters/acl/index";
+import { canonicalizeRun } from "executable-stories-core/converters/acl/index";
 import { createRawRun, createMultiFileRun } from "../fixtures/raw-runs/basic";
 
 describe("Report Generator", () => {
@@ -39,29 +39,31 @@ describe("Report Generator", () => {
     }
   });
 
-  it("generates an HTML report with collapsed sections", async ({ task }) => {
+  it("generates the HTML report via the React renderer", async ({ task }) => {
     story.init(task);
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "formatters-"));
 
     try {
-      story.given("a test run and HTML options with startCollapsed enabled");
+      story.given("a test run and the html format");
       const run = canonicalizeRun(createRawRun());
       const generator = new ReportGenerator({
         formats: ["html"],
         outputDir: tempDir,
         outputName: "report",
         output: { mode: "aggregated" },
-        html: { startCollapsed: true },
       });
 
       story.when("the HTML report is generated");
       const result = await generator.generate(run);
       const htmlPaths = result.get("html");
 
-      story.then("the HTML file contains collapsed feature and scenario sections");
+      story.then("the HTML file is the standalone React report with its interactive island");
+      // The `html` report renders via executable-stories-react (the single
+      // renderer), so the docs site and the single-file report match.
       const html = fs.readFileSync(htmlPaths![0], "utf8");
-      expect(html).toContain('class="feature collapsed"');
-      expect(html).toContain('class="scenario collapsed"');
+      expect(html).toContain("<!DOCTYPE html>");
+      expect(html).toContain("es-report-island");
+      expect(html).toContain('id="es-report-data"');
     } finally {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }

@@ -1,0 +1,109 @@
+name: Action Test
+
+# Exercises packages/executable-stories-action against the formatter binary built
+# from THIS commit (via formatter-binary), not a published release. This is the
+# guard that keeps the action and the CLI in sync: if a CLI change removes or
+# renames a subcommand/flag the action relies on (format, review, gate-release,
+# deploy), this workflow goes red instead of the break surfacing in production.
+
+# Runs on push (any branch) when the action or the CLI it drives changes, so the
+# contract is exercised on PR branches too. Deliberately NOT on `pull_request`:
+# the action's report mode posts a PR comment on pull_request events, which needs
+# issues/pull-requests write — noise a contract test shouldn't generate. On push
+# the action's own `github.event_name == 'pull_request'` guard skips the comment,
+# leaving the detect → format → artifact contract under test.
+on:
+  push:
+    paths:
+      - "packages/executable-stories-action/**"
+      - "packages/executable-stories-formatters/**"
+      - ".github/workflows/action-test.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-binary:
+    name: Build formatter binary
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - name: Enable Corepack
+        run: corepack enable
+      - name: Install pnpm
+        run: corepack prepare pnpm@10.28.1 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build packages
+        run: pnpm build
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.2.0"
+      - name: Compile formatter binary
+        run: cd packages/executable-stories-formatters && pnpm run compile
+      - name: Upload binary
+        uses: actions/upload-artifact@v7
+        with:
+          name: action-test-binary
+          path: packages/executable-stories-formatters/executable-stories
+
+  raw-json:
+    name: "report: format raw run JSON with the built binary"
+    needs: build-binary
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v7
+        with:
+          name: action-test-binary
+          path: bin
+      - name: Stage raw run fixture
+        run: |
+          mkdir -p .executable-stories
+          cp packages/executable-stories-action/test/fixtures/raw-run/raw-run.json .executable-stories/raw-run.json
+      - name: Run action (raw JSON → report)
+        uses: ./packages/executable-stories-action
+        with:
+          report-dir: reports
+          output-name: test-results
+          formatter-binary: bin/executable-stories
+      - name: Assert reports were generated
+        run: |
+          test -f reports/test-results.html || { echo "missing reports/test-results.html"; exit 1; }
+          test -f reports/test-results.md   || { echo "missing reports/test-results.md"; exit 1; }
+          echo "Action produced HTML + Markdown from raw-run.json"
+
+  pre-generated:
+    name: "report: pass through pre-generated reports"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Stage pre-generated fixtures
+        run: cp -r packages/executable-stories-action/test/fixtures/reports reports
+      - name: Run action (pre-generated)
+        uses: ./packages/executable-stories-action
+        with:
+          report-dir: reports
+          output-name: test-results
+
+  missing-files:
+    name: "report: fail when no input exists"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Run action (should fail)
+        id: action
+        continue-on-error: true
+        uses: ./packages/executable-stories-action
+      - name: Verify failure
+        run: |
+          if [[ "${{ steps.action.outcome }}" != "failure" ]]; then
+            echo "Expected the action to fail when no reports or raw JSON exist"
+            exit 1
+          fi
+          echo "Action correctly failed"

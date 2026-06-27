@@ -1,4 +1,6 @@
-import { describe, it, expect } from "vitest";
+import { afterEach, describe, it, expect } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadConfig } from "../src/config.js";
@@ -31,5 +33,39 @@ describe("loadConfig", () => {
     await expect(
       loadConfig(path.join(fixturesDir, "no-default.config.js"))
     ).rejects.toThrow(/must export a default object/);
+  });
+
+  describe("auto-discovery with multiple config files", () => {
+    const originalCwd = process.cwd();
+    let tmpDir: string | undefined;
+
+    afterEach(() => {
+      process.chdir(originalCwd);
+      if (tmpDir) {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+        tmpDir = undefined;
+      }
+    });
+
+    it("throws (instead of silently shadowing) when both .mjs and .js configs exist", async () => {
+      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "es-config-"));
+      fs.writeFileSync(path.join(tmpDir, "executable-stories.config.mjs"), "export default {};");
+      fs.writeFileSync(path.join(tmpDir, "executable-stories.config.js"), "export default {};");
+      process.chdir(tmpDir);
+
+      await expect(loadConfig()).rejects.toThrow(/Multiple config files found/);
+    });
+
+    it("loads the single present config without --config", async () => {
+      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "es-config-"));
+      fs.writeFileSync(
+        path.join(tmpDir, "executable-stories.config.mjs"),
+        "export default { reportTitle: 'solo' };",
+      );
+      process.chdir(tmpDir);
+
+      const config = await loadConfig();
+      expect((config as { reportTitle?: string }).reportTitle).toBe("solo");
+    });
   });
 });

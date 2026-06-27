@@ -1,0 +1,384 @@
+name: "Executable Stories"
+description: "Surface BDD test stories in pull requests, gate releases against dev baselines, and track deployments across environments"
+author: "Jag Reehal"
+
+branding:
+  icon: "book-open"
+  color: "blue"
+
+inputs:
+  mode:
+    description: |
+      Action mode:
+        - "report" (default): surface BDD stories as PR comment + HTML artifact
+        - "review": generate an Evidence Review of the PR's changes — correlate the run to the diff and
+          band changed code as uncovered / weak / strong. Requires a run JSON (see run-json).
+        - "gate-release": verify a release candidate matches the dev test baseline
+        - "deploy": record a deployment to the environment ledger
+
+      For a living-docs site, scaffold once with `executable-stories init-astro` and
+      deploy with `astro build` in your own workflow (see the README). It is no longer
+      a mode of this action.
+    required: false
+    default: "report"
+  report-dir:
+    description: "Directory containing or receiving generated reports"
+    required: false
+    default: "reports"
+  output-name:
+    description: "Base filename for reports (without extension)"
+    required: false
+    default: "test-results"
+  raw-run:
+    description: "Path to raw run JSON (auto-detected if not set)"
+    required: false
+    default: ".executable-stories/raw-run.json"
+  formatter-version:
+    description: "Version of executable-stories binary to download (latest or semver)"
+    required: false
+    default: "latest"
+  artifact-name:
+    description: "Name for the uploaded GitHub artifact"
+    required: false
+    default: "executable-stories-report"
+  comment-title:
+    description: "Header text for the PR comment"
+    required: false
+    default: "Executable Stories"
+  host-images:
+    description: |
+      How to handle inline screenshots so GitHub renders them in the PR comment.
+        - "false" (default): replace inline base64 data URIs with a placeholder (full images remain in the HTML artifact). No write permissions needed.
+        - "branch": commit screenshots to an orphan branch on this repository and rewrite the markdown to reference raw.githubusercontent.com URLs. Requires `contents: write` permission on the workflow.
+    required: false
+    default: "false"
+  images-branch:
+    description: "Branch name used when host-images: branch. Created as an orphan branch on first use."
+    required: false
+    default: "executable-stories-images"
+  gate-dev-run:
+    description: "(gate-release) Path to the dev environment test run to use as baseline"
+    required: false
+  gate-fail-on-regression:
+    description: "(gate-release) Fail if scenarios regressed from dev to RC (default: true)"
+    required: false
+    default: "true"
+  gate-fail-on-removal:
+    description: "(gate-release) Fail if scenarios in dev are missing from RC (default: true)"
+    required: false
+    default: "true"
+  gate-fail-on-new:
+    description: "(gate-release) Fail if new scenarios appear in RC not in dev"
+    required: false
+    default: "false"
+  gate-release-policy:
+    description: "(gate-release) Path to release policy JSON with allowed exceptions"
+    required: false
+  deploy-env:
+    description: "(deploy) Environment name to record the deployment against (e.g. dev, staging, production)"
+    required: false
+  deploy-tag:
+    description: "(deploy) Git tag for this deployment (e.g. v1.2.3)"
+    required: false
+  deploy-ledger:
+    description: "(deploy) Path to deployment ledger JSON"
+    required: false
+    default: ".executable-stories/deployments.json"
+  run-json:
+    description: "(review mode) Path to the run JSON (raw or canonical) to correlate against the diff. Defaults to raw-run."
+    required: false
+    default: ""
+  base-ref:
+    description: "(review mode) Base ref to diff against. Defaults to the PR base branch (GITHUB_BASE_REF)."
+    required: false
+    default: ""
+  changed-files:
+    description: "(review mode) Optional precomputed changed-files file (JSON or `git diff --name-status` text). If unset, the action computes it from git."
+    required: false
+    default: ""
+  fail-on:
+    description: "(review mode) Opt-in gate: 'uncovered' or 'weak' — fail the check when changed code lacks evidence. Default: off."
+    required: false
+    default: ""
+  min-evidence:
+    description: "(review mode) Opt-in gate: 'weak' | 'moderate' | 'strong' — fail when any claim is below this strength. Default: off."
+    required: false
+    default: ""
+  formatter-binary:
+    description: "Path to a prebuilt executable-stories binary to use instead of downloading from Releases (for dev/testing before release)."
+    required: false
+    default: ""
+
+outputs:
+  html-report-path:
+    description: "Path to the HTML report file"
+    value: ${{ steps.paths.outputs.html }}
+  markdown-report-path:
+    description: "Path to the Markdown report file"
+    value: ${{ steps.paths.outputs.md }}
+  comment-id:
+    description: "ID of the created or updated PR comment"
+    value: ${{ steps.comment.outputs.comment-id }}
+  gate-failed:
+    description: "Whether the release gate failed (true/false)"
+    value: ${{ steps.detect.outputs.gate-failed }}
+  deploy-ledger-path:
+    description: "Path to the deployment ledger written in deploy mode"
+    value: ${{ steps.detect.outputs.deploy-ledger-path }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Detect and run
+      id: detect
+      shell: bash
+      run: bash "${{ github.action_path }}/scripts/detect-and-format.sh"
+      env:
+        MODE: ${{ inputs.mode }}
+        REPORT_DIR: ${{ inputs.report-dir }}
+        OUTPUT_NAME: ${{ inputs.output-name }}
+        RAW_RUN: ${{ inputs.raw-run }}
+        RUN_JSON: ${{ inputs.run-json }}
+        BASE_REF: ${{ inputs.base-ref }}
+        CHANGED_FILES: ${{ inputs.changed-files }}
+        FAIL_ON: ${{ inputs.fail-on }}
+        MIN_EVIDENCE: ${{ inputs.min-evidence }}
+        FORMATTER_VERSION: ${{ inputs.formatter-version }}
+        FORMATTER_BINARY: ${{ inputs.formatter-binary }}
+        GATE_DEV_RUN: ${{ inputs.gate-dev-run }}
+        GATE_FAIL_ON_REGRESSION: ${{ inputs.gate-fail-on-regression }}
+        GATE_FAIL_ON_REMOVAL: ${{ inputs.gate-fail-on-removal }}
+        GATE_FAIL_ON_NEW: ${{ inputs.gate-fail-on-new }}
+        GATE_RELEASE_POLICY: ${{ inputs.gate-release-policy }}
+        DEPLOY_ENV: ${{ inputs.deploy-env }}
+        DEPLOY_TAG: ${{ inputs.deploy-tag }}
+        DEPLOY_LEDGER: ${{ inputs.deploy-ledger }}
+        GH_TOKEN: ${{ github.token }}
+
+    - name: Set output paths
+      id: paths
+      shell: bash
+      run: |
+        echo "html=${{ inputs.report-dir }}/${{ inputs.output-name }}.html" >> "$GITHUB_OUTPUT"
+        echo "md=${{ inputs.report-dir }}/${{ inputs.output-name }}.md" >> "$GITHUB_OUTPUT"
+
+    - name: Upload HTML report
+      if: inputs.mode == 'report' || inputs.mode == 'review' || inputs.mode == 'gate-release'
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: ${{ inputs.report-dir }}/${{ inputs.output-name }}.html
+
+    - name: Post or update PR comment
+      id: comment
+      if: (inputs.mode == 'report' || inputs.mode == 'review' || inputs.mode == 'gate-release') && github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      env:
+        COMMENT_TITLE: ${{ inputs.comment-title }}
+        MD_PATH: ${{ inputs.report-dir }}/${{ inputs.output-name }}.md
+        ARTIFACT_NAME: ${{ inputs.artifact-name }}
+        HOST_IMAGES: ${{ inputs.host-images }}
+        IMAGES_BRANCH: ${{ inputs.images-branch }}
+      with:
+        script: |
+          const fs = require('fs');
+          const title = process.env.COMMENT_TITLE;
+          const mdPath = process.env.MD_PATH;
+          const artifactName = process.env.ARTIFACT_NAME;
+          const hostImages = (process.env.HOST_IMAGES || 'false').toLowerCase();
+          const imagesBranch = process.env.IMAGES_BRANCH || 'executable-stories-images';
+
+          // Read markdown content
+          let mdContent = '';
+          try {
+            mdContent = fs.readFileSync(mdPath, 'utf8');
+          } catch (e) {
+            core.warning(`Could not read markdown report at ${mdPath}: ${e.message}`);
+            return;
+          }
+
+          // host-images: branch — commit each inline base64 screenshot to an orphan
+          // branch and rewrite the markdown to reference the public raw URL, so the
+          // images render inline in the PR comment. Falls back to placeholder mode
+          // on any failure (e.g. missing contents: write permission).
+          if (hostImages === 'branch') {
+            try {
+              const owner = context.repo.owner;
+              const repo = context.repo.repo;
+              const prNumber = context.issue.number;
+              const runId = process.env.GITHUB_RUN_ID;
+
+              const dataUriRegex = /!\[([^\]]*)\]\(data:([^;)]+);base64,([^)]+)\)/g;
+              const matches = [];
+              let m;
+              while ((m = dataUriRegex.exec(mdContent)) !== null) {
+                matches.push({ full: m[0], alt: m[1], mime: m[2], base64: m[3] });
+              }
+
+              if (matches.length > 0) {
+                const slugify = (s) => (s || 'screenshot').toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-|-$/g, '').slice(0, 60) || 'screenshot';
+                const extFor = (mime) => ({
+                  'image/png': 'png',
+                  'image/jpeg': 'jpg',
+                  'image/gif': 'gif',
+                  'image/webp': 'webp',
+                  'image/svg+xml': 'svg',
+                }[mime] || 'bin');
+
+                // Ensure the images branch exists (create as orphan with a README on first use)
+                let branchSha = null;
+                try {
+                  const { data: ref } = await github.rest.git.getRef({ owner, repo, ref: `heads/${imagesBranch}` });
+                  branchSha = ref.object.sha;
+                } catch (e) {
+                  if (e.status !== 404) throw e;
+                  const { data: readmeBlob } = await github.rest.git.createBlob({
+                    owner, repo,
+                    content: '# Executable Stories Images\n\nAuto-generated by `jagreehal/executable-stories-action`. Each subdirectory holds screenshots from one PR run, referenced inline in the PR comment via `raw.githubusercontent.com` URLs. Safe to delete old `pr-*` directories at any time.\n',
+                    encoding: 'utf-8',
+                  });
+                  const { data: initialTree } = await github.rest.git.createTree({
+                    owner, repo,
+                    tree: [{ path: 'README.md', mode: '100644', type: 'blob', sha: readmeBlob.sha }],
+                  });
+                  const { data: initialCommit } = await github.rest.git.createCommit({
+                    owner, repo,
+                    message: 'chore: init executable-stories images branch',
+                    tree: initialTree.sha,
+                    parents: [],
+                  });
+                  await github.rest.git.createRef({
+                    owner, repo,
+                    ref: `refs/heads/${imagesBranch}`,
+                    sha: initialCommit.sha,
+                  });
+                  branchSha = initialCommit.sha;
+                }
+
+                const { data: baseCommit } = await github.rest.git.getCommit({ owner, repo, commit_sha: branchSha });
+
+                const treeEntries = [];
+                const replacements = [];
+                for (let i = 0; i < matches.length; i++) {
+                  const { full, alt, mime, base64 } = matches[i];
+                  const filename = `${String(i + 1).padStart(3, '0')}-${slugify(alt)}.${extFor(mime)}`;
+                  const path = `pr-${prNumber}/${runId}/${filename}`;
+                  const { data: blob } = await github.rest.git.createBlob({ owner, repo, content: base64, encoding: 'base64' });
+                  treeEntries.push({ path, mode: '100644', type: 'blob', sha: blob.sha });
+                  replacements.push({ original: full, alt, path });
+                }
+
+                const { data: newTree } = await github.rest.git.createTree({
+                  owner, repo,
+                  base_tree: baseCommit.tree.sha,
+                  tree: treeEntries,
+                });
+                const { data: newCommit } = await github.rest.git.createCommit({
+                  owner, repo,
+                  message: `images: PR #${prNumber} run ${runId}`,
+                  tree: newTree.sha,
+                  parents: [branchSha],
+                });
+                await github.rest.git.updateRef({
+                  owner, repo,
+                  ref: `heads/${imagesBranch}`,
+                  sha: newCommit.sha,
+                });
+
+                for (const r of replacements) {
+                  const url = `https://raw.githubusercontent.com/${owner}/${repo}/${newCommit.sha}/${r.path}`;
+                  mdContent = mdContent.replace(r.original, `![${r.alt}](${url})`);
+                }
+                core.info(`Hosted ${matches.length} image(s) on ${imagesBranch}@${newCommit.sha.slice(0, 7)}`);
+              }
+            } catch (e) {
+              core.warning(`host-images: branch failed (${e.message}); falling back to placeholder mode. Hint: ensure the workflow has \`permissions: contents: write\`.`);
+            }
+          }
+
+          // Replace any remaining inline base64 data URIs (the host-images branch path
+          // converted them to public URLs, so this only fires when host-images is off
+          // or the branch upload failed). GitHub blocks data: URIs in comments anyway.
+          // Matches: ![alt](data:<mime>;base64,<chars>)
+          let strippedImages = 0;
+          mdContent = mdContent.replace(
+            /!\[([^\]]*)\]\(data:[^;)]+;base64,[^)]+\)/g,
+            (_match, alt) => {
+              strippedImages++;
+              const label = alt && alt.trim() ? alt.trim() : 'Screenshot';
+              return `_📎 ${label} (see HTML report)_`;
+            }
+          );
+          if (strippedImages > 0) {
+            core.info(`Stripped ${strippedImages} inline base64 image(s) from PR comment`);
+          }
+
+          // Truncate at a markdown-safe boundary if still over GitHub's comment limit
+          // (~65536 chars). Cut on the last newline before the limit so we never split
+          // a token mid-stream.
+          const MAX_CONTENT = 55000;
+          let truncated = false;
+          if (mdContent.length > MAX_CONTENT) {
+            const slice = mdContent.substring(0, MAX_CONTENT);
+            const lastNewline = slice.lastIndexOf('\n');
+            mdContent = lastNewline > 0 ? slice.substring(0, lastNewline) : slice;
+            truncated = true;
+          }
+
+          // Build comment body
+          const marker = `<!-- executable-stories: ${title} -->`;
+          const runUrl = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`;
+          let body = `${marker}\n## ${title}\n\n`;
+          body += `<details>\n<summary>View Stories</summary>\n\n`;
+          body += mdContent + '\n';
+          if (truncated) {
+            body += '\n\n> **Report truncated.** Download the full HTML report for complete details.\n';
+          }
+          body += `\n</details>\n\n`;
+          body += `---\n[Download full HTML report](${runUrl}) (artifact: \`${artifactName}\`)\n`;
+
+          // Find existing comment
+          const { data: comments } = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+          });
+          const existing = comments.find(c => c.body && c.body.includes(marker));
+
+          let commentId;
+          if (existing) {
+            const { data: updated } = await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: existing.id,
+              body,
+            });
+            commentId = updated.id;
+            core.info(`Updated existing comment ${commentId}`);
+          } else {
+            const { data: created } = await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
+            commentId = created.id;
+            core.info(`Created comment ${commentId}`);
+          }
+
+          core.setOutput('comment-id', commentId);
+
+    - name: Enforce release gate
+      if: inputs.mode == 'gate-release' && steps.detect.outputs.gate-failed == 'true'
+      shell: bash
+      run: |
+        echo "::error::Release gate failed — RC does not match dev baseline."
+        echo "::error::Check the gate-release report artifact for details."
+        exit 1
+
+    - name: Enforce review gate
+      if: always() && inputs.mode == 'review' && steps.detect.outputs.gate-failed == 'true'
+      shell: bash
+      run: |
+        echo "::error::Evidence Review gate failed — changed code lacks sufficient evidence. See the PR comment or the HTML report artifact for the uncovered/weak files."
+        exit 1

@@ -164,4 +164,25 @@ describe("bundleAssets", () => {
     const assetsDir = path.join(reportsDir, "assets");
     expect(fs.readdirSync(assetsDir)).toHaveLength(2);
   });
+
+  it("rewrites the path in the embedded report JSON so the interactive island resolves the bundled asset", () => {
+    const shotPath = path.join(testResultsDir, "dashboard.png");
+    fs.writeFileSync(shotPath, "fake png");
+    const rel = path.relative(reportsDir, shotPath);
+
+    // An interactive report: a static <img> AND the embedded report JSON the
+    // island re-renders from, both referencing the same original path.
+    const html = `<html><body><div id="es-report-root"><img src="${rel}"></div><script type="application/json" id="es-report-data">{"features":[{"scenarios":[{"docEntries":[{"kind":"screenshot","path":"${rel}"}]}]}]}</script></body></html>`;
+    const htmlPath = path.join(reportsDir, "index.html");
+    fs.writeFileSync(htmlPath, html);
+
+    const result = bundleAssets(htmlPath);
+    expect(result.copiedCount).toBe(1);
+
+    const updatedHtml = fs.readFileSync(htmlPath, "utf8");
+    // The original path is gone from BOTH the <img> and the JSON payload.
+    expect(updatedHtml).not.toContain(`"${rel}"`);
+    expect(updatedHtml).toMatch(/<img src="assets\/dashboard-[a-f0-9]{8}\.png">/);
+    expect(updatedHtml).toMatch(/"path":"assets\/dashboard-[a-f0-9]{8}\.png"/);
+  });
 });

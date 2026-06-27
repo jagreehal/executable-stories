@@ -2,8 +2,8 @@
  * Basic test fixture for RawRun data.
  */
 
-import type { RawRun, RawTestCase } from "../../../src/types/raw";
-import type { StoryMeta } from "../../../src/types/story";
+import type { RawRun, RawTestCase } from "executable-stories-core/types/raw";
+import type { StoryMeta } from "executable-stories-core/types/story";
 
 /** Create a minimal story for testing */
 export function createStory(overrides: Partial<StoryMeta> = {}): StoryMeta {

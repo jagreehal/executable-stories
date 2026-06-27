@@ -28,10 +28,19 @@ ___temp
 **/docs
 !apps/docs-site/src/content/docs/
 !apps/demo-example/src/content/docs/
-!packages/executable-stories-formatters/templates/astro-starlight/src/content/docs/
+!apps/astro-example/src/content/docs/
+!packages/executable-stories-formatters/templates/astro-thin/src/content/docs/
 
 **/reports/
+# ...but keep the sample run data that ships with the scaffold template and the
+# astro example, so `init-astro` and the example populate stories on a clean checkout.
+!packages/executable-stories-formatters/templates/astro-thin/reports/
+!apps/astro-example/reports/
 .pnpm-store
+
+# Generated at build time from executable-stories-react's built assets
+# (see packages/executable-stories-formatters/scripts/embed-react-assets.mjs).
+packages/executable-stories-formatters/src/generated/
 
 # Gradle
 .gradle/
@@ -66,3 +75,6 @@ skills-lock.json
 .playwright-cli
 storybook-static/
 .claude/
+
+# Local design/planning docs (not committed)
+.plans/

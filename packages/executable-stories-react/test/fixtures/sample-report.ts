@@ -1,4 +1,4 @@
-import type { StoryReport } from "executable-stories-formatters";
+import type { StoryReport } from "executable-stories-core";
 
 export const minimalReport: StoryReport = {
   schemaVersion: "1.0",

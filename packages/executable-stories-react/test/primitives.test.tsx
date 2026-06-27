@@ -54,7 +54,7 @@ describe("<ReportFeatureList>", () => {
         <ReportFeatureList />
       </ReportRoot>,
     );
-    expect(container.querySelectorAll("section.es-feature")).toHaveLength(2);
+    expect(container.querySelectorAll('[data-slot="feature"]')).toHaveLength(2);
   });
 });
 
@@ -70,12 +70,12 @@ describe("<ReportFeature>", () => {
 describe("<ReportScenario>", () => {
   it("uses data-status attribute reflecting status", () => {
     const { container } = render(<ReportScenario scenario={mixedReport.features[0]!.scenarios[1]!} />);
-    expect(container.querySelector("article.es-scenario")?.getAttribute("data-status")).toBe("failed");
+    expect(container.querySelector('[data-slot="card"]')?.getAttribute("data-status")).toBe("failed");
   });
 
   it("renders tags as an aria-labeled list", () => {
     render(<ReportScenario scenario={passingReport.features[0]!.scenarios[0]!} />);
-    expect(screen.getByLabelText("Tags")).toBeInTheDocument();
+    expect(screen.getByLabelText("Tags and tickets")).toBeInTheDocument();
     expect(screen.getByText("smoke")).toBeInTheDocument();
   });
 });
@@ -83,7 +83,7 @@ describe("<ReportScenario>", () => {
 describe("<ReportEmpty>", () => {
   it("renders default message and is announced politely", () => {
     const { container } = render(<ReportEmpty />);
-    expect(container.querySelector(".es-empty")?.getAttribute("aria-live")).toBe("polite");
+    expect(container.querySelector('[data-slot="empty"]')?.getAttribute("aria-live")).toBe("polite");
     expect(screen.getByText("No scenarios in this report.")).toBeInTheDocument();
   });
 
@@ -130,6 +130,6 @@ describe("integration: empty data path", () => {
       </ReportRoot>,
     );
     expect(container.querySelectorAll("section.es-feature")).toHaveLength(0);
-    expect(container.querySelector(".es-empty")).toBeTruthy();
+    expect(container.querySelector('[data-slot="empty"]')).toBeTruthy();
   });
 });

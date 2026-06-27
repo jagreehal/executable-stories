@@ -9,7 +9,7 @@
     "preview": "astro preview"
   },
   "dependencies": {
-    "@astrojs/starlight": "^0.38.3",
+    "@astrojs/starlight": "^0.41.0",
     "@fontsource-variable/bricolage-grotesque": "^5.2.5",
     "@fontsource-variable/literata": "^5.2.5",
     "@fontsource/albert-sans": "^5.2.5",
@@ -19,8 +19,8 @@
     "@fontsource/jetbrains-mono": "^5.2.5",
     "@fontsource/vt323": "^5.2.5",
     "@fontsource/work-sans": "^5.2.5",
-    "astro": "^6.1.8",
-    "astro-mermaid": "^2.0.1",
+    "astro": "^7.0.0",
+    "astro-mermaid": "^2.1.0",
     "mermaid": "^11.14.0"
   }
 }

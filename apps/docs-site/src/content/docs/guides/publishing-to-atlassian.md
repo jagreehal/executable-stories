@@ -16,7 +16,7 @@ Confluence accepts pasted markdown, but the conversion is lossy — code blocks 
 Use `--format confluence` when you run the formatter. The output has extension `.adf.json`:
 
 ```bash
-npx executable-stories format raw-run.json \
+npx --package executable-stories-formatters executable-stories format raw-run.json \
   --format confluence \
   --output-dir reports
 # → reports/index.adf.json
@@ -56,7 +56,7 @@ Pass credentials via flags or env vars:
 The common case: you have a Confluence page and you want CI to keep it in sync with the latest test run.
 
 ```bash
-npx executable-stories publish-confluence reports/index.adf.json \
+npx --package executable-stories-formatters executable-stories publish-confluence reports/index.adf.json \
   --page-id 123456 \
   --base-url https://acme.atlassian.net/wiki
 ```
@@ -74,7 +74,7 @@ Override the page title with `--title "My Feature"` if you want the page renamed
 Supply `--space-id` and `--title` instead of `--page-id`:
 
 ```bash
-npx executable-stories publish-confluence reports/index.adf.json \
+npx --package executable-stories-formatters executable-stories publish-confluence reports/index.adf.json \
   --space-id 98765 \
   --title "Checkout — Living Documentation" \
   --parent-id 11111 \
@@ -90,7 +90,7 @@ npx executable-stories publish-confluence reports/index.adf.json \
 The safest default — appends a comment with your latest run. Nothing existing gets overwritten:
 
 ```bash
-npx executable-stories publish-jira reports/index.adf.json \
+npx --package executable-stories-formatters executable-stories publish-jira reports/index.adf.json \
   --issue PROJ-123 \
   --base-url https://acme.atlassian.net
 ```
@@ -108,7 +108,7 @@ The URL includes `focusedCommentId`, so clicking it scrolls straight to the new 
 If you want the ticket description to be the source of truth for what the feature does, use `--mode description`:
 
 ```bash
-npx executable-stories publish-jira reports/index.adf.json \
+npx --package executable-stories-formatters executable-stories publish-jira reports/index.adf.json \
   --issue PROJ-123 \
   --mode description \
   --base-url https://acme.atlassian.net
@@ -121,7 +121,7 @@ This **replaces** `fields.description` in full. Manually written context in the 
 Both publishers accept `--dry-run` — it validates the ADF, parses credentials, and prints the request plan without sending anything:
 
 ```bash
-npx executable-stories publish-jira reports/index.adf.json \
+npx --package executable-stories-formatters executable-stories publish-jira reports/index.adf.json \
   --issue PROJ-123 \
   --base-url https://acme.atlassian.net \
   --dry-run
@@ -165,11 +165,11 @@ jobs:
       - run: pnpm install
       - run: pnpm test
       - run: |
-          npx executable-stories format reports/raw-run.json \
+          npx --package executable-stories-formatters executable-stories format reports/raw-run.json \
             --format confluence \
             --output-dir reports
       - run: |
-          npx executable-stories publish-confluence reports/index.adf.json \
+          npx --package executable-stories-formatters executable-stories publish-confluence reports/index.adf.json \
             --page-id ${{ vars.CONFLUENCE_PAGE_ID }}
         env:
           CONFLUENCE_BASE_URL: ${{ vars.CONFLUENCE_BASE_URL }}
@@ -190,9 +190,9 @@ Run conditionally on test failure and post a comment with the results:
       - name: Publish failure summary to Jira
         if: steps.tests.outcome == 'failure'
         run: |
-          npx executable-stories format reports/raw-run.json \
+          npx --package executable-stories-formatters executable-stories format reports/raw-run.json \
             --format confluence --output-dir reports
-          npx executable-stories publish-jira reports/index.adf.json \
+          npx --package executable-stories-formatters executable-stories publish-jira reports/index.adf.json \
             --issue ${{ github.event.pull_request.title }} \
             --base-url ${{ vars.JIRA_BASE_URL }}
         env:

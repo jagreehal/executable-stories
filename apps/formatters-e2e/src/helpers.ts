@@ -1,40 +1,19 @@
 import type { Page } from "@playwright/test";
-import {
-  HtmlFormatter,
-  canonicalizeRun,
-  RunDiffHtmlFormatter,
-  diffRuns,
-} from "executable-stories-formatters";
+import { RunDiffHtmlFormatter, diffRuns } from "executable-stories-formatters";
 import type {
   RawRun,
   TestRunResult,
   RunDiffHtmlOptions,
-  HtmlOptions,
 } from "executable-stories-formatters";
 
-export type { RawRun, TestRunResult, HtmlOptions };
+export type { RawRun, TestRunResult };
 
 /**
- * Generate main report HTML and load it into a Playwright page.
- */
-export async function loadMainReport(
-  page: Page,
-  rawRun: RawRun,
-  options?: Partial<HtmlOptions>,
-): Promise<void> {
-  const run = canonicalizeRun(rawRun);
-  const formatter = new HtmlFormatter({
-    syntaxHighlighting: false,
-    mermaidEnabled: false,
-    markdownEnabled: false,
-    ...options,
-  });
-  const html = formatter.format(run);
-  await loadHtml(page, html);
-}
-
-/**
- * Generate diff report HTML and load it into a Playwright page.
+ * Generate run-diff report HTML and load it into a Playwright page.
+ *
+ * The main story report is rendered by executable-stories-react (covered by the
+ * React component-test tier + the Astro docs-site e2e), so only the run-diff
+ * report — which is still string-rendered — is exercised here.
  */
 export async function loadDiffReport(
   page: Page,

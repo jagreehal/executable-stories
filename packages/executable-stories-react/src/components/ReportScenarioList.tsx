@@ -1,4 +1,4 @@
-import type { ReportFeature } from "executable-stories-formatters";
+import type { ReportFeature } from "executable-stories-core";
 import { ReportScenario } from "./ReportScenario";
 
 export interface ReportScenarioListProps {

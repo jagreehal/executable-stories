@@ -1,0 +1,43 @@
+---
+/**
+ * Health dashboard — pass-rate + failing scenarios computed live from the
+ * `stories` collection, so the landing page always reflects whether the
+ * documented system is green right now.
+ */
+import { getCollection } from "astro:content";
+import "../styles/es.css"; // default styling for the es-health dashboard classes
+import { reportFromStoryEntries, summarizeHealth, storyEntries } from "executable-stories-astro";
+
+interface Props {
+  collection?: string;
+}
+const { collection = "stories" } = Astro.props;
+
+const entries = await getCollection(collection as "stories");
+const health = summarizeHealth(reportFromStoryEntries(storyEntries(entries)));
+const pct = Math.round(health.passRate * 100);
+---
+
+<section class="es-health" data-testid="health" data-pass-rate={pct}>
+  <div class="es-health__headline">
+    <span class="es-health__pct">{pct}%</span>
+    <span class="es-health__label">{health.passed}/{health.total} scenarios passing</span>
+  </div>
+  <ul class="es-health__counts">
+    <li class="is-passed">{health.passed} passed</li>
+    <li class="is-failed">{health.failed} failed</li>
+    <li class="is-skipped">{health.skipped} skipped</li>
+    <li class="is-pending">{health.pending} pending</li>
+  </ul>
+  {health.failing.length > 0 && (
+    <details class="es-health__failing" open>
+      <summary>{health.failing.length} failing</summary>
+      <ul>
+        {health.failing.map((f: { id: string; title: string; feature?: string }) => (
+          <li><code>{f.feature}</code> — {f.title}</li>
+        ))}
+      </ul>
+    </details>
+  )}
+  {health.empty && <p class="es-health__empty">No run yet — execute your tests to populate this.</p>}
+</section>

@@ -1,0 +1,16 @@
+---
+/**
+ * Stories index — Starlight variant. Injected by executableStories() at the
+ * route base ONLY when Starlight is detected (or forced via `shell`). Renders
+ * the shared StoriesIndexView INSIDE the Starlight shell (sidebar, search,
+ * theme) via <StarlightPage>. Safe to import @astrojs/starlight/components here:
+ * this file is only ever injected when Starlight is present.
+ */
+import StarlightPage from "@astrojs/starlight/components/StarlightPage.astro";
+import "../../styles/es.css";
+import StoriesIndexView from "../../components/StoriesIndexView.astro";
+---
+
+<StarlightPage frontmatter={{ title: "Stories", tableOfContents: false, prev: false, next: false }}>
+  <StoriesIndexView shell="starlight" />
+</StarlightPage>

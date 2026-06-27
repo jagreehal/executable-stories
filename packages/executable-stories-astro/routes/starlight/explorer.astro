@@ -1,0 +1,16 @@
+---
+/**
+ * Scenario Explorer — Starlight variant. Renders the shared server-HTML
+ * ExplorerView (same component the standalone route uses), so the docs site is
+ * fully static: no React island, no hydration. The search/status/tag filtering
+ * is plain inline JS inside ExplorerView. Falls back to the Astro empty state
+ * before the first run.
+ */
+import StarlightPage from "@astrojs/starlight/components/StarlightPage.astro";
+import "../../styles/es.css";
+import ExplorerView from "../../components/ExplorerView.astro";
+---
+
+<StarlightPage frontmatter={{ title: "Scenario Explorer", tableOfContents: false, prev: false, next: false }}>
+  <ExplorerView shell="starlight" />
+</StarlightPage>

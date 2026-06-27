@@ -11,7 +11,7 @@
  * CLI/Action layer — adapters stay diff-blind.
  */
 
-import type { TestRunResult, TestCaseResult, TestStatus } from "./test-result";
+import type { TestRunResult, TestCaseResult, TestStatus } from "executable-stories-core/types/test-result";
 
 /** Who a claim is addressed to. Derived from file convention (override via `audience:` tag). */
 export type ReviewAudience = "stakeholder" | "engineer";

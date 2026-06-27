@@ -9,7 +9,7 @@ import { Readable, Writable } from "node:stream";
 import { CucumberHtmlStream } from "@cucumber/html-formatter";
 import { CucumberMessagesFormatter } from "./cucumber-messages/index";
 import type { CucumberMessagesOptions } from "./cucumber-messages/index";
-import type { TestRunResult } from "../types/test-result";
+import type { TestRunResult } from "executable-stories-core/types/test-result";
 
 export interface CucumberHtmlOptions {
   /** Options forwarded to the underlying CucumberMessagesFormatter */

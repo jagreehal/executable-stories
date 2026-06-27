@@ -8,7 +8,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 
 import { ReportGenerator } from "../../src/index";
-import { canonicalizeRun } from "../../src/converters/acl/index";
+import { canonicalizeRun } from "executable-stories-core/converters/acl/index";
 import {
   createTestCase,
   createRawRun,
@@ -36,7 +36,7 @@ describe("Astro format integration", () => {
       const tempDir = makeTempDir();
 
       const generator = new ReportGenerator({
-        formats: ["astro"],
+        formats: ["astro-markdown"],
         outputDir: tempDir,
         outputName: "stories",
         output: { mode: "aggregated" },
@@ -44,7 +44,7 @@ describe("Astro format integration", () => {
 
       const run = canonicalizeRun(createMultipleTestCasesRun());
       const result = await generator.generate(run);
-      const astroPaths = result.get("astro");
+      const astroPaths = result.get("astro-markdown");
 
       expect(astroPaths).toBeTruthy();
       expect(astroPaths).toHaveLength(1);
@@ -56,7 +56,7 @@ describe("Astro format integration", () => {
       const tempDir = makeTempDir();
 
       const generator = new ReportGenerator({
-        formats: ["astro"],
+        formats: ["astro-markdown"],
         outputDir: tempDir,
         outputName: "stories",
         output: { mode: "aggregated" },
@@ -64,7 +64,7 @@ describe("Astro format integration", () => {
 
       const run = canonicalizeRun(createMultipleTestCasesRun());
       const result = await generator.generate(run);
-      const astroPaths = result.get("astro");
+      const astroPaths = result.get("astro-markdown");
 
       const content = fs.readFileSync(astroPaths![0], "utf8");
 
@@ -85,7 +85,7 @@ describe("Astro format integration", () => {
       const tempDir = makeTempDir();
 
       const generator = new ReportGenerator({
-        formats: ["astro"],
+        formats: ["astro-markdown"],
         outputDir: tempDir,
         outputName: "stories",
         output: { mode: "aggregated" },
@@ -93,7 +93,7 @@ describe("Astro format integration", () => {
 
       const run = canonicalizeRun(createMultipleTestCasesRun());
       const result = await generator.generate(run);
-      const astroPaths = result.get("astro");
+      const astroPaths = result.get("astro-markdown");
 
       const content = fs.readFileSync(astroPaths![0], "utf8");
 
@@ -105,7 +105,7 @@ describe("Astro format integration", () => {
       const tempDir = makeTempDir();
 
       const generator = new ReportGenerator({
-        formats: ["astro"],
+        formats: ["astro-markdown"],
         outputDir: tempDir,
         outputName: "stories",
         output: { mode: "aggregated" },
@@ -113,7 +113,7 @@ describe("Astro format integration", () => {
 
       const run = canonicalizeRun(createMultipleTestCasesRun());
       const result = await generator.generate(run);
-      const astroPaths = result.get("astro");
+      const astroPaths = result.get("astro-markdown");
 
       const content = fs.readFileSync(astroPaths![0], "utf8");
 
@@ -126,7 +126,7 @@ describe("Astro format integration", () => {
       const tempDir = makeTempDir();
 
       const generator = new ReportGenerator({
-        formats: ["astro"],
+        formats: ["astro-markdown"],
         outputDir: tempDir,
         outputName: "stories",
         output: { mode: "aggregated" },
@@ -134,7 +134,7 @@ describe("Astro format integration", () => {
 
       const run = canonicalizeRun(createMultipleTestCasesRun());
       const result = await generator.generate(run);
-      const astroPaths = result.get("astro");
+      const astroPaths = result.get("astro-markdown");
 
       const content = fs.readFileSync(astroPaths![0], "utf8");
 
@@ -147,7 +147,7 @@ describe("Astro format integration", () => {
       const tempDir = makeTempDir();
 
       const generator = new ReportGenerator({
-        formats: ["astro"],
+        formats: ["astro-markdown"],
         outputDir: tempDir,
         outputName: "stories",
         output: { mode: "colocated" },
@@ -155,7 +155,7 @@ describe("Astro format integration", () => {
 
       const run = canonicalizeRun(createMultiFileRun());
       const result = await generator.generate(run);
-      const astroPaths = result.get("astro");
+      const astroPaths = result.get("astro-markdown");
 
       expect(astroPaths).toBeTruthy();
       // createMultiFileRun has 3 test cases across 3 source files
@@ -170,7 +170,7 @@ describe("Astro format integration", () => {
       const tempDir = makeTempDir();
 
       const generator = new ReportGenerator({
-        formats: ["astro"],
+        formats: ["astro-markdown"],
         outputDir: tempDir,
         outputName: "stories",
         output: { mode: "colocated" },
@@ -178,7 +178,7 @@ describe("Astro format integration", () => {
 
       const run = canonicalizeRun(createMultiFileRun());
       const result = await generator.generate(run);
-      const astroPaths = result.get("astro");
+      const astroPaths = result.get("astro-markdown");
 
       expect(astroPaths).toBeTruthy();
 
@@ -203,14 +203,14 @@ describe("Astro format integration", () => {
     it("flat style writes one cleanly-named page per file, titled by its suite", async () => {
       const tempDir = makeTempDir();
       const generator = new ReportGenerator({
-        formats: ["astro"],
+        formats: ["astro-markdown"],
         outputDir: tempDir,
         outputName: "index",
         output: { mode: "colocated", colocatedStyle: "flat" },
       });
 
       const run = canonicalizeRun(createMultiFileRun());
-      const paths = (await generator.generate(run)).get("astro")!;
+      const paths = (await generator.generate(run)).get("astro-markdown")!;
 
       // Flat: files sit directly under outputDir, named by their clean stem —
       // no mirrored subdirs, no ".index" infix.
@@ -229,14 +229,14 @@ describe("Astro format integration", () => {
     it("aggregated mode keeps the configured title across all files", async () => {
       const tempDir = makeTempDir();
       const generator = new ReportGenerator({
-        formats: ["astro"],
+        formats: ["astro-markdown"],
         outputDir: tempDir,
         outputName: "index",
         output: { mode: "aggregated" },
       });
 
       const run = canonicalizeRun(createMultiFileRun());
-      const paths = (await generator.generate(run)).get("astro")!;
+      const paths = (await generator.generate(run)).get("astro-markdown")!;
       expect(fs.readFileSync(paths[0], "utf8")).toContain("title: User Stories");
     });
   });
@@ -250,7 +250,7 @@ describe("Astro format integration", () => {
 
       const assetsDir = path.join(tempDir, "public/stories/assets");
       const generator = new ReportGenerator({
-        formats: ["astro"],
+        formats: ["astro-markdown"],
         outputDir,
         outputName: "stories",
         output: { mode: "aggregated" },
@@ -290,11 +290,35 @@ describe("Astro format integration", () => {
       );
 
       const result = await generator.generate(run);
-      const astroPaths = result.get("astro");
+      const astroPaths = result.get("astro-markdown");
       const content = fs.readFileSync(astroPaths![0], "utf8");
 
       expect(content).toContain("/stories/assets/");
       expect(fs.existsSync(path.join(tempDir, "public", "stories", "assets"))).toBe(true);
+    });
+  });
+
+  describe("deprecated 'astro' format alias", () => {
+    it("accepts the old 'astro' name programmatically and emits astro-markdown (no throw)", async () => {
+      const tempDir = makeTempDir();
+
+      const generator = new ReportGenerator({
+        // The renamed-but-still-accepted alias — a programmatic/config caller
+        // upgrading should keep working, not crash.
+        formats: ["astro"],
+        outputDir: tempDir,
+        outputName: "stories",
+        output: { mode: "aggregated" },
+      });
+
+      const run = canonicalizeRun(createMultipleTestCasesRun());
+      const result = await generator.generate(run);
+
+      // Normalised to the canonical key, and a real file is produced.
+      const astroPaths = result.get("astro-markdown");
+      expect(astroPaths).toHaveLength(1);
+      expect(fs.existsSync(astroPaths![0])).toBe(true);
+      expect(result.get("astro")).toBeUndefined();
     });
   });
 });

@@ -3,19 +3,42 @@ interface Props {
   src: string;
   alt: string;
   caption?: string;
+  /** When set, the screenshot links to a live, interactive report. */
+  href?: string;
 }
 
-const { src, alt, caption } = Astro.props;
+const { src, alt, caption, href } = Astro.props;
 ---
 
 <figure class="report-screenshot">
   <div class="report-screenshot__header">
     <span class="report-screenshot__label">Report Output</span>
     <span class="report-screenshot__sublabel">what this code generates</span>
+    {
+      href && (
+        <a class="report-screenshot__live" href={href} target="_blank" rel="noopener">
+          Open live report ↗
+        </a>
+      )
+    }
   </div>
-  <div class="report-screenshot__image-wrap">
-    <img src={src} alt={alt} loading="lazy" decoding="async" />
-  </div>
+  {
+    href ? (
+      <a
+        class="report-screenshot__image-wrap"
+        href={href}
+        target="_blank"
+        rel="noopener"
+        aria-label="Open the live interactive report in a new tab"
+      >
+        <img src={src} alt={alt} loading="lazy" decoding="async" />
+      </a>
+    ) : (
+      <div class="report-screenshot__image-wrap">
+        <img src={src} alt={alt} loading="lazy" decoding="async" />
+      </div>
+    )
+  }
   {caption && <figcaption class="report-screenshot__caption">{caption}</figcaption>}
 </figure>
 
@@ -48,6 +71,24 @@ const { src, alt, caption } = Astro.props;
   .report-screenshot__sublabel {
     font-size: 0.75rem;
     color: var(--sl-color-gray-4);
+  }
+
+  .report-screenshot__live {
+    margin-left: auto;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--sl-color-accent);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .report-screenshot__live:hover {
+    text-decoration: underline;
+  }
+
+  a.report-screenshot__image-wrap {
+    display: block;
+    cursor: pointer;
   }
 
   .report-screenshot__image-wrap {

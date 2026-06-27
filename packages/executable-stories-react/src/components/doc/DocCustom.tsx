@@ -1,4 +1,4 @@
-import type { ReportDocCustom } from "executable-stories-formatters";
+import type { ReportDocCustom } from "executable-stories-core";
 import { useCustomRenderers } from "../../hooks/useRenderers";
 
 export function DocCustom({ entry }: { entry: ReportDocCustom }) {
@@ -8,9 +8,11 @@ export function DocCustom({ entry }: { entry: ReportDocCustom }) {
     return <>{renderer(entry)}</>;
   }
   return (
-    <div className="es-doc es-doc-custom" data-type={entry.type}>
-      <p className="es-doc-custom-type">{entry.type}</p>
-      <pre>{safeStringify(entry.data)}</pre>
+    <div className="my-2" data-type={entry.type}>
+      <p className="mb-1 text-xs font-medium text-muted-foreground">{entry.type}</p>
+      <pre tabIndex={0} className="overflow-x-auto rounded-md bg-muted p-3 font-mono text-xs text-foreground">
+        {safeStringify(entry.data)}
+      </pre>
     </div>
   );
 }

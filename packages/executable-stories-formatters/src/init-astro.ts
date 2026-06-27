@@ -13,37 +13,31 @@ export interface InitAstroOptions {
   targetDir?: string;
   force?: boolean;
   /**
-   * Refresh only the framework files (components, lib, styles, explorer page,
-   * tsconfig) and merge any new framework dependencies, leaving your content
-   * (ADRs, runbooks, stories), astro.config, and existing deps untouched. Lets
-   * an existing site adopt template/design improvements safely.
+   * Merge any new template dependencies into an existing scaffolded site,
+   * leaving your content (ADRs, runbooks, stories), astro.config, and existing
+   * deps untouched. The framework itself (loader, story route, render-doc-entry)
+   * ships inside `executable-stories-astro`, so framework updates arrive via
+   * `pnpm update executable-stories-astro` — `--update` only reconciles deps.
    */
   update?: boolean;
 }
 
 export interface InitAstroResult {
   targetDir: string;
-  /** Files refreshed by an `update` run (relative to the site root). */
-  updatedFiles?: string[];
 }
 
-/**
- * Framework directories owned by the template — safe to overwrite on update
- * because users put their own work in src/content/docs, astro.config, and
- * package.json, never here.
- */
-const FRAMEWORK_DIRS = ["src/components", "src/lib", "src/styles", "src/pages"];
-/** Framework files refreshed on update (the @components alias lives in tsconfig). */
-const FRAMEWORK_FILES = ["tsconfig.json"];
+/** The distinctive file the scaffold writes; the marker for "this is ours". */
+export const SCAFFOLD_MARKER = "executable-stories.config.mjs";
 
 /**
- * A scaffolded Astro docs site is identified by its astro.config.mjs. Single
- * source of truth for the check, shared by `init-astro --update` and
- * `build-docs` (which both refuse to operate on a non-scaffolded directory).
- * existsSync on the joined path is also false when `dir` itself is missing.
+ * A scaffolded Astro docs site is identified by its `executable-stories.config.mjs`
+ * — NOT just `astro.config.mjs`, which any Astro app has. Using the distinctive
+ * marker stops `init-astro --update` from silently mutating an unrelated Astro
+ * project (merging template deps into it). existsSync is also false when `dir`
+ * itself is missing.
  */
 export function isScaffoldedAstroSite(dir: string): boolean {
-  return fs.existsSync(path.join(dir, "astro.config.mjs"));
+  return fs.existsSync(path.join(dir, SCAFFOLD_MARKER));
 }
 
 export function initAstro(options: InitAstroOptions = {}): InitAstroResult {
@@ -51,9 +45,10 @@ export function initAstro(options: InitAstroOptions = {}): InitAstroResult {
   const force = options.force ?? false;
   const update = options.update ?? false;
 
-  // Template is at: <package-root>/templates/astro-starlight/
-  // Includes Starlight with 6 theme overrides matching HTML report themes.
-  const templateDir = path.resolve(__dirname, "..", "templates", "astro-starlight");
+  // Thin scaffold: Starlight + the executable-stories-astro integration. The
+  // framework (loader, story route, render-doc-entry) lives in the package, not
+  // in the copied files — so the scaffold is ~8 user-owned files.
+  const templateDir = path.resolve(__dirname, "..", "templates", "astro-thin");
 
   if (!fs.existsSync(templateDir)) {
     throw new Error(
@@ -62,14 +57,17 @@ export function initAstro(options: InitAstroOptions = {}): InitAstroResult {
   }
 
   if (update) {
-    return updateFrameworkFiles(templateDir, targetDir);
+    return updateScaffoldDeps(templateDir, targetDir);
   }
 
   if (fs.existsSync(targetDir)) {
     const entries = fs.readdirSync(targetDir);
     if (entries.length > 0 && !force) {
       throw new Error(
-        `Directory "${targetDir}" already exists and is not empty. Use --force to overwrite, or --update to refresh framework files only.`,
+        `Directory "${targetDir}" already exists and is not empty. ` +
+          `Use --force to overlay the template (existing files are kept; ` +
+          `same-path template files are overwritten), or --update to refresh ` +
+          `framework files only.`,
       );
     }
   }
@@ -79,42 +77,29 @@ export function initAstro(options: InitAstroOptions = {}): InitAstroResult {
 }
 
 /**
- * Refresh framework files in an existing site without touching content/config.
+ * Reconcile template dependencies into an existing site without touching
+ * content/config. The framework ships in `executable-stories-astro`, so there
+ * are no framework files to refresh — only new deps to merge in.
  */
-function updateFrameworkFiles(templateDir: string, targetDir: string): InitAstroResult {
+function updateScaffoldDeps(templateDir: string, targetDir: string): InitAstroResult {
   if (!isScaffoldedAstroSite(targetDir)) {
     throw new Error(
       `"${targetDir}" does not look like a scaffolded docs site. Run init-astro (without --update) first.`,
     );
   }
 
-  const updated: string[] = [];
+  // Add any dependencies the template gained, keeping the user's deps and
+  // pinned versions intact.
+  mergeDependencies(templateDir, targetDir);
 
-  for (const dir of FRAMEWORK_DIRS) {
-    const src = path.join(templateDir, dir);
-    if (!fs.existsSync(src)) continue;
-    copyDirRecursive(src, path.join(targetDir, dir), (rel) => updated.push(path.join(dir, rel)));
-  }
-
-  for (const file of FRAMEWORK_FILES) {
-    const src = path.join(templateDir, file);
-    if (!fs.existsSync(src)) continue;
-    fs.copyFileSync(src, path.join(targetDir, file));
-    updated.push(file);
-  }
-
-  // Add any framework dependencies the template gained, keeping the user's deps
-  // and pinned versions intact.
-  if (mergeDependencies(templateDir, targetDir)) updated.push("package.json (deps)");
-
-  return { targetDir, updatedFiles: updated };
+  return { targetDir };
 }
 
-/** Add template deps missing from the target's package.json. Returns true if changed. */
-function mergeDependencies(templateDir: string, targetDir: string): boolean {
+/** Add template deps missing from the target's package.json. */
+function mergeDependencies(templateDir: string, targetDir: string): void {
   const tmplPkgPath = path.join(templateDir, "package.json");
   const userPkgPath = path.join(targetDir, "package.json");
-  if (!fs.existsSync(tmplPkgPath) || !fs.existsSync(userPkgPath)) return false;
+  if (!fs.existsSync(tmplPkgPath) || !fs.existsSync(userPkgPath)) return;
 
   const tmpl = JSON.parse(fs.readFileSync(tmplPkgPath, "utf8")) as {
     dependencies?: Record<string, string>;
@@ -134,15 +119,9 @@ function mergeDependencies(templateDir: string, targetDir: string): boolean {
   if (changed) {
     fs.writeFileSync(userPkgPath, `${JSON.stringify(user, null, 2)}\n`, "utf8");
   }
-  return changed;
 }
 
-function copyDirRecursive(
-  src: string,
-  dest: string,
-  onFile?: (relPath: string) => void,
-  baseSrc = src,
-): void {
+function copyDirRecursive(src: string, dest: string): void {
   fs.mkdirSync(dest, { recursive: true });
   const entries = fs.readdirSync(src, { withFileTypes: true });
   for (const entry of entries) {
@@ -152,10 +131,9 @@ function copyDirRecursive(
     const destName = entry.name === "gitignore" ? ".gitignore" : entry.name;
     const destPath = path.join(dest, destName);
     if (entry.isDirectory()) {
-      copyDirRecursive(srcPath, destPath, onFile, baseSrc);
+      copyDirRecursive(srcPath, destPath);
     } else {
       fs.copyFileSync(srcPath, destPath);
-      onFile?.(path.relative(baseSrc, srcPath));
     }
   }
 }

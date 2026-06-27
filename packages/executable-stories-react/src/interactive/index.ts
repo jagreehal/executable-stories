@@ -7,6 +7,10 @@
 
 export { ReportInteractive } from "./ReportInteractive";
 export type { ReportInteractiveProps } from "./ReportInteractive";
+export { ReportInteractiveIsland } from "./ReportInteractiveIsland";
+export type { ReportInteractiveIslandProps } from "./ReportInteractiveIsland";
+export { buildIslandRenderers } from "./island-renderers";
+export type { IslandRendererOptions } from "./island-renderers";
 export { ReportSearch } from "./ReportSearch";
 export type { ReportSearchProps } from "./ReportSearch";
 export { ReportFailureBanner } from "./ReportFailureBanner";

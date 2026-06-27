@@ -163,12 +163,14 @@ work for stories written in **any language** (TypeScript, Python, Go, Ruby,
 Java/Kotlin, Rust, C#).
 
 ```bash
-# 1. Scaffold the site (ships verified-by badges, a health dashboard, explorer)
+# 1. Scaffold the thin site (the executable-stories-astro integration ships the
+#    verified-by badges, health dashboard, and Scenario Explorer)
 executable-stories init-astro story-docs
 
-# 2. Generate story pages + report data from any test run
-executable-stories format run.json --format astro --output-dir story-docs/src/content/docs/stories --asset-mode copy
-executable-stories format run.json --format story-report-json --output-dir story-docs/public/stories --output-name story-report
+# 2. Run your tests to write run.json, then start the Astro dev server.
+#    The integration loads run.json as a live `stories` collection — pages at
+#    /stories hot-reload as tests re-run; no Markdown generation step.
+cd story-docs && npm install && npm run dev
 
 # 3. Start hand-written pages from a verified template
 executable-stories new adr "Cap combined discount at 30%"   # also: runbook, decision-log, incident

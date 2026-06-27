@@ -4,7 +4,7 @@
 
 import { describe, it, expect } from "vitest";
 import { JUnitFormatter } from "../../src/formatters/junit-xml";
-import { canonicalizeRun } from "../../src/converters/acl/index";
+import { canonicalizeRun } from "executable-stories-core/converters/acl/index";
 import {
   createRawRun,
   createMultipleTestCasesRun,

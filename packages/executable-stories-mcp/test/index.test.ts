@@ -93,10 +93,37 @@ describe("executable-stories-mcp utilities", () => {
   });
 
   it("exposes a runner registry keyed by framework", () => {
-    expect(Object.keys(RUNNERS).sort()).toEqual(["cypress", "jest", "playwright", "vitest"]);
+    expect(Object.keys(RUNNERS).sort()).toEqual([
+      "cypress",
+      "dotnet",
+      "go",
+      "jest",
+      "playwright",
+      "pytest",
+      "rust",
+      "vitest",
+    ]);
     expect(
       RUNNERS.vitest.buildCommand({ sourceFile: "a.test.ts", scenarioTitle: "x" }).args,
     ).toContain("-t");
+  });
+
+  it("builds focused-run commands for the non-JS runners", () => {
+    expect(RUNNERS.go.buildCommand({ sourceFile: "pkg/calc_story_test.go", scenarioTitle: "Adds" })).toEqual({
+      command: "go",
+      args: ["test", "./pkg", "-run", "Adds"],
+    });
+    expect(
+      RUNNERS.pytest.buildCommand({ sourceFile: "tests/test_calc_story.py", scenarioTitle: "adds" }).args,
+    ).toEqual(["tests/test_calc_story.py", "-k", "adds"]);
+    expect(RUNNERS.rust.buildCommand({ sourceFile: "tests/stories.rs", scenarioTitle: "adds" }).command).toBe("cargo");
+    expect(
+      RUNNERS.dotnet.buildCommand({ sourceFile: "CalcTest.cs", scenarioTitle: "adds" }).args,
+    ).toEqual(["test", "--filter", "DisplayName~adds"]);
+    // go/pytest auto-detect from their story-test suffixes; rust/dotnet do not.
+    expect(inferFrameworkFromSourceFile("pkg/calc_story_test.go")).toBe("go");
+    expect(inferFrameworkFromSourceFile("tests/test_calc_story.py")).toBe("pytest");
+    expect(inferFrameworkFromSourceFile("tests/stories.rs")).toBeUndefined();
   });
 
   it("finds scenario by id or title", () => {

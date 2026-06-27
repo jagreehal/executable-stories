@@ -99,7 +99,7 @@ describe("importOpenApi", () => {
     const transfersPage = fs.readFileSync(path.join(out, "transfers", "index.mdx"), "utf8");
     // The page mounts the <ApiOperations> component and passes the endpoint
     // data; presentation (badges, method pills) lives in the component.
-    expect(transfersPage).toContain("import ApiOperations from '@components/ApiOperations.astro'");
+    expect(transfersPage).toContain("import ApiOperations from 'executable-stories-astro/components/ApiOperations.astro'");
     expect(transfersPage).toContain("<ApiOperations");
     expect(transfersPage).toContain("hasRun={true}");
     expect(transfersPage).toContain('"status":"covered"');

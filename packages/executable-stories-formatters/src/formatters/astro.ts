@@ -8,8 +8,8 @@
 
 import { MarkdownFormatter } from "./markdown";
 import type { MarkdownOptions } from "./markdown";
-import type { TestRunResult, TestCaseResult } from "../types/test-result";
-import { humanizeSourceFile } from "../utils/source-file";
+import type { TestRunResult, TestCaseResult } from "executable-stories-core/types/test-result";
+import { humanizeSourceFile } from "executable-stories-core/utils/source-file";
 
 export interface StarlightBadge {
   text: string;

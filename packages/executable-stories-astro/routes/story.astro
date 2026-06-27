@@ -1,0 +1,38 @@
+---
+/**
+ * Story-detail route injected by executableStories() for NON-Starlight sites.
+ *
+ * One page per scenario in the `stories` collection. Standalone markup (own
+ * <html>/<body>, no Starlight dependency); the shared body lives in
+ * ScenarioDetailView so the Starlight variant can reuse it. This wrapper owns
+ * getStaticPaths and passes the resolved scenario down as a prop.
+ */
+import { getCollection } from "astro:content";
+import "../styles/es.css"; // default styling so the page is themed out of the box
+import { storyEntries } from "executable-stories-astro";
+import type { StoryEntryData } from "executable-stories-astro";
+import ScenarioDetailView from "../components/ScenarioDetailView.astro";
+// Resolved by the integration so the collection honours the config.
+import { collection } from "virtual:executable-stories/config";
+
+export async function getStaticPaths() {
+  const stories = storyEntries(await getCollection(collection));
+  return stories.map((s: StoryEntryData) => ({
+    params: { slug: s.slug },
+    props: { story: s },
+  }));
+}
+
+const s = Astro.props.story as StoryEntryData;
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{s.title} — Executable Stories</title>
+  </head>
+  <body>
+    <ScenarioDetailView story={s} shell="standalone" />
+  </body>
+</html>

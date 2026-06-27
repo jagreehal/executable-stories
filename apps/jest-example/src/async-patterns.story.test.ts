@@ -183,7 +183,10 @@ it('Working with timeouts and delays', async () => {
 
   story.then('elapsed time is measurable');
   const elapsed = endTime - startTime;
-  expect(elapsed).toBeGreaterThanOrEqual(50);
+  // A setTimeout(50) can measure slightly under 50ms once Date.now()'s
+  // millisecond rounding and timer coalescing are accounted for, so allow a
+  // small tolerance — the point is that a measurable delay happened.
+  expect(elapsed).toBeGreaterThanOrEqual(45);
 });
 
 // ============================================================================

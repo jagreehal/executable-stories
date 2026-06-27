@@ -1,0 +1,65 @@
+---
+title: First Story (Jest)
+description: Write your first Jest scenario and see the generated report output
+---
+
+import ReportScreenshot from '../../../components/ReportScreenshot.astro';
+
+## Write a story
+
+Create a test file (e.g. `src/login.story.test.ts`):
+
+```typescript
+import { expect } from '@jest/globals';
+import { story } from 'executable-stories-jest';
+
+describe('Login', () => {
+  it('user logs in successfully', () => {
+    story.init();
+
+    story.given('the user is on the login page');
+    story.when('the user submits valid credentials');
+    story.then('the user should see the dashboard');
+    expect(true).toBe(true); // replace with real assertions
+  });
+});
+```
+
+Use **`story.init()`** at the start of the test (no task; Jest gets the test name from `expect.getState()`), then **`story.given`**, **`story.when`**, **`story.then`** to mark steps.
+
+## Run tests
+
+```bash
+pnpm jest
+```
+
+## Generated output
+
+The reporter writes to your configured formats and paths. For Markdown output (for example `docs/user-stories.md`), the story above looks like:
+
+```markdown
+### User logs in successfully
+
+- **Given** the user is on the login page
+- **When** the user submits valid credentials
+- **Then** the user should see the dashboard
+```
+
+## See it in the report
+
+Run your reporter with `--format html` and your stories render into an interactive report:
+
+<ReportScreenshot
+  src="screenshots/hero-report.png"
+  href="examples/report.html"
+  alt="The generated HTML report with Given/When/Then steps, a run summary, and search and status filters"
+  caption="Every framework adapter produces this same report. Click to open the live one."
+/>
+
+## Next
+
+[Jest story & doc API](reference/jest-story-api/) — steps, doc methods, and options.
+
+[Converting existing Jest tests](guides/converting-jest/) — adopt executable-stories without rewriting existing tests.
+
+[Recipes (Jest)](recipes/jest/) — more examples.

@@ -1,7 +1,7 @@
 import { toScenarioIndex, type ScenarioIndex, type ScenarioIndexItem } from "./scenario-index-json";
-import type { StoryReport } from "../types/story-report";
-import type { TestRunResult } from "../types/test-result";
-import { toStoryReport } from "../converters/story-report";
+import type { StoryReport } from "executable-stories-core/types/story-report";
+import type { TestRunResult } from "executable-stories-core/types/test-result";
+import { toStoryReport } from "executable-stories-core/converters/story-report";
 
 export interface BehaviorManifest {
   schemaVersion: "1.0";

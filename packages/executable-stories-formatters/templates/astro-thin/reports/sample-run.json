@@ -1,0 +1,133 @@
+{
+  "schemaVersion": "1.0",
+  "projectRoot": "/sample",
+  "startedAtMs": 0,
+  "finishedAtMs": 1234,
+  "packageVersion": "sample",
+  "testCases": [
+    {
+      "title": "A returning customer checks out with a saved card",
+      "sourceFile": "src/checkout.story.test.ts",
+      "sourceLine": 12,
+      "status": "pass",
+      "durationMs": 41,
+      "story": {
+        "scenario": "A returning customer checks out with a saved card",
+        "tags": ["checkout", "payments"],
+        "covers": ["src/checkout/**"],
+        "steps": [
+          { "keyword": "Given", "text": "a signed-in customer with a saved card" },
+          { "keyword": "And", "text": "a basket worth £42.00" },
+          { "keyword": "When", "text": "they confirm the order" },
+          {
+            "keyword": "Then",
+            "text": "the payment is captured and an order id is returned",
+            "docs": [
+              {
+                "kind": "table",
+                "phase": "runtime",
+                "label": "Captured payment",
+                "columns": ["Field", "Value"],
+                "rows": [["amount", "£42.00"], ["status", "captured"], ["order", "ord_1A2B"]]
+              }
+            ]
+          }
+        ],
+        "docs": [
+          {
+            "kind": "mermaid",
+            "phase": "static",
+            "code": "flowchart LR\n  Basket --> Confirm --> Capture --> Order"
+          }
+        ]
+      }
+    },
+    {
+      "title": "Checkout is blocked when the card is declined",
+      "sourceFile": "src/checkout.story.test.ts",
+      "sourceLine": 34,
+      "status": "fail",
+      "durationMs": 28,
+      "error": { "message": "Expected order to be created, but payment was declined (card_declined)" },
+      "story": {
+        "scenario": "Checkout is blocked when the card is declined",
+        "tags": ["checkout", "payments"],
+        "covers": ["src/checkout/**"],
+        "steps": [
+          { "keyword": "Given", "text": "a customer whose card will be declined" },
+          { "keyword": "When", "text": "they confirm the order" },
+          { "keyword": "Then", "text": "they see a clear decline message" },
+          { "keyword": "But", "text": "no order is created" }
+        ]
+      }
+    },
+    {
+      "title": "Gift wrapping is offered above the free-wrap threshold",
+      "sourceFile": "src/checkout.story.test.ts",
+      "sourceLine": 58,
+      "status": "skip",
+      "durationMs": 0,
+      "story": {
+        "scenario": "Gift wrapping is offered above the free-wrap threshold",
+        "tags": ["checkout"],
+        "steps": [
+          { "keyword": "Given", "text": "a basket above the free-wrap threshold" },
+          { "keyword": "Then", "text": "free gift wrapping is offered" }
+        ]
+      }
+    },
+    {
+      "title": "Search ranks exact title matches first",
+      "sourceFile": "src/search.story.test.ts",
+      "sourceLine": 9,
+      "status": "pass",
+      "durationMs": 17,
+      "story": {
+        "scenario": "Search ranks exact title matches first",
+        "tags": ["search"],
+        "covers": ["src/search/**"],
+        "steps": [
+          { "keyword": "Given", "text": "products titled 'Wireless Mouse' and 'Mouse Pad'" },
+          { "keyword": "When", "text": "the shopper searches for 'mouse'" },
+          {
+            "keyword": "Then",
+            "text": "the exact title match is ranked first",
+            "docs": [
+              {
+                "kind": "code",
+                "phase": "runtime",
+                "label": "Ranked results",
+                "lang": "json",
+                "content": "[\n  { \"title\": \"Wireless Mouse\", \"score\": 0.98 },\n  { \"title\": \"Mouse Pad\", \"score\": 0.61 }\n]"
+              }
+            ]
+          }
+        ],
+        "docs": [
+          {
+            "kind": "note",
+            "phase": "static",
+            "text": "This is **sample data** shipped with the scaffold so the site is populated on first run. It is replaced automatically the moment your tests emit their run JSON."
+          }
+        ]
+      }
+    },
+    {
+      "title": "Search tolerates a single typo",
+      "sourceFile": "src/search.story.test.ts",
+      "sourceLine": 31,
+      "status": "pass",
+      "durationMs": 23,
+      "story": {
+        "scenario": "Search tolerates a single typo",
+        "tags": ["search"],
+        "covers": ["src/search/**"],
+        "steps": [
+          { "keyword": "Given", "text": "a product titled 'Keyboard'" },
+          { "keyword": "When", "text": "the shopper searches for 'keybord'" },
+          { "keyword": "Then", "text": "the product is still found" }
+        ]
+      }
+    }
+  ]
+}

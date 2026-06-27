@@ -1,9 +1,9 @@
-import type { DocEntry, StoryMeta, StoryStep } from '../../../types/story';
+import type { DocEntry, StoryMeta, StoryStep } from 'executable-stories-core/types/story';
 import type {
   StepResult,
   TestCaseResult,
   TestRunResult,
-} from '../../../types/test-result';
+} from 'executable-stories-core/types/test-result';
 
 function step(keyword: string, text: string): StoryStep {
   return { keyword: keyword as StoryStep['keyword'], text };

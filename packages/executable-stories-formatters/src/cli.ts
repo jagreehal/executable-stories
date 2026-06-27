@@ -14,25 +14,24 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 import { validateRawRun } from "./validation/schema-validator";
-import { synthesizeStories } from "./converters/synthesize";
-import { canonicalizeRun } from "./converters/acl";
-import { assertValidRun } from "./converters/acl/validate";
+import { synthesizeStories } from "executable-stories-core/converters/synthesize";
+import { canonicalizeRun } from "executable-stories-core/converters/acl/index";
+import { assertValidRun } from "executable-stories-core/converters/acl/validate";
 // eslint-disable-next-line no-restricted-imports -- ReportGenerator and compare helpers currently live in the package entrypoint.
 import {
   ReportGenerator,
   createPrCommentSummary,
   generateRunComparison,
   startWatch,
-  startServe,
 } from "./index.js";
-import { parseNdjson } from "./converters/ndjson-parser";
+import { parseNdjson } from "executable-stories-core/converters/ndjson-parser";
 import { buildReview } from "./review/build-review";
 import { ReviewMarkdownFormatter } from "./formatters/review-markdown";
 import { ReviewHtmlFormatter } from "./formatters/review-html";
 import type { ChangedFile, ReviewContext, EvidenceStrength } from "./types/review";
 import type { OutputFormat } from "./types/options";
 import { sendNotifications } from "./notifiers";
-import { toCIInfo } from "./types/ci";
+import { toCIInfo } from "executable-stories-core/types/ci";
 import type { NotifyCondition, GenericWebhookNotifierOptions, WebhookSignerHmac } from "./notifiers/types";
 import { loadHistory, saveHistory, updateHistory } from "./history";
 import { pickAutoBaseline } from "./compare/auto-baseline";
@@ -41,13 +40,12 @@ import { buildCheck, renderCheck } from "./check";
 import { buildGoal, renderGoal } from "./goal";
 import { buildTriage, renderTriage } from "./triage";
 import { selectTestCases } from "./select-test-cases";
-import type { RawRun } from "./types/raw";
-import type { TestRunResult, TestStatus } from "./types/test-result";
+import type { RawRun } from "executable-stories-core/types/raw";
+import type { TestRunResult, TestStatus } from "executable-stories-core/types/test-result";
 import { initAstro as initAstroFn } from "./init-astro";
 import { scaffoldDoc, TEMPLATES } from "./scaffold-doc";
 import { checkLinks, formatLinkReport } from "./check-links";
 import { importOpenApi } from "./import-openapi";
-import { buildDocs, BuildDocsError } from "./build-docs";
 import { publishConfluencePage } from "./publishers/confluence";
 import { publishJiraIssue, type JiraPublishMode } from "./publishers/jira";
 import { recordDeployment, getDeploymentStatus, getEnvironmentDrift } from "./deploy/index";
@@ -80,7 +78,6 @@ USAGE
   executable-stories format <file> [options]
   executable-stories format --stdin [options]
   executable-stories watch <raw-run.json> [options]
-  executable-stories serve <raw-run.json> [--port <n>] [--host <host>] [options]
   executable-stories compare <baseline-file> <current-file> [options]
   executable-stories gate-release <dev-run.json> <rc-run.json> [options]
   executable-stories review <file> --changed-files <path> [options]
@@ -91,7 +88,6 @@ USAGE
   executable-stories validate <file>
   executable-stories validate --stdin
   executable-stories init-astro [directory]
-  executable-stories build-docs <raw-run.json> [--site-dir <dir>] [options]
   executable-stories new <template> "<name>" [options]
   executable-stories check-links <dir> [options]
   executable-stories import-openapi <spec> [options]
@@ -104,7 +100,6 @@ USAGE
 SUBCOMMANDS
   format             Read raw test results and generate reports
   watch              Regenerate reports whenever the raw-run file changes (live agent index)
-  serve              Live docs URL: regenerate + browser reload + "what changed since you started" (for agent loops)
   compare            Compare two runs and generate a diff report
   gate-release       Verify a release candidate against the dev test baseline (RC gate)
   review             Generate an Evidence Review of AI-authored changes (correlate a run to the diff)
@@ -113,8 +108,7 @@ SUBCOMMANDS
   goal               Behavioral definition-of-done for agent loops: required scenarios pass, no regressions, no weakened scenarios (exit 0 = met, 5 = not)
   triage             Discovery worklist for agent loops: failing scenarios, regressions first, each with the code it covers
   validate           Validate a JSON file against the schema (no output generated)
-  init-astro         Scaffold an Astro docs site for story output (Starlight with themed CSS)
-  build-docs         Build the living-docs site: one page per story file + Explorer data (auto-pickup, prunes deleted stories)
+  init-astro         Scaffold a thin Astro docs site (Starlight + executable-stories-astro; live stories at /stories)
   new                Scaffold a docs page from a template (adr, runbook, decision-log, incident, scenario-note)
   check-links        Scan docs for broken internal/external links (CI-friendly exit code)
   import-openapi     Generate API doc pages from an OpenAPI spec, linked to verifying stories
@@ -123,11 +117,11 @@ SUBCOMMANDS
   deploy             Record deployments, show environment status, detect drift
 
 OPTIONS
-  --format <formats>            Comma-separated formats: html, markdown, release-manifest, traceability-matrix, junit, cucumber-json, cucumber-messages, cucumber-html, astro, confluence, story-report-json, scenario-index-json, behavior-manifest-json, or custom names from config (default: html)
-                                  astro             Themed Markdown primitive (single aggregated page; for a full site use "build-docs")
+  --format <formats>            Comma-separated formats: html, markdown, release-manifest, traceability-matrix, junit, cucumber-json, cucumber-messages, cucumber-html, astro-markdown, confluence, story-report-json, scenario-index-json, behavior-manifest-json, or custom names from config (default: html)
+                                  astro-markdown    Starlight-flavored Markdown (single aggregated page; for a live site use "init-astro" + "astro dev")
                                   confluence        Atlassian Document Format (ADF) JSON for Confluence / Jira
                                   behavior-manifest-json Agent-readable behavior manifest and debugger warnings
-                                  html              Custom HTML report (accessible, dark mode, mermaid)
+                                  html              Standalone interactive HTML report, rendered via executable-stories-react (same component tree as the Astro site)
                                   cucumber-html     Official Cucumber HTML report
                                   markdown          Markdown documentation
                                   junit             JUnit XML
@@ -149,18 +143,13 @@ OPTIONS
   --synthesize-stories          Synthesize story metadata for plain test results (default)
   --no-synthesize-stories       Disable story synthesis (strict mode)
   --html-title <title>          HTML report title (default: Test Results)
-  --html-theme <name>           HTML theme (default, corporate, terminal, minimal, dashboard, playful)
   --html-no-syntax-highlighting Disable syntax highlighting in HTML (enabled by default)
   --html-no-mermaid             Disable mermaid diagrams in HTML (enabled by default)
-  --html-no-markdown            Disable markdown parsing in HTML (enabled by default)
-  --html-permalink-base-url <url> Base URL for source permalinks in HTML (e.g. "https://github.com/org/repo/blob/main")
-  --html-no-toc                 Disable table of contents sidebar in HTML (enabled by default)
-  --html-theme-picker           Include theme picker in HTML report (embeds all CSS-only themes)
-  --html-ticket-url-template <url> URL template for ticket links in HTML (use {ticket} as placeholder)
   --asset-mode <mode>         Asset bundling: "none" (default) or "copy"
   --allow-missing-assets      Warn on missing assets instead of failing
   --stdin                       Read JSON from stdin instead of file
   --list-format <format>        list output format: text (default), json, csv, markdown-table
+  --minify                      emit compact JSON for agent artifacts (story-report, scenario-index, list --json)
   --json-summary                Deprecated alias for --list-format json
   --check-format <format>       check output format: text (default) or json
   --no-fail                     (check) Report only — always exit 0 even when scenarios failed
@@ -244,21 +233,8 @@ DEPLOY
 
 INIT-ASTRO
   executable-stories init-astro [directory]   Scaffold into directory (default: ./story-docs)
-  --force                                      Overwrite existing directory
+  --force                                      Write into a non-empty directory (overlays template files)
   --update                                     Refresh framework files only (keeps your content + config)
-
-BUILD-DOCS
-  Build the multi-page living-docs site from a raw run: one Astro page per story
-  file plus Explorer data (scenario-links.json, story-report.json). Auto-pickup —
-  a new *.story.test.ts becomes a new page on the next run; deleting a story
-  prunes its page. This is the headline living-docs flow; "format --format astro"
-  is a low-level primitive that emits a single aggregated page, not a site.
-
-  executable-stories build-docs <raw-run.json> [--site-dir <dir>]
-  --site-dir <dir>             Target site dir (default: a scaffolded init-astro site)
-  --openapi <spec>             Link generated API pages to verifying stories
-  --baseline <prev-report>     Diff against a prior story-report.json for change markers
-  --audience-split             Split pages by audience (business vs technical)
 
 PUBLISH-CONFLUENCE
   executable-stories publish-confluence <file.adf.json> [options]
@@ -311,7 +287,7 @@ EXIT CODES
 `.trim();
 
 interface CliArgs {
-  subcommand: "format" | "watch" | "serve" | "compare" | "gate-release" | "review" | "list" | "check" | "goal" | "triage" | "validate";
+  subcommand: "format" | "watch" | "compare" | "gate-release" | "review" | "list" | "check" | "goal" | "triage" | "validate";
   inputFile?: string;
   baselineFile?: string;
   /** Raw --baseline value (path or "auto"), used by check for delta detection. */
@@ -332,15 +308,11 @@ interface CliArgs {
   excludeTags: string[];
   synthesizeStories: boolean;
   htmlTitle: string;
-  htmlTheme: string;
   htmlNoSyntaxHighlighting: boolean;
   htmlNoMermaid: boolean;
-  htmlNoMarkdown: boolean;
-  htmlPermalinkBaseUrl?: string;
-  htmlTicketUrlTemplate?: string;
-  htmlNoToc: boolean;
-  htmlThemePicker: boolean;
   jsonSummary: boolean;
+  /** Emit compact JSON for agent-facing artifacts (story-report, scenario-index, behavior-manifest, list --json). */
+  minify: boolean;
   listFormat: "text" | "json" | "csv" | "markdown-table";
   checkFormat: "text" | "json";
   noFail: boolean;
@@ -381,10 +353,6 @@ interface CliArgs {
   failOn?: "uncovered" | "weak";
   minEvidence?: EvidenceStrength;
   config?: string;
-  /** serve: port for the live docs server. */
-  servePort: number;
-  /** serve: host to bind the live docs server. */
-  serveHost: string;
 }
 
 /** Validate a `--*-format text|json` flag, exiting with a usage error otherwise. */
@@ -409,7 +377,6 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
   if (
     subcommand !== "format" &&
     subcommand !== "watch" &&
-    subcommand !== "serve" &&
     subcommand !== "compare" &&
     subcommand !== "gate-release" &&
     subcommand !== "deploy" &&
@@ -420,15 +387,27 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
     subcommand !== "triage" &&
     subcommand !== "validate" &&
     subcommand !== "init-astro" &&
-    subcommand !== "build-docs" &&
     subcommand !== "new" &&
     subcommand !== "check-links" &&
     subcommand !== "import-openapi" &&
     subcommand !== "publish-confluence" &&
     subcommand !== "publish-jira"
   ) {
+    // `serve` was removed in favour of the Astro dev server. Give upgraders a
+    // direct migration message instead of the generic "unknown subcommand", so
+    // agent/docs loops that still call it fail with an actionable hint.
+    if (subcommand === "serve" || subcommand === "build-docs") {
+      console.error(
+        `The "${subcommand}" subcommand was removed. Living docs are now an Astro site, rendered live from the run JSON (no Markdown generation step):\n` +
+          "  1. executable-stories init-astro   (one-time scaffold)\n" +
+          "  2. run your tests in watch mode in one terminal\n" +
+          "  3. run `astro dev` (or `pnpm dev`) in another — it hot-reloads the docs.\n" +
+          "See: https://github.com/jagreehal/executable-stories (executable-stories-astro).",
+      );
+      process.exit(EXIT_USAGE);
+    }
     console.error(
-      `Unknown subcommand: "${subcommand}". Use "format", "watch", "serve", "compare", "gate-release", "deploy", "review", "list", "check", "goal", "triage", "validate", "init-astro", "build-docs", "new", "check-links", "import-openapi", "publish-confluence", or "publish-jira".`,
+      `Unknown subcommand: "${subcommand}". Use "format", "watch", "compare", "gate-release", "deploy", "review", "list", "check", "goal", "triage", "validate", "init-astro", "new", "check-links", "import-openapi", "publish-confluence", or "publish-jira".`,
     );
     process.exit(EXIT_USAGE);
   }
@@ -455,44 +434,29 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
     const initArgs = args.slice(1);
     const targetDir = initArgs.find((a) => !a.startsWith("--")) ?? "./story-docs";
     const force = initArgs.includes("--force");
-    // --update refreshes only framework files (components, lib, styles, explorer)
-    // and never touches your content (ADRs, runbooks), astro.config, or package.json.
+    // --update merges any new template deps; the framework itself ships in the
+    // executable-stories-astro package, so there are no framework files to refresh.
     const update = initArgs.includes("--update");
 
     try {
       const result = initAstroFn({ targetDir, force, update });
       if (update) {
-        console.log(`Updated framework files in ${result.targetDir} (content left untouched)`);
-        console.log(`  Refreshed: ${result.updatedFiles?.length ?? 0} file(s)`);
+        console.log(`Updated ${result.targetDir} (content + config left untouched)`);
+        console.log("  Framework updates come via: pnpm update executable-stories-astro");
         process.exit(EXIT_SUCCESS);
       }
       console.log(`Scaffolded Astro docs site at ${result.targetDir}`);
-      console.log("");
-      console.log("Themes available in src/styles/themes/:");
-      console.log("  default.css   IBM Plex Sans, cucumber green (default)");
-      console.log("  corporate.css  DM Sans, navy accent");
-      console.log("  terminal.css   JetBrains Mono, green-on-dark");
-      console.log("  minimal.css    DM Sans, warm teal");
-      console.log("  dashboard.css  DM Sans, blue accent");
-      console.log("  playful.css    Source Sans, coral pastels");
-      console.log("");
-      console.log("To change theme, edit astro.config.mjs customCss array.");
       console.log("");
       console.log("Next steps:");
       console.log(`  1. cd ${result.targetDir} && pnpm install      # or npm install`);
       console.log("  2. In your TEST project, add the StoryReporter with a rawRunPath, e.g.");
       console.log("       StoryReporter({ rawRunPath: 'reports/raw-run.json' })");
-      console.log("     (this is what writes the raw run that build-docs reads)");
-      console.log("  3. Run your tests to produce reports/raw-run.json:");
-      console.log("       pnpm test");
-      console.log("  4. Build the living-docs site (story pages, explorer data, API pages):");
-      console.log(
-        `       executable-stories build-docs reports/raw-run.json --site-dir ${result.targetDir} [--openapi spec.json]`,
-      );
-      console.log(`  5. Preview it:  cd ${result.targetDir} && pnpm dev`);
+      console.log("  3. Run your tests in watch mode (terminal 1):  pnpm test --watch");
+      console.log(`  4. Run the docs dev server (terminal 2):  cd ${result.targetDir} && pnpm dev`);
+      console.log("     Editing tests hot-reloads the Stories pages — nothing is written to disk.");
       console.log("");
-      console.log("Later, pull template/design improvements without losing your content:");
-      console.log(`  executable-stories init-astro ${result.targetDir} --update`);
+      console.log("Everything is configured in one file: executable-stories.config.mjs");
+      console.log("  — sources, scenario selection (include/exclude), grouping (groupBy), docs, and theme.");
       process.exit(EXIT_SUCCESS);
     } catch (err) {
       console.error(`Error: ${(err as Error).message}`);
@@ -505,7 +469,6 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
   if (subcommand === "new") process.exit(runNew(args.slice(1)));
   if (subcommand === "check-links") process.exit(await runCheckLinks(args.slice(1)));
   if (subcommand === "import-openapi") process.exit(await runImportOpenApi(args.slice(1)));
-  if (subcommand === "build-docs") process.exit(await runBuildDocs(args.slice(1)));
 
   // Parse remaining args with node:util parseArgs
   const { values, positionals } = parseArgs({
@@ -526,16 +489,11 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
       "synthesize-stories": { type: "boolean", default: true },
       "no-synthesize-stories": { type: "boolean", default: false },
       "html-title": { type: "string", default: "Test Results" },
-      "html-theme": { type: "string", default: "default" },
       "html-no-syntax-highlighting": { type: "boolean", default: false },
       "html-no-mermaid": { type: "boolean", default: false },
-      "html-no-markdown": { type: "boolean", default: false },
-      "html-permalink-base-url": { type: "string" },
-      "html-ticket-url-template": { type: "string" },
-      "html-no-toc": { type: "boolean", default: false },
-      "html-theme-picker": { type: "boolean", default: false },
       stdin: { type: "boolean", default: false },
       "json-summary": { type: "boolean", default: false },
+      "minify": { type: "boolean", default: false },
       "list-format": { type: "string", default: "text" },
       "check-format": { type: "string", default: "text" },
       "no-fail": { type: "boolean", default: false },
@@ -562,8 +520,6 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
       "webhook-hmac-timestamp": { type: "boolean", default: false },
       "asset-mode": { type: "string", default: "none" },
       "allow-missing-assets": { type: "boolean", default: false },
-      port: { type: "string" },
-      host: { type: "string" },
       "pr-summary": { type: "boolean", default: false },
       "pr-summary-file": { type: "string" },
       "fail-on-regression": { type: "boolean", default: false },
@@ -643,28 +599,31 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
   const pluginConfig = await loadConfig(values["config"] as string | undefined);
   const customFormatterNames = new Set(Object.keys(pluginConfig.formatters ?? {}));
 
-  const builtInFormats = new Set(["astro", "behavior-manifest-json", "confluence", "html", "markdown", "release-manifest", "traceability-matrix", "junit", "cucumber-json", "cucumber-messages", "cucumber-html", "scenario-index-json", "story-report-json"]);
+  const builtInFormats = new Set(["astro-markdown", "behavior-manifest-json", "confluence", "html", "markdown", "release-manifest", "traceability-matrix", "junit", "cucumber-json", "cucumber-messages", "cucumber-html", "scenario-index-json", "story-report-json"]);
   const formatStr = values.format as string;
-  const allRequestedFormats = formatStr.split(",").map((f) => f.trim());
+  const requestedFormats = formatStr.split(",").map((f) => f.trim());
+  // `astro` was the old name for the Starlight-Markdown format; it collided with the
+  // executable-stories-astro live integration. Accept it as a deprecated alias here, at
+  // the (untyped) CLI boundary, so everything downstream only ever sees "astro-markdown".
+  if (requestedFormats.includes("astro")) {
+    console.warn(
+      "⚠ The 'astro' format was renamed to 'astro-markdown' — it emits Starlight Markdown, not the\n" +
+        "  executable-stories-astro live integration. '--format astro' still works but will be removed in a\n" +
+        "  future major; use 'astro-markdown', or scaffold a live site with `init-astro` + `astro dev`.",
+    );
+  }
+  const allRequestedFormats = requestedFormats.map((f) => (f === "astro" ? "astro-markdown" : f));
   const builtInRequested = allRequestedFormats.filter((f) => builtInFormats.has(f)) as OutputFormat[];
   const customRequested = allRequestedFormats.filter((f) => customFormatterNames.has(f));
   const unknownFormats = allRequestedFormats.filter((f) => !builtInFormats.has(f) && !customFormatterNames.has(f));
 
   if (unknownFormats.length > 0) {
     const knownCustom = customFormatterNames.size > 0 ? `, ${[...customFormatterNames].join(", ")}` : "";
-    console.error(`Error: Unknown format(s): ${unknownFormats.join(", ")}. Valid built-in: astro, behavior-manifest-json, confluence, html, markdown, release-manifest, traceability-matrix, junit, cucumber-json, cucumber-messages, cucumber-html, scenario-index-json, story-report-json${knownCustom}.`);
+    console.error(`Error: Unknown format(s): ${unknownFormats.join(", ")}. Valid built-in: astro-markdown, behavior-manifest-json, confluence, html, markdown, release-manifest, traceability-matrix, junit, cucumber-json, cucumber-messages, cucumber-html, scenario-index-json, story-report-json${knownCustom}.`);
     process.exit(EXIT_USAGE);
   }
 
   const formats = builtInRequested;
-
-  // Validate --html-theme
-  const htmlTheme = values["html-theme"] as string;
-  const validThemes = new Set(["default", "corporate", "terminal", "minimal", "dashboard", "playful"]);
-  if (!validThemes.has(htmlTheme)) {
-    console.error(`Error: Unknown theme "${htmlTheme}". Valid: ${[...validThemes].join(", ")}.`);
-    process.exit(EXIT_USAGE);
-  }
 
   const noSynthesize = values["no-synthesize-stories"] as boolean;
 
@@ -774,7 +733,7 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
   const triageFormat = parseTextJsonFormat("--triage-format", values["triage-format"] as string);
 
   const cliArgs: CliArgs = {
-    subcommand: subcommand as "format" | "watch" | "serve" | "compare" | "gate-release" | "review" | "list" | "check" | "validate",
+    subcommand: subcommand as "format" | "watch" | "compare" | "gate-release" | "review" | "list" | "check" | "validate",
     inputFile,
     baselineFile,
     baselineArg: baselineValue,
@@ -794,15 +753,10 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
     excludeTags: parseGlobs(values["exclude-tags"] as string | undefined),
     synthesizeStories: !noSynthesize,
     htmlTitle: values["html-title"] as string,
-    htmlTheme: values["html-theme"] as string,
     htmlNoSyntaxHighlighting: values["html-no-syntax-highlighting"] as boolean,
     htmlNoMermaid: values["html-no-mermaid"] as boolean,
-    htmlNoMarkdown: values["html-no-markdown"] as boolean,
-    htmlPermalinkBaseUrl: values["html-permalink-base-url"] as string | undefined,
-    htmlTicketUrlTemplate: values["html-ticket-url-template"] as string | undefined,
-    htmlNoToc: values["html-no-toc"] as boolean,
-    htmlThemePicker: values["html-theme-picker"] as boolean,
     jsonSummary: values["json-summary"] as boolean,
+    minify: values["minify"] as boolean,
     listFormat: (values["list-format"] as string) as "text" | "json" | "csv" | "markdown-table",
     checkFormat,
     noFail: values["no-fail"] as boolean,
@@ -843,8 +797,6 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
     failOn: failOnRaw as "uncovered" | "weak" | undefined,
     minEvidence: minEvidenceRaw as EvidenceStrength | undefined,
     config: values["config"] as string | undefined,
-    servePort: values["port"] ? Number.parseInt(values["port"] as string, 10) : 4321,
-    serveHost: (values["host"] as string | undefined) ?? "127.0.0.1",
   };
 
   return { args: cliArgs, pluginConfig, customRequested };
@@ -1122,11 +1074,36 @@ function resolveBaselineStatusMap(
 // Main
 // ============================================================================
 
+interface CliContext {
+  args: CliArgs;
+  pluginConfig: Awaited<ReturnType<typeof loadConfig>>;
+  customRequested: string[];
+  startMs: number;
+}
+
+// Subcommands that own their own pipeline. `validate`, `format`, and a bare
+// invocation fall through to runFormatOrValidate, which shares the
+// input-read → canonicalize → generate flow.
+const SUBCOMMAND_HANDLERS: Record<string, (ctx: CliContext) => Promise<void>> = {
+  compare: runCompare,
+  "gate-release": runGateRelease,
+  review: runReview,
+  list: runList,
+  check: runCheck,
+  goal: runGoal,
+  triage: runTriage,
+  watch: runWatch,
+};
+
 async function main() {
   const { args, pluginConfig, customRequested } = await parseCliArgs(process.argv);
-  const startMs = Date.now();
+  const ctx: CliContext = { args, pluginConfig, customRequested, startMs: Date.now() };
+  const handler = SUBCOMMAND_HANDLERS[args.subcommand ?? ""] ?? runFormatOrValidate;
+  await handler(ctx);
+}
 
-  if (args.subcommand === "compare") {
+async function runCompare(ctx: CliContext): Promise<void> {
+  const { args, startMs } = ctx;
     const currentText = readFileInput(args.currentFile!);
     const current = applySelection(normalizeRunFromText(currentText, args).run, args);
     const baselineFile =
@@ -1154,7 +1131,8 @@ async function main() {
     }
   }
 
-  if (args.subcommand === "gate-release") {
+async function runGateRelease(ctx: CliContext): Promise<void> {
+  const { args, startMs } = ctx;
     // Gate-release enforces stricter defaults: --fail-on-regression and --fail-on-removal
     const gatedArgs = {
       ...args,
@@ -1212,7 +1190,8 @@ async function main() {
     }
   }
 
-  if (args.subcommand === "review") {
+async function runReview(ctx: CliContext): Promise<void> {
+  const { args } = ctx;
     const text = await readInput(args);
     const run = applySelection(normalizeRunFromText(text, args).run, args);
     const context = loadReviewContext(args);
@@ -1238,7 +1217,8 @@ async function main() {
     }
   }
 
-  if (args.subcommand === "list") {
+async function runList(ctx: CliContext): Promise<void> {
+  const { args } = ctx;
     const text = await readInput(args);
     const run = applySelection(normalizeRunFromText(text, args).run, args);
 
@@ -1250,7 +1230,11 @@ async function main() {
       process.exit(EXIT_USAGE);
     }
     const output = listScenarios(
-      { testCases: run.testCases, format: resolvedFormat as "text" | "json" | "csv" | "markdown-table" },
+      {
+        testCases: run.testCases,
+        format: resolvedFormat as "text" | "json" | "csv" | "markdown-table",
+        minify: args.minify,
+      },
       {}
     );
     console.log(output);
@@ -1261,7 +1245,8 @@ async function main() {
   // Compress success (a count line), expand failure (GWT + failing step + error
   // + covers). Exits non-zero when any scenario failed so the agent's loop pushes
   // back before a human is involved. --no-fail forces exit 0 (report-only).
-  if (args.subcommand === "check") {
+async function runCheck(ctx: CliContext): Promise<void> {
+  const { args } = ctx;
     const text = await readInput(args);
     const run = applySelection(normalizeRunFromText(text, args).run, args);
 
@@ -1283,7 +1268,8 @@ async function main() {
   // Met when the required scenarios/tags/tickets pass, nothing regressed (with
   // --no-regressions), and nothing was removed or weakened vs baseline (ratchet,
   // on when a baseline is given; disable with --no-ratchet). Exit 0 = met, 5 = not.
-  if (args.subcommand === "goal") {
+async function runGoal(ctx: CliContext): Promise<void> {
+  const { args } = ctx;
     const text = await readInput(args);
     const run = applySelection(normalizeRunFromText(text, args).run, args);
     const baseline = resolveBaselineRun(args, run);
@@ -1308,7 +1294,8 @@ async function main() {
   // === triage subcommand: discovery worklist for an agent loop ===
   // Failing scenarios, regressions first, each with the code it covers. JSON for
   // the loop to hand to sub-agents; text for humans. Always exits 0 (it reports).
-  if (args.subcommand === "triage") {
+async function runTriage(ctx: CliContext): Promise<void> {
+  const { args } = ctx;
     const text = await readInput(args);
     const run = applySelection(normalizeRunFromText(text, args).run, args);
     const baseline = resolveBaselineStatusMap(args, run);
@@ -1322,7 +1309,8 @@ async function main() {
   }
 
   // === watch subcommand: keep agent artifacts fresh on every raw-run change ===
-  if (args.subcommand === "watch") {
+async function runWatch(ctx: CliContext): Promise<void> {
+  const { args } = ctx;
     if (!args.inputFile) {
       console.error("Error: watch requires an input file (the raw-run JSON the framework writes).");
       process.exit(EXIT_USAGE);
@@ -1341,28 +1329,12 @@ async function main() {
     return; // long-lived; do not exit
   }
 
-  // === serve subcommand: live docs URL — regenerate + reload + "what changed" ===
-  if (args.subcommand === "serve") {
-    if (!args.inputFile) {
-      console.error("Error: serve requires an input file (the raw-run JSON the framework writes).");
-      process.exit(EXIT_USAGE);
-    }
-    // HTML is the surface we serve; ensure it is generated even if not requested.
-    const serveFormats = args.formats.includes("html")
-      ? args.formats
-      : ([...args.formats, "html"] as OutputFormat[]);
-    startServe({
-      input: args.inputFile,
-      outputDir: args.outputDir,
-      outputName: args.outputName,
-      formats: serveFormats,
-      inputType: args.inputType === "canonical" ? "canonical" : "raw",
-      synthesize: args.synthesizeStories,
-      port: args.servePort,
-      host: args.serveHost,
-    });
-    return; // long-lived; do not exit
-  }
+// The old `serve` subcommand (a custom HTTP server with a live "what changed"
+// strip) is replaced by `astro dev` via executable-stories-astro: run your
+// tests in watch mode and the Astro dev server hot-reloads the docs.
+
+async function runFormatOrValidate(ctx: CliContext): Promise<void> {
+  const { args, pluginConfig, customRequested, startMs } = ctx;
 
   // Read input
   const text = await readInput(args);
@@ -1746,17 +1718,20 @@ async function generateReports(
     sortTestCases: args.sortTestCases,
     html: {
       title: args.htmlTitle,
-      theme: args.htmlTheme,
       syntaxHighlighting: !args.htmlNoSyntaxHighlighting,
       mermaidEnabled: !args.htmlNoMermaid,
-      markdownEnabled: !args.htmlNoMarkdown,
-      permalinkBaseUrl: args.htmlPermalinkBaseUrl,
-      ticketUrlTemplate: args.htmlTicketUrlTemplate,
-      tocEnabled: !args.htmlNoToc,
-      themePickerEnabled: args.htmlThemePicker,
     },
     assetMode: args.assetMode,
     allowMissingAssets: args.allowMissingAssets,
+    // --minify: emit compact JSON for the agent-facing artifacts (≈36% fewer
+    // tokens than pretty for LLM consumption). Cucumber JSON keeps its own default.
+    ...(args.minify
+      ? {
+          storyReportJson: { pretty: false },
+          scenarioIndexJson: { pretty: false },
+          behaviorManifestJson: { pretty: false },
+        }
+      : {}),
   });
 
   const resultMap = await generator.generate(run);
@@ -1910,7 +1885,7 @@ function writeReviewReport(
   const titleOpt = title ? { title } : {};
 
   const markdown = new ReviewMarkdownFormatter(titleOpt).format(review);
-  const html = new ReviewHtmlFormatter({ ...titleOpt, theme: args.htmlTheme }).format(review);
+  const html = new ReviewHtmlFormatter(titleOpt).format(review);
 
   const outputDir = args.outputDir ?? "reports";
   const baseName = args.outputName ?? "evidence-review";
@@ -2456,84 +2431,6 @@ async function runImportOpenApi(rawArgs: string[]): Promise<number> {
   }
 }
 
-// ============================================================================
-// build-docs — thin CLI wrapper around src/build-docs.ts
-// ============================================================================
-
-async function runBuildDocs(rawArgs: string[]): Promise<number> {
-  const { values, positionals } = parseArgs({
-    args: rawArgs,
-    options: {
-      "site-dir": { type: "string" },
-      openapi: { type: "string" },
-      "no-synthesize-stories": { type: "boolean", default: false },
-      "audience-split": { type: "boolean", default: false },
-      baseline: { type: "string" },
-    },
-    allowPositionals: true,
-    strict: true,
-  });
-
-  const rawRunPath = positionals[0];
-  if (!rawRunPath) {
-    console.error(
-      `Usage: executable-stories build-docs <raw-run.json> [--site-dir <dir>] [--openapi <spec>] [--baseline <prev-story-report.json>] [--audience-split]`,
-    );
-    return EXIT_USAGE;
-  }
-
-  const audienceSplit = values["audience-split"] as boolean;
-
-  try {
-    const result = await buildDocs({
-      rawRunPath,
-      siteDir: (values["site-dir"] as string | undefined) ?? ".",
-      openapiPath: values.openapi as string | undefined,
-      synthesizeStories: !values["no-synthesize-stories"],
-      audienceSplit,
-      baselinePath: values.baseline as string | undefined,
-    });
-
-    console.log(`✓ Living docs generated in ${result.siteDir}`);
-    console.log(`  • Explorer data   → public/stories/story-report.json`);
-    console.log(`  • Deep links      → public/stories/scenario-links.json (${result.scenarioLinks})`);
-    console.log(`  • Note links      → public/stories/notes-index.json (${result.notesIndexed})`);
-    if (audienceSplit) {
-      console.log(
-        `  • Story pages     → src/content/docs/stories/{engineer,stakeholder} ` +
-          `(engineer: ${result.audiences.engineer}, stakeholder: ${result.audiences.stakeholder})`,
-      );
-    } else {
-      console.log(`  • Story pages     → src/content/docs/stories`);
-    }
-    if (result.bundledAssets > 0) {
-      console.log(`  • Bundled assets  → public/stories/assets (${result.bundledAssets})`);
-    }
-    if (result.apiPages > 0) {
-      console.log(`  • API pages       → src/content/docs/api (${result.apiPages})`);
-    }
-    if (result.changes) {
-      const c = result.changes;
-      console.log(
-        `  • What's changed  → src/content/docs/stories/changes.md ` +
-          `(+${c.added} added, ${c.regressed} regressed, ${c.fixed} fixed, ${c.removed} removed)`,
-      );
-    }
-    const rel = path.relative(process.cwd(), result.siteDir) || ".";
-    console.log(`\nPreview: cd ${rel} && npm run dev`);
-    return EXIT_SUCCESS;
-  } catch (err) {
-    if (err instanceof BuildDocsError) {
-      console.error(err.message);
-      if (err.kind === "schema") return EXIT_SCHEMA_VALIDATION;
-      if (err.kind === "generation") return EXIT_GENERATION;
-      return EXIT_USAGE;
-    }
-    console.error(`Error: ${(err as Error).message}`);
-    return EXIT_USAGE;
-  }
-}
-
 async function runDeploy(rawArgs: string[]): Promise<number> {
   const mode = rawArgs[0];
   if (!mode || !["record", "status", "diff"].includes(mode)) {
@@ -2728,13 +2625,10 @@ function createDefaultCliArgs(): CliArgs {
     excludeTags: [],
     synthesizeStories: true,
     htmlTitle: "Test Results",
-    htmlTheme: "default",
     htmlNoSyntaxHighlighting: false,
     htmlNoMermaid: false,
-    htmlNoMarkdown: false,
-    htmlNoToc: false,
-    htmlThemePicker: false,
     jsonSummary: false,
+    minify: false,
     listFormat: "text",
     checkFormat: "text",
     noFail: false,
@@ -2761,8 +2655,6 @@ function createDefaultCliArgs(): CliArgs {
     failOnRemoval: false,
     failOnNew: false,
     baselineMode: "explicit",
-    servePort: 4321,
-    serveHost: "127.0.0.1",
   };
 }
 

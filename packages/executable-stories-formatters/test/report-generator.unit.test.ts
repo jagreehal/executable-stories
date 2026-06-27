@@ -8,6 +8,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { mock } from "vitest-mock-extended";
 import type { Logger, WriteFile } from "../src/types/options";
 import { ReportGenerator, canonicalizeRun, type GenerateDeps } from "../src/index";
+import { selectTestCases } from "../src/select-test-cases";
 import { stubs } from "./stubs";
 
 // ============================================================================
@@ -472,47 +473,36 @@ describe("ReportGenerator", () => {
       expect(firstPos).toBeLessThan(secondPos);
     });
 
-    it("preserves incoming order when sortTestCases is none", async () => {
-      const deps = createMockDeps();
-      const generator = new ReportGenerator(
-        {
-          formats: ["html"],
-          outputDir: "reports",
-          outputName: "test-results",
-          sortTestCases: "none",
-          output: { mode: "aggregated" },
-        },
-        deps
+    it("preserves incoming order when sortTestCases is none", () => {
+      // `sortTestCases` is a run-level selection concern (selectTestCases), not a
+      // renderer one. The report renderers (React html, markdown) order scenarios
+      // by source position, so raw incoming order is only observable at the
+      // selection layer — assert the "none" contract there, where it lives.
+      const run = canonicalizeRun(
+        stubs.rawRun({
+          testCases: [
+            stubs.rawTestCase({
+              sourceFile: "src/same.test.ts",
+              sourceLine: 20,
+              story: stubs.storyMeta({ scenario: "Second" }),
+            }),
+            stubs.rawTestCase({
+              sourceFile: "src/same.test.ts",
+              sourceLine: 10,
+              story: stubs.storyMeta({ scenario: "First" }),
+            }),
+          ],
+        })
       );
 
-      const rawRun = stubs.rawRun({
-        testCases: [
-          stubs.rawTestCase({
-            sourceFile: "src/same.test.ts",
-            sourceLine: 20,
-            story: stubs.storyMeta({ scenario: "Second" }),
-          }),
-          stubs.rawTestCase({
-            sourceFile: "src/same.test.ts",
-            sourceLine: 10,
-            story: stubs.storyMeta({ scenario: "First" }),
-          }),
-        ],
-      });
-      const run = canonicalizeRun(rawRun);
+      const selected = selectTestCases(
+        { testCases: run.testCases, sortTestCases: "none" },
+        { logger: { warn: vi.fn() } }
+      );
 
-      await generator.generate(run);
-
-      const htmlCall = (deps.writeFile as ReturnType<typeof vi.fn>).mock.calls.find(
-        (c: [string, string]) => c[0].endsWith(".html")
-      )!;
-      const content = htmlCall[1];
-      // With "none", order is unchanged: Second then First (as in raw run). HTML does not re-sort.
-      const secondPos = content.indexOf("Second");
-      const firstPos = content.indexOf("First");
-      expect(secondPos).toBeGreaterThan(-1);
-      expect(firstPos).toBeGreaterThan(-1);
-      expect(secondPos).toBeLessThan(firstPos);
+      // With "none", order is unchanged: Second (line 20) then First (line 10),
+      // exactly as in the raw run — no re-sort to ascending source line.
+      expect(selected.map((tc) => tc.story?.scenario)).toEqual(["Second", "First"]);
     });
   });
 

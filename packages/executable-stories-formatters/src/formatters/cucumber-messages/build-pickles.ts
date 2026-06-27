@@ -4,8 +4,8 @@
  * Each TestCaseResult becomes one Pickle (the compiled, runnable scenario).
  */
 
-import type { TestCaseResult } from "../../types/test-result";
-import type { DocEntry, StepKeyword, StoryStep } from "../../types/story";
+import type { TestCaseResult } from "executable-stories-core/types/test-result";
+import type { DocEntry, StepKeyword, StoryStep } from "executable-stories-core/types/story";
 import type {
   Pickle,
   PickleStep,
@@ -15,7 +15,7 @@ import type {
   PickleTable,
   PickleTableRow,
   Envelope,
-} from "../../types/cucumber-messages";
+} from "executable-stories-core/types/cucumber-messages";
 import {
   deterministicId,
   resolvePickleStepTypes,

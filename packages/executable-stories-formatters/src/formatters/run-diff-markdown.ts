@@ -1,5 +1,5 @@
 import type { RunDiffResult, ScenarioDiff, ScenarioSnapshot } from "../types/compare";
-import type { DocEntry, StoryStep } from "../types/story";
+import type { DocEntry, StoryStep } from "executable-stories-core/types/story";
 
 export interface RunDiffMarkdownOptions {
   title?: string;

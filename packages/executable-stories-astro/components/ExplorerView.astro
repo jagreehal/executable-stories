@@ -1,0 +1,121 @@
+---
+/**
+ * ExplorerView — the shared body of the Scenario Explorer. Renders all scenarios
+ * server-side as cards with data-* attributes; a small inline script filters
+ * them client-side by free text, status, and tag. Fetches the collection itself
+ * so both the standalone route and the Starlight variant can reuse it.
+ *
+ * `shell` controls the wrapper: "standalone" (default) for the bare Astro route,
+ * "starlight" when embedded inside Starlight's content column (adds `es-embed`).
+ */
+import { getCollection } from "astro:content";
+import { storyEntries, escapeHtml, joinHref } from "executable-stories-astro";
+import type { StoryEntryData } from "executable-stories-astro";
+// Resolved by the integration so the collection + links honour the config.
+import { collection, sources, routeBase, themeCss } from "virtual:executable-stories/config";
+import EmptyState from "./EmptyState.astro";
+
+interface Props {
+  shell?: "standalone" | "starlight";
+}
+const { shell = "standalone" } = Astro.props as Props;
+const embed = shell === "starlight" ? " es-embed" : "";
+
+interface Card {
+  slug: string;
+  d: StoryEntryData;
+}
+const scenarios: Card[] = storyEntries(await getCollection(collection))
+  .map((d) => ({ slug: d.slug, d }))
+  .sort((a, b) => Number(b.d.status === "failed") - Number(a.d.status === "failed"));
+
+const allTags = [...new Set(scenarios.flatMap((s) => s.d.tags))].sort();
+const counts = scenarios.reduce((m: Record<string, number>, s) => {
+  m[s.d.status] = (m[s.d.status] ?? 0) + 1;
+  return m;
+}, {});
+
+const cardsHtml = scenarios
+  .map((s) => {
+    const tags = s.d.tags.join(" ");
+    const haystack = `${s.d.title} ${s.d.feature?.sourceFile ?? ""} ${tags}`.toLowerCase();
+    const tagPills = s.d.tags
+      .map((t: string) => `<span class="es-tag">${escapeHtml(t)}</span>`)
+      .join("");
+    return `<li class="es-card" data-status="${escapeHtml(s.d.status)}" data-tags="${escapeHtml(tags)}" data-haystack="${escapeHtml(haystack)}">
+      <a class="es-card__link" href="${escapeHtml(joinHref(routeBase, s.slug + "/"))}">
+        <span class="es-status es-status--${escapeHtml(s.d.status)}">${escapeHtml(s.d.status)}</span>
+        <span class="es-card__title">${escapeHtml(s.d.title)}</span>
+      </a>
+      <div class="es-card__meta"><code>${escapeHtml(s.d.feature?.sourceFile ?? "")}</code> ${tagPills}</div>
+    </li>`;
+  })
+  .join("");
+---
+
+<div class={`es-explorer${embed}`}>
+  {themeCss && <style is:global set:html={themeCss} />}
+  <header class="es-explorer__head">
+    {shell !== "starlight" && <h1>Scenario Explorer</h1>}
+    <p class="es-explorer__summary" data-testid="summary">
+      {scenarios.length} scenarios · {counts.passed ?? 0} passed · {counts.failed ?? 0} failed
+    </p>
+    {scenarios.length > 0 && (
+      <div class="es-explorer__controls">
+        <input id="es-search" type="search" placeholder="Search scenarios…" aria-label="Search scenarios" data-testid="search" />
+        <select id="es-status" aria-label="Filter by status" data-testid="status-filter">
+          <option value="">All statuses</option>
+          <option value="passed">Passed</option>
+          <option value="failed">Failed</option>
+          <option value="skipped">Skipped</option>
+          <option value="pending">Pending</option>
+        </select>
+        {allTags.length > 0 && (
+          <select id="es-tag" aria-label="Filter by tag" data-testid="tag-filter">
+            <option value="">All tags</option>
+            {allTags.map((t: string) => <option value={t}>{t}</option>)}
+          </select>
+        )}
+      </div>
+    )}
+  </header>
+  {scenarios.length === 0 ? (
+    <EmptyState sources={sources} />
+  ) : (
+    <>
+      <p class="es-explorer__empty" data-testid="empty" hidden>No scenarios match your filters.</p>
+      <ul class="es-explorer__list" data-testid="list" set:html={cardsHtml} />
+    </>
+  )}
+
+  {scenarios.length > 0 && (
+  <script is:inline>
+    (function () {
+      const search = document.getElementById("es-search");
+      const statusSel = document.getElementById("es-status");
+      const tagSel = document.getElementById("es-tag");
+      const cards = Array.from(document.querySelectorAll(".es-card"));
+      const empty = document.querySelector('[data-testid="empty"]');
+
+      function apply() {
+        const q = (search.value || "").trim().toLowerCase();
+        const status = statusSel.value;
+        const tag = tagSel ? tagSel.value : "";
+        let visible = 0;
+        for (const card of cards) {
+          const matchQ = !q || card.dataset.haystack.includes(q);
+          const matchS = !status || card.dataset.status === status;
+          const matchT = !tag || (" " + card.dataset.tags + " ").includes(" " + tag + " ");
+          const show = matchQ && matchS && matchT;
+          card.hidden = !show;
+          if (show) visible++;
+        }
+        if (empty) empty.hidden = visible !== 0;
+      }
+      search.addEventListener("input", apply);
+      statusSel.addEventListener("change", apply);
+      if (tagSel) tagSel.addEventListener("change", apply);
+    })();
+  </script>
+  )}
+</div>

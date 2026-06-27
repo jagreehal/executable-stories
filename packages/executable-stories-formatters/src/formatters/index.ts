@@ -10,11 +10,6 @@ export {
 } from "./cucumber-json";
 
 export {
-  HtmlFormatter,
-  type HtmlOptions,
-} from "./html/index";
-
-export {
   JUnitFormatter,
   type JUnitOptions,
 } from "./junit-xml";

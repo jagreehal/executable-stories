@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { diffStoryReports } from "../src/behavior-diff";
-import type { StoryReport, TestStatus } from "../src/types/story-report";
+import type { StoryReport, TestStatus } from "executable-stories-core/types/story-report";
 
 function report(scenarios: Array<{ id: string; status: TestStatus }>): StoryReport {
   return {

@@ -5,7 +5,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { afterEach, describe, expect, it } from "vitest";
-import { generateTestCaseId } from "../src/converters/acl/ids";
+import { generateTestCaseId } from "executable-stories-core/converters/acl/ids";
 
 const testDir = dirname(fileURLToPath(import.meta.url));
 const packageDir = resolve(testDir, "..");
@@ -25,6 +25,25 @@ function ensurePackagedCliBuilt(): void {
 }
 
 describe("packaged CLI", () => {
+  it(
+    "prints a migration message for the removed `serve` subcommand",
+    () => {
+      ensurePackagedCliBuilt();
+
+      const result = spawnSync("node", [packagedCliPath, "serve"], {
+        cwd: packageDir,
+        encoding: "utf8",
+      });
+
+      expect(result.status).toBe(4);
+      expect(result.stderr).toContain('"serve" subcommand was removed');
+      expect(result.stderr).toContain("astro dev");
+      // Not the generic unknown-subcommand path.
+      expect(result.stderr).not.toContain("Unknown subcommand");
+    },
+    30000
+  );
+
   it(
     "validates example input after build",
     () => {
@@ -250,7 +269,7 @@ describe("packaged CLI", () => {
     });
 
     it(
-      "copies referenced local assets into assets/ and rewrites HTML paths",
+      "produces a self-contained React report (assets embedded) under --asset-mode copy",
       () => {
         ensurePackagedCliBuilt();
 
@@ -331,18 +350,15 @@ describe("packaged CLI", () => {
         const htmlPath = join(reportsDir, "index.html");
         expect(fs.existsSync(htmlPath)).toBe(true);
 
-        // The assets directory should exist
+        // The `html` report renders via executable-stories-react and is
+        // self-contained: the attachment is embedded as a data URI by the report
+        // components, so there is nothing to extract — `--asset-mode copy` makes
+        // no assets/ dir and the original absolute path never leaks into the HTML.
         const assetsDir = join(reportsDir, "assets");
-        expect(fs.existsSync(assetsDir)).toBe(true);
+        expect(fs.existsSync(assetsDir)).toBe(false);
 
-        // The assets directory should contain the copied .webm file
-        const assetFiles = fs.readdirSync(assetsDir);
-        const webmFile = assetFiles.find((f) => f.endsWith(".webm"));
-        expect(webmFile).toBeDefined();
-
-        // The HTML should reference assets/ paths instead of the original absolute path
         const html = fs.readFileSync(htmlPath, "utf8");
-        expect(html).toContain("assets/");
+        expect(html).toContain("data:video/webm");
         expect(html).not.toContain(videoPath);
       },
       60_000

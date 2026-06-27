@@ -144,7 +144,9 @@ test('Working with timeouts and delays', async ({}, testInfo) => {
     const endTime = Date.now();
     story.then('elapsed time is measurable');
     const elapsed = endTime - startTime;
-    expect(elapsed).toBeGreaterThanOrEqual(50);
+    // setTimeout can fire fractionally before its delay (libuv timer resolution),
+    // so a 50ms wait can measure just under 50ms — allow a small tolerance.
+    expect(elapsed).toBeGreaterThanOrEqual(45);
 });
 // ============================================================================
 // Async Iteration

@@ -5,7 +5,7 @@
  */
 
 import { faker } from "@faker-js/faker";
-import type { StoryMeta, StoryStep, DocEntry } from "../src/types/story";
+import type { StoryMeta, StoryStep, DocEntry } from "executable-stories-core/types/story";
 import type {
   RawRun,
   RawTestCase,

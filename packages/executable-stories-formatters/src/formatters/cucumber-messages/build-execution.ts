@@ -8,8 +8,8 @@
  * - All Attachment envelopes appear after the relevant TestStepFinished
  */
 
-import type { TestCaseResult, TestRunResult } from "../../types/test-result";
-import type { StoryStep } from "../../types/story";
+import type { TestCaseResult, TestRunResult } from "executable-stories-core/types/test-result";
+import type { StoryStep } from "executable-stories-core/types/story";
 import type {
   Envelope,
   TestCase,
@@ -22,7 +22,7 @@ import type {
   TestRunFinished,
   CucumberAttachment,
   AttachmentContentEncoding,
-} from "../../types/cucumber-messages";
+} from "executable-stories-core/types/cucumber-messages";
 import {
   deterministicId,
   msToTimestamp,
@@ -147,7 +147,7 @@ interface AttemptParams {
   scenarioName: string;
   salt: string;
   attemptNumber: number;
-  attemptStatus: import("../../types/test-result.js").TestStatus | undefined;
+  attemptStatus: import("executable-stories-core/types/test-result").TestStatus | undefined;
   attemptDurationMs: number | undefined;
   attemptErrorMessage: string | undefined;
   willBeRetried: boolean;
@@ -197,7 +197,7 @@ function buildAttemptEnvelopes(params: AttemptParams): Envelope[] {
     const storyStep = tc.story.steps[i];
 
     // Determine step status for this attempt
-    let stepStatus: import("../../types/test-result.js").TestStatus;
+    let stepStatus: import("executable-stories-core/types/test-result").TestStatus;
     let stepDurationMs: number;
     let stepErrorMessage: string | undefined;
 

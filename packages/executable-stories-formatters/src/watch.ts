@@ -1,12 +1,12 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-import { canonicalizeRun } from "./converters/acl/index";
-import { synthesizeStories } from "./converters/synthesize";
+import { canonicalizeRun } from "executable-stories-core/converters/acl/index";
+import { synthesizeStories } from "executable-stories-core/converters/synthesize";
 import { ReportGenerator } from "./index";
 import type { OutputFormat } from "./types/options";
-import type { RawRun } from "./types/raw";
-import type { TestRunResult } from "./types/test-result";
+import type { RawRun } from "executable-stories-core/types/raw";
+import type { TestRunResult } from "executable-stories-core/types/test-result";
 
 export interface WatchOptions {
   /** Path to the raw-run (or canonical) JSON the framework adapter writes. */

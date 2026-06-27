@@ -1,5 +1,5 @@
 import { createContext } from "react";
-import type { StoryReport } from "executable-stories-formatters";
+import type { StoryReport } from "executable-stories-core";
 import type { BuiltinRenderers, CustomRenderers } from "../renderers";
 
 export interface ReportContextValue {

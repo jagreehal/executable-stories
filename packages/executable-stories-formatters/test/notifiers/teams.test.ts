@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { sendTeamsNotification } from "../../src/notifiers/teams";
 import type { NotificationSummary } from "../../src/notifiers/types";
-import type { CIInfo } from "../../src/types/ci";
+import type { CIInfo } from "executable-stories-core/types/ci";
 
 function createSummary(overrides: Partial<NotificationSummary> = {}): NotificationSummary {
   return {

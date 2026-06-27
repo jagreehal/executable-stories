@@ -2,13 +2,13 @@ import Ajv2020 from "ajv/dist/2020";
 import { describe, expect, it } from "vitest";
 import * as fs from "node:fs";
 
-import { canonicalizeRun } from "../../src/converters/acl/index";
+import { canonicalizeRun } from "executable-stories-core/converters/acl/index";
 import {
   ScenarioIndexJsonFormatter,
   toScenarioIndex,
 } from "../../src/formatters/scenario-index-json";
 import { createMultipleTestCasesRun } from "../fixtures/raw-runs/basic";
-import { toStoryReport } from "../../src/converters/story-report";
+import { toStoryReport } from "executable-stories-core/converters/story-report";
 import { ReportGenerator } from "../../src/index";
 
 describe("ScenarioIndexJsonFormatter", () => {

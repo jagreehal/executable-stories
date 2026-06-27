@@ -1,4 +1,4 @@
-import type { TestCaseResult } from "./types/test-result";
+import type { TestCaseResult } from "executable-stories-core/types/test-result";
 
 /**
  * The error message a reader should see for a failed scenario: the failing

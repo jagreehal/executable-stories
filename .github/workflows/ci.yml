@@ -45,6 +45,12 @@ jobs:
         with:
           bun-version: "1.2.0"
 
+      # Build the workspace first so the binary compile can resolve
+      # executable-stories-core's built subpaths (its exports map points at
+      # dist/*). turbo caches this, so the later Quality build is a cache hit.
+      - name: Build packages
+        run: pnpm build
+
       - name: Build formatters binary
         if: hashFiles('packages/executable-stories-formatters/package.json') != ''
         run: cd packages/executable-stories-formatters && pnpm run compile

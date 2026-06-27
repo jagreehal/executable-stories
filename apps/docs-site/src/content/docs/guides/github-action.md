@@ -5,6 +5,8 @@ description: Surface executable stories in pull requests, gate release candidate
 
 The [executable-stories-action](https://github.com/jagreehal/executable-stories-action) posts your story output directly into pull requests. Each PR gets a collapsible Markdown summary as a comment and the full HTML report as a downloadable artifact.
 
+> The action is developed in the [executable-stories monorepo](https://github.com/jagreehal/executable-stories/tree/main/packages/executable-stories-action) and mirrored to `jagreehal/executable-stories-action`, so `uses: jagreehal/executable-stories-action@v2` keeps working. File issues and PRs against the monorepo.
+
 It also supports release workflows:
 
 - `report` — default PR report mode
@@ -18,7 +20,7 @@ Works with all supported frameworks. Zero configuration for the common case.
 Add to your workflow after the test step:
 
 ```yaml
-- uses: jagreehal/executable-stories-action@v1
+- uses: jagreehal/executable-stories-action@v2
 ```
 
 The action auto-detects your test output. No inputs are required for the default flow.
@@ -80,7 +82,7 @@ jobs:
       - run: pnpm install
       - run: pnpm test
 
-      - uses: jagreehal/executable-stories-action@v1
+      - uses: jagreehal/executable-stories-action@v2
         if: always()  # post the comment even when tests fail
 ```
 
@@ -103,7 +105,7 @@ jobs:
       - run: pnpm install
       - run: pnpm cypress run
 
-      - uses: jagreehal/executable-stories-action@v1
+      - uses: jagreehal/executable-stories-action@v2
         if: always()
 ```
 
@@ -126,7 +128,7 @@ jobs:
       - run: pip install -e ".[test]"
       - run: pytest
 
-      - uses: jagreehal/executable-stories-action@v1
+      - uses: jagreehal/executable-stories-action@v2
         if: always()
 ```
 
@@ -148,7 +150,7 @@ jobs:
           go-version: "1.22"
       - run: go test ./...
 
-      - uses: jagreehal/executable-stories-action@v1
+      - uses: jagreehal/executable-stories-action@v2
         if: always()
 ```
 
@@ -168,7 +170,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo test
 
-      - uses: jagreehal/executable-stories-action@v1
+      - uses: jagreehal/executable-stories-action@v2
         if: always()
 ```
 
@@ -191,7 +193,7 @@ jobs:
           bundler-cache: true
       - run: bundle exec rake test
 
-      - uses: jagreehal/executable-stories-action@v1
+      - uses: jagreehal/executable-stories-action@v2
         if: always()
 ```
 
@@ -214,7 +216,7 @@ jobs:
           java-version: "21"
       - run: ./gradlew test
 
-      - uses: jagreehal/executable-stories-action@v1
+      - uses: jagreehal/executable-stories-action@v2
         if: always()
 ```
 
@@ -236,7 +238,7 @@ jobs:
           dotnet-version: "8.0"
       - run: dotnet test
 
-      - uses: jagreehal/executable-stories-action@v1
+      - uses: jagreehal/executable-stories-action@v2
         if: always()
 ```
 
@@ -249,7 +251,7 @@ Without `if: always()`, the action only runs if the previous step succeeded. For
 ```yaml
       - run: pnpm test
 
-      - uses: jagreehal/executable-stories-action@v1
+      - uses: jagreehal/executable-stories-action@v2
         if: always()
 ```
 
@@ -260,7 +262,7 @@ You can run the action more than once per workflow — for example, separate Vit
 ```yaml
       - run: pnpm test:unit
       - if: always() && hashFiles('docs/evidence/vitest-tests.html') != ''
-        uses: jagreehal/executable-stories-action@v1
+        uses: jagreehal/executable-stories-action@v2
         with:
           report-dir: docs/evidence
           output-name: vitest-tests
@@ -269,7 +271,7 @@ You can run the action more than once per workflow — for example, separate Vit
 
       - run: pnpm test:e2e
       - if: always() && hashFiles('docs/evidence/playwright-tests.html') != ''
-        uses: jagreehal/executable-stories-action@v1
+        uses: jagreehal/executable-stories-action@v2
         with:
           report-dir: docs/evidence
           output-name: playwright-tests
@@ -295,7 +297,7 @@ jobs:
       - run: pnpm install
       - run: pnpm test
 
-      - uses: jagreehal/executable-stories-action@v1
+      - uses: jagreehal/executable-stories-action@v2
         with:
           mode: gate-release
           gate-dev-run: reports/dev.raw-run.json
@@ -316,7 +318,7 @@ Allowed exceptions can be stored in a policy file:
 ```
 
 ```yaml
-      - uses: jagreehal/executable-stories-action@v1
+      - uses: jagreehal/executable-stories-action@v2
         with:
           mode: gate-release
           gate-dev-run: reports/dev.raw-run.json
@@ -331,7 +333,7 @@ See [Release confidence](/guides/release-confidence/) for the CLI equivalent.
 Use `mode: deploy` after a deployment step to record which scenario set is now live in an environment:
 
 ```yaml
-      - uses: jagreehal/executable-stories-action@v1
+      - uses: jagreehal/executable-stories-action@v2
         with:
           mode: deploy
           raw-run: reports/prod.raw-run.json
@@ -357,7 +359,7 @@ jobs:
   test:
     steps:
       # ...run tests...
-      - uses: jagreehal/executable-stories-action@v1
+      - uses: jagreehal/executable-stories-action@v2
         with:
           host-images: branch
           # images-branch: executable-stories-images   # optional, this is the default
@@ -379,7 +381,7 @@ The action commits using the GitHub Git Data API by referencing the branch's cur
 If your reporter is configured with custom `outputDir` or `outputName`:
 
 ```yaml
-      - uses: jagreehal/executable-stories-action@v1
+      - uses: jagreehal/executable-stories-action@v2
         with:
           report-dir: docs/stories
           output-name: user-stories
@@ -390,7 +392,7 @@ If your reporter is configured with custom `outputDir` or `outputName`:
 Pin the `executable-stories` CLI version that the action downloads (only relevant for the raw-JSON path used by non-JS adapters):
 
 ```yaml
-      - uses: jagreehal/executable-stories-action@v1
+      - uses: jagreehal/executable-stories-action@v2
         with:
           formatter-version: "0.7.3"
 ```
@@ -399,7 +401,7 @@ Pin the `executable-stories` CLI version that the action downloads (only relevan
 
 ```yaml
       - id: stories
-        uses: jagreehal/executable-stories-action@v1
+        uses: jagreehal/executable-stories-action@v2
 
       - name: Echo report paths
         run: |
@@ -525,7 +527,7 @@ At minimum `pull-requests: write`. Add `contents: write` only if using `host-ima
 Yes — there is no automatic cleanup yet. Old `pr-*/` directories are safe to delete manually at any time (they are referenced by historical PR comments, but the comments degrade gracefully to broken-image icons). A cleanup recipe / retention input may land in a future release.
 
 **Where do I report bugs or request features?**
-[github.com/jagreehal/executable-stories-action/issues](https://github.com/jagreehal/executable-stories-action/issues)
+[github.com/jagreehal/executable-stories/issues](https://github.com/jagreehal/executable-stories/issues) — the action is developed in the monorepo.
 
 ## Supported frameworks
 

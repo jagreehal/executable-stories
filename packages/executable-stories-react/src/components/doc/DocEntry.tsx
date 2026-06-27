@@ -1,4 +1,4 @@
-import type { ReportDocEntry } from "executable-stories-formatters";
+import type { ReportDocEntry } from "executable-stories-core";
 import { DocNote } from "./DocNote";
 import { DocTag } from "./DocTag";
 import { DocKv } from "./DocKv";
@@ -8,6 +8,8 @@ import { DocLink } from "./DocLink";
 import { DocSection } from "./DocSection";
 import { DocMermaid } from "./DocMermaid";
 import { DocScreenshot } from "./DocScreenshot";
+import { DocVideo } from "./DocVideo";
+import { DocHtml } from "./DocHtml";
 import { DocCustom } from "./DocCustom";
 
 export function DocEntry({ entry }: { entry: ReportDocEntry }) {
@@ -30,6 +32,10 @@ export function DocEntry({ entry }: { entry: ReportDocEntry }) {
       return <DocMermaid entry={entry} />;
     case "screenshot":
       return <DocScreenshot entry={entry} />;
+    case "video":
+      return <DocVideo entry={entry} />;
+    case "html":
+      return <DocHtml entry={entry} />;
     case "custom":
       return <DocCustom entry={entry} />;
   }

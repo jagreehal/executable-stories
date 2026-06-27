@@ -7,18 +7,20 @@
  * Architecture:
  * - Layer 1: Framework Adapters (adaptJestRun, adaptVitestRun, adaptPlaywrightRun)
  * - Layer 2: Anti-Corruption Layer (canonicalizeRun)
- * - Layer 3: Formatters (CucumberJsonFormatter, HtmlFormatter, JUnitFormatter, MarkdownFormatter)
+ * - Layer 3: Formatters (CucumberJsonFormatter, JUnitFormatter, MarkdownFormatter; the
+ *   HTML report renders via executable-stories-react — the `html` format)
  */
 
-import * as fs from "node:fs";
 import * as path from "node:path";
 
 import * as fsPromises from "node:fs/promises";
-import type { TestRunResult, TestCaseResult } from "./types/test-result";
+import { toStoryReport } from "executable-stories-core/converters/story-report";
+import type { TestRunResult, TestCaseResult } from "executable-stories-core/types/test-result";
 import type {
   FormatterOptions,
   ResolvedFormatterOptions,
   OutputFormat,
+  FormatInput,
   OutputMode,
   ColocatedStyle,
   OutputRule,
@@ -27,15 +29,15 @@ import type {
   CanonicalizeOptions,
   SortTestCasesMode,
 } from "./types/options";
-import type { RawRun } from "./types/raw";
+import type { RawRun } from "executable-stories-core/types/raw";
 import type { RunDiffResult } from "./types/compare";
+import { reactReportCss, reactIslandScript } from "./generated/react-assets";
 
-import { canonicalizeRun } from "./converters/acl/index";
+import { canonicalizeRun } from "executable-stories-core/converters/acl/index";
 import { CucumberJsonFormatter } from "./formatters/cucumber-json";
 import { StoryReportJsonFormatter } from "./formatters/story-report-json";
 import { ScenarioIndexJsonFormatter } from "./formatters/scenario-index-json";
 import { BehaviorManifestJsonFormatter } from "./formatters/behavior-manifest-json";
-import { HtmlFormatter } from "./formatters/html/index";
 import { JUnitFormatter } from "./formatters/junit-xml";
 import { MarkdownFormatter } from "./formatters/markdown";
 import { ReleaseManifestFormatter } from "./formatters/release-manifest";
@@ -46,11 +48,11 @@ import { diffRuns } from "./compare/index";
 import { RunDiffHtmlFormatter } from "./formatters/run-diff-html";
 import { RunDiffMarkdownFormatter } from "./formatters/run-diff-markdown";
 import { matchesPattern, selectTestCases } from "./select-test-cases";
-import { bundleAssets } from "./bundler/bundle-assets";
 import { AstroFormatter } from "./formatters/astro";
-import { cleanTestStem } from "./utils/source-file";
+import { cleanTestStem } from "executable-stories-core/utils/source-file";
 import { ConfluenceFormatter } from "./formatters/confluence";
 import { copyMarkdownAssets } from "./formatters/astro-assets";
+import { bundleAssets } from "./bundler/bundle-assets";
 
 // Import adapters for convenience functions
 import { adaptJestRun } from "./converters/adapters/jest";
@@ -70,11 +72,11 @@ export type {
   StoryStep,
   StoryMeta,
   NormalizedTicket,
-} from "./types/story";
-export { STORY_META_KEY } from "./types/story";
+} from "executable-stories-core/types/story";
+export { STORY_META_KEY } from "executable-stories-core/types/story";
 
 // OTel span types (trace waterfall rendering)
-export type { OtelSpan, OtelAttributeValue } from "./types/otel";
+export type { OtelSpan, OtelAttributeValue } from "executable-stories-core/types/otel";
 
 // Canonical types (Layer 2 output - what formatters accept)
 export type {
@@ -87,7 +89,7 @@ export type {
   CIInfo,
   CoverageSummary,
   TestRunResult,
-} from "./types/test-result";
+} from "executable-stories-core/types/test-result";
 
 // Raw types (Layer 1 - for adapter authors)
 export type {
@@ -97,7 +99,7 @@ export type {
   RawTestCase,
   RawCIInfo,
   RawRun,
-} from "./types/raw";
+} from "executable-stories-core/types/raw";
 
 // Cucumber JSON types (Layer 3 output)
 export type {
@@ -139,11 +141,11 @@ export type {
   ReportScenario,
   ReportFeature,
   StoryReport,
-} from "./types/story-report";
+} from "executable-stories-core/types/story-report";
 export {
   STORY_REPORT_SCHEMA_VERSION,
   STORY_REPORT_SCHEMA_MAJOR,
-} from "./types/story-report";
+} from "executable-stories-core/types/story-report";
 
 // Options types
 export type {
@@ -187,41 +189,37 @@ export type {
   ReviewResult,
 } from "./types/review";
 
-// Theme types
-export type { HtmlTheme, HtmlThemeName } from "./formatters/html/themes/index";
-export { resolveTheme, getAvailableThemes, getCssOnlyThemes } from "./formatters/html/themes/index";
-
 // Canonical --es-* theme tokens (shared with executable-stories-react)
-export { ES_THEME_TOKENS_CSS, ES_THEME_TOKEN_VALUES } from "./theme/tokens";
+export { ES_THEME_TOKENS_CSS, ES_THEME_TOKEN_VALUES } from "executable-stories-core/theme/tokens";
 
 // ============================================================================
 // ACL Exports
 // ============================================================================
 
-export { canonicalizeRun } from "./converters/acl/index";
+export { canonicalizeRun } from "executable-stories-core/converters/acl/index";
 
 /** @internal */
-export { normalizeStatus } from "./converters/acl/index";
+export { normalizeStatus } from "executable-stories-core/converters/acl/index";
 /** @internal */
-export { generateTestCaseId } from "./converters/acl/index";
+export { generateTestCaseId } from "executable-stories-core/converters/acl/index";
 /** @internal */
-export { generateRunId } from "./converters/acl/index";
+export { generateRunId } from "executable-stories-core/converters/acl/index";
 /** @internal */
-export { slugify } from "./converters/acl/index";
+export { slugify } from "executable-stories-core/converters/acl/index";
 /** @internal */
-export { deriveStepResults } from "./converters/acl/index";
+export { deriveStepResults } from "executable-stories-core/converters/acl/index";
 /** @internal */
-export { mergeStepResults } from "./converters/acl/index";
+export { mergeStepResults } from "executable-stories-core/converters/acl/index";
 /** @internal */
-export { resolveAttachment } from "./converters/acl/index";
+export { resolveAttachment } from "executable-stories-core/converters/acl/index";
 /** @internal */
-export { resolveAttachments } from "./converters/acl/index";
+export { resolveAttachments } from "executable-stories-core/converters/acl/index";
 
 export {
   validateCanonicalRun,
   assertValidRun,
   type ValidationResult,
-} from "./converters/acl/validate";
+} from "executable-stories-core/converters/acl/validate";
 
 // ============================================================================
 // Formatter Exports
@@ -268,18 +266,9 @@ export {
   type WatchHandle,
 } from "./watch";
 
-export {
-  startServe,
-  advanceState,
-  computeDeltas,
-  renderDeltaStrip,
-  injectLiveBits,
-  type ServeOptions,
-  type ServeDeps,
-  type ServeHandle,
-  type RunState,
-  type RunDeltas,
-} from "./serve";
+// The old `serve` HTTP server is replaced by `astro dev` (executable-stories-astro).
+// Its valuable part — the session trajectory primitive — now lives in core.
+export { advanceState, initialRunState, type RunState } from "executable-stories-core";
 
 export {
   diffStoryReports,
@@ -288,12 +277,12 @@ export {
   type BehaviorDiffEntry,
 } from "./behavior-diff";
 
-export { toStoryReport } from "./converters/story-report";
+export { toStoryReport } from "executable-stories-core/converters/story-report";
 
-export {
-  HtmlFormatter,
-  type HtmlOptions,
-} from "./formatters/html/index";
+// The HTML report renders via executable-stories-react (the `html` format) —
+// the single report renderer. The in-package HTML string renderer was removed.
+// To render a report programmatically, use `renderReportToHtml` from
+// executable-stories-react/ssr.
 
 export {
   JUnitFormatter,
@@ -365,7 +354,7 @@ export {
 // NDJSON Parser (compat path: NDJSON → TestRunResult)
 // ============================================================================
 
-export { parseNdjson, parseEnvelopes } from "./converters/ndjson-parser";
+export { parseNdjson, parseEnvelopes } from "executable-stories-core/converters/ndjson-parser";
 
 // ============================================================================
 // Utility Exports
@@ -378,11 +367,11 @@ export { findGitDir } from "./utils/git-info";
 /** @internal */
 export { readBranchName } from "./utils/git-info";
 /** @internal */
-export { formatDuration } from "./utils/duration";
+export { formatDuration } from "executable-stories-core/utils/duration";
 /** @internal */
-export { msToNanoseconds } from "./utils/duration";
+export { msToNanoseconds } from "executable-stories-core/utils/duration";
 /** @internal */
-export { nanosecondsToMs } from "./utils/duration";
+export { nanosecondsToMs } from "executable-stories-core/utils/duration";
 /** @internal */
 export { readPackageVersion } from "./utils/metadata";
 /** @internal */
@@ -393,7 +382,7 @@ export {
   resolveTraceUrl,
   type OtelTraceContext,
 } from "./utils/otel-detect";
-export { buildHtmlDocEntry, type HtmlDocOptions } from "./utils/doc-builders";
+export { buildHtmlDocEntry, type HtmlDocOptions } from "executable-stories-core/utils/doc-builders";
 
 // ============================================================================
 // Notifier Exports
@@ -411,8 +400,8 @@ export type { NotificationSummary, NotifyCondition, GenericWebhookNotifierOption
 // CI Type Exports
 // ============================================================================
 
-export type { CIProvider, CIInfo as TypedCIInfo } from "./types/ci";
-export { toCIInfo, toRawCIInfo } from "./types/ci";
+export type { CIProvider, CIInfo as TypedCIInfo } from "executable-stories-core/types/ci";
+export { toCIInfo, toRawCIInfo } from "executable-stories-core/types/ci";
 
 // ============================================================================
 // History Exports
@@ -505,7 +494,7 @@ export interface GenerateCompareResult {
 
 /** Extension map for output formats */
 const FORMAT_EXTENSIONS: Record<OutputFormat, string> = {
-  astro: ".md",
+  "astro-markdown": ".md",
   "behavior-manifest-json": ".behavior-manifest.json",
   markdown: ".md",
   "release-manifest": ".release-manifest.md",
@@ -648,7 +637,7 @@ function groupTestCasesByOutput(
     // Determine effective settings (first match wins, fall back to defaults)
     const mode = rule?.mode ?? defaultMode;
     const colocatedStyle = rule?.colocatedStyle ?? defaultColocatedStyle;
-    const formats = rule?.formats ?? defaultFormats;
+    const formats = normalizeFormats(rule?.formats ?? defaultFormats);
     const outputDir = rule?.outputDir ?? defaultOutputDir;
     const outputName = rule?.outputName ?? options.output.outputName ?? defaultOutputName;
 
@@ -708,6 +697,31 @@ function groupTestCasesByOutput(
  * - Colocated adjacent: Files written next to source files
  * - Rule-based: Different routing based on source file patterns
  */
+
+let astroAliasWarned = false;
+
+/**
+ * Normalise input formats to canonical {@link OutputFormat}s. Accepts the
+ * deprecated `"astro"` alias (renamed to `"astro-markdown"`) and warns once per
+ * process — so programmatic/config callers passing `"astro"` keep working
+ * instead of throwing, matching the CLI's deprecation behaviour.
+ */
+export function normalizeFormats(formats: ReadonlyArray<FormatInput>): OutputFormat[] {
+  return formats.map((f) => {
+    if (f === "astro") {
+      if (!astroAliasWarned) {
+        astroAliasWarned = true;
+        console.warn(
+          "⚠ The 'astro' output format was renamed to 'astro-markdown'. '\"astro\"' still works but " +
+            "will be removed in a future major; use 'astro-markdown'.",
+        );
+      }
+      return "astro-markdown";
+    }
+    return f;
+  });
+}
+
 export class ReportGenerator {
   private options: ResolvedFormatterOptions;
   private deps: GenerateDeps;
@@ -729,7 +743,7 @@ export class ReportGenerator {
       exclude: options.exclude ?? [],
       includeTags: options.includeTags ?? [],
       excludeTags: options.excludeTags ?? [],
-      formats: options.formats ?? ["html"],
+      formats: normalizeFormats(options.formats ?? ["html"]),
       outputDir: options.outputDir ?? "reports",
       outputName: options.outputName ?? "index",
       outputNameTimestamp: options.outputNameTimestamp ?? false,
@@ -760,21 +774,8 @@ export class ReportGenerator {
       },
       html: {
         title: options.html?.title ?? "Test Results",
-        darkMode: options.html?.darkMode ?? true,
-        searchable: options.html?.searchable ?? true,
-        startCollapsed: options.html?.startCollapsed ?? false,
-        embedScreenshots: options.html?.embedScreenshots ?? true,
-        // Under "copy" asset mode local html files become hashed assets with
-        // an iframe src instead of being inlined into the report.
-        embedHtmlFiles: options.html?.embedHtmlFiles ?? (options.assetMode ?? "none") !== "copy",
         syntaxHighlighting: options.html?.syntaxHighlighting ?? true,
         mermaidEnabled: options.html?.mermaidEnabled ?? true,
-        markdownEnabled: options.html?.markdownEnabled ?? true,
-        permalinkBaseUrl: options.html?.permalinkBaseUrl,
-        ticketUrlTemplate: options.html?.ticketUrlTemplate,
-        theme: options.html?.theme ?? "default",
-        tocEnabled: options.html?.tocEnabled ?? true,
-        themePickerEnabled: options.html?.themePickerEnabled ?? false,
       },
       junit: {
         suiteName: options.junit?.suiteName ?? "Test Suite",
@@ -866,16 +867,20 @@ export class ReportGenerator {
     }
 
     if (this.options.assetMode === "copy") {
+      // The html report references screenshots/videos by path — DocScreenshot
+      // and DocVideo emit <img>/<video src=...> rather than inlining bytes — so
+      // a moved or hosted report would 404 its media. Bundle them: copy
+      // referenced local media into assets/ beside the report and rewrite the
+      // paths in both the static markup and the embedded report JSON the
+      // interactive island re-renders from.
       const htmlPaths = results.get("html");
       if (htmlPaths) {
         for (const htmlPath of htmlPaths) {
-          bundleAssets(htmlPath, {
-            allowMissing: this.options.allowMissingAssets,
-          });
+          bundleAssets(htmlPath, { allowMissing: this.options.allowMissingAssets });
         }
       }
 
-      const astroPaths = results.get("astro");
+      const astroPaths = results.get("astro-markdown");
       if (astroPaths) {
         for (const mdPath of astroPaths) {
           const content = await fsPromises.readFile(mdPath, "utf8");
@@ -968,23 +973,11 @@ export class ReportGenerator {
       }
 
       case "html": {
-        const formatter = new HtmlFormatter({
-          title: this.options.html.title,
-          theme: this.options.html.theme,
-          darkMode: this.options.html.darkMode,
-          searchable: this.options.html.searchable,
-          startCollapsed: this.options.html.startCollapsed,
-          embedScreenshots: this.options.html.embedScreenshots,
-          embedHtmlFiles: this.options.html.embedHtmlFiles,
-          syntaxHighlighting: this.options.html.syntaxHighlighting,
-          mermaidEnabled: this.options.html.mermaidEnabled,
-          markdownEnabled: this.options.html.markdownEnabled,
-          permalinkBaseUrl: this.options.html.permalinkBaseUrl,
-          ticketUrlTemplate: this.options.html.ticketUrlTemplate,
-          tocEnabled: this.options.html.tocEnabled,
-          themePickerEnabled: this.options.html.themePickerEnabled,
-        });
-        return formatter.format(run);
+        // The HTML report renders via executable-stories-react (the single
+        // report renderer). Lazy import keeps React + executable-stories-react
+        // out of the eager import graph (and the Bun single binary) unless the
+        // html format is requested.
+        return this.formatHtmlReact(run);
       }
 
       case "cucumber-html": {
@@ -1017,7 +1010,7 @@ export class ReportGenerator {
         return formatter.formatToString(run);
       }
 
-      case "astro": {
+      case "astro-markdown": {
         const formatter = new AstroFormatter({
           assetsBaseUrl: this.options.astro.assetsBaseUrl,
           // Colocated = one page per file, so title each by its own suite/file.
@@ -1101,6 +1094,43 @@ export class ReportGenerator {
         throw new Error(`Unknown format: ${format}`);
     }
   }
+
+  /**
+   * Render a standalone HTML report via the shared React component tree
+   * (executable-stories-react). This is the same renderer the Astro docs site
+   * uses, so the two outputs cannot drift. Imported lazily so React stays out
+   * of the eager bundle unless this format is requested.
+   */
+  private async formatHtmlReact(run: TestRunResult): Promise<string> {
+    const { renderReportToHtml } = await import("executable-stories-react/ssr");
+    const report = toStoryReport(run);
+    return renderReportToHtml(report, {
+      title: this.options.html.title,
+      css: readReactReportCss(),
+      theme: "light",
+      // Honour the --html-no-syntax-highlighting / --html-no-mermaid flags.
+      syntaxHighlighting: this.options.html.syntaxHighlighting,
+      mermaid: this.options.html.mermaidEnabled,
+      islandScript: readReactIslandScript(),
+    });
+  }
+}
+
+/**
+ * The compiled Tailwind/shadcn stylesheet and the self-contained interactive
+ * island IIFE shipped by executable-stories-react, embedded at build time by
+ * scripts/embed-react-assets.mjs. Embedding (rather than resolving from
+ * node_modules at runtime) is what lets `--format html` work from the
+ * bun-compiled single-file binary, which has no node_modules. The reporters and
+ * the binary therefore inline the version of these assets that formatters was
+ * built against.
+ */
+function readReactReportCss(): string {
+  return reactReportCss;
+}
+
+function readReactIslandScript(): string {
+  return reactIslandScript;
 }
 
 /**

@@ -145,7 +145,7 @@ story.table({
 
 ```bash
 vitest run
-npx executable-stories format --html --markdown
+npx --package executable-stories-formatters executable-stories format --html --markdown
 ```
 
   </div>
@@ -254,63 +254,13 @@ npx executable-stories format --html --markdown
   </div>
 </div>
 
-{/* ── Themes ── */}
+{/* ── Theming ── */}
 
 <div class="section-break" />
 
 <div class="section-header not-content">
-  <h2 class="section-header__title">6 themes, light and dark</h2>
-  <p class="section-header__sub">Set with <code>--html-theme</code>. Every theme supports automatic dark mode.</p>
-</div>
-
-<div class="theme-showcase not-content">
-  <a href="reference/themes/" class="theme-card theme-card--featured">
-    <div class="theme-card__images">
-      <img src="screenshots/theme-default-light.png" alt="Default theme, light" loading="lazy" decoding="async" />
-      <img src="screenshots/theme-default-dark.png" alt="Default theme, dark" loading="lazy" decoding="async" />
-    </div>
-    <div class="theme-card__info">
-      <span class="theme-card__label">Default</span>
-      <span class="theme-card__desc">Clean, modern design with cucumber green accent</span>
-    </div>
-  </a>
-  <div class="theme-supporting">
-    <a href="reference/themes/" class="theme-card">
-      <div class="theme-card__images">
-        <img src="screenshots/theme-terminal-light.png" alt="Terminal theme, light" loading="lazy" decoding="async" />
-        <img src="screenshots/theme-terminal-dark.png" alt="Terminal theme, dark" loading="lazy" decoding="async" />
-      </div>
-      <span class="theme-card__label">Terminal</span>
-    </a>
-    <a href="reference/themes/" class="theme-card">
-      <div class="theme-card__images">
-        <img src="screenshots/theme-corporate-light.png" alt="Corporate theme, light" loading="lazy" decoding="async" />
-        <img src="screenshots/theme-corporate-dark.png" alt="Corporate theme, dark" loading="lazy" decoding="async" />
-      </div>
-      <span class="theme-card__label">Corporate</span>
-    </a>
-    <a href="reference/themes/" class="theme-card">
-      <div class="theme-card__images">
-        <img src="screenshots/theme-dashboard-light.png" alt="Dashboard theme, light" loading="lazy" decoding="async" />
-        <img src="screenshots/theme-dashboard-dark.png" alt="Dashboard theme, dark" loading="lazy" decoding="async" />
-      </div>
-      <span class="theme-card__label">Dashboard</span>
-    </a>
-    <a href="reference/themes/" class="theme-card">
-      <div class="theme-card__images">
-        <img src="screenshots/theme-minimal-light.png" alt="Minimal theme, light" loading="lazy" decoding="async" />
-        <img src="screenshots/theme-minimal-dark.png" alt="Minimal theme, dark" loading="lazy" decoding="async" />
-      </div>
-      <span class="theme-card__label">Minimal</span>
-    </a>
-    <a href="reference/themes/" class="theme-card">
-      <div class="theme-card__images">
-        <img src="screenshots/theme-playful-light.png" alt="Playful theme, light" loading="lazy" decoding="async" />
-        <img src="screenshots/theme-playful-dark.png" alt="Playful theme, dark" loading="lazy" decoding="async" />
-      </div>
-      <span class="theme-card__label">Playful</span>
-    </a>
-  </div>
+  <h2 class="section-header__title">Light, dark, and yours</h2>
+  <p class="section-header__sub">The report follows the system colour scheme and ships a manual toggle. One <code>--es-*</code> CSS override re-themes the HTML report, the React component, and the Astro site at once. <a href="reference/themes/">Theming →</a></p>
 </div>
 
 {/* ── Your stack ── */}

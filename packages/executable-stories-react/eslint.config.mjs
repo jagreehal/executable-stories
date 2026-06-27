@@ -4,7 +4,7 @@ import reactHooks from "eslint-plugin-react-hooks";
 export default [
   ...baseConfig,
   {
-    ignores: ["dist/**", "**/*.css", "test/**"],
+    ignores: ["dist/**", "storybook-static/**", "**/*.css", "test/**"],
   },
   {
     files: ["src/**/*.{ts,tsx}"],

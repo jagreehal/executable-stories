@@ -27,9 +27,9 @@ describe("<Report>", () => {
     expect(screen.getByText("src/auth.story.test.ts")).toBeInTheDocument();
   });
 
-  it("renders one <article> per scenario with stable id + aria-labelledby", () => {
+  it("renders one scenario card per scenario with stable id + aria-labelledby", () => {
     const { container } = render(<Report report={mixedReport} />);
-    const articles = container.querySelectorAll("article.es-scenario");
+    const articles = container.querySelectorAll('[data-slot="card"]');
     expect(articles).toHaveLength(3);
     for (const a of Array.from(articles)) {
       expect(a.getAttribute("id")).toBeTruthy();
@@ -39,7 +39,7 @@ describe("<Report>", () => {
 
   it("renders an <ol> of steps with keyword and text for non-empty scenarios", () => {
     const { container } = render(<Report report={passingReport} />);
-    const stepsList = container.querySelector("ol.es-steps")!;
+    const stepsList = container.querySelector('ol[data-slot="steps"]')!;
     expect(stepsList).toBeInTheDocument();
     expect(within(stepsList as HTMLElement).getByText("Given")).toBeInTheDocument();
     expect(within(stepsList as HTMLElement).getByText("no todos exist")).toBeInTheDocument();

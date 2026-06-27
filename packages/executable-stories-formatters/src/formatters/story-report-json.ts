@@ -5,9 +5,9 @@
  * pretty-print option.
  */
 
-import { toStoryReport } from "../converters/story-report";
-import type { StoryReport } from "../types/story-report";
-import type { TestRunResult } from "../types/test-result";
+import { toStoryReport } from "executable-stories-core/converters/story-report";
+import type { StoryReport } from "executable-stories-core/types/story-report";
+import type { TestRunResult } from "executable-stories-core/types/test-result";
 
 export interface StoryReportJsonOptions {
   /** Pretty-print JSON output with 2-space indent. Default: true. */

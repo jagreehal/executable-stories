@@ -1,5 +1,5 @@
-import type { DocEntry, NormalizedTicket, StoryStep } from "./story";
-import type { Attachment, TestCaseResult, TestRunResult, TestStatus } from "./test-result";
+import type { DocEntry, NormalizedTicket, StoryStep } from "executable-stories-core/types/story";
+import type { Attachment, TestCaseResult, TestRunResult, TestStatus } from "executable-stories-core/types/test-result";
 
 export type ScenarioChangeKind =
   | "added"

@@ -32,12 +32,19 @@
       "import": "./dist/parse.js",
       "require": "./dist/parse.cjs"
     },
+    "./ssr": {
+      "types": "./dist/ssr.d.ts",
+      "import": "./dist/ssr.js",
+      "require": "./dist/ssr.cjs"
+    },
     "./interactive": {
       "types": "./dist/interactive.d.ts",
       "import": "./dist/interactive.js",
       "require": "./dist/interactive.cjs"
     },
-    "./styles.css": "./dist/styles.css"
+    "./report-island.js": "./dist/report-island.global.js",
+    "./styles.css": "./dist/styles.css",
+    "./tailwind.css": "./dist/tailwind.css"
   },
   "files": [
     "dist",
@@ -45,27 +52,51 @@
   ],
   "peerDependencies": {
     "react": ">=19.2.7",
-    "react-dom": ">=19.2.7"
+    "react-dom": ">=19.2.7",
+    "mermaid": ">=10"
+  },
+  "peerDependenciesMeta": {
+    "mermaid": {
+      "optional": true
+    }
   },
   "dependencies": {
-    "executable-stories-formatters": "workspace:*",
+    "@base-ui/react": "^1.6.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "cmdk": "^1.1.1",
+    "executable-stories-core": "workspace:*",
+    "lucide-react": "^0.469.0",
     "marked": "^18.0.5",
+    "tailwind-merge": "^3.6.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@storybook/addon-a11y": "^10.4.6",
+    "@storybook/addon-vitest": "^10.4.6",
+    "@storybook/react-vite": "^10.4.6",
+    "@tailwindcss/cli": "^4.3.0",
+    "@tailwindcss/vite": "^4.3.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^25.9.2",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.2",
+    "@vitest/browser": "4.1.8",
+    "@vitest/browser-playwright": "4.1.8",
     "eslint-config-executable-stories": "workspace:*",
     "eslint-plugin-react-hooks": "^7.1.1",
     "jsdom": "^29.1.1",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "mermaid": "^11.4.0",
+    "playwright": "^1.60.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "storybook": "^10.4.6",
+    "tailwindcss": "^4.3.0",
     "tsup": "^8.5.1",
-    "typescript": "^6.0.3",
+    "typescript": "~6.0.3",
+    "vite": "^8.0.0",
     "vitest": "^4.1.8"
   },
   "keywords": [
@@ -77,11 +108,15 @@
     "testing"
   ],
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && pnpm build:css",
+    "build:css": "tailwindcss -i src/styles/tailwind.css -o dist/tailwind.css --minify",
     "type-check": "tsc --noEmit",
     "lint": "eslint .",
     "clean": "rm -rf dist",
     "test": "vitest run",
+    "test:component": "vitest run --config vitest.storybook.config.ts",
+    "storybook": "storybook dev -p 6007",
+    "build-storybook": "storybook build",
     "quality": "pnpm type-check && pnpm test && pnpm lint"
   }
 }

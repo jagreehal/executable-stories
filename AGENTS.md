@@ -51,7 +51,7 @@ apps/
 
 ## Tech stack
 
-- **Runtime**: Node >= 22, pnpm 10, TypeScript ~5.9
+- **Runtime**: Node >= 22, pnpm 10, TypeScript ~6.0.3 (publishable packages). Example apps stay on `^5.9.3` where their framework/test toolchain still caps at TS 5 (e.g. `ts-jest`, Astro 6's `tsconfck`).
 - **Monorepo**: pnpm workspaces + Turborepo
 - **Build**: tsup (all packages)
 - **Test**: Vitest (packages + vitest-example), Jest (jest-example), Playwright (playwright-example), Cypress (cypress-example)
@@ -86,15 +86,14 @@ Test code (story.given/when/then/json/mermaid/...)
 
 - **fn(args, deps)** pattern throughout: functions take `(args, deps)` for explicit dependency injection
 - No classes except thin wrappers for backward compat (e.g., `HtmlFormatter`, `ReportGenerator`)
-- HTML renderer uses layered composition: `buildBody -> renderFeature -> renderScenario -> renderSteps -> renderDocEntry`
+- `--format html` renders via `executable-stories-react` (SSR + an interactive hydration island); there is no string HTML renderer.
 
-### HTML report CDN features (all enabled by default)
+### HTML report CDN features (enabled by default)
 
 - `syntaxHighlighting`: highlight.js for code blocks
 - `mermaidEnabled`: Mermaid.js for live diagram rendering
-- `markdownEnabled`: marked.js for markdown section parsing
 
-Use `--html-no-mermaid`, `--html-no-syntax-highlighting`, `--html-no-markdown` CLI flags to disable.
+Use `--html-no-syntax-highlighting` and `--html-no-mermaid` to disable. (Markdown in `section` doc entries is always parsed by the React renderer; there is no toggle.)
 
 ### Story API
 
@@ -111,7 +110,7 @@ All framework adapters expose the same API surface:
 - Story test files use `.story.test.ts` (vitest/jest) or `.story.spec.ts` (playwright) or `.story.cy.ts` (cypress)
 - ESM throughout (`"type": "module"` in all package.json)
 - Packages export via tsup with both ESM and CJS builds
-- `@types/node` should be `^25.2.1` across all workspace packages
+- `@types/node` should be `^25.9.2` across all workspace packages
 
 ## ESLint plugins
 

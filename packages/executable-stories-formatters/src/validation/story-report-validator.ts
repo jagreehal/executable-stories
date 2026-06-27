@@ -1,13 +1,14 @@
 /**
  * JSON Schema validation for StoryReport using Ajv.
  *
- * Source of truth is schemas/story-report-v1.json. This validator is used
+ * Source of truth is executable-stories-core/schemas/story-report-v1.json (the
+ * canonical cross-package StoryReport contract). This validator is used
  * both at CLI emission time (sanity-check what we produce) and as the
  * reference Ajv compile target for downstream consumers.
  */
 
 import Ajv from "ajv/dist/2020.js";
-import schema from "../../schemas/story-report-v1.json" with { type: "json" };
+import schema from "executable-stories-core/schemas/story-report-v1.json" with { type: "json" };
 
 export interface StoryReportValidationResult {
   valid: boolean;

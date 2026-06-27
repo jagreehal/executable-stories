@@ -1,10 +1,13 @@
-import type { ReportDocTag } from "executable-stories-formatters";
+import type { ReportDocTag } from "executable-stories-core";
+import { Badge } from "@/components/ui/badge";
 
 export function DocTag({ entry }: { entry: ReportDocTag }) {
   return (
-    <ul className="es-doc es-tags" aria-label="Tags">
+    <ul className="my-2 flex flex-wrap gap-1.5" aria-label="Tags">
       {entry.names.map((n) => (
-        <li key={n}>{n}</li>
+        <li key={n}>
+          <Badge variant="tag">{n}</Badge>
+        </li>
       ))}
     </ul>
   );

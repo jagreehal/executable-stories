@@ -1,0 +1,145 @@
+---
+title: First Story (xUnit)
+description: Write your first C# scenario with given/when/then steps and doc entries
+---
+
+import ReportScreenshot from '../../../components/ReportScreenshot.astro';
+
+## Minimal example
+
+Create a test file such as `LoginTests.cs`:
+
+```csharp
+using ExecutableStories.Xunit;
+using Xunit;
+
+public class LoginTests
+{
+    [Fact]
+    public void UserLogsInSuccessfully()
+    {
+        Story.Init("user logs in successfully");
+        try
+        {
+            Story.Given("the user is on the login page");
+            var email = "user@example.com";
+            var password = "secret";
+
+            Story.When("the user submits valid credentials");
+            var authenticated = email == "user@example.com" && password == "secret";
+
+            Story.Then("the user should see the dashboard");
+            Assert.True(authenticated);
+
+            Story.RecordAndClear();
+        }
+        catch
+        {
+            Story.RecordAndClear("fail");
+            throw;
+        }
+    }
+}
+```
+
+`Story.RecordAndClear()` flushes the scenario after each test. Wrap the body in `try/catch` and call `Story.RecordAndClear("fail")` when the test throws — `RecordAndClear()` defaults to a `"pass"` status, so recording in a plain `Dispose()` would mark every test green even when assertions fail.
+
+## Richer example with doc entries
+
+Use tags, tickets, and doc entries to add context to your scenarios:
+
+```csharp
+using ExecutableStories.Xunit;
+using System.Text.Json;
+using Xunit;
+
+public class PasswordPolicyTests
+{
+    [Fact]
+    public void PasswordRulesAreEnforced()
+    {
+        Story.Init("password rules are enforced", "auth", "security");
+        Story.Ticket("AUTH-42");
+        try
+        {
+            Story.Given("the user is registering a new account");
+            Story.Note("Password policy: min 12 chars, one uppercase, one digit, one symbol");
+
+            Story.When("the user submits a password that is too short");
+            var password = "short";
+            var valid = password.Length >= 12;
+
+            Story.Then("the registration should be rejected");
+            Story.Json(
+                "validation result",
+                new { valid, reason = "too short" }
+            );
+            Story.Code(
+                "password policy",
+                "min_length: 12\nrequire_uppercase: true\nrequire_digit: true",
+                "yaml"
+            );
+            Story.Table(
+                "rule summary",
+                new[] { "Rule", "Required", "Met" },
+                new[]
+                {
+                    new[] { "min length 12", "yes", "no" },
+                    new[] { "uppercase letter", "yes", "yes" },
+                    new[] { "digit", "yes", "no" },
+                }
+            );
+
+            Assert.False(valid);
+
+            Story.RecordAndClear();
+        }
+        catch
+        {
+            Story.RecordAndClear("fail");
+            throw;
+        }
+    }
+}
+```
+
+## Available step methods
+
+| Method | Renders as |
+|--------|-----------|
+| `Story.Given(label)` | Given / And |
+| `Story.When(label)` | When / And |
+| `Story.Then(label)` | Then / And |
+| `Story.And(label)` | And |
+| `Story.But(label)` | But |
+
+All methods are static on the `Story` class.
+
+## Run tests
+
+```bash
+dotnet test
+```
+
+## Generate a report
+
+```bash
+npx --package executable-stories-formatters executable-stories format .executable-stories/raw-run.json --format html
+```
+
+## See it in the report
+
+Run your reporter with `--format html` and your stories render into an interactive report:
+
+<ReportScreenshot
+  src="screenshots/hero-report.png"
+  href="examples/report.html"
+  alt="The generated HTML report with Given/When/Then steps, a run summary, and search and status filters"
+  caption="Every framework adapter produces this same report. Click to open the live one."
+/>
+
+## Next
+
+[xUnit story & doc API](reference/xunit-story-api/) — full steps, docs, and adapter options.
+
+[Other adapters](reference/other-adapters/) — the rest of the non-JS adapters.

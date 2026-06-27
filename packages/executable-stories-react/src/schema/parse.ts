@@ -3,7 +3,7 @@
  * fetch body, prop) and returns a Result-typed StoryReport.
  */
 
-import type { StoryReport } from "executable-stories-formatters";
+import type { StoryReport } from "executable-stories-core";
 import type { Result } from "../result";
 import { ok, err } from "../result";
 import { storyReportSchema, STORY_REPORT_SCHEMA_MAJOR } from "./story-report.schema";

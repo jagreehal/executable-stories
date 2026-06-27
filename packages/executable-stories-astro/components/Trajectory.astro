@@ -1,0 +1,46 @@
+---
+/**
+ * Session trajectory headline — "passed N → M since you started".
+ *
+ * Reads the single `session` entry from the trajectory collection (fed by
+ * trajectoryLoader) and renders count-level deltas vs the session baseline and
+ * the previous run. Hot-reloads with the rest of the dev loop. Pass `collection`
+ * if you named the trajectory collection something other than "trajectory".
+ */
+import { getCollection } from "astro:content";
+import "../styles/es.css"; // default styling for the es-trajectory classes
+import type { TrajectorySummary } from "executable-stories-astro";
+
+interface Props {
+  collection?: string;
+}
+const { collection = "trajectory" } = Astro.props;
+
+const entries = await getCollection(collection as "trajectory");
+// The content store is untyped; project the single `session` entry back onto
+// core's TrajectorySummary at this one boundary.
+const t = entries.find((e: { id: string }) => e.id === "session")?.data as
+  | TrajectorySummary
+  | undefined;
+
+const sign = (n: number) => (n > 0 ? `+${n}` : `${n}`);
+---
+
+{t && (
+  <section class="es-trajectory" data-testid="trajectory">
+    <span class="es-trajectory__run">run #{t.runCount}</span>
+    <span class="es-trajectory__now" data-testid="now">
+      {t.current.passed}/{t.current.total} passed
+    </span>
+    {t.session && (
+      <span class={`es-trajectory__delta ${t.session.diff.passed >= 0 ? "is-up" : "is-down"}`} data-testid="session-delta">
+        {sign(t.session.diff.passed)} passed · {sign(t.session.diff.failed)} failed since you started
+      </span>
+    )}
+    {t.iteration && (
+      <span class="es-trajectory__iter" data-testid="iteration-delta">
+        ({sign(t.iteration.diff.passed)} passed this iteration)
+      </span>
+    )}
+  </section>
+)}

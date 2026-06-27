@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import type { DocEntry } from "../../src/types/story";
+import type { DocEntry } from "executable-stories-core/types/story";
 
 describe("DocEntry children type", () => {
   it("should accept children on a note entry", () => {

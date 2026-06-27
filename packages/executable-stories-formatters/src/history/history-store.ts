@@ -2,7 +2,7 @@
  * History store: load, save, update (fn(args, deps) pattern).
  */
 
-import type { TestRunResult } from "../types/test-result";
+import type { TestRunResult } from "executable-stories-core/types/test-result";
 import type { HistoryEntry, HistoryStore, TestHistory } from "./types";
 
 // ============================================================================

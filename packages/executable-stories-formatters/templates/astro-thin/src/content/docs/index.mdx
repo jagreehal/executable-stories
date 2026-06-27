@@ -1,0 +1,44 @@
+---
+title: Story Docs
+description: Living documentation generated from executable stories.
+---
+
+The **Stories** section is generated live from your test-run JSON by the
+`executable-stories-astro` integration — there is no build/generate step and the
+pages are never written to disk, so they can't drift into a lie. Everything under
+**Guides** is hand-authored by your team.
+
+## The loop
+
+Run two things side by side and leave them running:
+
+```bash
+# Terminal 1 — your tests in watch mode (rewrites reports/raw-run.json on every run)
+pnpm test --watch        # or: vitest, jest --watch, playwright --ui, …
+
+# Terminal 2 — this docs site
+npm run dev              # Astro dev server
+```
+
+Each time your tests re-run, they rewrite the run JSON; the integration reloads
+it and these pages hot-update in place. Edit a `*.story.test.ts`, save, and watch
+the matching page change.
+
+## Where to look
+
+- **[Stories](/stories)** — one page per scenario, grouped by feature (change the
+  grouping with `groupBy` in `executable-stories.config.mjs`). Add a story and it
+  appears; delete it and its page is pruned. On a fresh scaffold this shows a few
+  **sample scenarios** (labelled as such) so the site isn't empty — they vanish
+  the moment your tests emit their run JSON.
+- **[Explorer](/explorer)** — a searchable index of every scenario with its status.
+- **Trajectory** — pins a baseline when the dev server starts and shows what
+  changed *since you started this session* (e.g. "+2 passing, 1 regressed") — the
+  signal to watch while iterating in an agent loop.
+
+## Wiring (one-time)
+
+The site reads the run JSON your test adapter writes. Point `source` in
+`executable-stories.config.mjs` at it (default `../reports/raw-run.json`), and set
+the matching `rawRunPath` in your StoryReporter config. That's the only wiring —
+no per-test setup.

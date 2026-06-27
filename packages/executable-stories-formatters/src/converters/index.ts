@@ -13,13 +13,13 @@ export {
   mergeStepResults,
   resolveAttachment,
   resolveAttachments,
-} from "./acl/index";
+} from "executable-stories-core/converters/acl/index";
 
 export {
   validateCanonicalRun,
   assertValidRun,
   type ValidationResult,
-} from "./acl/validate";
+} from "executable-stories-core/converters/acl/validate";
 
 // Framework adapters (Layer 1)
 export {

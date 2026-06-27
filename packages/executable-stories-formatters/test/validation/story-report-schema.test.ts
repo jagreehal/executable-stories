@@ -8,7 +8,7 @@
 
 import { describe, it, expect } from "vitest";
 import { validateStoryReport } from "../../src/validation/story-report-validator";
-import type { StoryReport } from "../../src/types/story-report";
+import type { StoryReport } from "executable-stories-core/types/story-report";
 
 const minimalValid: StoryReport = {
   schemaVersion: "1.0",

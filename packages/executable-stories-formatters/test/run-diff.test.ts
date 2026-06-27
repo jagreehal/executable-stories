@@ -4,7 +4,7 @@ import { createPrCommentSummary, diffRuns } from "../src/compare";
 import {
   behaviourFingerprint,
   behaviourSimilarity,
-} from "../src/converters/acl/ids";
+} from "executable-stories-core/converters/acl/ids";
 import { RunDiffHtmlFormatter } from "../src/formatters/run-diff-html";
 import { RunDiffMarkdownFormatter } from "../src/formatters/run-diff-markdown";
 import { stubs } from "./stubs";

@@ -2,6 +2,7 @@
 
 import { useCallback } from "react";
 import type { FailureRef } from "./filter";
+import { scrollToScenarioId } from "../lib/scroll";
 
 export interface ReportFailureBannerProps {
   failures: readonly FailureRef[];
@@ -12,18 +13,15 @@ export function ReportFailureBanner({ failures }: ReportFailureBannerProps) {
 
   const jumpToFirst = useCallback(() => {
     if (!first) return;
-    if (typeof window === "undefined") return;
-    const el = document.getElementById(first.scenarioId);
-    el?.scrollIntoView({ behavior: "smooth", block: "start" });
-    if (typeof history !== "undefined") {
-      history.replaceState(null, "", `#${first.scenarioId}`);
-    }
+    scrollToScenarioId(first.scenarioId);
   }, [first]);
 
   if (failures.length === 0) return null;
 
+  // A live status region: `role="status"` is not a valid role on <aside>
+  // (whose implicit role is `complementary`), so use a <div> to carry it.
   return (
-    <aside
+    <div
       className="es-failure-banner"
       role="status"
       aria-live="polite"
@@ -41,6 +39,6 @@ export function ReportFailureBanner({ failures }: ReportFailureBannerProps) {
       >
         Jump to first ↓
       </button>
-    </aside>
+    </div>
   );
 }

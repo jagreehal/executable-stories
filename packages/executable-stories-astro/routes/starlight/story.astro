@@ -1,0 +1,30 @@
+---
+/**
+ * Story-detail route — Starlight variant. Renders the shared server-HTML
+ * ScenarioDetailView (same component the standalone route uses), so the docs
+ * site is fully static — no React island, no hydration. ScenarioDetailView
+ * carries its own progressive-enhancement script for code highlighting and
+ * mermaid diagrams, so none is needed here.
+ */
+import StarlightPage from "@astrojs/starlight/components/StarlightPage.astro";
+import { getCollection } from "astro:content";
+import "../../styles/es.css";
+import { storyEntries } from "executable-stories-astro";
+import type { StoryEntryData } from "executable-stories-astro";
+import ScenarioDetailView from "../../components/ScenarioDetailView.astro";
+import { collection } from "virtual:executable-stories/config";
+
+export async function getStaticPaths() {
+  const stories = storyEntries(await getCollection(collection));
+  return stories.map((s: StoryEntryData) => ({
+    params: { slug: s.slug },
+    props: { story: s },
+  }));
+}
+
+const s = Astro.props.story as StoryEntryData;
+---
+
+<StarlightPage frontmatter={{ title: s.title, tableOfContents: false, prev: false, next: false }}>
+  <ScenarioDetailView story={s} shell="starlight" />
+</StarlightPage>

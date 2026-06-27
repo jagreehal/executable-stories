@@ -55,12 +55,12 @@
     "formatter"
   ],
   "scripts": {
-    "build": "tsup",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "type-check": "tsc --noEmit",
-    "generate:design-library": "tsx scripts/generate-design-library.ts",
-    "compile": "bun build src/cli.ts --compile --outfile executable-stories",
+    "embed-assets": "node scripts/embed-react-assets.mjs",
+    "build": "node scripts/embed-react-assets.mjs && tsup",
+    "test": "node scripts/embed-react-assets.mjs && vitest run",
+    "test:watch": "node scripts/embed-react-assets.mjs && vitest",
+    "type-check": "node scripts/embed-react-assets.mjs && tsc --noEmit",
+    "compile": "node scripts/embed-react-assets.mjs && bun build src/cli.ts --compile --outfile executable-stories",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },
@@ -69,14 +69,18 @@
     "@cucumber/messages": "^32.3.1",
     "ajv": "^8.20.0",
     "github-slugger": "^2.0.0",
-    "yaml": "^2.9.0"
+    "yaml": "^2.9.0",
+    "executable-stories-core": "workspace:*",
+    "executable-stories-react": "workspace:*",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
   },
   "devDependencies": {
     "@faker-js/faker": "^10.4.0",
-    "@storybook/html": "^10.4.2",
-    "@storybook/html-vite": "^10.4.2",
+    "@storybook/html": "^10.4.6",
+    "@storybook/html-vite": "^10.4.6",
     "@types/node": "^25.9.2",
-    "storybook": "^10.4.2",
+    "storybook": "^10.4.6",
     "tsup": "^8.5.1",
     "tsx": "^4.22.4",
     "typescript": "~6.0.3",

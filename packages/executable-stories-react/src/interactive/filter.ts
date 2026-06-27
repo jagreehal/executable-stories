@@ -7,13 +7,33 @@ import type {
   ReportScenario,
   ReportFeature,
   StoryReport,
-} from "executable-stories-formatters";
+} from "executable-stories-core";
+
+export type StatusFilter = "all" | "passed" | "failed" | "skipped" | "pending";
+
+export interface FilterCriteria {
+  query?: string;
+  status?: StatusFilter;
+  /** Scenario matches if it carries ANY of these tags (empty = no tag filter). */
+  tags?: string[];
+}
 
 export function normalizeQuery(query: string): string {
   return query.trim().toLowerCase();
 }
 
-function scenarioMatches(scenario: ReportScenario, q: string): boolean {
+/** Unique scenario tags across the whole report, in first-seen order. */
+export function allTags(report: StoryReport): string[] {
+  const seen = new Set<string>();
+  for (const feature of report.features) {
+    for (const scenario of feature.scenarios) {
+      for (const tag of scenario.tags) seen.add(tag);
+    }
+  }
+  return [...seen];
+}
+
+function queryMatches(scenario: ReportScenario, q: string): boolean {
   if (q === "") return true;
   if (scenario.title.toLowerCase().includes(q)) return true;
   for (const tag of scenario.tags) {
@@ -23,6 +43,17 @@ function scenarioMatches(scenario: ReportScenario, q: string): boolean {
     if (step.text.toLowerCase().includes(q)) return true;
   }
   return false;
+}
+
+function scenarioMatches(
+  scenario: ReportScenario,
+  q: string,
+  status: StatusFilter,
+  tags: string[],
+): boolean {
+  if (status !== "all" && scenario.status !== status) return false;
+  if (tags.length > 0 && !tags.some((t) => scenario.tags.includes(t))) return false;
+  return queryMatches(scenario, q);
 }
 
 function summarizeScenarios(scenarios: ReportScenario[]) {
@@ -43,9 +74,12 @@ function summarizeScenarios(scenarios: ReportScenario[]) {
   return { total, passed, failed, skipped, pending, durationMs };
 }
 
-export function filterReport(report: StoryReport, query: string): StoryReport {
-  const q = normalizeQuery(query);
-  if (q === "") return report;
+export function filterReport(report: StoryReport, criteria: string | FilterCriteria): StoryReport {
+  const c: FilterCriteria = typeof criteria === "string" ? { query: criteria } : criteria;
+  const q = normalizeQuery(c.query ?? "");
+  const status = c.status ?? "all";
+  const tags = c.tags ?? [];
+  if (q === "" && status === "all" && tags.length === 0) return report;
 
   const features: ReportFeature[] = [];
   let topTotal = 0,
@@ -56,7 +90,7 @@ export function filterReport(report: StoryReport, query: string): StoryReport {
     topDuration = 0;
 
   for (const feature of report.features) {
-    const matched = feature.scenarios.filter((s) => scenarioMatches(s, q));
+    const matched = feature.scenarios.filter((s) => scenarioMatches(s, q, status, tags));
     if (matched.length === 0) continue;
     const summary = summarizeScenarios(matched);
     features.push({ ...feature, summary, scenarios: matched });

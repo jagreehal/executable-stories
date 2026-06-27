@@ -2,13 +2,19 @@ import http from "node:http";
 
 import {
   getBehaviorDiff,
+  getLoopStatus,
   getScenario,
   getScenariosForPaths,
+  getTrajectory,
+  isFocusedRunFramework,
   listScenarios,
   loadStoryReport,
   readOnlyTools,
   resolveReportPath,
-  runFocusedScenario,
+  runChanged,
+  runScenarioById,
+  runScenarios,
+  FOCUSED_RUN_FRAMEWORKS,
   type FocusedRunFramework,
   type ScenarioIndexFilters,
 } from "./index.js";
@@ -19,8 +25,31 @@ export interface HttpServerOptions {
   reportPath?: string;
 }
 
+/** A bad client request — surfaced as HTTP 400 rather than a generic 500. */
+class BadRequestError extends Error {}
+
 /** Exact GET routes shared with the stdio MCP server (see readOnlyTools). */
 const readOnlyRoutes = new Map(readOnlyTools.map((tool) => [tool.route, tool.run]));
+
+/** Shared run/refresh options from a POST body. */
+function runOptionsFromBody(body: Record<string, unknown>): {
+  framework?: FocusedRunFramework;
+  cwd?: string;
+  rawRunPath?: string;
+  refreshReport?: boolean;
+} {
+  if (body.framework !== undefined && !isFocusedRunFramework(body.framework)) {
+    throw new BadRequestError(
+      `Unsupported framework "${String(body.framework)}". Expected one of: ${FOCUSED_RUN_FRAMEWORKS.join(" | ")}.`,
+    );
+  }
+  return {
+    framework: isFocusedRunFramework(body.framework) ? body.framework : undefined,
+    cwd: typeof body.cwd === "string" ? body.cwd : undefined,
+    rawRunPath: typeof body.rawRunPath === "string" ? body.rawRunPath : undefined,
+    refreshReport: typeof body.refreshReport === "boolean" ? body.refreshReport : undefined,
+  };
+}
 
 /** Parse the repeatable filter query params (?status=&tag=&sourceFile=). */
 function parseFilters(params: URLSearchParams): ScenarioIndexFilters {
@@ -67,6 +96,24 @@ export function createHttpServer(options: HttpServerOptions = {}): http.Server {
 
         // Arg-taking routes resolve before the no-arg catalog and the dynamic
         // /scenarios/:id route.
+        if (url.pathname === "/trajectory") {
+          const reset = url.searchParams.get("reset") === "true";
+          sendJson(response, 200, getTrajectory(report, { reset }));
+          return;
+        }
+        if (url.pathname === "/loop-status") {
+          const baselineParam = url.searchParams.get("baseline");
+          sendJson(
+            response,
+            200,
+            getLoopStatus(report, {
+              baseline: baselineParam
+                ? loadStoryReport(resolveReportPath(baselineParam))
+                : undefined,
+            }),
+          );
+          return;
+        }
         if (url.pathname === "/scenarios") {
           sendJson(response, 200, listScenarios(report, parseFilters(url.searchParams)));
           return;
@@ -91,21 +138,53 @@ export function createHttpServer(options: HttpServerOptions = {}): http.Server {
         }
       }
 
+      if (request.method === "POST" && url.pathname === "/run-scenario") {
+        const body = await readJsonBody(request);
+        const resolvedReportPath = resolveReportPath(reportPath);
+        const outcome = await runScenarioById({
+          report: loadStoryReport(resolvedReportPath),
+          reportPath: resolvedReportPath,
+          idOrTitle: String(body.idOrTitle),
+          ...runOptionsFromBody(body),
+        });
+        // A failed scenario is business data, not a transport error — always 200
+        // with the structured outcome (consistent with /run-scenarios and
+        // /run-changed). `outcome.ok` carries the pass/fail. A genuine lookup
+        // miss is reported in `outcome.error`.
+        sendJson(response, 200, outcome);
+        return;
+      }
+
       if (request.method === "POST" && url.pathname === "/run-scenarios") {
         const body = await readJsonBody(request);
-        const result = await runFocusedScenario({
-          framework: body.framework as FocusedRunFramework,
-          sourceFile: String(body.sourceFile),
-          scenarioTitle: typeof body.scenarioTitle === "string" ? body.scenarioTitle : undefined,
-          cwd: typeof body.cwd === "string" ? body.cwd : undefined,
+        const resolvedReportPath = resolveReportPath(reportPath);
+        const outcomes = await runScenarios({
+          report: loadStoryReport(resolvedReportPath),
+          reportPath: resolvedReportPath,
+          idsOrTitles: Array.isArray(body.idsOrTitles) ? body.idsOrTitles.map(String) : [],
+          ...runOptionsFromBody(body),
         });
-        sendJson(response, result.ok ? 200 : 500, result);
+        sendJson(response, 200, { outcomes });
+        return;
+      }
+
+      if (request.method === "POST" && url.pathname === "/run-changed") {
+        const body = await readJsonBody(request);
+        const resolvedReportPath = resolveReportPath(reportPath);
+        const result = await runChanged({
+          report: loadStoryReport(resolvedReportPath),
+          reportPath: resolvedReportPath,
+          paths: Array.isArray(body.paths) ? body.paths.map(String) : [],
+          ...runOptionsFromBody(body),
+        });
+        sendJson(response, 200, result);
         return;
       }
 
       sendJson(response, 404, { error: "Not found" });
     } catch (error) {
-      sendJson(response, 500, { error: (error as Error).message });
+      const status = error instanceof BadRequestError ? 400 : 500;
+      sendJson(response, status, { error: (error as Error).message });
     }
   });
 }

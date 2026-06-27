@@ -9,7 +9,6 @@
     "report:cli": "pnpm exec executable-stories format reports/raw-run.json --format html,markdown --output-dir reports --output-name executable-stories-cli",
     "report:agents": "pnpm exec executable-stories format reports/raw-run.json --format story-report-json,scenario-index-json,behavior-manifest-json --output-dir reports --output-name index",
     "test:report": "pnpm test && pnpm report:agents && pnpm report:cli",
-    "test:live": "node scripts/live.mjs",
     "type-check": "node -e \"const fs=require('fs');const {execSync}=require('child_process');const p=require('path').resolve(process.cwd(),'../../packages/executable-stories-vitest/package.json');if(!fs.existsSync(p)){console.log('Skipping type-check: executable-stories-vitest not in workspace');process.exit(0);}execSync('tsc --noEmit',{stdio:'inherit'});\""
   },
   "keywords": [],
@@ -19,7 +18,7 @@
   "devDependencies": {
     "executable-stories-formatters": "workspace:*",
     "@eslint/js": "^9.39.2",
-    "@types/node": "^25.3.0",
+    "@types/node": "^25.9.2",
     "eslint": "^9.39.2",
     "eslint-config-executable-stories": "workspace:*",
     "eslint-config-prettier": "^10.1.8",

@@ -3,7 +3,7 @@
  */
 
 export { readGitSha, findGitDir, readBranchName } from "./git-info";
-export { formatDuration, msToNanoseconds, nanosecondsToMs } from "./duration";
+export { formatDuration, msToNanoseconds, nanosecondsToMs } from "executable-stories-core/utils/duration";
 export { detectCI } from "./ci-detect";
 export {
   tryGetActiveOtelContext,

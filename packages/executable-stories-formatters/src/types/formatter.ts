@@ -1,4 +1,4 @@
-import type { TestRunResult } from "./test-result.js";
+import type { TestRunResult } from "executable-stories-core/types/test-result";
 
 export interface Formatter {
   name: string;

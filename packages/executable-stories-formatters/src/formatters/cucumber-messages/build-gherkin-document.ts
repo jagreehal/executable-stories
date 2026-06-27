@@ -2,8 +2,8 @@
  * Build a GherkinDocument envelope from synthesized feature data.
  */
 
-import type { TestCaseResult } from "../../types/test-result";
-import type { DocEntry, StepKeyword, StoryStep } from "../../types/story";
+import type { TestCaseResult } from "executable-stories-core/types/test-result";
+import type { DocEntry, StepKeyword, StoryStep } from "executable-stories-core/types/story";
 import type {
   GherkinDocument,
   Feature,
@@ -16,7 +16,7 @@ import type {
   DataTable,
   TableRow,
   TableCell,
-} from "../../types/cucumber-messages";
+} from "executable-stories-core/types/cucumber-messages";
 import type { SynthesizedFeature } from "./synthesize-feature";
 import { deterministicId, keywordToKeywordType } from "../../utils/cucumber-messages";
 

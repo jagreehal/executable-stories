@@ -7,8 +7,8 @@
  * with higher fidelity than converting markdown → ADF.
  */
 
-import type { StoryStep, DocEntry } from "../types/story";
-import type { TestRunResult, TestCaseResult, TestStatus } from "../types/test-result";
+import type { StoryStep, DocEntry } from "executable-stories-core/types/story";
+import type { TestRunResult, TestCaseResult, TestStatus } from "executable-stories-core/types/test-result";
 
 /** Options for ConfluenceFormatter */
 export interface ConfluenceFormatterOptions {
@@ -437,7 +437,7 @@ export class ConfluenceFormatter {
         break;
     }
 
-    if (entry.children && entry.children.length > 0) {
+    if (Array.isArray(entry.children) && entry.children.length > 0) {
       for (const child of entry.children) {
         this.renderDocEntry(content, child);
       }

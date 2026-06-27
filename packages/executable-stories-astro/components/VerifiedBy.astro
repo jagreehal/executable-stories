@@ -1,0 +1,39 @@
+---
+/**
+ * Living-documentation verification badge.
+ *
+ * A docs page declares which stories prove it is still true:
+ *   ---
+ *   title: ADR 0007 — cap discount at 30%
+ *   verifiedBy: [checkout--caps-the-discount, pricing]
+ *   ---
+ * Render <VerifiedBy refs={frontmatter.verifiedBy} /> to show a live pass/fail
+ * badge resolved against the latest run via the `stories` collection.
+ */
+import { getCollection } from "astro:content";
+import "../styles/es.css"; // default styling for the es-verify badge classes
+import { resolveVerification, presentStatus, reportFromStoryEntries, storyEntries } from "executable-stories-astro";
+
+interface Props {
+  refs: string | string[] | undefined;
+  collection?: string;
+}
+const { refs, collection = "stories" } = Astro.props;
+
+let badge: { status: string; label: string; icon: string; summary: string } | null = null;
+if (refs && (Array.isArray(refs) ? refs.length : true)) {
+  const entries = await getCollection(collection as "stories");
+  const report = reportFromStoryEntries(storyEntries(entries));
+  const result = resolveVerification(refs, report);
+  const present = presentStatus(result);
+  badge = { status: result.status, label: present.label, icon: present.icon, summary: present.summary };
+}
+---
+
+{badge && (
+  <p class={`es-verify es-verify--${badge.status}`} data-testid="verify-badge" data-status={badge.status}>
+    <span class="es-verify__icon" aria-hidden="true">{badge.icon}</span>
+    <strong class="es-verify__label">{badge.label}</strong>
+    <span class="es-verify__summary">{badge.summary}</span>
+  </p>
+)}

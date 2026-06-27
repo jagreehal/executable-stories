@@ -1,0 +1,72 @@
+---
+title: First Story (Cypress)
+description: Write your first Cypress scenario and see the generated report output
+---
+
+import ReportScreenshot from '../../../components/ReportScreenshot.astro';
+
+## Write a story
+
+Create a spec file (e.g. `cypress/e2e/calculator.story.cy.ts`):
+
+```typescript
+import { story } from 'executable-stories-cypress';
+
+describe('Calculator', () => {
+  it('adds two numbers', () => {
+    story.init();
+
+    story.given('two numbers 5 and 3');
+    const a = 5, b = 3;
+
+    story.when('I add them together');
+    const result = a + b;
+
+    story.then('the result is 8');
+    expect(result).toBe(8);
+  });
+});
+```
+
+Use **`story.init()`** at the start of each test (no task argument; same as Jest), then **`story.given`**, **`story.when`**, **`story.then`** to mark steps. Story metadata is sent from the browser to Node via `cy.task` so the reporter can generate docs.
+
+## Run tests
+
+```bash
+pnpm cypress run
+```
+
+Or open the Cypress UI:
+
+```bash
+pnpm cypress open
+```
+
+## Generated output
+
+If you configured the reporter (see [Installation (Cypress)](getting-started/installation-cypress/)), reports are written to your configured formats and paths. For Markdown output, the story above looks like:
+
+```markdown
+### Adds two numbers
+
+- **Given** two numbers 5 and 3
+- **When** I add them together
+- **Then** the result is 8
+```
+
+## See it in the report
+
+Run your reporter with `--format html` and your stories render into an interactive report:
+
+<ReportScreenshot
+  src="screenshots/hero-report.png"
+  href="examples/report.html"
+  alt="The generated HTML report with Given/When/Then steps, a run summary, and search and status filters"
+  caption="Every framework adapter produces this same report. Click to open the live one."
+/>
+
+## Next
+
+[Cypress story & doc API](reference/cypress-story-api/) — step markers, inline docs, doc methods, and options.
+
+[Developer experience](guides/developer-experience/) — how Cypress differs from Jest/Vitest/Playwright (e.g. meta via cy.task).

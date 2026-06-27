@@ -13,7 +13,7 @@ import {
 } from "../src/review/conventions";
 import { ReviewMarkdownFormatter } from "../src/formatters/review-markdown";
 import { ReviewHtmlFormatter } from "../src/formatters/review-html";
-import type { Attachment } from "../src/types/test-result";
+import type { Attachment } from "executable-stories-core/types/test-result";
 import type { ChangedFile } from "../src/types/review";
 import { stubs } from "./stubs";
 

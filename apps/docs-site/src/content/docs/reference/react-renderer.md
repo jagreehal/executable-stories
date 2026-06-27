@@ -13,7 +13,7 @@ It's the same data your existing CLI already emits: test results become living d
 pnpm add executable-stories-react executable-stories-formatters
 ```
 
-The package has two peer dependencies (`react >=18`, `react-dom >=18`) and ships ESM + CJS.
+The package has two required peer dependencies (`react >=19.2.7`, `react-dom >=19.2.7`) plus an optional `mermaid >=10` peer (only needed for live diagram rendering), and ships ESM + CJS.
 
 Import the stylesheet once at the root of your app:
 
@@ -133,7 +133,7 @@ Theme via CSS custom properties on `:root` or any ancestor of the report. The fu
 }
 ```
 
-The same tokens are emitted by the standalone HTML formatter (see [HTML themes](/reference/themes)). One CSS override re-themes both.
+The same tokens are emitted by the standalone HTML formatter (see [Theming](/reference/themes)). One CSS override re-themes both.
 
 Dark/light adapts automatically to `prefers-color-scheme`. Force a scheme with `data-theme="dark"` (or `"light"`) on any parent element.
 
@@ -156,7 +156,7 @@ Error codes:
 
 ## SSR
 
-Every primitive renders to fully semantic HTML on the server via `react-dom/server.renderToString`. The output is:
+Every primitive renders to fully semantic HTML on the server via `react-dom/server.renderToStaticMarkup`. The output is:
 
 - `<main aria-label="...">` landmark
 - `<section aria-labelledby="feature-X-title">` per feature
@@ -171,4 +171,4 @@ JavaScript is required only for the chrome in `<ReportInteractive>`. The content
 
 - [Formatters API → `story-report-json` format](/reference/formatters-api) — emit the JSON the React package consumes.
 - [Embed reports in React apps](/guides/embed-in-react-apps) — worked examples for Next.js, Astro, and Vite.
-- [HTML themes](/reference/themes) — the same `--es-*` tokens that style this component.
+- [Theming](/reference/themes) — the same `--es-*` tokens that style this component.

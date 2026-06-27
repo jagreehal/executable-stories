@@ -5,8 +5,8 @@
  * for CI system integration.
  */
 
-import type { DocEntry, StoryStep } from "../types/story";
-import type { TestRunResult, TestCaseResult } from "../types/test-result";
+import type { DocEntry, StoryStep } from "executable-stories-core/types/story";
+import type { TestRunResult, TestCaseResult } from "executable-stories-core/types/test-result";
 
 /** Options for JUnit XML formatting */
 export interface JUnitOptions {

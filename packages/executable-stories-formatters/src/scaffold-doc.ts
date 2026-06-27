@@ -224,8 +224,8 @@ scenarioId: ${ctx.scenarioId}
 verifiedBy: [${ctx.scenarioId}]
 ---
 
-This page is hand-written commentary for a generated scenario. It is never
-overwritten by \`build-docs\`.
+This page is hand-written commentary for a generated scenario. The generated
+stories render live from the run JSON, so this page is never overwritten.
 
 ## Why this behavior matters
 

@@ -1,64 +1,35 @@
 ---
-title: HTML Themes
-description: Choose from 6 built-in HTML report themes, each with light and dark mode support.
+title: Theming
+description: The HTML report and React renderer share one set of CSS tokens — light and dark out of the box, fully re-themeable with a single override.
 ---
 
-import ThemePreview from '../../../components/ThemePreview.astro';
+The standalone HTML report and the React renderer (`executable-stories-react`) are the **same component tree**, themed through one set of CSS custom properties. There is nothing to pick between — light and dark work out of the box, and a single CSS override re-themes every surface.
 
-Executable Stories ships with 6 HTML report themes. Every theme supports automatic light/dark mode detection and a manual toggle.
+## Light and dark
 
-## Theme gallery
+The report ships light and dark palettes. It follows the system `prefers-color-scheme` automatically, and the interactive report has a manual light/dark toggle. No flag or configuration is required.
 
-<ThemePreview basePath="screenshots" />
+## Re-theming with tokens
 
-## Using a theme
+Every colour, font, radius, and spacing value is a `--es-*` CSS custom property. Override any of them on `:root` (or any ancestor of the report) to re-theme — the same override styles the standalone HTML report, the React component, and the Astro docs site.
 
-Pass `--html-theme` to the CLI:
-
-```bash
-executable-stories format raw-run.json --format html --html-theme corporate
-```
-
-Or set it in the reporter config:
-
-```typescript
-html: {
-  theme: 'corporate',
+```css
+:root {
+  --es-color-passed: #2e7d32;
+  --es-color-failed: #c62828;
+  --es-color-link: #1565c0;
+  --es-radius: 0.75rem;
+  --es-font-body: 'Inter', system-ui, sans-serif;
 }
 ```
 
-## Theme descriptions
+See the [React renderer reference](/reference/react-renderer) for the full token catalog and how to apply it inside a React app.
 
-### Default
+## HTML feature flags
 
-Clean, modern design inspired by shadcn/ui. Cucumber green accent. Best for general-purpose reports.
-
-### Corporate
-
-Two-pane editorial layout with a fixed sidebar table of contents. Pass rate progress bar. Best for stakeholder-facing reports with many scenarios.
-
-### Terminal
-
-Monospace typography throughout. Retro console aesthetic. Best for developer-facing reports where code readability is primary.
-
-### Minimal
-
-Stripped-down, content-focused design with minimal visual decoration. Best for embedding in wikis or printing.
-
-### Dashboard
-
-Data-oriented layout optimized for metrics-heavy reports. Best when using history tracking and flakiness grades.
-
-### Playful
-
-Stylized with decorative touches and softer colors. Best for demo reports and presentations.
-
-## Disabling features
-
-All themes support these HTML feature flags:
+The HTML report renders rich content from CDN libraries, loaded only when a report actually contains that content. Disable any of them at generation time:
 
 | Flag | Effect |
 |------|--------|
 | `--html-no-syntax-highlighting` | Disable highlight.js code highlighting |
 | `--html-no-mermaid` | Disable live Mermaid diagram rendering |
-| `--html-no-markdown` | Disable Markdown section parsing |
