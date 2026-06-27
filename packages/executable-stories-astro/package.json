@@ -1,6 +1,11 @@
 {
   "name": "executable-stories-astro",
   "version": "1.0.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jagreehal/executable-stories.git",
+    "directory": "packages/executable-stories-astro"
+  },
   "description": "Astro integration for executable-stories: a content loader that turns the test run JSON into a live, hot-reloading docs collection.",
   "type": "module",
   "main": "./dist/index.js",
