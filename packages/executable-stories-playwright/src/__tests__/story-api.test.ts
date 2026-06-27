@@ -27,6 +27,22 @@ const packageRoot = path.resolve(
   "../..",
 );
 
+/**
+ * Run `pnpm exec tsc ...` from the package root. Under CI memory pressure (turbo
+ * runs many test tasks concurrently, each able to spawn a compiler) tsc can be
+ * killed by the OS — spawnSync then reports `status: null` (terminated by signal)
+ * with empty stdout. That is an environment artifact, not a type error, so retry
+ * a few times before the caller asserts on the exit status. A genuine type error
+ * exits non-zero with diagnostics and is returned on the first try.
+ */
+function runTsc(args: string[]) {
+  let result = spawnSync("pnpm", args, { cwd: packageRoot, encoding: "utf8" });
+  for (let attempt = 0; attempt < 3 && result.status === null; attempt++) {
+    result = spawnSync("pnpm", args, { cwd: packageRoot, encoding: "utf8" });
+  }
+  return result;
+}
+
 test.describe("public API surface", () => {
   test("exports top-level step helpers", () => {
     expect(typeof executableStories.given).toBe("function");
@@ -63,29 +79,25 @@ test.describe("type contracts", () => {
     );
 
     try {
-      const tscResult = spawnSync(
-        "pnpm",
-        [
-          "exec",
-          "tsc",
-          "--noEmit",
-          "--pretty",
-          "false",
-          "--target",
-          "ES2022",
-          "--module",
-          "ESNext",
-          "--moduleResolution",
-          "Bundler",
-          "--esModuleInterop",
-          "--skipLibCheck",
-          "--types",
-          "node",
-          "--ignoreConfig",
-          fixtureTypecheckFile,
-        ],
-        { cwd: packageRoot, encoding: "utf8" },
-      );
+      const tscResult = runTsc([
+        "exec",
+        "tsc",
+        "--noEmit",
+        "--pretty",
+        "false",
+        "--target",
+        "ES2022",
+        "--module",
+        "ESNext",
+        "--moduleResolution",
+        "Bundler",
+        "--esModuleInterop",
+        "--skipLibCheck",
+        "--types",
+        "node",
+        "--ignoreConfig",
+        fixtureTypecheckFile,
+      ]);
 
       expect(
         tscResult.status,
@@ -150,18 +162,14 @@ test.describe("type contracts", () => {
     );
 
     try {
-      const tscResult = spawnSync(
-        "pnpm",
-        [
-          "exec",
-          "tsc",
-          "--project",
-          fixtureTsconfigFile,
-          "--pretty",
-          "false",
-        ],
-        { cwd: packageRoot, encoding: "utf8" },
-      );
+      const tscResult = runTsc([
+        "exec",
+        "tsc",
+        "--project",
+        fixtureTsconfigFile,
+        "--pretty",
+        "false",
+      ]);
 
       expect(
         tscResult.status,
