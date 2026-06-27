@@ -1,6 +1,11 @@
 {
   "name": "executable-stories-core",
   "version": "0.18.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jagreehal/executable-stories.git",
+    "directory": "packages/executable-stories-core"
+  },
   "description": "Core for executable-stories: types, canonicalize transform, doc model, theme tokens. Node-only; no CLI, server, publishers, or notifiers.",
   "type": "module",
   "main": "./dist/index.cjs",
