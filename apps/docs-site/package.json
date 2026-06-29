@@ -17,7 +17,7 @@
     "@astrojs/sitemap": "^3.7.3",
     "@astrojs/starlight": "^0.41.0",
     "@tailwindcss/vite": "^4.2",
-    "astro": "^7.0.0",
+    "astro": "^7.0.3",
     "astro-mermaid": "^2.1.0",
     "mermaid": "^11.12.2",
     "sharp": "^0.34.5",
