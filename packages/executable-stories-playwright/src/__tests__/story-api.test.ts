@@ -465,6 +465,38 @@ test.describe("step with inline docs", () => {
     expect((meta!.meta as { featureVideo?: boolean }).featureVideo).toBe(true);
   });
 
+  test("story.video() does not warn for a relative path (resolved later by the asset bundler)", async ({}, testInfo) => {
+    const originalWarn = console.warn;
+    const warnCalls: unknown[][] = [];
+    console.warn = (...args: unknown[]) => {
+      warnCalls.push(args);
+    };
+    try {
+      story.init(testInfo);
+      story.video({ path: "clip.webm", caption: "Demo" });
+    } finally {
+      console.warn = originalWarn;
+    }
+    expect(warnCalls).toHaveLength(0);
+  });
+
+  test("story.video() warns when an absolute path does not exist yet", async ({}, testInfo) => {
+    const originalWarn = console.warn;
+    const warnCalls: unknown[][] = [];
+    console.warn = (...args: unknown[]) => {
+      warnCalls.push(args);
+    };
+    try {
+      story.init(testInfo);
+      story.video({ path: "/definitely/does/not/exist/clip.webm", caption: "Demo" });
+    } finally {
+      console.warn = originalWarn;
+    }
+    expect(warnCalls).toHaveLength(1);
+    expect(String(warnCalls[0][0])).toContain("does not exist yet");
+    expect(String(warnCalls[0][0])).toContain("/definitely/does/not/exist/clip.webm");
+  });
+
   test("adds kv inline docs", async ({}, testInfo) => {
     story.init(testInfo);
     story.when("payment processed", {

@@ -24,6 +24,10 @@ PR comments and a bare, un-labeled broken `<img>` in HTML reports — plus a new
   Inline step docs (`story.then(text, { screenshot: { path } })`) now inline
   existing files as `data:` URIs too, matching `story.screenshot()` — this
   path previously never embedded the file no matter how it was captured.
+  `story.video()` also now warns when given an absolute path that doesn't
+  exist yet — video bytes are never inlined (too large for a `data:` URI),
+  so it had no equivalent signal at all before; a relative path (resolved
+  later by the asset bundler) is unaffected.
 - **executable-stories-formatters**: the Markdown formatter no longer emits
   `![alt](path)` / `<source src="path">` for a screenshot or video whose path
   is a bare local filesystem path rather than a `data:`/`http(s):` URI or a

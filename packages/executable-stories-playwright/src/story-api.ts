@@ -346,6 +346,29 @@ function warnScreenshotUnavailable(filePath: string, cause?: unknown): void {
   );
 }
 
+/**
+ * story.video() never reads/inlines the file (video bytes are too large for
+ * a `data:` URI) — it always defers to the formatter's asset bundler, which
+ * runs later, at report-generation time. A *relative* path is legitimately
+ * unresolvable yet (the bundler resolves it against the report output), so
+ * this only warns for an *absolute* local path missing right now — that can
+ * never resolve later either, since it's not relative to anything the
+ * bundler controls. The most common cause: passing a path nothing has
+ * written to (e.g. a typo, or the video hasn't finished flushing to disk —
+ * see Playwright's `page.video()?.path()`, which resolves only after
+ * `page.close()`).
+ */
+function warnIfAbsoluteVideoPathMissing(filePath: string): void {
+  if (/^(?:https?:|data:)/i.test(filePath)) return;
+  if (!path.isAbsolute(filePath)) return;
+  if (fs.existsSync(filePath)) return;
+  console.warn(
+    `[executable-stories-playwright] story.video(): "${filePath}" does not exist yet. ` +
+      'Video bytes are never inlined, so this exact path must resolve to a real file by the time the ' +
+      'report is built, or the report will show a "Video unavailable" placeholder instead of the clip.',
+  );
+}
+
 function attachDoc(entry: DocEntry, children?: DocEntry[]): DocEntry {
   const ctx = getContext();
   if (children && children.length > 0) {
@@ -839,6 +862,7 @@ export const story = {
     // the file into the report/docs site. Pass a path relative to the output, or
     // use `featureVideo: true` on story.init() to auto-promote the Playwright
     // recording instead.
+    warnIfAbsoluteVideoPathMissing(options.path);
     return attachDoc(
       { kind: 'video', path: options.path, caption: options.caption, poster: options.poster, phase: 'runtime' },
       children,
