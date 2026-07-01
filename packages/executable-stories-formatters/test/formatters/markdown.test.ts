@@ -554,6 +554,70 @@ describe("MarkdownFormatter", () => {
     });
   });
 
+  describe("video rendering", () => {
+    it("should render an http(s) video path as a <video> tag", () => {
+      const raw = createRawRun({
+        testCases: [
+          createTestCase({
+            story: createStory({
+              steps: [
+                {
+                  keyword: "Then",
+                  text: "checkout completes",
+                  docs: [
+                    {
+                      kind: "video" as const,
+                      path: "https://cdn.example.com/checkout.webm",
+                      caption: "Checkout flow",
+                      phase: "static" as const,
+                    },
+                  ],
+                },
+              ],
+            }),
+          }),
+        ],
+      });
+      const run = canonicalizeRun(raw);
+      const result = formatter.format(run);
+
+      expect(result).toContain('<source src="https://cdn.example.com/checkout.webm" />');
+      expect(result).toContain("Checkout flow");
+    });
+
+    it("should NOT embed a bare filesystem path as a <video src> — it can never resolve outside the machine that generated the report", () => {
+      const raw = createRawRun({
+        testCases: [
+          createTestCase({
+            story: createStory({
+              steps: [
+                {
+                  keyword: "Then",
+                  text: "checkout completes",
+                  docs: [
+                    {
+                      kind: "video" as const,
+                      path: "/home/runner/work/app/app/test-results/checkout.webm",
+                      caption: "Checkout flow",
+                      phase: "static" as const,
+                    },
+                  ],
+                },
+              ],
+            }),
+          }),
+        ],
+      });
+      const run = canonicalizeRun(raw);
+      const result = formatter.format(run);
+
+      expect(result).not.toContain("<source src=\"/home/runner/work/app/app/test-results/checkout.webm\" />");
+      expect(result).toContain("Video unavailable");
+      expect(result).toContain("Checkout flow");
+      expect(result).toContain("/home/runner/work/app/app/test-results/checkout.webm");
+    });
+  });
+
   describe("ticket rendering", () => {
     it("should render ticket with explicit url as a link", () => {
       const raw = createRawRun({

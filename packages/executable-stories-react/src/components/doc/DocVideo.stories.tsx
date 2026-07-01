@@ -43,3 +43,22 @@ export const WithPoster: Story = {
     await expect(canvas.getByText("Completing checkout end to end")).toBeVisible();
   },
 };
+
+// A local filesystem path that survived to render time means the report's
+// asset bundler couldn't find/copy the file — same story as DocScreenshot's
+// Unavailable case.
+export const Unavailable: Story = {
+  args: {
+    entry: {
+      kind: "video",
+      phase: "static",
+      path: "/home/runner/work/app/app/test-results/checkout-flow.webm",
+      caption: "Completing checkout end to end",
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("Video unavailable")).toBeVisible();
+    await expect(canvasElement.querySelector("video")).toBeNull();
+  },
+};

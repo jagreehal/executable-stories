@@ -11,6 +11,7 @@ import { DocLink } from "../src/components/doc/DocLink";
 import { DocSection } from "../src/components/doc/DocSection";
 import { DocMermaid } from "../src/components/doc/DocMermaid";
 import { DocScreenshot } from "../src/components/doc/DocScreenshot";
+import { DocVideo } from "../src/components/doc/DocVideo";
 import { DocCustom } from "../src/components/doc/DocCustom";
 import { minimalReport } from "./fixtures/sample-report";
 
@@ -195,6 +196,26 @@ describe("DocScreenshot", () => {
     );
     expect(screen.getByText("Screenshot unavailable")).toBeInTheDocument();
     expect(screen.queryByRole("img")).toBeNull();
+  });
+});
+
+describe("DocVideo", () => {
+  it("renders a <video> with a caption for an http(s) URL", () => {
+    const { container } = render(
+      <DocVideo
+        entry={{ kind: "video", path: "https://example.com/a.webm", caption: "Demo", phase: "runtime" }}
+      />,
+    );
+    expect(container.querySelector("video")).toHaveAttribute("src", "https://example.com/a.webm");
+    expect(screen.getByText("Demo")).toBeInTheDocument();
+  });
+
+  it("renders a 'Video unavailable' placeholder for an absolute local filesystem path instead of a broken <video>", () => {
+    const path = "/home/runner/work/app/app/test-results/checkout.webm";
+    const { container } = render(<DocVideo entry={{ kind: "video", path, caption: "Checkout flow", phase: "runtime" }} />);
+    expect(screen.getByText("Video unavailable")).toBeInTheDocument();
+    expect(screen.getByText(path)).toBeInTheDocument();
+    expect(container.querySelector("video")).toBeNull();
   });
 });
 
