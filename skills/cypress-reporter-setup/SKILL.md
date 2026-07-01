@@ -1,10 +1,10 @@
 ---
 name: cypress-reporter-setup
 description: >
-  Configure Cypress reporter for executable-stories-cypress. Mocha reporter
-  via --reporter flag or cypress.config.ts. Module API for programmatic use
-  with buildRawRunFromCypressResult and generateReportsFromRawRun. Output
-  formats, directory, naming.
+  Use when configuring the executable-stories-cypress reporter: wiring the
+  Mocha reporter via --reporter or cypress.config.ts, or using the module
+  API (buildRawRunFromCypressResult, generateReportsFromRawRun) for
+  programmatic report generation.
 type: core
 library: executable-stories-cypress
 library_version: "8.4.7"
@@ -23,6 +23,8 @@ cypress run \
   --reporter executable-stories-cypress/reporter.cjs \
   --reporter-options "outputDir=docs,outputName=user-stories,formats=markdown"
 ```
+
+Mocha's `--reporter-options` parses `key=value` pairs into string values only — it has no syntax for array values, so `formats` can only be set to a single format name this way. To generate multiple formats (e.g. markdown + html + junit), use the Module API instead.
 
 ### Option B: Module API (programmatic)
 
@@ -55,38 +57,7 @@ await generateReportsFromRawRun(rawRun, {
 
 `executable-stories-formatters` is a bundled dependency (installed automatically with `executable-stories-cypress`).
 
-## Core Patterns
-
-### Mocha reporter with all options
-
-```bash
-cypress run \
-  --reporter executable-stories-cypress/reporter.cjs \
-  --reporter-options "outputDir=reports,outputName=test-results,formats=markdown"
-```
-
-Mocha's `--reporter-options` parses `key=value` pairs into string values only — it has no syntax for array values, so `formats` can only be set to a single format name this way. To generate multiple formats (e.g. markdown + html + junit), use the Module API instead (see below), where `formats` is a real array.
-
-### Module API for CI pipelines
-
-```typescript
-import cypress from "cypress";
-import {
-  buildRawRunFromCypressResult,
-  generateReportsFromRawRun,
-} from "executable-stories-cypress/reporter";
-
-const result = await cypress.run({ spec: "cypress/e2e/**/*.story.cy.ts" });
-
-if (result.status === "finished") {
-  const rawRun = buildRawRunFromCypressResult(result);
-  await generateReportsFromRawRun(rawRun, {
-    formats: ["markdown"],
-    outputDir: "docs",
-    outputName: "cypress-stories",
-  });
-}
-```
+CI-pipeline variant of the Module API (guarding on `result.status`): [REFERENCE.md](REFERENCE.md).
 
 ## Common Mistakes
 

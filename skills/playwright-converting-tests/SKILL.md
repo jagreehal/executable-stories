@@ -1,9 +1,10 @@
 ---
 name: playwright-converting-tests
 description: >
-  Incrementally adopt executable-stories in Playwright. Add story.init(testInfo)
-  and step markers to existing spec blocks. File naming .story.spec.ts.
-  TestInfo from test callback second argument. Progressive enhancement.
+  Use when incrementally adopting executable-stories in an existing
+  Playwright test suite, converting spec blocks to story tests, or adding
+  story.init(testInfo) without a full rewrite. Progressive enhancement of
+  .story.spec.ts files.
 type: lifecycle
 library: executable-stories-playwright
 library_version: "8.5.7"

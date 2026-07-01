@@ -1,11 +1,8 @@
 ---
 name: jest-story-api
 description: >
-  Write BDD stories in Jest using executable-stories-jest. Top-level exports:
-  import { given, when, then, and, but } from executable-stories-jest.
-  story.init() takes no arguments. Auto-And keyword conversion. Suite path
-  from expect.getState().currentTestName. Aliases: arrange, act, assert.
-  Doc entries: json, kv, code, table, link, section, mermaid, html, note, tag.
+  Use when writing BDD story tests in Jest with executable-stories-jest:
+  top-level given/when/then/and/but imports, story.init(), or doc entries.
 type: core
 library: executable-stories-jest
 library_version: "8.4.7"

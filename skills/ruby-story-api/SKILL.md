@@ -1,11 +1,9 @@
 ---
 name: ruby-story-api
 description: >
-  Write BDD stories in Ruby Minitest using executable-stories-ruby.
-  API: ExecutableStories.init with given, when, then, and, but steps.
-  Doc entries: json, kv, code, table, link, section, mermaid, note, tag,
-  screenshot, html, custom. Auto-And keyword conversion. AAA aliases: arrange,
-  act, assert_that.
+  Use when writing BDD story tests in Ruby Minitest with
+  executable-stories-ruby: ExecutableStories.init, given/when/then/and/but
+  steps, or doc entries.
 type: core
 library: executable-stories-ruby
 library_version: "0.1.1"

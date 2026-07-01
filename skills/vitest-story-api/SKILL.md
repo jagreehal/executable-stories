@@ -1,11 +1,9 @@
 ---
 name: vitest-story-api
 description: >
-  Write BDD stories in Vitest using executable-stories-vitest. Callback-only
-  API: story.init(task) with ({ task }) destructuring. Steps: given, when,
-  then, and, but. Doc entries: json, kv, code, table, link, section, mermaid,
-  note, tag, screenshot, video, html, custom. Auto-And keyword conversion. No top-level
-  then export. Aliases: arrange, act, assert. Inline docs via second argument.
+  Use when writing BDD story tests in Vitest with executable-stories-vitest:
+  the callback-only story.init(task) API, given/when/then/and/but steps, or
+  doc entries.
 type: core
 library: executable-stories-vitest
 library_version: "8.4.7"

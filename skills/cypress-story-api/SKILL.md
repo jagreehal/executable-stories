@@ -1,12 +1,9 @@
 ---
 name: cypress-story-api
 description: >
-  Write BDD stories in Cypress using executable-stories-cypress. story.init()
-  with optional StoryOptions. Steps: story.given, story.when, story.then,
-  story.and, story.but. Doc entries: json, kv, code, table, link, section,
-  mermaid, screenshot, video, html, custom, note, tag. Auto-And keyword conversion.
-  Browser-Node bridge via cy.task. Aliases: arrange, act, assert, setup, context,
-  execute, action, verify.
+  Use when writing BDD story tests in Cypress with executable-stories-cypress:
+  story.init(), given/when/then steps, doc entries, or the browser-Node bridge
+  via cy.task.
 type: core
 library: executable-stories-cypress
 library_version: "8.4.7"

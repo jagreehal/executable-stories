@@ -1,11 +1,9 @@
 ---
 name: rust-story-api
 description: >
-  Write BDD stories in Rust using executable-stories-rust. Builder pattern:
-  Story::new(scenario). Steps: given, when, then, and, but (snake_case, &mut self).
-  Aliases: arrange, act, assert_that, setup, context, execute, action, verify.
-  Wrapped steps: fn_step, expect_step. Must call pass() before drop. Auto-And
-  keyword conversion. write_results() for JSON output.
+  Use when writing BDD story tests in Rust with executable-stories-rust: the
+  Story::new() builder, given/when/then/and/but steps, or write_results()
+  JSON output.
 type: core
 library: executable-stories-rust
 library_version: "0.1.0"

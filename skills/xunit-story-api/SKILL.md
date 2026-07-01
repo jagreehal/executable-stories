@@ -1,11 +1,9 @@
 ---
 name: xunit-story-api
 description: >
-  Write BDD stories in xUnit (C#) using ExecutableStories.Xunit. Static API:
-  Story.Init(scenario), Story.Given/When/Then/And/But (PascalCase). Aliases:
-  Arrange, Act, Assert, Setup, Context, Execute, Action, Verify. Steps accept
-  params DocEntry[] for inline docs. Wrapped steps: Story.Fn, Story.Expect.
-  Must call Story.RecordAndClear() at end of each test. Auto-And conversion.
+  Use when writing BDD story tests in xUnit (C#) with ExecutableStories.Xunit:
+  the static Story.Init/Given/When/Then/And/But API, wrapped steps, or
+  Story.RecordAndClear() output.
 type: core
 library: ExecutableStories.Xunit
 library_version: "0.1.0"

@@ -1,11 +1,10 @@
 ---
 name: vitest-converting-tests
 description: >
-  Incrementally adopt executable-stories in Vitest. Add story.init(task) and
-  step markers to existing it/test blocks. Framework-native tests use
-  it("...", ({ task }) => { story.init(task); ... }). File naming
-  .story.test.ts. No rewrite needed — progressive enhancement of existing
-  tests.
+  Use when incrementally adopting executable-stories in an existing Vitest
+  test suite, converting it/test blocks to story tests, or adding
+  story.init(task) without a full rewrite. Progressive enhancement of
+  .story.test.ts files.
 type: lifecycle
 library: executable-stories-vitest
 library_version: "8.4.7"

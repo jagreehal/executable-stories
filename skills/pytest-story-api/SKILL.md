@@ -1,12 +1,9 @@
 ---
 name: pytest-story-api
 description: >
-  Write BDD stories in pytest using executable-stories-pytest. Module singleton:
-  from executable_stories import story. story.init(scenario) with keyword args
-  for tags, ticket, meta. Steps: given, when, then, and_, but (note: and_ due
-  to Python keyword). Aliases: arrange, act, assert_, setup, context, execute,
-  action, verify. Wrapped steps: story.fn, story.expect. Auto-And conversion.
-  Automatic JSON output via pytest plugin hooks.
+  Use when writing BDD story tests in Python with executable-stories-pytest:
+  the module-singleton story API (story.init, given/when/then/and_/assert_),
+  wrapped steps, or automatic JSON output via pytest plugin hooks.
 type: core
 library: executable-stories-pytest
 library_version: "0.1.0"

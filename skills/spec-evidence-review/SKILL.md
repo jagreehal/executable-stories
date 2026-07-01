@@ -11,7 +11,7 @@ This skill is the authoring discipline that makes that report worth reading. It 
 
 ## Agent guardrails
 
-- Keep everything framework-native: `describe`/`it`/`test`, inline steps, story/doc metadata. No feature files, Gherkin parsing, regex step matching, or a world object.
+- Keep everything framework-native: `describe`/`it`/`test`, inline steps, story/doc metadata. No feature files, Gherkin parsing, regex step matching, or a world object. Per-adapter init syntax: [AGENT-GUARDRAILS.md](../spec-shared/AGENT-GUARDRAILS.md).
 - This skill adds **no new API**. Everything below uses existing primitives: tags, `story.section`, `story.note`, file naming, screenshots, OTEL. Adapt step syntax to the host framework (e.g. Vitest `story.init(task)` inside the callback; never import a top-level `then`).
 - Do not fabricate evidence. A refactor with no behaviour change must NOT get a fake assertion — its evidence is "the existing tests still pass" (see the change-type table).
 

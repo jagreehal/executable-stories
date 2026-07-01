@@ -1,11 +1,9 @@
 ---
 name: playwright-story-api
 description: >
-  Write BDD stories in Playwright using executable-stories-playwright.
-  Top-level exports with TestInfo: story.init(testInfo). Async steps with
-  fixtures ({ page }). Steps: given, when, then, and, but. Doc entries:
-  json, kv, code, table, link, section, mermaid, screenshot, video, html,
-  note, tag. Auto-And keyword conversion. Aliases: arrange, act, assert.
+  Use when writing BDD story tests in Playwright with
+  executable-stories-playwright: story.init(testInfo), async steps with
+  fixtures, or doc entries.
 type: core
 library: executable-stories-playwright
 library_version: "8.5.7"
