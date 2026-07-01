@@ -1,5 +1,12 @@
 # executable-stories-astro
 
+## 1.0.1
+
+### Patch Changes
+
+- Updated dependencies [b905ea9]
+  - executable-stories-react@0.2.1
+
 ## 1.0.0
 
 ### Minor Changes
