@@ -29,7 +29,7 @@
 import { createRequire } from 'node:module';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import type { TestInfo, PlaywrightTestArgs, PlaywrightTestOptions } from '@playwright/test';
+import type { TestInfo, PlaywrightTestArgs, PlaywrightTestOptions, Page } from '@playwright/test';
 import {
   tryGetActiveOtelContext,
   resolveTraceUrl,
@@ -206,9 +206,24 @@ function convertStoryDocsToEntries(docs: StoryDocs): DocEntry[] {
     });
   }
   if (docs.screenshot) {
+    if (docs.screenshot.page) {
+      throw new Error(
+        'story.screenshot({ page }) is not supported inside inline step docs ' +
+          '(e.g. story.then(text, { screenshot: { page } })) because capturing a ' +
+          'screenshot is asynchronous and step markers run synchronously. Call ' +
+          'story.screenshot({ page, alt }) as its own statement instead.',
+      );
+    }
+    if (!docs.screenshot.path) {
+      throw new Error('story docs screenshot requires a `path` (or use story.screenshot({ page }) instead).');
+    }
     entries.push({
       kind: 'screenshot',
-      path: docs.screenshot.path,
+      // Inline file bytes as a `data:` URI here too — this is the same
+      // capture-vs-cleanup race that story.screenshot() guards against, and
+      // this path used to skip it, so a screenshot passed via inline step
+      // docs would silently never embed no matter how the file was captured.
+      path: inlineScreenshotIfPossible(docs.screenshot.path),
       alt: docs.screenshot.alt,
       phase: 'runtime',
     });
@@ -293,19 +308,42 @@ const SCREENSHOT_MIME_BY_EXT: Record<string, string> = {
 /**
  * Read a screenshot file and return a `data:` URI; fall back to the original
  * path on any failure (remote URL, missing file, unknown extension).
+ *
+ * A missing/unreadable local path almost always means the screenshot was
+ * never taken at that path — e.g. `story.screenshot({ path })` called without
+ * a preceding `page.screenshot({ path })`, or the two paths drifted apart.
+ * That failure otherwise surfaces minutes later as a broken image in a PR
+ * comment or a "Screenshot unavailable" placeholder in the HTML report, far
+ * from the line that caused it — so warn immediately, at the call site.
  */
 function inlineScreenshotIfPossible(filePath: string): string {
   if (/^(?:https?:|data:)/i.test(filePath)) return filePath;
+  const ext = path.extname(filePath).slice(1).toLowerCase();
+  const mime = SCREENSHOT_MIME_BY_EXT[ext];
+  if (!mime) return filePath;
   try {
-    const ext = path.extname(filePath).slice(1).toLowerCase();
-    const mime = SCREENSHOT_MIME_BY_EXT[ext];
-    if (!mime) return filePath;
-    if (!fs.existsSync(filePath)) return filePath;
+    if (!fs.existsSync(filePath)) {
+      warnScreenshotUnavailable(filePath);
+      return filePath;
+    }
     const buf = fs.readFileSync(filePath);
     return `data:${mime};base64,${buf.toString('base64')}`;
-  } catch {
+  } catch (err) {
+    warnScreenshotUnavailable(filePath, err);
     return filePath;
   }
+}
+
+function warnScreenshotUnavailable(filePath: string, cause?: unknown): void {
+  const causeMessage = cause instanceof Error ? cause.message : cause ? String(cause) : undefined;
+  console.warn(
+    `[executable-stories-playwright] story.screenshot(): could not read "${filePath}" — ` +
+      'the report will show a "Screenshot unavailable" placeholder instead of the image. ' +
+      'Make sure a screenshot is written to this exact path before story.screenshot() runs ' +
+      '(e.g. `await page.screenshot({ path })`), or capture it directly with ' +
+      '`story.screenshot({ page, alt })`.' +
+      (causeMessage ? ` Cause: ${causeMessage}` : ''),
+  );
 }
 
 function attachDoc(entry: DocEntry, children?: DocEntry[]): DocEntry {
@@ -690,6 +728,45 @@ function playwrightAttach(options: AttachmentOptions): void {
 }
 
 // ============================================================================
+// story.screenshot() — capture-and-attach, or attach-an-existing-file
+// ============================================================================
+
+/**
+ * Two ways to attach a screenshot:
+ *  - `story.screenshot({ page, alt })` captures a fresh screenshot and inlines
+ *    it directly from the in-memory buffer — no filesystem round-trip, so
+ *    there's no path to fall out of sync and nothing for Playwright's output
+ *    cleanup to delete before the report is built. Prefer this form.
+ *  - `story.screenshot({ path, alt })` attaches a screenshot that already
+ *    exists on disk (e.g. one taken earlier for another purpose). The caller
+ *    is responsible for making sure something wrote a file to `path` first.
+ */
+function screenshotImpl(options: ScreenshotOptions & { page: Page }, children?: DocEntry[]): Promise<DocEntry>;
+function screenshotImpl(
+  options: ScreenshotOptions & { path: string; page?: undefined },
+  children?: DocEntry[],
+): DocEntry;
+function screenshotImpl(options: ScreenshotOptions, children?: DocEntry[]): DocEntry | Promise<DocEntry> {
+  if (options.page) {
+    return options.page
+      .screenshot(options.path ? { path: options.path, fullPage: options.fullPage ?? true } : { fullPage: options.fullPage ?? true })
+      .then((buffer) => {
+        const dataUri = `data:image/png;base64,${buffer.toString('base64')}`;
+        return attachDoc({ kind: 'screenshot', path: dataUri, alt: options.alt, phase: 'runtime' }, children);
+      });
+  }
+  if (!options.path) {
+    throw new Error('story.screenshot() requires either `path` (an existing file) or `page` (to capture one).');
+  }
+  // Inline file bytes as a `data:` URI so the screenshot survives Playwright's
+  // per-test outputDir cleanup (passing tests have their `test-results/<test>/`
+  // directory deleted before the formatter runs). Falls back to the original
+  // path for remote URLs or unreadable files.
+  const resolvedPath = inlineScreenshotIfPossible(options.path);
+  return attachDoc({ kind: 'screenshot', path: resolvedPath, alt: options.alt, phase: 'runtime' }, children);
+}
+
+// ============================================================================
 // Export story object
 // ============================================================================
 
@@ -754,14 +831,7 @@ export const story = {
     return attachDoc({ kind: 'mermaid', code: options.code, title: options.title, phase: 'runtime' }, children);
   },
 
-  screenshot(options: ScreenshotOptions, children?: DocEntry[]): DocEntry {
-    // Inline file bytes as a `data:` URI so the screenshot survives Playwright's
-    // per-test outputDir cleanup (passing tests have their `test-results/<test>/`
-    // directory deleted before the formatter runs). Falls back to the original
-    // path for remote URLs or unreadable files.
-    const resolvedPath = inlineScreenshotIfPossible(options.path);
-    return attachDoc({ kind: 'screenshot', path: resolvedPath, alt: options.alt, phase: 'runtime' }, children);
-  },
+  screenshot: screenshotImpl,
 
   video(options: VideoOptions, children?: DocEntry[]): DocEntry {
     // Unlike screenshots, video bytes are never inlined as a data URI — they're

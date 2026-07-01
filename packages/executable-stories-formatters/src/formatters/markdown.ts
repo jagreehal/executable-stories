@@ -609,7 +609,18 @@ export class MarkdownFormatter {
         break;
 
       case "screenshot":
-        lines.push(`${indent}![${entry.alt ?? "Screenshot"}](${entry.path})`);
+        // Only `data:`/`http(s):` sources render as an embedded image. A bare
+        // filesystem path here means the screenshot capture failed upstream
+        // (see executable-stories-playwright's inlineScreenshotIfPossible) —
+        // embedding it as `![alt](path)` would render as a guaranteed-broken
+        // image wherever this Markdown is shown (GitHub PR comments, docs
+        // sites, etc.), since a runner-local path resolves nowhere. Degrade
+        // to a plain note instead.
+        if (/^(?:https?:|data:)/i.test(entry.path)) {
+          lines.push(`${indent}![${entry.alt ?? "Screenshot"}](${entry.path})`);
+        } else {
+          lines.push(`${indent}*Screenshot unavailable${entry.alt ? ` — ${entry.alt}` : ""} (\`${entry.path}\` was not readable when the report was generated)*`);
+        }
         break;
 
       case "video": {

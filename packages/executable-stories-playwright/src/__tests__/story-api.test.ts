@@ -740,6 +740,80 @@ test.describe("standalone doc methods", () => {
     expect(entry.path).toBe("https://example.com/img.png");
   });
 
+  test("story.screenshot() warns when the file is missing", async ({}, testInfo) => {
+    const originalWarn = console.warn;
+    const warnCalls: unknown[][] = [];
+    console.warn = (...args: unknown[]) => {
+      warnCalls.push(args);
+    };
+    try {
+      story.init(testInfo);
+      story.then("page renders correctly");
+      story.screenshot({ path: "/definitely/does/not/exist/foo.png", alt: "Missing" });
+    } finally {
+      console.warn = originalWarn;
+    }
+
+    expect(warnCalls).toHaveLength(1);
+    expect(String(warnCalls[0][0])).toContain("could not read");
+    expect(String(warnCalls[0][0])).toContain("/definitely/does/not/exist/foo.png");
+  });
+
+  test("story.screenshot() throws when neither path nor page is provided", async ({}, testInfo) => {
+    story.init(testInfo);
+    story.then("page renders correctly");
+    expect(() => story.screenshot({ alt: "Nothing to attach" } as never)).toThrow(
+      "story.screenshot() requires either `path` (an existing file) or `page` (to capture one)",
+    );
+  });
+
+  test("story.screenshot({ page }) captures and inlines a fresh screenshot without touching disk", async ({
+    page,
+  }, testInfo) => {
+    await page.setContent("<h1>Hello</h1>");
+    story.init(testInfo);
+    story.then("page renders correctly");
+    const entry = await story.screenshot({ page, alt: "Captured live" });
+
+    expect(entry.kind).toBe("screenshot");
+    const screenshotEntry = entry as { path: string; alt?: string };
+    expect(screenshotEntry.alt).toBe("Captured live");
+    expect(screenshotEntry.path.startsWith("data:image/png;base64,")).toBe(true);
+  });
+
+  test("story.screenshot({ page, path }) also writes the file to disk", async ({ page }, testInfo) => {
+    await page.setContent("<h1>Hello</h1>");
+    story.init(testInfo);
+    story.then("page renders correctly");
+    const screenshotPath = testInfo.outputPath("page-capture.png");
+    const entry = await story.screenshot({ page, path: screenshotPath, alt: "Captured live" });
+
+    expect(fs.existsSync(screenshotPath)).toBe(true);
+    const screenshotEntry = entry as { path: string };
+    expect(screenshotEntry.path.startsWith("data:image/png;base64,")).toBe(true);
+  });
+
+  test("inline docs screenshot ({ screenshot: { path } }) inlines existing files as data URIs", async ({}, testInfo) => {
+    const pngBytes = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0xde, 0xad, 0xbe, 0xef]);
+    const screenshotPath = testInfo.outputPath("inline-docs-test.png");
+    fs.writeFileSync(screenshotPath, pngBytes);
+
+    story.init(testInfo);
+    story.then("page renders correctly", { screenshot: { path: screenshotPath, alt: "Inline docs" } });
+
+    const meta = getStoryMeta(testInfo);
+    const entry = meta!.steps[0].docs![0] as { kind: "screenshot"; path: string; alt?: string };
+    expect(entry.path.startsWith("data:image/png;base64,")).toBe(true);
+    expect(entry.path.includes(screenshotPath)).toBe(false);
+  });
+
+  test("inline docs screenshot rejects { page } since step markers are synchronous", async ({ page }, testInfo) => {
+    story.init(testInfo);
+    expect(() =>
+      story.then("page renders correctly", { screenshot: { page, alt: "Bad usage" } }),
+    ).toThrow("not supported inside inline step docs");
+  });
+
   test("story.tag() attaches to current step", async ({}, testInfo) => {
     story.init(testInfo);
     story.given("admin user");
