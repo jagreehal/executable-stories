@@ -7,7 +7,7 @@ description: >
   formats, directory, naming.
 type: core
 library: executable-stories-cypress
-library_version: "8.4.3"
+library_version: "8.4.7"
 sources:
   - "jagreehal/executable-stories:packages/executable-stories-cypress/src/reporter.ts"
 ---
@@ -62,8 +62,10 @@ await generateReportsFromRawRun(rawRun, {
 ```bash
 cypress run \
   --reporter executable-stories-cypress/reporter.cjs \
-  --reporter-options "outputDir=reports,outputName=test-results,formats=markdown+html+junit"
+  --reporter-options "outputDir=reports,outputName=test-results,formats=markdown"
 ```
+
+Mocha's `--reporter-options` parses `key=value` pairs into string values only — it has no syntax for array values, so `formats` can only be set to a single format name this way. To generate multiple formats (e.g. markdown + html + junit), use the Module API instead (see below), where `formats` is a real array.
 
 ### Module API for CI pipelines
 

@@ -8,7 +8,7 @@ description: >
   note, tag. Auto-And keyword conversion. Aliases: arrange, act, assert.
 type: core
 library: executable-stories-playwright
-library_version: "8.5.3"
+library_version: "8.5.7"
 sources:
   - "jagreehal/executable-stories:packages/executable-stories-playwright/src/story-api.ts"
   - "jagreehal/executable-stories:apps/docs-site/src/content/docs/reference/playwright-story-api.md"
@@ -70,6 +70,11 @@ test("blocks suspended user login", async ({ page }, testInfo) => {
 
 ### Doc entries with screenshots
 
+Prefer `story.screenshot({ page, alt })` — it captures the screenshot itself
+and inlines the bytes directly, so there's no separate `path` to keep in
+sync and nothing for Playwright's output cleanup to delete before the report
+is built:
+
 ```typescript
 test("checkout flow", async ({ page }, testInfo) => {
   story.init(testInfo);
@@ -82,7 +87,7 @@ test("checkout flow", async ({ page }, testInfo) => {
   await page.waitForURL("/confirmation");
 
   then("the confirmation page is shown");
-  story.screenshot({ path: "screenshots/confirmation.png", alt: "Order confirmation" });
+  await story.screenshot({ page, alt: "Order confirmation" }); // async — capture, no path needed
   story.table({
     label: "Order details",
     columns: ["Item", "Qty", "Price"],
@@ -90,6 +95,15 @@ test("checkout flow", async ({ page }, testInfo) => {
   });
 });
 ```
+
+The older `story.screenshot({ path, alt })` form attaches a screenshot that
+already exists on disk (e.g. one taken earlier for another purpose) — the
+caller must write the file to `path` first (typically
+`await page.screenshot({ path })`). If nothing wrote to that exact path
+before `story.screenshot()` runs, it warns at the call site and the report
+falls back to a "Screenshot unavailable" placeholder rather than a broken
+image — that warning almost always means the preceding `page.screenshot()`
+call is missing or its `path` doesn't match.
 
 ### Embedded HTML (story.html)
 

@@ -6,7 +6,7 @@ description: >
   Output formats, directory, naming. Aggregated and colocated modes.
 type: core
 library: executable-stories-jest
-library_version: "8.4.3"
+library_version: "8.4.7"
 sources:
   - "jagreehal/executable-stories:packages/executable-stories-jest/src/reporter.ts"
 ---
@@ -77,8 +77,8 @@ export default {
         },
         html: {
           title: "Test Report",
-          darkMode: true,
-          searchable: true,
+          syntaxHighlighting: true,
+          mermaidEnabled: true,
         },
         rawRunPath: "reports/raw-run.json",
       },
@@ -139,12 +139,12 @@ reporters: [
 ]
 ```
 
-Without options, the default format is `["cucumber-json"]`. Use the tuple form `[path, options]` to specify formats and output directory.
+Without options, the default format is `["html"]`. Use the tuple form `[path, options]` to specify formats and output directory.
 
 Source: packages/executable-stories-jest/src/reporter.ts
 
-### MEDIUM Default format is cucumber-json, not markdown
+### MEDIUM Default format is html, not markdown
 
-The default `formats` is `["cucumber-json"]`. Always specify `formats: ["markdown"]` (or other desired formats) explicitly.
+The default `formats` is `["html"]`. Always specify `formats: ["markdown"]` (or other desired formats) explicitly.
 
 Source: packages/executable-stories-jest/src/reporter.ts

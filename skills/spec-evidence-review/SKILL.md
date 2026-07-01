@@ -34,8 +34,9 @@ Group your work into **claims**. A claim is one story/scenario that asserts some
 Tag each story so the report can group and grade it. Recognised values: `change:feature`, `change:bugfix`, `change:refactor`, `change:perf`, `change:deps`. Untagged claims render as "unknown".
 
 ```ts
-story('Checkout blocks a suspended user', (s) => {
-  s.tag(['change:feature']);
+it('checkout blocks a suspended user', ({ task }) => {
+  story.init(task);
+  story.tag(['change:feature']);
   // ...
 });
 ```
@@ -45,7 +46,7 @@ story('Checkout blocks a suspended user', (s) => {
 The report pulls the intent narrative from a doc `section` whose title matches **why / intent / approach / rationale / reasoning** (falling back to the first `note`). State what changed and *why*, not how the code works.
 
 ```ts
-s.section({
+story.section({
   title: 'Why',
   markdown:
     'Suspended accounts could still complete checkout. We now block at the order gate, '
@@ -79,18 +80,19 @@ For `change:bugfix`, follow red→green: write the test, confirm it **fails on t
 
 ```ts
 // src/cart/checkout.e2e.spec.ts  → stakeholder audience (e2e/spec)
-story('Checkout blocks a suspended user', (s) => {
-  s.tag(['change:bugfix']);
-  s.section({
+it('checkout blocks a suspended user', ({ task }) => {
+  story.init(task);
+  story.tag(['change:bugfix']);
+  story.section({
     title: 'Why',
     markdown:
       'Suspended users could pay (PAY-1042). Wrote this e2e first, confirmed it failed '
       + 'on main, then gated the order. Failing-first verified.',
   });
-  s.given('a suspended account "Sarah"');
-  s.when('Sarah submits valid payment');
-  s.then('checkout is blocked with a suspension notice');
-  s.screenshot({ path: 'artifacts/checkout-blocked.png', alt: 'blocked checkout' });
+  story.given('a suspended account "Sarah"');
+  story.when('Sarah submits valid payment');
+  story.then('checkout is blocked with a suspension notice');
+  story.screenshot({ path: 'artifacts/checkout-blocked.png', alt: 'blocked checkout' });
 });
 ```
 

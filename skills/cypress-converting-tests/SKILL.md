@@ -6,7 +6,7 @@ description: >
   Requires plugin + support file wiring. Progressive enhancement.
 type: lifecycle
 library: executable-stories-cypress
-library_version: "8.4.3"
+library_version: "8.4.7"
 requires:
   - cypress-story-api
 sources:
@@ -113,7 +113,9 @@ it("shows product details", () => {
   cy.visit("/products/123");
 
   story.then("the product details are shown");
-  story.screenshot({ path: "screenshots/product.png", alt: "Product page" });
+  cy.screenshot("product", { onAfterScreenshot: (_el, props) => {
+    story.screenshot({ path: props.path, alt: "Product page" });
+  } });
   story.json({ label: "Product", value: { id: 123, name: "Widget" } });
 });
 ```

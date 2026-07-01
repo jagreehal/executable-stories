@@ -8,7 +8,7 @@ description: >
   tests.
 type: lifecycle
 library: executable-stories-vitest
-library_version: "8.4.3"
+library_version: "8.4.7"
 requires:
   - vitest-story-api
 sources:

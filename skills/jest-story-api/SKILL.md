@@ -8,7 +8,7 @@ description: >
   Doc entries: json, kv, code, table, link, section, mermaid, html, note, tag.
 type: core
 library: executable-stories-jest
-library_version: "8.4.3"
+library_version: "8.4.7"
 sources:
   - "jagreehal/executable-stories:packages/executable-stories-jest/src/index.ts"
   - "jagreehal/executable-stories:packages/executable-stories-jest/src/story-api.ts"
@@ -224,7 +224,7 @@ Source: packages/eslint-plugin-executable-stories-jest/src/rules/require-story-c
 
 ## Parameterized Scenarios (Scenario Outline equivalent)
 
-Use Jest's `it.each` with `story()` to produce one scenario per data row — the framework-native replacement for Cucumber's Scenario Outline + Examples.
+Use Jest's `it.each` with `story.init()` to produce one scenario per data row — the framework-native replacement for Cucumber's Scenario Outline + Examples.
 
 ```ts
 import { story, given, when, then } from "executable-stories-jest";
@@ -237,7 +237,7 @@ const cases = [
 
 describe("Doubling", () => {
   it.each(cases)("doubles $input to $expected", ({ input, expected }) => {
-    story(`Doubles ${input} to ${expected}`);
+    story.init();
     given(`the input is ${input}`);
     when("the doubler runs");
     then(`the result is ${expected}`);
@@ -246,4 +246,4 @@ describe("Doubling", () => {
 });
 ```
 
-Each iteration produces a separate scenario in the generated report. Use interpolated titles so each scenario has a distinct, descriptive name.
+Each iteration produces a separate scenario in the generated report. `story.init()` is not a scenario-title setter — the scenario title comes from Jest's `currentTestName`, so use an interpolated `it.each` title template (as above) so each row gets a distinct, descriptive name.

@@ -8,7 +8,7 @@ description: >
   GitHub Actions summary. rawRunPath for CLI consumption.
 type: core
 library: executable-stories-vitest
-library_version: "8.4.3"
+library_version: "8.4.7"
 sources:
   - "jagreehal/executable-stories:packages/executable-stories-vitest/src/reporter.ts"
   - "jagreehal/executable-stories:apps/docs-site/src/content/docs/vitest/vitest-config.md"
@@ -87,10 +87,8 @@ createStoryReporter({
   },
   html: {
     title: "Test Report",
-    darkMode: true,
-    searchable: true,
-    startCollapsed: false,
-    embedScreenshots: true,
+    syntaxHighlighting: true,
+    mermaidEnabled: true,
   },
   junit: {
     suiteName: "My Test Suite",
@@ -183,7 +181,7 @@ Wrong assumption:
 ```typescript
 // Expecting markdown output
 createStoryReporter({ outputDir: "docs" })
-// → docs/test-results.cucumber.json (not .md)
+// → docs/index.html (not .md)
 ```
 
 Correct:
@@ -195,7 +193,7 @@ createStoryReporter({
 })
 ```
 
-The default format is `["cucumber-json"]`, not `["markdown"]`. Always specify `formats` explicitly.
+The default format is `["html"]`, not `["markdown"]`. Always specify `formats` explicitly.
 
 Source: packages/executable-stories-vitest/src/reporter.ts
 

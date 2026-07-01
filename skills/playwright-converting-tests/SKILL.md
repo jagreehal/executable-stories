@@ -6,7 +6,7 @@ description: >
   TestInfo from test callback second argument. Progressive enhancement.
 type: lifecycle
 library: executable-stories-playwright
-library_version: "8.5.3"
+library_version: "8.5.7"
 requires:
   - playwright-story-api
 sources:
@@ -107,7 +107,7 @@ test("shows product details", async ({ page }, testInfo) => {
   await page.goto("/products/123");
 
   then("the product details are shown");
-  story.screenshot({ path: "screenshots/product.png", alt: "Product page" });
+  story.screenshot({ page, alt: "Product page" });
   story.json({ label: "Product", value: { id: 123, name: "Widget" } });
 });
 ```

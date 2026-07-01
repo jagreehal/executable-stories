@@ -21,7 +21,7 @@ This skill guides what to inspect and report. It is not an adapter API reference
 - Ruby/Minitest: use `ExecutableStories.init("Scenario", ...)` and call steps on the returned story object.
 - pytest: use `story.init("Scenario", ...)`; Python keyword collisions are `and_()` and `assert_()`.
 - JUnit 5: use static `Story.init("Scenario", ...)`; Kotlin escapes the `when` call as ``Story.`when`("...")``.
-- Rust: use `Story::new("Scenario")`; call `s.pass()` for passing tests and `collector::write_results()` for output.
+- Rust: use `Story::new("Scenario")`; call `s.pass()` for passing tests and `executable_stories::write_results()` for output.
 - xUnit: use `Story.Init("Scenario", ...)`; call `Story.RecordAndClear()` at the end of each test.
 
 ## When to use this
@@ -82,7 +82,7 @@ Work through these in order. Stop early if you find a critical issue — fix it 
 | ---------------------------------------------- | --------------------------------------------------------------- | ----------------------------------------------------- |
 | Would a non-developer understand the scenario? | Business language, named personas                               | Code jargon, anonymous test data                      |
 | Doc entries add context, not noise?            | `story.table()` showing the rule, `story.note()` explaining why | `story.json()` dumping the entire request payload     |
-| Tags help find related scenarios?              | `story.tag('pricing', 'discount')`                              | No tags, or meaningless tags like `story.tag('test')` |
+| Tags help find related scenarios?              | `story.tag(['pricing', 'discount'])`                            | No tags, or meaningless tags like `story.tag('test')` |
 
 ## Red flags
 

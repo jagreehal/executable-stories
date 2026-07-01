@@ -16,7 +16,7 @@ description: >
   assertValidRun, validateCanonicalRun.
 type: core
 library: executable-stories-formatters
-library_version: "0.15.0"
+library_version: "1.0.0"
 sources:
   - "jagreehal/executable-stories:packages/executable-stories-formatters/src/cli.ts"
   - "jagreehal/executable-stories:packages/executable-stories-formatters/src/index.ts"
@@ -105,7 +105,6 @@ import {
   AstroFormatter,
   ConfluenceFormatter,
   MarkdownFormatter,
-  HtmlFormatter,
   JUnitFormatter,
   CucumberJsonFormatter,
 } from "executable-stories-formatters";
@@ -113,24 +112,26 @@ import {
 const canonical = canonicalizeRun(rawRun);
 
 const md = new MarkdownFormatter().format(canonical);
-const html = new HtmlFormatter().format(canonical);
 const junit = new JUnitFormatter().format(canonical);
 const cucumberJson = new CucumberJsonFormatter().formatToString(canonical);
 const astro = new AstroFormatter().format(canonical);
 const confluenceAdfJson = new ConfluenceFormatter().format(canonical);
+// No standalone HtmlFormatter class — the in-package HTML string renderer was
+// removed. `html` renders via executable-stories-react/ssr's renderReportToHtml,
+// used internally by ReportGenerator({ formats: ["html"] }).
 ```
 
 ### CLI flags
 
 ```bash
 # Output control
---format html,markdown,junit,cucumber-json,cucumber-html,cucumber-messages,astro,confluence,release-manifest,traceability-matrix,story-report-json,scenario-index-json,behavior-manifest-json
+--format html,markdown,junit,cucumber-json,cucumber-html,cucumber-messages,astro-markdown,confluence,release-manifest,traceability-matrix,story-report-json,scenario-index-json,behavior-manifest-json
 --output-dir reports          # Base directory (default: reports)
 --output-name index           # Base filename (default: index)
 --output-name-timestamp       # Append run timestamp (UTC seconds) to filename for before/after diffs
 --sort-test-cases id|source|none  # Deterministic scenario order (default: none). Use id for diff-friendly output
 --input-type raw              # raw | canonical | ndjson
---config ./executable-stories.config.js  # Custom formats / config (default: ./executable-stories.config.js)
+--config ./executable-stories.config.js  # Custom formats / config (default: auto-discovers executable-stories.config.mjs or .js in cwd; errors if both exist)
 
 # Filtering
 --include "test/api/**"       # Glob patterns to include (by sourceFile)

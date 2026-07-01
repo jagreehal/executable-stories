@@ -7,7 +7,7 @@ description: >
   Aggregated and colocated modes. rawRunPath for CLI.
 type: core
 library: executable-stories-playwright
-library_version: "8.5.3"
+library_version: "8.5.7"
 sources:
   - "jagreehal/executable-stories:packages/executable-stories-playwright/src/reporter.ts"
 ---
@@ -74,9 +74,8 @@ export default defineConfig({
         },
         html: {
           title: "Test Report",
-          darkMode: true,
-          searchable: true,
-          embedScreenshots: true,
+          syntaxHighlighting: true,
+          mermaidEnabled: true,
         },
         rawRunPath: "reports/raw-run.json",
       },
