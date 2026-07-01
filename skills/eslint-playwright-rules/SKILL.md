@@ -1,12 +1,10 @@
 ---
 name: eslint-playwright-rules
 description: >
-  ESLint flat config plugin for executable-stories-playwright. Three rules:
-  require-init-before-steps (init before given/when/then),
-  require-story-context-for-steps (steps must be inside story callback or story.init scope),
-  require-test-context-for-doc-story (doc.story must be inside test()).
-  Recommended config enables all at error level. Detects Playwright
-  modifiers: only, skip, fixme, fail, slow.
+  Use when setting up ESLint rules for executable-stories-playwright:
+  enforcing story.init() ordering before steps, story-context scoping for
+  step calls, doc.story test-context requirements, or detecting Playwright
+  test modifiers (only/skip/fixme/fail/slow).
 type: core
 library: eslint-plugin-executable-stories-playwright
 library_version: "2.1.9"

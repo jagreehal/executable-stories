@@ -1,11 +1,9 @@
 ---
 name: eslint-vitest-rules
 description: >
-  ESLint flat config plugin for executable-stories-vitest. Three rules:
-  require-task-for-story-init (story.init must have task argument),
-  require-test-context-for-story-init (must be inside it/test callback),
-  require-init-before-steps (init before given/when/then). Recommended
-  config enables all at error level.
+  Use when setting up ESLint rules for executable-stories-vitest: enforcing
+  the story.init(task) argument requirement, test-context scoping for
+  story.init, or init-before-steps ordering.
 type: core
 library: eslint-plugin-executable-stories-vitest
 library_version: "2.1.9"

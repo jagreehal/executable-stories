@@ -1,6 +1,6 @@
 ---
 name: executable-stories-init
-description: Bootstrap executable-stories into a repo from zero. Installs Vitest and/or Playwright if missing, wires the StoryReporter, drops a sample story test, and adds a report script. Use when the user wants to "set up executable-stories", "add story testing to this repo", "initialize executable-stories", "bootstrap from scratch", or runs `pnpm dlx executable-stories-init`. Mirrors the `executable-stories-init` CLI; prefer the CLI when available, otherwise follow the manual checklist.
+description: Bootstrap executable-stories into a repo from zero. Installs Vitest and/or Playwright if missing, wires the StoryReporter, drops a sample story test, and adds a test script. Use when the user wants to "set up executable-stories", "add story testing to this repo", "initialize executable-stories", "bootstrap from scratch", or runs `pnpm dlx executable-stories-init`. Mirrors the `executable-stories-init` CLI; prefer the CLI when available, otherwise follow the manual checklist.
 ---
 
 # Bootstrapping executable-stories
@@ -84,9 +84,8 @@ describe('Calculator', () => {
 });
 ```
 
-Add `package.json` scripts:
-- `"test": "vitest run"`
-- `"report": "vitest run"` (StoryReporter writes the report during the run)
+Add `package.json` script:
+- `"test": "vitest run"` (StoryReporter writes the report during the run; no separate report script)
 
 ### 4. Playwright setup
 

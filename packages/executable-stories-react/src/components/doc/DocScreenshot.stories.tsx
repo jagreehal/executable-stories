@@ -34,3 +34,23 @@ export const Decorative: Story = {
     await expect(canvas.queryByRole("img")).toBeNull();
   },
 };
+
+// A local filesystem path that survived to render time means the report's
+// asset bundler couldn't find/copy the file (deleted, moved, or never
+// captured). An <img src> pointed at a runner-local path would just 404 — a
+// labeled placeholder is more useful than a broken image icon.
+export const Unavailable: Story = {
+  args: {
+    entry: {
+      kind: "screenshot",
+      phase: "static",
+      path: "/home/runner/work/app/app/test-results/dashboard.png",
+      alt: "Dashboard overview",
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("Screenshot unavailable")).toBeVisible();
+    await expect(canvas.queryByRole("img")).toBeNull();
+  },
+};

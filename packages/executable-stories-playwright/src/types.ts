@@ -5,6 +5,8 @@
  * Playwright-specific types are defined here.
  */
 
+import type { Page } from '@playwright/test';
+
 // ============================================================================
 // Re-export shared story types from formatters
 // ============================================================================
@@ -70,8 +72,26 @@ export interface MermaidOptions {
 }
 
 export interface ScreenshotOptions {
-  path: string;
+  /**
+   * Path to an already-captured screenshot file. Required unless `page` is
+   * given. If both are given, the fresh capture is also written to this path
+   * (same as passing `path` to `page.screenshot()` directly).
+   */
+  path?: string;
   alt?: string;
+  /**
+   * Capture the screenshot directly instead of reading an existing file —
+   * pass the `page` fixture and story.screenshot() takes the screenshot
+   * itself. This removes the most common cause of a broken/"unavailable"
+   * screenshot in reports: a `page.screenshot({ path })` call that was
+   * forgotten, mistyped, or drifted out of sync with the `path` passed here.
+   * Only supported on the top-level `story.screenshot()` call, not inside
+   * inline step docs (`story.then(text, { screenshot: {...} })`), since those
+   * run synchronously.
+   */
+  page?: Page;
+  /** Forwarded to `page.screenshot()` when `page` is provided. Defaults to `true`. */
+  fullPage?: boolean;
 }
 
 export interface VideoOptions {

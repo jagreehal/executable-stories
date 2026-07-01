@@ -462,6 +462,162 @@ describe("MarkdownFormatter", () => {
     });
   });
 
+  describe("screenshot rendering", () => {
+    it("should embed a data: URI screenshot as an image", () => {
+      const raw = createRawRun({
+        testCases: [
+          createTestCase({
+            story: createStory({
+              steps: [
+                {
+                  keyword: "Then",
+                  text: "the dashboard renders",
+                  docs: [
+                    {
+                      kind: "screenshot" as const,
+                      path: "data:image/png;base64,iVBORw0KGgo=",
+                      alt: "Dashboard overview",
+                      phase: "static" as const,
+                    },
+                  ],
+                },
+              ],
+            }),
+          }),
+        ],
+      });
+      const run = canonicalizeRun(raw);
+      const result = formatter.format(run);
+
+      expect(result).toContain("![Dashboard overview](data:image/png;base64,iVBORw0KGgo=)");
+    });
+
+    it("should embed an http(s) screenshot URL as an image", () => {
+      const raw = createRawRun({
+        testCases: [
+          createTestCase({
+            story: createStory({
+              steps: [
+                {
+                  keyword: "Then",
+                  text: "the dashboard renders",
+                  docs: [
+                    {
+                      kind: "screenshot" as const,
+                      path: "https://cdn.example.com/dashboard.png",
+                      alt: "Dashboard overview",
+                      phase: "static" as const,
+                    },
+                  ],
+                },
+              ],
+            }),
+          }),
+        ],
+      });
+      const run = canonicalizeRun(raw);
+      const result = formatter.format(run);
+
+      expect(result).toContain("![Dashboard overview](https://cdn.example.com/dashboard.png)");
+    });
+
+    it("should NOT embed a bare filesystem path — it renders a broken image everywhere Markdown is shown", () => {
+      const raw = createRawRun({
+        testCases: [
+          createTestCase({
+            story: createStory({
+              steps: [
+                {
+                  keyword: "Then",
+                  text: "the dashboard renders",
+                  docs: [
+                    {
+                      kind: "screenshot" as const,
+                      path: "/home/runner/work/app/app/test-results/dashboard.png",
+                      alt: "Dashboard overview",
+                      phase: "static" as const,
+                    },
+                  ],
+                },
+              ],
+            }),
+          }),
+        ],
+      });
+      const run = canonicalizeRun(raw);
+      const result = formatter.format(run);
+
+      expect(result).not.toContain("![Dashboard overview](/home/runner/work/app/app/test-results/dashboard.png)");
+      expect(result).toContain("Screenshot unavailable");
+      expect(result).toContain("Dashboard overview");
+      expect(result).toContain("/home/runner/work/app/app/test-results/dashboard.png");
+    });
+  });
+
+  describe("video rendering", () => {
+    it("should render an http(s) video path as a <video> tag", () => {
+      const raw = createRawRun({
+        testCases: [
+          createTestCase({
+            story: createStory({
+              steps: [
+                {
+                  keyword: "Then",
+                  text: "checkout completes",
+                  docs: [
+                    {
+                      kind: "video" as const,
+                      path: "https://cdn.example.com/checkout.webm",
+                      caption: "Checkout flow",
+                      phase: "static" as const,
+                    },
+                  ],
+                },
+              ],
+            }),
+          }),
+        ],
+      });
+      const run = canonicalizeRun(raw);
+      const result = formatter.format(run);
+
+      expect(result).toContain('<source src="https://cdn.example.com/checkout.webm" />');
+      expect(result).toContain("Checkout flow");
+    });
+
+    it("should NOT embed a bare filesystem path as a <video src> — it can never resolve outside the machine that generated the report", () => {
+      const raw = createRawRun({
+        testCases: [
+          createTestCase({
+            story: createStory({
+              steps: [
+                {
+                  keyword: "Then",
+                  text: "checkout completes",
+                  docs: [
+                    {
+                      kind: "video" as const,
+                      path: "/home/runner/work/app/app/test-results/checkout.webm",
+                      caption: "Checkout flow",
+                      phase: "static" as const,
+                    },
+                  ],
+                },
+              ],
+            }),
+          }),
+        ],
+      });
+      const run = canonicalizeRun(raw);
+      const result = formatter.format(run);
+
+      expect(result).not.toContain("<source src=\"/home/runner/work/app/app/test-results/checkout.webm\" />");
+      expect(result).toContain("Video unavailable");
+      expect(result).toContain("Checkout flow");
+      expect(result).toContain("/home/runner/work/app/app/test-results/checkout.webm");
+    });
+  });
+
   describe("ticket rendering", () => {
     it("should render ticket with explicit url as a link", () => {
       const raw = createRawRun({

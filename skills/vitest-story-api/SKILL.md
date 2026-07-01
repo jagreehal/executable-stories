@@ -1,14 +1,12 @@
 ---
 name: vitest-story-api
 description: >
-  Write BDD stories in Vitest using executable-stories-vitest. Callback-only
-  API: story.init(task) with ({ task }) destructuring. Steps: given, when,
-  then, and, but. Doc entries: json, kv, code, table, link, section, mermaid,
-  note, tag, screenshot, video, html, custom. Auto-And keyword conversion. No top-level
-  then export. Aliases: arrange, act, assert. Inline docs via second argument.
+  Use when writing BDD story tests in Vitest with executable-stories-vitest:
+  the callback-only story.init(task) API, given/when/then/and/but steps, or
+  doc entries.
 type: core
 library: executable-stories-vitest
-library_version: "8.4.3"
+library_version: "8.4.7"
 sources:
   - "jagreehal/executable-stories:packages/executable-stories-vitest/src/story-api.ts"
   - "jagreehal/executable-stories:apps/docs-site/src/content/docs/vitest/vitest-story-api.md"
@@ -245,7 +243,7 @@ See also: eslint-vitest-rules/SKILL.md — ESLint enforces correct story.init() 
 
 ## Parameterized Scenarios (Scenario Outline equivalent)
 
-Use Vitest's `it.each` with `story()` to produce one scenario per data row — the framework-native replacement for Cucumber's Scenario Outline + Examples.
+Use Vitest's `it.each` with `story.init(task)` to produce one scenario per data row — the framework-native replacement for Cucumber's Scenario Outline + Examples. `story` is a plain object (not callable); each row still goes through the same `init` + step-marker calls as any other story.
 
 ```ts
 import { story } from "executable-stories-vitest";
@@ -257,13 +255,13 @@ const cases = [
 ];
 
 describe("Doubling", () => {
-  it.each(cases)("doubles $input to $expected", ({ input, expected }) => {
-    story(`Doubles ${input} to ${expected}`, (s) => {
-      s.given(`the input is ${input}`);
-      s.when("the doubler runs");
-      s.then(`the result is ${expected}`);
-      expect(input * 2).toBe(expected);
-    });
+  it.each(cases)("doubles $input to $expected", ({ input, expected }, { task }) => {
+    story.init(task);
+
+    story.given(`the input is ${input}`);
+    story.when("the doubler runs");
+    story.then(`the result is ${expected}`);
+    expect(input * 2).toBe(expected);
   });
 });
 ```

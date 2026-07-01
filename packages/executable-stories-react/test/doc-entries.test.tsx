@@ -11,6 +11,7 @@ import { DocLink } from "../src/components/doc/DocLink";
 import { DocSection } from "../src/components/doc/DocSection";
 import { DocMermaid } from "../src/components/doc/DocMermaid";
 import { DocScreenshot } from "../src/components/doc/DocScreenshot";
+import { DocVideo } from "../src/components/doc/DocVideo";
 import { DocCustom } from "../src/components/doc/DocCustom";
 import { minimalReport } from "./fixtures/sample-report";
 
@@ -151,14 +152,70 @@ describe("DocMermaid", () => {
 
 describe("DocScreenshot", () => {
   it("renders an <img> with alt and figcaption when alt is present", () => {
-    render(<DocScreenshot entry={{ kind: "screenshot", path: "/a.png", alt: "An A", phase: "runtime" }} />);
+    render(<DocScreenshot entry={{ kind: "screenshot", path: "assets/a.png", alt: "An A", phase: "runtime" }} />);
     expect(screen.getByAltText("An A")).toBeInTheDocument();
     expect(screen.getByText("An A").tagName).toBe("FIGCAPTION");
   });
 
   it("renders without figcaption when alt is missing", () => {
-    const { container } = render(<DocScreenshot entry={{ kind: "screenshot", path: "/a.png", phase: "runtime" }} />);
+    const { container } = render(
+      <DocScreenshot entry={{ kind: "screenshot", path: "assets/a.png", phase: "runtime" }} />,
+    );
     expect(container.querySelector("figcaption")).toBeNull();
+  });
+
+  it("renders a data: image URI", () => {
+    const png =
+      "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADElEQVR42mP8z8BQDwAFgwJ/lYd9KgAAAABJRU5ErkJggg==";
+    render(<DocScreenshot entry={{ kind: "screenshot", path: png, alt: "Inlined", phase: "runtime" }} />);
+    expect(screen.getByAltText("Inlined")).toHaveAttribute("src", png);
+  });
+
+  it("renders an http(s) URL", () => {
+    render(
+      <DocScreenshot
+        entry={{ kind: "screenshot", path: "https://cdn.example.com/a.png", alt: "Remote", phase: "runtime" }}
+      />,
+    );
+    expect(screen.getByAltText("Remote")).toHaveAttribute("src", "https://cdn.example.com/a.png");
+  });
+
+  it("renders a 'Screenshot unavailable' placeholder for an absolute local filesystem path instead of a broken <img>", () => {
+    const path = "/home/runner/work/app/app/test-results/dashboard.png";
+    render(<DocScreenshot entry={{ kind: "screenshot", path, alt: "Dashboard", phase: "runtime" }} />);
+    expect(screen.getByText("Screenshot unavailable")).toBeInTheDocument();
+    expect(screen.getByText(path)).toBeInTheDocument();
+    expect(screen.queryByRole("img")).toBeNull();
+  });
+
+  it("renders a placeholder for a disallowed scheme (e.g. javascript:) instead of an <img>", () => {
+    render(
+      <DocScreenshot
+        entry={{ kind: "screenshot", path: "javascript:alert(1)", alt: "Malicious", phase: "runtime" }}
+      />,
+    );
+    expect(screen.getByText("Screenshot unavailable")).toBeInTheDocument();
+    expect(screen.queryByRole("img")).toBeNull();
+  });
+});
+
+describe("DocVideo", () => {
+  it("renders a <video> with a caption for an http(s) URL", () => {
+    const { container } = render(
+      <DocVideo
+        entry={{ kind: "video", path: "https://example.com/a.webm", caption: "Demo", phase: "runtime" }}
+      />,
+    );
+    expect(container.querySelector("video")).toHaveAttribute("src", "https://example.com/a.webm");
+    expect(screen.getByText("Demo")).toBeInTheDocument();
+  });
+
+  it("renders a 'Video unavailable' placeholder for an absolute local filesystem path instead of a broken <video>", () => {
+    const path = "/home/runner/work/app/app/test-results/checkout.webm";
+    const { container } = render(<DocVideo entry={{ kind: "video", path, caption: "Checkout flow", phase: "runtime" }} />);
+    expect(screen.getByText("Video unavailable")).toBeInTheDocument();
+    expect(screen.getByText(path)).toBeInTheDocument();
+    expect(container.querySelector("video")).toBeNull();
   });
 });
 

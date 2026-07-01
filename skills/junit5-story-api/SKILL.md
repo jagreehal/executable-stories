@@ -1,11 +1,9 @@
 ---
 name: junit5-story-api
 description: >
-  Write BDD stories in JUnit 5 (Kotlin/Java) using executable-stories-junit5.
-  Static API: Story.init(scenario), Story.given/when/then/and/but. Aliases:
-  arrange, act, assertThat, setup, context, execute, action, verify. Steps
-  accept vararg DocEntry for inline docs. Auto-And keyword conversion. Wrapped
-  steps: Story.fn, Story.expect. Automatic JSON output via TestExecutionListener.
+  Use when writing BDD story tests in JUnit 5 (Kotlin/Java) with
+  executable-stories-junit5: the static Story.init/given/when/then/and/but
+  API, wrapped steps, or automatic JSON output via TestExecutionListener.
 type: core
 library: executable-stories-junit5
 library_version: "0.1.0"

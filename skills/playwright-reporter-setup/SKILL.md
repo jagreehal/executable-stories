@@ -1,13 +1,12 @@
 ---
 name: playwright-reporter-setup
 description: >
-  Configure Playwright custom reporter for executable-stories-playwright.
-  playwright.config.ts reporter array. Default export from
-  executable-stories-playwright/reporter. Output formats, directory, naming.
-  Aggregated and colocated modes. rawRunPath for CLI.
+  Use when configuring the executable-stories-playwright custom reporter:
+  wiring the playwright.config.ts reporter array, or output
+  format/directory/naming and aggregated vs. colocated modes.
 type: core
 library: executable-stories-playwright
-library_version: "8.5.3"
+library_version: "8.5.7"
 sources:
   - "jagreehal/executable-stories:packages/executable-stories-playwright/src/reporter.ts"
 ---
@@ -74,9 +73,8 @@ export default defineConfig({
         },
         html: {
           title: "Test Report",
-          darkMode: true,
-          searchable: true,
-          embedScreenshots: true,
+          syntaxHighlighting: true,
+          mermaidEnabled: true,
         },
         rawRunPath: "reports/raw-run.json",
       },

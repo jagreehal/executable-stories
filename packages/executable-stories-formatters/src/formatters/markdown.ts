@@ -9,6 +9,21 @@ import type { StoryStep, DocEntry } from "executable-stories-core/types/story";
 import type { TestRunResult, TestCaseResult, TestStatus } from "executable-stories-core/types/test-result";
 import type { MarkdownRenderers } from "../types/options";
 
+/**
+ * True for a local filesystem path (`/foo`, `\foo`, `C:\foo`) rather than a
+ * URL. Screenshot/video paths are meant to be rewritten to a relative
+ * `assets/...` path (or embedded as a `data:` URI) by capture-time inlining
+ * or the report's asset bundler; a path that's still absolute by the time it
+ * reaches this formatter means that never happened — most often because the
+ * bundler doesn't run at all in this pipeline (e.g. Markdown posted straight
+ * to a GitHub PR comment, with no asset-copy step in between). Embedding it
+ * verbatim (`![alt](path)` / `<source src="path">`) would be a
+ * guaranteed-broken reference wherever the Markdown ends up rendered.
+ */
+function isLocalFsPath(value: string): boolean {
+  return /^(?:[/\\]|[A-Za-z]:[/\\])/.test(value);
+}
+
 /** Options for Markdown formatting */
 export interface MarkdownOptions {
   /** Report title. Default: "User Stories" */
@@ -609,13 +624,28 @@ export class MarkdownFormatter {
         break;
 
       case "screenshot":
-        lines.push(`${indent}![${entry.alt ?? "Screenshot"}](${entry.path})`);
+        // Only `data:`/`http(s):` sources, or a relative path a bundler is
+        // meant to resolve, render as an embedded image.
+        if (isLocalFsPath(entry.path)) {
+          lines.push(`${indent}*Screenshot unavailable${entry.alt ? ` — ${entry.alt}` : ""} (\`${entry.path}\` was not readable when the report was generated)*`);
+        } else {
+          lines.push(`${indent}![${entry.alt ?? "Screenshot"}](${entry.path})`);
+        }
         break;
 
       case "video": {
         // Raw HTML so a real, playable clip renders inline — Markdown and
         // Astro/Starlight MDX both pass <video> through untouched. The asset
         // bundler scans <source src> and copies the file into the docs site.
+        // Video is never inlined as a data URI (bytes are too large), so an
+        // absolute path here — unlike screenshot, which at least sometimes
+        // inlines successfully — means it will *always* be broken wherever
+        // Markdown reaches an audience without that bundling step in between
+        // (e.g. posted straight to a GitHub PR comment).
+        if (isLocalFsPath(entry.path)) {
+          lines.push(`${indent}*Video unavailable${entry.caption ? ` — ${entry.caption}` : ""} (\`${entry.path}\` was not readable when the report was generated)*`);
+          break;
+        }
         const poster = entry.poster ? ` poster="${entry.poster}"` : "";
         lines.push(`${indent}`);
         lines.push(`${indent}<video controls preload="metadata"${poster} class="doc-video">`);

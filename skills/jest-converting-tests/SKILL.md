@@ -1,12 +1,13 @@
 ---
 name: jest-converting-tests
 description: >
-  Incrementally adopt executable-stories in Jest. Add story.init() and
-  top-level step imports to existing test blocks. No task argument needed.
-  File naming .story.test.ts. Progressive enhancement without rewriting.
+  Use when incrementally adopting executable-stories in an existing Jest
+  test suite, converting test blocks to story tests, or adding story.init()
+  and top-level step imports without a full rewrite. Progressive enhancement
+  of .story.test.ts files.
 type: lifecycle
 library: executable-stories-jest
-library_version: "8.4.3"
+library_version: "8.4.7"
 requires:
   - jest-story-api
 sources:

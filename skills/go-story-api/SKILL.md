@@ -1,11 +1,9 @@
 ---
 name: go-story-api
 description: >
-  Write BDD stories in Go using executable-stories-go. Init(t, scenario, opts...)
-  requires *testing.T. Steps: Given, When, Then, And, But (PascalCase, chainable).
-  Wrapped steps: Fn, Expect. Doc entries: Note, Tag, Kv, JSON, Code, Table, Link,
-  Section, Mermaid, Screenshot, Html, Custom. Auto-And keyword conversion. RunAndReport
-  in TestMain for JSON output.
+  Use when writing BDD story tests in Go with executable-stories-go:
+  Init(t, scenario, opts...), Given/When/Then/And/But steps, doc entries, or
+  RunAndReport output in TestMain.
 type: core
 library: executable-stories-go
 library_version: "0.1.0"

@@ -1,11 +1,9 @@
 ---
 name: eslint-jest-rules
 description: >
-  ESLint flat config plugin for executable-stories-jest. Three rules:
-  require-init-before-steps (init before given/when/then),
-  require-story-context-for-steps (steps must be inside story callback or story.init scope),
-  require-test-context-for-doc-story (doc.story must be inside test/it).
-  Recommended config enables all at error level.
+  Use when setting up ESLint rules for executable-stories-jest: enforcing
+  story.init() ordering before steps, story-context scoping for step calls,
+  or test-context requirements for doc.story.
 type: core
 library: eslint-plugin-executable-stories-jest
 library_version: "2.1.9"
