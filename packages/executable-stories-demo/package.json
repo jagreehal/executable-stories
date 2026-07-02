@@ -1,6 +1,6 @@
 {
   "name": "executable-stories-demo",
-  "version": "0.1.21",
+  "version": "0.1.22",
   "description": "Publish Astro product demo sites from executable stories runs",
   "type": "module",
   "sideEffects": false,
