@@ -11,7 +11,7 @@
     "test:e2e:update": "playwright test --update-snapshots"
   },
   "devDependencies": {
-    "@axe-core/playwright": "^4.10.2",
+    "@axe-core/playwright": "^4.12.1",
     "@playwright/test": "^1.59.1",
     "executable-stories-formatters": "workspace:*",
     "executable-stories-playwright": "workspace:*"
