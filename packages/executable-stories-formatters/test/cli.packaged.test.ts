@@ -86,7 +86,7 @@ describe("packaged CLI", () => {
             stdio: "pipe",
           }
         )
-      ).toThrowError(/compare supports only "html" and "markdown" formats/);
+      ).toThrowError(/compare supports only "html", "markdown", and "changelog" formats/);
     },
     120_000
   );

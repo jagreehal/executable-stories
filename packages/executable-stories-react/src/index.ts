@@ -58,6 +58,22 @@ export type { ScenarioExplorerProps, ExplorerScenario, ExplorerStatus } from "./
 
 export { useCustomRenderers, useBuiltinRenderers } from "./hooks/useRenderers";
 
+// Provenance/freshness helpers shared by ReportMeta, the interactive
+// freshness banner, and downstream consumers (e.g. the Astro site).
+export {
+  reportLastRunMs,
+  formatRelativeAge,
+  isReportStale,
+  ciDisplayName,
+  commitUrl,
+  prUrl,
+} from "./lib/provenance";
+
+// Run-history types + helpers (the interactive scenario timeline strip).
+export { currentStreak, describeRunHistory } from "./lib/run-history";
+export type { ScenarioRunEvent, ScenarioRunStatus, ScenarioHistoryMap, RunStreak } from "./lib/run-history";
+export { ScenarioRunHistory } from "./components/ScenarioRunHistory";
+
 // Interactive layer (client-only) lives under the dedicated entry point:
 //   import { ReportInteractive } from "executable-stories-react/interactive";
 // That bundle ships with a top-of-file "use client" directive so Next.js

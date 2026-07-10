@@ -5,6 +5,7 @@ import {
   behaviourFingerprint,
   behaviourSimilarity,
 } from "executable-stories-core/converters/acl/ids";
+import { RunDiffChangelogFormatter } from "../src/formatters/run-diff-changelog";
 import { RunDiffHtmlFormatter } from "../src/formatters/run-diff-html";
 import { RunDiffMarkdownFormatter } from "../src/formatters/run-diff-markdown";
 import { stubs } from "./stubs";
@@ -1079,5 +1080,141 @@ describe("behaviour identity (rename / move)", () => {
         { scenario: "Added case", sourceFile: "b", steps: [] }
       )
     ).toBe(0);
+  });
+});
+
+describe("RunDiffChangelogFormatter", () => {
+  const bddStory = (scenario: string) =>
+    stubs.storyMeta({
+      scenario,
+      docs: [],
+      steps: [
+        stubs.step({ keyword: "Given", text: "a signed-in customer" }),
+        stubs.step({ keyword: "When", text: "they redeem a gift card" }),
+        stubs.step({ keyword: "Then", text: "the balance covers the order" }),
+      ],
+    });
+
+  it("groups scenarios into release-notes sections with run metadata", () => {
+    const baseline = stubs.testRunResult({
+      startedAtMs: Date.UTC(2026, 5, 30),
+      packageVersion: "1.2.0",
+      gitSha: "aaaa1111bbbb2222",
+      testCases: [
+        stubs.testCaseResult({
+          id: "broke",
+          sourceFile: "src/auth.story.test.ts",
+          status: "passed",
+          story: stubs.storyMeta({ scenario: "Login works", docs: [] }),
+        }),
+        stubs.testCaseResult({
+          id: "repaired",
+          sourceFile: "src/auth.story.test.ts",
+          status: "failed",
+          errorMessage: "old error",
+          story: stubs.storyMeta({ scenario: "Password reset", docs: [] }),
+        }),
+        stubs.testCaseResult({
+          id: "dropped",
+          sourceFile: "src/legacy.story.test.ts",
+          status: "passed",
+          story: stubs.storyMeta({ scenario: "Legacy export", docs: [] }),
+        }),
+      ],
+    });
+    const current = stubs.testRunResult({
+      startedAtMs: Date.UTC(2026, 6, 8),
+      packageVersion: "1.3.0",
+      gitSha: "cccc3333dddd4444",
+      testCases: [
+        stubs.testCaseResult({
+          id: "broke",
+          sourceFile: "src/auth.story.test.ts",
+          status: "failed",
+          errorMessage: "Expected dashboard, saw error page\nstack...",
+          story: stubs.storyMeta({ scenario: "Login works", docs: [] }),
+        }),
+        stubs.testCaseResult({
+          id: "repaired",
+          sourceFile: "src/auth.story.test.ts",
+          status: "passed",
+          story: stubs.storyMeta({ scenario: "Password reset", docs: [] }),
+        }),
+        stubs.testCaseResult({
+          id: "brand-new",
+          sourceFile: "src/gift-cards.story.test.ts",
+          status: "passed",
+          story: bddStory("Gift card covers the whole order"),
+        }),
+      ],
+    });
+
+    const changelog = new RunDiffChangelogFormatter().format(diffRuns(baseline, current));
+
+    expect(changelog).toContain("# Behavior Changelog");
+    expect(changelog).toContain("1.2.0 · `aaaa1111` · 2026-06-30 → 1.3.0 · `cccc3333` · 2026-07-08");
+    expect(changelog).toContain("## New behavior (1)");
+    expect(changelog).toContain("**Gift card covers the whole order** (`src/gift-cards.story.test.ts`)");
+    // New behavior reads as a specification, not a test name.
+    expect(changelog).toContain("  - _Given_ a signed-in customer");
+    expect(changelog).toContain("  - _Then_ the balance covers the order");
+    expect(changelog).toContain("## Fixed (1)");
+    expect(changelog).toContain("## Broken (1)");
+    expect(changelog).toContain("**Login works** (`src/auth.story.test.ts`) — Expected dashboard, saw error page");
+    expect(changelog).toContain("## Removed (1)");
+    expect(changelog).toContain("**Legacy export**");
+    expect(changelog).toContain("_0 unchanged scenarios._");
+  });
+
+  it("says so when nothing changed between runs", () => {
+    const run = stubs.testRunResult({
+      testCases: [
+        stubs.testCaseResult({
+          id: "same",
+          sourceFile: "src/auth.story.test.ts",
+          status: "passed",
+          story: stubs.storyMeta({ scenario: "Login works", docs: [] }),
+        }),
+      ],
+    });
+
+    const changelog = new RunDiffChangelogFormatter().format(diffRuns(run, run));
+
+    expect(changelog).toContain("No behavior changes between these runs.");
+    expect(changelog).toContain("_1 unchanged scenario._");
+  });
+
+  it("renders renames as old → new", () => {
+    const content = ["a registered user exists", "they sign in", "the dashboard is shown"];
+    const steps = content.map((text, i) =>
+      stubs.step({ keyword: i === 0 ? "Given" : i === content.length - 1 ? "Then" : "When", text })
+    );
+    const meta = (scenario: string) =>
+      stubs.storyMeta({ scenario, tags: [], tickets: [], suitePath: [], docs: [], steps });
+    const baseline = stubs.testRunResult({
+      testCases: [
+        stubs.testCaseResult({
+          id: "id-before",
+          sourceFile: "src/auth.story.test.ts",
+          status: "passed",
+          story: meta("User logs in"),
+        }),
+      ],
+    });
+    const current = stubs.testRunResult({
+      testCases: [
+        stubs.testCaseResult({
+          id: "id-after",
+          sourceFile: "src/auth.story.test.ts",
+          status: "passed",
+          story: meta("User signs in successfully"),
+        }),
+      ],
+    });
+
+    const changelog = new RunDiffChangelogFormatter().format(diffRuns(baseline, current));
+
+    expect(changelog).toContain("## Renamed or moved (1)");
+    expect(changelog).toContain("- User logs in → **User signs in successfully**");
   });
 });

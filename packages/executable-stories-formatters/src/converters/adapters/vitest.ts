@@ -6,6 +6,7 @@
 
 import type { StoryMeta } from "executable-stories-core/types/story";
 import type { RawRun, RawTestCase, RawStatus } from "executable-stories-core/types/raw";
+import { detectCI } from "../../utils/ci-detect";
 
 /** Vitest test state */
 export type VitestState = "passed" | "failed" | "skipped" | "pending";
@@ -159,35 +160,3 @@ function formatVitestError(error: VitestSerializedError): string {
   return parts.join("\n") || "Unknown error";
 }
 
-/**
- * Detect CI environment.
- */
-function detectCI() {
-  if (process.env.GITHUB_ACTIONS === "true") {
-    return {
-      name: "GitHub Actions",
-      url: process.env.GITHUB_SERVER_URL && process.env.GITHUB_REPOSITORY
-        ? `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
-        : undefined,
-      buildNumber: process.env.GITHUB_RUN_NUMBER,
-    };
-  }
-
-  if (process.env.JENKINS_URL) {
-    return {
-      name: "Jenkins",
-      url: process.env.BUILD_URL,
-      buildNumber: process.env.BUILD_NUMBER,
-    };
-  }
-
-  if (process.env.CI) {
-    return {
-      name: "CI",
-      url: undefined,
-      buildNumber: undefined,
-    };
-  }
-
-  return undefined;
-}

@@ -172,6 +172,10 @@
         "status": {
           "$ref": "#/$defs/TestStatus"
         },
+        "planned": {
+          "type": "boolean",
+          "description": "True for scenarios authored with the framework's todo modifier (e.g. it.todo): specified behavior with no implementation yet. Canonical status stays 'pending'; this flags why."
+        },
         "durationMs": {
           "type": "number",
           "minimum": 0

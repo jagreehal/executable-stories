@@ -133,7 +133,17 @@ export interface FormatterOptions {
     syntaxHighlighting?: boolean;
     /** Enable live Mermaid diagram rendering (via Mermaid.js CDN). Default: true */
     mermaidEnabled?: boolean;
+    /** Days before the report shows a stale warning. 0 disables. Default: 7 */
+    staleAfterDays?: number;
   };
+
+  /**
+   * Run history store (see loadHistory/updateHistory). When set, the HTML
+   * report embeds each scenario's recent run history so cards can show a
+   * run-over-run timeline. Update the store with the current run before
+   * passing it so the report includes this run as the latest entry.
+   */
+  historyStore?: HistoryStore;
 
   /** JUnit XML specific options */
   junit?: {
@@ -246,6 +256,7 @@ export interface MarkdownFormatterOptions {
 import type { DocEntry, StoryStep } from "executable-stories-core/types/story";
 import type { TestCaseResult, TestRunResult } from "executable-stories-core/types/test-result";
 import type { NotifyCondition, GenericWebhookNotifierOptions } from "../notifiers/types";
+import type { HistoryStore } from "../history/types";
 import type { ConfluenceFormatterOptions as ConfluenceFormatterOptionsType } from "../formatters/confluence";
 
 /** Re-exported for consumers */
@@ -312,7 +323,9 @@ export interface ResolvedFormatterOptions {
     title: string;
     syntaxHighlighting: boolean;
     mermaidEnabled: boolean;
+    staleAfterDays: number;
   };
+  historyStore: HistoryStore | undefined;
   junit: {
     suiteName: string;
     includeOutput: boolean;

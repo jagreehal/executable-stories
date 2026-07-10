@@ -43,6 +43,7 @@ You can override with `scenarioHeadingLevel` / `storyHeadingLevel` in reporter o
 
 - **Scenario title** — The scenario heading normally comes from the test title used with `story.init(...)`. If you attach explicit story metadata in a framework-native pattern, that story title is what the report renders.
 - **Steps** — Each `story.given` / `story.when` / `story.then` (and `story.and`, `story.but`) as a bullet. Framework modifiers (skip/todo/fails etc.) are reflected in the step label (e.g. _(skipped)_, _(todo)_).
+- **Planned scenarios** — A bodyless `it.todo("title")` in a file that contains story tests appears as a **Planned** scenario (Jest and Vitest): specified behavior with no implementation yet. Markdown renders the heading with _(planned)_; the HTML report shows a **Planned** badge instead of Pending.
 - **Tags and options** — If you pass `{ tags: [...], meta: {...} }` to `story.init(..., options)`, they can be included (see reporter options).
 - **Step documentation** — Notes, key-value pairs, code blocks, tables, and links added via `story.note`, `story.json`, `story.table`, etc. appear under the corresponding step.
 - **Source link** — If `permalinkBaseUrl` is set (or in GitHub Actions with the built-in fallback), each scenario can get a "Source: [file](url)" line.
@@ -80,6 +81,16 @@ When a scenario fails, the report leads with the error and the step that failed:
   alt="A failed scenario showing the error message, the failing Then step, and a trace"
   caption="A failure shows the assertion error and points at the exact step that broke."
 />
+
+## Run history in the interactive report
+
+When the CLI runs with `--history-file` (or the reporter is configured with `history.filePath`), the interactive HTML report layers run-over-run context on top of the current results:
+
+- **Per-scenario timeline** — a dot per recent run on each scenario card (oldest → newest), with a tooltip summary like "8/10 runs passed · Passing for the last 5 runs".
+- **Flaky badge** — scenarios whose recent runs flip between pass and fail get a **Flaky** badge next to the timeline, so an unreliable scenario can't hide behind a green run.
+- **"Since last run" strip** — one line in the report header summarizing what changed against the previous run: newly failing scenarios (deep-linked), fixed scenarios, and first-seen scenarios. A quiet run says "no behavior changes" rather than nothing.
+
+All of this is presentation-layer data derived from the history store; the StoryReport JSON contract is unchanged. See [Run history](../reference/formatters-api/#format) in the CLI reference.
 
 ## Enabling or hiding elements
 

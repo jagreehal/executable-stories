@@ -197,12 +197,13 @@ The formatters package provides an **`executable-stories`** CLI for generating r
 - Step text in the HTML report highlights **quoted strings** and **standalone numbers** (step parameter highlighting) for readability.
 - **`--html-no-syntax-highlighting`** — Disable syntax highlighting in HTML.
 - **`--html-no-mermaid`** — Disable Mermaid diagram rendering in HTML.
+- **`--html-stale-after-days <n>`** — Days before the interactive HTML report shows a "Last verified N days ago" stale warning (default: 7; `0` disables). Fresh reports show a quiet "Verified N ago" line instead.
 
 **CI detection:** When the CLI runs in a CI environment, it auto-detects the provider (GitHub Actions, GitLab, CircleCI, Azure DevOps, Buildkite, Jenkins, Travis) from environment variables and attaches branch, commit SHA, PR number, and build URL to the run. The HTML report shows this in a **CI** meta block. No flags required.
 
 **Notifications:** After generating reports, the CLI can send a summary to Slack, Microsoft Teams, or a generic webhook. Use **`--slack-webhook`** or **`--teams-webhook`** (or `SLACK_WEBHOOK_URL` / `TEAMS_WEBHOOK_URL` env), or **`--webhook-url`** (repeatable) for a generic HTTP endpoint. **`--notify`** controls when: `always`, `on-failure` (default), or `never`. **`--report-url`** supplies a link to the report in notification messages. Optional HMAC signing: **`--webhook-hmac-secret`**, **`--webhook-hmac-header`**, **`--webhook-hmac-timestamp`**.
 
-**Run history:** Use **`--history-file <path>`** to persist run history to a JSON file. The CLI updates it after each run and uses it to show **flakiness**, **stability grade** (A–F), and **performance trend** in the HTML report. **`--max-history-runs <n>`** (default 10) caps how many runs are kept per test. Omit `--history-file` to disable history.
+**Run history:** Use **`--history-file <path>`** to persist run history to a JSON file. The CLI updates it before generating reports (so the current run is the latest entry) and uses it to show **flakiness**, **stability grade** (A–F), and **performance trend**. The interactive HTML report also renders a **per-scenario run timeline**: a dot per recent run on each scenario card, with a tooltip summary like "8/10 runs passed · Passing for the last 5 runs". Scenarios whose recent runs flip between pass and fail get a **Flaky badge** next to the timeline, and the report header shows a **"Since last run" strip** summarizing newly failing, fixed, and first-seen scenarios (with deep links) compared to the previous run in the history. **`--max-history-runs <n>`** (default 10) caps how many runs are kept per test. Omit `--history-file` to disable history.
 
 **Standalone binary:** From the formatters package directory, run `bun run compile` to build a single `executable-stories` binary. CI builds produce platform-specific binaries (e.g. `executable-stories-linux-x64`); the release workflow uploads multi-platform binaries (linux-x64, linux-arm64, darwin-x64, darwin-arm64, windows-x64) as the `formatters-binaries` artifact.
 
@@ -223,6 +224,7 @@ The formatters package provides an **`executable-stories`** CLI for generating r
 | `--no-synthesize-stories` | boolean | — | Disable story synthesis (strict mode) |
 | `--html-no-syntax-highlighting` | boolean | `false` | Disable syntax highlighting in HTML |
 | `--html-no-mermaid` | boolean | `false` | Disable Mermaid diagram rendering in HTML |
+| `--html-stale-after-days` | number | `7` | Days before the HTML report warns it is stale (`0` disables) |
 | `--asset-mode` | string | `none` | Asset bundling: `none` or `copy` |
 | `--allow-missing-assets` | boolean | `false` | Warn instead of fail on missing assets |
 | `--output-name-timestamp` | boolean | `false` | Append UTC timestamp to output filename |
@@ -254,7 +256,13 @@ executable-stories compare current.json --baseline baseline.json --format html
 | `--pr-summary` | boolean | `false` | Print PR-friendly markdown summary to stdout |
 | `--pr-summary-file` | string | — | Write the PR summary to a file |
 
-Inherits all `format` flags. Only `html` and `markdown` formats are supported for diff reports.
+Inherits all `format` flags. Diff reports support the `html`, `markdown`, and `changelog` formats.
+
+**Behavior changelog:** `--format changelog` writes a release-notes-style Markdown changelog (`<output-name>.changelog.md`) between the two runs, written for the reader of a release rather than the reviewer of a diff. Sections in reader order: **New behavior** (each new scenario listed with its Given/When/Then steps, so the entry reads as a specification), **Fixed**, **Broken**, **Removed**, **Renamed or moved** (rename/move-resilient identity, so refactors don't show up as removed + added), and **Changed**. The header carries each run's `packageVersion`, short commit SHA, and date — tag your runs with a version to get `1.2.0 → 1.3.0` release headers:
+
+```bash
+executable-stories compare v1.2.0-run.json v1.3.0-run.json --format changelog --output-name release-1.3.0
+```
 
 **Auto-baseline:**
 

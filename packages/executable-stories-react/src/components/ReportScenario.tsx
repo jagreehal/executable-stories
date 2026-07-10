@@ -4,6 +4,7 @@ import { ReportSteps } from "./ReportSteps";
 import { ReportDocEntries } from "./ReportDocEntries";
 import { ReportAttachments } from "./ReportAttachments";
 import { ReportTrace } from "./ReportTrace";
+import { ScenarioRunHistory } from "./ScenarioRunHistory";
 import { useCollapse } from "../interactive/collapse-context";
 import { useScenarioActions } from "../interactive/scenario-actions";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -53,7 +54,9 @@ const STATUS_BADGE: Record<Status, "passed" | "failed" | "skipped" | "pending"> 
 export function ReportScenario({ scenario, hideTitle = false }: ReportScenarioProps) {
   const titleId = `${scenario.id}-title`;
   const bodyId = `${scenario.id}-body`;
-  const label = STATUS_LABEL[scenario.status];
+  // A planned scenario (it.todo) is canonically "pending", but the reader
+  // should see intent, not limbo.
+  const label = scenario.planned ? "Planned" : STATUS_LABEL[scenario.status];
   const collapse = useCollapse();
   const collapsible = collapse !== null && !hideTitle;
   const collapsed = collapsible ? collapse!.isCollapsed(scenario.id) : false;
@@ -90,6 +93,7 @@ export function ReportScenario({ scenario, hideTitle = false }: ReportScenarioPr
             </h3>
           )}
           <div className="flex shrink-0 items-center gap-2">
+            <ScenarioRunHistory scenarioId={scenario.id} />
             {scenario.durationMs > 0 ? (
               <span className="whitespace-nowrap font-mono text-[0.6875rem] text-muted-foreground">
                 {formatDuration(scenario.durationMs)}

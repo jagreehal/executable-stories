@@ -74,6 +74,15 @@ describe("<Report>", () => {
     expect(screen.getByLabelText("Status: Passed")).toBeInTheDocument();
   });
 
+  it("labels planned scenarios (it.todo) as Planned instead of Pending", () => {
+    const plannedReport = JSON.parse(JSON.stringify(passingReport));
+    plannedReport.features[0].scenarios[0].status = "pending";
+    plannedReport.features[0].scenarios[0].planned = true;
+    render(<Report report={plannedReport} />);
+    expect(screen.getByLabelText("Status: Planned")).toBeInTheDocument();
+    expect(screen.getByText("Planned")).toBeInTheDocument();
+  });
+
   it("escapes user content via React text rendering (no innerHTML for titles)", () => {
     const xssReport = JSON.parse(JSON.stringify(passingReport));
     xssReport.features[0].scenarios[0].title = "<script>alert('xss')</script>";

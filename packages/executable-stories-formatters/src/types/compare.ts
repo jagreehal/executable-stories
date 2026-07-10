@@ -81,7 +81,7 @@ export interface RunDiffResult {
   scenarios: ScenarioDiff[];
 }
 
-export type CompareFormat = "html" | "markdown";
+export type CompareFormat = "html" | "markdown" | "changelog";
 
 export interface CompareFormatterOptions {
   title?: string;

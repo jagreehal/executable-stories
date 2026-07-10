@@ -271,4 +271,69 @@ describe("StoryReporter (unit)", () => {
     // No scenarios means no file written (reporter returns early)
     // Note: We don't check for file existence since this depends on implementation
   });
+
+  // Bodyless it.todo never runs story.init(), so it has no story meta — Jest
+  // still reports it with status "todo". The reporter synthesizes a planned
+  // scenario for those, in files that contain story tests.
+  it("emits bodyless it.todo tests as planned scenarios with raw status todo", async () => {
+    const rawRunPath = path.join(testOutputDir, "planned-raw.json");
+    const reporter = new StoryReporter(undefined, {
+      formats: ["markdown"],
+      outputDir: testOutputDir,
+      outputName: "planned",
+      output: { mode: "aggregated" },
+      rawRunPath,
+    });
+    reporter.onRunStart();
+    writeStoryReport("/fake/path/checkout.story.test.ts", [
+      { scenario: "checkout works", steps: [{ keyword: "Given", text: "a cart" }], suitePath: [] },
+    ]);
+    await reporter.onRunComplete(
+      new Set(),
+      mockJestResults("/fake/path/checkout.story.test.ts", [
+        { fullName: "checkout works", status: "passed" },
+        { fullName: "gift cards apply", status: "todo" },
+      ])
+    );
+
+    const raw = JSON.parse(fs.readFileSync(rawRunPath, "utf-8"));
+    expect(raw.testCases).toHaveLength(2);
+    const planned = raw.testCases.find((tc: { title: string }) => tc.title === "gift cards apply");
+    expect(planned).toBeDefined();
+    expect(planned.status).toBe("todo");
+    expect(planned.story.scenario).toBe("gift cards apply");
+    expect(planned.story.steps).toEqual([]);
+
+    const md = fs.readFileSync(path.join(testOutputDir, "planned.md"), "utf-8");
+    expect(md).toContain("gift cards apply _(planned)_");
+  });
+
+  it("ignores todos in files without story reports", async () => {
+    const rawRunPath = path.join(testOutputDir, "planned-none.json");
+    const reporter = new StoryReporter(undefined, {
+      formats: ["markdown"],
+      outputDir: testOutputDir,
+      outputName: "planned-none",
+      output: { mode: "aggregated" },
+      rawRunPath,
+    });
+    reporter.onRunStart();
+    writeStoryReport("/fake/path/checkout.story.test.ts", [
+      { scenario: "checkout works", steps: [], suitePath: [] },
+    ]);
+    await reporter.onRunComplete(new Set(), {
+      testResults: [
+        ...mockJestResults("/fake/path/checkout.story.test.ts", [
+          { fullName: "checkout works", status: "passed" },
+        ]).testResults,
+        ...mockJestResults("/fake/path/plain.test.ts", [
+          { fullName: "some unrelated todo", status: "todo" },
+        ]).testResults,
+      ],
+    });
+
+    const raw = JSON.parse(fs.readFileSync(rawRunPath, "utf-8"));
+    expect(raw.testCases).toHaveLength(1);
+    expect(raw.testCases[0].title).toBe("checkout works");
+  });
 });

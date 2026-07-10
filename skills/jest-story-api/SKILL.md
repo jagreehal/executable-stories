@@ -126,6 +126,26 @@ given("valid credentials", {
 });
 ```
 
+### Planned scenarios with it.todo
+
+A bodyless `it.todo` records specified-but-unimplemented behavior. It appears in generated docs as a **Planned** scenario (title only, no steps) as long as the file contains at least one story test:
+
+```typescript
+describe("Checkout", () => {
+  it("applies a discount code", () => {
+    story.init();
+    given("a cart with items");
+    when("a valid discount code is applied");
+    then("the total reflects the discount");
+  });
+
+  // Renders as "Planned" in the report; canonical status is pending
+  it.todo("applies gift cards at checkout");
+});
+```
+
+Markdown renders the heading with _(planned)_; the HTML report shows a **Planned** badge. A file containing only todos produces nothing — the story-file gate keeps plain suites out of the docs.
+
 ## Common Mistakes
 
 ### CRITICAL Calling story.init() with a task argument

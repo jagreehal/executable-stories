@@ -79,6 +79,7 @@ Playwright uses **`.fail`** (expected failure), not `.fails`. We follow Playwrig
 Story structure is captured as the test runs (when you call `story.init` and the step markers). The reporter can still render scenarios when the test is skipped or todo if the framework exposes that.
 
 - Use the framework’s modifiers on the **test**: `it.skip("...", () => { ... })`, `it.todo("...", () => { ... })`, etc., so the scenario still appears in the report with the right status.
+- A **bodyless** `it.todo("title")` (no callback, so `story.init()` never runs) still appears — as a **Planned** scenario with just its title — as long as the file contains at least one story test (Jest and Vitest). Use it to record specified-but-unimplemented behavior in the living docs.
 - **Doc methods** (`story.note`, `story.kv`, etc.) are attached to the current step or story and appear in the report when that test runs. If the test is skipped, the scenario may show with no steps or minimal content depending on reporter behavior.
 
 If you see a scenario in the report with no steps or missing doc content, check that the test ran and that `story.init()` and step markers were actually executed.

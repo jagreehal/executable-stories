@@ -14,7 +14,8 @@
 import * as path from "node:path";
 
 import * as fsPromises from "node:fs/promises";
-import { toStoryReport } from "executable-stories-core/converters/story-report";
+import { toStoryReport, toStoryReportWithIndex } from "executable-stories-core/converters/story-report";
+import type { ScenarioRunEvent } from "executable-stories-react/ssr";
 import type { TestRunResult, TestCaseResult } from "executable-stories-core/types/test-result";
 import type {
   FormatterOptions,
@@ -45,6 +46,7 @@ import { TraceabilityMatrixFormatter } from "./formatters/traceability-matrix";
 import { CucumberMessagesFormatter } from "./formatters/cucumber-messages/index";
 import { CucumberHtmlFormatter } from "./formatters/cucumber-html";
 import { diffRuns } from "./compare/index";
+import { RunDiffChangelogFormatter } from "./formatters/run-diff-changelog";
 import { RunDiffHtmlFormatter } from "./formatters/run-diff-html";
 import { RunDiffMarkdownFormatter } from "./formatters/run-diff-markdown";
 import { matchesPattern, selectTestCases } from "./select-test-cases";
@@ -349,6 +351,11 @@ export {
   RunDiffMarkdownFormatter,
   type RunDiffMarkdownOptions,
 } from "./formatters/run-diff-markdown";
+
+export {
+  RunDiffChangelogFormatter,
+  type RunDiffChangelogOptions,
+} from "./formatters/run-diff-changelog";
 
 // ============================================================================
 // NDJSON Parser (compat path: NDJSON → TestRunResult)
@@ -776,7 +783,9 @@ export class ReportGenerator {
         title: options.html?.title ?? "Test Results",
         syntaxHighlighting: options.html?.syntaxHighlighting ?? true,
         mermaidEnabled: options.html?.mermaidEnabled ?? true,
+        staleAfterDays: options.html?.staleAfterDays ?? 7,
       },
+      historyStore: options.historyStore,
       junit: {
         suiteName: options.junit?.suiteName ?? "Test Suite",
         includeOutput: options.junit?.includeOutput ?? true,
@@ -1103,7 +1112,29 @@ export class ReportGenerator {
    */
   private async formatHtmlReact(run: TestRunResult): Promise<string> {
     const { renderReportToHtml } = await import("executable-stories-react/ssr");
-    const report = toStoryReport(run);
+    const { report, index } = toStoryReportWithIndex(run);
+
+    // Join the run-keyed history store onto report scenario ids so the
+    // interactive report can render a per-scenario run timeline.
+    let scenarioHistory: Record<string, ScenarioRunEvent[]> | undefined;
+    const store = this.options.historyStore;
+    if (store) {
+      scenarioHistory = {};
+      for (const [tcId, scenarioId] of Object.entries(index.scenarioIdByTestCaseId)) {
+        const entries = store.tests[tcId]?.entries;
+        if (!entries || entries.length === 0) continue;
+        scenarioHistory[scenarioId] = entries.map((e) => {
+          const event: ScenarioRunEvent = { timestamp: e.timestamp, status: e.status };
+          if (e.runId) event.runId = e.runId;
+          if (e.durationMs !== undefined) event.durationMs = e.durationMs;
+          if (e.ci?.commitSha) event.commitSha = e.ci.commitSha;
+          if (e.ci?.branch) event.branch = e.ci.branch;
+          return event;
+        });
+      }
+      if (Object.keys(scenarioHistory).length === 0) scenarioHistory = undefined;
+    }
+
     return renderReportToHtml(report, {
       title: this.options.html.title,
       css: readReactReportCss(),
@@ -1111,6 +1142,8 @@ export class ReportGenerator {
       // Honour the --html-no-syntax-highlighting / --html-no-mermaid flags.
       syntaxHighlighting: this.options.html.syntaxHighlighting,
       mermaid: this.options.html.mermaidEnabled,
+      staleAfterDays: this.options.html.staleAfterDays,
+      scenarioHistory,
       islandScript: readReactIslandScript(),
     });
   }
@@ -1148,7 +1181,7 @@ export function createReportGenerator(
 export async function generateRunComparison(args: {
   baseline: TestRunResult;
   current: TestRunResult;
-  formats: Array<"html" | "markdown">;
+  formats: Array<"html" | "markdown" | "changelog">;
   outputDir?: string;
   outputName?: string;
   title?: string;
@@ -1161,12 +1194,16 @@ export async function generateRunComparison(args: {
   await fsPromises.mkdir(outputDir, { recursive: true });
 
   for (const format of args.formats) {
-    const ext = format === "html" ? ".html" : ".md";
+    // The changelog gets its own suffix so requesting markdown + changelog
+    // together never writes both to the same file.
+    const ext = format === "html" ? ".html" : format === "changelog" ? ".changelog.md" : ".md";
     const outputPath = toPosix(path.join(outputDir, `${outputName}${ext}`));
     const content =
       format === "html"
         ? new RunDiffHtmlFormatter({ title: args.title }).format(diff)
-        : new RunDiffMarkdownFormatter({ title: args.title }).format(diff);
+        : format === "changelog"
+          ? new RunDiffChangelogFormatter().format(diff)
+          : new RunDiffMarkdownFormatter({ title: args.title }).format(diff);
     await fsPromises.writeFile(outputPath, content, "utf8");
     files.push(outputPath);
   }
