@@ -34,6 +34,7 @@ export const ES_THEME_TOKENS_CSS = `
   --es-color-failed-bg: #fef2f2;
   --es-color-skipped-bg: #f3f4f6;
   --es-color-pending-bg: #fffbeb;
+  --es-warn-fg: #92400e;
   --es-font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   --es-font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
   --es-size-base: 1rem;
@@ -69,6 +70,7 @@ export const ES_THEME_TOKENS_CSS = `
     --es-color-failed-bg: rgba(248, 113, 113, 0.08);
     --es-color-skipped-bg: rgba(107, 114, 128, 0.08);
     --es-color-pending-bg: rgba(251, 191, 36, 0.08);
+    --es-warn-fg: #fbbf24;
   }
 }
 
@@ -87,6 +89,7 @@ export const ES_THEME_TOKENS_CSS = `
   --es-color-failed-bg: rgba(248, 113, 113, 0.08);
   --es-color-skipped-bg: rgba(107, 114, 128, 0.08);
   --es-color-pending-bg: rgba(251, 191, 36, 0.08);
+  --es-warn-fg: #fbbf24;
 }
 `.trim();
 

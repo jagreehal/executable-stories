@@ -40,6 +40,16 @@ executable-stories compare baseline.json current.json \
   --format html,markdown \
   --output-name review-diff
 
+# Behavior changelog between two tagged runs + PR-comment summary
+executable-stories compare v1.2-run.json v1.3-run.json \
+  --format changelog --output-name release-1.3 \
+  --pr-summary-file reports/pr-summary.md
+
+# Persist run history: HTML gets per-scenario timelines, Flaky badges,
+# and a "Since last run" strip in the header
+executable-stories format raw-run.json --format html \
+  --history-file .executable-stories/history.json
+
 # Validate JSON against schema
 executable-stories validate raw-run.json
 

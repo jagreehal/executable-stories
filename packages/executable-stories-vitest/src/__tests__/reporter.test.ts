@@ -1038,6 +1038,82 @@ describe('StoryReporter', () => {
     });
   });
 
+  describe('planned scenarios (it.todo)', () => {
+    // Bodyless it.todo never runs story.init(), so the reporter sees a test
+    // with no story meta and mode "todo". These pin the synthesis of planned
+    // scenarios and the story-file gate that keeps plain suites out.
+    function todoTest(name: string, fullName = name) {
+      return {
+        name,
+        fullName,
+        options: { mode: 'todo' },
+        meta: () => ({}),
+        result: () => ({ state: 'skipped' as const }),
+      };
+    }
+
+    function storyTest(scenario: string) {
+      return {
+        options: { mode: 'run' },
+        meta: () => ({
+          story: {
+            scenario,
+            steps: [{ keyword: 'Given' as const, text: 'something', docs: [] }],
+            sourceOrder: 0,
+          },
+        }),
+        result: () => ({ state: 'passed' as const, duration: 5 }),
+      };
+    }
+
+    async function runReporter(tests: unknown[], rawName: string) {
+      const rawRunPath = path.join(TEMP_DIR, rawName);
+      const reporter = new StoryReporter({
+        formats: ['markdown'],
+        outputDir: TEMP_DIR,
+        outputName: 'planned',
+        output: { mode: 'aggregated' },
+        rawRunPath,
+      });
+      reporter.onInit({
+        config: { root: process.cwd() },
+      } as unknown as Parameters<typeof reporter.onInit>[0]);
+      const mockModule: MockTestModule = {
+        moduleId: 'checkout.story.test.ts',
+        children: { allTests: () => tests as ReturnType<MockTestModule['children']['allTests']> },
+      } as MockTestModule;
+      await reporter.onTestRunEnd(
+        [mockModule as unknown as Parameters<typeof reporter.onTestRunEnd>[0][0]],
+        [],
+        'passed',
+      );
+      return JSON.parse(fs.readFileSync(rawRunPath, 'utf8'));
+    }
+
+    it('emits bodyless it.todo tests as raw "todo" test cases alongside story tests', async () => {
+      const raw = await runReporter(
+        [storyTest('checkout works'), todoTest('gift cards apply', 'Checkout > gift cards apply')],
+        'planned-raw.json',
+      );
+
+      expect(raw.testCases).toHaveLength(2);
+      const planned = raw.testCases.find(
+        (tc: { title: string }) => tc.title === 'gift cards apply',
+      );
+      expect(planned).toBeDefined();
+      expect(planned.status).toBe('todo');
+      expect(planned.story.scenario).toBe('gift cards apply');
+      expect(planned.story.steps).toEqual([]);
+      expect(planned.story.suitePath).toEqual(['Checkout']);
+      expect(planned.titlePath).toEqual(['Checkout', 'gift cards apply']);
+    });
+
+    it('ignores todos in modules without any story tests', async () => {
+      const raw = await runReporter([todoTest('some unrelated todo')], 'planned-none.json');
+      expect(raw.testCases).toHaveLength(0);
+    });
+  });
+
   describe('empty output handling', () => {
     it('writes file with title when no scenarios in aggregated mode', async () => {
       const reporter = new StoryReporter({

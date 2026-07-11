@@ -46,6 +46,12 @@ const confluenceAdfJson = new ConfluenceFormatter().format(canonical);
 --html-title "Test Report"
 --html-no-syntax-highlighting
 --html-no-mermaid
+--html-stale-after-days 7    # stale warning threshold in days; 0 disables
+
+# Run history (interactive HTML: per-scenario timeline, Flaky badges,
+# "Since last run" strip; plus stability grade + performance trend)
+--history-file .executable-stories/history.json
+--max-history-runs 10        # runs kept per test (default 10)
 
 # Story synthesis
 --synthesize-stories          # Enabled by default
@@ -183,6 +189,9 @@ executable-stories compare baseline.json current.json \
 - Generates a standalone HTML review report with filter chips for `Regressed`, `Fixed`, `Added`, `Removed`, and `Changed`.
 - Generates Markdown with per-scenario before/after summaries for PR discussion or artifact storage.
 - Use canonical input when you already persist prior runs; raw and ndjson inputs are also supported as long as both files use the same `--input-type`.
+- `--pr-summary` prints a compact PR-comment Markdown summary (priority signal + capped per-kind sections) to stdout; `--pr-summary-file <path>` writes it to a file.
+- `--format changelog` writes a release-notes-style **behavior changelog** (`<output-name>.changelog.md`): New behavior (with Given/When/Then steps), Fixed, Broken, Removed, Renamed or moved (rename-resilient identity), Changed. Headers carry each run's `packageVersion` + short SHA + date — tag runs with versions for `1.2.0 → 1.3.0` release notes.
+- Gates for CI: `--fail-on-regression`, `--fail-on-added-failures`, `--fail-on-removal`, `--fail-on-new`, `--max-regressions <n>` (exit code 5 when a gate fails).
 
 ## Notifications
 

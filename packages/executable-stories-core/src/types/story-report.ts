@@ -191,6 +191,12 @@ export interface ReportScenario {
   id: string;
   title: string;
   status: TestStatus;
+  /**
+   * True for scenarios authored with the framework's todo modifier
+   * (e.g. `it.todo`): specified behavior with no implementation yet.
+   * Canonical status stays "pending"; this flags why.
+   */
+  planned?: boolean;
   durationMs: number;
   tags: string[];
   tickets?: ReportTicket[];

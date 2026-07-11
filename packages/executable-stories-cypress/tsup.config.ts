@@ -8,9 +8,13 @@ export default defineConfig({
     reporter: "src/reporter.ts",
   },
   format: ["esm", "cjs"],
-  dts: true,
+  dts: { resolve: [/executable-stories-core/] },
   clean: true,
   splitting: false,
   sourcemap: true,
-  external: ["cypress", "executable-stories-core", "executable-stories-formatters"],
+  // Bundle executable-stories-core so the published package is self-contained
+  // (core is an internal, unpublished workspace package). formatters stays
+  // external — it is published and installed as a real runtime dependency.
+  noExternal: ["executable-stories-core"],
+  external: ["cypress", "executable-stories-formatters"],
 });

@@ -212,7 +212,11 @@ function buildAttachments(tc: TestCaseResult): ReportAttachment[] {
   }));
 }
 
-function buildScenario(tc: TestCaseResult, featureId: string): ReportScenario {
+function buildScenario(
+  tc: TestCaseResult,
+  featureId: string,
+  scenarioRefs?: Map<string, ReportScenario>,
+): ReportScenario {
   const titleRaw = tc.story.scenario?.trim() || "(untitled scenario)";
   const id = `${featureId}--${reportSlug(titleRaw) || `case-${tc.id}`}`;
   const steps = buildSteps(id, tc);
@@ -233,6 +237,9 @@ function buildScenario(tc: TestCaseResult, featureId: string): ReportScenario {
   if (tc.sourceLine && tc.sourceLine > 0) scenario.sourceLine = tc.sourceLine;
   if (tc.errorMessage !== undefined) scenario.errorMessage = tc.errorMessage;
   if (tc.errorStack !== undefined) scenario.errorStack = tc.errorStack;
+  // Canonical status collapses todo → pending; keep "planned, not yet
+  // implemented" as a first-class presentation signal for formatters.
+  if (tc.rawStatus === "todo") scenario.planned = true;
 
   const tickets = tc.story.tickets;
   if (tickets && tickets.length > 0) {
@@ -247,6 +254,7 @@ function buildScenario(tc: TestCaseResult, featureId: string): ReportScenario {
     scenario.otelSpans = tc.story.otelSpans;
   }
 
+  scenarioRefs?.set(tc.id, scenario);
   return scenario;
 }
 
@@ -265,14 +273,18 @@ function compareScenarios(a: ReportScenario, b: ReportScenario): number {
   return a.title.localeCompare(b.title);
 }
 
-function buildFeature(relSourceFile: string, group: TestCaseResult[]): ReportFeature {
+function buildFeature(
+  relSourceFile: string,
+  group: TestCaseResult[],
+  scenarioRefs?: Map<string, ReportScenario>,
+): ReportFeature {
   const id = `feature-${reportSlug(relSourceFile.replace(/\.[^.]+$/, "")) || "untitled"}`;
   const title = deriveFeatureTitle(group, relSourceFile);
   const summary = emptySummary();
   const scenarios: ReportScenario[] = [];
 
   for (const tc of group) {
-    const scenario = buildScenario(tc, id);
+    const scenario = buildScenario(tc, id, scenarioRefs);
     scenarios.push(scenario);
     addToSummary(summary, scenario.status, scenario.durationMs);
   }
@@ -306,10 +318,29 @@ function ensureUniqueScenarioIds(feature: ReportFeature): void {
   }
 }
 
+/** Lookup from canonical run data into the generated report's ids. */
+export interface StoryReportIndex {
+  /** Final ReportScenario.id keyed by canonical TestCaseResult.id. */
+  scenarioIdByTestCaseId: Record<string, string>;
+}
+
 /**
  * Convert a canonical TestRunResult into a frozen-shape StoryReport for UI renderers.
  */
 export function toStoryReport(run: TestRunResult): StoryReport {
+  return toStoryReportWithIndex(run).report;
+}
+
+/**
+ * Like toStoryReport, but also returns the test-case-id → scenario-id index so
+ * callers can join run-keyed data (e.g. the history store) onto report
+ * scenarios. The index is built after the unique-id fixups, so it always holds
+ * the final ids.
+ */
+export function toStoryReportWithIndex(run: TestRunResult): {
+  report: StoryReport;
+  index: StoryReportIndex;
+} {
   const groups = new Map<string, TestCaseResult[]>();
 
   for (const tc of run.testCases) {
@@ -319,9 +350,10 @@ export function toStoryReport(run: TestRunResult): StoryReport {
     else groups.set(rel, [tc]);
   }
 
+  const scenarioRefs = new Map<string, ReportScenario>();
   const features: ReportFeature[] = [];
   for (const [rel, group] of groups) {
-    features.push(buildFeature(rel, group));
+    features.push(buildFeature(rel, group, scenarioRefs));
   }
 
   features.sort((a, b) => a.title.localeCompare(b.title));
@@ -369,5 +401,10 @@ export function toStoryReport(run: TestRunResult): StoryReport {
     report.coverage = cov;
   }
 
-  return report;
+  const scenarioIdByTestCaseId: Record<string, string> = {};
+  for (const [tcId, scenario] of scenarioRefs) {
+    scenarioIdByTestCaseId[tcId] = scenario.id;
+  }
+
+  return { report, index: { scenarioIdByTestCaseId } };
 }

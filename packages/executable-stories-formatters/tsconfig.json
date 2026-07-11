@@ -13,7 +13,12 @@
     "declaration": true,
     "declarationMap": true,
     "resolveJsonModule": true,
-    "verbatimModuleSyntax": true
+    "verbatimModuleSyntax": true,
+    "paths": {
+      "executable-stories-core": ["../executable-stories-core/dist/index"],
+      "executable-stories-core/schemas/*": ["../executable-stories-core/schemas/*"],
+      "executable-stories-core/*": ["../executable-stories-core/dist/*"]
+    }
   },
   "include": ["src", "schemas"]
 }

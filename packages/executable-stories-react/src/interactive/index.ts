@@ -15,6 +15,8 @@ export { ReportSearch } from "./ReportSearch";
 export type { ReportSearchProps } from "./ReportSearch";
 export { ReportFailureBanner } from "./ReportFailureBanner";
 export type { ReportFailureBannerProps } from "./ReportFailureBanner";
+export { ReportFreshness } from "./ReportFreshness";
+export type { ReportFreshnessProps } from "./ReportFreshness";
 export { ReportShortcutsHelp } from "./ReportShortcutsHelp";
 export type { ReportShortcutsHelpProps } from "./ReportShortcutsHelp";
 export { filterReport, listFailures, normalizeQuery } from "./filter";

@@ -498,9 +498,6 @@ importers:
       '@astrojs/starlight':
         specifier: '>=0.41.0'
         version: 0.41.0(@astrojs/markdown-remark@7.2.0)(astro@7.0.2(@astrojs/markdown-remark@7.2.0)(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)(@types/node@25.9.2)(jiti@2.7.0)(rollup@4.60.1)(tsx@4.22.4)(yaml@2.9.0))(typescript@6.0.3)
-      executable-stories-core:
-        specifier: workspace:*
-        version: link:../executable-stories-core
     devDependencies:
       '@astrojs/react':
         specifier: ^4.4.2
@@ -517,6 +514,9 @@ importers:
       astro:
         specifier: ^7.0.0
         version: 7.0.2(@astrojs/markdown-remark@7.2.0)(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)(@types/node@25.9.2)(jiti@2.7.0)(rollup@4.60.1)(tsx@4.22.4)(yaml@2.9.0)
+      executable-stories-core:
+        specifier: workspace:*
+        version: link:../executable-stories-core
       executable-stories-react:
         specifier: workspace:*
         version: link:../executable-stories-react
@@ -553,9 +553,6 @@ importers:
 
   packages/executable-stories-cypress:
     dependencies:
-      executable-stories-core:
-        specifier: workspace:*
-        version: link:../executable-stories-core
       executable-stories-formatters:
         specifier: workspace:*
         version: link:../executable-stories-formatters
@@ -566,6 +563,9 @@ importers:
       cypress:
         specifier: ^15.14.2
         version: 15.14.2
+      executable-stories-core:
+        specifier: workspace:*
+        version: link:../executable-stories-core
       tsup:
         specifier: ^8.5.1
         version: 8.5.1(jiti@2.7.0)(postcss@8.5.15)(tsx@4.22.4)(typescript@6.0.3)(yaml@2.9.0)
@@ -606,9 +606,6 @@ importers:
       ajv:
         specifier: ^8.20.0
         version: 8.20.0
-      executable-stories-core:
-        specifier: workspace:*
-        version: link:../executable-stories-core
       executable-stories-react:
         specifier: workspace:*
         version: link:../executable-stories-react
@@ -637,6 +634,9 @@ importers:
       '@types/node':
         specifier: ^25.9.2
         version: 25.9.2
+      executable-stories-core:
+        specifier: workspace:*
+        version: link:../executable-stories-core
       storybook:
         specifier: ^10.4.6
         version: 10.4.6(@testing-library/dom@10.4.1)(@types/react@19.2.17)(prettier@3.8.3)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(vite-plus@0.1.20(@opentelemetry/api@1.9.1)(@types/node@25.9.2)(esbuild@0.28.0)(jiti@2.7.0)(jsdom@29.1.1)(tsx@4.22.4)(typescript@6.0.3)(vite@8.0.16(@types/node@25.9.2)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))(yaml@2.9.0))
@@ -729,9 +729,6 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: ^1.29.0
         version: 1.29.0(zod@4.4.3)
-      executable-stories-core:
-        specifier: workspace:*
-        version: link:../executable-stories-core
       executable-stories-formatters:
         specifier: workspace:*
         version: link:../executable-stories-formatters
@@ -742,6 +739,9 @@ importers:
       '@types/node':
         specifier: ^25.9.2
         version: 25.9.2
+      executable-stories-core:
+        specifier: workspace:*
+        version: link:../executable-stories-core
       tsup:
         specifier: ^8.5.1
         version: 8.5.1(jiti@2.7.0)(postcss@8.5.15)(tsx@4.22.4)(typescript@6.0.3)(yaml@2.9.0)
@@ -791,9 +791,6 @@ importers:
       cmdk:
         specifier: ^1.1.1
         version: 1.1.1(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      executable-stories-core:
-        specifier: workspace:*
-        version: link:../executable-stories-core
       lucide-react:
         specifier: ^0.469.0
         version: 0.469.0(react@19.2.7)
@@ -852,6 +849,9 @@ importers:
       eslint-plugin-react-hooks:
         specifier: ^7.1.1
         version: 7.1.1(eslint@10.4.1(jiti@2.7.0))
+      executable-stories-core:
+        specifier: workspace:*
+        version: link:../executable-stories-core
       jsdom:
         specifier: ^29.1.1
         version: 29.1.1

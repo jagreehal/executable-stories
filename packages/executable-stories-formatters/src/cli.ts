@@ -33,7 +33,7 @@ import type { OutputFormat } from "./types/options";
 import { sendNotifications } from "./notifiers";
 import { toCIInfo } from "executable-stories-core/types/ci";
 import type { NotifyCondition, GenericWebhookNotifierOptions, WebhookSignerHmac } from "./notifiers/types";
-import { loadHistory, saveHistory, updateHistory } from "./history";
+import { loadHistory, saveHistory, updateHistory, type HistoryStore } from "./history";
 import { pickAutoBaseline } from "./compare/auto-baseline";
 import { listScenarios } from "./list-scenarios";
 import { buildCheck, renderCheck } from "./check";
@@ -145,6 +145,7 @@ OPTIONS
   --html-title <title>          HTML report title (default: Test Results)
   --html-no-syntax-highlighting Disable syntax highlighting in HTML (enabled by default)
   --html-no-mermaid             Disable mermaid diagrams in HTML (enabled by default)
+  --html-stale-after-days <n>   Days before the HTML report shows a stale warning; 0 disables (default: 7)
   --asset-mode <mode>         Asset bundling: "none" (default) or "copy"
   --allow-missing-assets      Warn on missing assets instead of failing
   --stdin                       Read JSON from stdin instead of file
@@ -210,7 +211,8 @@ TRIAGE
   always exits 0 — it reports work, it does not gate.
 
 COMPARE
-  compare supports --format html,markdown
+  compare supports --format html,markdown,changelog
+  changelog writes a release-notes-style behavior changelog (<output-name>.changelog.md)
   compare uses the same --input-type for both baseline and current files
 
 GATE-RELEASE
@@ -273,7 +275,7 @@ GENERIC WEBHOOK
   Note: all --webhook-url entries share the same method/headers/signing options.
 
 HISTORY
-  --history-file <path>         Path to JSON history file (enables tracking)
+  --history-file <path>         Path to JSON history file (enables tracking + per-scenario timeline in HTML)
   --max-history-runs <n>        Max runs to keep in history per test (default: 10)
 
 EXIT CODES
@@ -310,6 +312,7 @@ interface CliArgs {
   htmlTitle: string;
   htmlNoSyntaxHighlighting: boolean;
   htmlNoMermaid: boolean;
+  htmlStaleAfterDays: number;
   jsonSummary: boolean;
   /** Emit compact JSON for agent-facing artifacts (story-report, scenario-index, behavior-manifest, list --json). */
   minify: boolean;
@@ -491,6 +494,7 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
       "html-title": { type: "string", default: "Test Results" },
       "html-no-syntax-highlighting": { type: "boolean", default: false },
       "html-no-mermaid": { type: "boolean", default: false },
+      "html-stale-after-days": { type: "string" },
       stdin: { type: "boolean", default: false },
       "json-summary": { type: "boolean", default: false },
       "minify": { type: "boolean", default: false },
@@ -600,6 +604,9 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
   const customFormatterNames = new Set(Object.keys(pluginConfig.formatters ?? {}));
 
   const builtInFormats = new Set(["astro-markdown", "behavior-manifest-json", "confluence", "html", "markdown", "release-manifest", "traceability-matrix", "junit", "cucumber-json", "cucumber-messages", "cucumber-html", "scenario-index-json", "story-report-json"]);
+  // The behavior changelog is a two-run diff, so it only exists for the
+  // compare-like subcommands; `format` keeps rejecting it as unknown.
+  if (isCompareLike) builtInFormats.add("changelog");
   const formatStr = values.format as string;
   const requestedFormats = formatStr.split(",").map((f) => f.trim());
   // `astro` was the old name for the Starlight-Markdown format; it collided with the
@@ -643,6 +650,14 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
   const maxFailedTests = maxFailedTestsStr ? parseInt(maxFailedTestsStr, 10) : 5;
   if (maxFailedTestsStr && (isNaN(maxFailedTests) || maxFailedTests < 0)) {
     console.error(`Error: --max-failed-tests must be a non-negative integer, got "${maxFailedTestsStr}".`);
+    process.exit(EXIT_USAGE);
+  }
+
+  // Parse --html-stale-after-days
+  const htmlStaleAfterDaysStr = values["html-stale-after-days"] as string | undefined;
+  const htmlStaleAfterDays = htmlStaleAfterDaysStr ? parseInt(htmlStaleAfterDaysStr, 10) : 7;
+  if (htmlStaleAfterDaysStr && (isNaN(htmlStaleAfterDays) || htmlStaleAfterDays < 0)) {
+    console.error(`Error: --html-stale-after-days must be a non-negative integer, got "${htmlStaleAfterDaysStr}".`);
     process.exit(EXIT_USAGE);
   }
 
@@ -755,6 +770,7 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
     htmlTitle: values["html-title"] as string,
     htmlNoSyntaxHighlighting: values["html-no-syntax-highlighting"] as boolean,
     htmlNoMermaid: values["html-no-mermaid"] as boolean,
+    htmlStaleAfterDays,
     jsonSummary: values["json-summary"] as boolean,
     minify: values["minify"] as boolean,
     listFormat: (values["list-format"] as string) as "text" | "json" | "csv" | "markdown-table",
@@ -1385,10 +1401,12 @@ async function runFormatOrValidate(ctx: CliContext): Promise<void> {
     }
 
     try {
-      const result = await generateReports(run, args);
+      // Update history first so the HTML report's per-scenario timeline
+      // includes the current run as its latest entry.
+      const history = runHistoryPipeline(run, args);
+      const result = await generateReports(run, args, history);
       runCustomFormatters(run, customRequested, pluginConfig.formatters ?? {}, args);
       await dispatchNotifications(run, args);
-      runHistoryPipeline(run, args);
       printResult(result, args, startMs);
       process.exit(EXIT_SUCCESS);
     } catch (err) {
@@ -1458,10 +1476,12 @@ async function runFormatOrValidate(ctx: CliContext): Promise<void> {
     }
 
     try {
-      const result = await generateReports(run, args);
+      // Update history first so the HTML report's per-scenario timeline
+      // includes the current run as its latest entry.
+      const history = runHistoryPipeline(run, args);
+      const result = await generateReports(run, args, history);
       runCustomFormatters(run, customRequested, pluginConfig.formatters ?? {}, args);
       await dispatchNotifications(run, args);
-      runHistoryPipeline(run, args);
       printResult(result, args, startMs);
       process.exit(EXIT_SUCCESS);
     } catch (err) {
@@ -1532,10 +1552,12 @@ async function runFormatOrValidate(ctx: CliContext): Promise<void> {
 
   // 6. Generate reports
   try {
-    const result = await generateReports(canonical, args, droppedMissingStory);
+    // Update history first so the HTML report's per-scenario timeline
+    // includes the current run as its latest entry.
+    const history = runHistoryPipeline(canonical, args);
+    const result = await generateReports(canonical, args, history, droppedMissingStory);
     runCustomFormatters(canonical, customRequested, pluginConfig.formatters ?? {}, args);
     await dispatchNotifications(canonical, args);
-    runHistoryPipeline(canonical, args);
     printResult(result, args, startMs, droppedMissingStory);
     process.exit(EXIT_SUCCESS);
   } catch (err) {
@@ -1628,8 +1650,8 @@ async function dispatchNotifications(run: TestRunResult, args: CliArgs): Promise
 // History Pipeline
 // ============================================================================
 
-function runHistoryPipeline(run: TestRunResult, args: CliArgs): void {
-  if (!args.historyFile) return;
+function runHistoryPipeline(run: TestRunResult, args: CliArgs): HistoryStore | undefined {
+  if (!args.historyFile) return undefined;
 
   const historyPath = path.resolve(args.historyFile);
 
@@ -1674,6 +1696,8 @@ function runHistoryPipeline(run: TestRunResult, args: CliArgs): void {
   if (metricsCount > 0) {
     console.error(`History updated: ${historyPath} (${Object.keys(updated.tests).length} tests tracked)`);
   }
+
+  return updated;
 }
 
 // ============================================================================
@@ -1704,6 +1728,7 @@ interface CompareCliResult {
 async function generateReports(
   run: TestRunResult,
   args: CliArgs,
+  historyStore?: HistoryStore,
   _droppedMissingStory = 0
 ): Promise<CliResult> {
   const generator = new ReportGenerator({
@@ -1720,7 +1745,9 @@ async function generateReports(
       title: args.htmlTitle,
       syntaxHighlighting: !args.htmlNoSyntaxHighlighting,
       mermaidEnabled: !args.htmlNoMermaid,
+      staleAfterDays: args.htmlStaleAfterDays,
     },
+    historyStore,
     assetMode: args.assetMode,
     allowMissingAssets: args.allowMissingAssets,
     // --minify: emit compact JSON for the agent-facing artifacts (≈36% fewer
@@ -1760,15 +1787,18 @@ async function generateCompareReports(
   baselineFile: string,
   args: CliArgs
 ): Promise<CompareCliResult> {
-  const unsupportedCompareFormats = args.formats.filter(
-    (format) => format !== "html" && format !== "markdown"
+  // "changelog" is compare-only, so it never joins the OutputFormat union;
+  // it reaches args.formats via the compare-aware CLI validation above.
+  const requestedFormats = args.formats as string[];
+  const unsupportedCompareFormats = requestedFormats.filter(
+    (format) => format !== "html" && format !== "markdown" && format !== "changelog"
   );
   if (unsupportedCompareFormats.length > 0) {
     throw new Error(
-      `compare supports only "html" and "markdown" formats (unsupported: ${unsupportedCompareFormats.join(", ")})`
+      `compare supports only "html", "markdown", and "changelog" formats (unsupported: ${unsupportedCompareFormats.join(", ")})`
     );
   }
-  const compareFormats = args.formats as ("html" | "markdown")[];
+  const compareFormats = requestedFormats as ("html" | "markdown" | "changelog")[];
 
   const result = await generateRunComparison({
     baseline,
@@ -2627,6 +2657,7 @@ function createDefaultCliArgs(): CliArgs {
     htmlTitle: "Test Results",
     htmlNoSyntaxHighlighting: false,
     htmlNoMermaid: false,
+    htmlStaleAfterDays: 7,
     jsonSummary: false,
     minify: false,
     listFormat: "text",

@@ -70,7 +70,6 @@
     "ajv": "^8.20.0",
     "github-slugger": "^2.0.0",
     "yaml": "^2.9.0",
-    "executable-stories-core": "workspace:*",
     "executable-stories-react": "workspace:*",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
@@ -80,6 +79,7 @@
     "@storybook/html": "^10.4.6",
     "@storybook/html-vite": "^10.4.6",
     "@types/node": "^25.9.2",
+    "executable-stories-core": "workspace:*",
     "storybook": "^10.4.6",
     "tsup": "^8.5.1",
     "tsx": "^4.22.4",

@@ -17,6 +17,9 @@ import type { StoryReport } from "executable-stories-core";
 import type { Result } from "./result";
 import { unwrapReport } from "./result";
 import { Report } from "./components/Report";
+import type { ScenarioHistoryMap, ScenarioRunEvent } from "./lib/run-history";
+
+export type { ScenarioHistoryMap, ScenarioRunEvent };
 
 export interface RenderReportToHtmlOptions {
   /** Document <title> and the report's <h1>. */
@@ -42,10 +45,23 @@ export interface RenderReportToHtmlOptions {
    * no-JS fallback.
    */
   islandScript?: string;
+  /**
+   * Days before the interactive report flags itself as stale ("Last verified
+   * N days ago" warning banner). 0 disables the warning. Default 7.
+   */
+  staleAfterDays?: number;
+  /**
+   * Recent run events per scenario id (joined from the CLI's --history-file
+   * store). Embedded as JSON next to the report data; the interactive island
+   * renders a run-over-run timeline strip on each scenario card. Ignored for
+   * static (non-island) output.
+   */
+  scenarioHistory?: ScenarioHistoryMap;
 }
 
 const ROOT_ID = "es-report-root";
 const DATA_ID = "es-report-data";
+const HISTORY_ID = "es-report-history";
 
 /** Escape a JSON string for safe embedding inside a <script> element. */
 function escapeJsonForScript(json: string): string {
@@ -112,6 +128,8 @@ export function renderReportToHtml(
     syntaxHighlighting = true,
     mermaid = true,
     islandScript = "",
+    staleAfterDays = 7,
+    scenarioHistory,
   } = options;
 
   const markup = renderToStaticMarkup(
@@ -130,6 +148,10 @@ export function renderReportToHtml(
   const dataScript = interactive
     ? `<script type="application/json" id="${DATA_ID}">${escapeJsonForScript(JSON.stringify(rawReport))}</script>`
     : "";
+  const historyScript =
+    interactive && scenarioHistory && Object.keys(scenarioHistory).length > 0
+      ? `<script type="application/json" id="${HISTORY_ID}">${escapeJsonForScript(JSON.stringify(scenarioHistory))}</script>`
+      : "";
   const islandTag = interactive ? `<script>${islandScript}</script>` : "";
   // When interactive, the React island OWNS the doc-entry DOM via createRoot.
   // Highlighting + mermaid therefore render inside the React tree (the island
@@ -138,7 +160,7 @@ export function renderReportToHtml(
   // stylesheet (cdn.head) is still required to colour the React-owned tokens.
   const cdnBody = interactive ? "" : cdn.body;
   const islandConfigAttrs = interactive
-    ? ` data-es-syntax="${syntaxHighlighting ? "true" : "false"}" data-es-mermaid="${mermaid ? "true" : "false"}"`
+    ? ` data-es-syntax="${syntaxHighlighting ? "true" : "false"}" data-es-mermaid="${mermaid ? "true" : "false"}" data-es-stale-days="${Number.isFinite(staleAfterDays) && staleAfterDays >= 0 ? staleAfterDays : 7}"`
     : "";
   const rootAttrs = interactive
     ? ` id="${ROOT_ID}" data-title="${escapeHtml(title)}"${islandConfigAttrs}`
@@ -158,6 +180,7 @@ ${headExtra}
 <body>
 <div${rootAttrs} class="es-report-island font-sans text-foreground">${markup}</div>
 ${dataScript}
+${historyScript}
 ${bodyExtra}
 ${cdnBody}
 ${islandTag}

@@ -389,8 +389,10 @@ export class MarkdownFormatter {
       icon = this.getStatusIcon(tc.status) + " ";
     }
 
-    // Scenario heading
-    lines.push(`${headingPrefix} ${icon}${tc.story.scenario}`);
+    // Scenario heading. Planned scenarios (it.todo) say so — canonical
+    // status is "pending" but the reader should see intent, not limbo.
+    const plannedSuffix = tc.rawStatus === "todo" ? " _(planned)_" : "";
+    lines.push(`${headingPrefix} ${icon}${tc.story.scenario}${plannedSuffix}`);
 
     // What's-changed badge (opt-in) — sits directly under the heading.
     const badge = this.options.scenarioBadge?.(tc);

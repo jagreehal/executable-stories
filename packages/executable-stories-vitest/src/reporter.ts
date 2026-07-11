@@ -412,9 +412,20 @@ export default class StoryReporter implements StoryReporterProtocol {
         : path.resolve(root, moduleId);
       const sourceFile = toRelativePosix(absoluteModuleId, root);
 
+      // Bodyless `it.todo(...)` never runs `story.init()`, so those tests have
+      // no story meta. Collect them separately and emit them as planned
+      // scenarios — but only for modules that contain story tests, so plain
+      // (non-story) suites full of todos don't leak into the generated docs.
+      const plannedTests: TestCase[] = [];
+      let moduleHasStoryTests = false;
+
       for (const test of collection.allTests()) {
         const meta = this.getStoryMeta(test);
-        if (!meta?.scenario || !Array.isArray(meta.steps)) continue;
+        if (!meta?.scenario || !Array.isArray(meta.steps)) {
+          if (test.options?.mode === "todo") plannedTests.push(test);
+          continue;
+        }
+        moduleHasStoryTests = true;
 
         const result = test.result?.();
         const state = result?.state ?? "pending";
@@ -521,6 +532,25 @@ export default class StoryReporter implements StoryReporterProtocol {
           retry: retryCount,
           retries: configuredRetries,
         });
+      }
+
+      if (moduleHasStoryTests) {
+        for (const test of plannedTests) {
+          const titlePath = test.fullName.split(" > ");
+          testCases.push({
+            title: test.name,
+            titlePath,
+            story: {
+              scenario: test.name,
+              steps: [],
+              suitePath: titlePath.slice(0, -1),
+            },
+            sourceFile,
+            sourceLine: 1,
+            status: "todo",
+            durationMs: 0,
+          });
+        }
       }
     }
 

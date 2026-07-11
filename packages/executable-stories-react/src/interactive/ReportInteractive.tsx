@@ -18,6 +18,11 @@ import { ReportTitleBlock, ReportErrorShell } from "../components/ReportShell";
 import { cn } from "../lib/utils";
 import { ReportSearch } from "./ReportSearch";
 import { ReportFailureBanner } from "./ReportFailureBanner";
+import { ReportFreshness } from "./ReportFreshness";
+import { ReportLastRunDelta } from "./ReportLastRunDelta";
+import { reportLastRunMs } from "../lib/provenance";
+import { ScenarioHistoryProvider } from "./scenario-history-context";
+import type { ScenarioHistoryMap } from "../lib/run-history";
 import { ReportShortcutsHelp } from "./ReportShortcutsHelp";
 import { useKeyboardShortcuts } from "./use-keyboard-shortcuts";
 import { useDeepLinkScroll } from "./use-deep-link-scroll";
@@ -52,6 +57,16 @@ export interface ReportInteractiveProps {
    * Starlight, where Starlight renders the page `<h1>`.
    */
   hideHeader?: boolean;
+  /**
+   * Days before the report is flagged as stale (warning banner instead of the
+   * "Verified N ago" line). 0 disables the stale warning. Default 7.
+   */
+  staleAfterDays?: number;
+  /**
+   * Recent run events per scenario id (from the CLI's --history-file store).
+   * When present, scenario cards show a run-over-run timeline strip.
+   */
+  scenarioHistory?: ScenarioHistoryMap;
 }
 
 export function ReportInteractive(props: ReportInteractiveProps) {
@@ -75,6 +90,8 @@ function ReportInteractiveView({
   title,
   dataTheme,
   hideHeader = false,
+  staleAfterDays = 7,
+  scenarioHistory,
 }: ReportInteractiveViewProps) {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -187,6 +204,7 @@ function ReportInteractiveView({
   return (
     <CollapseProvider value={collapse.api}>
      <ScenarioActionsProvider value={scenarioActions}>
+      <ScenarioHistoryProvider value={scenarioHistory ?? null}>
       <ReportRoot
         report={filtered}
         customRenderers={customRenderers}
@@ -201,6 +219,13 @@ function ReportInteractiveView({
         >
           <header className="es-report-header">
             {hideHeader ? null : <ReportTitleBlock title={title} />}
+            <ReportFreshness
+              lastRunMs={reportLastRunMs(report)}
+              ciUrl={report.ci?.url}
+              staleAfterDays={staleAfterDays}
+            />
+            <ReportLastRunDelta history={scenarioHistory} report={report} />
+
             <div className="flex flex-wrap items-center gap-2">
               <ReportSearch
                 ref={searchRef}
@@ -285,6 +310,7 @@ function ReportInteractiveView({
           ) : null}
         </main>
       </ReportRoot>
+      </ScenarioHistoryProvider>
      </ScenarioActionsProvider>
     </CollapseProvider>
   );

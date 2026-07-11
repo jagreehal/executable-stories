@@ -5,7 +5,7 @@ import { defineConfig } from "tsup";
 export default defineConfig({
   entry: { index: "src/index.ts", loader: "src/loader.ts" },
   format: ["esm"],
-  dts: true,
+  dts: { resolve: [/executable-stories-core/] },
   clean: true,
   sourcemap: true,
   noExternal: ["executable-stories-core"],

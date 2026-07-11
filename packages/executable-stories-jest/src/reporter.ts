@@ -69,6 +69,7 @@ interface JestTestResult {
   testFilePath: string;
   testResults: Array<{
     fullName: string;
+    title?: string;
     status: "passed" | "failed" | "pending" | "todo";
     duration?: number;
     failureMessages?: string[];
@@ -174,6 +175,7 @@ export default class StoryReporter {
     for (const report of reports) {
       const fileResult = fileResults.get(report.testFilePath);
       const sourceFile = toRelativePosix(report.testFilePath, root);
+      const matchedFullNames = new Set<string>();
 
       for (const meta of report.scenarios) {
         if (!meta?.scenario) continue;
@@ -185,6 +187,7 @@ export default class StoryReporter {
             : meta.scenario;
           return test.fullName === expectedFullName;
         });
+        if (matchingTest) matchedFullNames.add(matchingTest.fullName);
 
         // Map Jest status to raw status
         const statusMap: Record<string, RawTestCase["status"]> = {
@@ -235,6 +238,26 @@ export default class StoryReporter {
             : undefined,
           attachments: rawAttachments.length > 0 ? rawAttachments : undefined,
           stepEvents: stepEvents.length > 0 ? stepEvents : undefined,
+          retry: 0,
+          retries: 0,
+        });
+      }
+
+      // Bodyless `it.todo(...)` never runs `story.init()`, so it has no story
+      // meta — but Jest still reports it with status "todo". Emit those as
+      // planned scenarios. Only files with story reports reach this loop, so
+      // plain (non-story) suites full of todos never leak into the docs.
+      for (const test of fileResult?.testResults ?? []) {
+        if (test.status !== "todo" || matchedFullNames.has(test.fullName)) continue;
+        const title = test.title ?? test.fullName;
+        rawTestCases.push({
+          title,
+          titlePath: [title],
+          story: { scenario: title, steps: [] },
+          sourceFile,
+          sourceLine: 1,
+          status: "todo",
+          durationMs: 0,
           retry: 0,
           retries: 0,
         });

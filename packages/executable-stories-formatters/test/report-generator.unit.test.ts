@@ -875,3 +875,70 @@ describe("createReportGenerator factory", () => {
     });
   });
 });
+
+describe("ReportGenerator history embedding", () => {
+  it("joins the history store onto scenario ids and embeds it in the HTML report", async () => {
+    const deps = createMockDeps();
+    const run = canonicalizeRun(stubs.rawRun());
+    const tcId = run.testCases[0].id;
+
+    const generator = new ReportGenerator(
+      {
+        formats: ["html"],
+        outputDir: "reports",
+        outputName: "index",
+        historyStore: {
+          version: 1,
+          maxRuns: 10,
+          lastUpdated: 0,
+          tests: {
+            [tcId]: {
+              testId: tcId,
+              testName: "whatever",
+              sourceFile: "src/foo.test.ts",
+              entries: [
+                { runId: "r1", timestamp: 1000, status: "failed", durationMs: 5 },
+                { runId: "r2", timestamp: 2000, status: "passed", durationMs: 4, ci: { branch: "main", commitSha: "abc1234" } },
+              ],
+            },
+          },
+        },
+      },
+      deps
+    );
+
+    await generator.generate(run);
+
+    const writeFile = deps.writeFile as ReturnType<typeof vi.fn>;
+    const html = writeFile.mock.calls.find((c) => String(c[0]).endsWith(".html"))?.[1] as string;
+    expect(html).toContain('id="es-report-history"');
+
+    const match = html.match(/<script type="application\/json" id="es-report-history">([\s\S]*?)<\/script>/);
+    expect(match).toBeTruthy();
+    const embedded = JSON.parse(match![1]) as Record<string, Array<{ status: string; commitSha?: string }>>;
+    const keys = Object.keys(embedded);
+    expect(keys).toHaveLength(1);
+    // Keys are report scenario ids (slugs), not canonical test-case ids.
+    expect(keys[0]).toMatch(/^feature-.+--/);
+    expect(keys[0]).not.toBe(tcId);
+    expect(embedded[keys[0]]).toEqual([
+      { runId: "r1", timestamp: 1000, status: "failed", durationMs: 5 },
+      { runId: "r2", timestamp: 2000, status: "passed", durationMs: 4, branch: "main", commitSha: "abc1234" },
+    ]);
+  });
+
+  it("omits the history script when no store is configured", async () => {
+    const deps = createMockDeps();
+    const run = canonicalizeRun(stubs.rawRun());
+    const generator = new ReportGenerator(
+      { formats: ["html"], outputDir: "reports", outputName: "index" },
+      deps
+    );
+
+    await generator.generate(run);
+
+    const writeFile = deps.writeFile as ReturnType<typeof vi.fn>;
+    const html = writeFile.mock.calls.find((c) => String(c[0]).endsWith(".html"))?.[1] as string;
+    expect(html).not.toContain('id="es-report-history"');
+  });
+});

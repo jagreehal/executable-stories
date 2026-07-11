@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { toStoryReport } from "executable-stories-core/converters/story-report";
+import { toStoryReport, toStoryReportWithIndex } from "executable-stories-core/converters/story-report";
 import { StoryReportJsonFormatter } from "../../src/formatters/story-report-json";
 import { validateStoryReport } from "../../src/validation/story-report-validator";
 import type { TestCaseResult, TestRunResult } from "executable-stories-core/types/test-result";
@@ -212,6 +212,21 @@ describe("toStoryReport", () => {
     const ids = report.features[0]!.scenarios.map((s) => s.id);
     expect(new Set(ids).size).toBe(ids.length);
   });
+
+  it("marks rawStatus todo scenarios as planned and keeps the report schema-valid", () => {
+    const run = makeRun([
+      makeTestCase({ id: "planned", status: "pending", rawStatus: "todo" }),
+      makeTestCase({ id: "merely-pending", status: "pending", rawStatus: "pending" }),
+    ]);
+    const report = toStoryReport(run);
+    const [planned, pending] = report.features[0]!.scenarios;
+    expect(planned!.planned).toBe(true);
+    expect(pending!.planned).toBeUndefined();
+
+    const v = validateStoryReport(report);
+    expect(v.errors).toEqual([]);
+    expect(v.valid).toBe(true);
+  });
 });
 
 describe("StoryReportJsonFormatter", () => {
@@ -227,5 +242,42 @@ describe("StoryReportJsonFormatter", () => {
     const run = makeRun([makeTestCase({ id: "1" })]);
     const compact = new StoryReportJsonFormatter({ pretty: false }).format(run);
     expect(compact).not.toMatch(/\n/);
+  });
+});
+
+describe("toStoryReportWithIndex", () => {
+  it("maps every test case id to its final scenario id", () => {
+    const run = makeRun([
+      makeTestCase({ id: "tc-a", story: { scenario: "Adds a todo", steps: [] }, sourceFile: "/repo/src/todos.test.ts" }),
+      makeTestCase({ id: "tc-b", story: { scenario: "Login works", steps: [] }, sourceFile: "/repo/src/auth.test.ts" }),
+    ]);
+
+    const { report, index } = toStoryReportWithIndex(run);
+    const allScenarioIds = report.features.flatMap((f) => f.scenarios.map((s) => s.id));
+
+    expect(Object.keys(index.scenarioIdByTestCaseId).sort()).toEqual(["tc-a", "tc-b"]);
+    for (const id of Object.values(index.scenarioIdByTestCaseId)) {
+      expect(allScenarioIds).toContain(id);
+    }
+  });
+
+  it("tracks the renamed id when duplicate scenario titles are de-duplicated", () => {
+    const run = makeRun([
+      makeTestCase({ id: "tc-1", story: { scenario: "Same title", steps: [] }, sourceLine: 1 }),
+      makeTestCase({ id: "tc-2", story: { scenario: "Same title", steps: [] }, sourceLine: 2 }),
+    ]);
+
+    const { report, index } = toStoryReportWithIndex(run);
+    const scenarios = report.features[0].scenarios;
+    expect(scenarios.map((s) => s.id)).toEqual([
+      index.scenarioIdByTestCaseId["tc-1"],
+      index.scenarioIdByTestCaseId["tc-2"],
+    ]);
+    expect(index.scenarioIdByTestCaseId["tc-1"]).not.toBe(index.scenarioIdByTestCaseId["tc-2"]);
+  });
+
+  it("toStoryReport and toStoryReportWithIndex produce identical reports", () => {
+    const run = makeRun([makeTestCase({ id: "tc-1" })]);
+    expect(toStoryReport(run)).toEqual(toStoryReportWithIndex(run).report);
   });
 });

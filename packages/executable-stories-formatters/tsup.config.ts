@@ -14,7 +14,7 @@ export default defineConfig([
       adapters: "src/converters/adapters/index.ts",
     },
     format: ["esm", "cjs"],
-    dts: true,
+    dts: { resolve: [/executable-stories-core/] },
     clean: true,
     splitting: false,
     sourcemap: true,

@@ -16,9 +16,24 @@ import { createRoot } from "react-dom/client";
 import { ReportInteractive } from "./interactive/ReportInteractive";
 import { buildIslandRenderers } from "./interactive/island-renderers";
 import { coerceStoryReport } from "./schema/coerce";
+import type { ScenarioHistoryMap } from "./lib/run-history";
 
 const ROOT_ID = "es-report-root";
 const DATA_ID = "es-report-data";
+const HISTORY_ID = "es-report-history";
+
+/** Cheap shape check for the embedded history JSON (written by our own SSR). */
+function readScenarioHistory(): ScenarioHistoryMap | undefined {
+  const el = document.getElementById(HISTORY_ID);
+  if (!el?.textContent) return undefined;
+  try {
+    const parsed: unknown = JSON.parse(el.textContent);
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return undefined;
+    return parsed as ScenarioHistoryMap;
+  } catch {
+    return undefined;
+  }
+}
 
 export function mountReportIsland(): void {
   const mount = document.getElementById(ROOT_ID);
@@ -48,7 +63,21 @@ export function mountReportIsland(): void {
     mermaid: mount.getAttribute("data-es-mermaid") !== "false",
   });
 
-  createRoot(mount).render(createElement(ReportInteractive, { report: result, title, renderers }));
+  // Staleness threshold set by the CLI (--html-stale-after-days); 0 disables,
+  // absent attribute means the default (7).
+  const staleDaysAttr = mount.getAttribute("data-es-stale-days");
+  const staleDaysRaw = staleDaysAttr === null ? Number.NaN : Number(staleDaysAttr);
+  const staleAfterDays = Number.isFinite(staleDaysRaw) && staleDaysRaw >= 0 ? staleDaysRaw : 7;
+
+  createRoot(mount).render(
+    createElement(ReportInteractive, {
+      report: result,
+      title,
+      renderers,
+      staleAfterDays,
+      scenarioHistory: readScenarioHistory(),
+    }),
+  );
 }
 
 if (typeof document !== "undefined") {

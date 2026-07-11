@@ -224,6 +224,32 @@ describe("MarkdownFormatter", () => {
 
       expect(result).toContain("📝");
     });
+
+    it("labels raw todo scenarios as planned in the heading", () => {
+      const raw = createRawRun({
+        testCases: [
+          createTestCase({
+            title: "Gift cards apply at checkout",
+            story: createStory({ scenario: "Gift cards apply at checkout", steps: [] }),
+            status: "todo",
+          }),
+        ],
+      });
+      const run = canonicalizeRun(raw);
+      const result = formatter.format(run);
+
+      expect(result).toContain("Gift cards apply at checkout _(planned)_");
+    });
+
+    it("does not label ordinary pending scenarios as planned", () => {
+      const raw = createRawRun({
+        testCases: [createTestCase({ status: "pending" })],
+      });
+      const run = canonicalizeRun(raw);
+      const result = formatter.format(run);
+
+      expect(result).not.toContain("_(planned)_");
+    });
   });
 
   describe("errors", () => {

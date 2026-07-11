@@ -5,7 +5,12 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "baseUrl": ".",
-    "paths": { "@/*": ["./src/*"] },
+    "paths": {
+      "@/*": ["./src/*"],
+      "executable-stories-core": ["../executable-stories-core/dist/index"],
+      "executable-stories-core/schemas/*": ["../executable-stories-core/schemas/*"],
+      "executable-stories-core/*": ["../executable-stories-core/dist/*"]
+    },
     "resolveJsonModule": true,
     "jsx": "react-jsx",
     "strict": true,
