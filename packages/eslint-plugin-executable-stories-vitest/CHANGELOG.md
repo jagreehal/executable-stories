@@ -1,5 +1,11 @@
 # eslint-plugin-executable-stories-vitest
 
+## 2.1.10
+
+### Patch Changes
+
+- 8fb6e98: Remove the peer dependency on `eslint-config-executable-stories`. That package is private and never published, so npm (which auto-installs peer dependencies) failed to resolve it when installing the plugins. The plugins never import it; it is only the monorepo's internal shared lint config.
+
 ## 2.1.7
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "eslint-plugin-executable-stories-jest",
-  "version": "2.1.9",
+  "version": "2.1.10",
   "type": "module",
   "description": "ESLint rules for executable-stories-jest: story.init and legacy story context guards",
   "main": "./dist/index.cjs",
