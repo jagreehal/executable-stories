@@ -1,6 +1,7 @@
 {
   "name": "playwright-example",
   "version": "1.0.0",
+  "private": true,
   "description": "Playwright executable-stories example (file link to monorepo package)",
   "type": "module",
   "scripts": {

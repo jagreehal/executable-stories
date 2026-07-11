@@ -1,6 +1,7 @@
 {
   "name": "cypress-example",
   "version": "1.0.0",
+  "private": true,
   "description": "Cypress executable-stories example (file link to monorepo package)",
   "type": "module",
   "scripts": {
