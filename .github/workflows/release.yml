@@ -109,9 +109,16 @@ jobs:
         with:
           bun-version: "1.2.0"
 
+      # Build the workspace first so the binary compile can resolve
+      # executable-stories-core's built subpaths (its exports map points at
+      # dist/*) and so executable-stories-react's assets exist for embedding.
+      - name: Build packages
+        run: pnpm build
+
       - name: Build formatters binaries (multi-platform)
         working-directory: packages/executable-stories-formatters
         run: |
+          node scripts/embed-react-assets.mjs
           bun build src/cli.ts --compile --target=bun-linux-x64 --outfile executable-stories-linux-x64
           bun build src/cli.ts --compile --target=bun-linux-arm64 --outfile executable-stories-linux-arm64
           bun build src/cli.ts --compile --target=bun-darwin-x64 --outfile executable-stories-darwin-x64
