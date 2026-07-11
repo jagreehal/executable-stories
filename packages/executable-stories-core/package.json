@@ -1,6 +1,7 @@
 {
   "name": "executable-stories-core",
   "version": "0.18.0",
+  "private": true,
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jagreehal/executable-stories.git",
