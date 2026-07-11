@@ -42,8 +42,7 @@
   ],
   "license": "MIT",
   "peerDependencies": {
-    "eslint": ">=10",
-    "eslint-config-executable-stories": "*"
+    "eslint": ">=10"
   },
   "devDependencies": {
     "@types/eslint": "^9.6.1",
