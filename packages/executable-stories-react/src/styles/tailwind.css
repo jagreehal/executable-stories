@@ -23,6 +23,7 @@
 @import "tailwindcss/theme.css" layer(theme);
 @import "tailwindcss/utilities.css" layer(utilities);
 @import "../styles.css";
+@plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
@@ -48,31 +49,6 @@
   .es-report-island :where(ul, ol) {
     list-style: none;
     padding: 0;
-  }
-  /* DocSection renders sanitized markdown HTML — restore prose basics for its
-     inner elements (utilities can't reach into dangerouslySetInnerHTML). */
-  .es-report-island .es-doc-prose :where(p, ul, ol) {
-    margin: 0.4rem 0;
-  }
-  .es-report-island .es-doc-prose :where(ul, ol) {
-    padding-left: 1.25rem;
-    list-style: revert;
-  }
-  .es-report-island .es-doc-prose :where(code) {
-    font-family: var(--font-mono);
-    font-size: 0.85em;
-    background: var(--muted);
-    padding: 0.1em 0.3em;
-    border-radius: 4px;
-  }
-  .es-report-island .es-doc-prose :where(a) {
-    color: var(--es-link);
-    text-decoration: underline;
-    text-underline-offset: 2px;
-  }
-  .es-report-island .es-doc-prose :where(strong) {
-    color: var(--foreground);
-    font-weight: 600;
   }
   /* Detail-level toggle: "minimal" hides doc entries, leaving steps/errors. */
   [data-detail-level="minimal"] [data-es-docs] {
@@ -200,4 +176,51 @@
   --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
   --radius: 0.5rem;
+}
+
+/*
+ * DocSection renders sanitized markdown HTML via @tailwindcss/typography
+ * (`prose prose-sm`) — utilities can't reach into dangerouslySetInnerHTML, but
+ * prose's :where() descendant selectors can. Map the prose palette onto the
+ * theme tokens so markdown follows light/dark automatically (the vars flip on
+ * [data-theme="dark"], so no prose-invert is needed).
+ *
+ * These rules are deliberately UNLAYERED: `.prose` sets its own --tw-prose-*
+ * vars from the utilities layer, and unlayered CSS is the only reliable way to
+ * out-cascade it without specificity hacks.
+ */
+.es-doc-prose {
+  --tw-prose-body: var(--muted-foreground);
+  --tw-prose-headings: var(--foreground);
+  --tw-prose-lead: var(--muted-foreground);
+  --tw-prose-links: var(--es-link);
+  --tw-prose-bold: var(--foreground);
+  --tw-prose-counters: var(--muted-foreground);
+  --tw-prose-bullets: var(--border);
+  --tw-prose-hr: var(--border);
+  --tw-prose-quotes: var(--foreground);
+  --tw-prose-quote-borders: var(--border);
+  --tw-prose-captions: var(--muted-foreground);
+  --tw-prose-kbd: var(--foreground);
+  --tw-prose-code: var(--foreground);
+  --tw-prose-pre-code: var(--foreground);
+  --tw-prose-pre-bg: var(--muted);
+  --tw-prose-th-borders: var(--border);
+  --tw-prose-td-borders: var(--border);
+  font-family: var(--font-sans);
+}
+/* Inline code chips: typography colours the text but not the background. */
+.es-doc-prose :where(code):not(:where(pre code)) {
+  font-family: var(--font-mono);
+  background: var(--muted);
+  padding: 0.1em 0.3em;
+  border-radius: 4px;
+}
+/* Drop typography's backtick pseudo-elements around inline code. */
+.es-doc-prose :where(code)::before,
+.es-doc-prose :where(code)::after {
+  content: none;
+}
+.es-doc-prose :where(a) {
+  text-underline-offset: 2px;
 }

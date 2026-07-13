@@ -184,25 +184,45 @@ export function buildStoryEntries(
  *     stories: defineCollection({ loader: storiesLoader({ source: "reports/raw-run.json" }) }),
  *   };
  */
+/**
+ * Read every configured REAL source and flatten to entries — the single owner
+ * of "config → entries with URL slugs". The slug map is shared across sources
+ * so identical titles in different suites still get distinct slugs, exactly as
+ * the story routes see them. Both the stories loader and the explainer
+ * freshness audit go through here, so their views of ids/slugs cannot drift.
+ *
+ * `readRaw` supplies the file read (the loader logs unreadable sources; the
+ * audit stays silent). `readableSources` distinguishes "no run JSON exists
+ * yet" (0) from "runs exist but are empty" — an empty run is still evidence.
+ */
+export function loadAllStoryEntries(
+  options: ExecutableStoriesConfig,
+  readRaw: (absPath: string, src: ResolvedSource) => unknown | null,
+): { entries: StoryEntryData[]; readableSources: number } {
+  const entries: StoryEntryData[] = [];
+  const slugSeen = new Map<string, number>();
+  let readableSources = 0;
+  for (const src of resolveSources(options)) {
+    const raw = readRaw(path.resolve(src.source), src);
+    if (raw == null) continue;
+    readableSources++;
+    entries.push(...buildStoryEntries(raw, options, src, slugSeen));
+  }
+  return { entries, readableSources };
+}
+
 export function storiesLoader(options: ExecutableStoriesConfig): StoriesLoader {
-  const sources = resolveSources(options).map((s) => ({ ...s, abs: path.resolve(s.source) }));
+  const sourceAbsPaths = resolveSources(options).map((s) => path.resolve(s.source));
 
   const sampleAbs = options.sampleSource ? path.resolve(options.sampleSource) : undefined;
 
   function sync(ctx: LoaderContext): void {
     ctx.store.clear();
-    let total = 0;
-    // Shared across sources so identical titles in different suites get distinct URL slugs.
-    const slugSeen = new Map<string, number>();
-    for (const src of sources) {
-      const raw = readSource(src.abs, ctx);
-      if (raw == null) continue;
-      const entries = buildStoryEntries(raw, options, src, slugSeen);
-      for (const entry of entries) {
-        ctx.store.set({ id: entry.entryId, data: entry as unknown as Record<string, unknown> });
-      }
-      total += entries.length;
+    const { entries } = loadAllStoryEntries(options, (abs) => readSource(abs, ctx));
+    for (const entry of entries) {
+      ctx.store.set({ id: entry.entryId, data: entry as unknown as Record<string, unknown> });
     }
+    const total = entries.length;
 
     // First-run fallback: no real run JSON resolved yet, so populate the site
     // from the bundled sample (Storybook-style example content) rather than an
@@ -211,20 +231,20 @@ export function storiesLoader(options: ExecutableStoriesConfig): StoriesLoader {
     if (total === 0 && sampleAbs) {
       const raw = readSource(sampleAbs, ctx);
       if (raw != null) {
-        const entries = buildStoryEntries(raw, options, undefined, slugSeen);
-        for (const entry of entries) {
+        const sampleEntries = buildStoryEntries(raw, options);
+        for (const entry of sampleEntries) {
           const flagged = { ...entry, sample: true };
           ctx.store.set({ id: entry.entryId, data: flagged as unknown as Record<string, unknown> });
         }
         ctx.logger.info(
-          `[executable-stories] no run JSON found yet — showing ${entries.length} sample scenarios (run your tests to replace them)`,
+          `[executable-stories] no run JSON found yet — showing ${sampleEntries.length} sample scenarios (run your tests to replace them)`,
         );
         watchAll(ctx, [sampleAbs], () => sync(ctx));
         return;
       }
     }
 
-    const suffix = sources.length > 1 ? ` across ${sources.length} sources` : "";
+    const suffix = sourceAbsPaths.length > 1 ? ` across ${sourceAbsPaths.length} sources` : "";
     ctx.logger.info(`[executable-stories] loaded ${total} scenarios${suffix}`);
   }
 
@@ -232,7 +252,7 @@ export function storiesLoader(options: ExecutableStoriesConfig): StoriesLoader {
     name: "executable-stories",
     load: async (ctx: LoaderContext) => {
       sync(ctx);
-      watchAll(ctx, sources.map((s) => s.abs), () => {
+      watchAll(ctx, sourceAbsPaths, () => {
         ctx.logger.info("[executable-stories] run JSON changed -> resync");
         sync(ctx);
       });

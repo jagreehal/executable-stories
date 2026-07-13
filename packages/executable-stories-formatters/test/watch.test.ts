@@ -16,7 +16,7 @@ describe("regenerateArtifacts", () => {
     });
 
     expect(files).toHaveLength(2);
-    const indexPath = path.join(outDir, "index.scenarios-index.json");
+    const indexPath = path.join(outDir, "index.scenario-index.json");
     expect(fs.existsSync(indexPath)).toBe(true);
     const index = JSON.parse(fs.readFileSync(indexPath, "utf8")) as {
       scenarios: Array<{ covers: string[] }>;

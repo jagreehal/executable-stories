@@ -163,3 +163,10 @@ prerequisites" does not come from the index alone. Two options:
 
 Keep this out of the formatter until a real consumer exists. The lessons are the product.
 This is bookkeeping.
+
+## Related: explaining a change
+
+`explain-change` is the sibling skill for one-off understanding of a specific code
+change (background, intuition, literate walkthrough, quiz), grounded in run artifacts.
+When a learner repeatedly struggles in the same territory across explainers, graduate
+that territory into a runnable lesson here.

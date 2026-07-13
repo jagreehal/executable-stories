@@ -114,7 +114,7 @@ Endpoints (each maps to the matching MCP tool):
 | `GET /scenarios/failing` | `get_failing_scenarios` |
 | `GET /scenarios/covering?path=…` | `get_scenarios_for_paths` |
 | `GET /scenarios/:id` | `get_scenario` |
-| `GET /scenarios-index` | `get_scenario_index` |
+| `GET /scenario-index` | `get_scenario_index` |
 | `GET /features` | `get_feature_summary` |
 | `GET /manifest` | `get_behavior_manifest` |
 | `GET /diff?baseline=&current=` | `get_behavior_diff` |

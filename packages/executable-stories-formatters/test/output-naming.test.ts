@@ -4,7 +4,7 @@ import { joinNameAndExt } from "../src/index";
 describe("joinNameAndExt", () => {
   it("keeps the self-describing compound extension with the default name", () => {
     expect(joinNameAndExt("index", ".story-report.json")).toBe("index.story-report.json");
-    expect(joinNameAndExt("index", ".scenarios-index.json")).toBe("index.scenarios-index.json");
+    expect(joinNameAndExt("index", ".scenario-index.json")).toBe("index.scenario-index.json");
   });
 
   it("collapses the stutter when the name already carries the format tag", () => {

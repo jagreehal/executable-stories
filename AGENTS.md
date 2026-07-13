@@ -232,7 +232,7 @@ Agents should read generated artifacts, not source tests first.
 ```bash
 pnpm test
 executable-stories format reports/raw-run.json --format story-report-json --output-dir reports --output-name index
-executable-stories list reports/raw-run.json --list-format json > reports/scenarios-index.json
+executable-stories list reports/raw-run.json --list-format json > reports/scenario-index.json
 ```
 
 **MCP:** `executable-stories-mcp` exposes read-only tools (`list_scenarios`, `get_scenario`, `get_failing_scenarios`, `get_feature_summary`, `get_scenario_index`, `get_behavior_manifest`) and `run_scenario` for focused test runs. See [agent artifact contract](apps/docs-site/src/content/docs/guides/agent-artifact-contract.md) and `packages/executable-stories-mcp/README.md`.
@@ -289,5 +289,6 @@ When working in these areas, load the linked skill file into context for accurat
 | Authoring changes for the Evidence Review report             | `skills/spec-evidence-review/SKILL.md`                                                         |
 | Posting Evidence Review receipts to Linear via MCP           | `skills/linear-evidence-review/SKILL.md`                                                       |
 | Authoring technical/coding lessons as executable story tests | `skills/executable-lessons/SKILL.md`                                                           |
+| Explaining a code change as living documentation (with quiz) | `skills/explain-change/SKILL.md`                                                               |
 
 <!-- intent-skills:end -->

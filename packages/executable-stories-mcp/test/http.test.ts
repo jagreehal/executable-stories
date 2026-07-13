@@ -31,7 +31,7 @@ describe("HTTP server", () => {
     expect(scenarios).toHaveLength(1);
     expect(scenarios[0].id).toBe("scenario-pass");
 
-    const index = (await getJson(`${baseUrl}/scenarios-index`)) as { scenarios: unknown[] };
+    const index = (await getJson(`${baseUrl}/scenario-index`)) as { scenarios: unknown[] };
     expect(index.scenarios).toHaveLength(1);
 
     const manifest = (await getJson(`${baseUrl}/manifest`)) as { summary: { total: number } };

@@ -43,7 +43,7 @@ executable-stories format .executable-stories/raw-run.json \
   --output-name index
 ```
 
-Output: `reports/index.scenarios-index.json`
+Output: `reports/index.scenario-index.json`
 
 Legacy alternative (same shape, fewer metadata fields):
 
@@ -156,7 +156,7 @@ executable-stories format reports/raw-run.json \
 Publish as CI artifacts:
 
 - `reports/index.story-report.json`
-- `reports/index.scenarios-index.json`
+- `reports/index.scenario-index.json`
 - `reports/index.behavior-manifest.json`
 - `reports/index.release-manifest.md`
 - `reports/index.traceability-matrix.md`

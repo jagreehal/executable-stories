@@ -63,8 +63,8 @@ describe("ScenarioIndexJsonFormatter", () => {
     const result = await generator.generate(canonicalizeRun(createMultipleTestCasesRun()));
 
     expect(result.get("scenario-index-json")).toEqual([
-      "reports/index.scenarios-index.json",
+      "reports/index.scenario-index.json",
     ]);
-    expect(JSON.parse(writes.get("reports/index.scenarios-index.json") ?? "{}").scenarios).toHaveLength(3);
+    expect(JSON.parse(writes.get("reports/index.scenario-index.json") ?? "{}").scenarios).toHaveLength(3);
   });
 });

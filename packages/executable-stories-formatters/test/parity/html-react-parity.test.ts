@@ -109,6 +109,16 @@ describe("html-react content gate", () => {
     expect(scenarioCount).toBeGreaterThan(0);
   });
 
+  it("renders section markdown through the typography prose pipeline", () => {
+    // DocSection markdown gets @tailwindcss/typography treatment: the prose
+    // classes on the wrapper, the generated .prose utilities in the CSS, and
+    // the theme-token mapping so prose follows light/dark.
+    expect(reactHtml).toContain("es-doc-prose prose prose-sm max-w-none");
+    expect(reactCss).toContain(".es-doc-prose");
+    expect(reactCss).toContain("--tw-prose-body");
+    expect(reactCss).toContain(".prose");
+  });
+
   it("structural snapshot of the React report (catches drift across phases)", () => {
     const structure = report.features.map((f) => ({
       feature: f.title,
