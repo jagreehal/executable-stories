@@ -12,7 +12,7 @@
     "url": "git+https://github.com/jagreehal/executable-stories.git",
     "directory": "packages/executable-stories-vitest"
   },
-  "license": "MIT",
+  "license": "Apache-2.0",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",

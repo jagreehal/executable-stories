@@ -195,4 +195,6 @@ This produces an `executable-stories` binary in that package directory. CI build
 
 ## License
 
-MIT
+[Apache-2.0](./LICENSE). The Apache-2.0 licence applies to the source code. The Executable Stories name and logo are trademarks and are not granted for use by the software licence — see [TRADEMARKS.md](./TRADEMARKS.md).
+
+Versions published before the licence change remain available under their original MIT licence.

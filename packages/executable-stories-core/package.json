@@ -1,6 +1,7 @@
 {
   "name": "executable-stories-core",
   "version": "0.18.1",
+  "license": "Apache-2.0",
   "private": true,
   "repository": {
     "type": "git",

@@ -8,7 +8,7 @@
     <Version>0.1.0</Version>
     <Authors>Jag Reehal</Authors>
     <Description>xUnit adapter for executable-stories BDD documentation.</Description>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/jagreehal/executable-stories</PackageProjectUrl>
     <RepositoryUrl>https://github.com/jagreehal/executable-stories.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>

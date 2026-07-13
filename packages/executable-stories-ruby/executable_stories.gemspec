@@ -7,14 +7,14 @@ Gem::Specification.new do |spec|
   spec.summary = "Ruby-first story/given/when/then helpers for Minitest and RSpec with doc generation."
   spec.description = "BDD story testing library for Ruby. Tests and documentation from the same code."
   spec.homepage = "https://github.com/jagreehal/executable-stories"
-  spec.license = "MIT"
+  spec.license = "Apache-2.0"
   spec.required_ruby_version = ">= 3.1"
 
   spec.metadata["homepage_uri"] = spec.homepage
   spec.metadata["source_code_uri"] = "https://github.com/jagreehal/executable-stories/tree/main/packages/executable-stories-ruby"
   spec.metadata["changelog_uri"] = "https://github.com/jagreehal/executable-stories/releases"
 
-  spec.files = Dir.glob("lib/**/*.rb")
+  spec.files = Dir.glob("lib/**/*.rb") + ["LICENSE"]
   spec.bindir = "exe"
   spec.executables = Dir.glob("exe/*")
   spec.require_paths = ["lib"]
