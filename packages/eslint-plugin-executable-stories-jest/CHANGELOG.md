@@ -1,5 +1,20 @@
 # eslint-plugin-executable-stories-jest
 
+## 2.1.11
+
+### Patch Changes
+
+- 393b095: Relicense from MIT to Apache-2.0.
+
+  All packages are now published under the Apache License, Version 2.0, and
+  every package tarball ships its own LICENSE file. Several packages
+  (`executable-stories-astro`, `-cypress`, `-demo`, `-jest`, `-playwright`)
+  previously published with no `license` field at all; that is fixed.
+
+  Versions published before this change remain available under MIT. The
+  Executable Stories name and logo are trademarks and are not granted by the
+  code licence — see TRADEMARKS.md in the repository.
+
 ## 2.1.10
 
 ### Patch Changes
