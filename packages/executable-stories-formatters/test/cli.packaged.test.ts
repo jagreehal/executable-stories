@@ -37,7 +37,7 @@ describe("packaged CLI", () => {
 
       expect(result.status).toBe(4);
       expect(result.stderr).toContain('"serve" subcommand was removed');
-      expect(result.stderr).toContain("astro dev");
+      expect(result.stderr).toContain("executable-stories dev");
       // Not the generic unknown-subcommand path.
       expect(result.stderr).not.toContain("Unknown subcommand");
     },

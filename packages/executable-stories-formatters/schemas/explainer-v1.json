@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://executable-stories.dev/schemas/explainer-v1.json",
+  "title": "Explainer provenance block v1",
+  "description": "The `explainer` frontmatter block that ties a hand-authored explainer document to the scenarios it explains. See the explain-change skill.",
+  "type": "object",
+  "required": ["version", "scenarios"],
+  "properties": {
+    "version": { "const": 1 },
+    "generated": {
+      "type": "string",
+      "description": "ISO date the explainer was generated (YYYY-MM-DD)."
+    },
+    "runId": {
+      "type": "string",
+      "description": "runId of the run the explainer was generated from."
+    },
+    "commit": { "type": "string", "description": "Commit sha the explainer explains." },
+    "branch": { "type": "string" },
+    "scenarios": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "hash"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Canonical scenario id (stable machine key)."
+          },
+          "title": {
+            "type": "string",
+            "description": "Scenario title at generation time; enables rename detection."
+          },
+          "hash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{16}$",
+            "description": "scenarioContentHash at generation time (16 hex chars of sha256 over title + step keywords/texts)."
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

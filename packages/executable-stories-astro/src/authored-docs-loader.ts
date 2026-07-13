@@ -29,6 +29,13 @@ import { pathToFileURL } from "node:url";
 import { glob } from "astro/loaders";
 import type { Loader, LoaderContext } from "astro/loaders";
 
+import type { ExecutableStoriesConfig } from "./config.js";
+import {
+  auditExplainerAgainstEntries,
+  explainerBannerHtml,
+  loadAuditEntries,
+} from "./explainer-status.js";
+import type { StoryEntryData } from "./loader.js";
 import { rewriteMdLink } from "./md-link-rewrite.js";
 
 export interface AuthoredDocsLoaderOptions {
@@ -42,6 +49,14 @@ export interface AuthoredDocsLoaderOptions {
   base?: string;
   /** Glob pattern within the folder. Default "**\/*.{md,mdx}". */
   pattern?: string;
+  /**
+   * Pass the shared executable-stories config to turn on explainer freshness
+   * banners: any doc whose frontmatter has an `explainer` provenance block
+   * (see the explain-change skill) gets a fresh/stale banner injected at the
+   * top, with deep links to the cited scenarios' story pages. Docs without
+   * the block are untouched.
+   */
+  explainers?: ExecutableStoriesConfig;
 }
 
 /** Title-case a file stem as a last-resort title ("deploy-prechecks" -> "Deploy Prechecks"). */
@@ -107,12 +122,16 @@ export function authoredDocsLoader(options: AuthoredDocsLoaderOptions): Loader {
 
       await inner.load({ ...context, parseData });
 
-      // Post-pass: rewrite relative `*.md` cross-links in each `.md` doc and
-      // PRE-render it, so the rewrite actually lands. The glob loader stores
-      // bodies with `deferredRender`, which re-reads the file at render time and
-      // ignores body edits; pre-rendering via `renderMarkdown` (which still uses
-      // the project's markdown pipeline) is the only reliable interception point.
-      await rewriteCrossLinks(context);
+      // Single post-pass: apply every body transform (cross-link rewriting,
+      // then the explainer banner, so the banner's absolute hrefs are never
+      // link-rewritten) and PRE-render each changed doc ONCE. The glob loader
+      // stores bodies with `deferredRender`, which re-reads the file at render
+      // time and ignores body edits; pre-rendering via `renderMarkdown` (which
+      // still uses the project's markdown pipeline) is the only reliable
+      // interception point.
+      const transforms: BodyTransform[] = [rewriteMarkdownLinks];
+      if (options.explainers) transforms.push(explainerBannerTransform(options.explainers));
+      await applyBodyTransforms(context, transforms);
 
       return undefined;
     },
@@ -131,11 +150,50 @@ interface StoredDoc {
   id: string;
   body?: unknown;
   filePath?: unknown;
+  data?: unknown;
   [k: string]: unknown;
 }
 
-/** Re-render every `.md` entry whose body has a relative `.md` cross-link, with the link rewritten. */
-async function rewriteCrossLinks(context: LoaderContext): Promise<void> {
+/** A pure body edit applied during the post-pass; return the body unchanged to skip. */
+type BodyTransform = (body: string, entry: StoredDoc) => string;
+
+/** Prepend a freshness banner to `.md` docs whose frontmatter carries an `explainer` block. */
+function explainerBannerTransform(config: ExecutableStoriesConfig): BodyTransform {
+  // The run JSON loads once, lazily, on the first explainer doc of the pass —
+  // never per document (loadAuditEntries parses every configured source).
+  let entries: StoryEntryData[] | undefined;
+  let loaded = false;
+  return (body, entry) => {
+    const data = entry.data;
+    if (typeof data !== "object" || data === null) return body;
+    const frontmatter = data as Record<string, unknown>;
+    if (frontmatter.explainer === undefined) return body;
+    if (!loaded) {
+      entries = loadAuditEntries(config);
+      loaded = true;
+    }
+    if (!entries) return body; // no run JSON yet — leave the doc alone
+    const audit = auditExplainerAgainstEntries(frontmatter, entries, config.routeBase);
+    if (!audit) return body; // invalid block — leave the doc alone
+    const generated = (frontmatter.explainer as Record<string, unknown> | null | undefined)
+      ?.generated;
+    const banner = explainerBannerHtml(
+      audit,
+      typeof generated === "string" ? generated : undefined,
+    );
+    return `${banner}\n\n${body}`;
+  };
+}
+
+/**
+ * Apply the body transforms to every `.md` entry and pre-render each changed
+ * one exactly once. One pass owns all body edits, so transform order is
+ * explicit here rather than an accident of call sequence.
+ */
+async function applyBodyTransforms(
+  context: LoaderContext,
+  transforms: BodyTransform[],
+): Promise<void> {
   const store = context.store as unknown as {
     entries?: () => Array<[string, StoredDoc]>;
     set: (entry: StoredDoc) => unknown;
@@ -145,7 +203,7 @@ async function rewriteCrossLinks(context: LoaderContext): Promise<void> {
     const filePath = typeof entry.filePath === "string" ? entry.filePath : undefined;
     if (!filePath || !/\.md$/i.test(filePath)) continue; // mdx renders differently; skip
     if (typeof entry.body !== "string") continue;
-    const body = rewriteMarkdownLinks(entry.body);
+    const body = transforms.reduce((acc, transform) => transform(acc, entry), entry.body);
     if (body === entry.body) continue;
     try {
       const fileURL = pathToFileURL(path.resolve(filePath));

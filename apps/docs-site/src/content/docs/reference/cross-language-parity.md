@@ -67,7 +67,7 @@ Agents consume the same artifacts regardless of source language:
 
 ```bash
 executable-stories format .executable-stories/raw-run.json --format story-report-json --output-dir reports --output-name index
-executable-stories list .executable-stories/raw-run.json --list-format json > reports/scenarios-index.json
+executable-stories list .executable-stories/raw-run.json --list-format json > reports/scenario-index.json
 ```
 
 Optional MCP: [MCP server guide](/guides/mcp-server/).

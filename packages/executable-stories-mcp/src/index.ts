@@ -173,7 +173,7 @@ export const readOnlyTools: ReadOnlyTool[] = [
     title: "Get scenario index",
     description:
       "Return the Storybook-like scenario index artifact (schema v1) derived from StoryReport JSON.",
-    route: "/scenarios-index",
+    route: "/scenario-index",
     run: getScenarioIndex,
   },
   {

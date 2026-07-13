@@ -36,13 +36,21 @@ import type { NotifyCondition, GenericWebhookNotifierOptions, WebhookSignerHmac 
 import { loadHistory, saveHistory, updateHistory, type HistoryStore } from "./history";
 import { pickAutoBaseline } from "./compare/auto-baseline";
 import { listScenarios } from "./list-scenarios";
+import { writeArtifactsReadme } from "./artifacts-readme";
 import { buildCheck, renderCheck } from "./check";
+import { buildExplainersReport, explainersGateFailed, renderExplainersReport } from "./explainers";
 import { buildGoal, renderGoal } from "./goal";
 import { buildTriage, renderTriage } from "./triage";
 import { selectTestCases } from "./select-test-cases";
 import type { RawRun } from "executable-stories-core/types/raw";
 import type { TestRunResult, TestStatus } from "executable-stories-core/types/test-result";
-import { initAstro as initAstroFn } from "./init-astro";
+import {
+  detectPackageManager,
+  initAstro as initAstroFn,
+  installScaffoldDependencies,
+  isScaffoldedAstroSite,
+  runDocsDev,
+} from "./init-astro";
 import { scaffoldDoc, TEMPLATES } from "./scaffold-doc";
 import { checkLinks, formatLinkReport } from "./check-links";
 import { importOpenApi } from "./import-openapi";
@@ -83,11 +91,13 @@ USAGE
   executable-stories review <file> --changed-files <path> [options]
   executable-stories list <file> [options]
   executable-stories check <file> [--baseline <path|auto>] [--check-format text|json] [--no-fail]
+  executable-stories check-explainers <file> --explainers-dir <dir> [--check-format text|json] [--no-fail]
   executable-stories goal <file> [--require-tags <csv>] [--require-tickets <csv>] [--require-scenarios <csv>] [--baseline <path|auto>] [--no-regressions] [--goal-format text|json]
   executable-stories triage <file> [--baseline <path|auto>] [--triage-format text|json]
   executable-stories validate <file>
   executable-stories validate --stdin
-  executable-stories init-astro [directory]
+  executable-stories dev [directory]
+  executable-stories init-astro [directory] [--install] [--force] [--update]
   executable-stories new <template> "<name>" [options]
   executable-stories check-links <dir> [options]
   executable-stories import-openapi <spec> [options]
@@ -105,6 +115,7 @@ SUBCOMMANDS
   review             Generate an Evidence Review of AI-authored changes (correlate a run to the diff)
   list               List scenarios from a test run (text table or JSON)
   check              Backpressure summary: compress passing, expand failing (GWT + error + covers); non-zero exit on failures
+  check-explainers   Audit explainer docs (explain-change skill) against a run: stale when a cited scenario changed/renamed/vanished (exit 5)
   goal               Behavioral definition-of-done for agent loops: required scenarios pass, no regressions, no weakened scenarios (exit 0 = met, 5 = not)
   triage             Discovery worklist for agent loops: failing scenarios, regressions first, each with the code it covers
   validate           Validate a JSON file against the schema (no output generated)
@@ -152,7 +163,8 @@ OPTIONS
   --list-format <format>        list output format: text (default), json, csv, markdown-table
   --minify                      emit compact JSON for agent artifacts (story-report, scenario-index, list --json)
   --json-summary                Deprecated alias for --list-format json
-  --check-format <format>       check output format: text (default) or json
+  --check-format <format>       check / check-explainers output format: text (default) or json
+  --explainers-dir <dir>        (check-explainers) Directory of explainer markdown to audit
   --no-fail                     (check) Report only — always exit 0 even when scenarios failed
   --require-tags <csv>          (goal) Every scenario carrying any of these tags must pass
   --require-tickets <csv>       (goal) Every scenario carrying any of these tickets must pass
@@ -234,7 +246,9 @@ DEPLOY
     Show scenario drift between two environments (what's in one but not the other).
 
 INIT-ASTRO
+  executable-stories dev [directory]          Run the live docs site (default: ./story-docs); installs its deps on first use
   executable-stories init-astro [directory]   Scaffold into directory (default: ./story-docs)
+    --install    Also run the package manager install (detected from your lockfile) so the site is ready to \`dev\`
   --force                                      Write into a non-empty directory (overlays template files)
   --update                                     Refresh framework files only (keeps your content + config)
 
@@ -284,12 +298,12 @@ EXIT CODES
   2  Canonical validation failure
   3  Formatter/generation failure
   4  Bad arguments / usage error
-  5  Compare / review / check gate failed
+  5  Compare / review / check / check-explainers gate failed
   6  Release gate failed
 `.trim();
 
 interface CliArgs {
-  subcommand: "format" | "watch" | "compare" | "gate-release" | "review" | "list" | "check" | "goal" | "triage" | "validate";
+  subcommand: "format" | "watch" | "compare" | "gate-release" | "review" | "list" | "check" | "check-explainers" | "goal" | "triage" | "validate";
   inputFile?: string;
   baselineFile?: string;
   /** Raw --baseline value (path or "auto"), used by check for delta detection. */
@@ -318,6 +332,8 @@ interface CliArgs {
   minify: boolean;
   listFormat: "text" | "json" | "csv" | "markdown-table";
   checkFormat: "text" | "json";
+  /** check-explainers: directory of explainer markdown to audit. */
+  explainersDir?: string;
   noFail: boolean;
   requireTags: string[];
   requireTickets: string[];
@@ -386,9 +402,11 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
     subcommand !== "review" &&
     subcommand !== "list" &&
     subcommand !== "check" &&
+    subcommand !== "check-explainers" &&
     subcommand !== "goal" &&
     subcommand !== "triage" &&
     subcommand !== "validate" &&
+    subcommand !== "dev" &&
     subcommand !== "init-astro" &&
     subcommand !== "new" &&
     subcommand !== "check-links" &&
@@ -402,15 +420,15 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
     if (subcommand === "serve" || subcommand === "build-docs") {
       console.error(
         `The "${subcommand}" subcommand was removed. Living docs are now an Astro site, rendered live from the run JSON (no Markdown generation step):\n` +
-          "  1. executable-stories init-astro   (one-time scaffold)\n" +
+          "  1. executable-stories init-astro --install   (one-time scaffold)\n" +
           "  2. run your tests in watch mode in one terminal\n" +
-          "  3. run `astro dev` (or `pnpm dev`) in another — it hot-reloads the docs.\n" +
+          "  3. run `executable-stories dev` in another — it hot-reloads the docs.\n" +
           "See: https://github.com/jagreehal/executable-stories (executable-stories-astro).",
       );
       process.exit(EXIT_USAGE);
     }
     console.error(
-      `Unknown subcommand: "${subcommand}". Use "format", "watch", "compare", "gate-release", "deploy", "review", "list", "check", "goal", "triage", "validate", "init-astro", "new", "check-links", "import-openapi", "publish-confluence", or "publish-jira".`,
+      `Unknown subcommand: "${subcommand}". Use "format", "watch", "compare", "gate-release", "deploy", "review", "list", "check", "check-explainers", "goal", "triage", "validate", "dev", "init-astro", "new", "check-links", "import-openapi", "publish-confluence", or "publish-jira".`,
     );
     process.exit(EXIT_USAGE);
   }
@@ -432,6 +450,27 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
     process.exit(await runDeploy(args.slice(1)));
   }
 
+  // Handle dev early (no parseArgs needed). The command body lives in
+  // init-astro.ts (runDocsDev); this branch only maps outcomes to messages
+  // and exit codes.
+  if (subcommand === "dev") {
+    const devArgs = args.slice(1);
+    const siteDir = devArgs.find((a) => !a.startsWith("--")) ?? "./story-docs";
+    const dev = runDocsDev(siteDir);
+    if (dev.kind === "not-scaffolded") {
+      console.error(
+        `No docs site found at ${siteDir}. Create one (scaffold + install) with:\n` +
+          `  npx executable-stories init-astro --install`,
+      );
+      process.exit(EXIT_USAGE);
+    }
+    if (dev.kind === "install-failed") {
+      console.error(`"${dev.pm} install" failed in ${siteDir} — run it manually, then retry.`);
+      process.exit(EXIT_GENERATION);
+    }
+    process.exit(dev.status ?? EXIT_GENERATION);
+  }
+
   // Handle init-astro early (no parseArgs needed)
   if (subcommand === "init-astro") {
     const initArgs = args.slice(1);
@@ -440,6 +479,7 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
     // --update merges any new template deps; the framework itself ships in the
     // executable-stories-astro package, so there are no framework files to refresh.
     const update = initArgs.includes("--update");
+    const install = initArgs.includes("--install");
 
     try {
       const result = initAstroFn({ targetDir, force, update });
@@ -449,13 +489,28 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
         process.exit(EXIT_SUCCESS);
       }
       console.log(`Scaffolded Astro docs site at ${result.targetDir}`);
+
+      const pm = detectPackageManager();
+      if (install) {
+        console.log(`Installing dependencies with ${pm}…`);
+        if (!installScaffoldDependencies(result.targetDir, pm)) {
+          console.error(
+            `Scaffold complete, but "${pm} install" failed in ${result.targetDir} — run it manually, then \`${pm} run dev\`.`,
+          );
+          process.exit(EXIT_GENERATION);
+        }
+      }
+
       console.log("");
       console.log("Next steps:");
-      console.log(`  1. cd ${result.targetDir} && pnpm install      # or npm install`);
-      console.log("  2. In your TEST project, add the StoryReporter with a rawRunPath, e.g.");
+      let step = 1;
+      if (!install) {
+        console.log(`  ${step++}. cd ${result.targetDir} && ${pm} install`);
+      }
+      console.log(`  ${step++}. In your TEST project, add the StoryReporter with a rawRunPath, e.g.`);
       console.log("       StoryReporter({ rawRunPath: 'reports/raw-run.json' })");
-      console.log("  3. Run your tests in watch mode (terminal 1):  pnpm test --watch");
-      console.log(`  4. Run the docs dev server (terminal 2):  cd ${result.targetDir} && pnpm dev`);
+      console.log(`  ${step++}. Run your tests in watch mode (terminal 1):  ${pm} test --watch`);
+      console.log(`  ${step++}. Run the docs dev server (terminal 2):  npx executable-stories dev`);
       console.log("     Editing tests hot-reloads the Stories pages — nothing is written to disk.");
       console.log("");
       console.log("Everything is configured in one file: executable-stories.config.mjs");
@@ -500,6 +555,7 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
       "minify": { type: "boolean", default: false },
       "list-format": { type: "string", default: "text" },
       "check-format": { type: "string", default: "text" },
+      "explainers-dir": { type: "string" },
       "no-fail": { type: "boolean", default: false },
       "require-tags": { type: "string" },
       "require-tickets": { type: "string" },
@@ -775,6 +831,7 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
     minify: values["minify"] as boolean,
     listFormat: (values["list-format"] as string) as "text" | "json" | "csv" | "markdown-table",
     checkFormat,
+    explainersDir: values["explainers-dir"] as string | undefined,
     noFail: values["no-fail"] as boolean,
     requireTags: parseGlobs(values["require-tags"] as string | undefined),
     requireTickets: parseGlobs(values["require-tickets"] as string | undefined),
@@ -1106,6 +1163,7 @@ const SUBCOMMAND_HANDLERS: Record<string, (ctx: CliContext) => Promise<void>> = 
   review: runReview,
   list: runList,
   check: runCheck,
+  "check-explainers": runCheckExplainers,
   goal: runGoal,
   triage: runTriage,
   watch: runWatch,
@@ -1275,6 +1333,35 @@ async function runCheck(ctx: CliContext): Promise<void> {
     console.log(renderCheck(report, args.checkFormat));
 
     if (report.summary.failed > 0 && !args.noFail) {
+      process.exit(EXIT_AGENT_GATE);
+    }
+    process.exit(EXIT_SUCCESS);
+  }
+
+  // === check-explainers subcommand: explainer freshness audit ===
+  // Explainers (explain-change skill output) cite scenarios by id + content
+  // hash in frontmatter. This audits every explainer in a directory against
+  // the current run and exits 5 when any is stale or invalid, so CI surfaces
+  // "the docs describe behaviour that changed" the same way it surfaces a
+  // failing test. Report-only with --no-fail. Generation stays agent-side;
+  // this only audits.
+async function runCheckExplainers(ctx: CliContext): Promise<void> {
+  const { args } = ctx;
+    if (!args.explainersDir) {
+      console.error("Error: check-explainers requires --explainers-dir <dir> (the folder of explainer markdown).");
+      process.exit(EXIT_USAGE);
+    }
+    if (!fs.existsSync(args.explainersDir) || !fs.statSync(args.explainersDir).isDirectory()) {
+      console.error(`Error: --explainers-dir "${args.explainersDir}" is not a directory.`);
+      process.exit(EXIT_USAGE);
+    }
+    const text = await readInput(args);
+    const run = applySelection(normalizeRunFromText(text, args).run, args);
+
+    const report = buildExplainersReport({ run, dir: args.explainersDir });
+    console.log(renderExplainersReport(report, args.checkFormat));
+
+    if (explainersGateFailed(report) && !args.noFail) {
       process.exit(EXIT_AGENT_GATE);
     }
     process.exit(EXIT_SUCCESS);
@@ -1707,6 +1794,8 @@ function runHistoryPipeline(run: TestRunResult, args: CliArgs): HistoryStore | u
 interface CliResult {
   files: string[];
   counts: { passed: number; failed: number; skipped: number; pending: number };
+  /** True when this run wrote the artifacts README, i.e. first contact with the output dir. */
+  createdArtifactsReadme: boolean;
 }
 
 interface CompareCliResult {
@@ -1769,6 +1858,10 @@ async function generateReports(
     files.push(...paths);
   }
 
+  // Make the output folder self-documenting for newcomers (write-once; an
+  // existing README.md, ours or the user's, is never touched).
+  const createdArtifactsReadme = writeArtifactsReadme(args.outputDir);
+
   // Count statuses
   const counts = { passed: 0, failed: 0, skipped: 0, pending: 0 };
   for (const tc of run.testCases) {
@@ -1778,7 +1871,7 @@ async function generateReports(
     }
   }
 
-  return { files, counts };
+  return { files, counts, createdArtifactsReadme };
 }
 
 async function generateCompareReports(
@@ -1982,6 +2075,22 @@ function printResult(
   } else {
     for (const f of result.files) {
       console.log(f);
+    }
+    // Discoverability: the living-docs Astro site is the first-class human
+    // surface (stories, explainers with freshness banners, explorer), but it's
+    // scaffolded once, not generated per run. Point at it only on first
+    // contact with the output dir (when the artifacts README was just
+    // written) — a nudge on every run would be permanent noise for anyone
+    // who scaffolded to a custom path or runs in CI. stderr keeps piped
+    // stdout clean; --json-summary (agent pipelines) skips it entirely.
+    if (
+      result.createdArtifactsReadme &&
+      !isScaffoldedAstroSite(".") &&
+      !isScaffoldedAstroSite("./story-docs")
+    ) {
+      console.error(
+        "Tip: for a live docs site (stories, explainers, freshness): npx executable-stories init-astro --install",
+      );
     }
   }
 }

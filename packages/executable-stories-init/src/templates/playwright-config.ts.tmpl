@@ -1,13 +1,12 @@
-import { createRequire } from 'node:module';
 import { defineConfig } from '@playwright/test';
-
-const require = createRequire(import.meta.url);
-const reporterPath = require.resolve('executable-stories-playwright/reporter');
 
 export default defineConfig({
   testMatch: '**/*.story.spec.ts',
   reporter: [
     ['list'],
-    [reporterPath, { formats: ['markdown', 'html'], outputDir: 'reports' }],
+    [
+      'executable-stories-playwright/reporter',
+      { formats: ['markdown', 'html'], outputDir: 'reports', rawRunPath: 'reports/raw-run.json' },
+    ],
   ],
 });

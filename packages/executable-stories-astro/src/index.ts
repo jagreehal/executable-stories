@@ -61,6 +61,14 @@ export { resolveThemeCss } from "./theme.js";
 export { authoredDocsLoader } from "./authored-docs-loader.js";
 export { mdLinkRewrite, type MdLinkRewriteOptions } from "./md-link-rewrite.js";
 
+// Explainer freshness (explain-change skill provenance blocks → banner + deep links).
+export {
+  auditExplainerFrontmatter,
+  explainerBannerHtml,
+  type ExplainerAudit,
+  type ExplainerScenarioLine,
+} from "./explainer-status.js";
+
 // Trajectory types live in core (the pure session-fold primitive).
 export {
   advanceState,

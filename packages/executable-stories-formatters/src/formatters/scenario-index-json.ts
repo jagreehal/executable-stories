@@ -1,4 +1,5 @@
 import { toStoryReport } from "executable-stories-core/converters/story-report";
+import { scenarioContentHash } from "executable-stories-core/explainer";
 import type { ReportFeature, ReportScenario, ReportStep, StoryReport, TestStatus } from "executable-stories-core/types/story-report";
 import type { TestRunResult } from "executable-stories-core/types/test-result";
 
@@ -13,6 +14,12 @@ export interface ScenarioIndex {
 export interface ScenarioIndexItem {
   id: string;
   title: string;
+  /**
+   * Content hash (title + step keywords/texts) for explainer provenance —
+   * copy into an explainer's frontmatter `scenarios[].hash` so
+   * `check-explainers` can detect drift. Status is deliberately excluded.
+   */
+  hash: string;
   status: TestStatus;
   feature: string;
   sourceFile: string;
@@ -96,6 +103,7 @@ function toScenarioIndexItem(
   return {
     id: scenario.id,
     title: scenario.title,
+    hash: scenarioContentHash(scenario),
     status: scenario.status,
     feature: feature.title,
     sourceFile: feature.sourceFile,

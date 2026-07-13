@@ -38,25 +38,22 @@ Install:
 pnpm add -D vitest executable-stories-vitest executable-stories-formatters
 ```
 
-Write `vitest.config.ts` (use `createRequire` form — avoids a Vitest `Reporter` type mismatch):
+Write `vitest.config.ts`. Use the `createStoryReporter()` factory — it is correctly
+typed for Vitest's `reporters` array, so no `createRequire` and no casts:
 ```ts
-import { createRequire } from 'node:module';
-import type { Reporter } from 'vitest/node';
 import { defineConfig } from 'vitest/config';
-
-const require = createRequire(import.meta.url);
-const { StoryReporter } = require('executable-stories-vitest/reporter');
+import { createStoryReporter } from 'executable-stories-vitest/reporter';
 
 export default defineConfig({
   test: {
     reporters: [
       'default',
-      new StoryReporter({
+      createStoryReporter({
         formats: ['markdown', 'html'],
         outputDir: 'reports',
         outputName: 'executable-stories',
         rawRunPath: 'reports/raw-run.json',
-      }) as unknown as Reporter,
+      }),
     ],
   },
 });
@@ -95,19 +92,19 @@ pnpm add -D @playwright/test executable-stories-playwright executable-stories-fo
 pnpm exec playwright install
 ```
 
-Write `playwright.config.ts`:
+Write `playwright.config.ts`. Playwright resolves reporters by module id, so the
+plain string works — no `createRequire`:
 ```ts
-import { createRequire } from 'node:module';
 import { defineConfig } from '@playwright/test';
-
-const require = createRequire(import.meta.url);
-const reporterPath = require.resolve('executable-stories-playwright/reporter');
 
 export default defineConfig({
   testMatch: '**/*.story.spec.ts',
   reporter: [
     ['list'],
-    [reporterPath, { formats: ['markdown', 'html'], outputDir: 'reports' }],
+    [
+      'executable-stories-playwright/reporter',
+      { formats: ['markdown', 'html'], outputDir: 'reports', rawRunPath: 'reports/raw-run.json' },
+    ],
   ],
 });
 ```
@@ -136,7 +133,30 @@ Add scripts: `"test:e2e": "playwright test"`.
 - Run the test command — should pass and write to `reports/`
 - Show the user the generated `reports/executable-stories.html` and `reports/executable-stories.md`
 
-### 6. Wire agent backpressure (recommended)
+### 6. Scaffold the living-docs site (default — skip only if the user declines)
+
+The Astro site is the first-class human surface: browsable stories, the Scenario
+Explorer, and explainer pages with freshness banners. The single-file HTML report
+stays available as a per-run artifact (CI attachments, email), but a bootstrap is
+not complete without the site. Running tests never creates it — it is scaffolded
+once and consumes every run thereafter:
+
+```bash
+npx executable-stories init-astro --install   # scaffold ./story-docs + install deps
+```
+
+Then confirm the loop works end to end:
+
+- Terminal 1: the test command in watch mode (writes `reports/raw-run.json`)
+- Terminal 2: `npx executable-stories dev` — stories hot-reload on every test run
+  (it finds `./story-docs`, installs its deps if missing, and runs the dev server)
+
+The site shows bundled sample scenarios until the first real run lands. All site
+configuration lives in `story-docs/executable-stories.config.mjs` (sources,
+selection, grouping, theme). Add `docs:dev` / `docs:build` scripts to the host
+package.json pointing into `story-docs/` so the site is one command away.
+
+### 7. Wire agent backpressure (recommended)
 
 Give a coding agent (or a `/loop`) a signal it can act on after every change. In `CLAUDE.md` / `AGENTS.md`:
 

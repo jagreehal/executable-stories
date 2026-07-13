@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as os from "node:os";
-import { initAstro } from "../src/init-astro";
+import { detectPackageManager, initAstro } from "../src/init-astro";
 
 describe("initAstro (thin Starlight scaffold)", () => {
   let tmpDir: string;
@@ -122,5 +122,38 @@ describe("initAstro (thin Starlight scaffold)", () => {
     const target = path.join(tmpDir, "story-docs");
     const result = initAstro({ targetDir: target });
     expect(result.targetDir).toBe(target);
+  });
+});
+
+describe("detectPackageManager", () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "detect-pm-"));
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it.each([
+    ["pnpm-lock.yaml", "pnpm"],
+    ["yarn.lock", "yarn"],
+    ["bun.lock", "bun"],
+    ["bun.lockb", "bun"],
+    ["package-lock.json", "npm"],
+  ] as const)("detects %s -> %s", (lockfile, pm) => {
+    fs.writeFileSync(path.join(tmpDir, lockfile), "");
+    expect(detectPackageManager(tmpDir)).toBe(pm);
+  });
+
+  it("falls back to npm with no lockfile", () => {
+    expect(detectPackageManager(tmpDir)).toBe("npm");
+  });
+
+  it("prefers pnpm when several lockfiles exist", () => {
+    fs.writeFileSync(path.join(tmpDir, "pnpm-lock.yaml"), "");
+    fs.writeFileSync(path.join(tmpDir, "yarn.lock"), "");
+    expect(detectPackageManager(tmpDir)).toBe("pnpm");
   });
 });

@@ -37,6 +37,11 @@
       "properties": {
         "id": { "type": "string" },
         "title": { "type": "string" },
+        "hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{16}$",
+          "description": "Content hash (title + step keywords/texts) for explainer provenance; excludes status. Always emitted since 1.x, optional in the schema so pre-hash v1 artifacts stay valid."
+        },
         "status": { "$ref": "#/$defs/status" },
         "feature": { "type": "string" },
         "sourceFile": { "type": "string" },

@@ -41,5 +41,11 @@ export async function loadConfig(configPath?: string): Promise<ExecutableStories
     );
   }
 
-  return config as ExecutableStoriesConfig;
+  // `executable-stories.config.mjs` is ALSO the docs-site config (the init-astro
+  // scaffold; drives the Astro loaders, not the CLI). The CLI's contract is
+  // exactly `formatters`, so project that key out instead of returning the
+  // whole module: a site config (source/sources, no formatters) then naturally
+  // contributes nothing, with no shape-sniffing needed.
+  const { formatters } = config as ExecutableStoriesConfig;
+  return formatters === undefined ? {} : { formatters };
 }

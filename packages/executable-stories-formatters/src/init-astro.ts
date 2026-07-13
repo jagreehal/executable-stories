@@ -3,11 +3,79 @@
  * Uses Starlight with theme overrides matching the HTML report design system.
  */
 
+import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+export type PackageManager = "pnpm" | "yarn" | "bun" | "npm";
+
+/**
+ * Detect the host repo's package manager from its lockfile so `--install`
+ * uses whatever the project already uses. Falls back to npm.
+ */
+export function detectPackageManager(cwd: string = process.cwd()): PackageManager {
+  if (fs.existsSync(path.join(cwd, "pnpm-lock.yaml"))) return "pnpm";
+  if (fs.existsSync(path.join(cwd, "yarn.lock"))) return "yarn";
+  if (fs.existsSync(path.join(cwd, "bun.lock")) || fs.existsSync(path.join(cwd, "bun.lockb"))) {
+    return "bun";
+  }
+  return "npm";
+}
+
+/**
+ * Spawn a package-manager command with inherited stdio. On Windows the pm
+ * binaries are `.cmd` shims, which Node refuses to spawn without a shell
+ * (EINVAL since the CVE-2024-27980 hardening) — every pm invocation must go
+ * through here. Args are fixed words ("install", "run", "dev"), so the shell
+ * path never sees untrusted input.
+ */
+function runPackageManager(pm: PackageManager, pmArgs: string[], cwd: string): number | null {
+  const result = spawnSync(pm, pmArgs, {
+    cwd,
+    stdio: "inherit",
+    shell: process.platform === "win32",
+  });
+  return result.status;
+}
+
+/**
+ * Run `<pm> install` inside the scaffolded site (interactive stdio so the
+ * user sees progress). Returns false when the install exits non-zero or the
+ * package manager binary is missing.
+ */
+export function installScaffoldDependencies(targetDir: string, pm: PackageManager): boolean {
+  return runPackageManager(pm, ["install"], targetDir) === 0;
+}
+
+export type DocsDevResult =
+  | { kind: "not-scaffolded" }
+  | { kind: "install-failed"; pm: PackageManager }
+  | { kind: "dev-exited"; status: number | null };
+
+/**
+ * Body of `executable-stories dev`: verify the scaffold exists, install its
+ * deps if node_modules is missing, then hand the terminal to the site's dev
+ * server. Progress goes to stdout here; the CLI owns error messaging and
+ * exit-code mapping. Tests still run in the user's own watcher — a docs
+ * command must never own the test process.
+ */
+export function runDocsDev(siteDir: string): DocsDevResult {
+  if (!isScaffoldedAstroSite(siteDir)) {
+    return { kind: "not-scaffolded" };
+  }
+  const pm = detectPackageManager();
+  if (!fs.existsSync(path.join(siteDir, "node_modules"))) {
+    console.log(`Installing docs site dependencies with ${pm}…`);
+    if (!installScaffoldDependencies(siteDir, pm)) {
+      return { kind: "install-failed", pm };
+    }
+  }
+  console.log("Tip: run your tests in watch mode in another terminal — the site hot-reloads on every run.");
+  return { kind: "dev-exited", status: runPackageManager(pm, ["run", "dev"], siteDir) };
+}
 
 export interface InitAstroOptions {
   targetDir?: string;

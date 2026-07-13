@@ -35,6 +35,24 @@ describe("loadConfig", () => {
     ).rejects.toThrow(/must export a default object/);
   });
 
+  it("ignores a docs-site config (same filename, disjoint shape) instead of misreading it", async () => {
+    // `executable-stories.config.mjs` is also the init-astro site config
+    // (source/sources, never formatters). Running the CLI next to one must
+    // not treat it as plugin config.
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "es-site-config-"));
+    try {
+      const file = path.join(tmpDir, "executable-stories.config.mjs");
+      fs.writeFileSync(
+        file,
+        "export default { source: '../reports/raw-run.json', groupBy: 'feature' };",
+      );
+      const config = await loadConfig(file);
+      expect(config).toEqual({});
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
   describe("auto-discovery with multiple config files", () => {
     const originalCwd = process.cwd();
     let tmpDir: string | undefined;
@@ -60,12 +78,12 @@ describe("loadConfig", () => {
       tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "es-config-"));
       fs.writeFileSync(
         path.join(tmpDir, "executable-stories.config.mjs"),
-        "export default { reportTitle: 'solo' };",
+        "export default { formatters: { solo: { name: 'solo', format: () => '' } } };",
       );
       process.chdir(tmpDir);
 
       const config = await loadConfig();
-      expect((config as { reportTitle?: string }).reportTitle).toBe("solo");
+      expect(config.formatters?.solo.name).toBe("solo");
     });
   });
 });

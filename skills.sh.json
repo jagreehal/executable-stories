@@ -57,6 +57,14 @@
       ]
     },
     {
+      "title": "Understanding",
+      "description": "Skills for keeping humans in the loop: explainers and lessons generated from executed behaviour.",
+      "skills": [
+        "explain-change",
+        "executable-lessons"
+      ]
+    },
+    {
       "title": "Workflow Receipts",
       "description": "Skills for posting proof-of-behaviour receipts back to workflow tools without making them the source of truth.",
       "skills": [

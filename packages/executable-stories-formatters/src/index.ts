@@ -512,7 +512,7 @@ const FORMAT_EXTENSIONS: Record<OutputFormat, string> = {
   "cucumber-json": ".cucumber.json",
   "cucumber-messages": ".ndjson",
   confluence: ".adf.json",
-  "scenario-index-json": ".scenarios-index.json",
+  "scenario-index-json": ".scenario-index.json",
   "story-report-json": ".story-report.json",
 };
 
