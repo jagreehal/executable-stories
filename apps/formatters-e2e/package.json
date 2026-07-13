@@ -1,6 +1,7 @@
 {
   "name": "formatters-e2e",
   "version": "1.0.0",
+  "license": "Apache-2.0",
   "private": true,
   "description": "E2E tests for executable-stories-formatters HTML output",
   "type": "module",

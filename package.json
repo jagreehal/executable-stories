@@ -54,7 +54,7 @@
     "url": "git+https://github.com/jagreehal/executable-stories.git"
   },
   "author": "Jag Reehal <jag@jagreehal.com>",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "bugs": {
     "url": "https://github.com/jagreehal/executable-stories/issues"
   },
