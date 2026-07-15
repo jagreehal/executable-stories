@@ -57,7 +57,7 @@ const report = storyReportFromEntries(scenarios);
     </>
   ) : (
     <div class="es-report-island font-sans text-foreground">
-      <ReportInteractiveIsland client:load report={report} title="Stories" hideHeader={starlight} />
+      <ReportInteractiveIsland client:load report={report} title="Stories" hideHeader={starlight} hideToc={starlight} />
     </div>
   )}
 </div>

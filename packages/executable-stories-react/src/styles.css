@@ -35,8 +35,8 @@
      --es-color-pending (#d97706) only reaches ~3.6:1 there. */
   --es-warn-fg: #92400e;
 
-  --es-font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-  --es-font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  --es-font-body: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --es-font-mono: "Geist Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
 
   --es-size-base: 1rem;
   --es-size-sm: 0.875rem;
@@ -52,7 +52,7 @@
   --es-space-6: 1.5rem;
   --es-space-8: 2rem;
 
-  --es-radius: 0.5rem;
+  --es-radius: 0.625rem;
   --es-line: 1.6;
   --es-measure: 72ch;
 }
@@ -105,9 +105,18 @@
   max-width: 1100px;
   margin-inline: auto;
 }
+/* Give the header sections (nav bar, stat cards, meta card, freshness banner,
+   controls, filters) a single consistent vertical rhythm instead of stacking on
+   incidental margins, and separate the header from the scenario list below. */
+.es-report-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-4);
+  margin-block-end: var(--es-space-6);
+}
 .es-report-header h1 {
   font-size: var(--es-size-h1);
-  margin: 0 0 var(--es-space-2);
+  margin: 0;
 }
 .es-report-summary {
   color: var(--es-color-muted);
@@ -183,11 +192,8 @@
 .es-schema-error { background: var(--es-color-failed-bg); color: var(--es-fail, #b91c1c); border-radius: var(--es-radius); }
 .es-schema-error pre { font-family: var(--es-font-mono); font-size: var(--es-size-sm); text-align: start; margin-block-start: var(--es-space-3); }
 
-.es-search { display: flex; align-items: center; gap: var(--es-space-2); margin-block: var(--es-space-3) 0; }
-.es-search-label { position: absolute; left: -9999px; }
-.es-search input { flex: 1 1 auto; padding: var(--es-space-2) var(--es-space-3); border: 1px solid var(--es-color-border); border-radius: var(--es-radius); background: var(--es-color-bg); color: var(--es-color-fg); font: inherit; }
-.es-search input:focus-visible { outline: 2px solid var(--es-color-link); outline-offset: 2px; }
-.es-search-counts { color: var(--es-color-muted); font-size: var(--es-size-sm); white-space: nowrap; font-variant-numeric: tabular-nums; }
+/* .es-search now styles nothing — it survives only as the print-hide hook below
+   (@media print). The control itself is the shadcn Input in ReportSearch.tsx. */
 
 .es-failure-banner {
   position: sticky;
@@ -242,40 +248,10 @@
 }
 .es-stale-banner a { color: inherit; white-space: nowrap; }
 
-.es-shortcuts-trigger {
-  position: fixed;
-  inset-block-end: var(--es-space-4);
-  inset-inline-end: var(--es-space-4);
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 999px;
-  border: 1px solid var(--es-color-border);
-  background: var(--es-color-surface);
-  color: var(--es-color-fg);
-  font: inherit;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  touch-action: manipulation;
-}
-.es-shortcuts-trigger:focus-visible {
-  outline: 2px solid var(--es-color-link);
-  outline-offset: 2px;
-}
-.es-shortcuts-help {
-  border: 1px solid var(--es-color-border);
-  border-radius: var(--es-radius);
-  padding: var(--es-space-6);
-  background: var(--es-color-bg);
-  color: var(--es-color-fg);
-  max-width: 32rem;
-}
-.es-shortcuts-help::backdrop { background: rgba(0, 0, 0, 0.4); }
-.es-shortcuts-help dl { display: grid; grid-template-columns: max-content 1fr; gap: var(--es-space-2) var(--es-space-4); }
-.es-shortcuts-help kbd { font-family: var(--es-font-mono); background: var(--es-color-surface); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--es-color-border); }
-.es-shortcuts-close { margin-block-start: var(--es-space-4); padding: var(--es-space-2) var(--es-space-4); border: 1px solid var(--es-color-border); background: var(--es-color-surface); color: var(--es-color-fg); border-radius: var(--es-radius); cursor: pointer; font: inherit; touch-action: manipulation; }
-.es-shortcuts-close:focus-visible { outline: 2px solid var(--es-color-link); outline-offset: 2px; }
+/* The shortcuts trigger + help dialog are styled with Tailwind (see the trigger
+   button in ReportInteractive.tsx and ReportShortcutsHelp.tsx). `es-shortcuts-
+   trigger` survives only as the print-hide hook in the @media print rule. */
 .es-failure-banner-jump { touch-action: manipulation; }
-.es-shortcuts-help { overscroll-behavior: contain; }
 
 @media print {
   .es-report { max-width: 100%; padding: 0; }

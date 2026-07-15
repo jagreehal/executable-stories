@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { StoryReport } from "executable-stories-core";
-import { expect, within } from "storybook/test";
+import { expect, userEvent, within } from "storybook/test";
 import { ReportMeta } from "./ReportMeta";
 import { ReportContext } from "../context/ReportContext";
 import { reportFixture } from "../test/fixtures";
@@ -32,6 +32,8 @@ export const RunMetadata: Story = {
   render: withReport(reportFixture({ startedAtMs: 1_717_000_000_000 })),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
+    // Metadata is collapsed under a "Run details" disclosure; open it first.
+    await userEvent.click(canvas.getByText("Run details"));
     const dl = canvas.getByLabelText("Run metadata");
     await expect(within(dl).getByText("Started")).toBeVisible();
     await expect(within(dl).getByText("Duration")).toBeVisible();
@@ -44,6 +46,7 @@ export const FullMetadata: Story = {
   render: withReport(kitchenSinkReport()),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByText("Run details"));
     const dl = canvas.getByLabelText("Run metadata");
     await expect(within(dl).getByText("Version")).toBeVisible();
     await expect(within(dl).getByText("1.4.0")).toBeVisible();

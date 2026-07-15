@@ -3,6 +3,7 @@ import { expect, userEvent, within } from "storybook/test";
 import { ReportInteractive } from "./ReportInteractive";
 import { ok } from "../result";
 import { kitchenSinkReport } from "../test/kitchen-sink";
+import { MermaidDiagram } from "../components/doc/MermaidDiagram";
 
 const meta: Meta<typeof ReportInteractive> = {
   title: "Interactive/ReportInteractive",
@@ -12,8 +13,11 @@ export default meta;
 
 type Story = StoryObj<typeof ReportInteractive>;
 
+// Wire the mermaid renderer (installed package, no CDN) so the showcase story
+// renders diagrams — the plain component leaves `story.mermaid(...)` as readable
+// source unless a host provides a renderer (the real report island does).
 export const Default: Story = {
-  args: { report: kitchenSinkReport() },
+  args: { report: kitchenSinkReport(), renderers: { mermaid: (entry) => <MermaidDiagram entry={entry} /> } },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     // The search box is the entry point for the interactive controls.

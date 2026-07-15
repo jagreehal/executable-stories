@@ -115,6 +115,56 @@ export function reportFixture(overrides: Partial<StoryReport> = {}): StoryReport
   };
 }
 
+/**
+ * A report with a single feature holding a single scenario — mirrors the
+ * standalone "Trolley Widget" report (one Playwright story). Reproduces the
+ * sparse-report layout case: an in-content TOC rail for one scenario looks
+ * unbalanced next to the content, so the design must adapt when scenarios are
+ * few. Use to iterate that layout in Storybook.
+ */
+export function singleScenarioReport(overrides: Partial<StoryReport> = {}): StoryReport {
+  const scenario = passedScenario({
+    title: "loads signed iframe so an artist can enter payout details",
+    tags: ["oopsi", "recipient", "ui", "widget"],
+    durationMs: 25130,
+    steps: [
+      step({ keyword: "Given", text: "the Hono fixture host can mint a signed widget URL" }),
+      step({ keyword: "When", text: "the host page embeds the iframe and waits for Widget events" }),
+      step({ keyword: "Then", text: "the host surface is visible with the embedded widget" }),
+    ],
+    docEntries: [
+      {
+        kind: "section",
+        title: "Artist payout profile",
+        markdown:
+          "Curve embeds the Trolley Widget so payees can enter payout details themselves.\n\n" +
+          "**Who cares:** Artists onboarding to get paid. **Risk if broken:** payees can't self-serve, so ops onboard by hand.",
+      },
+    ] as ReportScenario["docEntries"],
+  });
+  const feature: ReportFeature = {
+    id: id("feature"),
+    title: "Trolley Widget: payee self-serve profile",
+    sourceFile: "widget.story.spec.ts",
+    summary: summaryOf([scenario]),
+    scenarios: [scenario],
+  };
+  const finishedAtMs = Date.now();
+  return {
+    schemaVersion: "1.0",
+    runId: "run-widget",
+    startedAtMs: finishedAtMs - 25770,
+    finishedAtMs,
+    durationMs: 25770,
+    projectRoot: "/repo",
+    packageVersion: "1.0.0",
+    gitSha: "b6acd787",
+    summary: summaryOf([scenario]),
+    features: [feature],
+    ...overrides,
+  };
+}
+
 export function skippedScenario(overrides: Partial<ReportScenario> = {}): ReportScenario {
   return {
     id: id("scenario"),

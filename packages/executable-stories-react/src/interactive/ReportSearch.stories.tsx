@@ -35,8 +35,8 @@ export const Empty: Story = {
     const canvas = within(canvasElement);
     const input = canvas.getByRole("searchbox", { name: "Search" });
     await expect(input).toHaveValue("");
-    // With no query, the counts show the total.
-    await expect(canvas.getByText("5 total")).toBeVisible();
+    // At rest the count is hidden — the "All N" status tab already shows the total.
+    await expect(canvas.queryByText(/total|of \d/)).toBeNull();
   },
 };
 
@@ -48,7 +48,7 @@ export const TypingUpdatesValue: Story = {
     const input = canvas.getByRole("searchbox", { name: "Search" });
     await userEvent.type(input, "checkout");
     await expect(input).toHaveValue("checkout");
-    await expect(canvas.getByText("2 of 5")).toBeVisible();
+    await expect(canvas.getByText("2 of 5 scenarios")).toBeVisible();
   },
 };
 

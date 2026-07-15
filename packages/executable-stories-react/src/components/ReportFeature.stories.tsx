@@ -17,9 +17,9 @@ export const Default: Story = {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole("heading", { name: "Checkout", level: 2 })).toBeVisible();
     await expect(canvas.getByText("src/checkout.story.test.ts")).toBeVisible();
-    // Feature-header status counts (passed/failed/skipped fixture → ✓1 ✗1 ○1).
-    await expect(canvas.getByText("✓1")).toBeVisible();
-    await expect(canvas.getByText("✗1")).toBeVisible();
-    await expect(canvas.getByText("○1")).toBeVisible();
+    // Feature-header status counts render as readable, failure-weighted text.
+    await expect(canvas.getByText("1 passed")).toBeVisible();
+    await expect(canvas.getByText("1 failed")).toBeVisible();
+    await expect(canvas.getByText("1 skipped")).toBeVisible();
   },
 };

@@ -1,6 +1,6 @@
 {
   "name": "executable-stories-astro",
-  "version": "3.0.1",
+  "version": "7.0.0",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
@@ -44,11 +44,13 @@
     "test": "vitest run --passWithNoTests",
     "type-check": "tsc --noEmit"
   },
+  "dependencies": {
+    "executable-stories-react": "workspace:*"
+  },
   "peerDependencies": {
     "astro": ">=7",
     "@astrojs/react": ">=4",
     "@astrojs/starlight": ">=0.41.0",
-    "executable-stories-react": "workspace:*",
     "react": ">=19.2.7",
     "react-dom": ">=19.2.7"
   },
@@ -73,7 +75,6 @@
     "@types/react-dom": "^19.2.3",
     "astro": "^7.0.0",
     "executable-stories-core": "workspace:*",
-    "executable-stories-react": "workspace:*",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "tsup": "^8.5.1",

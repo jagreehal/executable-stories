@@ -71,6 +71,15 @@
 /* Embedded in Starlight's content column: drop the standalone width/spacing. */
 .es-embed { max-width: none; margin: 0; padding: 0; }
 
+/* Full-bleed the embedded Stories/Explorer pages. Starlight caps its content
+   pane at `--sl-content-width` (45rem/720px) for prose readability, but the
+   report + explorer manage their own internal width and look squashed in that
+   column with dead space beside them. Widen the Starlight container to the full
+   pane ONLY on pages that embed us (`:has(.es-embed)`), so authored doc pages
+   keep the readable prose measure. es.css loads after Starlight (customCss), so
+   this wins the cascade without !important. */
+.sl-container:has(.es-embed) { max-width: none; }
+
 /* Starlight's `.sl-markdown-content` injects `margin-top` on flow-content
    siblings, which misaligns the children of our flex/grid layouts (e.g. the
    stat cards — the second+ cards' contents drop by a line). Neutralise it on

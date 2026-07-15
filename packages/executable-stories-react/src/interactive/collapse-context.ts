@@ -22,13 +22,15 @@ export function useCollapse(): CollapseApi | null {
 
 const STORAGE_KEY = "es-collapsed-ids";
 
-function readPersisted(): Set<string> {
-  if (typeof localStorage === "undefined") return new Set();
+/** Returns the persisted collapsed set, or null when the user has never set one
+ *  (so the caller can fall back to a data-driven default like failures-first). */
+function readPersisted(): Set<string> | null {
+  if (typeof localStorage === "undefined") return null;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? new Set(JSON.parse(raw) as string[]) : new Set();
+    return raw ? new Set(JSON.parse(raw) as string[]) : null;
   } catch {
-    return new Set();
+    return null;
   }
 }
 
@@ -43,10 +45,16 @@ function persist(ids: Set<string>): void {
 
 /**
  * Collapse state for the interactive report: a persisted set of collapsed
- * feature/scenario ids, plus expand-all / collapse-all.
+ * feature/scenario ids, plus expand-all / collapse-all. `computeDefault` seeds
+ * the initial set the FIRST time (nothing persisted yet) — the report uses it
+ * to open failures and collapse the rest, so a broken run reveals what failed
+ * without a click. Once the user toggles anything, their choice persists and
+ * wins over the default.
  */
-export function useCollapseState() {
-  const [collapsed, setCollapsed] = useState<Set<string>>(readPersisted);
+export function useCollapseState(computeDefault?: () => Set<string>) {
+  const [collapsed, setCollapsed] = useState<Set<string>>(
+    () => readPersisted() ?? computeDefault?.() ?? new Set<string>(),
+  );
 
   const isCollapsed = useCallback((id: string) => collapsed.has(id), [collapsed]);
 

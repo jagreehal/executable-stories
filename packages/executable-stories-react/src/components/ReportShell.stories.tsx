@@ -33,8 +33,12 @@ export const TitleBlock: StoryObj = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole("heading", { level: 1, name: "Checkout report" })).toBeVisible();
-    await expect(canvas.getByLabelText("Run summary")).toHaveTextContent(/3 scenarios/);
-    await expect(canvas.getByLabelText("Run metadata")).toBeVisible();
+    // Stat cards, not a text summary; meta renders as a bordered card.
+    await expect(canvas.getByLabelText("Run summary")).toHaveTextContent(/Total/);
+    // Metadata is tucked inside a collapsed "Run details" disclosure card.
+    await expect(canvas.getByText("Run details")).toBeVisible();
+    const meta = canvas.getByLabelText("Run metadata");
+    expect(meta.closest("[data-es-meta-card]")).not.toBeNull();
   },
 };
 

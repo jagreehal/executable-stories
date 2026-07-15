@@ -47,7 +47,7 @@ export function ReportFreshness({ lastRunMs, ciUrl, staleAfterDays, nowMs }: Rep
       <div className="es-stale-banner" role="status" aria-label="Report freshness">
         <span>
           <strong>Last verified {age}.</strong> This report may no longer match the current
-          behavior — look for a newer run.
+          behavior. Look for a newer run.
         </span>
         {runLink}
       </div>

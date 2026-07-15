@@ -18,11 +18,15 @@ const badgeVariants = cva(
           "border-border text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
         ghost: "[a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
         link: "text-primary underline-offset-4 [a&]:hover:underline",
-        passed: "border-pass-border bg-pass-bg text-pass font-mono uppercase",
+        // Pass/skip/pending are the quiet states: outline + coloured text, no
+        // fill, so a green report reads calm. Only `failed` keeps a tinted
+        // fill, making it the single loud badge on the page, so red pops the
+        // instant something breaks. Colour-as-accent, matching the KPI cards.
+        passed: "border-pass-border text-pass font-mono uppercase",
         failed: "border-fail-border bg-fail-bg text-fail font-mono uppercase",
-        skipped: "border-skip-border bg-skip-bg text-skip font-mono uppercase",
-        pending: "border-pend-border bg-pend-bg text-pend font-mono uppercase",
-        tag: "border-pass-border bg-pass-bg text-pass font-mono font-medium",
+        skipped: "border-skip-border text-skip font-mono uppercase",
+        pending: "border-pend-border text-pend font-mono uppercase",
+        tag: "border-border text-muted-foreground font-mono font-medium [a&]:hover:bg-muted",
       },
     },
     defaultVariants: {

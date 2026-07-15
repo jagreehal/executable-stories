@@ -10,13 +10,14 @@ describe("<Report>", () => {
     expect(screen.getByRole("main", { name: "Test report" })).toBeInTheDocument();
   });
 
-  it("renders the summary counts", () => {
+  it("renders the summary counts as stat cards", () => {
     render(<Report report={mixedReport} />);
     const summary = screen.getByLabelText("Run summary");
-    expect(summary.textContent).toMatch(/3 scenarios/);
-    expect(within(summary).getByText("1 passed")).toBeInTheDocument();
-    expect(within(summary).getByText("1 failed")).toBeInTheDocument();
-    expect(within(summary).getByText("1 skipped")).toBeInTheDocument();
+    // One labelled card per status; each holds its count.
+    for (const label of ["Total", "Passed", "Failed", "Skipped"]) {
+      expect(within(summary).getByText(label)).toBeInTheDocument();
+    }
+    expect(within(summary).getByText("3")).toBeInTheDocument();
   });
 
   it("renders one <section> per feature with title and source file", () => {
@@ -68,10 +69,13 @@ describe("<Report>", () => {
     expect(screen.getByRole("heading", { name: "Todos", level: 2 })).toBeInTheDocument();
   });
 
-  it("renders the scenario title as h3 and the status badge with aria-label", () => {
+  it("renders the scenario title as h3 and a passing scenario's status as sr-only text (no visible pill)", () => {
     render(<Report report={passingReport} />);
     expect(screen.getByRole("heading", { name: /Add a todo/, level: 3 })).toBeInTheDocument();
-    expect(screen.getByLabelText("Status: Passed")).toBeInTheDocument();
+    // A passing scenario drops the visible status pill — the green ✓ + title
+    // carry it — but keeps the status accessible to screen readers as sr-only
+    // text. (Non-pass statuses keep the aria-labelled badge; see the next test.)
+    expect(screen.getByText("Status: Passed")).toBeInTheDocument();
   });
 
   it("labels planned scenarios (it.todo) as Planned instead of Pending", () => {

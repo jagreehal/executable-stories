@@ -34,16 +34,23 @@ describe("ReportRoot + useReport", () => {
 });
 
 describe("<ReportSummaryView>", () => {
-  it("renders pre-computed counts", () => {
+  it("renders pre-computed counts as stat cards", () => {
     const { container } = render(<ReportSummaryView summary={mixedReport.summary} ariaLabel="Run summary" />);
-    expect(screen.getByLabelText("Run summary")).toHaveTextContent(/3 scenarios/);
-    expect(container.querySelector("[data-status=\"failed\"]")).toHaveTextContent("1 failed");
+    const summary = screen.getByLabelText("Run summary");
+    expect(summary).toHaveTextContent(/Total/);
+    // The failed card carries its label + count, tinted via the fail token.
+    const failed = container.querySelector('[data-status="failed"]');
+    expect(failed).toHaveTextContent("Failed");
+    expect(failed).toHaveTextContent("1");
   });
 
-  it("hides skipped/pending counters when zero", () => {
+  it("always shows the four base status cards (total/passed/failed/skipped)", () => {
     const { container } = render(<ReportSummaryView summary={passingReport.summary} />);
-    expect(container.querySelector("[data-status=\"skipped\"]")).toBeNull();
-    expect(container.querySelector("[data-status=\"pending\"]")).toBeNull();
+    // Even at zero, Skipped stays visible so the card row matches the report
+    // header design (a missing card reads as a broken layout, not a clean run).
+    expect(container.querySelector('[data-status="skipped"]')).not.toBeNull();
+    // Pending has no dedicated card unless the run has pending scenarios.
+    expect(container.querySelector('[data-status="pending"]')).toBeNull();
   });
 });
 

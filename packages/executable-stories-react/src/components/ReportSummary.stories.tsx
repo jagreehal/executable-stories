@@ -16,8 +16,13 @@ export const RunSummary: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const summary = canvas.getByLabelText("Run summary");
-    await expect(summary).toHaveTextContent(/3 scenarios/);
-    await expect(within(summary).getByText("1 passed")).toBeVisible();
-    await expect(within(summary).getByText("1 failed")).toBeVisible();
+    // Guard: the summary renders as stat cards, not a collapsed text line —
+    // one card per status, each labelled + counted. Regressing to a plain
+    // inline summary (the design bug this fixes) fails here.
+    await expect(within(summary).getByText("Total")).toBeVisible();
+    await expect(within(summary).getByText("Passed")).toBeVisible();
+    await expect(within(summary).getByText("Failed")).toBeVisible();
+    // 4 base cards (total/passed/failed/skipped) always render.
+    expect(summary.querySelectorAll("[data-status]").length).toBeGreaterThanOrEqual(4);
   },
 };

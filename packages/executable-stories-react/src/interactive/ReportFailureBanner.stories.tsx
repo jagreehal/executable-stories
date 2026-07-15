@@ -32,7 +32,7 @@ export const MultipleFailures: Story = {
     await expect(canvas.getByLabelText("Failure summary")).toBeVisible();
     await expect(canvas.getByText("2")).toBeVisible();
     await expect(canvas.getByText(/failures/)).toBeVisible();
-    await expect(canvas.getByRole("button", { name: "Jump to first failure" })).toBeVisible();
+    await expect(canvas.getByRole("button", { name: "View first failure" })).toBeVisible();
   },
 };
 
