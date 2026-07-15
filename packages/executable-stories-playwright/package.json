@@ -1,6 +1,6 @@
 {
   "name": "executable-stories-playwright",
-  "version": "8.6.3",
+  "version": "8.6.4",
   "license": "Apache-2.0",
   "description": "BDD-style executable stories for Playwright Test with documentation generation",
   "type": "module",
