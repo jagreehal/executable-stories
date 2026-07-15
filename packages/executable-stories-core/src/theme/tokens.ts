@@ -35,8 +35,8 @@ export const ES_THEME_TOKENS_CSS = `
   --es-color-skipped-bg: #f3f4f6;
   --es-color-pending-bg: #fffbeb;
   --es-warn-fg: #92400e;
-  --es-font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-  --es-font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  --es-font-body: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --es-font-mono: "Geist Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
   --es-size-base: 1rem;
   --es-size-sm: 0.875rem;
   --es-size-xs: 0.75rem;
@@ -49,7 +49,7 @@ export const ES_THEME_TOKENS_CSS = `
   --es-space-4: 1rem;
   --es-space-6: 1.5rem;
   --es-space-8: 2rem;
-  --es-radius: 0.5rem;
+  --es-radius: 0.625rem;
   --es-line: 1.6;
   --es-measure: 72ch;
 }

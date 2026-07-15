@@ -35,9 +35,9 @@ export function ReportFailureBanner({ failures }: ReportFailureBannerProps) {
         type="button"
         className="es-failure-banner-jump"
         onClick={jumpToFirst}
-        aria-label="Jump to first failure"
+        aria-label="View first failure"
       >
-        Jump to first ↓
+        View first failure ↓
       </button>
     </div>
   );

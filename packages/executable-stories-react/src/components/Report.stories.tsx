@@ -24,7 +24,9 @@ export const FullReport: Story = {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole("main", { name: "Test report" })).toBeVisible();
     await expect(canvas.getByRole("heading", { name: "Checkout", level: 2 })).toBeVisible();
-    await expect(canvas.getByLabelText("Run summary")).toHaveTextContent(/3 scenarios/);
+    // Summary renders as stat cards (Total/Passed/Failed/…), not a text line.
+    await expect(canvas.getByLabelText("Run summary")).toHaveTextContent(/Total/);
+    await expect(within(canvas.getByLabelText("Run summary")).getByText("Passed")).toBeVisible();
   },
 };
 

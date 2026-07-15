@@ -9,17 +9,18 @@ beforeEach(() => {
 });
 
 describe("<ReportInteractive>", () => {
-  it("renders the search input + counts", () => {
+  it("renders the search input; the resting count is hidden (dedup with the All tab)", () => {
     render(<ReportInteractive report={mixedReport} />);
     expect(screen.getByRole("searchbox")).toBeInTheDocument();
-    expect(screen.getByText("3 total")).toBeInTheDocument();
+    // No "N total" at rest — the "All N" status tab already carries the total.
+    expect(screen.queryByText(/\btotal\b/)).toBeNull();
   });
 
   it("filters scenarios when the user types", () => {
     render(<ReportInteractive report={mixedReport} />);
     const input = screen.getByRole("searchbox");
     fireEvent.change(input, { target: { value: "delete" } });
-    expect(screen.getByText("1 of 3")).toBeInTheDocument();
+    expect(screen.getByText("1 of 3 scenarios")).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: /^Add /, level: 3 })).toBeNull();
     expect(screen.queryByRole("heading", { name: /Login/, level: 3 })).toBeNull();
     expect(screen.getByRole("heading", { name: /Delete/, level: 3 })).toBeInTheDocument();
@@ -34,7 +35,7 @@ describe("<ReportInteractive>", () => {
   it("renders a sticky failure banner when failures exist", () => {
     render(<ReportInteractive report={mixedReport} />);
     expect(screen.getByLabelText("Failure summary")).toBeInTheDocument();
-    expect(screen.getByLabelText("Jump to first failure")).toBeInTheDocument();
+    expect(screen.getByLabelText("View first failure")).toBeInTheDocument();
   });
 
   it("does not render a failure banner when all pass", () => {

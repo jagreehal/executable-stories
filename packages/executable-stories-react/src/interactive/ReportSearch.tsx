@@ -6,6 +6,9 @@ import {
   type ChangeEvent,
   type KeyboardEvent,
 } from "react";
+import { Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 export interface ReportSearchProps {
   value: string;
@@ -23,12 +26,16 @@ export const ReportSearch = forwardRef<HTMLInputElement, ReportSearchProps>(
       onChange,
       matchedCount,
       totalCount,
-      placeholder = "Search scenarios, tags, or step text…",
+      placeholder = "Search scenarios or tags…",
       className,
     } = props;
     const inputId = useId();
+    // Only surface a count once the user is actually filtering — the "All N"
+    // status tab already shows the total, so a resting "N total" is duplication.
     const showCounts =
-      typeof matchedCount === "number" && typeof totalCount === "number";
+      value.trim().length > 0 &&
+      typeof matchedCount === "number" &&
+      typeof totalCount === "number";
 
     function handleChange(e: ChangeEvent<HTMLInputElement>) {
       onChange(e.target.value);
@@ -41,28 +48,38 @@ export const ReportSearch = forwardRef<HTMLInputElement, ReportSearchProps>(
       }
     }
 
+    // `es-search` is kept only as the print-hide hook (styles.css @media print);
+    // all styling is the shadcn Input + utilities now.
     return (
-      <div className={["es-search", className].filter(Boolean).join(" ")}>
-        <label htmlFor={inputId} className="es-search-label">
+      <div className={cn("es-search flex flex-col gap-1", className)}>
+        <label htmlFor={inputId} className="sr-only">
           Search
         </label>
-        <input
-          ref={ref}
-          id={inputId}
-          type="search"
-          value={value}
-          onChange={handleChange}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          autoComplete="off"
-          spellCheck={false}
-          aria-keyshortcuts="/"
-        />
+        <div className="relative w-full sm:w-72">
+          <Search
+            aria-hidden
+            className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
+          />
+          <Input
+            ref={ref}
+            id={inputId}
+            type="search"
+            value={value}
+            onChange={handleChange}
+            onKeyDown={handleKeyDown}
+            placeholder={placeholder}
+            autoComplete="off"
+            spellCheck={false}
+            aria-keyshortcuts="/"
+            className="pl-8"
+          />
+        </div>
         {showCounts ? (
-          <span className="es-search-counts" aria-live="polite">
-            {value
-              ? `${matchedCount} of ${totalCount}`
-              : `${totalCount} total`}
+          <span
+            className="text-xs tabular-nums text-muted-foreground"
+            aria-live="polite"
+          >
+            {matchedCount} of {totalCount} scenarios
           </span>
         ) : null}
       </div>

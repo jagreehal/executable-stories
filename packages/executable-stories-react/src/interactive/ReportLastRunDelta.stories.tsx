@@ -40,7 +40,7 @@ export const BehaviorChanged: Story = {
     const canvas = within(canvasElement);
     await expect(canvas.getByText(/1 newly failing/)).toBeVisible();
     await expect(canvas.getByText(/1 fixed/)).toBeVisible();
-    await expect(canvas.getByText(/1 new/)).toBeVisible();
+    await expect(canvas.getByText("1 new")).toBeVisible();
     await expect(canvas.getByRole("link", { name: broke.title })).toBeVisible();
   },
 };

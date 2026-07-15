@@ -6,18 +6,19 @@ import { scrollToScenarioId } from "../lib/scroll";
 import { cn } from "@/lib/utils";
 
 const DOT: Record<string, string> = {
-  passed: "text-pass",
-  failed: "text-fail",
-  skipped: "text-skip",
-  pending: "text-pend",
+  passed: "bg-pass",
+  failed: "bg-fail",
+  skipped: "bg-skip",
+  pending: "bg-pend",
 };
 
 /**
- * Sticky table-of-contents nav for the interactive report. Reads the (filtered)
- * report from context, so it syncs with search/status/tag filters automatically.
- * Tracks the scenario nearest the top of the viewport via IntersectionObserver.
+ * The table-of-contents list + scroll-spy, shared by the sticky `ReportToc`
+ * sidebar (lg+) and the narrow-screen `ReportTocDrawer`. Tracks the scenario
+ * nearest the top of the viewport via IntersectionObserver. `onNavigate` fires
+ * after a link is followed, so the drawer can close itself.
  */
-export function ReportToc() {
+export function TocContent({ onNavigate }: { onNavigate?: () => void }) {
   const report = useReport();
   const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -48,44 +49,65 @@ export function ReportToc() {
 
   if (report.features.length === 0) return null;
 
+  // `list-none pl-0` explicitly: the drawer portals OUTSIDE `.es-report-island`,
+  // so it can't rely on the island's list reset — bullets would leak otherwise.
+  return (
+    <ul className="flex list-none flex-col gap-4 pl-0">
+      {report.features.map((feature) => (
+        <li key={feature.id}>
+          <p className="mb-1.5 font-semibold leading-snug text-foreground">{feature.title}</p>
+          <ul className="flex list-none flex-col gap-0.5 pl-0">
+            {feature.scenarios.map((scenario) => {
+              const active = activeId === scenario.id;
+              return (
+                <li key={scenario.id}>
+                  <a
+                    href={`#${scenario.id}`}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      scrollToScenarioId(scenario.id, { updateHash: true });
+                      onNavigate?.();
+                    }}
+                    aria-current={active ? "true" : undefined}
+                    className={cn(
+                      "flex items-start gap-2 border-l-2 py-1 pl-2.5 leading-snug hover:text-foreground",
+                      active
+                        ? "border-primary font-medium text-foreground"
+                        : "border-border text-muted-foreground",
+                    )}
+                  >
+                    <span
+                      aria-hidden
+                      className={cn("mt-1 size-1.5 shrink-0 rounded-full", DOT[scenario.status])}
+                    />
+                    <span className="break-words">{scenario.title}</span>
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/**
+ * Sticky table-of-contents nav for the interactive report (lg+ only). On
+ * narrow screens it's hidden and `ReportTocDrawer` provides the same nav.
+ */
+export function ReportToc() {
+  const report = useReport();
+  if (report.features.length === 0) return null;
   return (
     <nav
       aria-label="Table of contents"
-      className="sticky top-4 hidden h-fit w-56 shrink-0 self-start text-xs lg:block"
+      className="sticky top-4 hidden h-fit w-64 shrink-0 self-start text-xs lg:block"
     >
-      <ul className="flex flex-col gap-3">
-        {report.features.map((feature) => (
-          <li key={feature.id}>
-            <p className="mb-1 truncate font-semibold text-foreground">{feature.title}</p>
-            <ul className="flex flex-col">
-              {feature.scenarios.map((scenario) => {
-                const active = activeId === scenario.id;
-                return (
-                  <li key={scenario.id}>
-                    <a
-                      href={`#${scenario.id}`}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        scrollToScenarioId(scenario.id, { updateHash: true });
-                      }}
-                      aria-current={active ? "true" : undefined}
-                      className={cn(
-                        "flex items-center gap-1.5 truncate border-l-2 py-0.5 pl-2 hover:text-foreground",
-                        active
-                          ? "border-primary font-medium text-foreground"
-                          : "border-border text-muted-foreground",
-                      )}
-                    >
-                      <span aria-hidden className={cn("shrink-0", DOT[scenario.status])}>•</span>
-                      <span className="truncate">{scenario.title}</span>
-                    </a>
-                  </li>
-                );
-              })}
-            </ul>
-          </li>
-        ))}
-      </ul>
+      <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        Contents
+      </p>
+      <TocContent />
     </nav>
   );
 }

@@ -34,7 +34,7 @@ export function ReportTrace({ spans }: { spans: readonly OtelSpan[] | undefined 
               <span
                 className="min-w-0 flex-1 truncate text-foreground"
                 style={{ paddingLeft: `${row.depth * 12}px` }}
-                title={row.statusMessage ? `${row.name} — ${row.statusMessage}` : row.name}
+                title={row.statusMessage ? `${row.name}: ${row.statusMessage}` : row.name}
               >
                 {row.name}
               </span>

@@ -22,44 +22,56 @@ export function ReportFeature({ feature }: ReportFeatureProps) {
   const collapse = useCollapse();
   const collapsed = collapse?.isCollapsed(feature.id) ?? false;
   return (
+    // Suite = a section heading + a divider, NOT another bordered card. Drops a
+    // layer of nesting so the scenario cards below read as the primary unit.
     <section
       id={feature.id}
       data-slot="feature"
       aria-labelledby={titleId}
-      className="overflow-hidden rounded-xl border border-border bg-card shadow-sm"
+      className="flex flex-col gap-3"
     >
-      <div className="flex items-center justify-between gap-4 border-b border-border bg-muted/40 px-4 py-3">
-        <div className="flex min-w-0 items-center gap-2">
-          {collapse ? (
-            <button
-              type="button"
-              onClick={() => collapse.toggle(feature.id)}
-              aria-expanded={!collapsed}
-              aria-controls={bodyId}
-              aria-label={`Toggle ${feature.title}`}
-              className="shrink-0 cursor-pointer text-muted-foreground hover:text-foreground"
-            >
-              <span aria-hidden className={cn("inline-block text-xs transition-transform", !collapsed && "rotate-90")}>▸</span>
-            </button>
-          ) : null}
-          <div className="min-w-0">
-            <h2 id={titleId} className="text-sm font-semibold tracking-tight text-foreground">
-              {feature.title}
-            </h2>
-            <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">{feature.sourceFile}</p>
-          </div>
+      <div className="flex items-end justify-between gap-4 border-b border-border pb-2">
+        <div className="min-w-0">
+          {/* The heading itself is the toggle — a wide, obvious hit area rather
+              than a lone caret. Kept inside <h2> so it stays a landmark. */}
+          <h2 id={titleId} className="text-base font-semibold tracking-tight text-foreground">
+            {collapse ? (
+              <button
+                type="button"
+                onClick={() => collapse.toggle(feature.id)}
+                aria-expanded={!collapsed}
+                aria-controls={bodyId}
+                className="flex w-full cursor-pointer items-center gap-2 text-left hover:text-foreground/80"
+              >
+                <span aria-hidden className={cn("shrink-0 text-xs text-muted-foreground transition-transform", !collapsed && "rotate-90")}>▸</span>
+                <span className="truncate">{feature.title}</span>
+              </button>
+            ) : (
+              feature.title
+            )}
+          </h2>
+          <p className={cn("mt-0.5 truncate font-mono text-xs text-muted-foreground", collapse && "pl-5")}>
+            {feature.sourceFile}
+          </p>
         </div>
-        <div
-          role="img"
-          className="flex shrink-0 items-center gap-2.5 font-mono text-xs font-medium"
+        {/* Readable, failure-weighted counts — only the failure count carries
+            colour, so a broken suite reads at a glance without a colour salad. */}
+        <p
+          className="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground"
           aria-label={`${s.passed} passed, ${s.failed} failed, ${skipped} skipped`}
         >
-          <span aria-hidden className="text-pass">✓{s.passed}</span>
-          <span aria-hidden className="text-fail">✗{s.failed}</span>
-          <span aria-hidden className="text-skip">○{skipped}</span>
-        </div>
+          <span>{s.passed} passed</span>
+          <span aria-hidden>·</span>
+          <span className={cn(s.failed > 0 && "font-medium text-fail")}>{s.failed} failed</span>
+          {skipped > 0 ? (
+            <>
+              <span aria-hidden>·</span>
+              <span>{skipped} skipped</span>
+            </>
+          ) : null}
+        </p>
       </div>
-      <div id={bodyId} hidden={collapsed} className="flex flex-col gap-2 p-3">
+      <div id={bodyId} hidden={collapsed} className="flex flex-col gap-3">
         <ReportScenarioList feature={feature} />
       </div>
     </section>

@@ -19,7 +19,7 @@
  * (box-sizing, border defaults) are scoped to `.es-report-island` below.
  */
 @layer theme, base, components, utilities;
-@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&family=Geist:wght@400;500;600;700&display=swap");
 @import "tailwindcss/theme.css" layer(theme);
 @import "tailwindcss/utilities.css" layer(utilities);
 @import "../styles.css";
@@ -40,10 +40,25 @@
     border-style: solid;
     border-color: var(--border);
   }
+  /* No preflight ships (it would wreck host chrome), so a bare <button> renders
+     with the browser's native grey background, padding, and font. Normalise
+     buttons INSIDE the island only — the slice of preflight the report's
+     buttons rely on. Utilities (bg-*, px-*, border, text-*) still win via the
+     utilities layer, so styled buttons keep their look; bare click targets
+     (the tag chips) become transparent instead of native grey. */
+  .es-report-island button {
+    appearance: none;
+    background-color: transparent;
+    background-image: none;
+    padding: 0;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+  }
   /* Neutralise host (Starlight) flow margins + default list markers inside the
      island; component utilities (mt-*, list-*) still win via the utilities
      layer. :where() keeps specificity at 0. */
-  .es-report-island :where(h1, h2, h3, h4, h5, h6, p, ul, ol, figure, pre, blockquote) {
+  .es-report-island :where(h1, h2, h3, h4, h5, h6, p, ul, ol, dl, figure, pre, blockquote) {
     margin: 0;
   }
   .es-report-island :where(ul, ol) {
@@ -70,7 +85,9 @@
   --secondary-foreground: hsl(0 0% 9%);
   --muted: hsl(0 0% 96.5%);
   --muted-foreground: hsl(0 0% 38%);
-  --accent: hsl(0 0% 96.5%);
+  /* Accent is the selected/hover fill (toggle-group segment, dropdown highlight).
+     Darker than muted so the active view mode reads at a glance. */
+  --accent: hsl(0 0% 91%);
   --accent-foreground: hsl(0 0% 9%);
   --destructive: hsl(0 72% 42%);
   --destructive-foreground: hsl(0 0% 100%);
@@ -110,7 +127,7 @@
   --secondary-foreground: hsl(0 0% 95%);
   --muted: hsl(0 0% 13%);
   --muted-foreground: hsl(0 0% 64%);
-  --accent: hsl(0 0% 14%);
+  --accent: hsl(0 0% 22%);
   --accent-foreground: hsl(0 0% 95%);
   --destructive: hsl(0 72% 58%);
   --destructive-foreground: hsl(0 0% 100%);
@@ -172,10 +189,13 @@
   --color-step-param: var(--es-step-param);
   --color-link: var(--es-link);
 
-  --font-sans: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* Reference the canonical --es-* tokens (from ../styles.css, kept in lockstep
+     with executable-stories-core) rather than restating the font stack / radius
+     here. One source of truth: change them in core and every surface follows. */
+  --font-sans: var(--es-font-body);
+  --font-mono: var(--es-font-mono);
 
-  --radius: 0.5rem;
+  --radius: var(--es-radius);
 }
 
 /*

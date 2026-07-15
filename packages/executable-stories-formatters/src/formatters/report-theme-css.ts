@@ -72,15 +72,18 @@ const DARK_TOKENS = `
   --accordion-content-bg: hsl(0 0% 7%);`;
 
 export const REPORT_THEME_CSS = `
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap');
 
 /* executable-stories canonical tokens (--es-*), shared with executable-stories-react. */
 ${ES_THEME_TOKENS_CSS}
 
 /* Light mode (default) — shadcn/ui base with cucumber accent. */
 :root {
-  --font-sans: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  /* Reference the canonical --es-* tokens (defined just above via
+     ES_THEME_TOKENS_CSS) instead of restating the font stack, so the report
+     shell and the shared token contract can't drift. */
+  --font-sans: var(--es-font-body);
+  --font-mono: var(--es-font-mono);
 
   --background: hsl(0 0% 100%);
   --foreground: hsl(0 0% 9%);
@@ -103,7 +106,7 @@ ${ES_THEME_TOKENS_CSS}
   --border: hsl(0 0% 90%);
   --input: hsl(0 0% 90%);
   --ring: hsl(145 63% 42%);
-  --radius: 0.5rem;
+  --radius: var(--es-radius);
 
   --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.03);
   --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.06);

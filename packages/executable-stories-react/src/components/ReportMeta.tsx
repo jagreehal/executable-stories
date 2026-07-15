@@ -72,13 +72,22 @@ export function ReportMeta() {
   if (items.length === 0) return null;
 
   return (
-    <dl aria-label="Run metadata" className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground">
-      {items.map((item) => (
-        <div key={item.label} className="flex gap-1.5">
-          <dt className="font-medium">{item.label}</dt>
-          <dd className="font-mono text-foreground">{item.value}</dd>
-        </div>
-      ))}
-    </dl>
+    // Run metadata is useful but secondary to "what failed" — tuck it into a
+    // collapsed disclosure so it doesn't push the result down. Native <details>
+    // so it works with no JS (the SSR/no-hydration report still toggles).
+    <details data-es-meta-card className="es-run-details group rounded-lg border border-border bg-card text-xs">
+      <summary className="flex cursor-pointer list-none select-none items-center gap-1.5 px-4 py-2 font-medium text-muted-foreground [&::-webkit-details-marker]:hidden">
+        <span aria-hidden className="text-xs transition-transform group-open:rotate-90">▸</span>
+        Run details
+      </summary>
+      <dl className="flex flex-wrap gap-x-5 gap-y-2 border-t border-border px-4 py-3 text-muted-foreground" aria-label="Run metadata">
+        {items.map((item) => (
+          <div key={item.label} className="flex items-baseline gap-1.5">
+            <dt className="font-medium">{item.label}</dt>
+            <dd className="font-mono text-foreground">{item.value}</dd>
+          </div>
+        ))}
+      </dl>
+    </details>
   );
 }

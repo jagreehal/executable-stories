@@ -74,3 +74,29 @@ export const ToggleChips: Story = {
     await expect(tag).toHaveAttribute("aria-pressed", "true");
   },
 };
+
+// A tag-heavy report collapses the tag list to one row (first 12) behind a
+// "+N more" toggle, so it doesn't open with a tall grey brick. Expanding
+// reveals the rest.
+const MANY_TAGS = [
+  "auth", "oopsi", "smoke", "integration", "compliance", "platform",
+  "expire", "widget", "reference-data", "onboarding", "partner", "e2e",
+  "payments", "cleanup", "balances", "royalties", "recipients", "batch",
+  "fees", "fx",
+];
+
+export const ManyTagsCollapse: Story = {
+  render: (args) => <StatefulFilters {...args} />,
+  args: { tags: MANY_TAGS },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    // 20 tags, limit 12 → 8 hidden behind the toggle; a later tag isn't rendered yet.
+    const more = canvas.getByRole("button", { name: "+8 more" });
+    await expect(more).toBeVisible();
+    await expect(canvas.queryByRole("button", { name: "fx" })).toBeNull();
+    // Expanding reveals the rest and flips the toggle to "Show fewer".
+    await userEvent.click(more);
+    await expect(canvas.getByRole("button", { name: "fx" })).toBeVisible();
+    await expect(canvas.getByRole("button", { name: "Show fewer" })).toBeVisible();
+  },
+};

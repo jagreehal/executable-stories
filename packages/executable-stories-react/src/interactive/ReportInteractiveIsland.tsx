@@ -11,6 +11,8 @@ export interface ReportInteractiveIslandProps {
   title?: string;
   className?: string;
   hideHeader?: boolean;
+  /** Drop the in-content scenario TOC sidebar (host provides scenario nav). */
+  hideToc?: boolean;
   /** Render code blocks with CDN highlight.js (default true). */
   syntaxHighlighting?: boolean;
   /** Render `story.mermaid(...)` blocks as CDN-loaded SVG diagrams (default true). */
@@ -34,6 +36,7 @@ export function ReportInteractiveIsland({
   title,
   className,
   hideHeader,
+  hideToc,
   syntaxHighlighting = true,
   mermaid = true,
 }: ReportInteractiveIslandProps) {
@@ -47,6 +50,7 @@ export function ReportInteractiveIsland({
       title={title}
       className={className}
       hideHeader={hideHeader}
+      hideToc={hideToc}
       renderers={renderers}
     />
   );

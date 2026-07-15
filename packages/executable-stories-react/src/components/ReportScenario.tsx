@@ -9,6 +9,13 @@ import { useCollapse } from "../interactive/collapse-context";
 import { useScenarioActions } from "../interactive/scenario-actions";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { LinkIcon, FileTextIcon, SparklesIcon, MoreHorizontalIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface ReportScenarioProps {
@@ -23,40 +30,35 @@ export interface ReportScenarioProps {
 
 type Status = ReportScenarioT["status"];
 
-const STATUS_LABEL: Record<Status, string> = {
-  passed: "Passed",
-  failed: "Failed",
-  skipped: "Skipped",
-  pending: "Pending",
-};
+interface StatusMeta {
+  label: string;
+  glyph: string;
+  glyphColor: string;
+  badgeVariant: "passed" | "failed" | "skipped" | "pending";
+  /**
+   * Whether to render the status as a visible pill. Passing scenarios drop it:
+   * the green ✓ glyph + title already carry the status, so the pill would be
+   * pure redundancy on every (usually passing) row, and dropping it keeps a
+   * green run calm while the failure pill stays the one loud badge. A
+   * non-showPill status still exposes an sr-only label for screen readers.
+   */
+  showPill: boolean;
+}
 
-const STATUS_GLYPH: Record<Status, string> = {
-  passed: "✓",
-  failed: "✗",
-  skipped: "○",
-  pending: "○",
-};
-
-const STATUS_GLYPH_COLOR: Record<Status, string> = {
-  passed: "text-pass",
-  failed: "text-fail",
-  skipped: "text-skip",
-  pending: "text-pend",
-};
-
-const STATUS_BADGE: Record<Status, "passed" | "failed" | "skipped" | "pending"> = {
-  passed: "passed",
-  failed: "failed",
-  skipped: "skipped",
-  pending: "pending",
+const STATUS_META: Record<Status, StatusMeta> = {
+  passed: { label: "Passed", glyph: "✓", glyphColor: "text-pass", badgeVariant: "passed", showPill: false },
+  failed: { label: "Failed", glyph: "✗", glyphColor: "text-fail", badgeVariant: "failed", showPill: true },
+  skipped: { label: "Skipped", glyph: "○", glyphColor: "text-skip", badgeVariant: "skipped", showPill: true },
+  pending: { label: "Pending", glyph: "○", glyphColor: "text-pend", badgeVariant: "pending", showPill: true },
 };
 
 export function ReportScenario({ scenario, hideTitle = false }: ReportScenarioProps) {
   const titleId = `${scenario.id}-title`;
   const bodyId = `${scenario.id}-body`;
+  const meta = STATUS_META[scenario.status];
   // A planned scenario (it.todo) is canonically "pending", but the reader
   // should see intent, not limbo.
-  const label = scenario.planned ? "Planned" : STATUS_LABEL[scenario.status];
+  const label = scenario.planned ? "Planned" : meta.label;
   const collapse = useCollapse();
   const collapsible = collapse !== null && !hideTitle;
   const collapsed = collapsible ? collapse!.isCollapsed(scenario.id) : false;
@@ -66,7 +68,7 @@ export function ReportScenario({ scenario, hideTitle = false }: ReportScenarioPr
       id={scenario.id}
       data-status={scenario.status}
       {...(hideTitle
-        ? { "aria-label": `${scenario.title} — ${label}` }
+        ? { "aria-label": `${scenario.title}, ${label}` }
         : { "aria-labelledby": titleId })}
       className="gap-0 py-0"
     >
@@ -86,8 +88,8 @@ export function ReportScenario({ scenario, hideTitle = false }: ReportScenarioPr
                   <span aria-hidden className={cn("inline-block text-xs transition-transform", !collapsed && "rotate-90")}>▸</span>
                 </button>
               ) : null}
-              <span aria-hidden className={cn("text-sm leading-none", STATUS_GLYPH_COLOR[scenario.status])}>
-                {STATUS_GLYPH[scenario.status]}
+              <span aria-hidden className={cn("text-sm leading-none", meta.glyphColor)}>
+                {meta.glyph}
               </span>
               <span>{scenario.title}</span>
             </h3>
@@ -99,39 +101,33 @@ export function ReportScenario({ scenario, hideTitle = false }: ReportScenarioPr
                 {formatDuration(scenario.durationMs)}
               </span>
             ) : null}
-            <Badge variant={STATUS_BADGE[scenario.status]} aria-label={`Status: ${label}`}>
-              {label}
-            </Badge>
+            {meta.showPill ? (
+              <Badge variant={meta.badgeVariant} aria-label={`Status: ${label}`}>
+                {label}
+              </Badge>
+            ) : (
+              <span className="sr-only">{`Status: ${label}`}</span>
+            )}
             {actions ? (
-              <div className="flex items-center gap-0.5">
-                <button
-                  type="button"
-                  onClick={() => actions.copyLink(scenario)}
-                  aria-label={`Copy link to ${scenario.title}`}
-                  title="Copy permalink"
-                  className="cursor-pointer rounded px-1 py-0.5 font-mono text-[0.625rem] text-muted-foreground hover:bg-muted hover:text-foreground"
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  aria-label={`Actions for ${scenario.title}`}
+                  className="cursor-pointer rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground [&_svg]:size-4"
                 >
-                  link
-                </button>
-                <button
-                  type="button"
-                  onClick={() => actions.copyMarkdown(scenario)}
-                  aria-label={`Copy ${scenario.title} as Markdown`}
-                  title="Copy as Markdown"
-                  className="cursor-pointer rounded px-1 py-0.5 font-mono text-[0.625rem] text-muted-foreground hover:bg-muted hover:text-foreground"
-                >
-                  md
-                </button>
-                <button
-                  type="button"
-                  onClick={() => actions.copyPrompt(scenario)}
-                  aria-label={`Copy ${scenario.title} as an AI investigation prompt`}
-                  title="Copy as AI prompt"
-                  className="cursor-pointer rounded px-1 py-0.5 font-mono text-[0.625rem] text-muted-foreground hover:bg-muted hover:text-foreground"
-                >
-                  ai
-                </button>
-              </div>
+                  <MoreHorizontalIcon aria-hidden />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => actions.copyLink(scenario)}>
+                    <LinkIcon /> Copy link
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => actions.copyMarkdown(scenario)}>
+                    <FileTextIcon /> Copy as Markdown
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => actions.copyPrompt(scenario)}>
+                    <SparklesIcon /> Explain with AI
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             ) : null}
           </div>
         </div>

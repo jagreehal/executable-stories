@@ -12,11 +12,13 @@ import fs from "node:fs";
 import path from "node:path";
 
 import type { AstroIntegration } from "astro";
+import { canonicalizeRun, toStoryReport, type StoryReport } from "executable-stories-core";
 
 import { storiesLoader } from "./loader.js";
 import { resolveThemeCss } from "./theme.js";
 import {
   resolveSources,
+  passesFilter,
   type ExecutableStoriesConfig,
   type AuthoredDocsSource,
 } from "./config.js";
@@ -325,9 +327,85 @@ export function createStoriesLoader(options: ExecutableStoriesOptions) {
 }
 
 /** A Starlight sidebar entry (the shapes we emit; Starlight accepts more). */
+/** An item inside a sidebar group: a link, a nested group, or an autogen dir. */
+export type SidebarItem =
+  | { label: string; link: string }
+  | { label: string; collapsed?: boolean; items: SidebarItem[] }
+  | { autogenerate: { directory: string } };
+
 export type SidebarEntry =
   | { label: string; link: string }
-  | { label: string; items: Array<{ autogenerate: { directory: string } }> };
+  | { label: string; collapsed?: boolean; items: SidebarItem[] };
+
+/**
+ * Build the story report(s) from the configured run JSON at config-load time,
+ * through the SAME `canonicalizeRun` → `toStoryReport` path the page's island
+ * renders through — so scenario ids (and therefore the `#anchor` links) match
+ * the rendered DOM exactly. Reads synchronously and swallows every error (a
+ * missing or half-written run JSON must never break `astro.config` load); the
+ * caller falls back to a plain link when this yields nothing.
+ */
+function loadStoryReports(config: ExecutableStoriesConfig): StoryReport[] {
+  let sources: ReturnType<typeof resolveSources>;
+  try {
+    sources = resolveSources(config);
+  } catch {
+    return [];
+  }
+  const reports: StoryReport[] = [];
+  for (const src of sources) {
+    try {
+      const abs = path.resolve(src.source);
+      let text: string | undefined;
+      if (fs.existsSync(abs)) {
+        text = fs.readFileSync(abs, "utf8");
+      } else if (config.sampleSource) {
+        const sampleAbs = path.resolve(config.sampleSource);
+        if (fs.existsSync(sampleAbs)) text = fs.readFileSync(sampleAbs, "utf8");
+      }
+      if (!text) continue;
+      const json = JSON.parse(text);
+      const canonical = src.inputType === "canonical" ? json : canonicalizeRun(json);
+      reports.push(toStoryReport(canonical));
+    } catch {
+      // A malformed/partial run JSON for one source must not break site nav.
+      continue;
+    }
+  }
+  return reports;
+}
+
+/**
+ * Feature → scenario nav for the Starlight sidebar: one collapsed group per
+ * feature, each scenario a deep link to `/stories#<scenario-id>`. Honours the
+ * same include/exclude the page applies (`passesFilter`), so no link ever
+ * points at a scenario the page hides.
+ */
+function storyNavItems(config: ExecutableStoriesConfig): SidebarItem[] {
+  const href = joinHref(normalizeBase(config.routeBase ?? "/stories"));
+  const groups: SidebarItem[] = [];
+  for (const report of loadStoryReports(config)) {
+    for (const feature of report.features) {
+      const scenarios = feature.scenarios.filter((s) =>
+        passesFilter(
+          {
+            status: s.status,
+            tags: s.tags ?? [],
+            feature: { title: feature.title, sourceFile: feature.sourceFile },
+          },
+          config,
+        ),
+      );
+      if (scenarios.length === 0) continue;
+      groups.push({
+        label: feature.title,
+        collapsed: true,
+        items: scenarios.map((s) => ({ label: s.title, link: `${href}#${s.id}` })),
+      });
+    }
+  }
+  return groups;
+}
 
 /** Title-case a slug/segment for a default nav label ("deploy-runbooks" -> "Deploy Runbooks"). */
 function titleCase(value: string): string {
@@ -357,7 +435,20 @@ export function storiesSidebar(
   const explorerBase = normalizeBase(config.explorerBase ?? "/explorer");
   const entries: SidebarEntry[] = [];
   if (opts.stories !== false && (config.injectStoryRoute ?? true)) {
-    entries.push({ label: "Stories", link: joinHref(routeBase) });
+    // Fold the feature/scenario tree into the sidebar so the docs site has ONE
+    // nav rail — the report drops its own in-content TOC when embedded
+    // (StoriesIndexView passes hideToc). Falls back to a plain link when no run
+    // JSON is readable yet (first run before tests emit results).
+    const nav = storyNavItems(config);
+    if (nav.length > 0) {
+      entries.push({
+        label: "Stories",
+        collapsed: false,
+        items: [{ label: "All scenarios", link: joinHref(routeBase) }, ...nav],
+      });
+    } else {
+      entries.push({ label: "Stories", link: joinHref(routeBase) });
+    }
   }
   if (opts.explorer !== false && (config.injectExplorer ?? true)) {
     entries.push({ label: "Explorer", link: joinHref(explorerBase) });

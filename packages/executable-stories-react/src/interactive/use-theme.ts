@@ -2,55 +2,67 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-type Theme = "light" | "dark";
+export type ThemePref = "light" | "system" | "dark";
 const KEY = "es-theme";
 
-function applyTheme(theme: Theme): void {
+function systemDark(): boolean {
+  return typeof matchMedia !== "undefined" && matchMedia("(prefers-color-scheme: dark)").matches;
+}
+
+function resolve(pref: ThemePref): "light" | "dark" {
+  return pref === "system" ? (systemDark() ? "dark" : "light") : pref;
+}
+
+function applyTheme(pref: ThemePref): void {
   if (typeof document !== "undefined") {
-    document.documentElement.setAttribute("data-theme", theme);
+    document.documentElement.setAttribute("data-theme", resolve(pref));
   }
 }
 
-function initialTheme(): Theme {
+function initialPref(): ThemePref {
   if (typeof localStorage !== "undefined") {
     const stored = localStorage.getItem(KEY);
-    if (stored === "light" || stored === "dark") return stored;
+    if (stored === "light" || stored === "dark" || stored === "system") return stored;
   }
-  if (typeof document !== "undefined" && document.documentElement.getAttribute("data-theme") === "dark") {
-    return "dark";
-  }
-  if (typeof matchMedia !== "undefined" && matchMedia("(prefers-color-scheme: dark)").matches) {
-    return "dark";
-  }
-  return "light";
+  // Nothing stored → follow the OS. (The old 2-way toggle also honoured the
+  // prefers-color-scheme media query on first load, so this keeps that default.)
+  return "system";
 }
 
 /**
- * Dark/light theme toggle for the standalone report. Flips `data-theme` on
- * <html> (the Tailwind `dark` variant keys on any ancestor) and persists the
- * choice. No-ops gracefully outside the browser.
+ * Light / System / Dark theme preference for the standalone report. Sets
+ * `data-theme` on <html> (the Tailwind `dark` variant keys off it), resolving
+ * "system" through prefers-color-scheme and re-resolving when the OS flips while
+ * on "system". Persists the choice. No-ops gracefully outside the browser.
  */
-export function useTheme(): { theme: Theme; toggle: () => void } {
-  const [theme, setTheme] = useState<Theme>("light");
+export function useTheme(): { pref: ThemePref; setPref: (p: ThemePref) => void } {
+  const [pref, setPrefState] = useState<ThemePref>("system");
 
   useEffect(() => {
-    const t = initialTheme();
-    setTheme(t);
-    applyTheme(t);
+    const p = initialPref();
+    setPrefState(p);
+    applyTheme(p);
   }, []);
 
-  const toggle = useCallback(() => {
-    setTheme((prev) => {
-      const next: Theme = prev === "dark" ? "light" : "dark";
-      applyTheme(next);
-      try {
-        localStorage.setItem(KEY, next);
-      } catch {
-        /* disabled / quota */
-      }
-      return next;
-    });
+  useEffect(() => {
+    if (typeof matchMedia === "undefined") return;
+    const mq = matchMedia("(prefers-color-scheme: dark)");
+    const onChange = () => {
+      if (pref === "system") applyTheme("system");
+    };
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, [pref]);
+
+  const setPref = useCallback((p: ThemePref) => {
+    setPrefState(p);
+    applyTheme(p);
+    try {
+      localStorage.setItem(KEY, p);
+    } catch {
+      /* disabled / quota */
+    }
   }, []);
 
-  return { theme, toggle };
+  return { pref, setPref };
 }
