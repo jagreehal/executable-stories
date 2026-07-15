@@ -8,10 +8,14 @@
 
 import type {
   ChangedFileReview,
+  CodeDiffAnnotation,
+  CodeDiffEvidence,
+  CodeDiffScenarioRef,
   EvidenceStrength,
   ReviewClaim,
   ReviewResult,
 } from "../types/review";
+import type { DiffHunk, FileDiff } from "../types/diff";
 import type { DocEntry, StoryStep } from "executable-stories-core/types/story";
 import type { TestCaseResult } from "executable-stories-core/types/test-result";
 import { REPORT_THEME_CSS } from "./report-theme-css";
@@ -141,7 +145,7 @@ function renderClaimCard(claim: ReviewClaim): string {
       : "";
 
   return `
-    <article class="claim-card" data-audience="${claim.audience}" data-strength="${claim.strength}" data-search="${search}">
+    <article class="claim-card" id="claim-${escapeHtml(claim.id)}" data-audience="${claim.audience}" data-strength="${claim.strength}" data-search="${search}">
       <header class="claim-header">
         <div>
           <span class="strength-badge strength-${claim.strength}">${STRENGTH_LABEL[claim.strength]}</span>
@@ -175,6 +179,112 @@ function renderChangedFileRow(file: ChangedFileReview): string {
     <td>${escapeHtml(file.changeKind)}</td>
     <td>${claims}</td>
   </tr>`;
+}
+
+/** Raw patches above this embed as a "too large" notice instead of inline text. */
+const MAX_PATCH_EMBED_BYTES = 256 * 1024;
+
+function renderScenarioRef(ref: CodeDiffScenarioRef): string {
+  if (!ref.resolved) {
+    return `<span class="scenario-ref unverified">⚠️ ${escapeHtml(ref.id)} (unverified reference)</span>`;
+  }
+  const icon = ref.status === "passed" ? "✅" : ref.status === "failed" ? "❌" : "⊘";
+  return `<a class="scenario-ref" href="#claim-${escapeHtml(ref.id)}">${icon} ${escapeHtml(ref.scenario ?? ref.id)}</a>`;
+}
+
+/** One hunk as escaped table rows; the anchored changed run gets a highlight class. */
+function renderDiffHunk(
+  file: FileDiff,
+  hunk: DiffHunk,
+  anchoredStart?: number,
+  anchoredCount?: number
+): string {
+  let oldLn = hunk.oldStart;
+  let newLn = hunk.newStart;
+  const rows = hunk.lines.map((line, i) => {
+    const anchored =
+      anchoredStart !== undefined &&
+      anchoredCount !== undefined &&
+      i >= anchoredStart &&
+      i < anchoredStart + anchoredCount;
+    const cls = `diff-${line.kind}${anchored ? " diff-anchored" : ""}`;
+    const o = line.kind === "add" ? "" : String(oldLn++);
+    const n = line.kind === "del" ? "" : String(newLn++);
+    const sign = line.kind === "add" ? "+" : line.kind === "del" ? "-" : " ";
+    return `<tr class="${cls}"><td class="diff-ln">${o}</td><td class="diff-ln">${n}</td><td class="diff-sign">${sign}</td><td class="diff-code">${escapeHtml(line.text)}</td></tr>`;
+  });
+  const path = file.newPath ?? file.oldPath ?? "";
+  return `<div class="diff-hunk">
+    <div class="diff-file-header"><code>${escapeHtml(path)}</code> <span class="subtle">@@ -${hunk.oldStart} +${hunk.newStart} @@ ${escapeHtml(hunk.header)}</span></div>
+    <table class="diff-table"><tbody>${rows.join("")}</tbody></table>
+  </div>`;
+}
+
+function renderAnnotation(
+  evidence: CodeDiffEvidence,
+  annotation: CodeDiffAnnotation,
+  diffIndex: number,
+  index: number
+): string {
+  const scenarios =
+    annotation.scenarios.length > 0
+      ? `<div class="scenario-row">${annotation.scenarios.map(renderScenarioRef).join("")}</div>`
+      : `<p class="no-scenario">Not covered by a scenario — implementation claim without behavioural evidence.</p>`;
+
+  const res = annotation.resolution;
+  let body: string;
+  if (res.state === "anchored" && res.fileIndex !== undefined && res.hunkIndex !== undefined) {
+    const file = evidence.files[res.fileIndex];
+    body = renderDiffHunk(file, file.hunks[res.hunkIndex], res.lineIndex, res.lineCount);
+  } else if (res.state === "ambiguous") {
+    body = `<p class="anchor-notice">⚠️ Ambiguous anchor — these lines appear in more than one place in the current patch, so the annotation is not attached to any of them.</p>`;
+  } else {
+    body = `<p class="anchor-notice">⚠️ Orphaned annotation — could not locate these lines in the current patch. The prose below may describe code that has since changed.</p>`;
+  }
+
+  return `<article class="annotation" id="code-diff-${diffIndex}-a${index}" data-anchor-state="${res.state}">
+    <h4>${escapeHtml(annotation.label ?? `Annotation ${index + 1}`)}</h4>
+    <p class="annotation-text">${escapeHtml(annotation.text)}</p>
+    ${scenarios}
+    ${body}
+  </article>`;
+}
+
+/** Code Diff evidence: annotations in conceptual order, then the raw patch on demand. */
+function renderCodeDiffSection(evidence: CodeDiffEvidence, diffIndex: number): string {
+  const comparing =
+    evidence.baseLabel || evidence.headLabel
+      ? `<p class="subtle">Comparing ${escapeHtml(evidence.baseLabel ?? "base")} → ${escapeHtml(evidence.headLabel ?? "head")}</p>`
+      : "";
+  // Only https: renders as a link; anything else (javascript:, file:, ...) stays inert text.
+  const audit =
+    evidence.patchUrl === undefined
+      ? ""
+      : evidence.patchUrl.startsWith("https://")
+        ? `<p class="subtle">Canonical patch: <a href="${escapeHtml(evidence.patchUrl)}" rel="noopener noreferrer">${escapeHtml(evidence.patchUrl)}</a></p>`
+        : `<p class="subtle">Canonical patch: <code>${escapeHtml(evidence.patchUrl)}</code></p>`;
+  const outline =
+    evidence.annotations.length > 1
+      ? `<ol class="diff-outline">${evidence.annotations
+          .map(
+            (a, i) =>
+              `<li><a href="#code-diff-${diffIndex}-a${i}">${escapeHtml(a.label ?? `Annotation ${i + 1}`)}</a></li>`
+          )
+          .join("")}</ol>`
+      : "";
+  const rawPatch =
+    Buffer.byteLength(evidence.patch, "utf8") <= MAX_PATCH_EMBED_BYTES
+      ? `<details class="raw-patch"><summary>Raw patch (audit)</summary><pre><code>${escapeHtml(evidence.patch)}</code></pre></details>`
+      : `<p class="anchor-notice">Patch too large to embed${evidence.patchUrl ? " — use the canonical patch link above" : ""}.</p>`;
+
+  return `<section class="panel code-diff" id="code-diff-${diffIndex}">
+    <h2>Code diff: ${escapeHtml(evidence.title)}</h2>
+    ${comparing}
+    ${audit}
+    ${outline}
+    ${evidence.annotations.map((a, i) => renderAnnotation(evidence, a, diffIndex, i)).join("\n")}
+    ${rawPatch}
+  </section>`;
 }
 
 function renderAudienceSection(title: string, claims: ReviewClaim[]): string {
@@ -237,6 +347,29 @@ const REVIEW_CSS = `
   .shot { max-width: 280px; max-height: 200px; border: 1px solid var(--border); border-radius: 8px; }
   .trace-note { color: var(--muted-foreground); }
   .step-list { margin: 12px 0 0; padding-left: 18px; color: var(--muted-foreground); }
+  .code-diff h2 { margin-bottom: 6px; }
+  .code-diff a { color: var(--foreground); }
+  .diff-outline { margin: 12px 0; padding-left: 20px; }
+  .annotation { margin: 18px 0; padding: 14px 16px; border: 1px solid var(--border); border-radius: 10px; background: color-mix(in srgb, var(--card) 60%, var(--background)); }
+  .annotation h4 { margin: 0 0 6px; }
+  .annotation-text { margin: 0 0 10px; }
+  .scenario-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+  .scenario-ref { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px; font-size: 0.82rem; text-decoration: none; color: var(--foreground); background: var(--background); }
+  .scenario-ref.unverified { color: var(--warning, #b58900); border-color: var(--warning, #b58900); }
+  .no-scenario { color: var(--warning, #b58900); font-size: 0.9rem; margin: 0 0 10px; }
+  .anchor-notice { color: var(--warning, #b58900); background: color-mix(in srgb, var(--warning, #b58900) 10%, transparent); border-radius: 6px; padding: 8px 10px; margin: 0; }
+  .diff-hunk { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .diff-file-header { padding: 6px 10px; background: var(--secondary); border-bottom: 1px solid var(--border); font-size: 0.85rem; }
+  .diff-table { font-family: var(--font-mono, ui-monospace, monospace); font-size: 0.82rem; }
+  .diff-table td { padding: 1px 8px; border-bottom: none; }
+  .diff-code { white-space: pre-wrap; word-break: break-all; }
+  .diff-ln { color: var(--muted-foreground); text-align: right; user-select: none; width: 1%; white-space: nowrap; }
+  .diff-sign { user-select: none; width: 1%; }
+  .diff-add { background: color-mix(in srgb, var(--success, #2e7d32) 12%, transparent); }
+  .diff-del { background: color-mix(in srgb, var(--destructive) 10%, transparent); }
+  .diff-anchored .diff-code { box-shadow: inset 3px 0 0 var(--primary, #2e7d32); }
+  .raw-patch { margin-top: 16px; }
+  .raw-patch pre { overflow-x: auto; background: var(--secondary); border-radius: 8px; padding: 12px; }
 `;
 
 const JS_THEME_TOGGLE = `
@@ -328,15 +461,18 @@ export class ReviewHtmlFormatter {
         <p class="subtle">${escapeHtml(priority)}</p>
       </section>
       ${changedFilesPanel}
-      <section class="toolbar">
-        <input type="search" placeholder="Filter claims by scenario, file, change-type" aria-label="Filter claims" />
-        <button type="button" class="active" data-filter="all">All</button>
-        <button type="button" data-filter="stakeholder">Stakeholder</button>
-        <button type="button" data-filter="engineer">Engineer</button>
-        <button type="button" data-filter="weak">Weak/None</button>
-      </section>
-      ${renderAudienceSection("Stakeholder behaviour", review.claims.filter((c) => c.audience === "stakeholder"))}
-      ${renderAudienceSection("Engineer changes", review.claims.filter((c) => c.audience === "engineer"))}
+      <div class="claims-region">
+        <section class="toolbar">
+          <input type="search" placeholder="Filter claims by scenario, file, change-type" aria-label="Filter claims" />
+          <button type="button" class="active" data-filter="all">All</button>
+          <button type="button" data-filter="stakeholder">Stakeholder</button>
+          <button type="button" data-filter="engineer">Engineer</button>
+          <button type="button" data-filter="weak">Weak/None</button>
+        </section>
+        ${renderAudienceSection("Stakeholder behaviour", review.claims.filter((c) => c.audience === "stakeholder"))}
+        ${renderAudienceSection("Engineer changes", review.claims.filter((c) => c.audience === "engineer"))}
+      </div>
+      ${review.codeDiffs.map((d, i) => renderCodeDiffSection(d, i)).join("\n")}
     </main>
     <script>
       ${themeInitJs}

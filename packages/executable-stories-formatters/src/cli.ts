@@ -25,10 +25,11 @@ import {
   startWatch,
 } from "./index.js";
 import { parseNdjson } from "executable-stories-core/converters/ndjson-parser";
-import { buildReview } from "./review/build-review";
+import { buildReview, codeDiffDiagnostics } from "./review/build-review";
 import { ReviewMarkdownFormatter } from "./formatters/review-markdown";
 import { ReviewHtmlFormatter } from "./formatters/review-html";
 import type { ChangedFile, ReviewContext, EvidenceStrength } from "./types/review";
+import { assembleCodeDiff, type CodeDiffSidecar } from "./review/code-diff-sidecar";
 import type { OutputFormat } from "./types/options";
 import { sendNotifications } from "./notifiers";
 import { toCIInfo } from "executable-stories-core/types/ci";
@@ -188,6 +189,9 @@ OPTIONS
   --head-ref <ref>              (review) Head ref label shown in the report (informational)
   --fail-on <band>              (review) Gate: "uncovered" or "weak" — exit non-zero when changed code lacks evidence (default: off)
   --min-evidence <strength>     (review) Gate: "weak"|"moderate"|"strong" — exit non-zero when any claim is below this strength (default: off)
+  --code-diff <path>            (review) Code Diff annotation sidecar (JSON: {title, annotations: [{file, match, text, label?, scenarioIds?}]})
+  --patch <path>                (review) Unified patch for --code-diff; generate with "git diff --histogram"
+  --strict-code-diff            (review) Gate: exit non-zero on orphaned/ambiguous anchors or unverified scenario references (default: off)
   --emit-canonical <path>       Write canonical JSON to given path
   --help                        Show this help message
 
@@ -371,6 +375,9 @@ interface CliArgs {
   headRef?: string;
   failOn?: "uncovered" | "weak";
   minEvidence?: EvidenceStrength;
+  codeDiffPath?: string;
+  patchPath?: string;
+  strictCodeDiff: boolean;
   config?: string;
 }
 
@@ -593,6 +600,9 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
       "head-ref": { type: "string" },
       "fail-on": { type: "string" },
       "min-evidence": { type: "string" },
+      "code-diff": { type: "string" },
+      "patch": { type: "string" },
+      "strict-code-diff": { type: "boolean", default: false },
       "config": { type: "string" },
       help: { type: "boolean", default: false },
     },
@@ -869,6 +879,9 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
     headRef: values["head-ref"] as string | undefined,
     failOn: failOnRaw as "uncovered" | "weak" | undefined,
     minEvidence: minEvidenceRaw as EvidenceStrength | undefined,
+    codeDiffPath: values["code-diff"] as string | undefined,
+    patchPath: values["patch"] as string | undefined,
+    strictCodeDiff: values["strict-code-diff"] as boolean,
     config: values["config"] as string | undefined,
   };
 
@@ -1276,7 +1289,14 @@ async function runReview(ctx: CliContext): Promise<void> {
       for (const f of files) {
         console.log(f);
       }
+      const diffIssues = codeDiffDiagnostics(review);
+      for (const issue of diffIssues) {
+        console.error(`Code diff warning: ${issue}`);
+      }
       const gateFailures = evaluateReviewGate(review, args);
+      if (args.strictCodeDiff) {
+        gateFailures.push(...diffIssues);
+      }
       if (gateFailures.length > 0) {
         for (const failure of gateFailures) {
           console.error(`Review gate failed: ${failure}`);
@@ -1996,7 +2016,24 @@ function loadReviewContext(args: CliArgs): ReviewContext {
     }
   }
 
-  return { changedFiles, baseRef, headRef };
+  let codeDiffs;
+  if (args.codeDiffPath) {
+    if (!args.patchPath) {
+      console.error(
+        "Error: --code-diff requires --patch <file> (generate it with: git diff --histogram > changes.patch)."
+      );
+      process.exit(EXIT_USAGE);
+    }
+    const sidecar = JSON.parse(readFileInput(args.codeDiffPath)) as CodeDiffSidecar;
+    const patch = readFileInput(args.patchPath);
+    const { input, warnings } = assembleCodeDiff({ sidecar, patch });
+    for (const warning of warnings) {
+      console.error(`Code diff warning: ${warning}`);
+    }
+    codeDiffs = [input];
+  }
+
+  return { changedFiles, baseRef, headRef, codeDiffs };
 }
 
 /** Render and write the review report (markdown + HTML, mirroring report mode). */
@@ -2794,6 +2831,7 @@ function createDefaultCliArgs(): CliArgs {
     failOnAddedFailures: false,
     failOnRemoval: false,
     failOnNew: false,
+    strictCodeDiff: false,
     baselineMode: "explicit",
   };
 }

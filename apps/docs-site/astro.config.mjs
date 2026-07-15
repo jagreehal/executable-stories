@@ -195,6 +195,10 @@ export default defineConfig({
               slug: 'guides/agent-loops',
             },
             {
+              label: 'Evidence Review and Code Diff',
+              slug: 'guides/evidence-review',
+            },
+            {
               label: 'Setup decision tree',
               slug: 'guides/setup-decision-tree',
             },

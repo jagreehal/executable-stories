@@ -114,6 +114,48 @@ Four sections, in this order. Intuition before details throughout.
    no clues. The working norm: don't send the change for review until you can pass the
    quiz cold.
 
+## Code Diff evidence (annotated patch in the Evidence Review)
+
+When the change ships through the Evidence Review report, the literate walkthrough can
+carry the patch itself as **Code Diff evidence**: annotated hunks connected to the
+scenarios that prove them. The raw diff is a supporting appendix, never the first
+section. Follow this sequence exactly:
+
+1. Read the scenarios from the run artifacts, then run `compare` (behaviour first).
+2. Only after you understand the behaviour change, collect the patch:
+   `git diff --histogram <base>...<head> > changes.patch`.
+3. Write an annotation sidecar covering only the teaching-relevant hunks, ordered by
+   concept. Each annotation names the file, a substring unique to **one changed line**
+   (the assembler converts it to a content anchor), prose, and the scenario IDs that
+   prove the behaviour claim:
+
+   ```json
+   {
+     "title": "Quantity-aware totals",
+     "annotations": [
+       {
+         "file": "src/cart/totals.ts",
+         "match": "item.price * item.quantity",
+         "label": "Core calculation",
+         "text": "Totals now multiply by quantity.",
+         "scenarioIds": ["quantity-multiplies-the-line-total"]
+       }
+     ]
+   }
+   ```
+
+4. Feed both into the review:
+   `executable-stories review <raw-run.json> --changed-files <files> --patch changes.patch --code-diff sidecar.json`.
+   Add `--strict-code-diff` in CI so orphaned anchors and unverified scenario
+   references fail the gate instead of rotting.
+5. A hunk with no `scenarioIds` renders visibly as "not covered by a scenario" — leave
+   it that way rather than citing a scenario that doesn't prove it.
+6. Then write the quiz.
+
+Anchors are content-based, so a regenerated patch relocates them; an annotation whose
+lines were rewritten shows as **orphaned** rather than silently moving. Treat an
+orphaned annotation like a stale explainer: rewrite it against the current patch.
+
 ## Diagrams and interactive figures
 
 - No ASCII art. Build diagrams from simple HTML and CSS (or `story.mermaid` when
