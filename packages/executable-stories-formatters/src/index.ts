@@ -189,6 +189,11 @@ export type {
   ChangedFileReview,
   ReviewSummary,
   ReviewResult,
+  CodeDiffInput,
+  CodeDiffAnnotationInput,
+  CodeDiffEvidence,
+  CodeDiffAnnotation,
+  CodeDiffScenarioRef,
 } from "./types/review";
 
 // Canonical --es-* theme tokens (shared with executable-stories-react)
@@ -1215,7 +1220,21 @@ export { diffRuns } from "./compare/index";
 export { createPrCommentSummary } from "./compare/index";
 
 // Review domain + formatter (Evidence-Driven Review report)
-export { buildReview, gradeEvidence } from "./review/build-review";
+export { buildReview, gradeEvidence, codeDiffDiagnostics } from "./review/build-review";
+export {
+  assembleCodeDiff,
+  type CodeDiffSidecar,
+  type CodeDiffSidecarAnnotation,
+} from "./review/code-diff-sidecar";
+export { parseUnifiedDiff, createAnchor, relocateAnchor } from "./review/diff-anchor";
+export type {
+  DiffAnchor,
+  AnchorResolution,
+  AnchorState,
+  FileDiff,
+  DiffHunk,
+  DiffLine,
+} from "./types/diff";
 export {
   deriveAudience,
   deriveChangeType,

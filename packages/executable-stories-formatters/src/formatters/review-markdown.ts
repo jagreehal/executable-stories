@@ -10,6 +10,7 @@
 
 import type {
   ChangedFileReview,
+  CodeDiffEvidence,
   EvidenceStrength,
   ReviewClaim,
   ReviewResult,
@@ -119,6 +120,93 @@ function renderAudienceSection(
   }
 }
 
+/** Patches above this render as a link/notice instead of a fenced block. */
+const MAX_PATCH_EMBED_BYTES = 64 * 1024;
+
+/**
+ * A fence longer than the longest backtick run in the content, so a patch
+ * containing ``` (e.g. a diff of a Markdown file) cannot close the block early.
+ */
+function fenceFor(content: string): string {
+  const runs = content.match(/`{3,}/g);
+  const length = runs ? Math.max(...runs.map((r) => r.length)) + 1 : 3;
+  return "`".repeat(length);
+}
+
+/**
+ * Static Code Diff fallback: comparison metadata, ordered annotations with
+ * scenario references and anchor-state notices, and the patch (fenced when
+ * small, linked otherwise). No pretence of an interactive viewer.
+ */
+function renderCodeDiff(lines: string[], evidence: CodeDiffEvidence): void {
+  lines.push(`## Code diff evidence: ${evidence.title}`);
+  lines.push("");
+  if (evidence.baseLabel || evidence.headLabel) {
+    lines.push(
+      `Comparing \`${evidence.baseLabel ?? "base"}\` → \`${evidence.headLabel ?? "head"}\`.`
+    );
+    lines.push("");
+  }
+  if (evidence.patchUrl !== undefined) {
+    // Only https: is presented as a linkable URL; anything else stays inert code text.
+    lines.push(
+      evidence.patchUrl.startsWith("https://")
+        ? `Canonical patch: ${evidence.patchUrl}`
+        : `Canonical patch: \`${evidence.patchUrl.replace(/`/g, "")}\``
+    );
+    lines.push("");
+  }
+
+  evidence.annotations.forEach((annotation, i) => {
+    lines.push(`### ${annotation.label ?? `Annotation ${i + 1}`}`);
+    lines.push("");
+    lines.push(annotation.text);
+    lines.push("");
+    if (annotation.resolution.state === "orphaned") {
+      lines.push(
+        "> ⚠️ Orphaned annotation — could not locate these lines in the current patch."
+      );
+      lines.push("");
+    } else if (annotation.resolution.state === "ambiguous") {
+      lines.push(
+        "> ⚠️ Ambiguous anchor — these lines appear in more than one place in the current patch."
+      );
+      lines.push("");
+    } else if (annotation.resolution.file !== undefined) {
+      lines.push(`Location: \`${annotation.resolution.file}\``);
+      lines.push("");
+    }
+    if (annotation.scenarios.length === 0) {
+      lines.push("_Not covered by a scenario._");
+    } else {
+      for (const ref of annotation.scenarios) {
+        lines.push(
+          ref.resolved && ref.status
+            ? `- ${statusIcon(ref.status)} ${escapeCell(ref.scenario ?? ref.id)} (\`${ref.id}\`)`
+            : `- ⚠️ \`${ref.id}\` — unverified reference (scenario not in this run)`
+        );
+      }
+    }
+    lines.push("");
+  });
+
+  if (Buffer.byteLength(evidence.patch, "utf8") <= MAX_PATCH_EMBED_BYTES) {
+    const fence = fenceFor(evidence.patch);
+    lines.push("<details><summary>Raw patch (audit)</summary>");
+    lines.push("");
+    lines.push(`${fence}diff`);
+    lines.push(evidence.patch.trimEnd());
+    lines.push(fence);
+    lines.push("");
+    lines.push("</details>");
+  } else {
+    lines.push(
+      `_Patch too large to embed${evidence.patchUrl ? " — see the canonical patch link above" : ""}._`
+    );
+  }
+  lines.push("");
+}
+
 export class ReviewMarkdownFormatter {
   private title: string;
 
@@ -187,6 +275,10 @@ export class ReviewMarkdownFormatter {
       "Engineer changes",
       review.claims.filter((c) => c.audience === "engineer")
     );
+
+    for (const evidence of review.codeDiffs) {
+      renderCodeDiff(lines, evidence);
+    }
 
     return lines.join("\n").trimEnd();
   }

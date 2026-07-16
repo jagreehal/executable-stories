@@ -335,3 +335,22 @@ export const stubs = {
   // Utilities
   setFakerSeed,
 };
+
+// ============================================================================
+// Diff Fixtures
+// ============================================================================
+
+/** Shared unified-diff fixture for code-diff and anchoring tests. */
+export const totalsPatch = `diff --git a/src/cart/totals.ts b/src/cart/totals.ts
+--- a/src/cart/totals.ts
++++ b/src/cart/totals.ts
+@@ -10,6 +10,7 @@ export function total(items: Item[]) {
+   let sum = 0;
+   for (const item of items) {
+-    sum += item.price;
++    sum += item.price * item.quantity;
++    sum += item.tax;
+   }
+   return sum;
+ }
+`;

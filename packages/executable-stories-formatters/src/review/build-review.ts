@@ -11,6 +11,8 @@ import type { DocEntry } from "executable-stories-core/types/story";
 import type { TestCaseResult } from "executable-stories-core/types/test-result";
 import type {
   ChangedFileReview,
+  CodeDiffEvidence,
+  CodeDiffInput,
   EvidenceStrength,
   ReviewAudience,
   ReviewClaim,
@@ -18,6 +20,7 @@ import type {
   ReviewResult,
   ReviewSummary,
 } from "../types/review";
+import { parseUnifiedDiff, relocateAnchor } from "./diff-anchor";
 import {
   deriveAudience,
   deriveChangeType,
@@ -188,6 +191,48 @@ const AUDIENCE_ORDER: Record<ReviewAudience, number> = {
 };
 
 /**
+ * Resolve one Code Diff evidence group: parse the patch, relocate each
+ * annotation's content anchor, and resolve cited scenario IDs against the
+ * run. Ambiguous/orphaned anchors and unresolved scenario IDs stay visible
+ * in the result — they are never dropped or silently reattached.
+ */
+function buildCodeDiff(
+  input: CodeDiffInput,
+  run: ReviewResult["run"],
+  context: ReviewContext
+): CodeDiffEvidence {
+  const files = parseUnifiedDiff(input.patch);
+  const byId = new Map(run.testCases.map((tc) => [tc.id, tc]));
+  return {
+    title: input.title,
+    patch: input.patch,
+    patchUrl: input.patchUrl,
+    baseLabel: input.baseLabel ?? context.baseRef,
+    headLabel: input.headLabel ?? context.headRef,
+    files,
+    annotations: input.annotations.map((annotation) => ({
+      anchorHash: annotation.anchor?.hash,
+      text: annotation.text,
+      label: annotation.label,
+      resolution: annotation.anchor
+        ? relocateAnchor(annotation.anchor, files)
+        : { state: annotation.unresolved ?? ("orphaned" as const) },
+      scenarios: (annotation.scenarioIds ?? []).map((id) => {
+        const testCase = byId.get(id);
+        return testCase
+          ? {
+              id,
+              resolved: true,
+              scenario: testCase.story.scenario,
+              status: testCase.status,
+            }
+          : { id, resolved: false };
+      }),
+    })),
+  };
+}
+
+/**
  * Build the review model from a canonical run and optional diff context.
  *
  * With no `changedFiles`, the report degrades gracefully to "claims only"
@@ -249,7 +294,36 @@ export function buildReview(
     summary,
     claims: sortedClaims,
     changedFiles: sortedFiles,
+    codeDiffs: (context.codeDiffs ?? []).map((d) => buildCodeDiff(d, run, context)),
   };
+}
+
+/**
+ * Code Diff integrity diagnostics: orphaned/ambiguous anchors and unverified
+ * scenario references. The CLI prints these as warnings; `--strict-code-diff`
+ * turns them into review-gate failures so CI catches explainers that lost
+ * their grounding.
+ */
+export function codeDiffDiagnostics(review: ReviewResult): string[] {
+  const issues: string[] = [];
+  for (const evidence of review.codeDiffs) {
+    evidence.annotations.forEach((annotation, i) => {
+      const name = annotation.label ?? `annotation ${i + 1}`;
+      if (annotation.resolution.state !== "anchored") {
+        issues.push(
+          `"${evidence.title}" ${name}: anchor is ${annotation.resolution.state} in the current patch`
+        );
+      }
+      for (const ref of annotation.scenarios) {
+        if (!ref.resolved) {
+          issues.push(
+            `"${evidence.title}" ${name}: cites scenario "${ref.id}" which is not in this run`
+          );
+        }
+      }
+    });
+  }
+  return issues;
 }
 
 function buildSummary(
