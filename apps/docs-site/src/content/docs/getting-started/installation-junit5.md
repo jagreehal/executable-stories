@@ -47,7 +47,7 @@ The raw run JSON file is written relative to the working directory. When running
 Pass the raw run JSON to `executable-stories-formatters` to render Markdown, HTML, JUnit XML, or Cucumber formats:
 
 ```bash
-npx executable-stories-formatters format --input .executable-stories/raw-run.json --format markdown
+npx --package executable-stories-formatters executable-stories format --format markdown
 ```
 
 Install the formatters package once in your Node project or CI job:

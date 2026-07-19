@@ -8,6 +8,17 @@ namespace ExecutableStories.Xunit
     /// </summary>
     public class RawRun
     {
+        /// <summary>
+        /// Published raw-run schema, emitted as <c>$schema</c> so editors validate
+        /// the output file as the adapter writes it. <c>executable-stories doctor</c>
+        /// also reports its presence.
+        /// </summary>
+        public const string SchemaUrl = "https://executable-stories.dev/schemas/raw-run.schema.json";
+
+        [JsonPropertyName("$schema")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? Schema { get; set; } = SchemaUrl;
+
         [JsonPropertyName("schemaVersion")]
         public int SchemaVersion { get; set; } = 1;
 

@@ -1,0 +1,46 @@
+---
+/**
+ * StoryStatus — an inline live status badge for a scenario, for referencing
+ * evidence mid-sentence in authored pages:
+ *
+ *   import StoryStatus from 'executable-stories-astro/components/StoryStatus.astro';
+ *
+ *   Discount capping is <StoryStatus id="checkout--caps-the-discount-at-30-percent" />.
+ *
+ * Renders the scenario's current status pill linked to its story page. `id`
+ * accepts the stable scenario id (preferred), the URL slug, or the exact
+ * title. An unresolved id renders a visible "unknown" pill, never nothing.
+ */
+import { getCollection } from "astro:content";
+import "../styles/es.css";
+import { storyEntries, joinHref } from "executable-stories-astro";
+import type { StoryEntryData } from "executable-stories-astro";
+import { collection as configuredCollection, routeBase } from "virtual:executable-stories/config";
+
+interface Props {
+  /** Stable scenario id, URL slug, or exact title. */
+  id: string;
+  /** Collection to resolve against (defaults to the configured one). */
+  collection?: string;
+  /** Also show the scenario title next to the status pill. Default false. */
+  title?: boolean;
+}
+const { id, collection = configuredCollection, title = false } = Astro.props as Props;
+
+const stories = storyEntries(await getCollection(collection as "stories"));
+const s: StoryEntryData | undefined = stories.find(
+  (e) => e.id === id || e.slug === id || e.entryId === id || e.title === id,
+);
+---
+
+{s ? (
+  <a class="es-status-ref" href={joinHref(routeBase, s.slug)} data-testid="status-ref" data-status={s.status}>
+    <span class={`es-status es-status--${s.status}`}>{s.status}</span>
+    {title && <span class="es-status-ref__title">{s.title}</span>}
+  </a>
+) : (
+  <span class="es-status-ref es-status-ref--missing" data-testid="status-ref-missing" title={`No scenario in the latest run matches "${id}"`}>
+    <span class="es-status es-status--pending">unknown</span>
+    <code>{id}</code>
+  </span>
+)}

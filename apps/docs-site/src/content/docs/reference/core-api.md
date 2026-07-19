@@ -216,3 +216,12 @@ function processStep(step: StoryStep): void {
 
 - **Framework packages** export metadata types (`StoryMeta`, `StoryStep`, `DocEntry`, `StoryDocs`, `StoryOptions`, etc.) and **constants** such as `STORY_META_KEY`. They also implement the runtime story API (`story.init`, `story.given`, etc.).
 - **executable-stories-formatters** exports **raw and canonical** types (`RawRun`, `TestRunResult`, `FormatterOptions`, etc.) for programmatic report generation. Use it when building custom pipelines or the CLI.
+
+## Shared scenario → Markdown serializer
+
+The internal `executable-stories-core` package holds **`scenarioToMarkdown`** (and its helper `docEntryToMarkdown`) — the single implementation behind every plain-text projection of a scenario, so those surfaces cannot drift:
+
+- the HTML report's per-scenario **"Copy as Markdown"** button (in `executable-stories-react`) uses `variant: "compact"` — an h2 heading with the status, the steps, and the failure fence, sized for pasting into a PR or issue;
+- the Astro site's **`<slug>.md` twin endpoints** (in `executable-stories-astro`) use the default full variant — an h1, caller-supplied metadata lines, per-step docs and errors, and every attached doc entry, i.e. a standalone document consumable by `curl` or an LLM without an HTML parser.
+
+`executable-stories-core` is an internal workspace package, not published for direct install; you consume this behaviour through the React report and the Astro integration rather than importing it yourself.

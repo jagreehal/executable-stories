@@ -61,7 +61,7 @@ func TestAppliesDiscountCode(t *testing.T) {
 }
 ```
 
-`RunAndReport(m)` in `TestMain` writes `.executable-stories/raw-run.json` after all tests complete. Override output path with `EXECUTABLE_STORIES_OUTPUT` env var.
+`RunAndReport(m)` in `TestMain` writes `.executable-stories/raw-run.json` after all tests complete. Override output path with `EXECUTABLE_STORIES_OUTPUT` env var. The run JSON's first key is a `$schema` pointer, so editors validate it as it is written; the adapter also prints a `next:` hint to stderr (silence with `EXECUTABLE_STORIES_QUIET`). Render it with `executable-stories format` (path optional — defaults to `.executable-stories/raw-run.json`) or diagnose it with `executable-stories doctor`.
 
 ## Core Patterns
 

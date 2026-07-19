@@ -9,6 +9,11 @@ pub struct Ticket {
     pub url: Option<String>,
 }
 
+/// Published raw-run schema, emitted as `$schema` so editors validate the
+/// output file as the adapter writes it. `executable-stories doctor` also
+/// reports its presence.
+pub const SCHEMA_URL: &str = "https://executable-stories.dev/schemas/raw-run.schema.json";
+
 #[derive(Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct RawRun {

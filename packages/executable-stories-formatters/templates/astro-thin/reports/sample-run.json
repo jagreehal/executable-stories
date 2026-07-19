@@ -1,5 +1,6 @@
 {
-  "schemaVersion": "1.0",
+  "$schema": "https://executable-stories.dev/schemas/raw-run.schema.json",
+  "schemaVersion": 1,
   "projectRoot": "/sample",
   "startedAtMs": 0,
   "finishedAtMs": 1234,
@@ -13,12 +14,26 @@
       "durationMs": 41,
       "story": {
         "scenario": "A returning customer checks out with a saved card",
-        "tags": ["checkout", "payments"],
-        "covers": ["src/checkout/**"],
+        "tags": [
+          "checkout",
+          "payments"
+        ],
+        "covers": [
+          "src/checkout/**"
+        ],
         "steps": [
-          { "keyword": "Given", "text": "a signed-in customer with a saved card" },
-          { "keyword": "And", "text": "a basket worth £42.00" },
-          { "keyword": "When", "text": "they confirm the order" },
+          {
+            "keyword": "Given",
+            "text": "a signed-in customer with a saved card"
+          },
+          {
+            "keyword": "And",
+            "text": "a basket worth \u00a342.00"
+          },
+          {
+            "keyword": "When",
+            "text": "they confirm the order"
+          },
           {
             "keyword": "Then",
             "text": "the payment is captured and an order id is returned",
@@ -27,8 +42,24 @@
                 "kind": "table",
                 "phase": "runtime",
                 "label": "Captured payment",
-                "columns": ["Field", "Value"],
-                "rows": [["amount", "£42.00"], ["status", "captured"], ["order", "ord_1A2B"]]
+                "columns": [
+                  "Field",
+                  "Value"
+                ],
+                "rows": [
+                  [
+                    "amount",
+                    "\u00a342.00"
+                  ],
+                  [
+                    "status",
+                    "captured"
+                  ],
+                  [
+                    "order",
+                    "ord_1A2B"
+                  ]
+                ]
               }
             ]
           }
@@ -48,16 +79,35 @@
       "sourceLine": 34,
       "status": "fail",
       "durationMs": 28,
-      "error": { "message": "Expected order to be created, but payment was declined (card_declined)" },
+      "error": {
+        "message": "Expected order to be created, but payment was declined (card_declined)"
+      },
       "story": {
         "scenario": "Checkout is blocked when the card is declined",
-        "tags": ["checkout", "payments"],
-        "covers": ["src/checkout/**"],
+        "tags": [
+          "checkout",
+          "payments"
+        ],
+        "covers": [
+          "src/checkout/**"
+        ],
         "steps": [
-          { "keyword": "Given", "text": "a customer whose card will be declined" },
-          { "keyword": "When", "text": "they confirm the order" },
-          { "keyword": "Then", "text": "they see a clear decline message" },
-          { "keyword": "But", "text": "no order is created" }
+          {
+            "keyword": "Given",
+            "text": "a customer whose card will be declined"
+          },
+          {
+            "keyword": "When",
+            "text": "they confirm the order"
+          },
+          {
+            "keyword": "Then",
+            "text": "they see a clear decline message"
+          },
+          {
+            "keyword": "But",
+            "text": "no order is created"
+          }
         ]
       }
     },
@@ -69,10 +119,18 @@
       "durationMs": 0,
       "story": {
         "scenario": "Gift wrapping is offered above the free-wrap threshold",
-        "tags": ["checkout"],
+        "tags": [
+          "checkout"
+        ],
         "steps": [
-          { "keyword": "Given", "text": "a basket above the free-wrap threshold" },
-          { "keyword": "Then", "text": "free gift wrapping is offered" }
+          {
+            "keyword": "Given",
+            "text": "a basket above the free-wrap threshold"
+          },
+          {
+            "keyword": "Then",
+            "text": "free gift wrapping is offered"
+          }
         ]
       }
     },
@@ -84,11 +142,21 @@
       "durationMs": 17,
       "story": {
         "scenario": "Search ranks exact title matches first",
-        "tags": ["search"],
-        "covers": ["src/search/**"],
+        "tags": [
+          "search"
+        ],
+        "covers": [
+          "src/search/**"
+        ],
         "steps": [
-          { "keyword": "Given", "text": "products titled 'Wireless Mouse' and 'Mouse Pad'" },
-          { "keyword": "When", "text": "the shopper searches for 'mouse'" },
+          {
+            "keyword": "Given",
+            "text": "products titled 'Wireless Mouse' and 'Mouse Pad'"
+          },
+          {
+            "keyword": "When",
+            "text": "the shopper searches for 'mouse'"
+          },
           {
             "keyword": "Then",
             "text": "the exact title match is ranked first",
@@ -120,12 +188,25 @@
       "durationMs": 23,
       "story": {
         "scenario": "Search tolerates a single typo",
-        "tags": ["search"],
-        "covers": ["src/search/**"],
+        "tags": [
+          "search"
+        ],
+        "covers": [
+          "src/search/**"
+        ],
         "steps": [
-          { "keyword": "Given", "text": "a product titled 'Keyboard'" },
-          { "keyword": "When", "text": "the shopper searches for 'keybord'" },
-          { "keyword": "Then", "text": "the product is still found" }
+          {
+            "keyword": "Given",
+            "text": "a product titled 'Keyboard'"
+          },
+          {
+            "keyword": "When",
+            "text": "the shopper searches for 'keybord'"
+          },
+          {
+            "keyword": "Then",
+            "text": "the product is still found"
+          }
         ]
       }
     }

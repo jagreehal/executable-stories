@@ -27,6 +27,21 @@ module ExecutableStories
       )
 
       JsonWriter.write_raw_run(run, output_path)
+      print_next_step(output_path)
+    end
+
+    # Tell the user how to turn the run JSON into a report.
+    #
+    # The JS adapters render reports in-process, so their users never need to
+    # know the CLI exists. Ruby hands off to the CLI instead, so without this
+    # the run ends with a file and no indication of what to do with it. stderr
+    # keeps piped output clean; EXECUTABLE_STORIES_QUIET silences it in CI.
+    def print_next_step(output_path)
+      return if ENV["EXECUTABLE_STORIES_QUIET"]
+
+      warn ""
+      warn "executable-stories: wrote #{output_path}"
+      warn "  next: executable-stories format #{output_path} --format html"
     end
 
     def detect_ci

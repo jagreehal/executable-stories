@@ -43,6 +43,7 @@ namespace ExecutableStories.Xunit
 
             var run = new RawRun
             {
+                Schema = RawRun.SchemaUrl,
                 SchemaVersion = 1,
                 TestCases = copy,
                 StartedAtMs = _startedAtMs > 0 ? _startedAtMs : null,
@@ -55,6 +56,27 @@ namespace ExecutableStories.Xunit
                 ?? Path.Combine(Directory.GetCurrentDirectory(), ".executable-stories", "raw-run.json");
 
             RawRunWriter.Write(run, outputPath);
+            PrintNextStep(outputPath);
+        }
+
+        /// <summary>
+        /// Tell the user how to turn the run JSON into a report.
+        /// </summary>
+        /// <remarks>
+        /// The JS adapters render reports in-process, so their users never need to
+        /// know the CLI exists. xUnit hands off to the CLI instead, so without this
+        /// the run ends with a file and no indication of what to do with it. stderr
+        /// keeps piped output clean; EXECUTABLE_STORIES_QUIET silences it in CI.
+        /// </remarks>
+        private static void PrintNextStep(string outputPath)
+        {
+            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("EXECUTABLE_STORIES_QUIET")))
+            {
+                return;
+            }
+
+            Console.Error.WriteLine($"\nexecutable-stories: wrote {outputPath}");
+            Console.Error.WriteLine($"  next: executable-stories format {outputPath} --format html");
         }
     }
 }

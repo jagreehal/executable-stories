@@ -58,6 +58,40 @@ class TestPluginOutput:
         assert "startedAtMs" in raw_run
         assert "finishedAtMs" in raw_run
 
+    def test_emits_schema_pointer(self, pytester, sample_test_file):
+        """The $schema pointer lets editors validate the file as it is written,
+        and `executable-stories doctor` reports whether it is present."""
+        pytester.makepyfile(test_sample=sample_test_file)
+
+        pytester.runpytest_subprocess(*_DISABLE_PLUGINS)
+
+        output_path = pytester.path / ".executable-stories" / "raw-run.json"
+        raw_run = json.loads(output_path.read_text())
+
+        assert raw_run["$schema"].endswith("raw-run.schema.json")
+        # It must lead the file so editors pick it up immediately.
+        assert next(iter(raw_run)) == "$schema"
+
+    def test_prints_next_command(self, pytester, sample_test_file):
+        """Non-JS adapters hand off to the CLI, so the run must say what to do
+        with the file it just wrote."""
+        pytester.makepyfile(test_sample=sample_test_file)
+
+        result = pytester.runpytest_subprocess(*_DISABLE_PLUGINS)
+
+        stderr = "\n".join(result.errlines)
+        assert "executable-stories format" in stderr
+        assert "--format html" in stderr
+
+    def test_next_command_silenced_by_quiet_env(self, pytester, sample_test_file, monkeypatch):
+        """CI logs shouldn't carry the hint on every run."""
+        pytester.makepyfile(test_sample=sample_test_file)
+        monkeypatch.setenv("EXECUTABLE_STORIES_QUIET", "1")
+
+        result = pytester.runpytest_subprocess(*_DISABLE_PLUGINS)
+
+        assert "next: executable-stories format" not in "\n".join(result.errlines)
+
     def test_status_mapping(self, pytester, sample_test_file):
         pytester.makepyfile(test_sample=sample_test_file)
 

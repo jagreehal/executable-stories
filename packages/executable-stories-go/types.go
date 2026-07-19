@@ -1,7 +1,13 @@
 package es
 
+// SchemaURL points at the published raw-run schema. Emitting it in the output
+// lets editors validate the file as it is written, and `executable-stories
+// doctor` reports its presence.
+const SchemaURL = "https://executable-stories.dev/schemas/raw-run.schema.json"
+
 // RawRun is the top-level output matching the executable-stories JSON schema.
 type RawRun struct {
+	Schema         string         `json:"$schema,omitempty"`
 	SchemaVersion  int            `json:"schemaVersion"`
 	TestCases      []RawTestCase  `json:"testCases"`
 	ProjectRoot    string         `json:"projectRoot"`

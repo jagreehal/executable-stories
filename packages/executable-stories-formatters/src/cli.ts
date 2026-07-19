@@ -43,6 +43,11 @@ import { buildExplainersReport, explainersGateFailed, renderExplainersReport } f
 import { buildGoal, renderGoal } from "./goal";
 import { buildTriage, renderTriage } from "./triage";
 import { selectTestCases } from "./select-test-cases";
+import { DEFAULT_RUN_FILES, diagnoseRunFile, findDefaultRunFile, formatDoctorReport } from "./run-file";
+import { expandPreset, presetHelpLines, PRESET_NAMES } from "./presets";
+import { runCompletion } from "./completion";
+import { openInBrowser, pickOpenTarget } from "./open-report";
+import { summaryLine } from "./summary-line";
 import type { RawRun } from "executable-stories-core/types/raw";
 import type { TestRunResult, TestStatus } from "executable-stories-core/types/test-result";
 import {
@@ -84,8 +89,10 @@ const HELP_TEXT = `
 executable-stories — Generate reports from test results JSON.
 
 USAGE
-  executable-stories format <file> [options]
+  executable-stories format [file] [options]     (file defaults to .executable-stories/raw-run.json, then reports/raw-run.json)
   executable-stories format --stdin [options]
+  executable-stories doctor [file] [--json]
+  executable-stories completion <bash|zsh|fish>
   executable-stories watch <raw-run.json> [options]
   executable-stories compare <baseline-file> <current-file> [options]
   executable-stories gate-release <dev-run.json> <rc-run.json> [options]
@@ -120,6 +127,8 @@ SUBCOMMANDS
   goal               Behavioral definition-of-done for agent loops: required scenarios pass, no regressions, no weakened scenarios (exit 0 = met, 5 = not)
   triage             Discovery worklist for agent loops: failing scenarios, regressions first, each with the code it covers
   validate           Validate a JSON file against the schema (no output generated)
+  doctor             Diagnose the run JSON: where it is, whether it parses, schema version vs this CLI, what it contains
+  completion         Output a shell completion script (bash, zsh, fish)
   init-astro         Scaffold a thin Astro docs site (Starlight + executable-stories-astro; live stories at /stories)
   new                Scaffold a docs page from a template (adr, runbook, decision-log, incident, scenario-note)
   check-links        Scan docs for broken internal/external links (CI-friendly exit code)
@@ -142,6 +151,11 @@ OPTIONS
                                   story-report-json StoryReport v1 JSON (consumed by executable-stories-react and other UI renderers)
                                   scenario-index-json Storybook-like scenario index for agents and explorers
                                   traceability-matrix Requirement-first matrix (ticket -> scenarios -> covered code -> status)
+  --preset <name>               Format bundle (unioned with --format when both are given):
+${presetHelpLines()
+  .map((l) => `                                  ${l}`)
+  .join("\n")}
+  --open                        Open the generated HTML report in the default browser
   --config <path>               Path to executable-stories.config.js (default: ./executable-stories.config.js)
   --input-type <type>           Input type: raw, canonical, or ndjson (default: raw)
   --output-dir <dir>            Output directory (default: reports)
@@ -317,6 +331,8 @@ interface CliArgs {
   baselineDir?: string;
   stdin: boolean;
   formats: OutputFormat[];
+  /** --open: reveal the generated HTML report in the default browser. */
+  open: boolean;
   inputType: "raw" | "canonical" | "ndjson";
   outputDir: string;
   outputName: string;
@@ -413,6 +429,8 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
     subcommand !== "goal" &&
     subcommand !== "triage" &&
     subcommand !== "validate" &&
+    subcommand !== "doctor" &&
+    subcommand !== "completion" &&
     subcommand !== "dev" &&
     subcommand !== "init-astro" &&
     subcommand !== "new" &&
@@ -435,9 +453,29 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
       process.exit(EXIT_USAGE);
     }
     console.error(
-      `Unknown subcommand: "${subcommand}". Use "format", "watch", "compare", "gate-release", "deploy", "review", "list", "check", "check-explainers", "goal", "triage", "validate", "dev", "init-astro", "new", "check-links", "import-openapi", "publish-confluence", or "publish-jira".`,
+      `Unknown subcommand: "${subcommand}". Use "format", "watch", "compare", "gate-release", "deploy", "review", "list", "check", "check-explainers", "goal", "triage", "validate", "doctor", "completion", "dev", "init-astro", "new", "check-links", "import-openapi", "publish-confluence", or "publish-jira".`,
     );
     process.exit(EXIT_USAGE);
+  }
+
+  // Handle completion early — pure stdout, no config or input file needed.
+  if (subcommand === "completion") {
+    process.exit(runCompletion(args.slice(1)));
+  }
+
+  // Handle doctor early: it diagnoses the run file (including the cases that
+  // would make normal arg parsing fail), so it must not go through the shared
+  // input-file resolution below.
+  if (subcommand === "doctor") {
+    const target = args.slice(1).find((a) => !a.startsWith("-"));
+    const report = diagnoseRunFile(target);
+    const asJson = args.includes("--json");
+    if (asJson) {
+      console.log(JSON.stringify(report, null, 2));
+    } else {
+      console.log(formatDoctorReport(report));
+    }
+    process.exit(report.healthy ? EXIT_SUCCESS : EXIT_USAGE);
   }
 
   // Handle publish-confluence early (has its own arg shape — exits after completion)
@@ -540,6 +578,8 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
     args: args.slice(1),
     options: {
       format: { type: "string", default: "html" },
+      preset: { type: "string" },
+      open: { type: "boolean", default: false },
       baseline: { type: "string" },
       "baseline-dir": { type: "string" },
       "input-type": { type: "string", default: "raw" },
@@ -615,6 +655,23 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
     process.exit(EXIT_SUCCESS);
   }
 
+  // `--preset` is alias expansion over the same format list. Resolved here,
+  // BEFORE the input file, so a typo'd preset reports the typo rather than
+  // whatever the working directory happens to be missing: an argument error
+  // the user can see in their own command line always beats an environment one.
+  // `userSetFormat` keeps the parser's "html" default out of preset unions —
+  // only a format the user actually typed joins the preset's set.
+  const userSetFormat = args.slice(1).some((a) => a === "--format" || a.startsWith("--format="));
+  const preset = expandPreset(
+    values.preset as string | undefined,
+    (values.format as string).split(",").map((f) => f.trim()),
+    userSetFormat,
+  );
+  if (preset.error) {
+    console.error(`Error: ${preset.error}`);
+    process.exit(EXIT_USAGE);
+  }
+
   const useStdin = values.stdin as boolean;
   const baselineValue = values.baseline as string | undefined;
   const baselineMode = baselineValue === "auto" ? "auto" : "explicit";
@@ -654,9 +711,29 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
       console.error(`Error: ${subcommand} requires <baseline-file> and <current-file>, or use --baseline auto.`);
       process.exit(EXIT_USAGE);
     }
-  } else if (!useStdin && !inputFile) {
-    console.error("Error: No input file specified. Use a positional argument or --stdin.");
-    process.exit(EXIT_USAGE);
+  }
+
+  // Resolve the run JSON when no positional was given. The non-JS adapters
+  // (Go, Ruby, Rust, pytest, JUnit5, xUnit) can't call the library, so every
+  // one of their users types this path on every command; the JS reporters write
+  // `reports/raw-run.json`. Defaulting to the conventional locations removes
+  // the most-typed argument in the tool. Announced on stderr so it is never
+  // silent magic, and skipped entirely when a path or --stdin was given.
+  let resolvedInputFile = inputFile;
+  if (!isCompareLike && !useStdin && !resolvedInputFile) {
+    const found = findDefaultRunFile();
+    if (found) {
+      resolvedInputFile = found;
+      console.error(`Using ${found} (no input file given).`);
+    } else {
+      console.error(
+        "Error: No input file specified, and no run JSON found at " +
+          `${DEFAULT_RUN_FILES.join(" or ")}.\n` +
+          "  Pass a path, use --stdin, or run your tests first (non-JS adapters write\n" +
+          `  ${DEFAULT_RUN_FILES[0]}; set rawRunPath in a JS reporter to write ${DEFAULT_RUN_FILES[1]}).`,
+      );
+      process.exit(EXIT_USAGE);
+    }
   }
 
   const inputType = values["input-type"] as string;
@@ -673,8 +750,7 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
   // The behavior changelog is a two-run diff, so it only exists for the
   // compare-like subcommands; `format` keeps rejecting it as unknown.
   if (isCompareLike) builtInFormats.add("changelog");
-  const formatStr = values.format as string;
-  const requestedFormats = formatStr.split(",").map((f) => f.trim());
+  const requestedFormats = preset.formats;
   // `astro` was the old name for the Starlight-Markdown format; it collided with the
   // executable-stories-astro live integration. Accept it as a deprecated alias here, at
   // the (untyped) CLI boundary, so everything downstream only ever sees "astro-markdown".
@@ -815,7 +891,7 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
 
   const cliArgs: CliArgs = {
     subcommand: subcommand as "format" | "watch" | "compare" | "gate-release" | "review" | "list" | "check" | "validate",
-    inputFile,
+    inputFile: resolvedInputFile,
     baselineFile,
     baselineArg: baselineValue,
     currentFile,
@@ -823,6 +899,7 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
     baselineDir: values["baseline-dir"] as string | undefined,
     stdin: useStdin,
     formats,
+    open: values.open as boolean,
     inputType: inputType as "raw" | "canonical" | "ndjson",
     outputDir: values["output-dir"] as string,
     outputName: values["output-name"] as string,
@@ -2113,6 +2190,10 @@ function printResult(
     for (const f of result.files) {
       console.log(f);
     }
+    // Confirmation line: `format` used to succeed in silence, so a run that
+    // produced an empty or all-failing report looked identical to a healthy
+    // one. stderr keeps piped stdout (the file list) clean.
+    console.error(summaryLine(result.counts, result.files, durationMs));
     // Discoverability: the living-docs Astro site is the first-class human
     // surface (stories, explainers with freshness banners, explorer), but it's
     // scaffolded once, not generated per run. Point at it only on first
@@ -2129,6 +2210,12 @@ function printResult(
         "Tip: for a live docs site (stories, explainers, freshness): npx executable-stories init-astro --install",
       );
     }
+  }
+
+  // --open works with --json-summary too: agents piping JSON may still want the
+  // report on screen, and the opener writes only to stderr.
+  if (args.open) {
+    openInBrowser(pickOpenTarget(result.files));
   }
 }
 
@@ -2790,6 +2877,7 @@ function createDefaultCliArgs(): CliArgs {
     subcommand: "format",
     stdin: false,
     formats: [],
+    open: false,
     inputType: "raw",
     outputDir: "reports",
     outputName: "index",

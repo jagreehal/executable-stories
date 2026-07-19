@@ -10,6 +10,10 @@
       "type": "object",
       "description": "Top-level raw run containing all test cases and run metadata.",
       "properties": {
+        "$schema": {
+          "type": "string",
+          "description": "Optional pointer to this schema, so editors validate the file as the adapter writes it. Ignored by the CLI."
+        },
         "schemaVersion": {
           "type": "integer",
           "const": 1,
@@ -17,7 +21,9 @@
         },
         "testCases": {
           "type": "array",
-          "items": { "$ref": "#/$defs/RawTestCase" },
+          "items": {
+            "$ref": "#/$defs/RawTestCase"
+          },
           "description": "All test cases from the run."
         },
         "startedAtMs": {
@@ -51,12 +57,16 @@
           "description": "Arbitrary runner-specific metadata. Escape hatch for data not covered by the schema."
         }
       },
-      "required": ["schemaVersion", "testCases", "projectRoot"],
+      "required": [
+        "schemaVersion",
+        "testCases",
+        "projectRoot"
+      ],
       "additionalProperties": false
     },
     "RawTestCase": {
       "type": "object",
-      "description": "A single test case result. Only 'status' is required — everything else is optional to support plain unit tests without BDD metadata.",
+      "description": "A single test case result. Only 'status' is required \u2014 everything else is optional to support plain unit tests without BDD metadata.",
       "properties": {
         "externalId": {
           "type": "string",
@@ -68,7 +78,9 @@
         },
         "titlePath": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "description": "Full title path from describe/suite blocks down to the test name."
         },
         "story": {
@@ -108,12 +120,16 @@
         },
         "stepEvents": {
           "type": "array",
-          "items": { "$ref": "#/$defs/RawStepEvent" },
+          "items": {
+            "$ref": "#/$defs/RawStepEvent"
+          },
           "description": "Step-level execution events from the framework (if available)."
         },
         "attachments": {
           "type": "array",
-          "items": { "$ref": "#/$defs/RawAttachment" },
+          "items": {
+            "$ref": "#/$defs/RawAttachment"
+          },
           "description": "Attachments such as screenshots, logs, or other artifacts."
         },
         "meta": {
@@ -135,12 +151,23 @@
           "description": "Project name (e.g., Playwright project like 'chromium', 'firefox')."
         }
       },
-      "required": ["status"],
+      "required": [
+        "status"
+      ],
       "additionalProperties": false
     },
     "RawStatus": {
       "type": "string",
-      "enum": ["pass", "fail", "skip", "todo", "pending", "timeout", "interrupted", "unknown"],
+      "enum": [
+        "pass",
+        "fail",
+        "skip",
+        "todo",
+        "pending",
+        "timeout",
+        "interrupted",
+        "unknown"
+      ],
       "description": "Permissive test status from any framework. Mapped to canonical status (passed/failed/skipped/pending) during canonicalization."
     },
     "StoryMeta": {
@@ -154,26 +181,38 @@
         },
         "steps": {
           "type": "array",
-          "items": { "$ref": "#/$defs/StoryStep" },
+          "items": {
+            "$ref": "#/$defs/StoryStep"
+          },
           "description": "BDD steps in this scenario. Can be empty or omitted for progressive enrichment."
         },
         "tags": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "description": "Tags for filtering and categorization (e.g., ['smoke', 'auth'])."
         },
         "tickets": {
           "type": "array",
           "items": {
             "oneOf": [
-              { "type": "string" },
+              {
+                "type": "string"
+              },
               {
                 "type": "object",
                 "properties": {
-                  "id": { "type": "string" },
-                  "url": { "type": "string" }
+                  "id": {
+                    "type": "string"
+                  },
+                  "url": {
+                    "type": "string"
+                  }
                 },
-                "required": ["id"],
+                "required": [
+                  "id"
+                ],
                 "additionalProperties": false
               }
             ]
@@ -182,7 +221,9 @@
         },
         "covers": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "description": "Product-code paths/globs this scenario exercises (project-root-relative). Used to map code changes to at-risk scenarios."
         },
         "meta": {
@@ -191,12 +232,16 @@
         },
         "suitePath": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "description": "Parent describe/suite names for hierarchical grouping."
         },
         "docs": {
           "type": "array",
-          "items": { "$ref": "#/$defs/DocEntry" },
+          "items": {
+            "$ref": "#/$defs/DocEntry"
+          },
           "description": "Story-level documentation entries (before any steps)."
         },
         "sourceOrder": {
@@ -206,11 +251,15 @@
         },
         "otelSpans": {
           "type": "array",
-          "items": { "type": "object" },
+          "items": {
+            "type": "object"
+          },
           "description": "OpenTelemetry spans captured for this scenario (from autotel), used to render a trace waterfall."
         }
       },
-      "required": ["scenario"],
+      "required": [
+        "scenario"
+      ],
       "additionalProperties": false
     },
     "StoryStep": {
@@ -229,7 +278,9 @@
         },
         "docs": {
           "type": "array",
-          "items": { "$ref": "#/$defs/DocEntry" },
+          "items": {
+            "$ref": "#/$defs/DocEntry"
+          },
           "description": "Rich documentation entries attached to this step."
         },
         "id": {
@@ -246,23 +297,36 @@
           "description": "Step-level duration in milliseconds (from startTimer/endTimer)."
         }
       },
-      "required": ["keyword", "text"],
+      "required": [
+        "keyword",
+        "text"
+      ],
       "additionalProperties": false
     },
     "StepKeyword": {
       "type": "string",
-      "description": "BDD step keyword. Case-insensitive — 'given' and 'Given' are both accepted. Normalized to title case during processing.",
+      "description": "BDD step keyword. Case-insensitive \u2014 'given' and 'Given' are both accepted. Normalized to title case during processing.",
       "pattern": "^[Gg]iven$|^[Ww]hen$|^[Tt]hen$|^[Aa]nd$|^[Bb]ut$"
     },
     "StepMode": {
       "type": "string",
-      "enum": ["normal", "skip", "only", "todo", "fails", "concurrent"],
+      "enum": [
+        "normal",
+        "skip",
+        "only",
+        "todo",
+        "fails",
+        "concurrent"
+      ],
       "description": "Step execution mode for documentation rendering."
     },
     "DocPhase": {
       "type": "string",
-      "enum": ["static", "runtime"],
-      "description": "When the doc entry was added — 'static' at definition time, 'runtime' during execution."
+      "enum": [
+        "static",
+        "runtime"
+      ],
+      "description": "When the doc entry was added \u2014 'static' at definition time, 'runtime' during execution."
     },
     "DocEntry": {
       "description": "A documentation entry attached to a story or step. Discriminated union on the 'kind' field.",
@@ -271,163 +335,395 @@
           "type": "object",
           "description": "Free-text note.",
           "properties": {
-            "kind": { "const": "note" },
-            "text": { "type": "string" },
-            "phase": { "$ref": "#/$defs/DocPhase" },
-            "children": { "type": "array", "items": { "$ref": "#/$defs/DocEntry" }, "description": "Nested child doc entries for grouping." }
+            "kind": {
+              "const": "note"
+            },
+            "text": {
+              "type": "string"
+            },
+            "phase": {
+              "$ref": "#/$defs/DocPhase"
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/DocEntry"
+              },
+              "description": "Nested child doc entries for grouping."
+            }
           },
-          "required": ["kind", "text", "phase"],
+          "required": [
+            "kind",
+            "text",
+            "phase"
+          ],
           "additionalProperties": false
         },
         {
           "type": "object",
           "description": "Tag(s) for categorization.",
           "properties": {
-            "kind": { "const": "tag" },
+            "kind": {
+              "const": "tag"
+            },
             "names": {
               "type": "array",
-              "items": { "type": "string" }
+              "items": {
+                "type": "string"
+              }
             },
-            "phase": { "$ref": "#/$defs/DocPhase" },
-            "children": { "type": "array", "items": { "$ref": "#/$defs/DocEntry" }, "description": "Nested child doc entries for grouping." }
+            "phase": {
+              "$ref": "#/$defs/DocPhase"
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/DocEntry"
+              },
+              "description": "Nested child doc entries for grouping."
+            }
           },
-          "required": ["kind", "names", "phase"],
+          "required": [
+            "kind",
+            "names",
+            "phase"
+          ],
           "additionalProperties": false
         },
         {
           "type": "object",
           "description": "Key-value pair.",
           "properties": {
-            "kind": { "const": "kv" },
-            "label": { "type": "string" },
+            "kind": {
+              "const": "kv"
+            },
+            "label": {
+              "type": "string"
+            },
             "value": {},
-            "phase": { "$ref": "#/$defs/DocPhase" },
-            "children": { "type": "array", "items": { "$ref": "#/$defs/DocEntry" }, "description": "Nested child doc entries for grouping." }
+            "phase": {
+              "$ref": "#/$defs/DocPhase"
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/DocEntry"
+              },
+              "description": "Nested child doc entries for grouping."
+            }
           },
-          "required": ["kind", "label", "value", "phase"],
+          "required": [
+            "kind",
+            "label",
+            "value",
+            "phase"
+          ],
           "additionalProperties": false
         },
         {
           "type": "object",
           "description": "Code block with optional language.",
           "properties": {
-            "kind": { "const": "code" },
-            "label": { "type": "string" },
-            "content": { "type": "string" },
-            "lang": { "type": "string" },
-            "phase": { "$ref": "#/$defs/DocPhase" },
-            "children": { "type": "array", "items": { "$ref": "#/$defs/DocEntry" }, "description": "Nested child doc entries for grouping." }
+            "kind": {
+              "const": "code"
+            },
+            "label": {
+              "type": "string"
+            },
+            "content": {
+              "type": "string"
+            },
+            "lang": {
+              "type": "string"
+            },
+            "phase": {
+              "$ref": "#/$defs/DocPhase"
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/DocEntry"
+              },
+              "description": "Nested child doc entries for grouping."
+            }
           },
-          "required": ["kind", "label", "content", "phase"],
+          "required": [
+            "kind",
+            "label",
+            "content",
+            "phase"
+          ],
           "additionalProperties": false
         },
         {
           "type": "object",
           "description": "Markdown table.",
           "properties": {
-            "kind": { "const": "table" },
-            "label": { "type": "string" },
+            "kind": {
+              "const": "table"
+            },
+            "label": {
+              "type": "string"
+            },
             "columns": {
               "type": "array",
-              "items": { "type": "string" }
+              "items": {
+                "type": "string"
+              }
             },
             "rows": {
               "type": "array",
               "items": {
                 "type": "array",
-                "items": { "type": "string" }
+                "items": {
+                  "type": "string"
+                }
               }
             },
-            "phase": { "$ref": "#/$defs/DocPhase" },
-            "children": { "type": "array", "items": { "$ref": "#/$defs/DocEntry" }, "description": "Nested child doc entries for grouping." }
+            "phase": {
+              "$ref": "#/$defs/DocPhase"
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/DocEntry"
+              },
+              "description": "Nested child doc entries for grouping."
+            }
           },
-          "required": ["kind", "label", "columns", "rows", "phase"],
+          "required": [
+            "kind",
+            "label",
+            "columns",
+            "rows",
+            "phase"
+          ],
           "additionalProperties": false
         },
         {
           "type": "object",
           "description": "Hyperlink.",
           "properties": {
-            "kind": { "const": "link" },
-            "label": { "type": "string" },
-            "url": { "type": "string" },
-            "phase": { "$ref": "#/$defs/DocPhase" },
-            "children": { "type": "array", "items": { "$ref": "#/$defs/DocEntry" }, "description": "Nested child doc entries for grouping." }
+            "kind": {
+              "const": "link"
+            },
+            "label": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            },
+            "phase": {
+              "$ref": "#/$defs/DocPhase"
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/DocEntry"
+              },
+              "description": "Nested child doc entries for grouping."
+            }
           },
-          "required": ["kind", "label", "url", "phase"],
+          "required": [
+            "kind",
+            "label",
+            "url",
+            "phase"
+          ],
           "additionalProperties": false
         },
         {
           "type": "object",
           "description": "Titled section with markdown content.",
           "properties": {
-            "kind": { "const": "section" },
-            "title": { "type": "string" },
-            "markdown": { "type": "string" },
-            "phase": { "$ref": "#/$defs/DocPhase" },
-            "children": { "type": "array", "items": { "$ref": "#/$defs/DocEntry" }, "description": "Nested child doc entries for grouping." }
+            "kind": {
+              "const": "section"
+            },
+            "title": {
+              "type": "string"
+            },
+            "markdown": {
+              "type": "string"
+            },
+            "phase": {
+              "$ref": "#/$defs/DocPhase"
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/DocEntry"
+              },
+              "description": "Nested child doc entries for grouping."
+            }
           },
-          "required": ["kind", "title", "markdown", "phase"],
+          "required": [
+            "kind",
+            "title",
+            "markdown",
+            "phase"
+          ],
           "additionalProperties": false
         },
         {
           "type": "object",
           "description": "Mermaid diagram.",
           "properties": {
-            "kind": { "const": "mermaid" },
-            "code": { "type": "string" },
-            "title": { "type": "string" },
-            "phase": { "$ref": "#/$defs/DocPhase" },
-            "children": { "type": "array", "items": { "$ref": "#/$defs/DocEntry" }, "description": "Nested child doc entries for grouping." }
+            "kind": {
+              "const": "mermaid"
+            },
+            "code": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "phase": {
+              "$ref": "#/$defs/DocPhase"
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/DocEntry"
+              },
+              "description": "Nested child doc entries for grouping."
+            }
           },
-          "required": ["kind", "code", "phase"],
+          "required": [
+            "kind",
+            "code",
+            "phase"
+          ],
           "additionalProperties": false
         },
         {
           "type": "object",
           "description": "Screenshot reference.",
           "properties": {
-            "kind": { "const": "screenshot" },
-            "path": { "type": "string" },
-            "alt": { "type": "string" },
-            "phase": { "$ref": "#/$defs/DocPhase" },
-            "children": { "type": "array", "items": { "$ref": "#/$defs/DocEntry" }, "description": "Nested child doc entries for grouping." }
+            "kind": {
+              "const": "screenshot"
+            },
+            "path": {
+              "type": "string"
+            },
+            "alt": {
+              "type": "string"
+            },
+            "phase": {
+              "$ref": "#/$defs/DocPhase"
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/DocEntry"
+              },
+              "description": "Nested child doc entries for grouping."
+            }
           },
-          "required": ["kind", "path", "phase"],
+          "required": [
+            "kind",
+            "path",
+            "phase"
+          ],
           "additionalProperties": false
         },
         {
           "type": "object",
           "description": "Video reference with optional caption and poster image.",
           "properties": {
-            "kind": { "const": "video" },
-            "path": { "type": "string" },
-            "caption": { "type": "string" },
-            "poster": { "type": "string" },
-            "phase": { "$ref": "#/$defs/DocPhase" },
-            "children": { "type": "array", "items": { "$ref": "#/$defs/DocEntry" }, "description": "Nested child doc entries for grouping." }
+            "kind": {
+              "const": "video"
+            },
+            "path": {
+              "type": "string"
+            },
+            "caption": {
+              "type": "string"
+            },
+            "poster": {
+              "type": "string"
+            },
+            "phase": {
+              "$ref": "#/$defs/DocPhase"
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/DocEntry"
+              },
+              "description": "Nested child doc entries for grouping."
+            }
           },
-          "required": ["kind", "path", "phase"],
+          "required": [
+            "kind",
+            "path",
+            "phase"
+          ],
           "additionalProperties": false
         },
         {
           "type": "object",
           "description": "Embedded HTML rendered in a sandboxed iframe. Exactly one of path/url/content.",
           "properties": {
-            "kind": { "const": "html" },
-            "path": { "type": "string", "description": "Local HTML file path (inlined into the report by default)." },
-            "url": { "type": "string", "description": "Remote URL rendered via iframe src." },
-            "content": { "type": "string", "description": "Inline HTML content rendered via iframe srcdoc." },
-            "title": { "type": "string" },
-            "height": { "oneOf": [{ "type": "number" }, { "type": "string" }], "description": "Iframe height: number → px, string passed through (e.g. '60vh'). Default 400px." },
-            "phase": { "$ref": "#/$defs/DocPhase" },
-            "children": { "type": "array", "items": { "$ref": "#/$defs/DocEntry" }, "description": "Nested child doc entries for grouping." }
+            "kind": {
+              "const": "html"
+            },
+            "path": {
+              "type": "string",
+              "description": "Local HTML file path (inlined into the report by default)."
+            },
+            "url": {
+              "type": "string",
+              "description": "Remote URL rendered via iframe src."
+            },
+            "content": {
+              "type": "string",
+              "description": "Inline HTML content rendered via iframe srcdoc."
+            },
+            "title": {
+              "type": "string"
+            },
+            "height": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "description": "Iframe height: number \u2192 px, string passed through (e.g. '60vh'). Default 400px."
+            },
+            "phase": {
+              "$ref": "#/$defs/DocPhase"
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/DocEntry"
+              },
+              "description": "Nested child doc entries for grouping."
+            }
           },
-          "required": ["kind", "phase"],
+          "required": [
+            "kind",
+            "phase"
+          ],
           "oneOf": [
-            { "required": ["path"] },
-            { "required": ["url"] },
-            { "required": ["content"] }
+            {
+              "required": [
+                "path"
+              ]
+            },
+            {
+              "required": [
+                "url"
+              ]
+            },
+            {
+              "required": [
+                "content"
+              ]
+            }
           ],
           "additionalProperties": false
         },
@@ -435,13 +731,30 @@
           "type": "object",
           "description": "Custom documentation entry with arbitrary data.",
           "properties": {
-            "kind": { "const": "custom" },
-            "type": { "type": "string" },
+            "kind": {
+              "const": "custom"
+            },
+            "type": {
+              "type": "string"
+            },
             "data": {},
-            "phase": { "$ref": "#/$defs/DocPhase" },
-            "children": { "type": "array", "items": { "$ref": "#/$defs/DocEntry" }, "description": "Nested child doc entries for grouping." }
+            "phase": {
+              "$ref": "#/$defs/DocPhase"
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/DocEntry"
+              },
+              "description": "Nested child doc entries for grouping."
+            }
           },
-          "required": ["kind", "type", "data", "phase"],
+          "required": [
+            "kind",
+            "type",
+            "data",
+            "phase"
+          ],
           "additionalProperties": false
         }
       ]
@@ -468,7 +781,10 @@
         },
         "encoding": {
           "type": "string",
-          "enum": ["BASE64", "IDENTITY"],
+          "enum": [
+            "BASE64",
+            "IDENTITY"
+          ],
           "description": "Content encoding for an inline body."
         },
         "charset": {
@@ -494,12 +810,15 @@
           "description": "Stable step ID this attachment belongs to (preferred over stepIndex)."
         }
       },
-      "required": ["name", "mediaType"],
+      "required": [
+        "name",
+        "mediaType"
+      ],
       "additionalProperties": false
     },
     "RawStepEvent": {
       "type": "object",
-      "description": "Step-level execution event from the framework. Optional — most frameworks don't provide step-level data.",
+      "description": "Step-level execution event from the framework. Optional \u2014 most frameworks don't provide step-level data.",
       "properties": {
         "index": {
           "type": "integer",
@@ -562,7 +881,9 @@
           "description": "Pull/merge request number."
         }
       },
-      "required": ["name"],
+      "required": [
+        "name"
+      ],
       "additionalProperties": false
     }
   }

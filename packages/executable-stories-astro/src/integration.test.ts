@@ -19,21 +19,31 @@ interface IntegrationLike {
  * plugins. `integrations` populates the fake Astro `config.integrations` the
  * Starlight detection reads (default: none -> standalone routes).
  */
+interface ViteUpdate {
+  plugins?: VitePluginLike[];
+  optimizeDeps?: { include?: string[] };
+  resolve?: { dedupe?: string[] };
+}
+
 function runSetup(
   integration: ReturnType<typeof executableStories>,
   integrations: IntegrationLike[] = [],
 ) {
   const routes: { pattern: string; entrypoint: string }[] = [];
   const plugins: VitePluginLike[] = [];
+  const viteUpdates: ViteUpdate[] = [];
   const setup = integration.hooks["astro:config:setup"];
   if (!setup) throw new Error("astro:config:setup hook missing");
   setup({
     injectRoute: (r: { pattern: string; entrypoint: string }) => routes.push(r),
-    updateConfig: (c: { vite?: { plugins?: VitePluginLike[] } }) => plugins.push(...(c?.vite?.plugins ?? [])),
+    updateConfig: (c: { vite?: ViteUpdate }) => {
+      if (c?.vite) viteUpdates.push(c.vite);
+      plugins.push(...(c?.vite?.plugins ?? []));
+    },
     logger: { info: () => {}, warn: () => {}, error: () => {}, debug: () => {} },
     config: { integrations },
   } as never);
-  return { routes, plugins };
+  return { routes, plugins, viteUpdates };
 }
 
 function injectedRoutes(
@@ -123,6 +133,58 @@ describe("executableStories route injection", () => {
     // The detail pattern must be "/[slug]", never "//[slug]".
     expect(routes.some((r) => r.pattern === "/[slug]")).toBe(true);
     expect(routes.every((r) => !r.pattern.includes("//"))).toBe(true);
+  });
+});
+
+describe("executableStories agent endpoints", () => {
+  it("injects /llms.txt and the per-story Markdown twin by default", () => {
+    const routes = injectedRoutes(executableStories({ source: "run.json" }));
+    const md = routes.find((r) => r.pattern === "/stories/[slug].md");
+    expect(md?.entrypoint).toBe("executable-stories-astro/routes/story-md.ts");
+    const llms = routes.find((r) => r.pattern === "/llms.txt");
+    expect(llms?.entrypoint).toBe("executable-stories-astro/routes/llms-txt.ts");
+  });
+
+  it("mounts the Markdown twin under a custom routeBase", () => {
+    const routes = injectedRoutes(executableStories({ source: "run.json", routeBase: "/scenarios" }));
+    expect(routes.some((r) => r.pattern === "/scenarios/[slug].md")).toBe(true);
+  });
+
+  it("can be switched off with agentEndpoints: false", () => {
+    const routes = injectedRoutes(executableStories({ source: "run.json", agentEndpoints: false }));
+    expect(routes.some((r) => r.pattern.endsWith(".md"))).toBe(false);
+    expect(routes.some((r) => r.pattern === "/llms.txt")).toBe(false);
+  });
+
+  it("is suppressed alongside the story routes it links to (injectStoryRoute: false)", () => {
+    const routes = injectedRoutes(executableStories({ source: "run.json", injectStoryRoute: false }));
+    expect(routes.some((r) => r.pattern === "/llms.txt")).toBe(false);
+  });
+});
+
+describe("executableStories vite tuning", () => {
+  it("pre-bundles the report island deps so first hydration never re-optimizes", () => {
+    const { viteUpdates } = runSetup(executableStories({ source: "run.json" }));
+    const include = viteUpdates.flatMap((v) => v.optimizeDeps?.include ?? []);
+    // The exact deps the island pulls in on hydration; missing any of these
+    // reintroduces the "Outdated Optimize Dep" 504 the scaffold used to
+    // work around in its own astro.config.
+    expect(include).toEqual(
+      expect.arrayContaining([
+        "react",
+        "react-dom",
+        "react-dom/client",
+        "react/jsx-runtime",
+        "executable-stories-react",
+        "executable-stories-react/interactive",
+      ]),
+    );
+  });
+
+  it("dedupes React so hooks/context work across the island boundary", () => {
+    const { viteUpdates } = runSetup(executableStories({ source: "run.json" }));
+    const dedupe = viteUpdates.flatMap((v) => v.resolve?.dedupe ?? []);
+    expect(dedupe).toEqual(expect.arrayContaining(["react", "react-dom"]));
   });
 });
 

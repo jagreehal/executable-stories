@@ -26,7 +26,7 @@ After pytest finishes, the plugin writes `.executable-stories/raw-run.json`. Pas
 ## Generate a report
 
 ```bash
-npx executable-stories-formatters format --input .executable-stories/raw-run.json --format markdown
+npx --package executable-stories-formatters executable-stories format --format markdown
 ```
 
 Install the formatters package once in your Node project or CI job:

@@ -461,6 +461,27 @@
 .es-verify--not-run .es-verify__label,
 .es-verify--unverified .es-verify__label { color: var(--es-warn); }
 
+/* ── Authored-page embeds (StoryScenario / StoryStatus) ── */
+.es-embed-scenario {
+  margin: 1rem 0;
+  border: 1px solid var(--es-border);
+  border-radius: var(--es-radius);
+  padding: 0.9rem 1.1rem;
+  background: var(--es-card);
+  box-shadow: var(--es-shadow-sm);
+}
+.es-embed-scenario--missing {
+  border-color: var(--es-warn-edge);
+  background: var(--es-warn-tint);
+  color: var(--es-warn);
+  font-size: 0.9rem;
+}
+.es-embed-scenario__sample { margin: 0 0 0.5rem; color: var(--es-muted); font-size: 0.8rem; font-style: italic; }
+.es-embed-scenario__link { margin: 0.6rem 0 0; font-size: 0.85rem; }
+.es-status-ref { display: inline-flex; align-items: center; gap: 0.4rem; text-decoration: none; vertical-align: baseline; }
+.es-status-ref__title { color: var(--es-fg); font-size: 0.9em; }
+.es-status-ref--missing code { font-size: 0.8em; font-family: var(--es-mono); }
+
 .es-health {
   border: 1px solid var(--es-border);
   border-radius: var(--es-radius);

@@ -612,6 +612,25 @@ class TestJsonWriter < Minitest::Test
     assert_equal "pass", data["testCases"][0]["status"]
   end
 
+  # The $schema pointer lets editors validate the run file as it is written, and
+  # `executable-stories doctor` reports whether it is present.
+  def test_writes_schema_pointer
+    path = File.join(@tmpdir, "raw-run.json")
+
+    run = ExecutableStories::RawRun.new(
+      schema_version: 1,
+      test_cases: [],
+      project_root: Dir.pwd
+    )
+
+    ExecutableStories::JsonWriter.write_raw_run(run, path)
+
+    data = JSON.parse(File.read(path))
+    assert_equal ExecutableStories::SCHEMA_URL, data["$schema"]
+    # It must lead the file so editors pick it up immediately.
+    assert_equal "$schema", data.keys.first
+  end
+
   def test_creates_parent_directories
     path = File.join(@tmpdir, "deep", "nested", "dir", "raw-run.json")
 

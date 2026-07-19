@@ -1,0 +1,66 @@
+---
+/**
+ * StoryScenario — embed a live scenario inside any authored page.
+ *
+ * Drop it into hand-written MDX to pull a scenario — steps, status, failure
+ * output, attached docs — into your own narrative, rendered from the latest
+ * test run (same collection entry as the /stories page, so it can't drift):
+ *
+ *   import StoryScenario from 'executable-stories-astro/components/StoryScenario.astro';
+ *
+ *   Our discount policy is enforced end-to-end:
+ *   <StoryScenario id="checkout--caps-the-discount-at-30-percent" />
+ *
+ * `id` accepts the stable scenario id (preferred — copy it from the Explorer),
+ * the URL slug, or the exact title. An unresolved id renders a visible callout
+ * (never a silent gap): embedded evidence that quietly vanishes is exactly the
+ * drift living documentation exists to prevent.
+ */
+import { getCollection } from "astro:content";
+import { ReportScenario } from "executable-stories-react";
+// The report components ship their own compiled, preflight-free stylesheet
+// scoped to `.es-report-island` (so it never leaks onto the host page).
+import "executable-stories-react/tailwind.css";
+import "../styles/es.css";
+import { storyEntries, joinHref } from "executable-stories-astro";
+import type { StoryEntryData } from "executable-stories-astro";
+import DocHydration from "./DocHydration.astro";
+import { collection as configuredCollection, routeBase } from "virtual:executable-stories/config";
+
+interface Props {
+  /** Stable scenario id, URL slug, or exact title. */
+  id: string;
+  /** Collection to resolve against (defaults to the configured one). */
+  collection?: string;
+  /** Show the scenario title row inside the card. Default true. */
+  title?: boolean;
+  /** Show the "View full scenario" link under the card. Default true. */
+  link?: boolean;
+}
+const { id, collection = configuredCollection, title = true, link = true } = Astro.props as Props;
+
+const stories = storyEntries(await getCollection(collection as "stories"));
+const s: StoryEntryData | undefined = stories.find(
+  (e) => e.id === id || e.slug === id || e.entryId === id || e.title === id,
+);
+---
+
+{s ? (
+  <div class="es-embed-scenario" data-testid="embed-scenario" data-status={s.status}>
+    {s.sample && <p class="es-embed-scenario__sample">Sample data — run your tests to replace it.</p>}
+    <div class="es-report-island font-sans text-foreground">
+      <ReportScenario scenario={s} hideTitle={!title} />
+    </div>
+    {link && (
+      <p class="es-embed-scenario__link">
+        <a href={joinHref(routeBase, s.slug)}>View full scenario →</a>
+      </p>
+    )}
+    <DocHydration />
+  </div>
+) : (
+  <div class="es-embed-scenario es-embed-scenario--missing" data-testid="embed-scenario-missing">
+    <strong>Scenario not found:</strong> <code>{id}</code> — no scenario in the latest run matches
+    this id, slug, or title. Copy the id from the Explorer page.
+  </div>
+)}

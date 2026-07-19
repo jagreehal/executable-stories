@@ -12,6 +12,7 @@ Go, Ruby, Rust, Python, JVM, and .NET adapters must reach parity with the JavaSc
 | **Behavior semantics** | Given/When/Then/And/But keywords, auto-And for repeated keywords, explicit `but()` | Vitest/Jest/Playwright/Cypress adapters | Implemented; verified via RawRun fixtures and `pnpm run verify:*` |
 | **Doc model** | Same doc entry kinds and schema meaning (`json`, `table`, `code`, `section`, `link`, `mermaid`, `screenshot`, `html`, `custom`, `note`, `tag`, …) | Full surface in JS adapters | Implemented where host allows; gaps must be documented |
 | **Artifact outputs** | RawRun JSON → StoryReport v1 via formatters CLI | Reporter `rawRunPath` + formatters | RawRun default `.executable-stories/raw-run.json`; format with `executable-stories format` |
+| **`$schema` pointer** | Optional `$schema` in RawRun so editors validate the file as it is written | Not emitted by the JS/TS reporters | Emitted by **all six** non-JS adapters (Go, Ruby, Rust, pytest, JUnit 5, xUnit) |
 | **Agent workflow** | StoryReport JSON + `list --list-format json` index | [Agent artifact contract](/guides/agent-artifact-contract/) | Same formatter pipeline for all languages |
 | **Verification** | Per-language verify script + formatter acceptance tests | Example apps + `pnpm quality` | `verify:go`, `verify:pytest`, `verify:rust`, `verify:junit5`, `verify:xunit`, `verify:ruby` |
 
@@ -52,6 +53,8 @@ Each script:
 4. Runs formatter pipeline (HTML + Markdown + StoryReport JSON + list index)
 
 Formatter package tests also load cross-language RawRun fixtures (`schemas/examples/go.json`, `rust.json`, `pytest.json`, `junit5.json`, `dotnet.json`) and assert StoryReport v1 validation.
+
+Every non-JS adapter tags its RawRun with a `$schema` pointer (`https://executable-stories.dev/schemas/raw-run.schema.json`) at write time, so an editor validates the file as the adapter produces it. The field is optional in the raw-run schema and the CLI ignores it — `executable-stories doctor` reports whether a run file carries one.
 
 ## Release gate
 

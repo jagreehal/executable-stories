@@ -34,11 +34,13 @@ func TestMain(m *testing.M) {
 
 ## Generate a report
 
-Pass the raw run JSON to `executable-stories-formatters` to render Markdown, HTML, JUnit XML, or Cucumber formats:
+Render the raw run JSON with `executable-stories-formatters` to Markdown, HTML, JUnit XML, or Cucumber formats. The CLI defaults its input to `.executable-stories/raw-run.json` (then `reports/raw-run.json`), so no path is needed:
 
 ```bash
-npx executable-stories-formatters format --input .executable-stories/raw-run.json --format markdown
+npx --package executable-stories-formatters executable-stories format --format markdown
 ```
+
+If the file is missing or won't format, run `executable-stories doctor` — it reports where the run JSON is, whether it parses, and whether its schema version matches the CLI.
 
 Install the formatters package once in your Node project or CI job:
 

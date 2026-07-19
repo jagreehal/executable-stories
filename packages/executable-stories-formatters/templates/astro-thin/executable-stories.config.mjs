@@ -44,4 +44,9 @@ export default defineExecutableStories({
   // Starlight, and falls back to standalone pages otherwise. Force it with
   // 'starlight' or 'standalone' if you embed the integration in your own site.
   // shell: 'auto',
+
+  // Agent-readable endpoints (on by default): /llms.txt indexes every scenario
+  // and each story page gets a plain-Markdown twin at /stories/<slug>.md, so
+  // the deployed site is consumable by agents/curl, not just browsers.
+  // agentEndpoints: true,
 });

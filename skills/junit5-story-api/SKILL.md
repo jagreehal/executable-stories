@@ -43,7 +43,7 @@ class CartCheckoutTest {
 
 Note: `when` is a Kotlin keyword, so it must be escaped with backticks: `` Story.`when`("...") ``.
 
-Output is automatic via JUnit 5's `TestExecutionListener` SPI — `.executable-stories/raw-run.json` is written after all tests complete. Override with `EXECUTABLE_STORIES_OUTPUT` env var.
+Output is automatic via JUnit 5's `TestExecutionListener` SPI — `.executable-stories/raw-run.json` is written after all tests complete. Override with `EXECUTABLE_STORIES_OUTPUT` env var. The run JSON's first key is a `$schema` pointer, so editors validate it as it is written; the listener also prints a `next:` hint to stderr (silence with `EXECUTABLE_STORIES_QUIET`). Render it with `executable-stories format` (path optional — defaults to `.executable-stories/raw-run.json`) or diagnose it with `executable-stories doctor`.
 
 ## Core Patterns
 

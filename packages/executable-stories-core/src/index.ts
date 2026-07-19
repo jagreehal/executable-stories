@@ -33,7 +33,15 @@ export * from "./theme/tokens.js";
 // Session trajectory primitive (ported from serve.ts)
 export * from "./trajectory.js";
 
+// Explainer freshness contract (also available via the ./explainer subpath).
+// Re-exported here so dependents can pull the types from the package's main
+// entry, which their dts bundlers inline (subpath types are not, so a public
+// type that referenced the subpath would leak an import of an unpublished
+// package into the dependent's own .d.ts).
+export * from "./explainer.js";
+
 // Pure doc/render helpers
+export * from "./utils/scenario-markdown.js";
 export * from "./utils/doc-builders.js";
 export * from "./utils/source-file.js";
 export * from "./utils/duration.js";

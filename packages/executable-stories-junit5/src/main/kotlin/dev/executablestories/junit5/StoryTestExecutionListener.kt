@@ -10,6 +10,12 @@ import java.nio.file.Path
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 
+/**
+ * Published raw-run schema, emitted as `$schema` so editors validate the output
+ * file as the adapter writes it.
+ */
+private const val SCHEMA_URL = "https://executable-stories.dev/schemas/raw-run.schema.json"
+
 class StoryTestExecutionListener : TestExecutionListener {
     private var startedAtMs: Long = 0
     private val testCases: MutableList<Map<String, Any?>> = CopyOnWriteArrayList()
@@ -89,6 +95,9 @@ class StoryTestExecutionListener : TestExecutionListener {
         val finishedAtMs = System.currentTimeMillis()
 
         val rawRun = LinkedHashMap<String, Any?>()
+        // $schema first so editors pick it up and validate the file as it is
+        // written; `executable-stories doctor` also reports its presence.
+        rawRun["\$schema"] = SCHEMA_URL
         rawRun["schemaVersion"] = 1
         rawRun["testCases"] = ArrayList(testCases)
         rawRun["startedAtMs"] = startedAtMs
@@ -110,12 +119,27 @@ class StoryTestExecutionListener : TestExecutionListener {
 
         try {
             RawRunWriter.writeRawRun(rawRun, outputPath)
+            printNextStep(outputPath)
         } catch (e: java.io.IOException) {
             System.err.println("[executable-stories] Failed to write raw-run.json: ${e.message}")
             e.printStackTrace(System.err)
         }
 
         testCases.clear()
+    }
+
+    /**
+     * Tell the user how to turn the run JSON into a report.
+     *
+     * The JS adapters render reports in-process, so their users never need to
+     * know the CLI exists. JUnit hands off to the CLI instead, so without this
+     * the run ends with a file and no indication of what to do with it. stderr
+     * keeps piped output clean; EXECUTABLE_STORIES_QUIET silences it in CI.
+     */
+    private fun printNextStep(outputPath: Path) {
+        if (!System.getenv("EXECUTABLE_STORIES_QUIET").isNullOrBlank()) return
+        System.err.println("\n[executable-stories] wrote $outputPath")
+        System.err.println("  next: executable-stories format $outputPath --format html")
     }
 
     private fun detectCI(): Map<String, Any?>? {

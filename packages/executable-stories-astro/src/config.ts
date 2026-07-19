@@ -130,6 +130,14 @@ export interface ExecutableStoriesConfig {
   /** Inject the searchable Scenario Explorer. Default true. */
   injectExplorer?: boolean;
   /**
+   * Inject agent-readable endpoints alongside the story pages: `/llms.txt`
+   * (an llms.txt-format index of every scenario) plus a plain-Markdown twin of
+   * each story page at `<routeBase>/<slug>.md`. The published site stays
+   * consumable by curl/LLMs, not just browsers. Only applies when
+   * `injectStoryRoute` is on. Default true.
+   */
+  agentEndpoints?: boolean;
+  /**
    * Where the injected routes render. Default `"auto"`: render INSIDE the
    * Starlight shell (sidebar, search, theme) when `@astrojs/starlight` is
    * detected in the Astro config, and standalone pages otherwise. Set

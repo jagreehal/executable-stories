@@ -25,11 +25,33 @@ npm install -D executable-stories-formatters
 ### CLI usage
 
 ```bash
+# The input file defaults to .executable-stories/raw-run.json, then
+# reports/raw-run.json — so this works with no path in most projects
+executable-stories format --format html
+
 # Generate markdown from raw run JSON
 executable-stories format raw-run.json --format markdown --output-dir docs
 
 # Generate multiple formats
 executable-stories format raw-run.json --format html,markdown,junit
+
+# Format presets, instead of remembering which of 13 formats you need:
+#   agent -> story-report-json, scenario-index-json, behavior-manifest-json
+#   ci    -> junit, story-report-json
+#   docs  -> html, markdown
+executable-stories format --preset agent
+
+# --preset unions with --format when both are given (preset is a starting
+# point, not a lock) — this writes junit, story-report-json, AND html:
+executable-stories format --preset ci --format html
+
+# Open the HTML report when it's written (no-op with a warning if no html format)
+executable-stories format --format html --open
+
+# Diagnose the run JSON (location, parse, schema version vs CLI, contents).
+# Use this FIRST when a non-JS adapter's output won't format: it names the
+# cross-language version-drift case instead of failing deep in validation.
+executable-stories doctor
 
 # Read from stdin
 cat raw-run.json | executable-stories format --stdin --format markdown
@@ -55,6 +77,9 @@ executable-stories validate raw-run.json
 
 # Scaffold a thin Astro docs site; run `astro dev` for live stories at /stories
 executable-stories init-astro story-docs
+
+# Shell completion
+executable-stories completion zsh > ~/.zsh/completions/_executable-stories
 
 # Publish ADF to Atlassian (dry run first)
 executable-stories publish-confluence reports/test-results.adf.json --page-id 12345 --dry-run
@@ -83,6 +108,20 @@ const generator = new ReportGenerator({
 const outputs = await generator.generate(canonical);
 // Map<OutputFormat, string[]> — file paths written per format
 ```
+
+### What `format` prints and writes
+
+- **Summary line (stderr).** After a successful `format`, one line reports the
+  outcome so an empty or all-failing run never looks like a healthy one, e.g.
+  `✖ 12 scenarios (11 passed, 1 failed) → reports/index.html in 84ms`. The icon
+  is `✔` only when nothing failed, `✖` otherwise. It goes to stderr (piped
+  stdout — the file list — stays clean) and is skipped under `--json-summary`.
+- **Colocated index.** With colocated output (one report per source file), the
+  generator also writes `index.html` in the output dir linking every per-file
+  report, failures first — the front door a bare tree of reports otherwise
+  lacks. It is skipped (with a warning) when a report already occupies
+  `index.html` (e.g. an aggregated report named `index` in mixed mode).
+  Aggregated output needs no index — the single file already is the entry point.
 
 Full CLI flag list, per-formatter programmatic API, asset bundling, Atlassian publishing, validation helpers, before/after diffs, and notifications: [REFERENCE.md](REFERENCE.md).
 

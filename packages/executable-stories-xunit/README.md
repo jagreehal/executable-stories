@@ -41,6 +41,27 @@ Raw run JSON is written under:
 
 Use `executable-stories-formatters` to render HTML/Markdown/JUnit/Cucumber outputs.
 
+## CLI handoff
+
+After running tests, turn the raw-run JSON into reports with the `executable-stories` CLI:
+
+```bash
+# The path is optional — `format` defaults to .executable-stories/raw-run.json
+executable-stories format --format html
+
+# Diagnose the run JSON if a report won't generate (schema drift, empty run)
+executable-stories doctor
+
+# Generate an HTML report
+executable-stories format .executable-stories/raw-run.json --format html
+
+# Canonical StoryReport v1 JSON (machine contract)
+executable-stories format .executable-stories/raw-run.json --format story-report-json --output-dir reports --output-name index
+
+# List scenarios (discovery / failure triage)
+executable-stories list .executable-stories/raw-run.json --list-format json
+```
+
 ## Verify
 
 From repo root:

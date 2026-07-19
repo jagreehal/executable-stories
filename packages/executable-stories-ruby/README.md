@@ -136,6 +136,12 @@ That raw run uses the same schema as `executable-stories-formatters`, so you can
 
 ```bash
 npx --package executable-stories-formatters executable-stories format .executable-stories/raw-run.json --format html
+
+# The path is optional — `format` defaults to .executable-stories/raw-run.json
+npx --package executable-stories-formatters executable-stories format --format html
+
+# Diagnose the run JSON if a report won't generate (schema drift, empty run)
+npx --package executable-stories-formatters executable-stories doctor
 ```
 
 ## License

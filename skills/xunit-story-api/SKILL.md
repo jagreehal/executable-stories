@@ -44,7 +44,7 @@ public class CartCheckoutTests
 }
 ```
 
-**Important:** Call `Story.RecordAndClear()` at the end of each test. This records the test case and clears context. Output is written to `.executable-stories/raw-run.json` on process exit via `InProcessCollector`. Override path with `EXECUTABLE_STORIES_OUTPUT` env var.
+**Important:** Call `Story.RecordAndClear()` at the end of each test. This records the test case and clears context. Output is written to `.executable-stories/raw-run.json` on process exit via `InProcessCollector`. Override path with `EXECUTABLE_STORIES_OUTPUT` env var. The run JSON's first key is a `$schema` pointer, so editors validate it as it is written; the collector also prints a `next:` hint to stderr (silence with `EXECUTABLE_STORIES_QUIET`). Render it with `executable-stories format` (path optional — defaults to `.executable-stories/raw-run.json`) or diagnose it with `executable-stories doctor`.
 
 ## Core Patterns
 

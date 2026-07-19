@@ -6,6 +6,7 @@ Registered via the ``pytest11`` entry point in pyproject.toml.
 from __future__ import annotations
 
 import os
+import sys
 import time
 import traceback
 from typing import Any
@@ -15,6 +16,10 @@ import pytest
 from executable_stories._collector import _collector
 from executable_stories._json_writer import write_raw_run
 from executable_stories._story_api import story
+
+#: Published raw-run schema, emitted as ``$schema`` so editors validate the
+#: output file as the adapter writes it.
+SCHEMA_URL = "https://executable-stories.dev/schemas/raw-run.schema.json"
 
 # ── CI detection ──────────────────────────────────────────────────
 
@@ -202,6 +207,9 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
     finished_at_ms = time.time() * 1000
 
     raw_run: dict[str, Any] = {
+        # $schema first so editors pick it up and validate the file as it is
+        # written; `executable-stories doctor` also reports its presence.
+        "$schema": SCHEMA_URL,
         "schemaVersion": 1,
         "testCases": test_cases,
         "projectRoot": str(session.config.rootdir),  # type: ignore[attr-defined]
@@ -219,3 +227,21 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
     )
 
     write_raw_run(raw_run, output_path)
+    _print_next_step(output_path)
+
+
+def _print_next_step(output_path: str) -> None:
+    """Tell the user how to turn the run JSON into a report.
+
+    The JS adapters render reports in-process, so their users never need to know
+    the CLI exists. pytest hands off to the CLI instead, so without this the run
+    ends with a file and no indication of what to do with it. stderr keeps piped
+    output clean; EXECUTABLE_STORIES_QUIET silences it in CI.
+    """
+    if os.environ.get("EXECUTABLE_STORIES_QUIET"):
+        return
+    print(f"\nexecutable-stories: wrote {output_path}", file=sys.stderr)
+    print(
+        f"  next: executable-stories format {output_path} --format html",
+        file=sys.stderr,
+    )

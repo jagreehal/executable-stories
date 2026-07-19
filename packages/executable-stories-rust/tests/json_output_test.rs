@@ -202,6 +202,15 @@ fn test_json_write_roundtrip() {
     assert_eq!(parsed["testCases"][0]["status"], "pass");
     assert_eq!(parsed["testCases"][0]["title"], "roundtrip test");
 
+    // The writer injects the schema pointer under the literal "$schema" key
+    // (not a camelCased struct field) and puts it first, so editors validate
+    // the file as they open it. The public `RawRun` carries no schema field.
+    assert_eq!(parsed["$schema"], executable_stories::SCHEMA_URL);
+    assert!(parsed.as_object().unwrap().get("schema").is_none());
+    let schema_pos = contents.find("\"$schema\"").unwrap();
+    let version_pos = contents.find("\"schemaVersion\"").unwrap();
+    assert!(schema_pos < version_pos, "$schema should be written before schemaVersion");
+
     // Cleanup
     let _ = std::fs::remove_dir_all(output_path.parent().unwrap());
 }
