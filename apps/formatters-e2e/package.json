@@ -11,7 +11,7 @@
     "screenshots": "playwright test --config screenshots-gen/playwright.config.ts"
   },
   "devDependencies": {
-    "@playwright/test": "^1.59.1",
+    "@playwright/test": "^1.61.1",
     "@types/node": "^25.9.2",
     "executable-stories-formatters": "workspace:*",
     "executable-stories-playwright": "workspace:*",
