@@ -12,16 +12,16 @@ import fs from "node:fs";
 import path from "node:path";
 
 import type { AstroIntegration } from "astro";
-import { canonicalizeRun, toStoryReport, type StoryReport } from "executable-stories-core";
 
 import { storiesLoader } from "./loader.js";
 import { resolveThemeCss } from "./theme.js";
 import {
   resolveSources,
-  passesFilter,
   type ExecutableStoriesConfig,
   type AuthoredDocsSource,
 } from "./config.js";
+import { joinHref, normalizeBase, storyNavItems, type SidebarEntry } from "./sidebar-nav.js";
+import { navManifestPath, syncNavManifest, toRootPath } from "./nav-manifest.js";
 
 export {
   storiesLoader,
@@ -84,6 +84,22 @@ export {
 } from "executable-stories-core";
 
 export { escapeHtml } from "./escape-html.js";
+
+// Sidebar nav building blocks + href helpers (extracted; same public surface).
+export {
+  joinHref,
+  normalizeBase,
+  loadStoryReports,
+  storyNavItems,
+  type SidebarEntry,
+  type SidebarItem,
+} from "./sidebar-nav.js";
+
+// Nav manifest — the watched file that keeps the sidebar fresh in dev.
+export { navFingerprint, navManifestPath, syncNavManifest, toRootPath } from "./nav-manifest.js";
+
+// Markdown projections behind the agent endpoints (/llms.txt, <slug>.md).
+export { scenarioToMarkdown, storiesLlmsTxt } from "./scenario-markdown.js";
 // Rebuild a full StoryReport from the flat `stories` collection so the index
 // can render the SAME React <Report/> tree as the standalone single-file HTML.
 export { storyReportFromEntries } from "./story-report-from-entries.js";
@@ -105,22 +121,6 @@ export {
   type StatusPresentation,
 } from "./verification.js";
 export { summarizeHealth, type HealthSummary, type FailingScenario } from "./report-health.js";
-
-/** Normalize a route base to a leading-slash, no-trailing-slash form ("/stories"). */
-export function normalizeBase(base: string): string {
-  const trimmed = `/${base}`.replace(/\/+/g, "/").replace(/\/$/, "");
-  return trimmed === "" ? "/" : trimmed;
-}
-
-/**
- * Join a route base and an optional segment into an href, collapsing duplicate
- * slashes. Without this a root-mounted base ("/") would produce "//" or
- * "//slug/"; with it `joinHref("/", "slug/")` is "/slug/" and `joinHref("/stories",
- * "slug/")` is "/stories/slug/".
- */
-export function joinHref(base: string, segment = ""): string {
-  return `${base}/${segment}`.replace(/\/{2,}/g, "/");
-}
 
 /** Minimal logger surface (a subset of Astro's integration logger). */
 interface PreflightLogger {
@@ -219,6 +219,23 @@ export type ExecutableStoriesOptions = ExecutableStoriesConfig;
 const VIRTUAL_CONFIG_ID = "virtual:executable-stories/config";
 
 /**
+ * Everything the report island pulls in on first hydration. Pre-bundled in ONE
+ * optimize pass at dev-server startup so Vite never re-optimizes mid-render
+ * when the island hydrates — that re-optimize drops `react-dom/client`'s
+ * `createRoot` export and 504s the page ("Outdated Optimize Dep"), leaving the
+ * island unhydrated. Injected from the integration (not the scaffolded
+ * astro.config) so the fix ships with `pnpm update executable-stories-astro`.
+ */
+const REPORT_ISLAND_DEPS = [
+  "react",
+  "react-dom",
+  "react-dom/client",
+  "react/jsx-runtime",
+  "executable-stories-react",
+  "executable-stories-react/interactive",
+];
+
+/**
  * Astro integration. Injects a stories index (`/stories`) and a story-detail
  * route (`/stories/<slug>`) that render scenarios from the `stories` collection
  * via the shipped render-doc-entry. The loader is wired separately in
@@ -240,17 +257,38 @@ export function executableStories(options: ExecutableStoriesOptions): AstroInteg
   return {
     name: "executable-stories",
     hooks: {
-      "astro:config:setup": ({ injectRoute, updateConfig, logger, config }) => {
+      "astro:config:setup": ({ injectRoute, updateConfig, addWatchFile, logger, config }) => {
         logger.info(`"${collection}" collection -> add storiesLoader to src/content.config.ts`);
         // Startup status for the run JSON, so the terminal is as clear as the UI.
         preflightSources(sources, logger, Date.now());
         // Expose the resolved config to the injected route pages so their links,
         // grouping, and accent honour the config instead of hard-coding values.
+        // Also pre-bundle the report island's dependency subtree (see
+        // REPORT_ISLAND_DEPS) and dedupe React so hooks/context work across the
+        // island boundary — Astro deep-merges this with the user's own vite
+        // config, so their `optimizeDeps.include` entries survive.
         updateConfig({
           vite: {
             plugins: [virtualConfigPlugin({ collection, sources, routeBase, explorerBase, groupBy, themeCss })],
+            optimizeDeps: { include: REPORT_ISLAND_DEPS },
+            resolve: { dedupe: ["react", "react-dom"] },
           },
         });
+        // Keep the sidebar fresh: the nav tree is computed at config load
+        // (storiesSidebar), so a test run that adds/renames/removes scenarios
+        // would leave the sidebar stale while the pages hot-reload. The loader
+        // rewrites this manifest when a resync changes the nav tree; watching
+        // it makes Astro restart the dev server — sidebar rebuilt. Unchanged
+        // trees never write, so the red/green loop stays restart-free.
+        if (config?.root) {
+          try {
+            const root = toRootPath(config.root as URL | string);
+            syncNavManifest(root, options);
+            addWatchFile?.(navManifestPath(root));
+          } catch {
+            // Nav freshness is best-effort; never break config load over it.
+          }
+        }
         // The story pages render the React report components (`<ReportScenario/>`
         // statically, the index as an interactive `<ReportInteractive/>` island),
         // so the site needs a React renderer registered. We don't auto-add it —
@@ -296,6 +334,23 @@ export function executableStories(options: ExecutableStoriesOptions): AstroInteg
             entrypoint: `executable-stories-astro/routes/${variant}story.astro`,
           });
           logger.info(`stories index mounted at ${routeBase}; detail at ${routeBase}/<slug>`);
+          // Agent-readable twins: every story page gets a plain-Markdown
+          // endpoint, and /llms.txt indexes them — the published site is
+          // consumable by curl/LLMs, not just browsers. Endpoints render from
+          // the same collection entries as the HTML routes, so they can't
+          // drift. (Astro gives project-defined routes priority over injected
+          // ones, so a user's own /llms.txt wins if they have one.)
+          if (options.agentEndpoints ?? true) {
+            injectRoute({
+              pattern: joinHref(routeBase, "[slug].md"),
+              entrypoint: "executable-stories-astro/routes/story-md.ts",
+            });
+            injectRoute({
+              pattern: "/llms.txt",
+              entrypoint: "executable-stories-astro/routes/llms-txt.ts",
+            });
+            logger.info(`agent endpoints mounted: /llms.txt + ${routeBase}/<slug>.md`);
+          }
         }
         if (injectExplorer) {
           injectRoute({ pattern: explorerBase, entrypoint: `executable-stories-astro/routes/${variant}explorer.astro` });
@@ -324,87 +379,6 @@ export function executableStories(options: ExecutableStoriesOptions): AstroInteg
 /** Convenience: build a loader from the same options object. */
 export function createStoriesLoader(options: ExecutableStoriesOptions) {
   return storiesLoader(options);
-}
-
-/** A Starlight sidebar entry (the shapes we emit; Starlight accepts more). */
-/** An item inside a sidebar group: a link, a nested group, or an autogen dir. */
-export type SidebarItem =
-  | { label: string; link: string }
-  | { label: string; collapsed?: boolean; items: SidebarItem[] }
-  | { autogenerate: { directory: string } };
-
-export type SidebarEntry =
-  | { label: string; link: string }
-  | { label: string; collapsed?: boolean; items: SidebarItem[] };
-
-/**
- * Build the story report(s) from the configured run JSON at config-load time,
- * through the SAME `canonicalizeRun` → `toStoryReport` path the page's island
- * renders through — so scenario ids (and therefore the `#anchor` links) match
- * the rendered DOM exactly. Reads synchronously and swallows every error (a
- * missing or half-written run JSON must never break `astro.config` load); the
- * caller falls back to a plain link when this yields nothing.
- */
-function loadStoryReports(config: ExecutableStoriesConfig): StoryReport[] {
-  let sources: ReturnType<typeof resolveSources>;
-  try {
-    sources = resolveSources(config);
-  } catch {
-    return [];
-  }
-  const reports: StoryReport[] = [];
-  for (const src of sources) {
-    try {
-      const abs = path.resolve(src.source);
-      let text: string | undefined;
-      if (fs.existsSync(abs)) {
-        text = fs.readFileSync(abs, "utf8");
-      } else if (config.sampleSource) {
-        const sampleAbs = path.resolve(config.sampleSource);
-        if (fs.existsSync(sampleAbs)) text = fs.readFileSync(sampleAbs, "utf8");
-      }
-      if (!text) continue;
-      const json = JSON.parse(text);
-      const canonical = src.inputType === "canonical" ? json : canonicalizeRun(json);
-      reports.push(toStoryReport(canonical));
-    } catch {
-      // A malformed/partial run JSON for one source must not break site nav.
-      continue;
-    }
-  }
-  return reports;
-}
-
-/**
- * Feature → scenario nav for the Starlight sidebar: one collapsed group per
- * feature, each scenario a deep link to `/stories#<scenario-id>`. Honours the
- * same include/exclude the page applies (`passesFilter`), so no link ever
- * points at a scenario the page hides.
- */
-function storyNavItems(config: ExecutableStoriesConfig): SidebarItem[] {
-  const href = joinHref(normalizeBase(config.routeBase ?? "/stories"));
-  const groups: SidebarItem[] = [];
-  for (const report of loadStoryReports(config)) {
-    for (const feature of report.features) {
-      const scenarios = feature.scenarios.filter((s) =>
-        passesFilter(
-          {
-            status: s.status,
-            tags: s.tags ?? [],
-            feature: { title: feature.title, sourceFile: feature.sourceFile },
-          },
-          config,
-        ),
-      );
-      if (scenarios.length === 0) continue;
-      groups.push({
-        label: feature.title,
-        collapsed: true,
-        items: scenarios.map((s) => ({ label: s.title, link: `${href}#${s.id}` })),
-      });
-    }
-  }
-  return groups;
 }
 
 /** Title-case a slug/segment for a default nav label ("deploy-runbooks" -> "Deploy Runbooks"). */

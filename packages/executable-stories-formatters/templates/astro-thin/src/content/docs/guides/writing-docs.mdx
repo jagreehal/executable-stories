@@ -5,3 +5,54 @@ title: Writing docs
 Add your own `.mdx` files under `src/content/docs/` — they appear in the sidebar
 alongside the generated Stories. The generated pages are derived from tests and
 are never written to disk, so you can't accidentally edit them into a lie.
+
+## Embed live scenarios in your own pages
+
+Your hand-written pages can pull scenarios in as live evidence — rendered from
+the latest test run, so the embedded card can never drift from reality:
+
+```mdx
+---
+title: Discount policy
+---
+import StoryScenario from 'executable-stories-astro/components/StoryScenario.astro';
+import StoryStatus from 'executable-stories-astro/components/StoryStatus.astro';
+
+We cap discounts at 30% — enforced end-to-end
+(currently <StoryStatus id="checkout--caps-the-discount-at-30-percent" />):
+
+<StoryScenario id="checkout--caps-the-discount-at-30-percent" />
+```
+
+- `<StoryScenario id="…" />` embeds the full scenario card — steps, status,
+  failure output, and any docs the test attached.
+- `<StoryStatus id="…" />` is an inline status pill linked to the story page,
+  for referencing evidence mid-sentence.
+- `id` accepts the stable scenario id (copy it from the **Explorer** page), the
+  URL slug, or the exact title. An id that no longer matches renders a visible
+  callout — embedded evidence never silently disappears.
+
+## Prove a page is still true
+
+Declare which stories verify a page in its frontmatter and render a live badge:
+
+```mdx
+---
+title: ADR 0007 — cap discount at 30%
+verifiedBy: [checkout--caps-the-discount-at-30-percent]
+---
+import VerifiedBy from 'executable-stories-astro/components/VerifiedBy.astro';
+
+<VerifiedBy refs={frontmatter.verifiedBy} />
+```
+
+## For agents and tooling
+
+The site also publishes machine-readable twins (on by default):
+
+- `/llms.txt` — an index of every scenario with links to its Markdown form.
+- `/stories/<slug>.md` — a plain-Markdown twin of each story page.
+
+Point an agent at your deployed site's `/llms.txt` and it can read every
+scenario without an HTML parser. Disable with `agentEndpoints: false` in
+`executable-stories.config.mjs`.

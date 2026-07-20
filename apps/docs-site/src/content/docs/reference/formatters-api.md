@@ -116,6 +116,8 @@ Use these when you have framework results and want a canonical run for **ReportG
 
 Rules allow different routing per path (e.g. `src/**` colocated, `e2e/**` aggregated).
 
+For **colocated HTML** output, the generator also writes an `index.html` in `outputDir` linking every per-file report, failures first — the entry point a bare tree of colocated reports otherwise lacks. It is skipped (with a warning) when a report already occupies `index.html` (for example an aggregated report named `index` in mixed aggregated + colocated output). Aggregated output needs no index page: the single file already is the entry point.
+
 ### Generate
 
 ```ts
@@ -136,6 +138,8 @@ You can use formatters without **ReportGenerator** if you already have a **`Test
 - **ConfluenceFormatter** — `format(run)` → string (ADF JSON); also `formatToAdf(run)` → the `{ version, type: "doc", content }` object
 
 The HTML report renders via **`executable-stories-react`**: `renderReportToHtml(toStoryReport(run))` from `executable-stories-react/ssr`.
+
+The scenario → Markdown serializer, **`scenarioToMarkdown`**, lives in the internal `executable-stories-core` package (not in formatters). It is the single implementation behind both the HTML report's per-scenario "Copy as Markdown" button (`variant: "compact"` — a paste-sized excerpt) and the Astro site's `<slug>.md` twin endpoints (the default full variant — a standalone document), so the two surfaces cannot drift. See [Core types & constants](/reference/core-api/).
 
 Instantiate with the same options as in **ReportGenerator** (e.g. `MarkdownFormatterOptions` for Markdown, `ConfluenceFormatterOptions` for Confluence).
 
@@ -169,7 +173,9 @@ The formatters package provides an **`executable-stories`** CLI for generating r
 
 **Subcommands:**
 
-- **`executable-stories format <file>`** — Read raw (or canonical) test results and generate reports. Use `--format` to choose one or more of: `html`, `cucumber-html`, `markdown`, `release-manifest`, `traceability-matrix`, `junit`, `cucumber-json`, `cucumber-messages`, `astro`, `confluence`, `story-report-json`, `scenario-index-json`, `behavior-manifest-json`. Default format is `html`. The `story-report-json` format emits the [StoryReport v1 contract](/reference/react-renderer#the-storyreport-contract) consumed by `executable-stories-react`; `scenario-index-json` and `behavior-manifest-json` emit the agent artifacts described in the [Agent artifact contract](/guides/agent-artifact-contract/); `release-manifest` emits the signed-off scenario manifest used by the [Release confidence](/guides/release-confidence/) workflow; `traceability-matrix` emits a requirement-first matrix (ticket → scenarios → covered code → status), described in [Agent loops and backpressure](/guides/agent-loops/).
+- **`executable-stories format [file]`** — Read raw (or canonical) test results and generate reports. **The input `[file]` is optional**: when omitted (and not using `--stdin`), the CLI resolves `.executable-stories/raw-run.json`, then `reports/raw-run.json`, and announces the path it chose on stderr. The first is where the non-JS adapters (Go, Ruby, Rust, pytest, JUnit 5, xUnit) write; the second is where a JS reporter writes when `rawRunPath` is set. Use `--format` to choose one or more of: `html`, `cucumber-html`, `markdown`, `release-manifest`, `traceability-matrix`, `junit`, `cucumber-json`, `cucumber-messages`, `astro-markdown`, `confluence`, `story-report-json`, `scenario-index-json`, `behavior-manifest-json`. Default format is `html`. `--preset agent|ci|docs` expands to a format bundle (and unions with `--format` when both are given). The `story-report-json` format emits the [StoryReport v1 contract](/reference/react-renderer#the-storyreport-contract) consumed by `executable-stories-react`; `scenario-index-json` and `behavior-manifest-json` emit the agent artifacts described in the [Agent artifact contract](/guides/agent-artifact-contract/); `release-manifest` emits the signed-off scenario manifest used by the [Release confidence](/guides/release-confidence/) workflow; `traceability-matrix` emits a requirement-first matrix (ticket → scenarios → covered code → status), described in [Agent loops and backpressure](/guides/agent-loops/). On success `format` prints a one-line summary to stderr (e.g. `✖ 12 scenarios (11 passed, 1 failed) → reports/index.html in 84ms`); add `--open` to reveal the generated HTML report in the default browser.
+- **`executable-stories doctor [file]`** — Diagnose the run JSON without generating anything: where it is (the same default locations `format` resolves), whether it parses, its `schemaVersion` versus what this CLI supports, whether it carries test cases, and whether it has a `$schema` pointer. Because adapters ship independently of the CLI across six languages, it names the "adapter newer than CLI" drift case explicitly (a `schemaVersion` higher than the CLI supports) instead of letting it surface as a confusing validation error deep in `format`. Add `--json` for machine output. Exit `0` when healthy, `4` otherwise.
+- **`executable-stories completion <bash|zsh|fish>`** — Print a shell completion script to stdout (subcommands, common flags, and closed-set flag values). Redirect or `eval` it, e.g. `executable-stories completion zsh > ~/.zsh/completions/_executable-stories`.
 - **`executable-stories watch <file>`** — Watch the raw-run file and regenerate the chosen `--format` artifacts on every change (live agent index). Pairs with the framework's own watch mode; long-lived until interrupted.
 - **`executable-stories compare <current>`** — Compare two runs and generate a diff report.
 - **`executable-stories gate-release <dev-run.json> <rc-run.json>`** — Verify a release candidate against the dev test baseline (RC gate). See [Release confidence](/guides/release-confidence/).
@@ -211,7 +217,9 @@ The formatters package provides an **`executable-stories`** CLI for generating r
 
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
-| `--format` | string | `html` | Output format(s): `html`, `cucumber-html`, `markdown`, `release-manifest`, `traceability-matrix`, `junit`, `cucumber-json`, `cucumber-messages`, `astro`, `confluence`, `story-report-json`, `scenario-index-json`, `behavior-manifest-json` |
+| `--format` | string | `html` | Output format(s): `html`, `cucumber-html`, `markdown`, `release-manifest`, `traceability-matrix`, `junit`, `cucumber-json`, `cucumber-messages`, `astro-markdown`, `confluence`, `story-report-json`, `scenario-index-json`, `behavior-manifest-json` |
+| `--preset` | string | — | Format bundle: `agent` (`story-report-json`, `scenario-index-json`, `behavior-manifest-json`), `ci` (`junit`, `story-report-json`), or `docs` (`html`, `markdown`). Unions with `--format` when both are given |
+| `--open` | boolean | `false` | Open the generated HTML report in the default browser after writing |
 | `--output-dir` | string | `reports` | Directory to write output files |
 | `--output-name` | string | `index` | Base filename (without extension) for aggregated output |
 | `--input-type` | string | `raw` | Input type: `raw`, `canonical`, or `ndjson` |

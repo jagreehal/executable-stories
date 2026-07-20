@@ -35,6 +35,13 @@ the matching page change.
 - **Trajectory** — pins a baseline when the dev server starts and shows what
   changed *since you started this session* (e.g. "+2 passing, 1 regressed") — the
   signal to watch while iterating in an agent loop.
+- **[/llms.txt](/llms.txt)** — a machine-readable index of every scenario; each
+  story page also has a plain-Markdown twin at `/stories/<slug>.md`, so agents
+  can read the published site without an HTML parser.
+
+Your own pages can embed scenarios as live evidence too — see
+**[Writing docs](/guides/writing-docs/)** for `<StoryScenario/>` and
+`<StoryStatus/>`.
 
 ## Wiring (one-time)
 

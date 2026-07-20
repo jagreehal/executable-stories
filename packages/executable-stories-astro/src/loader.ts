@@ -33,6 +33,7 @@ import {
   type LoaderContext,
   type StoriesLoader,
 } from "./loader-context.js";
+import { syncNavManifest, toRootPath } from "./nav-manifest.js";
 
 // Re-export the shared loader plumbing + the split-out loaders/grouping so the
 // package's `/loader` subpath stays a single import surface.
@@ -217,6 +218,21 @@ export function storiesLoader(options: ExecutableStoriesConfig): StoriesLoader {
   const sampleAbs = options.sampleSource ? path.resolve(options.sampleSource) : undefined;
 
   function sync(ctx: LoaderContext): void {
+    // Sidebar freshness (dev only): the nav tree is computed at astro.config
+    // load, so when a test run changes it (scenario/feature added, renamed,
+    // removed) the pages would hot-reload but the sidebar would go stale.
+    // Rewriting the watched nav manifest makes Astro restart the dev server —
+    // and only then; status-only changes leave the manifest untouched, keeping
+    // the red/green loop pure HMR.
+    if (ctx.watcher) {
+      try {
+        if (syncNavManifest(toRootPath(ctx.config?.root), options)) {
+          ctx.logger.info("[executable-stories] nav tree changed -> refreshing sidebar (dev server restart)");
+        }
+      } catch {
+        // Best-effort; a manifest write failure must never break a resync.
+      }
+    }
     ctx.store.clear();
     const { entries } = loadAllStoryEntries(options, (abs) => readSource(abs, ctx));
     for (const entry of entries) {

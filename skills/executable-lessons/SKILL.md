@@ -134,7 +134,7 @@ The loop is red → implement → green, and it already runs itself:
 A lesson run already produces everything. Generate, never hand-write:
 
 - **Living lesson page:** the StoryReporter HTML report.
-- **Publishable docs:** `executable-stories format <raw-run> --format markdown` (or `astro`) for Starlight-ready pages with a pass/fail badge. This is how lessons reach a docs site.
+- **Publishable docs:** `executable-stories format <raw-run> --format markdown` (or `astro-markdown`) for a one-off Starlight-ready page with a pass/fail badge — or scaffold the live Astro site with `executable-stories init-astro`. This is how lessons reach a docs site.
 - **Agent-readable progress:** `executable-stories list <raw-run> --list-format json` gives a scenario index with per-lesson status and source file. A teaching agent reads this to know where the learner is.
 - **Richer presentation (optional):** when a lesson wants a guided interactive shell beyond the doc kinds, generate a self-contained HTML page and embed it with `story.html({ content })`. See [embedding skill & agent HTML output](../../apps/docs-site/src/content/docs/guides/embedding-skill-html-output.md). The embedded page is presentation. The assertion is still the truth.
 

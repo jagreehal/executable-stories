@@ -22,6 +22,14 @@ function createMockDeps(): GenerateDeps {
   };
 }
 
+function writtenContent(deps: GenerateDeps, filePath: string): string {
+  const call = (deps.writeFile as ReturnType<typeof vi.fn>).mock.calls.find(
+    (c) => c[0] === filePath
+  );
+  if (!call) throw new Error(`writeFile was not called with ${filePath}`);
+  return call[1] as string;
+}
+
 // ============================================================================
 // Tests
 // ============================================================================
@@ -90,6 +98,130 @@ describe("ReportGenerator", () => {
       expect(paths).toHaveLength(2);
       expect(paths).toContain("reports/src/auth/login.executable-stories.md");
       expect(paths).toContain("reports/src/dashboard/stats.executable-stories.md");
+    });
+
+    it("indexes a colocated rule's reports even when the global mode is aggregated", async () => {
+      // Arrange — global aggregated, but a rule colocates the integration suite.
+      const deps = createMockDeps();
+      const generator = new ReportGenerator(
+        {
+          formats: ["html"],
+          outputDir: "reports",
+          outputName: "executable-stories",
+          output: {
+            mode: "aggregated",
+            rules: [
+              { match: "src/integration/**", mode: "colocated", colocatedStyle: "mirrored" },
+            ],
+          },
+        },
+        deps
+      );
+
+      const run = canonicalizeRun(
+        stubs.rawRun({
+          testCases: [
+            stubs.rawTestCase({ sourceFile: "src/integration/api.test.ts" }),
+            stubs.rawTestCase({ sourceFile: "src/integration/db.test.ts" }),
+            stubs.rawTestCase({ sourceFile: "src/unit/util.test.ts" }),
+          ],
+        })
+      );
+
+      // Act
+      const result = await generator.generate(run);
+
+      // Assert — the colocated rule left a folder of per-file reports that needs
+      // a front door, so an index is written even though the global mode is
+      // aggregated. It lists the colocated files, not the aggregated one.
+      expect(result.get("html")).toContain("reports/index.html");
+      const indexHtml = writtenContent(deps, "reports/index.html");
+      expect(indexHtml).toContain("src/integration/api.test.ts");
+      expect(indexHtml).toContain("src/integration/db.test.ts");
+      expect(indexHtml).not.toContain("src/unit/util.test.ts");
+    });
+
+    it("keeps an aggregated rule's report out of the colocated index", async () => {
+      // Arrange — global colocated, but a rule aggregates the legacy suite.
+      const deps = createMockDeps();
+      const generator = new ReportGenerator(
+        {
+          formats: ["html"],
+          outputDir: "reports",
+          outputName: "executable-stories",
+          output: {
+            mode: "colocated",
+            colocatedStyle: "mirrored",
+            rules: [{ match: "src/legacy/**", mode: "aggregated" }],
+          },
+        },
+        deps
+      );
+
+      const run = canonicalizeRun(
+        stubs.rawRun({
+          testCases: [
+            stubs.rawTestCase({ sourceFile: "src/legacy/a.test.ts" }),
+            stubs.rawTestCase({ sourceFile: "src/legacy/b.test.ts" }),
+            stubs.rawTestCase({ sourceFile: "src/modern/x.test.ts" }),
+          ],
+        })
+      );
+
+      // Act
+      await generator.generate(run);
+
+      // Assert — the aggregated legacy report covers two files and is its own
+      // entry point, so it is not listed (and not mislabeled as belonging only
+      // to src/legacy/a.test.ts). Only the colocated file is indexed.
+      const indexHtml = writtenContent(deps, "reports/index.html");
+      expect(indexHtml).toContain("src/modern/x.test.ts");
+      expect(indexHtml).not.toContain("src/legacy/a.test.ts");
+      expect(indexHtml).not.toContain("src/legacy/b.test.ts");
+    });
+
+    it("does not overwrite the aggregate report when its name collides with the index", async () => {
+      // Arrange — global aggregated with the default outputName "index", so the
+      // aggregate HTML writes to reports/index.html. A colocated rule would put
+      // its front door on the same path.
+      const deps = createMockDeps();
+      const generator = new ReportGenerator(
+        {
+          formats: ["html"],
+          outputDir: "reports",
+          output: {
+            mode: "aggregated",
+            rules: [
+              { match: "src/integration/**", mode: "colocated", colocatedStyle: "mirrored" },
+            ],
+          },
+        },
+        deps
+      );
+
+      const run = canonicalizeRun(
+        stubs.rawRun({
+          testCases: [
+            stubs.rawTestCase({ sourceFile: "src/integration/api.test.ts" }),
+            stubs.rawTestCase({ sourceFile: "src/unit/util.test.ts" }),
+          ],
+        })
+      );
+
+      // Act
+      const result = await generator.generate(run);
+
+      // Assert — reports/index.html is written exactly once (the aggregate). The
+      // colocated index is skipped rather than silently clobbering it, and the
+      // generator warns so the user can rename one of them.
+      const indexWrites = (deps.writeFile as ReturnType<typeof vi.fn>).mock.calls.filter(
+        (c) => c[0] === "reports/index.html"
+      );
+      expect(indexWrites).toHaveLength(1);
+      expect(deps.logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining("a report already occupies")
+      );
+      expect(result.get("html")!.filter((p) => p === "reports/index.html")).toHaveLength(1);
     });
 
     it("writes colocated adjacent files when mode is colocated adjacent", async () => {

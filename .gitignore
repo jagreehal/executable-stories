@@ -24,6 +24,7 @@ src/__tests__/fixtures/dist/
 src/__tests__/jest/fixtures/dist/
 tsup.config.bundled_*.mjs
 apps/jest-example/.jest-executable-stories
+packages/executable-stories-jest/.jest-executable-stories
 ___temp
 **/docs
 !apps/docs-site/src/content/docs/

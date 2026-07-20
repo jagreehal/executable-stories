@@ -36,7 +36,7 @@ def test_applies_discount_code():
     assert len(cart.discounts) == 1
 ```
 
-File naming: `test_*_story.py`. Output is automatic via the pytest plugin — `.executable-stories/raw-run.json` is written after all tests. Override with `EXECUTABLE_STORIES_OUTPUT` env var.
+File naming: `test_*_story.py`. Output is automatic via the pytest plugin — `.executable-stories/raw-run.json` is written after all tests. Override with `EXECUTABLE_STORIES_OUTPUT` env var. The run JSON's first key is a `$schema` pointer, so editors validate it as it is written; the plugin also prints a `next:` hint to stderr (silence with `EXECUTABLE_STORIES_QUIET`). Render it with `executable-stories format` (path optional — defaults to `.executable-stories/raw-run.json`) or diagnose it with `executable-stories doctor`.
 
 Note: `and_` has a trailing underscore because `and` is a Python keyword.
 

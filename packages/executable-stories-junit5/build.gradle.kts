@@ -15,7 +15,13 @@ java {
 
 mavenPublishing {
     publishToMavenCentral(com.vanniktech.maven.publish.SonatypeHost.CENTRAL_PORTAL)
-    signAllPublications()
+    // Sign only when a signing key is configured. The release workflow sets
+    // ORG_GRADLE_PROJECT_signingInMemoryKey, so Maven Central publishes are
+    // signed; local `publishToMavenLocal` (dev shells, the devcontainer's
+    // postCreate) has no key and does not need signatures, so it just works.
+    if (project.findProperty("signingInMemoryKey") != null) {
+        signAllPublications()
+    }
 
     pom {
         name.set("executable-stories-junit5")

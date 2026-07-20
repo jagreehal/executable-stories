@@ -35,6 +35,7 @@ import { useDeepLinkScroll } from "./use-deep-link-scroll";
 import { filterReport, listFailures, allTags, type StatusFilter } from "./filter";
 import { scrollToScenarioId } from "../lib/scroll";
 import { CollapseProvider, useCollapseState } from "./collapse-context";
+import { defaultCollapsedIds, failuresFirst } from "./triage-default";
 import { ReportFilters } from "./ReportFilters";
 import { ReportToc } from "./ReportToc";
 import { ReportTocDrawer } from "./ReportTocDrawer";
@@ -150,7 +151,9 @@ function ReportInteractiveView({
   const deferredQuery = useDeferredValue(query);
   const failures = useMemo(() => listFailures(report), [report]);
   const filtered = useMemo(
-    () => filterReport(report, { query: deferredQuery, status: statusFilter, tags: activeTags }),
+    // Features carrying failures float to the top so the first thing on screen
+    // is the thing that needs attention; an all-green run keeps source order.
+    () => failuresFirst(filterReport(report, { query: deferredQuery, status: statusFilter, tags: activeTags })),
     [report, deferredQuery, statusFilter, activeTags],
   );
   const isFiltering = query !== deferredQuery;
@@ -202,14 +205,17 @@ function ReportInteractiveView({
     () => report.features.flatMap((f) => [f.id, ...f.scenarios.map((s) => s.id)]),
     [report],
   );
-  // Default view is fully expanded (nothing collapsed), so failures are visible
-  // without a click. A persisted collapse set from a previous visit still wins.
-  const collapse = useCollapseState();
+  // On a run WITH failures the report opens as a triage surface: passing work
+  // collapsed to titles, failures expanded (see defaultCollapsedIds). An
+  // all-green run collapses nothing. Either way a persisted collapse set from a
+  // previous visit wins, so this only ever seeds a first visit.
+  const collapse = useCollapseState(useCallback(() => defaultCollapsedIds(report), [report]));
   const collapseAll = useCallback(() => collapse.collapseAll(allCollapsibleIds), [collapse, allCollapsibleIds]);
   // "Expand all" is a single binary: checked → every scenario open, unchecked →
-  // all collapsed to titles. Defaults to checked. (Per-scenario toggles may
-  // drift from this; harmless.)
-  const [expandedAll, setExpandedAll] = useState<boolean>(true);
+  // all collapsed to titles. Starts unchecked on a failing run so the control
+  // matches the triage default above rather than contradicting it.
+  // (Per-scenario toggles may drift from this; harmless.)
+  const [expandedAll, setExpandedAll] = useState<boolean>(() => report.summary.failed === 0);
   const setExpanded = useCallback(
     (expanded: boolean) => {
       if (expanded) collapse.expandAll();

@@ -58,6 +58,12 @@ Then feed the raw-run JSON to `executable-stories-formatters` for report generat
 
 ```bash
 executable-stories format .executable-stories/raw-run.json --format html
+
+# The path is optional — `format` defaults to .executable-stories/raw-run.json
+executable-stories format --format html
+
+# Diagnose the run JSON if a report won't generate (schema drift, empty run)
+executable-stories doctor
 ```
 
 ## Verify

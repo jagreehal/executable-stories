@@ -86,6 +86,7 @@ export const collections = {
 | `explorerBase` | `string` | `'/explorer'` | Where the searchable Scenario Explorer mounts. |
 | `injectStoryRoute` | `boolean` | `true` | Inject the stories index + detail routes. |
 | `injectExplorer` | `boolean` | `true` | Inject the Scenario Explorer. |
+| `agentEndpoints` | `boolean` | `true` | Inject `/llms.txt` + a Markdown twin per story at `<routeBase>/<slug>.md`. |
 | `theme.accent` | `string` | — | Accent colour for the standalone story pages. |
 
 ## What you get
@@ -95,9 +96,49 @@ export const collections = {
   do not wire any CSS) and link-correct for any `routeBase`.
 - **Hot reload** — the loader watches the run JSON; a fresh test run updates the
   open page with no reload. Nothing is written to disk; tests stay the source of
-  truth.
+  truth. When a run changes the *nav tree* (scenario added/renamed/removed) the
+  integration triggers a dev-server restart so the Starlight sidebar rebuilds
+  too; status-only changes stay pure HMR.
 - **`storiesSidebar(config)`** — builds Starlight sidebar entries from the config
   (Stories, Explorer, and a group per `docs` source) so you don't hand-wire nav.
+- **Agent endpoints** — `/llms.txt` (an [llms.txt](https://llmstxt.org)-format
+  index of every scenario) and a plain-Markdown twin of each story page at
+  `<routeBase>/<slug>.md`, prerendered as real files on static builds — so the
+  deployed site is consumable by agents and `curl`, not just browsers.
+- **Self-tuning Vite config** — the integration pre-bundles React + the report
+  components (`optimizeDeps`) and dedupes React itself; no `vite` block needed
+  in your `astro.config.mjs`.
+
+## Embedding scenarios in authored pages
+
+Hand-written MDX can pull scenarios in as live evidence, rendered from the same
+collection as the story pages:
+
+```mdx
+import StoryScenario from 'executable-stories-astro/components/StoryScenario.astro';
+import StoryStatus from 'executable-stories-astro/components/StoryStatus.astro';
+
+We cap discounts at 30% — enforced end-to-end
+(currently <StoryStatus id="checkout--caps-the-discount-at-30-percent" />):
+
+<StoryScenario id="checkout--caps-the-discount-at-30-percent" />
+```
+
+`<StoryScenario/>` renders the full scenario card (steps, status, failure
+output, attached docs); `<StoryStatus/>` is an inline linked status pill. Both
+resolve `id` against the stable scenario id, the URL slug, or the exact title,
+and render a visible callout when the reference no longer matches, so embedded
+evidence never silently disappears. Pair with `<VerifiedBy/>` for page-level
+`verifiedBy:` frontmatter badges.
+
+Both take the same optional props:
+
+| Prop | Type | Default | What it does |
+|---|---|---|---|
+| `id` | `string` | — | The scenario to resolve (stable id, slug, or exact title). Required. |
+| `collection` | `string` | configured `collection` | Resolve against a different loader collection. |
+| `title` | `boolean` | `true` (`StoryScenario`) / `false` (`StoryStatus`) | Show the scenario title (the card's title row / the label beside the status pill). |
+| `link` | `boolean` | `true` | `StoryScenario` only: show the "View full scenario" link under the card. |
 
 ## Authored docs
 

@@ -55,6 +55,7 @@ export default defineExecutableStories({
 | `docs` | Authored markdown folders to surface in the nav. |
 | `collection` | Collection name the loader feeds (default `stories`). |
 | `routeBase` / `explorerBase` | Where the pages mount (default `/stories`, `/explorer`). |
+| `agentEndpoints` | Inject `/llms.txt` and per-story Markdown twins at `<routeBase>/<slug>.md` (default `true`). |
 | `theme` | `preset` (`default`/`terminal`/`minimal`/`vibrant`), `accent` shorthand, and per-token `tokens` overrides. Restyles the story content; the Starlight shell keeps its own theme. |
 
 See the full reference in the [`executable-stories-astro` README](https://github.com/jagreehal/executable-stories/tree/main/packages/executable-stories-astro).
@@ -68,9 +69,38 @@ See the full reference in the [`executable-stories-astro` README](https://github
   and tag).
 - **Auto-built nav** — spread `storiesSidebar(config)` into your Starlight
   `sidebar` and the Stories/Explorer links and your docs groups appear without
-  hand-wiring.
+  hand-wiring. The nav stays fresh in dev: when a test run adds, renames, or
+  removes scenarios, the integration triggers a dev-server restart so the
+  sidebar rebuilds (status-only changes hot-reload without a restart).
 - **Live trajectory** — the shipped `<Trajectory />` component shows
   "passed N → M since you started" across a watch session.
+- **Agent endpoints** — `/llms.txt` indexes every scenario, and each story page
+  has a plain-Markdown twin at `/stories/<slug>.md`, so the deployed site is
+  consumable by agents and `curl`, not just browsers. Disable with
+  `agentEndpoints: false`.
+
+## Embedding scenarios in your own pages
+
+Authored MDX pages can pull scenarios in as live evidence, rendered from the
+same collection as the story pages — so an embed can never drift from the
+latest run:
+
+```mdx
+import StoryScenario from 'executable-stories-astro/components/StoryScenario.astro';
+import StoryStatus from 'executable-stories-astro/components/StoryStatus.astro';
+
+We cap discounts at 30% — enforced end-to-end
+(currently <StoryStatus id="checkout--caps-the-discount-at-30-percent" />):
+
+<StoryScenario id="checkout--caps-the-discount-at-30-percent" />
+```
+
+`<StoryScenario/>` renders the full scenario card (steps, status, failure
+output, attached docs); `<StoryStatus/>` is an inline linked status pill. Both
+accept the stable scenario id (copy it from the Explorer), the URL slug, or the
+exact title, and render a visible callout when the id no longer matches — an
+embed never silently disappears. This pairs with `<VerifiedBy/>` (frontmatter
+`verifiedBy:` refs → a live pass/fail badge) for page-level verification.
 
 ## Bringing in existing docs
 

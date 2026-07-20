@@ -1,0 +1,37 @@
+---
+title: Embedding scenarios
+---
+
+import StoryScenario from 'executable-stories-astro/components/StoryScenario.astro';
+import StoryStatus from 'executable-stories-astro/components/StoryStatus.astro';
+
+Hand-written pages can pull scenarios in as **live evidence** — rendered from
+the latest test run, so an embed can never drift from reality.
+
+Saved-card checkout is currently
+<StoryStatus id="a-returning-customer-checks-out-with-a-saved-card" />, proven
+end-to-end by this scenario:
+
+<StoryScenario id="a-returning-customer-checks-out-with-a-saved-card" />
+
+The `id` accepts the stable scenario id (copy it from the **Explorer**), the URL
+slug, or the exact title. If it stops matching — say the scenario is renamed —
+the embed renders a visible callout instead of silently disappearing.
+
+## Props
+
+Both components import from `executable-stories-astro/components/`. Beyond the
+required `id`, they share these optional props:
+
+- **`collection`** — resolve against a different loader collection (defaults to
+  the configured one).
+- **`title`** — `<StoryScenario title={false} />` hides the card's title row;
+  `<StoryStatus title />` adds the scenario title beside the pill (default
+  `false` there).
+- **`link`** (`<StoryScenario/>` only) — `link={false}` drops the "View full
+  scenario →" link under the card.
+
+The rendered evidence comes from the same `stories` collection as the `/stories`
+pages, so it hot-reloads with your test runs and can never drift. Agents reading
+the deployed site get the same scenarios from `/llms.txt` and each page's
+`<slug>.md` twin.

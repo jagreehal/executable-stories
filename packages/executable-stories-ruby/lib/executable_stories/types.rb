@@ -39,6 +39,10 @@ module ExecutableStories
     keyword_init: true
   )
 
+  # Published raw-run schema, emitted as `$schema` so editors validate the
+  # output file as the adapter writes it.
+  SCHEMA_URL = "https://executable-stories.dev/schemas/raw-run.schema.json"
+
   module_function
 
   def step_to_h(step)
@@ -134,7 +138,10 @@ module ExecutableStories
   end
 
   def run_to_h(run)
+    # $schema first so editors pick it up and validate the file as it is
+    # written; `executable-stories doctor` also reports its presence.
     h = {
+      "$schema" => SCHEMA_URL,
       "schemaVersion" => run.schema_version,
       "testCases" => run.test_cases.map { |tc| test_case_to_h(tc) },
       "projectRoot" => run.project_root

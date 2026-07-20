@@ -106,6 +106,21 @@ pub fn write_results() {
     };
 
     json_writer::write_raw_run(&run, &output).expect("Failed to write raw run JSON");
+    print_next_step(&output);
+}
+
+/// Tell the user how to turn the run JSON into a report.
+///
+/// The JS adapters render reports in-process, so their users never need to know
+/// the CLI exists. Rust hands off to the CLI instead, so without this the run
+/// ends with a file and no indication of what to do with it. stderr keeps piped
+/// output clean; `EXECUTABLE_STORIES_QUIET` silences it in CI.
+fn print_next_step(output_path: &str) {
+    if std::env::var_os("EXECUTABLE_STORIES_QUIET").is_some() {
+        return;
+    }
+    eprintln!("\nexecutable-stories: wrote {output_path}");
+    eprintln!("  next: executable-stories format {output_path} --format html");
 }
 
 /// Reset the collector state. Useful for testing.

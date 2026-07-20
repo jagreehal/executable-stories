@@ -28,6 +28,8 @@ export interface LoaderContext {
     add: (path: string) => void;
     on: (event: string, cb: (changedPath: string) => void) => void;
   };
+  /** Astro's resolved config (only `root` is read — for the nav manifest). */
+  config?: { root?: URL | string };
 }
 
 export interface StoriesLoader {

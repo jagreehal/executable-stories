@@ -45,6 +45,7 @@ import { ReleaseManifestFormatter } from "./formatters/release-manifest";
 import { TraceabilityMatrixFormatter } from "./formatters/traceability-matrix";
 import { CucumberMessagesFormatter } from "./formatters/cucumber-messages/index";
 import { CucumberHtmlFormatter } from "./formatters/cucumber-html";
+import { buildIndexEntries, renderColocatedIndex } from "./colocated-index";
 import { diffRuns } from "./compare/index";
 import { RunDiffChangelogFormatter } from "./formatters/run-diff-changelog";
 import { RunDiffHtmlFormatter } from "./formatters/run-diff-html";
@@ -559,6 +560,20 @@ function findMatchingRule(
 }
 
 /**
+ * Effective output mode for a source file: the matching rule's mode, else the
+ * global default. Mirrors the resolution in groupTestCasesByOutput, including
+ * the fallback where a colocated file with no known source aggregates instead.
+ */
+function effectiveOutputMode(
+  sourceFile: string,
+  options: ResolvedFormatterOptions
+): OutputMode {
+  const rule = findMatchingRule(sourceFile, options.output.rules);
+  const mode = rule?.mode ?? options.output.mode;
+  return mode === "colocated" && sourceFile === "unknown" ? "aggregated" : mode;
+}
+
+/**
  * Normalize path to posix format (forward slashes).
  */
 function toPosix(p: string): string {
@@ -880,6 +895,19 @@ export class ReportGenerator {
       results.set(format, paths);
     }
 
+    // Colocated output writes one HTML report per source file, which leaves a
+    // directory of files with no front door — someone handed the folder has
+    // nothing to open. Write an index listing them (failures first). An
+    // aggregated group is a single file that IS its own entry point, so only
+    // colocated groups are indexed. A per-rule colocated mode counts too, even
+    // when the global mode is aggregated (writeColocatedIndex filters to the
+    // colocated groups and returns undefined when there are none).
+    const htmlPaths = results.get("html") ?? [];
+    if (this.hasColocatedOutput() && htmlPaths.length > 0) {
+      const indexPath = await this.writeColocatedIndex(filteredRun, htmlPaths);
+      if (indexPath) results.set("html", [...htmlPaths, indexPath]);
+    }
+
     if (this.options.assetMode === "copy") {
       // The html report references screenshots/videos by path — DocScreenshot
       // and DocVideo emit <img>/<video src=...> rather than inlining bytes — so
@@ -916,6 +944,69 @@ export class ReportGenerator {
     }
 
     return results;
+  }
+
+  /**
+   * Whether any output is colocated — the global mode, or any per-rule mode.
+   * A colocated rule under a global aggregated mode still writes per-file
+   * reports that need an index.
+   */
+  private hasColocatedOutput(): boolean {
+    return (
+      this.options.output.mode === "colocated" ||
+      this.options.output.rules.some((rule) => rule.mode === "colocated")
+    );
+  }
+
+  /**
+   * Write the entry-point page for a colocated HTML report tree. `htmlPaths` is
+   * every HTML report already written this run. Returns the path written, or
+   * undefined when there is nothing to index or the index would clobber a report
+   * already at `index.html` — a colocated source file that produces it, or, in
+   * mixed mode, the global aggregate (whose default output name is also index).
+   */
+  private async writeColocatedIndex(
+    run: TestRunResult,
+    htmlPaths: string[]
+  ): Promise<string | undefined> {
+    const outputNameSuffix = this.options.outputNameTimestamp
+      ? `-${Math.floor(run.startedAtMs / 1000)}`
+      : undefined;
+    // Recompute the same grouping generateFormat used so the index links
+    // exactly the files that were written (deterministic, so this cannot drift).
+    const groups = groupTestCasesByOutput(
+      run.testCases,
+      "html",
+      this.options,
+      this.deps.logger,
+      outputNameSuffix,
+    );
+    const bySourceFile = new Map<string, string>();
+    for (const [outputPath, testCases] of groups) {
+      const sourceFile = testCases[0]?.sourceFile;
+      if (!sourceFile) continue;
+      // Index colocated groups only. An aggregated group covers many source
+      // files in one report — it is its own front door, and mapping it to
+      // testCases[0].sourceFile would list it as if it belonged to that one
+      // file while hiding the rest.
+      if (effectiveOutputMode(sourceFile, this.options) !== "colocated") continue;
+      bySourceFile.set(sourceFile, outputPath);
+    }
+    if (bySourceFile.size === 0) return undefined;
+
+    const indexPath = toPosix(path.join(this.options.outputDir, "index.html"));
+    if (htmlPaths.some((p) => toPosix(p) === indexPath)) {
+      this.deps.logger.warn?.(
+        `Skipping colocated index: a report already occupies ${indexPath}.`,
+      );
+      return undefined;
+    }
+
+    const entries = buildIndexEntries(run, bySourceFile, path.dirname(indexPath));
+    const html = renderColocatedIndex(entries, this.options.html.title);
+    await fsPromises.mkdir(path.dirname(indexPath), { recursive: true });
+    await this.deps.writeFile(indexPath, html);
+    return indexPath;
   }
 
   /**

@@ -17,28 +17,12 @@ export default defineConfig({
   // Set this to your deployed URL to enable canonical links + the sitemap
   // Starlight ships (otherwise `astro build` prints a harmless sitemap notice).
   // site: 'https://docs.example.com',
-  vite: {
-    // The Stories page is a `client:load` React island. Pre-bundle React and the
-    // report component subtree in ONE optimize pass at startup so Astro's dev
-    // server never re-optimizes them mid-render when the island first hydrates.
-    // That mid-render re-optimize otherwise drops `react-dom/client`'s
-    // `createRoot` export and 504s the page ("Outdated Optimize Dep"), leaving
-    // the island unhydrated and the page rendered as unstyled SSR fallback.
-    // If you add your OWN React islands, add their heavy deps to `include` too.
-    optimizeDeps: {
-      include: [
-        'react',
-        'react-dom',
-        'react-dom/client',
-        'react/jsx-runtime',
-        'executable-stories-react',
-        'executable-stories-react/interactive',
-      ],
-      noDiscovery: true,
-    },
-    // Keep a single React copy so hooks/context work across the island boundary.
-    resolve: { dedupe: ['react', 'react-dom'] },
-  },
+
+  // No vite tuning needed here: the integration pre-bundles React + the report
+  // components (optimizeDeps) and dedupes React itself, so fixes ship with
+  // `pnpm update executable-stories-astro`. If you add your OWN React islands,
+  // list their heavy deps in a `vite.optimizeDeps.include` of your own — it
+  // merges with the integration's list.
   integrations: [
     // React renderer for the report islands — must come before executableStories.
     react(),

@@ -27,6 +27,7 @@ func RunAndReport(m *testing.M) {
 
 		cwd, _ := os.Getwd()
 		run := RawRun{
+			Schema:        SchemaURL,
 			SchemaVersion: 1,
 			TestCases:     cases,
 			ProjectRoot:   cwd,
@@ -34,7 +35,9 @@ func RunAndReport(m *testing.M) {
 			FinishedAtMs:  &finishMs,
 			CI:            detectCI(),
 		}
-		_ = writeRawRun(run, outputPath)
+		if err := writeRawRun(run, outputPath); err == nil {
+			printNextStep(outputPath)
+		}
 	}
 
 	os.Exit(code)

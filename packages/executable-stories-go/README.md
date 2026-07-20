@@ -56,6 +56,12 @@ Use `executable-stories-formatters` to generate HTML/Markdown/JUnit/Cucumber out
 After running tests, turn the raw-run JSON into reports with the `executable-stories` CLI:
 
 ```bash
+# The path is optional — `format` defaults to .executable-stories/raw-run.json
+executable-stories format --format html
+
+# Diagnose the run JSON if a report won't generate (schema drift, empty run)
+executable-stories doctor
+
 # Generate an HTML report
 executable-stories format .executable-stories/raw-run.json --format html
 

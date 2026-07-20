@@ -5,3 +5,31 @@ title: Writing docs
 Add your own `.mdx` files under `src/content/docs/` — they appear in the sidebar
 alongside the generated Stories. The generated pages are derived from tests and
 are never written to disk, so you can't accidentally edit them into a lie.
+
+## Embed live scenarios
+
+Your prose can pull real test results in as evidence. Import the embed
+components and reference a scenario by id, slug, or exact title:
+
+```mdx
+import StoryScenario from 'executable-stories-astro/components/StoryScenario.astro';
+import StoryStatus from 'executable-stories-astro/components/StoryStatus.astro';
+
+Saved-card checkout is <StoryStatus id="a-returning-customer-checks-out-with-a-saved-card" />.
+
+<StoryScenario id="a-returning-customer-checks-out-with-a-saved-card" />
+```
+
+`<StoryStatus/>` is an inline linked status pill; `<StoryScenario/>` renders the
+full scenario card (steps, status, failure output, attached docs). Both render a
+visible callout when the reference stops matching, so an embed never silently
+disappears. See [Embedding scenarios](/guides/embedding-scenarios/) for the full
+prop list.
+
+## Sidebar and agent endpoints
+
+New authored files show up in the sidebar automatically. When a test run
+adds, renames, or removes a scenario, the integration restarts the dev server so
+the Stories nav rebuilds too (status-only changes just hot-reload). The
+published site also exposes `/llms.txt` and a plain-Markdown `<slug>.md` twin of
+every story page, so agents can read your docs without an HTML parser.

@@ -62,7 +62,7 @@ fn write_story_results() {
 
 **Important:** Call `s.pass()` at the end of each passing test. Without it, the test defaults to "fail" status when the `Story` is dropped.
 
-`write_results()` writes `.executable-stories/raw-run.json` (override the path with the `EXECUTABLE_STORIES_OUTPUT` env var). It must run after every test in the binary has finished, so register it with `#[dtor::dtor]` (requires the `dtor = "1.0"` dev-dependency). Put all story tests in a single integration-test file so they share one process and one destructor. A bare `fn teardown()` is never invoked by the Rust test harness and silently produces no output.
+`write_results()` writes `.executable-stories/raw-run.json` (override the path with the `EXECUTABLE_STORIES_OUTPUT` env var). It must run after every test in the binary has finished, so register it with `#[dtor::dtor]` (requires the `dtor = "1.0"` dev-dependency). Put all story tests in a single integration-test file so they share one process and one destructor. A bare `fn teardown()` is never invoked by the Rust test harness and silently produces no output. The run JSON's first key is a `$schema` pointer, so editors validate it as it is written; the adapter also prints a `next:` hint to stderr (silence with `EXECUTABLE_STORIES_QUIET`). Render it with `executable-stories format` (path optional — defaults to `.executable-stories/raw-run.json`) or diagnose it with `executable-stories doctor`.
 
 ## Core Patterns
 
