@@ -1,0 +1,49 @@
+---
+/**
+ * JourneysIndexView — shared body of the journeys index. Lists every journey
+ * derived from `journey:<id>[:<order>]` tags with its aggregate status and
+ * member count; explains the convention when nothing is tagged yet.
+ */
+import { getCollection } from "astro:content";
+import { storyEntries, extractJourneys, joinHref } from "executable-stories-astro";
+import "../styles/es.css";
+import { collection, journeysBase } from "virtual:executable-stories/config";
+
+interface Props {
+  shell?: "standalone" | "starlight";
+}
+const { shell = "standalone" } = Astro.props as Props;
+const starlight = shell === "starlight";
+
+const entries = storyEntries(await getCollection(collection));
+const journeys = extractJourneys(entries);
+---
+
+<div class={`es-index not-content${starlight ? " es-embed" : ""}`}>
+  {!starlight && <h1>Journeys</h1>}
+  <p class="es-view-description">
+    Multi-scenario walkthroughs, composed from your tests in tag order.
+  </p>
+  {journeys.length === 0 ? (
+    <aside class="es-sample-banner" data-testid="journeys-empty" role="note">
+      <strong>No journeys yet.</strong> Tag scenarios with
+      <code>journey:&lt;id&gt;:&lt;order&gt;</code> (e.g.
+      <code>{`story.init(task, { tags: ['journey:guest-checkout:1'] })`}</code>) and each id
+      becomes an ordered walkthrough page here.
+    </aside>
+  ) : (
+    <ul class="es-journeys" data-testid="journeys-list">
+      {journeys.map((j) => (
+        <li class="es-journeys__item" data-status={j.status}>
+          <a href={joinHref(journeysBase, j.id)}>
+            <span class={`es-status es-status--${j.status}`}>{j.status}</span>
+            <span class="es-journeys__title">{j.title}</span>
+            <span class="es-journeys__count">
+              {j.scenarios.length} step{j.scenarios.length === 1 ? "" : "s"}
+            </span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  )}
+</div>

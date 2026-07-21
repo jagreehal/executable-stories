@@ -81,6 +81,11 @@ export const collections = {
 | `exclude` | `StoryFilter` | — | Denylist, applied after `include`. |
 | `groupBy` | `GroupBy` | `'feature'` | How the index/explorer categorise scenarios: `feature`, `tag` (a scenario appears under each tag), `source` (suite), `status`, or `none`. |
 | `docs` | `AuthoredDocsSource[]` | — | Authored markdown folders to surface in the nav: `{ path, label?, base? }`. |
+| `views` | `PersonaView[]` | — | Audience lenses: `{ base, label?, description?, include?, exclude?, groupBy? }` — each mounts a filtered, re-grouped index at its own URL (e.g. `/for/product`) and joins the sidebar under "Audiences". |
+| `journeysBase` | `string` | `'/journeys'` | Where journey walkthroughs mount. Journeys derive from `journey:<id>[:<order>]` tags: ordered member scenarios rendered as full cards under one aggregate status. Embed with `<StoryJourney id="..."/>`. |
+| `injectJourneys` | `boolean` | `true` | Inject the journeys index + detail routes. |
+| `statesBase` | `string` | `'/states'` | Where the UI-state catalog mounts: a thumbnail grid of `state:<name>`-tagged scenarios (first storyboard frame per card; `viewport:*` variants side by side). |
+| `injectStates` | `boolean` | `true` | Inject the states grid route. |
 | `collection` | `string` | `'stories'` | Collection name the loader feeds. |
 | `routeBase` | `string` | `'/stories'` | Where the stories index + detail pages mount. |
 | `explorerBase` | `string` | `'/explorer'` | Where the searchable Scenario Explorer mounts. |

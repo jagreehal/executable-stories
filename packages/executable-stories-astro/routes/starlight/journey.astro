@@ -1,0 +1,27 @@
+---
+/**
+ * Journey detail — Starlight variant. Owns getStaticPaths; renders the shared
+ * JourneyView inside the Starlight shell.
+ */
+import { getCollection } from "astro:content";
+import StarlightPage from "@astrojs/starlight/components/StarlightPage.astro";
+import "../../styles/es.css";
+import { storyEntries, extractJourneys } from "executable-stories-astro";
+import type { Journey, StoryEntryData } from "executable-stories-astro";
+import JourneyView from "../../components/JourneyView.astro";
+import { collection } from "virtual:executable-stories/config";
+
+export async function getStaticPaths() {
+  const entries = storyEntries(await getCollection(collection));
+  return extractJourneys(entries).map((journey) => ({
+    params: { slug: journey.id },
+    props: { journey },
+  }));
+}
+
+const journey = Astro.props.journey as Journey<StoryEntryData>;
+---
+
+<StarlightPage frontmatter={{ title: journey.title, tableOfContents: false, prev: false, next: false }}>
+  <JourneyView journey={journey} shell="starlight" />
+</StarlightPage>

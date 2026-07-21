@@ -112,6 +112,52 @@ export class TraceabilityMatrixFormatter {
   }
 }
 
+/**
+ * Flat CSV projection of the traceability matrix for auditors and
+ * spreadsheets: one row per (requirement, scenario) pair, plus one row per
+ * untraced scenario with an empty ticket column. Same derivation as the
+ * Markdown matrix, so the two can never disagree.
+ */
+export class TraceabilityCsvFormatter {
+  format(run: TestRunResult): string {
+    const matrix = toTraceabilityMatrix(run);
+    const rows: string[][] = [
+      ["ticket", "ticket_url", "requirement_status", "scenario_id", "scenario_title", "scenario_status", "source", "covers"],
+    ];
+    for (const req of matrix.requirements) {
+      for (const s of req.scenarios) {
+        rows.push([
+          req.ticket,
+          req.url ?? "",
+          req.status,
+          s.id,
+          s.title,
+          s.status,
+          `${s.sourceFile}:${s.sourceLine}`,
+          s.covers.join("; "),
+        ]);
+      }
+    }
+    for (const s of matrix.untraced) {
+      rows.push(["", "", "untraced", s.id, s.title, s.status, `${s.sourceFile}:${s.sourceLine}`, ""]);
+    }
+    return rows.map((row) => row.map(csvCell).join(",")).join("\r\n");
+  }
+}
+
+/**
+ * RFC 4180 quoting, plus formula-injection neutralization: a cell starting
+ * with = + - @ (or tab/CR) executes as a formula when the audit CSV is opened
+ * in Excel/Sheets, and every cell here is adapter-supplied (ticket ids,
+ * titles, URLs, paths). Prefix a leading ' so it renders as text (OWASP CSV
+ * injection guidance). No cell in this export is numeric, so the guard never
+ * corrupts a legitimate value.
+ */
+function csvCell(value: string): string {
+  const guarded = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+  return /[",\r\n]/.test(guarded) ? `"${guarded.replace(/"/g, '""')}"` : guarded;
+}
+
 export function toTraceabilityMatrix(run: TestRunResult): TraceabilityMatrix {
   const sorted = [...run.testCases].sort((a, b) => a.id.localeCompare(b.id));
 

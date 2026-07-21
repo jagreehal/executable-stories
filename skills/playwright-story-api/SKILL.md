@@ -94,6 +94,13 @@ test("checkout flow", async ({ page }, testInfo) => {
 });
 ```
 
+**Storyboards:** when two or more steps each carry a screenshot, reports
+render a horizontal filmstrip at the top of the scenario (one captioned
+thumbnail per step, linking to the full-size image). To give stakeholders a
+visual walkthrough, call `await story.screenshot({ page, alt })` once after
+each step — the `alt` becomes the frame caption. Derived automatically; no
+option to set.
+
 The older `story.screenshot({ path, alt })` form attaches a screenshot that
 already exists on disk (e.g. one taken earlier for another purpose) — the
 caller must write the file to `path` first (typically

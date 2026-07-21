@@ -156,6 +156,18 @@ export default defineConfig({
               slug: 'guides/astro-docs-site',
             },
             {
+              label: 'Add to an existing Astro site',
+              slug: 'guides/existing-astro-site',
+            },
+            {
+              label: 'Multi-repo docs hub',
+              slug: 'guides/multi-repo-docs-hub',
+            },
+            {
+              label: 'Tagging for your audience',
+              slug: 'guides/tagging-for-your-audience',
+            },
+            {
               label: 'Product sites with CMS and demos',
               slug: 'guides/product-sites-with-cms-and-demos',
             },

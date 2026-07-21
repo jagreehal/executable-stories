@@ -1,0 +1,60 @@
+---
+/**
+ * PersonaIndexView — the shared body of a persona-view page (`/for/*`).
+ * Filters the stories collection through the view's include/exclude, regroups
+ * by the view's `groupBy`, and renders the result as the SAME interactive
+ * report island the main index uses — one renderer, every lens.
+ *
+ * The wrapping route resolves WHICH view from the request pathname (via the
+ * virtual config) and passes it in, so this component only renders.
+ */
+import { getCollection } from "astro:content";
+import { storyEntries, viewReport, type ResolvedPersonaView } from "executable-stories-astro";
+import { ReportInteractiveIsland } from "executable-stories-react/interactive";
+import "executable-stories-react/tailwind.css";
+import { collection, groupBy, sources } from "virtual:executable-stories/config";
+
+interface Props {
+  view: ResolvedPersonaView;
+  shell?: "standalone" | "starlight";
+}
+const { view, shell = "standalone" } = Astro.props as Props;
+const embed = shell === "starlight" ? " es-embed" : "";
+const starlight = shell === "starlight";
+
+const all = storyEntries(await getCollection(collection));
+const report = viewReport(all, view, groupBy as never);
+const total = report.summary.total;
+const wantedTags = view.include?.tags ?? [];
+---
+
+<div class={`es-index not-content${embed}`}>
+  {!starlight && <h1>{view.label}</h1>}
+  {view.description && <p class="es-view-description">{view.description}</p>}
+  {total === 0 ? (
+    <aside class="es-sample-banner" data-testid="view-empty" role="note">
+      <strong>No scenarios in this view yet.</strong>{" "}
+      {wantedTags.length > 0 ? (
+        <>
+          It shows scenarios tagged {wantedTags.map((t) => <code>{t}</code>)} — tag some in your
+          tests (e.g. <code>{`story.init(task, { tags: ['${wantedTags[0]}'] })`}</code>) and re-run.
+        </>
+      ) : (
+        <>
+          Its filters matched nothing in <code>{sources[0] ?? "the run JSON"}</code>. Adjust the
+          view's <code>include</code>/<code>exclude</code> or tag scenarios in your tests.
+        </>
+      )}
+    </aside>
+  ) : (
+    <div class="es-report-island font-sans text-foreground">
+      <ReportInteractiveIsland
+        client:load
+        report={report}
+        title={view.label}
+        hideHeader={starlight}
+        hideToc={starlight}
+      />
+    </div>
+  )}
+</div>

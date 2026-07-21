@@ -35,6 +35,9 @@ executable-stories format raw-run.json --format markdown --output-dir docs
 # Generate multiple formats
 executable-stories format raw-run.json --format html,markdown,junit
 
+# Requirement traceability for auditors (Markdown matrix, or flat CSV for spreadsheets)
+executable-stories format raw-run.json --format traceability-matrix,traceability-csv
+
 # Format presets, instead of remembering which of 13 formats you need:
 #   agent -> story-report-json, scenario-index-json, behavior-manifest-json
 #   ci    -> junit, story-report-json
@@ -135,7 +138,7 @@ Test code (story.given/when/then)
     → RawRun JSON (schemaVersion: 1)
       → canonicalizeRun() → TestRunResult
         → Formatters (Astro, Confluence, HTML, Markdown, JUnit, Cucumber JSON/HTML/Messages,
-          release-manifest, traceability-matrix, story-report-json, scenario-index-json, behavior-manifest-json)
+          release-manifest, traceability-matrix, traceability-csv, story-report-json, scenario-index-json, behavior-manifest-json)
         → Agent-loop commands (check, triage, goal) read the same TestRunResult
 ```
 

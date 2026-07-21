@@ -20,6 +20,7 @@ import {
   type ExecutableStoriesConfig,
   type AuthoredDocsSource,
 } from "./config.js";
+import { assertRouteBases, resolveViews, type ResolvedPersonaView } from "./views.js";
 import { joinHref, normalizeBase, storyNavItems, type SidebarEntry } from "./sidebar-nav.js";
 import { navManifestPath, syncNavManifest, toRootPath } from "./nav-manifest.js";
 
@@ -58,6 +59,19 @@ export {
 
 // Theme resolution (preset + accent + tokens -> :root CSS).
 export { resolveThemeCss } from "./theme.js";
+
+// Persona views — audience lenses (/for/product, /for/design, ...) over the
+// same collection. Pure resolution + report derivation; routes stay thin.
+export { assertRouteBases, resolveViews, matchView, viewReport, type ResolvedPersonaView } from "./views.js";
+export type { PersonaView } from "./config.js";
+
+// Journeys — ordered multi-scenario walkthroughs from journey:<id>[:<n>] tags.
+// Pure derivation lives in core; re-exported so the injected routes and
+// <StoryJourney/> resolve journeys from the same function.
+export { extractJourneys, parseJourneyTag, type Journey } from "executable-stories-core";
+
+// UI-state catalog — the /states thumbnail grid from state:<name> tags.
+export { extractStates, parseStateTag, stateThumbnail, viewportOf, type UiState } from "./states.js";
 
 // Authored-docs import (external folders, auto-titled) + markdown link rewriting.
 export { authoredDocsLoader } from "./authored-docs-loader.js";
@@ -179,6 +193,9 @@ interface RouteConfig {
   explorerBase: string;
   groupBy: string;
   themeCss: string;
+  views: ResolvedPersonaView[];
+  journeysBase: string;
+  statesBase: string;
 }
 
 /**
@@ -202,7 +219,10 @@ function virtualConfigPlugin(config: RouteConfig) {
         `export const routeBase = ${JSON.stringify(config.routeBase)};\n` +
         `export const explorerBase = ${JSON.stringify(config.explorerBase)};\n` +
         `export const groupBy = ${JSON.stringify(config.groupBy)};\n` +
-        `export const themeCss = ${JSON.stringify(config.themeCss)};\n`
+        `export const themeCss = ${JSON.stringify(config.themeCss)};\n` +
+        `export const views = ${JSON.stringify(config.views)};\n` +
+        `export const journeysBase = ${JSON.stringify(config.journeysBase)};\n` +
+        `export const statesBase = ${JSON.stringify(config.statesBase)};\n`
       );
     },
   };
@@ -254,6 +274,14 @@ export function executableStories(options: ExecutableStoriesOptions): AstroInteg
   // The resolved source paths are surfaced to the pages so the empty state can
   // tell a first-run user exactly which file the loader is waiting on.
   const sources = resolveSources(options).map((s) => s.source);
+  const journeysBase = normalizeBase(options.journeysBase ?? "/journeys");
+  const injectJourneys = options.injectJourneys ?? true;
+  const statesBase = normalizeBase(options.statesBase ?? "/states");
+  const injectStates = options.injectStates ?? true;
+  // Fail fast on base misconfiguration: enabled built-in routes colliding
+  // with each other, then views colliding with routes or each other.
+  assertRouteBases(options);
+  const views = resolveViews(options);
   return {
     name: "executable-stories",
     hooks: {
@@ -269,7 +297,7 @@ export function executableStories(options: ExecutableStoriesOptions): AstroInteg
         // config, so their `optimizeDeps.include` entries survive.
         updateConfig({
           vite: {
-            plugins: [virtualConfigPlugin({ collection, sources, routeBase, explorerBase, groupBy, themeCss })],
+            plugins: [virtualConfigPlugin({ collection, sources, routeBase, explorerBase, groupBy, themeCss, views, journeysBase, statesBase })],
             optimizeDeps: { include: REPORT_ISLAND_DEPS },
             resolve: { dedupe: ["react", "react-dom"] },
           },
@@ -356,6 +384,31 @@ export function executableStories(options: ExecutableStoriesOptions): AstroInteg
           injectRoute({ pattern: explorerBase, entrypoint: `executable-stories-astro/routes/${variant}explorer.astro` });
           logger.info(`scenario explorer mounted at ${explorerBase}`);
         }
+        // Journeys: ordered multi-scenario walkthroughs derived from the
+        // journey:<id>[:<n>] tag convention. Index + one page per journey; the
+        // index explains the convention when nothing is tagged yet.
+        if (injectJourneys) {
+          injectRoute({ pattern: journeysBase, entrypoint: `executable-stories-astro/routes/${variant}journeys.astro` });
+          injectRoute({
+            pattern: joinHref(journeysBase, "[slug]"),
+            entrypoint: `executable-stories-astro/routes/${variant}journey.astro`,
+          });
+          logger.info(`journeys mounted at ${journeysBase}; detail at ${journeysBase}/<id>`);
+        }
+        // UI-state catalog: a thumbnail grid of state:<name>-tagged scenarios.
+        if (injectStates) {
+          injectRoute({ pattern: statesBase, entrypoint: `executable-stories-astro/routes/${variant}states.astro` });
+          logger.info(`UI-state catalog mounted at ${statesBase}`);
+        }
+        // Persona views: one filtered/re-grouped index per audience lens. All
+        // views share one route entrypoint — the page resolves which view it
+        // is from the request pathname via the virtual config.
+        for (const view of views) {
+          injectRoute({ pattern: view.base, entrypoint: `executable-stories-astro/routes/${variant}view.astro` });
+        }
+        if (views.length > 0) {
+          logger.info(`persona views mounted: ${views.map((v) => `${v.label} at ${v.base}`).join(", ")}`);
+        }
       },
       // Type the virtual config module for consumers running `astro check`.
       "astro:config:done": ({ injectTypes }) => {
@@ -369,6 +422,9 @@ export function executableStories(options: ExecutableStoriesOptions): AstroInteg
             "  export const explorerBase: string;\n" +
             "  export const groupBy: string;\n" +
             "  export const themeCss: string;\n" +
+            "  export const views: import(\"executable-stories-astro\").ResolvedPersonaView[];\n" +
+            "  export const journeysBase: string;\n" +
+            "  export const statesBase: string;\n" +
             "}\n",
         });
       },
@@ -426,6 +482,22 @@ export function storiesSidebar(
   }
   if (opts.explorer !== false && (config.injectExplorer ?? true)) {
     entries.push({ label: "Explorer", link: joinHref(explorerBase) });
+  }
+  if (config.injectJourneys ?? true) {
+    entries.push({ label: "Journeys", link: joinHref(normalizeBase(config.journeysBase ?? "/journeys")) });
+  }
+  if (config.injectStates ?? true) {
+    entries.push({ label: "States", link: joinHref(normalizeBase(config.statesBase ?? "/states")) });
+  }
+  // Persona views: one nav link per audience lens, grouped so the rail reads
+  // "For: Product / Design / Support" rather than a flat pile of links.
+  const views = resolveViews(config);
+  if (views.length > 0) {
+    entries.push({
+      label: "Audiences",
+      collapsed: false,
+      items: views.map((v) => ({ label: v.label, link: joinHref(v.base) })),
+    });
   }
   for (const doc of config.docs ?? []) {
     const directory = docDirectory(doc);

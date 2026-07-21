@@ -138,7 +138,7 @@ SUBCOMMANDS
   deploy             Record deployments, show environment status, detect drift
 
 OPTIONS
-  --format <formats>            Comma-separated formats: html, markdown, release-manifest, traceability-matrix, junit, cucumber-json, cucumber-messages, cucumber-html, astro-markdown, confluence, story-report-json, scenario-index-json, behavior-manifest-json, or custom names from config (default: html)
+  --format <formats>            Comma-separated formats: html, markdown, release-manifest, traceability-matrix, traceability-csv, junit, cucumber-json, cucumber-messages, cucumber-html, astro-markdown, confluence, story-report-json, scenario-index-json, behavior-manifest-json, or custom names from config (default: html)
                                   astro-markdown    Starlight-flavored Markdown (single aggregated page; for a live site use "init-astro" + "astro dev")
                                   confluence        Atlassian Document Format (ADF) JSON for Confluence / Jira
                                   behavior-manifest-json Agent-readable behavior manifest and debugger warnings
@@ -151,6 +151,7 @@ OPTIONS
                                   story-report-json StoryReport v1 JSON (consumed by executable-stories-react and other UI renderers)
                                   scenario-index-json Storybook-like scenario index for agents and explorers
                                   traceability-matrix Requirement-first matrix (ticket -> scenarios -> covered code -> status)
+                                  traceability-csv   The same matrix, flat CSV for auditors/spreadsheets (one row per requirement-scenario pair)
   --preset <name>               Format bundle (unioned with --format when both are given):
 ${presetHelpLines()
   .map((l) => `                                  ${l}`)
@@ -746,7 +747,7 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
   const pluginConfig = await loadConfig(values["config"] as string | undefined);
   const customFormatterNames = new Set(Object.keys(pluginConfig.formatters ?? {}));
 
-  const builtInFormats = new Set(["astro-markdown", "behavior-manifest-json", "confluence", "html", "markdown", "release-manifest", "traceability-matrix", "junit", "cucumber-json", "cucumber-messages", "cucumber-html", "scenario-index-json", "story-report-json"]);
+  const builtInFormats = new Set(["astro-markdown", "behavior-manifest-json", "confluence", "html", "markdown", "release-manifest", "traceability-matrix", "traceability-csv", "junit", "cucumber-json", "cucumber-messages", "cucumber-html", "scenario-index-json", "story-report-json"]);
   // The behavior changelog is a two-run diff, so it only exists for the
   // compare-like subcommands; `format` keeps rejecting it as unknown.
   if (isCompareLike) builtInFormats.add("changelog");
@@ -768,7 +769,7 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
 
   if (unknownFormats.length > 0) {
     const knownCustom = customFormatterNames.size > 0 ? `, ${[...customFormatterNames].join(", ")}` : "";
-    console.error(`Error: Unknown format(s): ${unknownFormats.join(", ")}. Valid built-in: astro-markdown, behavior-manifest-json, confluence, html, markdown, release-manifest, traceability-matrix, junit, cucumber-json, cucumber-messages, cucumber-html, scenario-index-json, story-report-json${knownCustom}.`);
+    console.error(`Error: Unknown format(s): ${unknownFormats.join(", ")}. Valid built-in: astro-markdown, behavior-manifest-json, confluence, html, markdown, release-manifest, traceability-matrix, traceability-csv, junit, cucumber-json, cucumber-messages, cucumber-html, scenario-index-json, story-report-json${knownCustom}.`);
     process.exit(EXIT_USAGE);
   }
 

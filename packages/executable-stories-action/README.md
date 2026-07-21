@@ -19,6 +19,7 @@ Works with all supported frameworks — zero configuration for the common case.
   - [Custom output paths](#custom-output-paths)
   - [Pinned formatter version](#pinned-formatter-version)
   - [Using the action's outputs](#using-the-actions-outputs)
+  - [Publish run JSON for a multi-repo docs hub](#publish-run-json-for-a-multi-repo-docs-hub-mode-publish-run)
 - [Inputs](#inputs)
 - [Outputs](#outputs)
 - [Permissions](#permissions)
@@ -426,11 +427,53 @@ jobs:
 
 See the [Astro docs-site guide](https://github.com/jagreehal/executable-stories/blob/main/apps/docs-site/src/content/docs/guides/astro-docs-site.md) for theming, audience grouping, and the "What's changed" view.
 
+### Publish run JSON for a multi-repo docs hub (`mode: publish-run`)
+
+To collate stories from many repositories into one docs site, each repo publishes its run JSON to an orphan branch with a stable path. A hub repo then fetches each file by URL at build time — no cross-repo artifact APIs, no artifact expiry, no extra tokens for public repos.
+
+In each product repo, after tests:
+
+```yaml
+permissions:
+  contents: write   # commit to the runs branch
+
+steps:
+  - uses: actions/checkout@v4
+  - run: npm test   # writes the run JSON
+  - uses: jagreehal/executable-stories-action@v2
+    with:
+      mode: publish-run
+      raw-run: reports/raw-run.json
+```
+
+Every run commits the JSON to the `executable-stories-runs` branch (created automatically), making it available at:
+
+```
+https://raw.githubusercontent.com/<owner>/<repo>/executable-stories-runs/raw-run.json
+```
+
+Unchanged runs are skipped — no empty commits on scheduled builds. If one repo has several suites, publish each under its own `runs-path`.
+
+In the hub repo, fetch the files and build the Astro site (see the [multi-repo docs hub guide](https://github.com/jagreehal/executable-stories/blob/main/apps/docs-site/src/content/docs/guides/multi-repo-docs-hub.md)):
+
+```yaml
+steps:
+  - uses: actions/checkout@v4
+  - name: Fetch run JSON from each repo
+    run: |
+      mkdir -p reports
+      curl -fsSL -o reports/web.json https://raw.githubusercontent.com/acme/web/executable-stories-runs/raw-run.json
+      curl -fsSL -o reports/api.json https://raw.githubusercontent.com/acme/api/executable-stories-runs/raw-run.json
+  - run: pnpm install && pnpm build   # astro build reads reports/*.json via sources: [...]
+```
+
+> **Concurrency note.** Like `host-images: branch`, publishing uses the Git Data API with the branch tip as parent, so two simultaneous runs publishing to the same branch race at `updateRef`. The loser automatically retries on the new tip (up to 3 attempts), which resolves the common overlap. If your repo runs many parallel publishers, serialize the workflow with [`concurrency`](https://docs.github.com/en/actions/using-jobs/using-concurrency) or use per-suite `runs-path` values.
+
 ## Inputs
 
 | Input | Default | Description |
 |---|---|---|
-| `mode` | `report` | `report`, `review`, `gate-release`, or `deploy` |
+| `mode` | `report` | `report`, `review`, `gate-release`, `deploy`, or `publish-run` |
 | `report-dir` | `reports` | Directory containing or receiving generated reports |
 | `output-name` | `test-results` | Base filename for reports (without extension) |
 | `raw-run` | `.executable-stories/raw-run.json` | Path to raw run JSON |
@@ -453,6 +496,8 @@ See the [Astro docs-site guide](https://github.com/jagreehal/executable-stories/
 | `deploy-env` | — | (deploy) Environment name to record the deployment against (e.g. `staging`) |
 | `deploy-tag` | — | (deploy) Git tag for this deployment (e.g. `v1.2.3`) |
 | `deploy-ledger` | `.executable-stories/deployments.json` | (deploy) Path to the deployment ledger JSON |
+| `runs-branch` | `executable-stories-runs` | (publish-run) Branch the run JSON is committed to. Created as orphan on first use |
+| `runs-path` | `raw-run.json` | (publish-run) Path of the published file within `runs-branch` |
 
 ## Outputs
 
@@ -463,6 +508,7 @@ See the [Astro docs-site guide](https://github.com/jagreehal/executable-stories/
 | `comment-id` | Numeric ID of the PR comment that was created or updated. Empty string when the action runs outside a `pull_request` event. |
 | `gate-failed` | (gate-release, review) `true`/`false` — whether the gate failed |
 | `deploy-ledger-path` | (deploy) Path to the deployment ledger written in deploy mode |
+| `published-run-url` | (publish-run) Stable `raw.githubusercontent.com` URL of the published run JSON |
 
 ## Permissions
 
@@ -473,7 +519,7 @@ permissions:
   pull-requests: write   # post and update PR comments
 ```
 
-If you opt in to `host-images: branch`, also grant `contents: write` so the action can commit screenshots to the images branch:
+`mode: publish-run` and `host-images: branch` both commit to a branch, so they need `contents: write`:
 
 ```yaml
 permissions:

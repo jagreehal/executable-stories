@@ -85,6 +85,25 @@ export interface StoryTheme {
   tokens?: Partial<Record<ThemeToken, string>>;
 }
 
+/**
+ * One audience lens: a filtered, re-grouped stories index mounted at its own
+ * URL. Pure config vocabulary — resolution/derivation lives in views.ts.
+ */
+export interface PersonaView {
+  /** URL base the view mounts at (e.g. "/for/product"). Required, unique. */
+  base: string;
+  /** Nav link + page title. Default: title-cased last segment of `base`. */
+  label?: string;
+  /** One-line intro rendered under the title. */
+  description?: string;
+  /** Allowlist filter for this lens (tags | status | features). */
+  include?: StoryFilter;
+  /** Denylist filter, applied after `include`. */
+  exclude?: StoryFilter;
+  /** Grouping for this lens. Default: the site `groupBy`. */
+  groupBy?: GroupBy;
+}
+
 /** The whole-site config object. */
 export interface ExecutableStoriesConfig {
   // ── Sources: what test output to include ──────────────────────
@@ -114,6 +133,16 @@ export interface ExecutableStoriesConfig {
   /** How the index/explorer/nav group scenarios. Default "feature". */
   groupBy?: GroupBy;
 
+  // ── Persona views ─────────────────────────────────────────────
+  /**
+   * Audience lenses over the same scenarios: each view mounts a filtered,
+   * re-grouped index at its own URL (e.g. `/for/product`, `/for/design`).
+   * Same run JSON, same tests — a different lens per audience. Tag scenarios
+   * (`audience:stakeholder`, `capability:checkout`, `support`, ...) and point
+   * a view's `include` at those tags.
+   */
+  views?: PersonaView[];
+
   // ── Authored docs ─────────────────────────────────────────────
   /** Existing markdown folders to mount as docs (auto-titled, links rewritten). */
   docs?: AuthoredDocsSource[];
@@ -125,6 +154,22 @@ export interface ExecutableStoriesConfig {
   routeBase?: string;
   /** URL base the Scenario Explorer mounts under. Default "/explorer". */
   explorerBase?: string;
+  /**
+   * URL base the journey pages mount under. Default "/journeys". Journeys are
+   * derived from the `journey:<id>[:<order>]` tag convention — ordered
+   * multi-scenario walkthroughs ("Guest checkout" = browse → pay → confirm).
+   */
+  journeysBase?: string;
+  /** Inject the journeys index + detail routes. Default true. */
+  injectJourneys?: boolean;
+  /**
+   * URL base the UI-state catalog mounts under. Default "/states". States are
+   * derived from `state:<name>` tags: a thumbnail grid of the UI states the
+   * product verifiably has, grouped by state (viewport variants side by side).
+   */
+  statesBase?: string;
+  /** Inject the states grid route. Default true. */
+  injectStates?: boolean;
   /** Inject the stories index + detail routes. Default true. */
   injectStoryRoute?: boolean;
   /** Inject the searchable Scenario Explorer. Default true. */

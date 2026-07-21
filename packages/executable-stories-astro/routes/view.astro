@@ -1,0 +1,25 @@
+---
+/**
+ * Persona view — standalone variant. Injected by executableStories() once per
+ * configured view (all views share this entrypoint); which view this request
+ * addresses is resolved from the pathname against the virtual config.
+ */
+import "../styles/es.css";
+import PersonaIndexView from "../components/PersonaIndexView.astro";
+import { matchView } from "executable-stories-astro";
+import { views } from "virtual:executable-stories/config";
+
+const view = matchView(Astro.url.pathname, views);
+if (!view) throw new Error(`executable-stories: no configured view matches "${Astro.url.pathname}".`);
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{view.label} — Executable Stories</title>
+  </head>
+  <body>
+    <PersonaIndexView view={view} shell="standalone" />
+  </body>
+</html>

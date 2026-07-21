@@ -1,0 +1,13 @@
+---
+/**
+ * Journeys index — Starlight variant, injected only when Starlight is
+ * detected (or forced via `shell`).
+ */
+import StarlightPage from "@astrojs/starlight/components/StarlightPage.astro";
+import "../../styles/es.css";
+import JourneysIndexView from "../../components/JourneysIndexView.astro";
+---
+
+<StarlightPage frontmatter={{ title: "Journeys", tableOfContents: false, prev: false, next: false }}>
+  <JourneysIndexView shell="starlight" />
+</StarlightPage>

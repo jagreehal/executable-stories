@@ -70,6 +70,7 @@ const FLAG_VALUES: Record<string, string[]> = {
     "behavior-manifest-json",
     "release-manifest",
     "traceability-matrix",
+    "traceability-csv",
   ],
   "--preset": ["agent", "ci", "docs"],
   "--input-type": ["raw", "canonical", "ndjson"],

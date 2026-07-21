@@ -101,7 +101,15 @@ describe("executableStories route injection", () => {
 
   it("exposes resolved bases via the virtual config module so page links honour them", () => {
     const cfg = virtualConfig(executableStories({ source: "run.json" }));
-    expect(cfg).toEqual({ collection: "stories", routeBase: "/stories", explorerBase: "/explorer", groupBy: "feature", themeCss: "" });
+    expect(cfg).toEqual({
+      collection: "stories",
+      routeBase: "/stories",
+      explorerBase: "/explorer",
+      journeysBase: "/journeys",
+      statesBase: "/states",
+      groupBy: "feature",
+      themeCss: "",
+    });
   });
 
   it("normalizes and propagates custom bases to routes and the virtual config", () => {
@@ -118,6 +126,8 @@ describe("executableStories route injection", () => {
       collection: "stories",
       routeBase: "/docs/scenarios",
       explorerBase: "/browse",
+      journeysBase: "/journeys",
+      statesBase: "/states",
       groupBy: "feature",
       themeCss: "",
     });
@@ -129,10 +139,87 @@ describe("executableStories route injection", () => {
   });
 
   it("builds clean (no double-slash) route patterns when mounted at the root", () => {
-    const routes = injectedRoutes(executableStories({ source: "run.json", routeBase: "/", explorerBase: "/" }));
+    const routes = injectedRoutes(executableStories({ source: "run.json", routeBase: "/", explorerBase: "/browse" }));
     // The detail pattern must be "/[slug]", never "//[slug]".
     expect(routes.some((r) => r.pattern === "/[slug]")).toBe(true);
     expect(routes.every((r) => !r.pattern.includes("//"))).toBe(true);
+  });
+
+  it("fails fast when two enabled built-in routes share a base, unless one is disabled", () => {
+    expect(() => executableStories({ source: "run.json", journeysBase: "/stories" })).toThrow(/collides with routeBase/);
+    expect(() => executableStories({ source: "run.json", statesBase: "/explorer" })).toThrow(/collides with explorerBase/);
+    // Disabling the route frees its base.
+    const routes = injectedRoutes(
+      executableStories({ source: "run.json", injectStoryRoute: false, journeysBase: "/stories" }),
+    );
+    expect(routes.find((r) => r.pattern === "/stories")?.entrypoint).toBe(
+      "executable-stories-astro/routes/journeys.astro",
+    );
+  });
+});
+
+describe("executableStories persona views", () => {
+  it("injects one route per view at its base, sharing the view entrypoint", () => {
+    const routes = injectedRoutes(
+      executableStories({ source: "run.json", views: [{ base: "/for/product" }, { base: "for/design/" }] }),
+    );
+    const product = routes.find((r) => r.pattern === "/for/product");
+    const design = routes.find((r) => r.pattern === "/for/design");
+    expect(product?.entrypoint).toBe("executable-stories-astro/routes/view.astro");
+    expect(design?.entrypoint).toBe("executable-stories-astro/routes/view.astro");
+  });
+
+  it("uses the starlight view variant when Starlight is present", () => {
+    const routes = injectedRoutes(
+      executableStories({ source: "run.json", views: [{ base: "/for/qa" }] }),
+      [{ name: "@astrojs/starlight" }],
+    );
+    expect(routes.find((r) => r.pattern === "/for/qa")?.entrypoint).toBe(
+      "executable-stories-astro/routes/starlight/view.astro",
+    );
+  });
+
+  it("fails fast at config time on a view base colliding with the story routes", () => {
+    expect(() => executableStories({ source: "run.json", views: [{ base: "/stories" }] })).toThrow(/collides/);
+  });
+});
+
+describe("executableStories journeys", () => {
+  it("injects the journeys index and [slug] detail by default", () => {
+    const routes = injectedRoutes(executableStories({ source: "run.json" }));
+    expect(routes.find((r) => r.pattern === "/journeys")?.entrypoint).toBe(
+      "executable-stories-astro/routes/journeys.astro",
+    );
+    expect(routes.find((r) => r.pattern === "/journeys/[slug]")?.entrypoint).toBe(
+      "executable-stories-astro/routes/journey.astro",
+    );
+  });
+
+  it("honours a custom journeysBase and can be switched off", () => {
+    const custom = injectedRoutes(executableStories({ source: "run.json", journeysBase: "/flows" }));
+    expect(custom.find((r) => r.pattern === "/flows")).toBeDefined();
+    const off = injectedRoutes(executableStories({ source: "run.json", injectJourneys: false }));
+    expect(off.find((r) => r.pattern.startsWith("/journeys"))).toBeUndefined();
+  });
+
+  it("uses the starlight journey variants when Starlight is present", () => {
+    const routes = injectedRoutes(executableStories({ source: "run.json" }), [{ name: "@astrojs/starlight" }]);
+    expect(routes.find((r) => r.pattern === "/journeys")?.entrypoint).toBe(
+      "executable-stories-astro/routes/starlight/journeys.astro",
+    );
+  });
+});
+
+describe("executableStories UI-state catalog", () => {
+  it("injects the states grid by default and honours statesBase/injectStates", () => {
+    const routes = injectedRoutes(executableStories({ source: "run.json" }));
+    expect(routes.find((r) => r.pattern === "/states")?.entrypoint).toBe(
+      "executable-stories-astro/routes/states.astro",
+    );
+    const custom = injectedRoutes(executableStories({ source: "run.json", statesBase: "/ui" }));
+    expect(custom.find((r) => r.pattern === "/ui")).toBeDefined();
+    const off = injectedRoutes(executableStories({ source: "run.json", injectStates: false }));
+    expect(off.find((r) => r.pattern === "/states")).toBeUndefined();
   });
 });
 

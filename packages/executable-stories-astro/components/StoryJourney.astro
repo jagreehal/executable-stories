@@ -1,0 +1,50 @@
+---
+/**
+ * StoryJourney — embed a whole journey inside any authored page.
+ *
+ * Like <StoryScenario/>, but multi-scenario: renders the journey's members in
+ * tag order, each as a full live card from the latest run.
+ *
+ *   import StoryJourney from 'executable-stories-astro/components/StoryJourney.astro';
+ *   <StoryJourney id="guest-checkout" />
+ *
+ * `id` is the journey id from the tag (`journey:guest-checkout` → "guest-checkout").
+ * An unresolved id renders a visible callout, never a silent gap.
+ */
+import { getCollection } from "astro:content";
+import "executable-stories-react/tailwind.css";
+import "../styles/es.css";
+import { storyEntries, extractJourneys, joinHref } from "executable-stories-astro";
+import JourneyView from "./JourneyView.astro";
+import { collection as configuredCollection, journeysBase } from "virtual:executable-stories/config";
+
+interface Props {
+  /** Journey id from the tag convention (journey:<id>). */
+  id: string;
+  /** Collection to resolve against (defaults to the configured one). */
+  collection?: string;
+  /** Show the "View journey page" link under the embed. Default true. */
+  link?: boolean;
+}
+const { id, collection = configuredCollection, link = true } = Astro.props as Props;
+
+const entries = storyEntries(await getCollection(collection as "stories"));
+const journey = extractJourneys(entries).find((j) => j.id === id.toLowerCase());
+---
+
+{journey ? (
+  <div class="es-embed-scenario" data-testid="embed-journey" data-status={journey.status}>
+    <JourneyView journey={journey} shell="starlight" backLink={false} />
+    {link && (
+      <p class="es-embed-scenario__link">
+        <a href={joinHref(journeysBase, journey.id)}>View journey page →</a>
+      </p>
+    )}
+  </div>
+) : (
+  <div class="es-embed-scenario es-embed-scenario--missing" role="note" data-testid="embed-journey-missing">
+    <strong>Journey not found:</strong> <code>{id}</code> — no scenario carries a
+    <code>journey:{id}</code> tag in the latest run. The walkthrough this embed referenced may
+    have been renamed or removed; update the <code>id</code> or re-tag the scenarios.
+  </div>
+)}

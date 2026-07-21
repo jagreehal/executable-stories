@@ -7,7 +7,7 @@
 export type { CanonicalizeOptions } from "executable-stories-core/types/canonicalize";
 
 /** Output format for report generation */
-export type OutputFormat = "astro-markdown" | "behavior-manifest-json" | "confluence" | "cucumber-json" | "cucumber-messages" | "cucumber-html" | "html" | "junit" | "markdown" | "release-manifest" | "scenario-index-json" | "story-report-json" | "traceability-matrix";
+export type OutputFormat = "astro-markdown" | "behavior-manifest-json" | "confluence" | "cucumber-json" | "cucumber-messages" | "cucumber-html" | "html" | "junit" | "markdown" | "release-manifest" | "scenario-index-json" | "story-report-json" | "traceability-matrix" | "traceability-csv";
 
 /**
  * Format names accepted as INPUT. Adds `"astro"` as a deprecated alias for

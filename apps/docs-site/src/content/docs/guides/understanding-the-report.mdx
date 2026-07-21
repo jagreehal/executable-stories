@@ -47,6 +47,7 @@ You can override with `scenarioHeadingLevel` / `storyHeadingLevel` in reporter o
 - **Tags and options** — If you pass `{ tags: [...], meta: {...} }` to `story.init(..., options)`, they can be included (see reporter options).
 - **Step documentation** — Notes, key-value pairs, code blocks, tables, and links added via `story.note`, `story.json`, `story.table`, etc. appear under the corresponding step.
 - **Source link** — If `permalinkBaseUrl` is set (or in GitHub Actions with the built-in fallback), each scenario can get a "Source: [file](url)" line.
+- **Storyboard** — When two or more steps carry a screenshot (e.g. Playwright `await story.screenshot({ page, alt })` after each step), the scenario opens with a horizontal filmstrip: one thumbnail per step, captioned with the step keyword and the screenshot's `alt`, each linking to the full-size image under its step. Nothing to configure and nothing separately authored — the storyboard is derived from the step docs, so it appears in the HTML report and on Astro story pages alike. This is the view to show product owners: Given → When → Then as pictures.
 
 <ReportScreenshot
   src="screenshots/feature-code.png"

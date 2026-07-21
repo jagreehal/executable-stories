@@ -32,6 +32,25 @@ export default defineExecutableStories({
   //   { name: 'api', label: 'API',     source: '../apps/api/reports/raw-run.json' },
   // ],
 
+  // Audience lenses (optional): each view mounts a filtered, re-grouped index
+  // at its own URL — same tests, a different lens per audience. Tag scenarios
+  // in your tests (e.g. tags: ['audience:stakeholder']) and filter on them:
+  // views: [
+  //   { base: '/for/product', include: { tags: ['audience:stakeholder'] }, groupBy: 'tag' },
+  //   { base: '/for/design',  include: { tags: ['storyboard'] } },
+  //   { base: '/for/support', include: { tags: ['support'] } },
+  // ],
+
+  // Journeys are on by default at /journeys: tag scenarios with
+  // `journey:<id>:<order>` (e.g. tags: ['journey:guest-checkout:1']) and each
+  // id becomes an ordered multi-scenario walkthrough page.
+  // journeysBase: '/journeys',
+
+  // The UI-state catalog is on by default at /states: tag scenarios with
+  // `state:<name>` (plus optional `viewport:mobile` / `viewport:desktop`) and
+  // they appear as a thumbnail grid, viewport variants side by side.
+  // statesBase: '/states',
+
   // Theme the story pages (optional). `preset` picks a built-in palette
   // ('default' | 'terminal' | 'minimal' | 'vibrant'); `accent` is a shorthand;
   // `tokens` overrides any individual token (accent, pass, fail, warn, fg,

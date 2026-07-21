@@ -1,45 +1,8 @@
 /**
- * A URL is safe to put in the DOM (href/src/poster) only if it's relative (no
- * scheme) or uses http/https. Anything with another scheme — notably
- * `javascript:` (which runs in the page context), plus `data:` / `vbscript:` /
- * `file:` — is rejected. Report JSON carries adapter-supplied URLs, so every
- * report-sourced URL that reaches the DOM is treated as untrusted and passed
- * through here (DocHtml iframe src, DocVideo src/poster, …).
+ * URL trust boundary for report-sourced strings reaching the DOM. The
+ * implementation lives in executable-stories-core/utils/url (shared with the
+ * Astro state-catalog thumbnails); this module stays as the package-local
+ * import point. Subpath import: the core package root pulls in Node-only
+ * converters, which breaks browser bundles.
  */
-export function safeUrl(value: string | undefined): string | undefined {
-  if (!value) return undefined;
-  const trimmed = value.trim();
-  const scheme = /^([a-z][a-z0-9+.-]*):/i.exec(trimmed);
-  if (scheme && !/^https?$/i.test(scheme[1] ?? "")) return undefined;
-  return trimmed;
-}
-
-/**
- * Same trust boundary as safeUrl(), but for `<img src>`: also allows
- * `data:image/*` URIs, since that's how executable-stories-playwright's
- * story.screenshot() inlines a captured screenshot (see
- * inlineScreenshotIfPossible in that package). Browsers sandbox SVG rendered
- * via `<img>` — no script execution, no external resource loads — so
- * `data:image/svg+xml` is safe here even though data: URIs are rejected for
- * iframe/video src.
- */
-export function safeImageUrl(value: string | undefined): string | undefined {
-  if (!value) return undefined;
-  const trimmed = value.trim();
-  if (/^data:image\//i.test(trimmed)) return trimmed;
-  return safeUrl(trimmed);
-}
-
-/**
- * True for POSIX absolute paths (`/foo`, `\foo`) and Windows drive-letter
- * paths (`C:\foo`) — i.e. a local filesystem path rather than a URL. Report
- * assets are bundled (copied + rewritten to a relative `assets/...` path) at
- * format time when the source file can be found; a path that's still
- * absolute by the time it reaches the DOM means that bundling step couldn't
- * find the file — rendering it as `<img src>`/`<video src>` would 404 (or
- * silently resolve nothing) since it points at a path on the machine that
- * generated the report, not at the browser's origin.
- */
-export function isLocalFsPath(value: string): boolean {
-  return /^(?:[/\\]|[A-Za-z]:[/\\])/.test(value);
-}
+export { safeUrl, safeImageUrl, isLocalFsPath } from "executable-stories-core/utils/url";
