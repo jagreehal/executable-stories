@@ -1,0 +1,34 @@
+---
+/**
+ * Journey detail — standalone variant. One page per derived journey
+ * (`journey:<id>` tags); this wrapper owns getStaticPaths and passes the
+ * resolved journey down, mirroring the story detail route.
+ */
+import { getCollection } from "astro:content";
+import "../styles/es.css";
+import { storyEntries, extractJourneys } from "executable-stories-astro";
+import type { Journey, StoryEntryData } from "executable-stories-astro";
+import JourneyView from "../components/JourneyView.astro";
+import { collection } from "virtual:executable-stories/config";
+
+export async function getStaticPaths() {
+  const entries = storyEntries(await getCollection(collection));
+  return extractJourneys(entries).map((journey) => ({
+    params: { slug: journey.id },
+    props: { journey },
+  }));
+}
+
+const journey = Astro.props.journey as Journey<StoryEntryData>;
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{journey.title} — Executable Stories</title>
+  </head>
+  <body>
+    <JourneyView journey={journey} shell="standalone" />
+  </body>
+</html>

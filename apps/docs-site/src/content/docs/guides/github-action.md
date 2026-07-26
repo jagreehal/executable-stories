@@ -344,6 +344,25 @@ Use `mode: deploy` after a deployment step to record which scenario set is now l
 
 The ledger is written in the job workspace. Persist it as an artifact, cache, or committed release-evidence file if another job should compare environments later.
 
+### Publish run JSON for a multi-repo docs hub
+
+Use `mode: publish-run` after tests to commit the run JSON to an orphan branch (`executable-stories-runs`, created automatically), giving it a stable `raw.githubusercontent.com` URL that a company-wide docs hub can fetch at build time:
+
+```yaml
+permissions:
+  contents: write   # commit to the runs branch
+
+steps:
+  - uses: actions/checkout@v4
+  - run: npm test   # writes the run JSON
+  - uses: jagreehal/executable-stories-action@v2
+    with:
+      mode: publish-run
+      raw-run: reports/raw-run.json
+```
+
+Unchanged runs are skipped, so scheduled builds add no empty commits. See the [multi-repo docs hub guide](/guides/multi-repo-docs-hub/) for the full picture: one Astro site collating the published runs from every repo.
+
 ### Render screenshots inline in PR comments (opt-in)
 
 By default, screenshots referenced in your stories stay in the HTML artifact only — the PR comment shows a `📎 alt (see HTML report)` placeholder. This is because GitHub blocks `data:` URIs in comment markdown for security, so even a well-formed `![alt](data:image/png;base64,…)` would not render inline.
@@ -414,7 +433,7 @@ Pin the `executable-stories` CLI version that the action downloads (only relevan
 
 | Input | Default | Description |
 |---|---|---|
-| `mode` | `report` | `report`, `gate-release`, or `deploy` |
+| `mode` | `report` | `report`, `review`, `gate-release`, `deploy`, or `publish-run` |
 | `report-dir` | `reports` | Directory containing or receiving generated reports |
 | `output-name` | `test-results` | Base filename for reports (without extension) |
 | `raw-run` | `.executable-stories/raw-run.json` | Path to raw run JSON |
@@ -431,6 +450,8 @@ Pin the `executable-stories` CLI version that the action downloads (only relevan
 | `deploy-env` | — | `deploy`: environment name, e.g. `dev`, `staging`, `production` |
 | `deploy-tag` | — | `deploy`: optional tag or release label |
 | `deploy-ledger` | `.executable-stories/deployments.json` | `deploy`: ledger path |
+| `runs-branch` | `executable-stories-runs` | `publish-run`: branch the run JSON is committed to. Created as orphan on first use |
+| `runs-path` | `raw-run.json` | `publish-run`: path of the published file within `runs-branch` |
 
 ## Outputs
 
@@ -441,6 +462,7 @@ Pin the `executable-stories` CLI version that the action downloads (only relevan
 | `comment-id` | Numeric ID of the PR comment that was created or updated. Empty string when the action runs outside a `pull_request` event. |
 | `gate-failed` | `true` when `gate-release` detected a release gate failure |
 | `deploy-ledger-path` | Ledger path written in `deploy` mode |
+| `published-run-url` | `publish-run`: stable `raw.githubusercontent.com` URL of the published run JSON |
 
 ## Permissions
 

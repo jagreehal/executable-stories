@@ -1,0 +1,20 @@
+---
+/**
+ * Persona view — Starlight variant. Injected once per configured view when
+ * Starlight is detected (or forced via `shell`); renders the shared
+ * PersonaIndexView inside the Starlight shell. Which view this request
+ * addresses is resolved from the pathname against the virtual config.
+ */
+import StarlightPage from "@astrojs/starlight/components/StarlightPage.astro";
+import "../../styles/es.css";
+import PersonaIndexView from "../../components/PersonaIndexView.astro";
+import { matchView } from "executable-stories-astro";
+import { views } from "virtual:executable-stories/config";
+
+const view = matchView(Astro.url.pathname, views);
+if (!view) throw new Error(`executable-stories: no configured view matches "${Astro.url.pathname}".`);
+---
+
+<StarlightPage frontmatter={{ title: view.label, tableOfContents: false, prev: false, next: false }}>
+  <PersonaIndexView view={view} shell="starlight" />
+</StarlightPage>

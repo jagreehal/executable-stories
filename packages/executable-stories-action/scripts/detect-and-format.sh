@@ -275,6 +275,40 @@ run_deploy() {
 }
 
 # ---------------------------------------------------------------------------
+# MODE: publish-run — validate the run JSON and hand its path to the publish
+# step in action.yml, which commits it to the runs branch via the Git Data API.
+# No binary needed: the raw run JSON is published as-is (it is what the
+# executable-stories-astro loader consumes).
+# ---------------------------------------------------------------------------
+run_publish() {
+  local SOURCE="${RUN_JSON:-}"
+  [[ -z "$SOURCE" ]] && SOURCE="$RAW_RUN"
+  if [[ ! -f "$SOURCE" ]]; then
+    echo "::error::publish-run mode needs a run JSON. Looked for '${SOURCE}'."
+    echo "::error::Set run-json (or raw-run) to your test run output. JS reporters can emit raw-run.json; non-JS adapters write .executable-stories/raw-run.json."
+    exit 1
+  fi
+  # Gate on the file actually being a run JSON: a JSON object whose testCases
+  # is an array (the invariant shared by raw AND canonical runs). Publishing
+  # an empty file, an HTML error page, or unrelated JSON would break every
+  # docs-hub build that fetches this branch, so refuse rather than commit
+  # garbage. Node is the validator because any runner executing this action
+  # already has it (the comment step is actions/github-script) — no optional
+  # jq dependency, no validation bypass.
+  if ! node -e '
+    const fs = require("fs");
+    const d = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+    if (typeof d !== "object" || d === null || Array.isArray(d) || !Array.isArray(d.testCases)) process.exit(1);
+  ' "$SOURCE" >/dev/null 2>&1; then
+    echo "::error::publish-run: '${SOURCE}' is not a run JSON (expected a JSON object whose testCases is an array)."
+    echo "::error::Refusing to publish — downstream docs hubs fetch this file at build time."
+    exit 1
+  fi
+  echo "::notice::Publishing ${SOURCE} to the runs branch..."
+  echo "publish-source=${SOURCE}" >> "$GITHUB_OUTPUT"
+}
+
+# ---------------------------------------------------------------------------
 # Main dispatch
 #
 # Living-docs sites are no longer built here. They come from a committed Astro
@@ -295,8 +329,11 @@ case "$MODE" in
   deploy)
     run_deploy
     ;;
+  publish-run)
+    run_publish
+    ;;
   *)
-    echo "::error::Unknown mode: ${MODE}. Supported: report, review, gate-release, deploy."
+    echo "::error::Unknown mode: ${MODE}. Supported: report, review, gate-release, deploy, publish-run."
     echo "::error::For a living-docs site, scaffold with 'executable-stories init-astro' and deploy with 'astro build' (see the action README)."
     exit 1
     ;;

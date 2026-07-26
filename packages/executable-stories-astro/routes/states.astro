@@ -1,0 +1,19 @@
+---
+/**
+ * UI-state catalog — standalone variant, injected by executableStories() at
+ * `statesBase` (default /states) for NON-Starlight sites.
+ */
+import "../styles/es.css";
+import StatesIndexView from "../components/StatesIndexView.astro";
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>UI states — Executable Stories</title>
+  </head>
+  <body>
+    <StatesIndexView shell="standalone" />
+  </body>
+</html>

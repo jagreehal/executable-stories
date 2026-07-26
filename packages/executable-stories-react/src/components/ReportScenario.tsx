@@ -1,6 +1,7 @@
 import type { ReportScenario as ReportScenarioT } from "executable-stories-core";
 import { formatDuration } from "executable-stories-core/utils/duration";
 import { ReportSteps } from "./ReportSteps";
+import { ReportStoryboard } from "./ReportStoryboard";
 import { ReportDocEntries } from "./ReportDocEntries";
 import { ReportAttachments } from "./ReportAttachments";
 import { ReportTrace } from "./ReportTrace";
@@ -161,6 +162,7 @@ export function ReportScenario({ scenario, hideTitle = false }: ReportScenarioPr
             {scenario.errorMessage}
           </pre>
         ) : null}
+        <ReportStoryboard scenario={scenario} />
         <ReportSteps scenario={scenario} />
         {scenario.docEntries.length > 0 ? (
           <div data-es-docs className="mt-3">

@@ -33,6 +33,9 @@ export type { ReportScenarioProps } from "./components/ReportScenario";
 export { ReportSteps, ReportStepItem } from "./components/ReportSteps";
 export type { ReportStepsProps } from "./components/ReportSteps";
 
+export { ReportStoryboard } from "./components/ReportStoryboard";
+export type { ReportStoryboardProps } from "./components/ReportStoryboard";
+
 export { ReportDocEntries } from "./components/ReportDocEntries";
 export type { ReportDocEntriesProps } from "./components/ReportDocEntries";
 

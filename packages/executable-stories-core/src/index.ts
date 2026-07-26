@@ -33,6 +33,12 @@ export * from "./theme/tokens.js";
 // Session trajectory primitive (ported from serve.ts)
 export * from "./trajectory.js";
 
+// Storyboard derivation (step screenshots → filmstrip frames)
+export * from "./storyboard.js";
+
+// Journey derivation (journey:<id>[:<n>] tags → ordered multi-scenario walkthroughs)
+export * from "./journeys.js";
+
 // Explainer freshness contract (also available via the ./explainer subpath).
 // Re-exported here so dependents can pull the types from the package's main
 // entry, which their dts bundlers inline (subpath types are not, so a public
@@ -45,3 +51,5 @@ export * from "./utils/scenario-markdown.js";
 export * from "./utils/doc-builders.js";
 export * from "./utils/source-file.js";
 export * from "./utils/duration.js";
+export * from "./utils/url.js";
+export * from "./utils/humanize.js";

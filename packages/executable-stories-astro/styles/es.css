@@ -557,3 +557,60 @@ pre.mermaid { white-space: pre-wrap; word-break: break-word; margin: 0; font-siz
 }
 .es-sample-banner strong { color: var(--es-warn); }
 .es-sample-banner code { font-size: 0.85em; padding: 0.05em 0.35em; border-radius: 4px; background: var(--es-card); font-family: var(--es-mono); }
+
+/* Persona view intro line (under the view title) */
+.es-view-description { margin: 0.25rem 0 1rem; color: var(--es-muted); font-size: 0.95rem; line-height: 1.5; }
+
+/* Journeys index list */
+.es-journeys { list-style: none; margin: 1rem 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+.es-journeys__item a {
+  display: flex; align-items: center; gap: 0.75rem;
+  padding: 0.7rem 1rem;
+  border: 1px solid var(--es-border);
+  border-radius: var(--es-radius-sm);
+  background: var(--es-card);
+  text-decoration: none;
+  color: var(--es-fg);
+}
+.es-journeys__item a:hover { border-color: var(--es-accent); }
+.es-journeys__title { font-weight: 600; }
+.es-journeys__count { margin-left: auto; color: var(--es-muted); font-size: 0.85rem; }
+
+/* UI-state catalog grid */
+.es-states__group { margin: 1.5rem 0 0; }
+.es-states__group h2 { margin: 0 0 0.6rem; font-size: 1.1rem; }
+.es-states__grid {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.75rem;
+}
+.es-states__card a {
+  display: flex; flex-direction: column;
+  border: 1px solid var(--es-border); border-radius: var(--es-radius-sm);
+  background: var(--es-card); overflow: hidden;
+  text-decoration: none; color: var(--es-fg);
+}
+.es-states__card a:hover { border-color: var(--es-accent); }
+.es-states__card img { width: 100%; height: 120px; object-fit: cover; object-position: top; background: var(--es-surface); }
+.es-states__noshot {
+  display: flex; align-items: center; justify-content: center; height: 120px;
+  background: var(--es-surface); color: var(--es-muted); font-size: 0.8rem;
+}
+.es-states__caption { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.65rem; font-size: 0.8rem; }
+.es-states__title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.es-states__viewport {
+  margin-left: auto; padding: 0.05rem 0.4rem;
+  border: 1px solid var(--es-border); border-radius: 999px;
+  color: var(--es-muted); font-size: 0.7rem;
+}
+
+/* Journey walkthrough (ordered member scenarios) */
+.es-journey__steps { list-style: none; margin: 1.25rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 1.5rem; }
+.es-journey__step-label { display: flex; align-items: center; gap: 0.6rem; margin: 0 0 0.5rem; font-weight: 600; }
+.es-journey__step-label a { color: var(--es-fg); text-decoration: none; }
+.es-journey__step-label a:hover { text-decoration: underline; }
+.es-journey__step-n {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.5rem; height: 1.5rem; border-radius: 50%;
+  background: var(--es-accent); color: var(--es-bg);
+  font-size: 0.8rem; font-weight: 700;
+}

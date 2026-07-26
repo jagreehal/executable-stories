@@ -1,0 +1,19 @@
+---
+/**
+ * Journeys index — standalone variant, injected by executableStories() at
+ * `journeysBase` (default /journeys) for NON-Starlight sites.
+ */
+import "../styles/es.css";
+import JourneysIndexView from "../components/JourneysIndexView.astro";
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Journeys — Executable Stories</title>
+  </head>
+  <body>
+    <JourneysIndexView shell="standalone" />
+  </body>
+</html>

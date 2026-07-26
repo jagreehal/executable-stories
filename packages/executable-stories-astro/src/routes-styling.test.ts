@@ -9,7 +9,15 @@ import { describe, expect, it } from "vitest";
  * stylesheet or they render completely unstyled out of the box. Lock that in.
  */
 const pkgRoot = fileURLToPath(new URL("..", import.meta.url));
-const ROUTES = ["routes/story.astro", "routes/stories.astro", "routes/explorer.astro"];
+const ROUTES = [
+  "routes/story.astro",
+  "routes/stories.astro",
+  "routes/explorer.astro",
+  "routes/view.astro",
+  "routes/journeys.astro",
+  "routes/journey.astro",
+  "routes/states.astro",
+];
 
 describe("injected routes ship default styling", () => {
   it("ships the default stylesheet", () => {

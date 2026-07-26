@@ -42,7 +42,7 @@ import { BehaviorManifestJsonFormatter } from "./formatters/behavior-manifest-js
 import { JUnitFormatter } from "./formatters/junit-xml";
 import { MarkdownFormatter } from "./formatters/markdown";
 import { ReleaseManifestFormatter } from "./formatters/release-manifest";
-import { TraceabilityMatrixFormatter } from "./formatters/traceability-matrix";
+import { TraceabilityCsvFormatter, TraceabilityMatrixFormatter } from "./formatters/traceability-matrix";
 import { CucumberMessagesFormatter } from "./formatters/cucumber-messages/index";
 import { CucumberHtmlFormatter } from "./formatters/cucumber-html";
 import { buildIndexEntries, renderColocatedIndex } from "./colocated-index";
@@ -512,6 +512,7 @@ const FORMAT_EXTENSIONS: Record<OutputFormat, string> = {
   markdown: ".md",
   "release-manifest": ".release-manifest.md",
   "traceability-matrix": ".traceability-matrix.md",
+  "traceability-csv": ".traceability.csv",
   html: ".html",
   "cucumber-html": ".cucumber.html",
   junit: ".junit.xml",
@@ -1174,6 +1175,11 @@ export class ReportGenerator {
         return formatter.format(run);
       }
 
+      case "traceability-csv": {
+        const formatter = new TraceabilityCsvFormatter();
+        return formatter.format(run);
+      }
+
       case "story-report-json": {
         const formatter = new StoryReportJsonFormatter({
           pretty: this.options.storyReportJson.pretty,
@@ -1427,6 +1433,7 @@ export { recordDeployment, getDeploymentStatus, getEnvironmentDrift } from "./de
 export { ReleaseManifestFormatter, toReleaseManifest, type ReleaseManifest } from "./formatters/release-manifest";
 export {
   TraceabilityMatrixFormatter,
+  TraceabilityCsvFormatter,
   toTraceabilityMatrix,
   type TraceabilityMatrix,
   type TraceabilityRequirement,

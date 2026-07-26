@@ -10,6 +10,11 @@ diagrams, and search. It is **live**: a content loader watches your run JSON, so
 a fresh test run hot-reloads the open page. Nothing is written to disk — your
 tests stay the source of truth.
 
+This guide scaffolds a new site. Already have an Astro site? See
+[Add to an existing Astro site](/guides/existing-astro-site/). Collating runs
+from many repositories? See the
+[multi-repo docs hub guide](/guides/multi-repo-docs-hub/).
+
 ## Getting started
 
 ```bash
@@ -53,6 +58,9 @@ export default defineExecutableStories({
 | `include` / `exclude` | Select scenarios by `tags`, `status`, or `features`. |
 | `groupBy` | How the index/Explorer categorise scenarios. |
 | `docs` | Authored markdown folders to surface in the nav. |
+| `views` | Persona views: filtered, re-grouped indexes at their own URLs (e.g. `/for/product`). See [Tagging for your audience](/guides/tagging-for-your-audience/). |
+| `journeysBase` / `injectJourneys` | Where the journey walkthroughs mount (default `/journeys`; derived from `journey:<id>:<n>` tags). |
+| `statesBase` / `injectStates` | Where the UI-state catalog mounts (default `/states`; derived from `state:<name>` tags, viewport variants side by side). |
 | `collection` | Collection name the loader feeds (default `stories`). |
 | `routeBase` / `explorerBase` | Where the pages mount (default `/stories`, `/explorer`). |
 | `agentEndpoints` | Inject `/llms.txt` and per-story Markdown twins at `<routeBase>/<slug>.md` (default `true`). |
@@ -67,6 +75,12 @@ See the full reference in the [`executable-stories-astro` README](https://github
   of the box; no CSS to wire.
 - **`/explorer`** — a searchable, filterable Scenario Explorer (by text, status,
   and tag).
+- **`/journeys`** — ordered multi-scenario walkthroughs derived from
+  `journey:<id>:<n>` tags, each rendered as full scenario cards (storyboards
+  included) under one aggregate status. Embed one in MDX with
+  `<StoryJourney id="..." />`.
+- **`/states`** — a thumbnail grid of the UI states the product verifiably
+  has, from `state:<name>` tags; `viewport:*` variants render side by side.
 - **Auto-built nav** — spread `storiesSidebar(config)` into your Starlight
   `sidebar` and the Stories/Explorer links and your docs groups appear without
   hand-wiring. The nav stays fresh in dev: when a test run adds, renames, or
@@ -78,6 +92,24 @@ See the full reference in the [`executable-stories-astro` README](https://github
   has a plain-Markdown twin at `/stories/<slug>.md`, so the deployed site is
   consumable by agents and `curl`, not just browsers. Disable with
   `agentEndpoints: false`.
+
+## Persona views
+
+`views` mounts audience lenses over the same scenarios — `/for/product`,
+`/for/design`, `/for/support` — each a filtered, re-grouped index driven by
+the tags your tests already carry:
+
+```js
+views: [
+  { base: '/for/product', include: { tags: ['audience:stakeholder'] }, groupBy: 'tag' },
+  { base: '/for/design',  include: { tags: ['storyboard'] } },
+],
+```
+
+Each view appears in the sidebar under "Audiences" and renders the same
+interactive index as `/stories`, filtered to its audience. The tag vocabulary
+and per-persona recipes live in
+[Tagging for your audience](/guides/tagging-for-your-audience/).
 
 ## Embedding scenarios in your own pages
 

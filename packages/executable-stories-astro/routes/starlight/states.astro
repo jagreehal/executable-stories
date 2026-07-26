@@ -1,0 +1,13 @@
+---
+/**
+ * UI-state catalog — Starlight variant, injected only when Starlight is
+ * detected (or forced via `shell`).
+ */
+import StarlightPage from "@astrojs/starlight/components/StarlightPage.astro";
+import "../../styles/es.css";
+import StatesIndexView from "../../components/StatesIndexView.astro";
+---
+
+<StarlightPage frontmatter={{ title: "UI states", tableOfContents: false, prev: false, next: false }}>
+  <StatesIndexView shell="starlight" />
+</StarlightPage>

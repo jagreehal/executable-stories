@@ -1,0 +1,53 @@
+---
+/**
+ * JourneyView — shared body of one journey page: the ordered member scenarios
+ * rendered as full static cards (steps, storyboards, docs, failures), the SAME
+ * `<ReportScenario/>` the story pages use. Reading order is the walkthrough:
+ * scenario 1 → 2 → 3, each with its storyboard filmstrip when steps carry
+ * screenshots. Static (no island) + DocHydration, like the detail pages.
+ */
+import { ReportScenario } from "executable-stories-react";
+import "executable-stories-react/tailwind.css";
+import "../styles/es.css";
+import { joinHref } from "executable-stories-astro";
+import type { Journey } from "executable-stories-astro";
+import type { StoryEntryData } from "executable-stories-astro";
+import DocHydration from "./DocHydration.astro";
+import { journeysBase, routeBase } from "virtual:executable-stories/config";
+
+interface Props {
+  journey: Journey<StoryEntryData>;
+  shell?: "standalone" | "starlight";
+  /** Show the "← All journeys" link. <StoryJourney/> embeds turn it off: navigation out of the host page is not the embed's job. */
+  backLink?: boolean;
+}
+const { journey, shell = "standalone", backLink = true } = Astro.props as Props;
+const starlight = shell === "starlight";
+---
+
+<div class={`es-story${starlight ? " es-embed" : ""}`}>
+  {backLink && <a class="es-back" href={joinHref(journeysBase)}>← All journeys</a>}
+  <header class="es-story__header">
+    {!starlight && <h1 data-testid="title">{journey.title}</h1>}
+    <div class="es-story__meta">
+      <span class={`es-status es-status--${journey.status}`} data-testid="status">{journey.status}</span>
+      <span class="es-story__feature">
+        {journey.scenarios.length} scenario{journey.scenarios.length === 1 ? "" : "s"} in order
+      </span>
+    </div>
+  </header>
+  <ol class="es-journey__steps">
+    {journey.scenarios.map((s, i) => (
+      <li class="es-journey__step">
+        <p class="es-journey__step-label">
+          <span class="es-journey__step-n">{i + 1}</span>
+          <a href={joinHref(routeBase, s.slug)}>{s.title}</a>
+        </p>
+        <div class="es-report-island font-sans text-foreground">
+          <ReportScenario scenario={s} hideTitle />
+        </div>
+      </li>
+    ))}
+  </ol>
+  <DocHydration />
+</div>

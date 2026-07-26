@@ -1,0 +1,66 @@
+---
+/**
+ * StatesIndexView — shared body of the UI-state catalog. Groups scenarios by
+ * their `state:<name>` tags and renders a thumbnail grid: each card is a
+ * scenario's first storyboard frame (or a status block when no screenshot),
+ * linking to the full story page. Viewport variants sit side by side within
+ * their state group.
+ */
+import { getCollection } from "astro:content";
+import { storyEntries, extractStates, stateThumbnail, viewportOf, joinHref } from "executable-stories-astro";
+import "../styles/es.css";
+import { collection, routeBase } from "virtual:executable-stories/config";
+
+interface Props {
+  shell?: "standalone" | "starlight";
+}
+const { shell = "standalone" } = Astro.props as Props;
+const starlight = shell === "starlight";
+
+const entries = storyEntries(await getCollection(collection));
+const states = extractStates(entries);
+---
+
+<div class={`es-index not-content${starlight ? " es-embed" : ""}`}>
+  {!starlight && <h1>UI states</h1>}
+  <p class="es-view-description">
+    Every state the product verifiably has, straight from the tests.
+  </p>
+  {states.length === 0 ? (
+    <aside class="es-sample-banner" data-testid="states-empty" role="note">
+      <strong>No states catalogued yet.</strong> Tag scenarios with
+      <code>state:&lt;name&gt;</code> (e.g.
+      <code>{`story.init(task, { tags: ['state:empty-cart'] })`}</code>) and they appear here as a
+      thumbnail grid — add <code>viewport:mobile</code> / <code>viewport:desktop</code> variants to
+      compare layouts side by side.
+    </aside>
+  ) : (
+    states.map((state) => (
+      <section class="es-states__group" aria-label={state.label}>
+        <h2>{state.label}</h2>
+        <ul class="es-states__grid" data-testid={`state-${state.id}`}>
+          {state.scenarios.map((s) => {
+            const thumb = stateThumbnail(s);
+            const viewport = viewportOf(s);
+            return (
+              <li class="es-states__card" data-status={s.status}>
+                <a href={joinHref(routeBase, s.slug)}>
+                  {thumb ? (
+                    <img src={thumb.src} alt={thumb.alt ?? s.title} loading="lazy" />
+                  ) : (
+                    <span class="es-states__noshot">no screenshot</span>
+                  )}
+                  <span class="es-states__caption">
+                    <span class={`es-status es-status--${s.status}`}>{s.status}</span>
+                    <span class="es-states__title">{s.title}</span>
+                    {viewport && <span class="es-states__viewport">{viewport}</span>}
+                  </span>
+                </a>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+    ))
+  )}
+</div>

@@ -91,6 +91,25 @@ jobs:
           report-dir: reports
           output-name: test-results
 
+  publish-run-missing:
+    name: "publish-run: fail when no run JSON exists"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Run action (should fail before touching the API)
+        id: action
+        continue-on-error: true
+        uses: ./packages/executable-stories-action
+        with:
+          mode: publish-run
+      - name: Verify failure
+        run: |
+          if [[ "${{ steps.action.outcome }}" != "failure" ]]; then
+            echo "Expected publish-run to fail when no run JSON exists"
+            exit 1
+          fi
+          echo "Action correctly failed"
+
   missing-files:
     name: "report: fail when no input exists"
     runs-on: ubuntu-latest
