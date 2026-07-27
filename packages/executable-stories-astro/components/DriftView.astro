@@ -1,0 +1,72 @@
+---
+/**
+ * DriftView — shared body of the environment-drift page. One row per scenario,
+ * one status column per configured source (staging vs production, suite A vs
+ * suite B), mismatches floated to the top. Derived from the entries the loader
+ * already stamps with their owning source; failures are shown plainly — a
+ * drift page that hides red would defeat its purpose.
+ */
+import { getCollection } from "astro:content";
+import { storyEntries, extractDrift, joinHref } from "executable-stories-astro";
+import "../styles/es.css";
+import { collection, routeBase } from "virtual:executable-stories/config";
+
+interface Props {
+  shell?: "standalone" | "starlight";
+}
+const { shell = "standalone" } = Astro.props as Props;
+const starlight = shell === "starlight";
+
+const entries = storyEntries(await getCollection(collection));
+const drift = extractDrift(entries);
+const comparable = drift.sources.length >= 2;
+---
+
+<div class={`es-index not-content${starlight ? " es-embed" : ""}`}>
+  {!starlight && <h1>Environment drift</h1>}
+  <p class="es-view-description">
+    The same scenarios, one status per source — mismatches first.
+  </p>
+  {!comparable ? (
+    <aside class="es-sample-banner" data-testid="drift-empty" role="note">
+      <strong>Nothing to compare yet.</strong> Configure two or more
+      <code>sources</code> (e.g. a staging and a production run JSON) and every
+      scenario's status appears here side by side, mismatches first.
+    </aside>
+  ) : (
+    <>
+      <p class="es-drift__summary" data-testid="drift-summary">
+        {drift.driftedCount === 0
+          ? `All ${drift.rows.length} scenarios agree across ${drift.sources.length} sources.`
+          : `${drift.driftedCount} of ${drift.rows.length} scenarios differ across ${drift.sources.length} sources.`}
+      </p>
+      <table class="es-drift" data-testid="drift-table">
+        <thead>
+          <tr>
+            <th>Scenario</th>
+            {drift.sources.map((s) => <th>{s.label}</th>)}
+          </tr>
+        </thead>
+        <tbody>
+          {drift.rows.map((row) => (
+            <tr class={row.drifted ? "es-drift__row--drifted" : undefined} data-drifted={row.drifted}>
+              <td><a href={joinHref(routeBase, row.slug)}>{row.title}</a></td>
+              {drift.sources.map((s) => {
+                const status = row.statuses[s.name];
+                return (
+                  <td>
+                    {status ? (
+                      <span class={`es-status es-status--${status}`}>{status}</span>
+                    ) : (
+                      <span class="es-drift__absent">absent</span>
+                    )}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </>
+  )}
+</div>

@@ -37,8 +37,11 @@ views filter and group on. Adopt the ones you need; skip the rest.
 
 Two existing options complement the tags: `ticket` links a scenario to the
 requirement it verifies (PM coverage questions), and `story.link({ label:
-'Figma — Checkout v3', url })` attaches design references that render with the
-scenario.
+'Figma — Checkout v3', url })` attaches design references. Links pointing at a
+design tool (Figma, Zeplin, Sketch) — or any link whose label starts with
+"Design" — also surface as a **Design** strip at the top of the scenario's
+story page and of every journey it belongs to, so designers land on the
+mockup next to the proof.
 
 ## Persona views
 
@@ -110,18 +113,39 @@ order suffix is optional; untagged order falls back to source order. Embed a
 journey in prose with `<StoryJourney id="guest-checkout" />`.
 
 Because journeys are a tag convention, they work in every adapter today —
-Playwright journeys get filmstrips, Vitest/Jest journeys read as ordered
-Given/When/Then text. Support teams can paste `/journeys/<id>` links straight
-into tickets.
+Playwright journeys get filmstrips, and scenarios that capture
+[state snapshots](/guides/understanding-the-report/#state-snapshots-storyboards-for-data)
+show each chapter's final state card, so a data-only journey still ends every
+chapter with what the world looked like. State diffs never cross scenario
+boundaries: each chapter tells its own before-and-after. Support teams can
+paste `/journeys/<id>` links straight into tickets.
+
+If your CI runs the CLI with `--history-file`, point the site at the same
+store and journey pages add a run-history badge — "7/10 recent runs passed ·
+flaky" — aggregated from the member scenarios (a journey fails a run when any
+member failed it):
+
+```js
+export default defineExecutableStories({
+  source: 'reports/raw-run.json',
+  historyFile: 'reports/history.json',
+});
+```
 
 ## The state catalog
 
-`state:<name>` tags feed `/states`: a thumbnail grid of every UI state the
-product verifiably has, each card a scenario's first screenshot linking to
-its story page. Tag viewport variants (`viewport:mobile`,
+`state:<name>` tags feed `/states`: a thumbnail grid of every state the
+product verifiably has, each card a scenario's first screenshot — or, for
+non-UI scenarios, a data-card thumbnail from its first
+[state snapshot](/guides/understanding-the-report/#state-snapshots-storyboards-for-data) —
+linking to its story page. Tag viewport variants (`viewport:mobile`,
 `viewport:desktop`) and they sit side by side within their state — same
 state, two layouts, compared at a glance. Designers browse what shipped, not
 what a hand-maintained inventory claims.
+
+The tag and the doc verb are one concept at two granularities: `state:<name>`
+names a state the product can be in; `story.state()` shows the data that
+proves it.
 
 ## For auditors: the traceability CSV
 
@@ -132,9 +156,21 @@ executable-stories format reports/raw-run.json --format traceability-csv
 ```
 
 One row per requirement-scenario pair (ticket, requirement status, scenario,
-source, covered code), plus a row per untraced scenario — the coverage gaps
-listed explicitly, not hidden. It is a flat projection of the
-`traceability-matrix` format, so the two can never disagree.
+evidence grade, source, covered code), plus a row per untraced scenario — the
+coverage gaps listed explicitly, not hidden. The `evidence_grade` column is
+the same weak → strong grading the Evidence Review applies (screenshot, OTEL
+trace, mutation score, failing-first verification), so the spreadsheet says
+not just "passed" but how credible the proof is. It is a flat projection of
+the `traceability-matrix` format, so the two can never disagree.
+
+## Environment drift
+
+When the site combines two or more `sources` (a staging run and a production
+run, or one run per repo in a docs hub), a `/drift` page appears: every
+scenario's status per source side by side, mismatches floated to the top.
+Behavior verified in one environment but failing — or missing — in another is
+exactly the gap a per-environment report hides. Force it on or off with
+`injectDrift`, move it with `driftBase`.
 
 ## Leadership
 

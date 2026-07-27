@@ -40,7 +40,7 @@ it('admin deletes user', () => {
 
 Same as Vitest: **`story.given`**, **`story.when`**, **`story.then`**, **`story.and`**, **`story.but`**, plus AAA aliases (`arrange`, `act`, `assert`, `setup`, `context`, `execute`, `action`, `verify`). Steps accept an optional second argument **`StoryDocs`** for inline docs.
 
-Doc methods: **`story.note`**, **`story.tag`**, **`story.kv`**, **`story.json`**, **`story.code`**, **`story.table`**, **`story.link`**, **`story.section`**, **`story.mermaid`**, **`story.screenshot`**, **`story.custom`** — all with the same signatures as Vitest (options objects except `note(text)` and `tag(name | names)`).
+Doc methods: **`story.note`**, **`story.tag`**, **`story.kv`**, **`story.json`**, **`story.state`**, **`story.code`**, **`story.table`**, **`story.link`**, **`story.section`**, **`story.mermaid`**, **`story.screenshot`**, **`story.custom`** — all with the same signatures as Vitest (options objects except `note(text)` and `tag(name | names)`).
 
 **Example:**
 

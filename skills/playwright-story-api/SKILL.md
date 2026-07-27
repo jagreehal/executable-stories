@@ -4,17 +4,14 @@ description: >
   Use when writing BDD story tests in Playwright with
   executable-stories-playwright: story.init(testInfo), async steps with
   fixtures, or doc entries.
-type: core
-library: executable-stories-playwright
-library_version: "8.5.7"
-sources:
-  - "jagreehal/executable-stories:packages/executable-stories-playwright/src/story-api.ts"
-  - "jagreehal/executable-stories:apps/docs-site/src/content/docs/reference/playwright-story-api.md"
 ---
 
 # executable-stories-playwright — Story API
 
 ## Setup
+
+Sources of truth: `packages/executable-stories-playwright/src/story-api.ts` and
+the docs-site Playwright story API reference.
 
 ```typescript
 import { test, expect } from "@playwright/test";
@@ -101,6 +98,11 @@ visual walkthrough, call `await story.screenshot({ page, alt })` once after
 each step — the `alt` becomes the frame caption. Derived automatically; no
 option to set.
 
+The HTML `compare` report reuses these step screenshots for scenarios whose
+status flipped between runs (`Regressed` or `Fixed`). Capture the product state
+that explains the outcome; screenshots stored only as unresolved local absolute
+paths cannot render in a downloaded comparison report.
+
 The older `story.screenshot({ path, alt })` form attaches a screenshot that
 already exists on disk (e.g. one taken earlier for another purpose) — the
 caller must write the file to `path` first (typically
@@ -109,6 +111,21 @@ before `story.screenshot()` runs, it warns at the call site and the report
 falls back to a "Screenshot unavailable" placeholder rather than a broken
 image — that warning almost always means the preceding `page.screenshot()`
 call is missing or its `path` doesn't match.
+
+### State snapshots (story.state)
+
+`story.state({ label?, value })` captures what the world looks like at the current step as a JSON-serializable snapshot. Steps carrying state docs (or screenshots) become storyboard frames: a label's first appearance shows the full snapshot, consecutive snapshots with the same label render as a diff (`items[0].qty: 1 → 2`), and multiple labels appear as side-by-side lanes. The same step can carry a screenshot and a state — the screen next to the backend record.
+
+```typescript
+given("an empty basket");
+story.state({ label: "Basket", value: { items: [], total: 0 } });
+
+when("the shopper adds a hoodie");
+await page.getByRole("button", { name: "Add to basket" }).click();
+story.state({ label: "Basket", value: { items: [{ sku: "hoodie", qty: 1 }], total: 45 } });
+```
+
+Capture the business-relevant projection, not the ORM entity — the adapter warns above ~100KB.
 
 ### Embedded HTML (story.html)
 

@@ -87,7 +87,7 @@ story.then('the user is logged in', {
 });
 ```
 
-Supported keys: `note`, `tag`, `kv`, `code`, `json`, `table`, `link`, `section`, `mermaid`, `screenshot`, `video`, `html`, `custom`. Same shapes as the standalone doc methods below.
+Supported keys: `note`, `tag`, `kv`, `code`, `json`, `state`, `table`, `link`, `section`, `mermaid`, `screenshot`, `video`, `html`, `custom`. Same shapes as the standalone doc methods below.
 
 ## AAA and other aliases
 
@@ -108,6 +108,7 @@ Attach rich documentation to the **current step** (or story-level if called befo
 | `story.kv(options)`         | Key-value.                                        | `story.kv({ label: "Version", value: "1.0" });`                             |
 | `story.code(options)`       | Code block.                                       | `story.code({ label: "Invoice", content: "<xml>...</xml>", lang: "xml" });` |
 | `story.json(options)`       | JSON block.                                       | `story.json({ label: "Payload", value: { id: 1 } });`                       |
+| `story.state(options)`      | State snapshot (label optional). Same-label snapshots render as diffs; multiple labels as side-by-side lanes. | `story.state({ label: "Basket", value: { total: 45 } });`                   |
 | `story.table(options)`      | Markdown table.                                   | `story.table({ label: "Users", columns: ["email"], rows: [["a@x.com"]] });` |
 | `story.link(options)`       | Link.                                             | `story.link({ label: "Spec", url: "https://..." });`                        |
 | `story.section(options)`    | Section with markdown.                            | `story.section({ title: "Notes", markdown: "**Bold**" });`                  |

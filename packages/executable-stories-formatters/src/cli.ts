@@ -49,6 +49,7 @@ import { runCompletion } from "./completion";
 import { openInBrowser, pickOpenTarget } from "./open-report";
 import { summaryLine } from "./summary-line";
 import type { RawRun } from "executable-stories-core/types/raw";
+import type { DocEntry } from "executable-stories-core/types/story";
 import type { TestRunResult, TestStatus } from "executable-stories-core/types/test-result";
 import {
   detectPackageManager,
@@ -138,10 +139,11 @@ SUBCOMMANDS
   deploy             Record deployments, show environment status, detect drift
 
 OPTIONS
-  --format <formats>            Comma-separated formats: html, markdown, release-manifest, traceability-matrix, traceability-csv, junit, cucumber-json, cucumber-messages, cucumber-html, astro-markdown, confluence, story-report-json, scenario-index-json, behavior-manifest-json, or custom names from config (default: html)
+  --format <formats>            Comma-separated formats: html, markdown, release-manifest, traceability-matrix, traceability-csv, junit, cucumber-json, cucumber-messages, cucumber-html, astro-markdown, confluence, story-report-json, scenario-index-json, behavior-manifest-json, agent-text, or custom names from config (default: html)
                                   astro-markdown    Starlight-flavored Markdown (single aggregated page; for a live site use "init-astro" + "astro dev")
                                   confluence        Atlassian Document Format (ADF) JSON for Confluence / Jira
                                   behavior-manifest-json Agent-readable behavior manifest and debugger warnings
+                                  agent-text        Full run as flat token-lean plain text for pasting into an LLM
                                   html              Standalone interactive HTML report, rendered via executable-stories-react (same component tree as the Astro site)
                                   cucumber-html     Official Cucumber HTML report
                                   markdown          Markdown documentation
@@ -151,7 +153,7 @@ OPTIONS
                                   story-report-json StoryReport v1 JSON (consumed by executable-stories-react and other UI renderers)
                                   scenario-index-json Storybook-like scenario index for agents and explorers
                                   traceability-matrix Requirement-first matrix (ticket -> scenarios -> covered code -> status)
-                                  traceability-csv   The same matrix, flat CSV for auditors/spreadsheets (one row per requirement-scenario pair)
+                                  traceability-csv   The same matrix, flat CSV for auditors/spreadsheets (one row per requirement-scenario pair, with an evidence_grade column)
   --preset <name>               Format bundle (unioned with --format when both are given):
 ${presetHelpLines()
   .map((l) => `                                  ${l}`)
@@ -747,7 +749,7 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
   const pluginConfig = await loadConfig(values["config"] as string | undefined);
   const customFormatterNames = new Set(Object.keys(pluginConfig.formatters ?? {}));
 
-  const builtInFormats = new Set(["astro-markdown", "behavior-manifest-json", "confluence", "html", "markdown", "release-manifest", "traceability-matrix", "traceability-csv", "junit", "cucumber-json", "cucumber-messages", "cucumber-html", "scenario-index-json", "story-report-json"]);
+  const builtInFormats = new Set(["agent-text", "astro-markdown", "behavior-manifest-json", "confluence", "html", "markdown", "release-manifest", "traceability-matrix", "traceability-csv", "junit", "cucumber-json", "cucumber-messages", "cucumber-html", "scenario-index-json", "story-report-json"]);
   // The behavior changelog is a two-run diff, so it only exists for the
   // compare-like subcommands; `format` keeps rejecting it as unknown.
   if (isCompareLike) builtInFormats.add("changelog");
@@ -769,7 +771,7 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
 
   if (unknownFormats.length > 0) {
     const knownCustom = customFormatterNames.size > 0 ? `, ${[...customFormatterNames].join(", ")}` : "";
-    console.error(`Error: Unknown format(s): ${unknownFormats.join(", ")}. Valid built-in: astro-markdown, behavior-manifest-json, confluence, html, markdown, release-manifest, traceability-matrix, traceability-csv, junit, cucumber-json, cucumber-messages, cucumber-html, scenario-index-json, story-report-json${knownCustom}.`);
+    console.error(`Error: Unknown format(s): ${unknownFormats.join(", ")}. Valid built-in: agent-text, astro-markdown, behavior-manifest-json, confluence, html, markdown, release-manifest, traceability-matrix, traceability-csv, junit, cucumber-json, cucumber-messages, cucumber-html, scenario-index-json, story-report-json${knownCustom}.`);
     process.exit(EXIT_USAGE);
   }
 
@@ -1094,6 +1096,40 @@ function normalizeRunFromText(text: string, args: CliArgs): {
   return normalizeRunFromJsonData(parseJson(text), args);
 }
 
+/**
+ * Non-fatal stderr notice for oversized `story.state()` snapshots (>100 KB
+ * serialized). Shapes covered: canonical TestCaseResult and raw test cases
+ * (story may be null). Never changes exit codes.
+ */
+function warnLargeStateDocs(
+  testCases: Array<{
+    story?: {
+      scenario?: string;
+      docs?: DocEntry[];
+      steps?: Array<{ docs?: DocEntry[] }>;
+    } | null;
+  }>,
+): void {
+  const check = (title: string, docs: DocEntry[] | undefined): void => {
+    for (const doc of docs ?? []) {
+      if (doc.kind === "state") {
+        const bytes = JSON.stringify(doc.value)?.length ?? 0;
+        if (bytes > 100_000) {
+          console.error(
+            `notice: scenario "${title}" state "${doc.label ?? "State"}" is ${Math.round(bytes / 1024)}KB — large snapshots slow reports`,
+          );
+        }
+      }
+      check(title, doc.children);
+    }
+  };
+  for (const tc of testCases) {
+    const title = tc.story?.scenario ?? "unknown";
+    check(title, tc.story?.docs);
+    for (const step of tc.story?.steps ?? []) check(title, step.docs);
+  }
+}
+
 function applySelection(run: TestRunResult, args: CliArgs): TestRunResult {
   const testCases = selectTestCases(
     {
@@ -1393,6 +1429,7 @@ async function runList(ctx: CliContext): Promise<void> {
   const { args } = ctx;
     const text = await readInput(args);
     const run = applySelection(normalizeRunFromText(text, args).run, args);
+    warnLargeStateDocs(run.testCases);
 
     // --json-summary is a deprecated alias for --list-format json
     const resolvedFormat = args.jsonSummary ? "json" : args.listFormat;
@@ -1608,6 +1645,7 @@ async function runFormatOrValidate(ctx: CliContext): Promise<void> {
     if (args.inputType === "canonical") {
       try {
         assertValidRun(data as TestRunResult);
+        warnLargeStateDocs((data as TestRunResult).testCases);
         console.log("Valid canonical TestRunResult.");
         process.exit(EXIT_SUCCESS);
       } catch (err) {
@@ -1635,6 +1673,7 @@ async function runFormatOrValidate(ctx: CliContext): Promise<void> {
       process.exit(EXIT_SCHEMA_VALIDATION);
     }
 
+    warnLargeStateDocs((data as RawRun).testCases);
     console.log("Valid RawRun (schemaVersion 1).");
     process.exit(EXIT_SUCCESS);
   }

@@ -40,6 +40,7 @@ import type {
   TicketInput,
   KvOptions,
   JsonOptions,
+  StateOptions,
   CodeOptions,
   TableOptions,
   LinkOptions,
@@ -169,6 +170,15 @@ function convertStoryDocsToEntries(docs: StoryDocs): DocEntry[] {
       phase: 'runtime',
     });
   }
+  if (docs.state) {
+    warnIfStateLarge(docs.state.label, docs.state.value);
+    entries.push({
+      kind: 'state',
+      label: docs.state.label,
+      value: docs.state.value,
+      phase: 'runtime',
+    });
+  }
   if (docs.table) {
     entries.push({
       kind: 'table',
@@ -234,6 +244,23 @@ function convertStoryDocsToEntries(docs: StoryDocs): DocEntry[] {
   return entries;
 }
 
+
+/**
+ * Warn (non-fatal) when a state snapshot serializes past 100KB — the entry is
+ * still recorded, but a projection is usually what the storyboard needs.
+ */
+function warnIfStateLarge(label: string | undefined, value: unknown): void {
+  try {
+    const len = JSON.stringify(value)?.length ?? 0;
+    if (len > 100_000) {
+      console.warn(
+        `[executable-stories] state "${label ?? ''}" is ${Math.round(len / 1024)}KB — consider capturing a projection`,
+      );
+    }
+  } catch {
+    // Non-serializable value: recorded as-is, size unknown.
+  }
+}
 
 function attachDoc(entry: DocEntry, children?: DocEntry[]): DocEntry {
   const ctx = getContext();
@@ -566,6 +593,16 @@ export const story = {
   json(options: JsonOptions, children?: DocEntry[]): DocEntry {
     const content = JSON.stringify(options.value, null, 2);
     return attachDoc({ kind: 'code', label: options.label, content, lang: 'json', phase: 'runtime' }, children);
+  },
+
+  /**
+   * Capture what the world looks like at this step: a JSON-serializable data
+   * snapshot that becomes a storyboard frame. Consecutive states with the same
+   * label are diffed downstream, so snapshot the same projection at each step.
+   */
+  state(options: StateOptions, children?: DocEntry[]): DocEntry {
+    warnIfStateLarge(options.label, options.value);
+    return attachDoc({ kind: 'state', label: options.label, value: options.value, phase: 'runtime' }, children);
   },
 
   code(options: CodeOptions, children?: DocEntry[]): DocEntry {

@@ -28,7 +28,7 @@ const confluenceAdfJson = new ConfluenceFormatter().format(canonical);
 
 ```bash
 # Output control
---format html,markdown,junit,cucumber-json,cucumber-html,cucumber-messages,astro-markdown,confluence,release-manifest,traceability-matrix,story-report-json,scenario-index-json,behavior-manifest-json
+--format html,markdown,junit,cucumber-json,cucumber-html,cucumber-messages,astro-markdown,confluence,release-manifest,traceability-matrix,traceability-csv,story-report-json,scenario-index-json,behavior-manifest-json,agent-text
 --output-dir reports          # Base directory (default: reports)
 --output-name index           # Base filename (default: index)
 --output-name-timestamp       # Append run timestamp (UTC seconds) to filename for before/after diffs
@@ -187,11 +187,31 @@ executable-stories compare baseline.json current.json \
 ```
 
 - Generates a standalone HTML review report with filter chips for `Regressed`, `Fixed`, `Added`, `Removed`, and `Changed`.
+- For `Regressed` and `Fixed` scenarios, the HTML report adds a horizontal
+  storyboard when the current scenario has browser-renderable screenshots or
+  `state` snapshots attached to steps. Local filesystem paths are omitted
+  because they cannot be resolved by the browser; copied/relative assets,
+  HTTP(S), and inline image data can render.
 - Generates Markdown with per-scenario before/after summaries for PR discussion or artifact storage.
 - Use canonical input when you already persist prior runs; raw and ndjson inputs are also supported as long as both files use the same `--input-type`.
 - `--pr-summary` prints a compact PR-comment Markdown summary (priority signal + capped per-kind sections) to stdout; `--pr-summary-file <path>` writes it to a file.
 - `--format changelog` writes a release-notes-style **behavior changelog** (`<output-name>.changelog.md`): New behavior (with Given/When/Then steps), Fixed, Broken, Removed, Renamed or moved (rename-resilient identity), Changed. Headers carry each run's `packageVersion` + short SHA + date — tag runs with versions for `1.2.0 → 1.3.0` release notes.
 - Gates for CI: `--fail-on-regression`, `--fail-on-added-failures`, `--fail-on-removal`, `--fail-on-new`, `--max-regressions <n>` (exit code 5 when a gate fails).
+
+## Requirement traceability exports
+
+```bash
+executable-stories format raw-run.json \
+  --format traceability-matrix,traceability-csv \
+  --output-dir reports
+```
+
+`traceability-matrix` is requirement-first Markdown. `traceability-csv` is its
+flat spreadsheet projection: one row per requirement/scenario pair plus one row
+per untraced scenario. The CSV includes `evidence_grade`, calculated with the
+same `none` / `weak` / `moderate` / `strong` rules as Evidence Review. When
+several scenario occurrences share a canonical ID, every matching row receives
+the weakest observed grade so the audit export never overstates the proof.
 
 ## Notifications
 

@@ -117,6 +117,28 @@ namespace ExecutableStories.Xunit
             return Code(label, content, "json", children);
         }
 
+        /// <summary>
+        /// JSON-serializable snapshot of the world at this step (kind=state).
+        /// <paramref name="label"/> names the entity ('Basket') so the renderer can
+        /// diff consecutive snapshots; it is omitted from JSON when null.
+        /// </summary>
+        public static DocEntry State(object value, string? label = null, DocEntry[]? children = null)
+        {
+            var entry = new DocEntry();
+            entry.Set("kind", "state");
+            if (label != null)
+            {
+                entry.Set("label", label);
+            }
+            entry.Set("value", value);
+            entry.Set("phase", "runtime");
+            if (children is { Length: > 0 })
+            {
+                entry.Set("children", children);
+            }
+            return entry;
+        }
+
         public static DocEntry Table(string label, string[] columns, string[][] rows, DocEntry[]? children = null)
         {
             var entry = new DocEntry();

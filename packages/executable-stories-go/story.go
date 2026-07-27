@@ -386,6 +386,17 @@ func (s *S) JSON(label string, value any, children ...DocEntry) DocEntry {
 	return entry
 }
 
+// State attaches a state snapshot doc entry and returns it.
+// The value is a JSON-serializable snapshot of "what the world looks like"
+// at the current step; consecutive states with the same label are diffed by
+// the report renderer. An empty label means an anonymous state lane and the
+// label field is omitted from the emitted JSON.
+func (s *S) State(label string, value any, children ...DocEntry) DocEntry {
+	entry := stateEntry(label, value, children...)
+	s.addDoc(entry)
+	return entry
+}
+
 // Code attaches a code doc entry and returns it.
 // The lang parameter is optional (first value used if provided).
 // Children can be passed after lang.

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://executable-stories.dev/schemas/story-report-v1.schema.json",
   "title": "StoryReport",
-  "description": "Pre-grouped, denormalized report shape consumed by UI renderers (React, Svelte, Vue, etc.). Stable public contract — additive-only within a major. Distinct from internal TestRunResult.",
+  "description": "Pre-grouped, denormalized report shape consumed by UI renderers (React, Svelte, Vue, etc.). Stable public contract \u2014 additive-only within a major. Distinct from internal TestRunResult.",
   "type": "object",
   "$ref": "#/$defs/StoryReport",
   "$defs": {
@@ -479,6 +479,9 @@
           "$ref": "#/$defs/DocHtml"
         },
         {
+          "$ref": "#/$defs/DocState"
+        },
+        {
           "$ref": "#/$defs/DocCustom"
         }
       ]
@@ -852,6 +855,33 @@
           ]
         }
       ]
+    },
+    "DocState": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "state"
+        },
+        "label": {
+          "type": "string"
+        },
+        "value": {},
+        "phase": {
+          "$ref": "#/$defs/DocPhase"
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DocEntry"
+          }
+        }
+      },
+      "required": [
+        "kind",
+        "value",
+        "phase"
+      ],
+      "additionalProperties": false
     },
     "DocCustom": {
       "type": "object",

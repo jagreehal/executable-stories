@@ -152,6 +152,8 @@ function formatDocEntry(doc: DocEntry): string {
       return `${doc.title ? `${doc.title}: ` : ""}${doc.url ?? doc.path ?? "(inline html)"}`;
     case "custom":
       return `${doc.type}: ${JSON.stringify(doc.data)}`;
+    case "state":
+      return `${doc.label ?? "State"}: ${JSON.stringify(doc.value) ?? "null"}`;
   }
 }
 

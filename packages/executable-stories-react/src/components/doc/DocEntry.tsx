@@ -10,6 +10,7 @@ import { DocMermaid } from "./DocMermaid";
 import { DocScreenshot } from "./DocScreenshot";
 import { DocVideo } from "./DocVideo";
 import { DocHtml } from "./DocHtml";
+import { DocState } from "./DocState";
 import { DocCustom } from "./DocCustom";
 
 export function DocEntry({ entry }: { entry: ReportDocEntry }) {
@@ -36,6 +37,8 @@ export function DocEntry({ entry }: { entry: ReportDocEntry }) {
       return <DocVideo entry={entry} />;
     case "html":
       return <DocHtml entry={entry} />;
+    case "state":
+      return <DocState entry={entry} />;
     case "custom":
       return <DocCustom entry={entry} />;
   }

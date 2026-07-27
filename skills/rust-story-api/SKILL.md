@@ -119,6 +119,20 @@ fn processes_payment() {
 }
 ```
 
+### State snapshots (state)
+
+`s.state(label: Option<&str>, value: serde_json::Value)` captures what the world looks like at the current step. Steps carrying state docs (or screenshots) become storyboard frames: a label's first appearance shows the full snapshot, consecutive snapshots with the same label render as a diff (`total: 0 → 45`), and multiple labels appear as side-by-side lanes; `None` gives an anonymous lane.
+
+```rust
+s.given("an empty basket");
+s.state(Some("Basket"), serde_json::json!({"items": [], "total": 0}));
+
+s.when("the shopper adds a hoodie");
+s.state(Some("Basket"), serde_json::json!({"items": ["hoodie"], "total": 45}));
+```
+
+Capture the business-relevant projection, not the ORM entity.
+
 ### Embedded HTML
 
 Embed generated HTML (charts, single-file reports, skill/agent output) in an

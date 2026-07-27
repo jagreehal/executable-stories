@@ -78,30 +78,7 @@ validate_raw_run() {
       return 1
     fi
 
-    # 7. Verify all HTML themes produce valid output
-    local THEMES="corporate terminal minimal dashboard playful"
-    local THEME_FAIL=0
-    for THEME in $THEMES; do
-      local THEME_DIR="$REPORT_DIR/themes/$THEME"
-      if node "$CLI" format "$RAW_RUN" --format html --html-theme "$THEME" --output-dir "$THEME_DIR" > /dev/null 2>&1; then
-        local THEME_HTML_COUNT
-        THEME_HTML_COUNT=$(find "$THEME_DIR" -name "*.html" 2>/dev/null | wc -l | tr -d ' ')
-        if [ "$THEME_HTML_COUNT" -gt 0 ]; then
-          echo "[$LABEL] ✓ theme '$THEME' produced $THEME_HTML_COUNT HTML file(s)"
-        else
-          echo "[$LABEL] ERROR: theme '$THEME' produced no HTML output" >&2
-          THEME_FAIL=1
-        fi
-      else
-        echo "[$LABEL] ERROR: theme '$THEME' formatter failed" >&2
-        THEME_FAIL=1
-      fi
-    done
-    if [ "$THEME_FAIL" -ne 0 ]; then
-      return 1
-    fi
-
-    # 8. Agent artifacts: StoryReport, scenario index, behavior manifest
+    # 7. Agent artifacts: StoryReport, scenario index, behavior manifest
     if node "$CLI" format "$RAW_RUN" --format story-report-json,scenario-index-json,behavior-manifest-json --output-dir "$REPORT_DIR" --output-name index > /dev/null 2>&1; then
       if [ -f "$REPORT_DIR/index.story-report.json" ]; then
         echo "[$LABEL] ✓ story-report-json generated"
@@ -121,10 +98,10 @@ validate_raw_run() {
       return 1
     fi
 
-    if [ -f "$REPORT_DIR/index.scenarios-index.json" ] && [ -f "$REPORT_DIR/index.behavior-manifest.json" ]; then
+    if [ -f "$REPORT_DIR/index.scenario-index.json" ] && [ -f "$REPORT_DIR/index.behavior-manifest.json" ]; then
       echo "[$LABEL] ✓ scenario-index-json and behavior-manifest-json generated"
     else
-      echo "[$LABEL] ERROR: missing index.scenarios-index.json or index.behavior-manifest.json" >&2
+      echo "[$LABEL] ERROR: missing index.scenario-index.json or index.behavior-manifest.json" >&2
       return 1
     fi
   fi

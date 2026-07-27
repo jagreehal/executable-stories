@@ -257,6 +257,18 @@ class Story private constructor() {
             return entry
         }
 
+        /** Snapshot of the world at the current step (kind=state). */
+        @JvmStatic
+        @JvmOverloads
+        fun state(
+            value: Any?,
+            label: String? = null,
+        ): DocEntry {
+            val entry = DocEntry.state(value, label)
+            requireContext().addDoc(entry)
+            return entry
+        }
+
         @JvmStatic
         fun code(
             label: String,

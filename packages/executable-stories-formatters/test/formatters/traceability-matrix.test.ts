@@ -100,15 +100,41 @@ describe("toTraceabilityMatrix", () => {
     const csv = new TraceabilityCsvFormatter().format(run());
     const lines = csv.split("\r\n");
     expect(lines[0]).toBe(
-      "ticket,ticket_url,requirement_status,scenario_id,scenario_title,scenario_status,source,covers",
+      "ticket,ticket_url,requirement_status,scenario_id,scenario_title,scenario_status,evidence_grade,source,covers",
     );
     // US-101 has 2 scenarios, US-200 has 1, plus 1 untraced row.
     expect(lines).toHaveLength(5);
     expect(lines[1]).toBe(
-      "US-101,https://tracker/US-101,failing,a,View current savings balance,passed,src/api.py:10,src/api.py",
+      "US-101,https://tracker/US-101,failing,a,View current savings balance,passed,weak,src/api.py:10,src/api.py",
     );
     expect(lines[2]).toContain("src/api.py; src/match.py");
-    expect(lines[4]).toBe(",,untraced,d,Untraced behavior,passed,src/misc.py:1,");
+    // A failed scenario's proof does not hold — evidence grade "none".
+    expect(lines[2]).toContain(",failed,none,");
+    expect(lines[4]).toBe(",,untraced,d,Untraced behavior,passed,weak,src/misc.py:1,");
+  });
+
+  it("keeps the weakest evidence grade when test cases share an id", () => {
+    const r = stubs.testRunResult({
+      testCases: [
+        stubs.testCaseResult({
+          id: "dup",
+          status: "passed",
+          sourceFile: "s.ts",
+          story: stubs.storyMeta({ scenario: "Twin A", tickets: [{ id: "US-1" }] }),
+        }),
+        stubs.testCaseResult({
+          id: "dup",
+          status: "failed",
+          sourceFile: "s.ts",
+          story: stubs.storyMeta({ scenario: "Twin B", tickets: [{ id: "US-1" }] }),
+        }),
+      ],
+    });
+    const csv = new TraceabilityCsvFormatter().format(r);
+    // passed → weak, failed → none; both rows must carry "none", never the
+    // stronger grade from whichever twin happened to be processed last.
+    expect(csv).toContain("Twin A,passed,none,");
+    expect(csv).toContain("Twin B,failed,none,");
   });
 
   it("neutralizes spreadsheet formula injection in adapter-supplied cells", () => {

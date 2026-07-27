@@ -2,9 +2,10 @@
 /**
  * StatesIndexView — shared body of the UI-state catalog. Groups scenarios by
  * their `state:<name>` tags and renders a thumbnail grid: each card is a
- * scenario's first storyboard frame (or a status block when no screenshot),
- * linking to the full story page. Viewport variants sit side by side within
- * their state group.
+ * scenario's first storyboard frame — its screenshot, or for non-UI scenarios
+ * a compact data card built from the step's `story.state()` snapshot — linking
+ * to the full story page. Viewport variants sit side by side within their
+ * state group.
  */
 import { getCollection } from "astro:content";
 import { storyEntries, extractStates, stateThumbnail, viewportOf, joinHref } from "executable-stories-astro";
@@ -45,8 +46,15 @@ const states = extractStates(entries);
             return (
               <li class="es-states__card" data-status={s.status}>
                 <a href={joinHref(routeBase, s.slug)}>
-                  {thumb ? (
+                  {thumb?.kind === "image" ? (
                     <img src={thumb.src} alt={thumb.alt ?? s.title} loading="lazy" />
+                  ) : thumb?.kind === "data" ? (
+                    <span class="es-states__data" data-testid="state-data-thumb">
+                      {thumb.label && <span class="es-states__data-label">{thumb.label}</span>}
+                      {thumb.lines.map((line) => (
+                        <span class="es-states__data-line">{line}</span>
+                      ))}
+                    </span>
                   ) : (
                     <span class="es-states__noshot">no screenshot</span>
                   )}

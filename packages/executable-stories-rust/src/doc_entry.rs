@@ -172,6 +172,23 @@ impl DocEntry {
         DocEntry(map)
     }
 
+    /// A state snapshot captured at a step (data storyboard frame).
+    ///
+    /// `value` is a JSON-serializable snapshot of "what the world looks like"
+    /// at this step; consecutive states with the same label are diffed by the
+    /// report renderer. `None` (or an empty label) omits the label field
+    /// (anonymous state lane).
+    #[must_use]
+    pub fn state(label: Option<&str>, value: serde_json::Value) -> Self {
+        let mut map = Self::base();
+        map.insert("kind".to_string(), serde_json::Value::String("state".to_string()));
+        if let Some(l) = label.filter(|l| !l.is_empty()) {
+            map.insert("label".to_string(), serde_json::Value::String(l.to_string()));
+        }
+        map.insert("value".to_string(), value);
+        DocEntry(map)
+    }
+
     /// A custom doc entry with arbitrary type and data.
     #[must_use]
     pub fn custom(type_name: &str, data: serde_json::Value) -> Self {
@@ -355,6 +372,37 @@ mod tests {
             url: Some("https://x.test"),
             ..Default::default()
         });
+    }
+
+    #[test]
+    fn state_serializes_correctly() {
+        let value = serde_json::json!({
+            "items": [{"sku": "A1", "qty": 2}],
+            "total": 9.99
+        });
+        let entry = DocEntry::state(Some("Basket"), value.clone());
+        let json = serde_json::to_value(&entry).unwrap();
+        assert_eq!(json["kind"], "state");
+        assert_eq!(json["label"], "Basket");
+        assert_eq!(json["phase"], "runtime");
+        // Arbitrary nested JSON round-trips untouched
+        assert_eq!(json["value"], value);
+    }
+
+    #[test]
+    fn state_without_label_omits_field() {
+        let entry = DocEntry::state(None, serde_json::json!([1, 2, 3]));
+        let json = serde_json::to_value(&entry).unwrap();
+        assert_eq!(json["kind"], "state");
+        assert!(json.get("label").is_none());
+        assert_eq!(json["value"], serde_json::json!([1, 2, 3]));
+    }
+
+    #[test]
+    fn state_with_empty_label_omits_field() {
+        let entry = DocEntry::state(Some(""), serde_json::json!({"ok": true}));
+        let json = serde_json::to_value(&entry).unwrap();
+        assert!(json.get("label").is_none());
     }
 
     #[test]

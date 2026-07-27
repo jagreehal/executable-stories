@@ -46,7 +46,10 @@ https://raw.githubusercontent.com/<owner>/<repo>/executable-stories-runs/raw-run
 ```
 
 Unchanged runs are skipped, so scheduled builds never pile up empty commits.
-A repo with several suites publishes each under its own `runs-path`.
+Invalid run structures are rejected before the branch is touched. When jobs
+overlap, a late older `finishedAtMs` cannot replace the newer published run;
+large screenshot-heavy blobs receive the same ordering protection. A repo with
+several suites publishes each under its own `runs-path`.
 
 Non-GitHub CI works the same way with three lines of git: commit the run JSON
 to a dedicated branch, or upload it to any URL your hub can fetch (S3, GCS, an

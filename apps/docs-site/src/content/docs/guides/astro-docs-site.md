@@ -48,6 +48,7 @@ export default defineExecutableStories({
   include: { tags: ['security'] },           // which scenarios to show (optional)
   groupBy: 'tag',                            // feature | tag | source | status | none
   docs: [{ path: 'src/content/docs/runbooks', label: 'Runbooks', base: 'runbooks' }],
+  // historyFile: '../reports/history.json', // CLI --history-file store for journey trends
   theme: { preset: 'terminal', tokens: { pass: '#16a34a' } },
 });
 ```
@@ -61,6 +62,8 @@ export default defineExecutableStories({
 | `views` | Persona views: filtered, re-grouped indexes at their own URLs (e.g. `/for/product`). See [Tagging for your audience](/guides/tagging-for-your-audience/). |
 | `journeysBase` / `injectJourneys` | Where the journey walkthroughs mount (default `/journeys`; derived from `journey:<id>:<n>` tags). |
 | `statesBase` / `injectStates` | Where the UI-state catalog mounts (default `/states`; derived from `state:<name>` tags, viewport variants side by side). |
+| `driftBase` / `injectDrift` | Multi-source status comparison (default `/drift`; injected automatically with at least two sources). |
+| `historyFile` | Store maintained by CLI `--history-file`; enables recent-run stability on journey pages. |
 | `collection` | Collection name the loader feeds (default `stories`). |
 | `routeBase` / `explorerBase` | Where the pages mount (default `/stories`, `/explorer`). |
 | `agentEndpoints` | Inject `/llms.txt` and per-story Markdown twins at `<routeBase>/<slug>.md` (default `true`). |
@@ -79,8 +82,12 @@ See the full reference in the [`executable-stories-astro` README](https://github
   `journey:<id>:<n>` tags, each rendered as full scenario cards (storyboards
   included) under one aggregate status. Embed one in MDX with
   `<StoryJourney id="..." />`.
-- **`/states`** — a thumbnail grid of the UI states the product verifiably
+- **`/states`** — a thumbnail grid of the states the product verifiably
   has, from `state:<name>` tags; `viewport:*` variants render side by side.
+  Non-UI scenarios appear with data-card thumbnails from their `story.state()`
+  snapshots.
+- **`/drift`** — with two or more sources, compares each scenario's status
+  side by side and floats disagreements or missing scenarios first.
 - **Auto-built nav** — spread `storiesSidebar(config)` into your Starlight
   `sidebar` and the Stories/Explorer links and your docs groups appear without
   hand-wiring. The nav stays fresh in dev: when a test run adds, renames, or
@@ -92,6 +99,26 @@ See the full reference in the [`executable-stories-astro` README](https://github
   has a plain-Markdown twin at `/stories/<slug>.md`, so the deployed site is
   consumable by agents and `curl`, not just browsers. Disable with
   `agentEndpoints: false`.
+- **Design context** — `story.link()` entries pointing at Figma, Zeplin,
+  Sketch, or Abstract (or deliberately labelled `Design ...`) appear on story
+  and journey pages. The same link remains in the scenario's normal docs.
+
+If the CLI persists history, reuse that store in the site:
+
+```bash
+executable-stories format reports/raw-run.json --format html \
+  --history-file reports/history.json
+```
+
+```js
+export default defineExecutableStories({
+  source: '../reports/raw-run.json',
+  historyFile: '../reports/history.json',
+});
+```
+
+Journey history is aggregated by run: any failed member fails the journey run.
+The badge uses the same stable/unstable/flaky classification as the HTML report.
 
 ## Persona views
 

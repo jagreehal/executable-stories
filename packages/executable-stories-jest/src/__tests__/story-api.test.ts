@@ -760,4 +760,96 @@ describe("story API", () => {
       ]);
     });
   });
+
+  describe("story.state()", () => {
+    it("attaches a state entry with label to the current step", () => {
+      story.init();
+      story.given("an empty basket");
+      story.state({ label: "Basket", value: { items: [], total: 0 } });
+      _internal.flushStories();
+
+      const s = getLastScenario();
+      const steps = s!.steps as Array<{ docs: unknown[] }>;
+      expect(steps[0].docs).toHaveLength(1);
+      expect(steps[0].docs[0]).toEqual({
+        kind: "state",
+        label: "Basket",
+        value: { items: [], total: 0 },
+        phase: "runtime",
+      });
+    });
+
+    it("works without a label", () => {
+      story.init();
+      story.when("checkout starts");
+      const entry = story.state({ value: { step: "checkout" } });
+
+      expect(entry).toEqual({
+        kind: "state",
+        label: undefined,
+        value: { step: "checkout" },
+        phase: "runtime",
+      });
+    });
+
+    it("attaches to story-level docs before any step", () => {
+      story.init();
+      story.state({ label: "Initial", value: { seeded: true } });
+      story.given("a seeded database");
+      _internal.flushStories();
+
+      const s = getLastScenario();
+      expect(s!.docs).toContainEqual(
+        expect.objectContaining({ kind: "state", label: "Initial", value: { seeded: true }, phase: "runtime" })
+      );
+      const steps = s!.steps as Array<{ docs: unknown[] }>;
+      expect(steps[0].docs).toHaveLength(0);
+    });
+
+    it("supports inline state docs on step markers", () => {
+      story.init();
+      story.given("a basket with one item", {
+        state: { label: "Basket", value: { items: ["widget"], total: 49.99 } },
+      });
+      _internal.flushStories();
+
+      const s = getLastScenario();
+      const steps = s!.steps as Array<{ docs: unknown[] }>;
+      expect(steps[0].docs[0]).toEqual({
+        kind: "state",
+        label: "Basket",
+        value: { items: ["widget"], total: 49.99 },
+        phase: "runtime",
+      });
+    });
+
+    it("warns when the serialized value exceeds 100KB but still records it", () => {
+      const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+      try {
+        story.init();
+        story.given("a huge entity");
+        const entry = story.state({ label: "Huge", value: { blob: "x".repeat(150_000) } });
+
+        expect(warnSpy).toHaveBeenCalledTimes(1);
+        expect(warnSpy.mock.calls[0][0]).toMatch(
+          /^\[executable-stories\] state "Huge" is \d+KB — consider capturing a projection/
+        );
+        expect(entry.kind).toBe("state");
+      } finally {
+        warnSpy.mockRestore();
+      }
+    });
+
+    it("does not warn for small values", () => {
+      const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+      try {
+        story.init();
+        story.given("a small entity");
+        story.state({ label: "Small", value: { ok: true } });
+        expect(warnSpy).not.toHaveBeenCalled();
+      } finally {
+        warnSpy.mockRestore();
+      }
+    });
+  });
 });

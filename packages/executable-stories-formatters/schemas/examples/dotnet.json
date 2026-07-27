@@ -117,7 +117,18 @@
         "steps": [
           {
             "keyword": "Given",
-            "text": "a cart with 2 items totaling $59.98"
+            "text": "a cart with 2 items totaling $59.98",
+            "docs": [
+              {
+                "kind": "state",
+                "label": "Basket",
+                "value": {
+                  "items": 2,
+                  "total": 59.98
+                },
+                "phase": "runtime"
+              }
+            ]
           },
           {
             "keyword": "When",
@@ -125,7 +136,26 @@
           },
           {
             "keyword": "Then",
-            "text": "the order is confirmed"
+            "text": "the order is confirmed",
+            "docs": [
+              {
+                "kind": "state",
+                "label": "Basket",
+                "value": {
+                  "items": 0,
+                  "total": 0,
+                  "orderId": "ORD-1001"
+                },
+                "phase": "runtime"
+              },
+              {
+                "kind": "state",
+                "value": {
+                  "emailQueue": 1
+                },
+                "phase": "runtime"
+              }
+            ]
           },
           {
             "keyword": "And",

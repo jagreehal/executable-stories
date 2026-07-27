@@ -58,16 +58,21 @@ test('Guest checkout walkthrough', async ({ page }, testInfo) => {
   await page.setContent(
     pageHtml('Your cart', '<ul><li>Espresso beans</li><li>Filter papers</li><li>Mug</li></ul><button>Checkout</button>'),
   );
+  // Screenshot + state on the same step: the screen the shopper sees, and the
+  // backend order record behind it. Same-label states are diffed step to step.
   await story.screenshot({ page, alt: 'Cart with 3 items' });
+  story.state({ label: 'order', value: { status: 'cart', items: 3, total: '£25' } });
 
   story.when('the user completes checkout');
   await page.setContent(
     pageHtml('Payment', '<form><label>Card number <input value="4242 4242 4242 4242"/></label><button>Pay</button></form>'),
   );
   await story.screenshot({ page, alt: 'Payment form' });
+  story.state({ label: 'order', value: { status: 'awaiting-payment', items: 3, total: '£25' } });
 
   story.then('the order confirmation is shown');
   await page.setContent(pageHtml('Thank you', '<p>Order #1042 confirmed.</p>'));
   await expect(page.getByRole('heading', { name: 'Thank you' })).toBeVisible();
   await story.screenshot({ page, alt: 'Order confirmed' });
+  story.state({ label: 'order', value: { status: 'paid', items: 3, total: '£25', orderId: 1042 } });
 });

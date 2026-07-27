@@ -456,8 +456,8 @@ runs:
             // Skip the commit when the published file already has this content,
             // and refuse to clobber a NEWER run with this one (an older job
             // finishing last must not regress the published state). getContent
-            // omits content above ~1MB; in that case the ordering guard is
-            // skipped and last-writer-wins applies as before.
+            // omits inline content above ~1MB, so fall back to the Git Data API
+            // to preserve ordering for large, screenshot-heavy run files.
             try {
               const { data: existing } = await github.rest.repos.getContent({ owner, repo, path: filePath, ref: branch });
               if (!Array.isArray(existing)) {
@@ -465,9 +465,18 @@ runs:
                   core.info(`Run JSON unchanged; ${branch}/${filePath} already up to date.`);
                   return;
                 }
-                if (newFinishedAtMs > 0 && existing.content) {
+                if (newFinishedAtMs > 0) {
                   try {
-                    const prev = JSON.parse(Buffer.from(existing.content, 'base64').toString('utf8'));
+                    let existingContent = existing.content;
+                    if (!existingContent) {
+                      const { data: existingBlob } = await github.rest.git.getBlob({
+                        owner,
+                        repo,
+                        file_sha: existing.sha,
+                      });
+                      existingContent = existingBlob.content;
+                    }
+                    const prev = JSON.parse(Buffer.from(existingContent, 'base64').toString('utf8'));
                     if (typeof prev.finishedAtMs === 'number' && prev.finishedAtMs > newFinishedAtMs) {
                       core.warning(
                         `Skipping publish: ${branch}/${filePath} already holds a newer run ` +

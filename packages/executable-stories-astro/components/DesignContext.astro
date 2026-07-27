@@ -1,0 +1,23 @@
+---
+/**
+ * DesignContext — the "Design" strip on story/journey pages: every design-tool
+ * link (Figma, Zeplin, Sketch — or any link labelled "Design ...") the
+ * scenarios already carry via story.link(). Renders nothing when there are no
+ * design references, so pages without them stay untouched.
+ */
+import type { DesignLink } from "executable-stories-astro";
+
+interface Props {
+  links: DesignLink[];
+}
+const { links } = Astro.props as Props;
+---
+
+{links.length > 0 && (
+  <nav class="es-design" aria-label="Design context" data-testid="design-context">
+    <span class="es-design__label">Design</span>
+    {links.map((link) => (
+      <a href={link.url} target="_blank" rel="noopener noreferrer">{link.label}</a>
+    ))}
+  </nav>
+)}

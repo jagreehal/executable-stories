@@ -280,6 +280,9 @@ export class JUnitFormatter {
       case "screenshot":
         return `${indent}Screenshot: ${entry.alt ?? entry.path}`;
 
+      case "state":
+        return `${indent}State${entry.label ? ` (${entry.label})` : ""}: ${JSON.stringify(entry.value) ?? "null"}`;
+
       case "html":
         return `${indent}HTML: ${entry.title ?? "Embedded HTML"} (${entry.url ?? entry.path ?? "inline"})`;
 

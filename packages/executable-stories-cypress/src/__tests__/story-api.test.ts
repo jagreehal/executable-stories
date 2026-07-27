@@ -285,6 +285,71 @@ describe("doc methods return DocEntry", () => {
     expect((entry as { lang?: string }).lang).toBe("json");
   });
 
+  it("state() attaches to current step with label and returns its DocEntry", () => {
+    story.init();
+    story.when("the user completes checkout");
+    const entry = story.state({ label: "order", value: { id: 1042, status: "paid" } });
+
+    expect(entry).toEqual({
+      kind: "state",
+      label: "order",
+      value: { id: 1042, status: "paid" },
+      phase: "runtime",
+    });
+
+    const payload = getAndClearMeta();
+    expect(payload!.meta.steps[0].docs).toEqual([entry]);
+  });
+
+  it("state() without label", () => {
+    story.init();
+    story.given("a cart");
+    const entry = story.state({ value: { items: 3 } });
+
+    expect(entry).toEqual({ kind: "state", value: { items: 3 }, phase: "runtime" });
+  });
+
+  it("state() before any step attaches to story-level", () => {
+    story.init();
+    story.state({ label: "initial", value: { users: 0 } });
+    story.given("a step");
+
+    const payload = getAndClearMeta();
+    expect(payload!.meta.docs).toHaveLength(1);
+    expect(payload!.meta.docs![0].kind).toBe("state");
+    expect(payload!.meta.steps[0].docs).toHaveLength(0);
+  });
+
+  it("state() over 100KB warns but still records", () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      story.init();
+      story.given("a huge world");
+      story.state({ label: "big", value: { blob: "x".repeat(150_000) } });
+
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      const message = warnSpy.mock.calls[0][0] as string;
+      expect(message).toContain('[executable-stories] state "big" is ');
+      expect(message).toContain("KB — consider capturing a projection");
+
+      const payload = getAndClearMeta();
+      expect(payload!.meta.steps[0].docs).toHaveLength(1);
+      expect(payload!.meta.steps[0].docs![0].kind).toBe("state");
+    } finally {
+      warnSpy.mockRestore();
+    }
+  });
+
+  it("inline state docs on a step marker", () => {
+    story.init();
+    story.then("the order is confirmed", { state: { label: "order", value: { status: "confirmed" } } });
+
+    const payload = getAndClearMeta();
+    expect(payload!.meta.steps[0].docs).toEqual([
+      { kind: "state", label: "order", value: { status: "confirmed" }, phase: "runtime" },
+    ]);
+  });
+
   it("note() with children attaches them and deduplicates", () => {
     story.init();
     story.given("precondition");

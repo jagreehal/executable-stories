@@ -541,6 +541,17 @@ class Story:
         self._attach_doc(entry)
         return entry
 
+    def state(self, value: Any, *, label: str | None = None, children: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+        """Add a state snapshot (storyboard frame). Value must be JSON-serializable."""
+        entry: dict[str, Any] = {"kind": "state", "value": value, "phase": "runtime"}
+        if label is not None:
+            entry["label"] = label
+        if children:
+            entry["children"] = children
+            self._dedup_children(children)
+        self._attach_doc(entry)
+        return entry
+
     def html(
         self,
         *,

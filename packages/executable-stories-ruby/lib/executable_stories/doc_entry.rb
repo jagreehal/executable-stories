@@ -59,6 +59,12 @@ module ExecutableStories
       apply_children(entry, children)
     end
 
+    def state(value, label: nil, children: nil)
+      entry = { "kind" => "state", "value" => value, "phase" => "runtime" }
+      entry["label"] = label if label
+      apply_children(entry, children)
+    end
+
     # Embedded HTML rendered inside an always-sandboxed iframe. Exactly one of
     # path/url/content must be set, or an ArgumentError is raised.
     def html(path: nil, url: nil, content: nil, title: nil, height: nil, children: nil)

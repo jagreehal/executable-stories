@@ -586,6 +586,73 @@ test.describe("standalone doc methods", () => {
     expect(entry.lang).toBe("json");
   });
 
+  test("story.state() attaches to current step with label", async ({}, testInfo) => {
+    story.init(testInfo);
+    story.when("the user completes checkout");
+    const entry = story.state({ label: "order", value: { id: 1042, status: "paid" } });
+
+    expect(entry).toEqual({
+      kind: "state",
+      label: "order",
+      value: { id: 1042, status: "paid" },
+      phase: "runtime",
+    });
+    const meta = getStoryMeta(testInfo);
+    expect(meta!.steps[0].docs).toHaveLength(1);
+    expect(meta!.steps[0].docs![0]).toEqual(entry);
+  });
+
+  test("story.state() without label", async ({}, testInfo) => {
+    story.init(testInfo);
+    story.given("a cart");
+    const entry = story.state({ value: { items: 3 } });
+
+    expect(entry).toEqual({ kind: "state", value: { items: 3 }, phase: "runtime" });
+  });
+
+  test("story.state() before any step attaches to story-level", async ({}, testInfo) => {
+    story.init(testInfo);
+    story.state({ label: "initial", value: { users: 0 } });
+    story.given("a step");
+
+    const meta = getStoryMeta(testInfo);
+    expect(meta!.docs).toHaveLength(1);
+    expect(meta!.docs![0].kind).toBe("state");
+    expect(meta!.steps[0].docs).toHaveLength(0);
+  });
+
+  test("story.state() over 100KB warns but still records", async ({}, testInfo) => {
+    story.init(testInfo);
+    story.given("a huge world");
+
+    const warnings: string[] = [];
+    const originalWarn = console.warn;
+    console.warn = (msg: string) => { warnings.push(msg); };
+    try {
+      story.state({ label: "big", value: { blob: "x".repeat(150_000) } });
+    } finally {
+      console.warn = originalWarn;
+    }
+
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain('[executable-stories] state "big" is ');
+    expect(warnings[0]).toContain("KB — consider capturing a projection");
+
+    const meta = getStoryMeta(testInfo);
+    expect(meta!.steps[0].docs).toHaveLength(1);
+    expect(meta!.steps[0].docs![0].kind).toBe("state");
+  });
+
+  test("inline state docs on a step marker", async ({}, testInfo) => {
+    story.init(testInfo);
+    story.then("the order is confirmed", { state: { label: "order", value: { status: "confirmed" } } });
+
+    const meta = getStoryMeta(testInfo);
+    expect(meta!.steps[0].docs).toEqual([
+      { kind: "state", label: "order", value: { status: "confirmed" }, phase: "runtime" },
+    ]);
+  });
+
   test("story.table() attaches to current step", async ({}, testInfo) => {
     story.init(testInfo);
     story.then("order is confirmed");

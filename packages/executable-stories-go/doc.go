@@ -213,6 +213,25 @@ func HtmlEntry(opts HtmlOptions, children ...DocEntry) DocEntry {
 	return htmlEntry(opts, children...)
 }
 
+// stateEntry creates a DocEntry of kind "state". An empty label is omitted
+// (anonymous state lane); diffing is done by the TS core at render time.
+func stateEntry(label string, value any, children ...DocEntry) DocEntry {
+	entry := DocEntry{
+		"kind":  "state",
+		"value": value,
+		"phase": "runtime",
+	}
+	if label != "" {
+		entry["label"] = label
+	}
+	return applyChildren(entry, children)
+}
+
+// StateEntry creates a DocEntry of kind "state" without pushing it to a story.
+func StateEntry(label string, value any, children ...DocEntry) DocEntry {
+	return stateEntry(label, value, children...)
+}
+
 // customEntry creates a DocEntry of kind "custom".
 func customEntry(typeName string, data any, children ...DocEntry) DocEntry {
 	return applyChildren(DocEntry{

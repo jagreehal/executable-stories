@@ -106,6 +106,21 @@ it("processes payment", () => {
 });
 ```
 
+### State snapshots (story.state)
+
+`story.state({ label?, value })` captures what the world looks like at the current step as a JSON-serializable snapshot. Steps carrying state docs (or screenshots) become storyboard frames: a label's first appearance shows the full snapshot, consecutive snapshots with the same label render as a diff (`items[0].qty: 1 → 2`), and multiple labels appear as side-by-side lanes.
+
+```typescript
+story.given("an empty basket");
+story.state({ label: "Basket", value: { items: [], total: 0 } });
+
+story.when("the shopper adds a hoodie");
+cy.get("[data-testid=add-hoodie]").click();
+story.state({ label: "Basket", value: { items: [{ sku: "hoodie", qty: 1 }], total: 45 } });
+```
+
+Capture the business-relevant projection, not the ORM entity — the adapter warns above ~100KB.
+
 ### Embedded HTML
 
 Embed generated HTML (charts, single-file reports, skill/agent output) in an

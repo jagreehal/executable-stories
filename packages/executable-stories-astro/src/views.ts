@@ -7,7 +7,7 @@
  * here (no Astro imports) so they unit-test in isolation and the injected
  * route files stay thin shells.
  */
-import { passesFilter, slugify, type ExecutableStoriesConfig, type PersonaView } from "./config.js";
+import { driftEnabled, passesFilter, slugify, type ExecutableStoriesConfig, type PersonaView } from "./config.js";
 import { groupScenarios } from "./grouping.js";
 import type { StoryEntryData } from "./loader.js";
 import { storyReportFromEntries } from "./story-report-from-entries.js";
@@ -39,6 +39,7 @@ function enabledRouteBases(config: ExecutableStoriesConfig): Array<{ name: strin
   if (config.injectExplorer ?? true) bases.push({ name: "explorerBase", base: normalizeBase(config.explorerBase ?? "/explorer") });
   if (config.injectJourneys ?? true) bases.push({ name: "journeysBase", base: normalizeBase(config.journeysBase ?? "/journeys") });
   if (config.injectStates ?? true) bases.push({ name: "statesBase", base: normalizeBase(config.statesBase ?? "/states") });
+  if (driftEnabled(config)) bases.push({ name: "driftBase", base: normalizeBase(config.driftBase ?? "/drift") });
   return bases;
 }
 

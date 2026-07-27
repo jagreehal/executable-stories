@@ -167,6 +167,51 @@ class StoryApiTest {
     }
 
     @Test
+    fun stateDocEntryWithLabel() {
+        Story.init("State doc test")
+        Story.given("a cart with 2 items")
+        Story.state(mapOf("items" to 2, "total" to 59.98), "Basket")
+
+        val step = Story.getContext()!!.steps[0]
+        val entry = step.docs!![0]
+        assertEquals("state", entry.kind)
+        assertEquals("Basket", entry["label"])
+        assertEquals(mapOf("items" to 2, "total" to 59.98), entry["value"])
+        assertEquals("runtime", entry["phase"])
+    }
+
+    @Test
+    fun stateDocEntryWithoutLabelOmitsLabelInJson() {
+        Story.init("State no-label test")
+        Story.given("some step")
+        Story.state(mapOf("ok" to true))
+
+        val entry = Story.getContext()!!.steps[0].docs!![0]
+        assertEquals("state", entry.kind)
+        assertNull(entry["label"])
+
+        val mapper = ObjectMapper().registerKotlinModule()
+        val json = mapper.writeValueAsString(entry)
+        assertTrue(!json.contains("\"label\""), "JSON should not contain label key when null")
+    }
+
+    @Test
+    fun stateDocEntryNestedValueRoundTrips() {
+        Story.init("State nested test")
+        Story.given("some step")
+        Story.state(mapOf("user" to mapOf("id" to 1, "roles" to listOf("admin"))), "Session")
+
+        val entry = Story.getContext()!!.steps[0].docs!![0]
+        val mapper = ObjectMapper().registerKotlinModule()
+        val node = mapper.readTree(mapper.writeValueAsString(entry))
+        assertEquals("state", node["kind"].asText())
+        assertEquals("Session", node["label"].asText())
+        assertEquals("runtime", node["phase"].asText())
+        assertEquals(1, node["value"]["user"]["id"].asInt())
+        assertEquals("admin", node["value"]["user"]["roles"][0].asText())
+    }
+
+    @Test
     fun codeDocEntry() {
         Story.init("Code doc test")
         Story.given("some step")
@@ -704,6 +749,7 @@ class StoryApiTest {
         assertNotNull(DocEntry.kv("k", "v", children)["children"])
         assertNotNull(DocEntry.code("l", "c", null, children)["children"])
         assertNotNull(DocEntry.json("l", "{}", children)["children"])
+        assertNotNull(DocEntry.state(mapOf("k" to "v"), "l", children)["children"])
         assertNotNull(
             DocEntry.table("l", arrayOf("c"), arrayOf(arrayOf("r")), children)["children"],
         )

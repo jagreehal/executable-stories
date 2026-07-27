@@ -117,6 +117,7 @@ story.note("a note")
 story.tag("smoke", "fast")
 story.kv("Payment ID", "pay_123")
 story.json("Order", { id: 123 })
+story.state({ items: [], total: 0 }, label: "Basket")  # state snapshot; same-label snapshots diffed in reports
 story.code("Config", "port: 3000", lang: "yaml")
 story.table("Users", ["Name", "Role"], [["Alice", "Admin"]])
 story.link("API Docs", "https://docs.example.com")
@@ -125,6 +126,8 @@ story.mermaid("graph LR; A-->B", title: "Flow")
 story.screenshot("/screenshots/result.png", alt: "Final result")
 story.custom("metrics", { latency_ms: 42 })
 ```
+
+`story.state(value, label: nil)` captures what the world looks like at the current step. Steps carrying state docs (or screenshots) become storyboard frames: a label's first appearance shows the full snapshot, consecutive snapshots with the same label render as a diff, and multiple labels appear as side-by-side lanes. Capture the business-relevant projection, not the ORM entity.
 
 ### Embedded HTML
 

@@ -88,6 +88,20 @@ def test_processes_payment():
     story.note("Payment processed in sandbox mode")
 ```
 
+### State snapshots (state)
+
+`story.state(value, label=None)` captures what the world looks like at the current step as a JSON-serializable snapshot. Steps carrying state docs (or screenshots) become storyboard frames: a label's first appearance shows the full snapshot, consecutive snapshots with the same label render as a diff (`total: 0 → 45`), and multiple labels appear as side-by-side lanes.
+
+```python
+story.given("an empty basket")
+story.state({"items": [], "total": 0}, label="Basket")
+
+story.when("the shopper adds a hoodie")
+story.state({"items": ["hoodie"], "total": 45}, label="Basket")
+```
+
+Capture the business-relevant projection, not the ORM entity.
+
 ### Embedded HTML
 
 Embed generated HTML (charts, single-file reports, skill/agent output) in an

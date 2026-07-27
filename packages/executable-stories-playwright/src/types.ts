@@ -44,6 +44,13 @@ export interface JsonOptions {
   value: unknown;
 }
 
+export interface StateOptions {
+  /** Optional snapshot name. Consecutive states with the same label are diffed downstream. */
+  label?: string;
+  /** JSON-serializable snapshot of the world at this step. */
+  value: unknown;
+}
+
 export interface CodeOptions {
   label: string;
   content: string;
@@ -131,6 +138,7 @@ export interface StoryDocs {
   tag?: string | string[];
   kv?: Record<string, unknown>;
   json?: JsonOptions;
+  state?: StateOptions;
   table?: TableOptions;
   link?: LinkOptions;
   code?: CodeOptions;

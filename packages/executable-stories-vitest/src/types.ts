@@ -53,6 +53,8 @@ export interface StoryDocs {
   code?: { label: string; content: string; lang?: string };
   /** Add a JSON data block with label */
   json?: { label: string; value: unknown };
+  /** Capture a data snapshot of the world at this step (storyboard frame) */
+  state?: { label?: string; value: unknown };
   /** Add a markdown table with label */
   table?: { label: string; columns: string[]; rows: string[][] };
   /** Add a hyperlink */

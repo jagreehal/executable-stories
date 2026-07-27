@@ -69,6 +69,7 @@ export type ReportDocEntry =
   | ReportDocScreenshot
   | ReportDocVideo
   | ReportDocHtml
+  | ReportDocState
   | ReportDocCustom;
 
 export interface ReportDocNote {
@@ -163,6 +164,16 @@ export interface ReportDocHtml {
   title?: string;
   /** Iframe height: number → px, string passed through (e.g. "60vh"). Default 400px. */
   height?: number | string;
+  phase: DocPhase;
+  children?: ReportDocEntry[];
+}
+
+export interface ReportDocState {
+  kind: "state";
+  /** Entity name ("Basket") — diff identity across steps. Unlabeled states share one lane. */
+  label?: string;
+  /** JSON-serializable snapshot of the state at this step. */
+  value: unknown;
   phase: DocPhase;
   children?: ReportDocEntry[];
 }

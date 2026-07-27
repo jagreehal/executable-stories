@@ -36,7 +36,9 @@ it('User updates profile settings', () => {
 it('Successful order confirmation', () => {
   story.init();
   story.given('the user has items in cart');
+  story.state({ label: 'Basket', value: { items: ['widget', 'gadget'], total: 99.99, status: 'open' } });
   story.when('the user completes checkout');
+  story.state({ label: 'Basket', value: { items: ['widget', 'gadget'], total: 99.99, status: 'ordered' } });
   story.then('the order should be created');
   story.then('a confirmation email should be sent');
   story.then('the inventory should be updated');

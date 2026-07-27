@@ -32,7 +32,8 @@ def test_login_success():
 
 - BDD steps: `given`, `when`, `then`, `and_`, `but`
 - Aliases: `arrange`, `act`, `assert_`, `setup`, `context`, `execute`, `action`, `verify`
-- Rich docs: `note`, `tag`, `kv`, `json`, `code`, `table`, `link`, `section`, `mermaid`, `screenshot`, `html`, `custom`
+- Rich docs: `note`, `tag`, `kv`, `json`, `code`, `table`, `link`, `section`, `mermaid`, `screenshot`, `html`, `state`, `custom`
+- `story.state(value, label=None)` — JSON-serializable snapshot of "what the world looks like" at this step (a storyboard frame); consecutive same-label states are diffed at render time
 - Source coverage links: `covers=[...]` in `story.init(...)`
 - Step timing: `start_timer` / `end_timer`
 - Attachments: `attach(...)`

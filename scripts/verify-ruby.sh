@@ -20,3 +20,10 @@ echo "[verify-ruby] Running ruby-example stories..."
 bundle exec rake test
 
 validate_raw_run "$RAW_RUN" "verify-ruby"
+
+if grep -q '"kind": "state"' "$RAW_RUN"; then
+  echo "[verify-ruby] ✓ state doc entry present"
+else
+  echo "[verify-ruby] ERROR: no state doc entry in $RAW_RUN" >&2
+  exit 1
+fi

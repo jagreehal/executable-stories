@@ -35,7 +35,7 @@ Same as Vitest/Jest/Playwright: **`story.given`**, **`story.when`**, **`story.th
 
 ## Doc methods
 
-Same as other frameworks: **`story.note`**, **`story.tag`**, **`story.kv`**, **`story.json`**, **`story.code`**, **`story.table`**, **`story.link`**, **`story.section`**, **`story.mermaid`**, **`story.screenshot`**, **`story.custom`** — same signatures as [Vitest story & doc API](reference/vitest-story-api/).
+Same as other frameworks: **`story.note`**, **`story.tag`**, **`story.kv`**, **`story.json`**, **`story.state`**, **`story.code`**, **`story.table`**, **`story.link`**, **`story.section`**, **`story.mermaid`**, **`story.screenshot`**, **`story.custom`** — same signatures as [Vitest story & doc API](reference/vitest-story-api/).
 
 ## StoryOptions
 

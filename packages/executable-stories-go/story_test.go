@@ -360,13 +360,14 @@ func TestAllDocKinds(t *testing.T) {
 	s.Mermaid("graph TD; A-->B", "diagram")
 	s.Screenshot("/path/to/img.png", "alt text")
 	s.Html(HtmlOptions{Content: "<h1>Report</h1>", Title: "Coverage"})
+	s.State("Basket", map[string]any{"items": 1})
 	s.Custom("myType", map[string]string{"foo": "bar"})
 
-	if len(s.steps[0].Docs) != 11 {
-		t.Fatalf("expected 11 docs, got %d", len(s.steps[0].Docs))
+	if len(s.steps[0].Docs) != 12 {
+		t.Fatalf("expected 12 docs, got %d", len(s.steps[0].Docs))
 	}
 
-	expectedKinds := []string{"note", "tag", "kv", "code", "table", "link", "section", "mermaid", "screenshot", "html", "custom"}
+	expectedKinds := []string{"note", "tag", "kv", "code", "table", "link", "section", "mermaid", "screenshot", "html", "state", "custom"}
 	for i, kind := range expectedKinds {
 		if s.steps[0].Docs[i]["kind"] != kind {
 			t.Errorf("doc %d: expected kind=%s, got %v", i, kind, s.steps[0].Docs[i]["kind"])
@@ -374,6 +375,77 @@ func TestAllDocKinds(t *testing.T) {
 		if s.steps[0].Docs[i]["phase"] != "runtime" {
 			t.Errorf("doc %d: expected phase=runtime, got %v", i, s.steps[0].Docs[i]["phase"])
 		}
+	}
+}
+
+func TestStateDoc(t *testing.T) {
+	reset()
+
+	mt := &mockT{name: "TestState"}
+	s := Init(mt, "state doc")
+
+	// Before any step: story-level (same semantics as other docs)
+	s.State("Basket", map[string]any{"items": []any{}})
+	if len(s.docs) != 1 || s.docs[0]["kind"] != "state" {
+		t.Fatalf("expected 1 story-level state doc, got %v", s.docs)
+	}
+
+	// After a step: attaches to that step
+	s.Given("an item is added")
+	value := map[string]any{
+		"items": []any{map[string]any{"sku": "A1", "qty": float64(2)}},
+		"total": float64(9.99),
+	}
+	entry := s.State("Basket", value)
+
+	if len(s.steps[0].Docs) != 1 {
+		t.Fatalf("expected 1 step doc, got %d", len(s.steps[0].Docs))
+	}
+	if entry["kind"] != "state" || entry["phase"] != "runtime" || entry["label"] != "Basket" {
+		t.Errorf("unexpected state entry: %v", entry)
+	}
+
+	// Value round-trips arbitrary JSON through marshal/unmarshal
+	b, err := json.Marshal(entry)
+	if err != nil {
+		t.Fatalf("marshal failed: %v", err)
+	}
+	var decoded map[string]any
+	if err := json.Unmarshal(b, &decoded); err != nil {
+		t.Fatalf("unmarshal failed: %v", err)
+	}
+	got, _ := json.Marshal(decoded["value"])
+	want, _ := json.Marshal(value)
+	if string(got) != string(want) {
+		t.Errorf("value did not round-trip: got %s, want %s", got, want)
+	}
+}
+
+func TestStateDocEmptyLabelOmitted(t *testing.T) {
+	reset()
+
+	mt := &mockT{name: "TestStateAnon"}
+	s := Init(mt, "anonymous state")
+	s.Given("a step")
+	entry := s.State("", map[string]any{"ok": true})
+
+	if _, present := entry["label"]; present {
+		t.Errorf("expected label omitted for empty label, got %v", entry["label"])
+	}
+
+	b, err := json.Marshal(entry)
+	if err != nil {
+		t.Fatalf("marshal failed: %v", err)
+	}
+	var decoded map[string]any
+	if err := json.Unmarshal(b, &decoded); err != nil {
+		t.Fatalf("unmarshal failed: %v", err)
+	}
+	if _, present := decoded["label"]; present {
+		t.Error("expected no label field in emitted JSON")
+	}
+	if decoded["kind"] != "state" {
+		t.Errorf("expected kind=state, got %v", decoded["kind"])
 	}
 }
 

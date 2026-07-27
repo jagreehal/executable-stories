@@ -9,6 +9,7 @@ namespace ExecutableStories.Xunit.Tests
         private static readonly string[] s_tagsApiRegression = ["api", "regression"];
         private static readonly string[] s_tagsSmokeApiRegression = ["smoke", "api", "regression"];
         private static readonly string[] s_tagsSmoke = ["smoke"];
+        private static readonly string[] s_rolesAdmin = ["admin"];
 
         public StoryApiTests()
         {
@@ -340,6 +341,49 @@ namespace ExecutableStories.Xunit.Tests
             Assert.Equal("code", ctx.CurrentStep.Docs![0].Kind);
             Assert.Equal("json", ctx.CurrentStep.Docs[0].Get("lang"));
             Assert.Equal("payload", ctx.CurrentStep.Docs[0].Get("label"));
+        }
+
+        [Fact]
+        public void StateAttachesStateDocEntryToCurrentStep()
+        {
+            Story.Init("Doc test");
+            Story.Given("a step");
+            _ = Story.State(new Dictionary<string, object> { ["items"] = 2 }, "Basket");
+
+            StoryContext ctx = Story.GetContext()!;
+            _ = Assert.Single(ctx.CurrentStep!.Docs!);
+            DocEntry entry = ctx.CurrentStep.Docs![0];
+            Assert.Equal("state", entry.Kind);
+            Assert.Equal("Basket", entry.Get("label"));
+            Assert.Equal("runtime", entry.Get("phase"));
+        }
+
+        [Fact]
+        public void StateWithoutLabelOmitsLabelInJson()
+        {
+            var entry = DocEntry.State(new Dictionary<string, object> { ["ok"] = true });
+            var json = System.Text.Json.JsonSerializer.Serialize(entry);
+            Assert.DoesNotContain("\"label\"", json);
+            Assert.Contains("\"kind\":\"state\"", json);
+            Assert.Contains("\"value\"", json);
+        }
+
+        [Fact]
+        public void StateNestedValueRoundTrips()
+        {
+            var entry = DocEntry.State(new Dictionary<string, object>
+            {
+                ["user"] = new Dictionary<string, object> { ["id"] = 1, ["roles"] = s_rolesAdmin }
+            }, "Session");
+
+            var json = System.Text.Json.JsonSerializer.Serialize(entry);
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            Assert.Equal("state", doc.RootElement.GetProperty("kind").GetString());
+            Assert.Equal("Session", doc.RootElement.GetProperty("label").GetString());
+            Assert.Equal("runtime", doc.RootElement.GetProperty("phase").GetString());
+            System.Text.Json.JsonElement user = doc.RootElement.GetProperty("value").GetProperty("user");
+            Assert.Equal(1, user.GetProperty("id").GetInt32());
+            Assert.Equal("admin", user.GetProperty("roles")[0].GetString());
         }
 
         [Fact]

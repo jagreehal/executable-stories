@@ -5,6 +5,7 @@
  * Compatible with existing markdown output from framework reporters.
  */
 
+import { diffStateValues, summarizeStateChanges } from "executable-stories-core";
 import type { StoryStep, DocEntry } from "executable-stories-core/types/story";
 import type { TestRunResult, TestCaseResult, TestStatus } from "executable-stories-core/types/test-result";
 import type { MarkdownRenderers } from "../types/options";
@@ -110,6 +111,12 @@ type ResolvedMarkdownOptions = {
  */
 export class MarkdownFormatter {
   private options: ResolvedMarkdownOptions;
+  /**
+   * Previous `state` snapshot per label lane (label ?? "") — reset per
+   * scenario, mirroring storyboard lane semantics, so repeat captures render
+   * a diff summary against the prior same-label snapshot.
+   */
+  private stateLanes = new Map<string, unknown>();
 
   constructor(options: MarkdownOptions = {}) {
     this.options = {
@@ -461,6 +468,9 @@ export class MarkdownFormatter {
    * Render scenario body (docs, steps, errors).
    */
   private renderScenarioBody(lines: string[], tc: TestCaseResult): void {
+    // State diffs are scoped to one scenario.
+    this.stateLanes = new Map();
+
     // Story-level docs
     if (tc.story.docs && tc.story.docs.length > 0) {
       for (const doc of tc.story.docs) {
@@ -676,6 +686,29 @@ export class MarkdownFormatter {
         lines.push(`${indent}`);
         lines.push(`${indent}\`\`\`html`);
         for (const line of (entry.content ?? "").split("\n")) {
+          lines.push(`${indent}${line}`);
+        }
+        lines.push(`${indent}\`\`\``);
+        lines.push(`${indent}`);
+        lines.push(`${indent}</details>`);
+        lines.push(`${indent}`);
+        break;
+      }
+
+      case "state": {
+        const lane = entry.label ?? "";
+        lines.push(`${indent}**${entry.label ?? "State"}**`);
+        if (this.stateLanes.has(lane)) {
+          const summary = summarizeStateChanges(diffStateValues(this.stateLanes.get(lane), entry.value));
+          for (const line of summary) lines.push(`${indent}- ${line}`);
+        }
+        this.stateLanes.set(lane, entry.value);
+        lines.push(`${indent}`);
+        lines.push(`${indent}<details>`);
+        lines.push(`${indent}<summary>snapshot</summary>`);
+        lines.push(`${indent}`);
+        lines.push(`${indent}\`\`\`json`);
+        for (const line of JSON.stringify(entry.value ?? null, null, 2).split("\n")) {
           lines.push(`${indent}${line}`);
         }
         lines.push(`${indent}\`\`\``);

@@ -15,6 +15,7 @@ class CalculatorStoryTest < Minitest::Test
     b = 3
     story.when("the numbers are added")
     result = Calculator.add(a, b)
+    story.state({ "a" => a, "b" => b, "result" => result }, label: "Calculator")
     story.then("the result is 8")
     assert_equal 8, result
     story.record(status: "pass", source_file: __FILE__)

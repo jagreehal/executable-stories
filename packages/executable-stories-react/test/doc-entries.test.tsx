@@ -13,6 +13,7 @@ import { DocMermaid } from "../src/components/doc/DocMermaid";
 import { DocScreenshot } from "../src/components/doc/DocScreenshot";
 import { DocVideo } from "../src/components/doc/DocVideo";
 import { DocCustom } from "../src/components/doc/DocCustom";
+import { DocState } from "../src/components/doc/DocState";
 import { minimalReport } from "./fixtures/sample-report";
 
 describe("DocNote", () => {
@@ -250,6 +251,22 @@ describe("DocCustom", () => {
   });
 });
 
+describe("DocState", () => {
+  it("renders label and pretty JSON in the code-figure chrome", () => {
+    const { container } = render(
+      <DocState entry={{ kind: "state", label: "Basket", value: { items: 1 }, phase: "runtime" }} />,
+    );
+    expect(screen.getByText("Basket")).toBeInTheDocument();
+    expect(container.querySelector("code")?.textContent).toBe('{\n  "items": 1\n}');
+  });
+
+  it("falls back to a generic label when unlabeled", () => {
+    render(<DocState entry={{ kind: "state", value: 7, phase: "runtime" }} />);
+    expect(screen.getByText("State")).toBeInTheDocument();
+    expect(screen.getByText("7")).toBeInTheDocument();
+  });
+});
+
 describe("DocEntry dispatcher", () => {
   it("dispatches to the right component by kind", () => {
     const { rerender, container } = render(
@@ -259,5 +276,8 @@ describe("DocEntry dispatcher", () => {
 
     rerender(<DocEntry entry={{ kind: "kv", label: "k", value: "v", phase: "static" }} />);
     expect(container.querySelector("dl")).toBeInTheDocument();
+
+    rerender(<DocEntry entry={{ kind: "state", label: "Order", value: { s: 1 }, phase: "runtime" }} />);
+    expect(container.querySelector("figure")).toBeInTheDocument();
   });
 });

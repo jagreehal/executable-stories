@@ -86,6 +86,9 @@ export const collections = {
 | `injectJourneys` | `boolean` | `true` | Inject the journeys index + detail routes. |
 | `statesBase` | `string` | `'/states'` | Where the UI-state catalog mounts: a thumbnail grid of `state:<name>`-tagged scenarios (first storyboard frame per card; `viewport:*` variants side by side). |
 | `injectStates` | `boolean` | `true` | Inject the states grid route. |
+| `driftBase` | `string` | `'/drift'` | Where the environment-drift page mounts: every scenario's status per source side by side, mismatches first. |
+| `injectDrift` | `boolean` | ≥2 sources | Inject the drift page. Defaults to on only when there are two or more sources to compare. |
+| `historyFile` | `string` | — | Path to the store the CLI's `--history-file` maintains. Journey pages then show journey-level run history ("7/10 recent runs passed · flaky"). |
 | `collection` | `string` | `'stories'` | Collection name the loader feeds. |
 | `routeBase` | `string` | `'/stories'` | Where the stories index + detail pages mount. |
 | `explorerBase` | `string` | `'/explorer'` | Where the searchable Scenario Explorer mounts. |
@@ -110,6 +113,9 @@ export const collections = {
   index of every scenario) and a plain-Markdown twin of each story page at
   `<routeBase>/<slug>.md`, prerendered as real files on static builds — so the
   deployed site is consumable by agents and `curl`, not just browsers.
+- **Design context** — `story.link()` docs pointing at Figma/Zeplin/Sketch (or
+  labelled "Design ...") render as a Design strip on story and journey pages,
+  so the mockup sits next to the proof. No new API, no config.
 - **Self-tuning Vite config** — the integration pre-bundles React + the report
   components (`optimizeDeps`) and dedupes React itself; no `vite` block needed
   in your `astro.config.mjs`.

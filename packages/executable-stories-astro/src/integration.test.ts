@@ -107,6 +107,7 @@ describe("executableStories route injection", () => {
       explorerBase: "/explorer",
       journeysBase: "/journeys",
       statesBase: "/states",
+      driftBase: "/drift",
       groupBy: "feature",
       themeCss: "",
     });
@@ -128,6 +129,7 @@ describe("executableStories route injection", () => {
       explorerBase: "/browse",
       journeysBase: "/journeys",
       statesBase: "/states",
+      driftBase: "/drift",
       groupBy: "feature",
       themeCss: "",
     });
@@ -143,6 +145,26 @@ describe("executableStories route injection", () => {
     // The detail pattern must be "/[slug]", never "//[slug]".
     expect(routes.some((r) => r.pattern === "/[slug]")).toBe(true);
     expect(routes.every((r) => !r.pattern.includes("//"))).toBe(true);
+  });
+
+  it("injects the drift page only when there is more than one source to compare", () => {
+    const single = injectedRoutes(executableStories({ source: "run.json" }));
+    expect(single.some((r) => r.pattern === "/drift")).toBe(false);
+
+    const multi = injectedRoutes(
+      executableStories({ sources: [{ source: "a/run.json" }, { source: "b/run.json" }] }),
+    );
+    expect(multi.find((r) => r.pattern === "/drift")?.entrypoint).toBe(
+      "executable-stories-astro/routes/drift.astro",
+    );
+
+    // injectDrift forces it either way.
+    const forced = injectedRoutes(executableStories({ source: "run.json", injectDrift: true }));
+    expect(forced.some((r) => r.pattern === "/drift")).toBe(true);
+    const disabled = injectedRoutes(
+      executableStories({ sources: [{ source: "a/run.json" }, { source: "b/run.json" }], injectDrift: false }),
+    );
+    expect(disabled.some((r) => r.pattern === "/drift")).toBe(false);
   });
 
   it("fails fast when two enabled built-in routes share a base, unless one is disabled", () => {

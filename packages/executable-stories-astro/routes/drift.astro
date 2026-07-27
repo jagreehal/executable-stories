@@ -1,0 +1,20 @@
+---
+/**
+ * Environment drift — standalone variant, injected by executableStories() at
+ * `driftBase` (default /drift) for NON-Starlight sites when the config has two
+ * or more sources.
+ */
+import "../styles/es.css";
+import DriftView from "../components/DriftView.astro";
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Environment drift — Executable Stories</title>
+  </head>
+  <body>
+    <DriftView shell="standalone" />
+  </body>
+</html>

@@ -15,6 +15,7 @@
  * caller-supplied metadata lines, per-step docs and errors, and every attached
  * doc entry.
  */
+import { diffStateValues, summarizeStateChanges } from "../state-diff.js";
 import type { ReportDocEntry, ReportScenario, ReportStep } from "../types/story-report.js";
 
 export interface ScenarioMarkdownOptions {
@@ -50,8 +51,13 @@ function stringify(value: unknown): string {
 /**
  * Render one doc entry (and its children) as Markdown lines. Exported so other
  * Markdown projections (e.g. a feature-level summary) reuse the same mapping.
+ *
+ * `stateLanes` tracks the previous `state` snapshot per label lane (label ?? "")
+ * within one scenario walk — same lane semantics as `extractStoryboardFrames` —
+ * so repeat captures render a diff summary. Omit it for standalone rendering
+ * (no diff, just the snapshot).
  */
-export function docEntryToMarkdown(entry: ReportDocEntry): string[] {
+export function docEntryToMarkdown(entry: ReportDocEntry, stateLanes?: Map<string, unknown>): string[] {
   const lines: string[] = [];
   switch (entry.kind) {
     case "note":
@@ -106,15 +112,28 @@ export function docEntryToMarkdown(entry: ReportDocEntry): string[] {
     case "custom":
       lines.push(`**${entry.type}**`, "", "```json", stringify(entry.data), "```");
       break;
+    case "state": {
+      // Compact state block: label, diff vs the previous same-label capture in
+      // this scenario, full snapshot collapsed behind <details>.
+      const lane = entry.label ?? "";
+      lines.push(`**${entry.label ?? "State"}**`);
+      if (stateLanes?.has(lane)) {
+        const summary = summarizeStateChanges(diffStateValues(stateLanes.get(lane), entry.value));
+        if (summary.length > 0) lines.push("", ...summary.map((l) => `- ${l}`));
+      }
+      stateLanes?.set(lane, entry.value);
+      lines.push("", "<details>", "<summary>snapshot</summary>", "", "```json", stringify(entry.value ?? null), "```", "", "</details>");
+      break;
+    }
   }
   for (const child of entry.children ?? []) {
-    lines.push("", ...docEntryToMarkdown(child));
+    lines.push("", ...docEntryToMarkdown(child, stateLanes));
   }
   return lines;
 }
 
 /** One step as a numbered list item, with its error and docs when in full mode. */
-function stepLines(step: ReportStep, ordinal: number, full: boolean): string[] {
+function stepLines(step: ReportStep, ordinal: number, full: boolean, stateLanes?: Map<string, unknown>): string[] {
   const status = step.status === "passed" ? "" : ` — **${step.status}**`;
   const lines = [`${ordinal}. **${step.keyword}** ${step.text}${status}`];
   if (!full) return lines;
@@ -123,7 +142,7 @@ function stepLines(step: ReportStep, ordinal: number, full: boolean): string[] {
   }
   for (const entry of step.docEntries) {
     // Indent step-level docs under the list item so they read as belonging to it.
-    lines.push("", ...docEntryToMarkdown(entry).map((l) => (l === "" ? l : `   ${l}`)));
+    lines.push("", ...docEntryToMarkdown(entry, stateLanes).map((l) => (l === "" ? l : `   ${l}`)));
   }
   return lines;
 }
@@ -139,9 +158,13 @@ export function scenarioToMarkdown(scenario: ReportScenario, options: ScenarioMa
 
   if (full && meta.length > 0) lines.push(...meta);
 
+  // One lane map per scenario so repeat `state` captures diff against the
+  // previous same-label snapshot (steps first, then scenario-level docs).
+  const stateLanes = new Map<string, unknown>();
+
   if (scenario.steps.length > 0) {
     if (full) lines.push("", "## Steps", "");
-    scenario.steps.forEach((step, i) => lines.push(...stepLines(step, i + 1, full)));
+    scenario.steps.forEach((step, i) => lines.push(...stepLines(step, i + 1, full, stateLanes)));
   }
 
   if (scenario.errorMessage) {
@@ -152,7 +175,7 @@ export function scenarioToMarkdown(scenario: ReportScenario, options: ScenarioMa
 
   if (full && scenario.docEntries.length > 0) {
     lines.push("", "## Docs", "");
-    for (const entry of scenario.docEntries) lines.push(...docEntryToMarkdown(entry), "");
+    for (const entry of scenario.docEntries) lines.push(...docEntryToMarkdown(entry, stateLanes), "");
   }
 
   return lines.join("\n").replaceAll(/\n{3,}/g, "\n\n").trimEnd() + (full ? "\n" : "");

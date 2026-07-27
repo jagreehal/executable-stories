@@ -13,5 +13,6 @@ path = "src/lib.rs"
 
 [dev-dependencies]
 executable-stories = { path = "../../packages/executable-stories-rust" }
+serde_json = "1"
 # Destructors moved out of `ctor` into the companion `dtor` crate at ctor 1.0.
 dtor = "1.0"

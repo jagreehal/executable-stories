@@ -107,6 +107,25 @@ class DocEntry {
             return code(label, content, "json", children)
         }
 
+        /**
+         * JSON-serializable snapshot of the world at this step. [label] names the
+         * entity ('Basket') so the renderer can diff consecutive snapshots.
+         */
+        @JvmStatic
+        @JvmOverloads
+        fun state(
+            value: Any?,
+            label: String? = null,
+            children: List<DocEntry>? = null,
+        ): DocEntry =
+            DocEntry().apply {
+                set("kind", "state")
+                if (label != null) set("label", label)
+                set("value", value)
+                set("phase", "runtime")
+                if (!children.isNullOrEmpty()) set("children", children)
+            }
+
         @JvmStatic
         @JvmOverloads
         fun table(
