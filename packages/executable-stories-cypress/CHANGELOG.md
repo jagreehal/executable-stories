@@ -1,5 +1,12 @@
 # executable-stories-cypress
 
+## 8.4.15
+
+### Patch Changes
+
+- Updated dependencies [28ea159]
+  - executable-stories-formatters@1.6.0
+
 ## 8.4.14
 
 ### Patch Changes

@@ -1,5 +1,12 @@
 # executable-stories-demo
 
+## 0.1.29
+
+### Patch Changes
+
+- Updated dependencies [28ea159]
+  - executable-stories-formatters@1.6.0
+
 ## 0.1.28
 
 ### Patch Changes
