@@ -37,6 +37,12 @@ export interface JsonOptions {
   value: unknown;
 }
 
+/** Options for state() - data snapshot of the world at this step */
+export interface StateOptions {
+  label?: string;
+  value: unknown;
+}
+
 /** Options for code() - code block with optional language */
 export interface CodeOptions {
   label: string;
@@ -115,6 +121,7 @@ export interface StoryDocs {
   kv?: Record<string, unknown>;
   code?: CodeOptions;
   json?: JsonOptions;
+  state?: StateOptions;
   table?: TableOptions;
   link?: LinkOptions;
   section?: SectionOptions;

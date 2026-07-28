@@ -8,7 +8,15 @@
  * variants (`viewport:mobile` / `viewport:desktop` tags) of the same state
  * appear as sibling cards — same state, two layouts, side by side.
  */
-import { extractStoryboardFrames, humanizeSlug, isLocalFsPath, safeImageUrl, type ReportScenario } from "executable-stories-core";
+import {
+  extractStoryboardFrames,
+  formatStateValue,
+  humanizeSlug,
+  isLocalFsPath,
+  safeImageUrl,
+  type ReportScenario,
+  type StoryboardStateCard,
+} from "executable-stories-core";
 
 /** Scenario shape the states grid needs (StoryEntryData satisfies it). */
 export type StateScenarioLike = Pick<ReportScenario, "tags" | "status" | "steps">;
@@ -64,15 +72,61 @@ export function extractStates<T extends StateScenarioLike>(scenarios: T[]): UiSt
 }
 
 /**
- * Thumbnail src for a scenario's card: its first storyboard frame, when that
- * frame is browser-renderable (a data URI or a web path — an absolute local
- * filesystem path means asset bundling failed and would 404, so no thumbnail).
+ * A state card's thumbnail: either the frame's screenshot ("image") or, for
+ * non-UI scenarios that only capture `story.state()`, a compact data card
+ * ("data") — label plus a few key/value lines from the snapshot.
  */
-export function stateThumbnail(scenario: StateScenarioLike): { src: string; alt?: string } | undefined {
+export type StateThumbnail =
+  | { kind: "image"; src: string; alt?: string }
+  | { kind: "data"; label?: string; lines: string[] };
+
+/**
+ * Compact one-per-line rendering of a state snapshot: object snapshots show
+ * their top-level keys (`total: 42`), anything else is one JSON line. Shared
+ * by the /states data-card thumbnails and the journey chapter-end strip.
+ */
+export function stateValueLines(value: unknown, max = 4): string[] {
+  if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+    const entries = Object.entries(value as Record<string, unknown>);
+    const lines = entries.slice(0, max).map(([k, v]) => `${k}: ${formatStateValue(v, 40)}`);
+    if (entries.length > max) lines.push(`… ${entries.length - max} more`);
+    return lines;
+  }
+  return [formatStateValue(value)];
+}
+
+/**
+ * Thumbnail for a scenario's card: its first storyboard frame. Screenshot wins
+ * when browser-renderable (a data URI or a web path — an absolute local
+ * filesystem path means asset bundling failed and would 404). Otherwise a
+ * state-only frame yields a data-card thumbnail, so non-UI scenarios still
+ * appear in the /states catalog with something meaningful on the card.
+ */
+export function stateThumbnail(scenario: StateScenarioLike): StateThumbnail | undefined {
   const frame = extractStoryboardFrames(scenario)[0];
   if (!frame) return undefined;
-  if (isLocalFsPath(frame.path)) return undefined;
-  const src = safeImageUrl(frame.path);
-  if (!src) return undefined;
-  return frame.alt !== undefined ? { src, alt: frame.alt } : { src };
+  if (frame.screenshot && !isLocalFsPath(frame.screenshot.path)) {
+    const src = safeImageUrl(frame.screenshot.path);
+    if (src) {
+      return { kind: "image", src, ...(frame.screenshot.alt !== undefined && { alt: frame.screenshot.alt }) };
+    }
+  }
+  const card = frame.states[0];
+  if (!card) return undefined;
+  return { kind: "data", ...(card.label !== undefined && { label: card.label }), lines: stateValueLines(card.value) };
+}
+
+/**
+ * The final state of each lane at the end of a scenario — the "at the end of
+ * this chapter" cards a journey page shows after each member. Per lane, the
+ * most recent snapshot across all frames (a lane absent from the literal last
+ * frame still counts: the world it described hasn't un-happened). Lane order
+ * is first-appearance order; [] when the scenario captures no state.
+ */
+export function chapterEndStates(scenario: StateScenarioLike): StoryboardStateCard[] {
+  const latest = new Map<string, StoryboardStateCard>();
+  for (const frame of extractStoryboardFrames(scenario)) {
+    for (const card of frame.states) latest.set(card.label ?? "", card);
+  }
+  return [...latest.values()];
 }

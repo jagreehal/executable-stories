@@ -41,9 +41,11 @@ fn test_calculator_multiplies_two_numbers() {
     s.given("two numbers 7 and 6");
     let (a, b) = (7, 6);
     s.note("This is a note");
+    s.state(Some("Inputs"), serde_json::json!({"a": a, "b": b}));
     s.when("the numbers are multiplied");
     let result = multiply(a, b);
     s.then("the result is 42");
+    s.state(Some("Inputs"), serde_json::json!({"a": a, "b": b, "product": result}));
     assert_eq!(result, 42);
     s.pass();
 }

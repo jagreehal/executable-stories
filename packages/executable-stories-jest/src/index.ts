@@ -52,6 +52,7 @@ export type {
   AttachmentOptions,
   KvOptions,
   JsonOptions,
+  StateOptions,
   CodeOptions,
   TableOptions,
   LinkOptions,

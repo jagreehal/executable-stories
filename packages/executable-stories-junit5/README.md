@@ -54,6 +54,7 @@ class CalculatorTest {
 - BDD steps: `given`, `when`, `then`, `and`, `but`
 - Aliases: `arrange`, `act`, `assertThat`, `setup`, `context`, `execute`, `action`, `verify`
 - Rich docs via `Story.*` and `DocEntry.*`
+- State snapshots: `Story.state(value, label?)` records a JSON snapshot of the world at the current step (e.g. `Story.state(mapOf("items" to 2), "Basket")`); consecutive snapshots with the same label are diffed at render time
 - Step timing: `Story.startTimer()` / `Story.endTimer(token)`
 - Trace links: `Story.withTraceUrlTemplate(...)` or `OTEL_TRACE_URL_TEMPLATE`
 

@@ -192,6 +192,73 @@ it('premium members get free returns', ({ task }) => {
 
 Delivery references like ticket IDs can help trace origin, but they should not carry essential business meaning. The specification should be self-contained without needing to look up the ticket.
 
+### Tag for derived stakeholder surfaces
+
+Use a small, intentional vocabulary. These conventions feed the Astro site;
+arbitrary CI labels such as `slow` or `flaky` should not become audience
+navigation.
+
+| Convention | Use |
+|---|---|
+| `audience:stakeholder` / `audience:engineer` | Override the audience derived from file location only when necessary |
+| `capability:<name>` | Group behaviour by a product capability |
+| `journey:<id>:<n>` | Compose independently executable scenarios into an ordered walkthrough |
+| `storyboard` | Mark a scenario carrying meaningful per-step screenshots for designers |
+| `state:<name>` | Name a user-visible UI state for the state catalog |
+| `viewport:<name>` | Put responsive variants of one state side by side |
+| `support` | Include operationally useful behaviour in a support view |
+
+Keep every journey member independently meaningful and executable. Do not split
+one assertion across scenarios merely to make a longer walkthrough. A journey
+is a derived reading order, not shared runtime state.
+
+### Put design references next to the proof
+
+Use the existing link doc API for stable design references:
+
+```ts
+story.link({
+  label: 'Figma — Checkout v3',
+  url: 'https://www.figma.com/design/checkout-v3',
+});
+```
+
+Supported design-tool links, and deliberately `Design ...`-labelled links,
+appear on story and journey pages. Keep the scenario self-contained: a mockup
+can clarify intended presentation, but it must not be the only place the
+business rule is described. Treat every external URL as untrusted input when
+building a renderer.
+
+### Make visual evidence purposeful
+
+Capture a screenshot after a meaningful step, not after every interaction. A
+sequence of step screenshots becomes a storyboard; `state:<name>` scenarios use
+the first frame as their state-catalog thumbnail. Give every frame an `alt`
+description that names the visible outcome rather than the browser mechanics.
+
+### Show state changes with state snapshots
+
+`story.state({ label?, value })` records what the world looks like at a step
+as a data snapshot. Reports treat state snapshots like screenshots for non-UI
+code: a step with state docs becomes a storyboard frame, consecutive snapshots
+with the same label render as a diff (`items[0].qty: 1 → 2`), and multiple
+labels appear as side-by-side lanes.
+
+Use it when the behaviour is a data transformation a stakeholder should see:
+a basket total after a discount, an order status after payment, a ledger entry
+after settlement. Keep label discipline: pick one label per business entity
+("Basket", "Order") and reuse it across steps so the diff lane stays coherent.
+Snapshot the business-relevant projection, not the ORM entity — three fields a
+product owner recognises beat forty columns of persistence noise, and the JS
+adapters warn above ~100KB.
+
+### Keep traceability auditable
+
+Attach requirement tickets to the scenarios that actually prove them. The
+traceability CSV emits untraced scenarios explicitly and grades each row's
+evidence with the Evidence Review rules. A ticket link establishes provenance;
+it does not upgrade weak proof into strong proof.
+
 ## Curate ruthlessly
 
 Living documentation stays useful when the set remains small, current, and purposeful.
@@ -236,5 +303,7 @@ Symptom: Every scenario has 5 JSON dumps and 3 screenshot captures. Fix: Doc ent
 | Avoid brittle detail    | If refactoring breaks the spec, the spec is too implementation-coupled  |
 | Current truth only      | The spec shows what is true now — git has the history                   |
 | Tags for findability    | Tag specs so they're searchable by business concept                     |
+| Derived stakeholder views | Use capability, journey, storyboard, state, viewport, and audience conventions intentionally |
+| Design beside proof     | Link stable mockups while keeping the governing rule self-contained      |
 | Curate ruthlessly       | Delete, merge, and retire — a smaller set is more trustworthy           |
 | Refactor specs          | Update when the domain changes, delete when behaviour is removed        |

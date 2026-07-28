@@ -2,9 +2,9 @@
 
 | Key | Value |
 | --- | --- |
-| Date | 2026-07-13T18:15:47.448Z |
+| Date | 2026-07-27T22:01:01.532Z |
 | Version | 1.0.0 |
-| Git SHA | 11f49a0 |
+| Git SHA | 3989ba1 |
 
 ## src/all-doc-api.story.test.ts
 
@@ -1069,7 +1069,44 @@ This story demonstrates:
 ### ✅ Successful order confirmation
 
 - **Given** the user has items in cart
+    **Basket**
+    
+    <details>
+    <summary>snapshot</summary>
+    
+    ```json
+    {
+      "items": [
+        "widget",
+        "gadget"
+      ],
+      "total": 99.99,
+      "status": "open"
+    }
+    ```
+    
+    </details>
+    
 - **When** the user completes checkout
+    **Basket**
+    - status: "open" → "ordered"
+    
+    <details>
+    <summary>snapshot</summary>
+    
+    ```json
+    {
+      "items": [
+        "widget",
+        "gadget"
+      ],
+      "total": 99.99,
+      "status": "ordered"
+    }
+    ```
+    
+    </details>
+    
 - **Then** the order should be created
 - **And** a confirmation email should be sent
 - **And** the inventory should be updated

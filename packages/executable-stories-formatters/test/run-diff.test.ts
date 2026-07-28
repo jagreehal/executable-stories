@@ -168,6 +168,62 @@ describe("run diff", () => {
     expect(html).toContain("status");
   });
 
+  it("renders a regression storyboard from step screenshots for status flips only", () => {
+    const shotSteps = [
+      { keyword: "When" as const, text: "pays by card", docs: [{ kind: "screenshot" as const, path: "data:image/png;base64,abc", alt: "Payment form", phase: "runtime" as const }] },
+      { keyword: "Then" as const, text: "sees confirmation", docs: [{ kind: "screenshot" as const, path: "/tmp/local-only.png", phase: "runtime" as const }] },
+    ];
+    const baseline = stubs.testRunResult({
+      startedAtMs: 1000,
+      finishedAtMs: 2000,
+      testCases: [
+        stubs.testCaseResult({
+          id: "flip",
+          sourceFile: "src/pay.story.test.ts",
+          sourceLine: 1,
+          status: "passed",
+          story: stubs.storyMeta({ scenario: "Pays by card", docs: [], steps: shotSteps }),
+        }),
+        stubs.testCaseResult({
+          id: "steady",
+          sourceFile: "src/pay.story.test.ts",
+          sourceLine: 9,
+          status: "passed",
+          story: stubs.storyMeta({ scenario: "Steady case", docs: [stubs.noteEntry({ text: "before" })], steps: shotSteps }),
+        }),
+      ],
+    });
+    const current = stubs.testRunResult({
+      startedAtMs: 3000,
+      finishedAtMs: 4000,
+      testCases: [
+        stubs.testCaseResult({
+          id: "flip",
+          sourceFile: "src/pay.story.test.ts",
+          sourceLine: 1,
+          status: "failed",
+          errorMessage: "boom",
+          story: stubs.storyMeta({ scenario: "Pays by card", docs: [], steps: shotSteps }),
+        }),
+        stubs.testCaseResult({
+          id: "steady",
+          sourceFile: "src/pay.story.test.ts",
+          sourceLine: 9,
+          status: "passed",
+          story: stubs.storyMeta({ scenario: "Steady case", docs: [stubs.noteEntry({ text: "after" })], steps: shotSteps }),
+        }),
+      ],
+    });
+
+    const html = new RunDiffHtmlFormatter({ title: "Review Diff" }).format(diffRuns(baseline, current));
+    // The regressed scenario gets a filmstrip with the renderable frame only.
+    expect(html).toContain('class="storyboard"');
+    expect(html).toContain('src="data:image/png;base64,abc"');
+    expect(html).not.toContain("local-only.png\" "); // local fs path contributes no frame
+    // One storyboard: the changed-but-not-flipped scenario doesn't get one.
+    expect(html.match(/class="storyboard"/g)).toHaveLength(1);
+  });
+
   it("includes before/after DSL content in compare reports when steps or docs change", () => {
     const baseline = stubs.testRunResult({
       startedAtMs: 1000,

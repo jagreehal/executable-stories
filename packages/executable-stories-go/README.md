@@ -38,10 +38,22 @@ func TestAddition(t *testing.T) {
 ## Features
 
 - BDD steps: `Given`, `When`, `Then`, `And`, `But`
-- Rich docs: note, kv, json, code, table, link, section, mermaid, screenshot, html, custom
+- Rich docs: note, kv, json, code, table, link, section, mermaid, screenshot, html, state, custom
 - Step timing: `StartTimer` / `EndTimer`
 - Trace links: `WithTraceUrlTemplate(...)` or `OTEL_TRACE_URL_TEMPLATE`
 - Ticket/tag/meta options at `Init(...)`
+
+## State snapshots
+
+`State(label, value)` captures a JSON-serializable snapshot of "what the world looks like" at the current step. Consecutive snapshots with the same label are diffed by the report renderer (storyboard frames); the adapter only serializes and emits. An empty label means an anonymous state lane (the label field is omitted).
+
+```go
+s.Given("an item is added to the basket")
+s.State("Basket", basket) // any JSON-serializable value
+
+s.When("a discount is applied")
+s.State("Basket", basket) // same label → diffed against the previous frame
+```
 
 ## Output
 

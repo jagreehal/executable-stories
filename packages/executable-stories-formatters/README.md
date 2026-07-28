@@ -77,6 +77,9 @@ executable-stories format run.json --format html --notify on-failure --report-ur
 # Compare two runs and fail CI on regressions
 executable-stories compare baseline.json current.json --format markdown --fail-on-regression
 
+# Requirement-first audit exports; CSV includes evidence_grade
+executable-stories format run.json --format traceability-matrix,traceability-csv
+
 # Compare with threshold gating (allow up to 2 regressions)
 executable-stories compare baseline.json current.json --format html --max-regressions 2
 
@@ -104,6 +107,11 @@ Add the command to your `CLAUDE.md` / `AGENTS.md` so the agent runs it after eve
 ### Compare gating
 
 Use compare mode to produce diff reports between two runs and optionally enforce CI gates:
+
+The HTML comparison renders a screenshot storyboard for `Regressed` and
+`Fixed` scenarios when the current run carries browser-renderable screenshots
+on its steps. This keeps the product state that explains the flip next to the
+before/after result.
 
 - `--fail-on-regression` — fails when any pass→fail regression is found.
 - `--fail-on-added-failures` — fails when new failing scenarios appear in the current run.
@@ -230,6 +238,9 @@ verifiedBy: [pricing, checkout--caps-the-discount-at-30-percent]
 | `junit` | JUnit XML for CI integration | `.junit.xml` |
 | `cucumber-json` | Cucumber JSON for tooling compatibility | `.cucumber.json` |
 | `confluence` | Atlassian Document Format (ADF) JSON for Confluence pages and Jira issue descriptions (via REST API) | `.adf.json` |
+| `traceability-matrix` | Requirement-first Markdown: tickets, scenario status, source, and covered code | `.traceability-matrix.md` |
+| `traceability-csv` | Flat audit table with one requirement/scenario row, explicit untraced rows, and Evidence Review `evidence_grade` | `.traceability.csv` |
+| `agent-text` | Full run (steps, docs, errors) as flat token-lean plain text for pasting into an LLM: same content as `markdown`, ~12x smaller than `html` | `.agent.txt` |
 
 ## Writing a Custom Adapter
 

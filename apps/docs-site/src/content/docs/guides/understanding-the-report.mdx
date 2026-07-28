@@ -47,7 +47,7 @@ You can override with `scenarioHeadingLevel` / `storyHeadingLevel` in reporter o
 - **Tags and options** — If you pass `{ tags: [...], meta: {...} }` to `story.init(..., options)`, they can be included (see reporter options).
 - **Step documentation** — Notes, key-value pairs, code blocks, tables, and links added via `story.note`, `story.json`, `story.table`, etc. appear under the corresponding step.
 - **Source link** — If `permalinkBaseUrl` is set (or in GitHub Actions with the built-in fallback), each scenario can get a "Source: [file](url)" line.
-- **Storyboard** — When two or more steps carry a screenshot (e.g. Playwright `await story.screenshot({ page, alt })` after each step), the scenario opens with a horizontal filmstrip: one thumbnail per step, captioned with the step keyword and the screenshot's `alt`, each linking to the full-size image under its step. Nothing to configure and nothing separately authored — the storyboard is derived from the step docs, so it appears in the HTML report and on Astro story pages alike. This is the view to show product owners: Given → When → Then as pictures.
+- **Storyboard** — When two or more steps carry a screenshot (e.g. Playwright `await story.screenshot({ page, alt })` after each step) or a [state snapshot](#state-snapshots-storyboards-for-data), the scenario opens with a horizontal filmstrip: one frame per step, captioned with the step keyword, each linking to the full detail under its step. Nothing to configure and nothing separately authored — the storyboard is derived from the step docs, so it appears in the HTML report and on Astro story pages alike. This is the view to show product owners: Given → When → Then as pictures, data, or both.
 
 <ReportScreenshot
   src="screenshots/feature-code.png"
@@ -82,6 +82,60 @@ When a scenario fails, the report leads with the error and the step that failed:
   alt="A failed scenario showing the error message, the failing Then step, and a trace"
   caption="A failure shows the assertion error and points at the exact step that broke."
 />
+
+## State snapshots: storyboards for data
+
+Storyboards are not screenshot-only. `story.state({ label?, value })` captures
+what the world looks like at a step as a JSON-serializable snapshot, and any
+step carrying a state doc becomes a filmstrip frame — so API tests, domain
+logic, and batch jobs get the same visual walkthrough UI code gets:
+
+```ts
+it('adding an item updates the basket total', ({ task }) => {
+  story.init(task);
+
+  story.given('an empty basket');
+  const basket = createBasket();
+  story.state({ label: 'Basket', value: { items: [], total: 0 } });
+
+  story.when('the shopper adds a hoodie');
+  basket.add({ sku: 'hoodie', price: 45 });
+  story.state({ label: 'Basket', value: { items: [{ sku: 'hoodie', qty: 1 }], total: 45 } });
+
+  story.then('the total reflects the item price');
+  expect(basket.total).toBe(45);
+});
+```
+
+The report renders this diff-first:
+
+- **First appearance shows the snapshot.** The first `Basket` frame renders
+  the full value (collapsed behind a summary in Markdown output).
+- **Repeats show the change.** Consecutive snapshots with the same label are
+  diffed at render time — the second frame reads `items[0].qty: added`,
+  `total: 0 → 45` — so the reader sees what the step did, not two blobs to
+  compare by eye. Diffs are derived, never stored, and never cross scenario
+  boundaries.
+- **Labels are lanes.** Snapshot two entities (`Basket` and `Order`) and each
+  label gets its own side-by-side lane in consistent order. A step can carry
+  a screenshot and a state — the screen next to the backend record it proves.
+
+The same frames feed the stakeholder surfaces:
+
+- **Journey pages** (`journey:<id>` tags) treat scenarios as chapters and show
+  each chapter's final state card, so a walkthrough ends every chapter with
+  "here is what the world looked like".
+- **The `/states` catalog** (`state:<name>` tags) gives non-UI scenarios
+  data-card thumbnails, so the grid is no longer screenshots-only. One concept
+  at two granularities: tags name states, `story.state()` shows them. See
+  [Tagging for your audience](/guides/tagging-for-your-audience/).
+
+There is no size cap, but the JS adapters warn above ~100KB per snapshot.
+Capture the business-relevant projection, not the ORM entity: `{ status,
+total, items }` reads as documentation; forty persistence columns read as
+noise. Done well, this makes the generated site the document of record for
+how a feature behaves — the thing teams otherwise hand-maintain in Confluence
+or TestRail — for backend behaviour as much as UI flows.
 
 ## Run history in the interactive report
 

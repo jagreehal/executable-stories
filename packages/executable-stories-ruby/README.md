@@ -104,6 +104,7 @@ end
 - `story.section(title, markdown, children: nil)`
 - `story.mermaid(code, title: nil, children: nil)`
 - `story.screenshot(path, alt: nil, children: nil)`
+- `story.state(value, label: nil, children: nil)` — JSON-serializable snapshot of "what the world looks like" at this step (a storyboard frame); consecutive same-label states are diffed at render time
 - `story.custom(type, data, children: nil)`
 
 ### Step timing

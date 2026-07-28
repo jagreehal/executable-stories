@@ -452,7 +452,12 @@ Every run commits the JSON to the `executable-stories-runs` branch (created auto
 https://raw.githubusercontent.com/<owner>/<repo>/executable-stories-runs/raw-run.json
 ```
 
-Unchanged runs are skipped — no empty commits on scheduled builds. If one repo has several suites, publish each under its own `runs-path`.
+Unchanged runs are skipped — no empty commits on scheduled builds. Before any
+API write, the action rejects JSON that is not structurally safe for the raw to
+canonical transform. A late older job cannot overwrite a run with a newer
+`finishedAtMs`; the ordering guard also fetches large blobs whose content is not
+inlined by GitHub's Contents API. If one repo has several suites, publish each
+under its own `runs-path`.
 
 In the hub repo, fetch the files and build the Astro site (see the [multi-repo docs hub guide](https://github.com/jagreehal/executable-stories/blob/main/apps/docs-site/src/content/docs/guides/multi-repo-docs-hub.md)):
 

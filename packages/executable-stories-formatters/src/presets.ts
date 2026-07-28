@@ -9,8 +9,8 @@
 
 /** The named format bundles. */
 export const FORMAT_PRESETS = {
-  /** Everything an agent reads: the report contract, the index, the manifest. */
-  agent: ["story-report-json", "scenario-index-json", "behavior-manifest-json"],
+  /** Everything an agent reads: the report contract, the index, the manifest, the paste-into-an-LLM text. */
+  agent: ["story-report-json", "scenario-index-json", "behavior-manifest-json", "agent-text"],
   /** What CI needs: a JUnit file for the test UI, plus the machine contract. */
   ci: ["junit", "story-report-json"],
   /** Human-facing docs artifacts. */

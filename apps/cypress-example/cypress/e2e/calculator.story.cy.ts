@@ -11,6 +11,7 @@ describe("Calculator", () => {
 
     story.when("the numbers are added");
     const result = add(a, b);
+    story.state({ label: "calculator", value: { a, b, result } });
 
     story.then("the result is 8");
     expect(result).to.equal(8);

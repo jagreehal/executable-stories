@@ -368,3 +368,30 @@ describe("CucumberJsonFormatter", () => {
     });
   });
 });
+
+describe("CucumberJsonFormatter — state docs", () => {
+  it("embeds state docs as application/json doc strings and does not crash", () => {
+    const raw = createRawRun({
+      testCases: [
+        createTestCase({
+          story: createStory({
+            steps: [
+              {
+                keyword: "Given",
+                text: "a basket",
+                docs: [{ kind: "state", label: "Basket", value: { items: ["apple"] }, phase: "runtime" }],
+              },
+            ],
+          }),
+        }),
+      ],
+    });
+    const result = new CucumberJsonFormatter().format(canonicalizeRun(raw));
+
+    const step = result[0].elements[0].steps[0];
+    expect(step.arguments).toHaveLength(1);
+    const docString = step.arguments![0].doc_string!;
+    expect(docString.content_type).toBe("application/json");
+    expect(JSON.parse(docString.content)).toEqual({ state: "Basket", value: { items: ["apple"] } });
+  });
+});

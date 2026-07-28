@@ -16,6 +16,7 @@ import type { AstroIntegration } from "astro";
 import { storiesLoader } from "./loader.js";
 import { resolveThemeCss } from "./theme.js";
 import {
+  driftEnabled,
   resolveSources,
   type ExecutableStoriesConfig,
   type AuthoredDocsSource,
@@ -43,6 +44,7 @@ export {
 // The unified config surface — one object drives the whole site.
 export {
   defineExecutableStories,
+  driftEnabled,
   resolveSources,
   passesFilter,
   slugify,
@@ -71,7 +73,35 @@ export type { PersonaView } from "./config.js";
 export { extractJourneys, parseJourneyTag, type Journey } from "executable-stories-core";
 
 // UI-state catalog — the /states thumbnail grid from state:<name> tags.
-export { extractStates, parseStateTag, stateThumbnail, viewportOf, type UiState } from "./states.js";
+export {
+  chapterEndStates,
+  extractStates,
+  parseStateTag,
+  stateThumbnail,
+  stateValueLines,
+  viewportOf,
+  type StateThumbnail,
+  type UiState,
+} from "./states.js";
+
+// Design context — figma/zeplin/sketch links (or "Design ..." labels) already
+// authored via story.link(), surfaced as a strip on story/journey pages.
+export { designLinks, isDesignLink, type DesignLink } from "./design-links.js";
+
+// Journey-level run history from the CLI's --history-file store.
+export {
+  aggregateJourneyHistory,
+  journeyRunHistory,
+  matchMemberHistory,
+  readHistoryStore,
+  type JourneyHistorySummary,
+  type JourneyRunEvent,
+  type JourneyFlakiness,
+  type HistoryEntryLike,
+} from "./journey-history.js";
+
+// Environment drift — scenario status per source, mismatches first.
+export { extractDrift, type DriftReport, type DriftRow, type DriftEntryLike } from "./drift.js";
 
 // Authored-docs import (external folders, auto-titled) + markdown link rewriting.
 export { authoredDocsLoader } from "./authored-docs-loader.js";
@@ -196,6 +226,9 @@ interface RouteConfig {
   views: ResolvedPersonaView[];
   journeysBase: string;
   statesBase: string;
+  driftBase: string;
+  /** Absolute path to the run-history store, or null when not configured. */
+  historyFile: string | null;
 }
 
 /**
@@ -222,7 +255,9 @@ function virtualConfigPlugin(config: RouteConfig) {
         `export const themeCss = ${JSON.stringify(config.themeCss)};\n` +
         `export const views = ${JSON.stringify(config.views)};\n` +
         `export const journeysBase = ${JSON.stringify(config.journeysBase)};\n` +
-        `export const statesBase = ${JSON.stringify(config.statesBase)};\n`
+        `export const statesBase = ${JSON.stringify(config.statesBase)};\n` +
+        `export const driftBase = ${JSON.stringify(config.driftBase)};\n` +
+        `export const historyFile = ${JSON.stringify(config.historyFile)};\n`
       );
     },
   };
@@ -278,6 +313,9 @@ export function executableStories(options: ExecutableStoriesOptions): AstroInteg
   const injectJourneys = options.injectJourneys ?? true;
   const statesBase = normalizeBase(options.statesBase ?? "/states");
   const injectStates = options.injectStates ?? true;
+  const driftBase = normalizeBase(options.driftBase ?? "/drift");
+  const injectDrift = driftEnabled(options);
+  const historyFile = options.historyFile ? path.resolve(options.historyFile) : null;
   // Fail fast on base misconfiguration: enabled built-in routes colliding
   // with each other, then views colliding with routes or each other.
   assertRouteBases(options);
@@ -297,7 +335,7 @@ export function executableStories(options: ExecutableStoriesOptions): AstroInteg
         // config, so their `optimizeDeps.include` entries survive.
         updateConfig({
           vite: {
-            plugins: [virtualConfigPlugin({ collection, sources, routeBase, explorerBase, groupBy, themeCss, views, journeysBase, statesBase })],
+            plugins: [virtualConfigPlugin({ collection, sources, routeBase, explorerBase, groupBy, themeCss, views, journeysBase, statesBase, driftBase, historyFile })],
             optimizeDeps: { include: REPORT_ISLAND_DEPS },
             resolve: { dedupe: ["react", "react-dom"] },
           },
@@ -400,6 +438,13 @@ export function executableStories(options: ExecutableStoriesOptions): AstroInteg
           injectRoute({ pattern: statesBase, entrypoint: `executable-stories-astro/routes/${variant}states.astro` });
           logger.info(`UI-state catalog mounted at ${statesBase}`);
         }
+        // Environment drift: scenario status per source, mismatches first.
+        // Only injected with two or more sources — one source has nothing to
+        // compare against (injectDrift: true forces it on regardless).
+        if (injectDrift) {
+          injectRoute({ pattern: driftBase, entrypoint: `executable-stories-astro/routes/${variant}drift.astro` });
+          logger.info(`environment drift mounted at ${driftBase}`);
+        }
         // Persona views: one filtered/re-grouped index per audience lens. All
         // views share one route entrypoint — the page resolves which view it
         // is from the request pathname via the virtual config.
@@ -425,6 +470,8 @@ export function executableStories(options: ExecutableStoriesOptions): AstroInteg
             "  export const views: import(\"executable-stories-astro\").ResolvedPersonaView[];\n" +
             "  export const journeysBase: string;\n" +
             "  export const statesBase: string;\n" +
+            "  export const driftBase: string;\n" +
+            "  export const historyFile: string | null;\n" +
             "}\n",
         });
       },
@@ -488,6 +535,9 @@ export function storiesSidebar(
   }
   if (config.injectStates ?? true) {
     entries.push({ label: "States", link: joinHref(normalizeBase(config.statesBase ?? "/states")) });
+  }
+  if (driftEnabled(config)) {
+    entries.push({ label: "Drift", link: joinHref(normalizeBase(config.driftBase ?? "/drift")) });
   }
   // Persona views: one nav link per audience lens, grouped so the rail reads
   // "For: Product / Design / Support" rather than a flat pile of links.

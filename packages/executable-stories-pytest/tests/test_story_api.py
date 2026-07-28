@@ -229,6 +229,42 @@ class TestDocMethods:
         assert meta is not None
         assert "alt" not in meta["docs"][0]
 
+    def test_state_doc(self, fresh_story: Story):
+        fresh_story.init("Test")
+        fresh_story.state({"items": 2, "total": 9.98}, label="Basket")
+        meta = fresh_story._get_meta()
+        assert meta is not None
+        assert meta["docs"][0] == {
+            "kind": "state",
+            "label": "Basket",
+            "value": {"items": 2, "total": 9.98},
+            "phase": "runtime",
+        }
+
+    def test_state_doc_no_label(self, fresh_story: Story):
+        fresh_story.init("Test")
+        fresh_story.state({"a": 1})
+        meta = fresh_story._get_meta()
+        assert meta is not None
+        assert "label" not in meta["docs"][0]
+
+    def test_state_doc_nested_value_round_trip(self, fresh_story: Story):
+        fresh_story.init("Test")
+        value = {"user": {"name": "alice", "roles": ["admin"]}, "counts": [1, 2, 3], "ok": None}
+        fresh_story.state(value, label="World")
+        meta = fresh_story._get_meta()
+        assert meta is not None
+        assert json.loads(json.dumps(meta["docs"][0]["value"])) == value
+
+    def test_state_after_step_attaches_to_step(self, fresh_story: Story):
+        fresh_story.init("Test")
+        fresh_story.given("setup")
+        fresh_story.state({"phase": "ready"}, label="World")
+        meta = fresh_story._get_meta()
+        assert meta is not None
+        assert "docs" not in meta  # no story-level docs
+        assert meta["steps"][0]["docs"][0]["kind"] == "state"
+
     def test_html_doc_with_path(self, fresh_story: Story):
         fresh_story.init("Test")
         fresh_story.html(path="./coverage/index.html", title="Coverage", height=600)

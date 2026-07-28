@@ -56,6 +56,10 @@ impl StepDoc {
         StepDoc(DocEntry::html(opts))
     }
     #[must_use]
+    pub fn state(label: Option<&str>, value: serde_json::Value) -> Self {
+        StepDoc(DocEntry::state(label, value))
+    }
+    #[must_use]
     pub fn custom(type_name: &str, data: serde_json::Value) -> Self {
         StepDoc(DocEntry::custom(type_name, data))
     }
@@ -467,6 +471,15 @@ impl Story {
         self.attach_doc(DocEntry::html(opts))
     }
 
+    /// Attach a state snapshot to the current step or story.
+    ///
+    /// `value` is a JSON-serializable snapshot of "what the world looks like"
+    /// at this step; consecutive states with the same label are diffed by the
+    /// report renderer. Pass `None` for an anonymous state lane (label omitted).
+    pub fn state(&mut self, label: Option<&str>, value: serde_json::Value) -> &mut Self {
+        self.attach_doc(DocEntry::state(label, value))
+    }
+
     /// Attach a custom doc entry to the current step or story.
     pub fn custom(&mut self, type_name: &str, data: serde_json::Value) -> &mut Self {
         self.attach_doc(DocEntry::custom(type_name, data))
@@ -648,6 +661,28 @@ mod tests {
         assert_eq!(note["text"], "a note");
         let tag = serde_json::to_value(&docs[1]).unwrap();
         assert_eq!(tag["kind"], "tag");
+    }
+
+    #[test]
+    fn state_attaches_to_current_step_else_story() {
+        let mut story = Story::new("State docs");
+
+        // Before any step: story-level
+        story.state(Some("Basket"), serde_json::json!({"items": []}));
+        assert_eq!(story.docs.len(), 1);
+        let story_doc = serde_json::to_value(&story.docs[0]).unwrap();
+        assert_eq!(story_doc["kind"], "state");
+
+        // After a step: attaches to that step
+        story.given("an item is added");
+        story.state(Some("Basket"), serde_json::json!({"items": [{"sku": "A1"}]}));
+        let docs = story.steps[0].docs.as_ref().unwrap();
+        assert_eq!(docs.len(), 1);
+        let step_doc = serde_json::to_value(&docs[0]).unwrap();
+        assert_eq!(step_doc["kind"], "state");
+        assert_eq!(step_doc["label"], "Basket");
+        assert_eq!(step_doc["value"]["items"][0]["sku"], "A1");
+        story.pass();
     }
 
     #[test]

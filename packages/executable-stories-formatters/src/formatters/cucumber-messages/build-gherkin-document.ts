@@ -205,6 +205,13 @@ function docEntryToDocString(doc: DocEntry, line: number): DocString | undefined
         content: JSON.stringify(doc.data, null, 2),
         delimiter: '"""',
       };
+    case "state":
+      return {
+        location: { line },
+        mediaType: "application/json",
+        content: JSON.stringify({ state: doc.label ?? "State", value: doc.value ?? null }, null, 2),
+        delimiter: '"""',
+      };
     case "tag":
       return {
         location: { line },

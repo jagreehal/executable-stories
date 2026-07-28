@@ -1,6 +1,10 @@
 ---
 name: spec-evidence-review
-description: Layers an evidence discipline over the per-framework story API so each AI-authored change is communicated with proof — declared change-type, intent/approach, and a test whose pass is credible — for the Evidence Review report. Use when authoring or reviewing changes surfaced through `executable-stories review` or the action's `mode: review`, or when the user mentions evidence review, reviewing AI changes by behaviour and proof, change-type tags, or evidence-graded tests.
+description: >
+  Layer an evidence discipline over framework-native story APIs so each change
+  is communicated with declared intent and credible proof. Use when authoring
+  or reviewing changes for `executable-stories review`, the action's review
+  mode, evidence-graded tests, change-type tags, or traceability evidence.
 ---
 
 # Authoring for Evidence Review
@@ -103,6 +107,10 @@ This claim renders as **stakeholder · bugfix · 🟢 strong** (failing-first + 
 - **Bands changed files**: 🔴 changed code with no claim/test (review this first) → 🟡 weak evidence → 🟢 strong. Untested changed source is the reviewer's first stop.
 - **Segments by audience**: stakeholder behaviour on top, engineer detail below.
 - **Grades each claim** and shows *why* that strength was assigned.
+
+The same grade appears in `traceability-csv` as `evidence_grade`, including
+untraced scenarios. Use that export when a reviewer or auditor needs one flat
+requirement/scenario table; do not invent a second grading rubric for the CSV.
 
 ## Self-check before calling a change done
 

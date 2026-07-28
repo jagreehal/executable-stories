@@ -30,6 +30,7 @@ public class CalculatorTests
 - BDD steps: `Given`, `When`, `Then`, `And`, `But`
 - Aliases: `Arrange`, `Act`, `Assert`, `Setup`, `Context`, `Execute`, `Action`, `Verify`
 - Rich docs via `Story` and `DocEntry`
+- State snapshots: `Story.State(value, label?)` records a JSON snapshot of the world at the current step (e.g. `Story.State(new { Items = 2 }, "Basket")`); consecutive snapshots with the same label are diffed at render time
 - Step timing: `Story.StartTimer()` / `Story.EndTimer(token)`
 - Trace links: `Story.WithTraceUrlTemplate(...)` or `OTEL_TRACE_URL_TEMPLATE`
 

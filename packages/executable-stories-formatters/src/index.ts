@@ -39,6 +39,7 @@ import { CucumberJsonFormatter } from "./formatters/cucumber-json";
 import { StoryReportJsonFormatter } from "./formatters/story-report-json";
 import { ScenarioIndexJsonFormatter } from "./formatters/scenario-index-json";
 import { BehaviorManifestJsonFormatter } from "./formatters/behavior-manifest-json";
+import { AgentTextFormatter } from "./formatters/agent-text";
 import { JUnitFormatter } from "./formatters/junit-xml";
 import { MarkdownFormatter } from "./formatters/markdown";
 import { ReleaseManifestFormatter } from "./formatters/release-manifest";
@@ -252,6 +253,8 @@ export {
   type ScenarioIndexJsonOptions,
   type ScenarioIndexStep,
 } from "./formatters/scenario-index-json";
+
+export { AgentTextFormatter, toAgentText } from "./formatters/agent-text";
 
 export {
   BehaviorManifestJsonFormatter,
@@ -507,6 +510,7 @@ export interface GenerateCompareResult {
 
 /** Extension map for output formats */
 const FORMAT_EXTENSIONS: Record<OutputFormat, string> = {
+  "agent-text": ".agent.txt",
   "astro-markdown": ".md",
   "behavior-manifest-json": ".behavior-manifest.json",
   markdown: ".md",
@@ -1198,6 +1202,11 @@ export class ReportGenerator {
         const formatter = new BehaviorManifestJsonFormatter({
           pretty: this.options.behaviorManifestJson.pretty,
         });
+        return formatter.format(run);
+      }
+
+      case "agent-text": {
+        const formatter = new AgentTextFormatter();
         return formatter.format(run);
       }
 

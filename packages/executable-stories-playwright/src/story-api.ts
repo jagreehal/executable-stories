@@ -50,6 +50,7 @@ import type {
   ScopedAttachment,
   KvOptions,
   JsonOptions,
+  StateOptions,
   CodeOptions,
   TableOptions,
   LinkOptions,
@@ -169,6 +170,15 @@ function convertStoryDocsToEntries(docs: StoryDocs): DocEntry[] {
       label: docs.json.label,
       content: JSON.stringify(docs.json.value, null, 2),
       lang: 'json',
+      phase: 'runtime',
+    });
+  }
+  if (docs.state) {
+    warnIfStateLarge(docs.state.label, docs.state.value);
+    entries.push({
+      kind: 'state',
+      label: docs.state.label,
+      value: docs.state.value,
       phase: 'runtime',
     });
   }
@@ -367,6 +377,23 @@ function warnIfAbsoluteVideoPathMissing(filePath: string): void {
       'Video bytes are never inlined, so this exact path must resolve to a real file by the time the ' +
       'report is built, or the report will show a "Video unavailable" placeholder instead of the clip.',
   );
+}
+
+/**
+ * Warn (non-fatal) when a state snapshot serializes past 100KB — the entry is
+ * still recorded, but a projection is usually what the storyboard needs.
+ */
+function warnIfStateLarge(label: string | undefined, value: unknown): void {
+  try {
+    const len = JSON.stringify(value)?.length ?? 0;
+    if (len > 100_000) {
+      console.warn(
+        `[executable-stories] state "${label ?? ''}" is ${Math.round(len / 1024)}KB — consider capturing a projection`,
+      );
+    }
+  } catch {
+    // Non-serializable value: recorded as-is, size unknown.
+  }
 }
 
 function attachDoc(entry: DocEntry, children?: DocEntry[]): DocEntry {
@@ -832,6 +859,24 @@ export const story = {
   json(options: JsonOptions, children?: DocEntry[]): DocEntry {
     const content = JSON.stringify(options.value, null, 2);
     return attachDoc({ kind: 'code', label: options.label, content, lang: 'json', phase: 'runtime' }, children);
+  },
+
+  /**
+   * Capture what the world looks like at this step: a JSON-serializable data
+   * snapshot that becomes a storyboard frame. Consecutive states with the same
+   * label are diffed downstream, so snapshot the same projection at each step.
+   *
+   * A step can carry BOTH a screenshot and a state — the screen and the
+   * backend record for the same moment:
+   *
+   * @example
+   * story.when('the user completes checkout');
+   * await story.screenshot({ page, alt: 'Payment form' });
+   * story.state({ label: 'order', value: { id: 1042, status: 'paid', total: '£25' } });
+   */
+  state(options: StateOptions, children?: DocEntry[]): DocEntry {
+    warnIfStateLarge(options.label, options.value);
+    return attachDoc({ kind: 'state', label: options.label, value: options.value, phase: 'runtime' }, children);
   },
 
   code(options: CodeOptions, children?: DocEntry[]): DocEntry {

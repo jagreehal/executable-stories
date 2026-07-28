@@ -4,7 +4,7 @@
  * These tests verify that the story API correctly builds StoryMeta
  * and attaches it to task.meta.story for the reporter to consume.
  */
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { story } from "../story-api";
 import type { StoryMeta } from "../types";
 
@@ -1939,5 +1939,93 @@ describe("ticket normalization for objects (Task 12)", () => {
 
     const meta = getStoryMeta(task);
     expect(meta.tickets).toBeUndefined();
+  });
+});
+
+describe("story.state()", () => {
+  it("attaches a state entry with label to the current step", ({ task }) => {
+    story.init(task);
+    story.given("an empty basket");
+    story.state({ label: "Basket", value: { items: [], total: 0 } });
+
+    const meta = getStoryMeta(task);
+    expect(meta.steps[0].docs).toHaveLength(1);
+    expect(meta.steps[0].docs![0]).toEqual({
+      kind: "state",
+      label: "Basket",
+      value: { items: [], total: 0 },
+      phase: "runtime",
+    });
+  });
+
+  it("works without a label", ({ task }) => {
+    story.init(task);
+    story.when("checkout starts");
+    story.state({ value: { step: "checkout" } });
+
+    const meta = getStoryMeta(task);
+    expect(meta.steps[0].docs![0]).toEqual({
+      kind: "state",
+      label: undefined,
+      value: { step: "checkout" },
+      phase: "runtime",
+    });
+  });
+
+  it("attaches to story-level docs before any step", ({ task }) => {
+    story.init(task);
+    story.state({ label: "Initial", value: { seeded: true } });
+    story.given("a seeded database");
+
+    const meta = getStoryMeta(task);
+    expect(meta.docs).toHaveLength(1);
+    expect(meta.docs![0].kind).toBe("state");
+    expect(meta.steps[0].docs).toHaveLength(0);
+  });
+
+  it("supports inline state docs on step markers", ({ task }) => {
+    story.init(task);
+    story.given("a basket with one item", {
+      state: { label: "Basket", value: { items: ["widget"], total: 49.99 } },
+    });
+
+    const meta = getStoryMeta(task);
+    expect(meta.steps[0].docs![0]).toEqual({
+      kind: "state",
+      label: "Basket",
+      value: { items: ["widget"], total: 49.99 },
+      phase: "runtime",
+    });
+  });
+
+  it("warns when the serialized value exceeds 100KB but still records it", ({ task }) => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      story.init(task);
+      story.given("a huge entity");
+      story.state({ label: "Huge", value: { blob: "x".repeat(150_000) } });
+
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      expect(warnSpy.mock.calls[0][0]).toMatch(
+        /^\[executable-stories\] state "Huge" is \d+KB — consider capturing a projection/,
+      );
+      const meta = getStoryMeta(task);
+      expect(meta.steps[0].docs).toHaveLength(1);
+      expect(meta.steps[0].docs![0].kind).toBe("state");
+    } finally {
+      warnSpy.mockRestore();
+    }
+  });
+
+  it("does not warn for small values", ({ task }) => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      story.init(task);
+      story.given("a small entity");
+      story.state({ label: "Small", value: { ok: true } });
+      expect(warnSpy).not.toHaveBeenCalled();
+    } finally {
+      warnSpy.mockRestore();
+    }
   });
 });

@@ -12,6 +12,7 @@ def test_calculator_adds_two_numbers():
     a, b = 5, 3
     story.when("the numbers are added")
     result = add(a, b)
+    story.state({"a": a, "b": b, "result": result}, label="Calculator")
     story.then("the result is 8")
     assert result == 8
 

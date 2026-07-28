@@ -512,6 +512,16 @@ export class CucumberJsonFormatter {
         // Screenshots are handled as embeddings, not arguments
         return null;
 
+      case "state":
+        // State snapshots embed as JSON doc strings, label included.
+        return {
+          doc_string: {
+            content: JSON.stringify({ state: doc.label ?? "State", value: doc.value ?? null }, null, 2),
+            content_type: "application/json",
+            line: 0,
+          },
+        };
+
       case "html":
         // Inline html content is handled as a text/html embedding; url/path
         // degrade to a markdown link argument so the reference survives.

@@ -61,7 +61,8 @@ adapters — see the [cross-language parity policy](https://executablestories.co
 | **Scenario modifiers**            | `story.skip` `story.only`                                                     | `story.skip` `story.only`                                    | `story.skip` `story.only` `story.fixme` `story.slow` | `story.skip` `story.only`                            |
 | **Planned scenarios** (`it.todo`) | ✅ bodyless `it.todo` in story files renders as _Planned_                     | ✅ same                                                      | — (no `test.todo`; `fixme` reports as skipped)       | — (no Mocha todo status)                             |
 | **Output modes**                  | Colocated, aggregated, mixed                                                  | Colocated, aggregated, mixed                                 | Colocated, aggregated, mixed                         | Colocated, aggregated, mixed                         |
-| **Rich step docs**                | ✅ note, kv, code, table, link, section, mermaid, screenshot, video, runtime, custom | ✅ same                                                      | ✅ same                                              | ✅ same                                              |
+| **Rich step docs**                | ✅ note, kv, code, table, link, section, mermaid, screenshot, video, state, runtime, custom | ✅ same                                                      | ✅ same                                              | ✅ same                                              |
+| **State snapshots** (`story.state`) | ✅ `story.state({ label?, value })` — data snapshot per step; same-label snapshots diffed in reports | ✅ same                                              | ✅ same                                              | ✅ same                                              |
 | **Embedded HTML** (`story.html`)  | ✅ path / url / content → sandboxed iframe                                     | ✅ path / url / content → sandboxed iframe                   | ✅ same (local files inlined at capture time)        | ✅ path / url / content → sandboxed iframe            |
 | **Scenario options**              | `tags`, `meta`, `ticket`, `traceUrlTemplate`                                  | `tags`, `meta`, `ticket`, `traceUrlTemplate`                 | `tags`, `meta`, `ticket`, `traceUrlTemplate`         | `tags`, `meta`, `ticket`, `traceUrlTemplate`         |
 | **OTel trace link**               | ✅ auto-detect via `@opentelemetry/api`                                       | ✅ same                                                      | ✅ same                                              | — (browser env)                                      |
@@ -81,6 +82,8 @@ For per-framework behaviour and guarantees (entry point, mental model, modifiers
 Details and reporter options: see each package's README.
 
 **OTel trace link** is also supported in the non-JS adapters: Go (`WithTraceUrlTemplate`), Python (`trace_url_template`), Kotlin/JUnit5 (`traceUrlTemplate` parameter or env var), Rust (`with_trace_url_template`, requires `otel` feature), and C#/xUnit (`Story.WithTraceUrlTemplate()` or env var). All adapters auto-detect an active span and inject trace ID docs bidirectionally. Set `OTEL_TRACE_URL_TEMPLATE` (with `{traceId}` placeholder) to generate clickable trace links in reports.
+
+**State snapshots** (`story.state({ label?, value })`) are supported in all adapters. A state doc captures what the world looks like at a step as a JSON-serializable value (e.g. the Basket after adding an item). Steps carrying a screenshot or state docs become storyboard frames: a label's first appearance shows the full snapshot, consecutive snapshots with the same label render as a diff (`items[0].qty: 1 → 2`), and multiple labels appear as side-by-side lanes. Non-JS adapters mirror the verb with their local conventions, e.g. Go `s.State(label, value)`, Python `story.state(value, label=None)`, C# `Story.State(value, label)`. There is no size cap, but the JS adapters warn above ~100KB — capture the business-relevant projection, not the ORM entity.
 
 **Step timing** (`startTimer`/`endTimer`) is supported in all non-JS adapters: Go (`s.StartTimer()`/`s.EndTimer(token)`), Python (`story.start_timer()`/`story.end_timer(token)`), Kotlin/JUnit5 (`Story.startTimer()`/`Story.endTimer(token)`), Rust (`story.start_timer()`/`story.end_timer(token)`), and C#/xUnit (`Story.StartTimer()`/`Story.EndTimer(token)`). The JS adapters record step timing automatically via `story.fn()` / `story.expect()` wrappers and step callbacks.
 
@@ -153,11 +156,14 @@ See each package's README for detailed setup instructions.
 
 ## Living documentation site
 
-Render your stories as a live Astro site — a stories index, one page per
-scenario, and a searchable Explorer. The `executable-stories-astro` integration
-loads your test run JSON as a hot-reloading `stories` collection: add a
-`*.story.test.ts` and re-run, its page appears; delete it and the page is pruned.
-Zero per-test wiring.
+Render your stories as a live Astro site: a grouped index, one page per
+scenario, a searchable Explorer, persona views, ordered journeys, a UI-state
+catalog, and multi-source drift. The `executable-stories-astro` integration
+loads test run JSON as a hot-reloading `stories` collection: add a story test
+and re-run, its page appears; delete it and the page is pruned. Step screenshots
+and `story.state()` snapshots become storyboards (data diffs for non-UI code),
+and existing design links appear next to the proof. Zero
+per-test wiring or generated Markdown pages.
 
 The `executable-stories` CLI ships in the `executable-stories-formatters` package
 (install it, or invoke via `npx --package executable-stories-formatters executable-stories …`).
@@ -169,6 +175,18 @@ cd site && npm install
 pnpm test            # (in your project) writes reports/raw-run.json — auto-includes all stories
 npm run dev          # live docs at /stories, hot-reloading as tests re-run; npm run build for static dist/
 ```
+
+Configure audience lenses with `views`; compose walkthroughs with
+`journey:<id>:<n>` tags; feed `/states` with `state:<name>` and
+`viewport:<name>` tags. With two or more named `sources`, `/drift` compares
+their current scenario status. Point `historyFile` at the CLI's
+`--history-file` store to add recent-run stability to journey pages.
+
+For a multi-repository hub, use the GitHub Action's `publish-run` mode in each
+product repository, fetch the stable run URLs, and build one Astro site. See
+the [Astro site guide](https://executablestories.com/guides/astro-docs-site/),
+[audience tagging guide](https://executablestories.com/guides/tagging-for-your-audience/),
+and [multi-repo hub guide](https://executablestories.com/guides/multi-repo-docs-hub/).
 
 > **Removed:** the old `build-docs` command (a one-shot Markdown generator that
 > wrote story pages into a scaffold) has been removed — stories now render live

@@ -263,6 +263,17 @@ function convertStoryDocsToEntries(docs: StoryDocs): DocEntry[] {
     });
   }
 
+  // state(label?, value)
+  if (docs.state) {
+    warnIfLargeState(docs.state.label, docs.state.value);
+    entries.push({
+      kind: 'state',
+      label: docs.state.label,
+      value: docs.state.value,
+      phase: 'runtime',
+    });
+  }
+
   // table(label, columns, rows)
   if (docs.table) {
     entries.push({
@@ -534,6 +545,12 @@ interface JsonOptions {
   value: unknown;
 }
 
+/** Options for state() - data snapshot of the world at this step */
+interface StateOptions {
+  label?: string;
+  value: unknown;
+}
+
 /** Options for code() - code block with optional language */
 interface CodeOptions {
   label: string;
@@ -654,6 +671,42 @@ function json(options: JsonOptions, children?: DocEntry[]): DocEntry {
     label: options.label,
     content,
     lang: 'json',
+    phase: 'runtime',
+  }, children);
+}
+
+/** Warn (non-fatal) when a state snapshot is suspiciously large. */
+function warnIfLargeState(label: string | undefined, value: unknown): void {
+  try {
+    const length = JSON.stringify(value)?.length ?? 0;
+    if (length > 100_000) {
+      console.warn(
+        `[executable-stories] state "${label ?? 'state'}" is ${Math.round(length / 1024)}KB — consider capturing a projection of the entity instead of the whole thing`,
+      );
+    }
+  } catch {
+    /* non-serializable value; still recorded */
+  }
+}
+
+/**
+ * Capture what the world looks like at this step — a data snapshot that
+ * becomes a storyboard frame in generated docs. Consecutive snapshots with
+ * the same label get diffed downstream. The value must be JSON-serializable.
+ * @example
+ * ```ts
+ * story.given('an empty basket');
+ * story.state({ label: 'Basket', value: { items: [], total: 0 } });
+ * story.when('a widget is added');
+ * story.state({ label: 'Basket', value: { items: ['widget'], total: 49.99 } });
+ * ```
+ */
+function state(options: StateOptions, children?: DocEntry[]): DocEntry {
+  warnIfLargeState(options.label, options.value);
+  return attachDoc({
+    kind: 'state',
+    label: options.label,
+    value: options.value,
     phase: 'runtime',
   }, children);
 }
@@ -1048,6 +1101,7 @@ export const story = {
   note,
   kv,
   json,
+  state,
   code,
   table,
   link,

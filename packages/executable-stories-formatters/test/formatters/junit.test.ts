@@ -254,3 +254,30 @@ describe("JUnitFormatter", () => {
     });
   });
 });
+
+describe("JUnitFormatter — state docs", () => {
+  it("includes state docs in system-out and does not crash", () => {
+    const raw = createRawRun({
+      testCases: [
+        createTestCase({
+          story: createStory({
+            steps: [
+              {
+                keyword: "Given",
+                text: "a basket",
+                docs: [
+                  { kind: "state", label: "Basket", value: { items: ["apple"] }, phase: "runtime" },
+                  { kind: "state", value: { mode: "guest" }, phase: "runtime" },
+                ],
+              },
+            ],
+          }),
+        }),
+      ],
+    });
+    const result = new JUnitFormatter().format(canonicalizeRun(raw));
+
+    expect(result).toContain('State (Basket): {&quot;items&quot;:[&quot;apple&quot;]}');
+    expect(result).toContain('State: {&quot;mode&quot;:&quot;guest&quot;}');
+  });
+});

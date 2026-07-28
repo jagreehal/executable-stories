@@ -110,6 +110,30 @@ jobs:
           fi
           echo "Action correctly failed"
 
+  publish-run-invalid:
+    name: "publish-run: reject structurally invalid run JSON"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Stage invalid run fixture
+        run: |
+          mkdir -p reports
+          printf '%s\n' '{"testCases":[null]}' > reports/raw-run.json
+      - name: Run action (should fail before touching the API)
+        id: action
+        continue-on-error: true
+        uses: ./packages/executable-stories-action
+        with:
+          mode: publish-run
+          run-json: reports/raw-run.json
+      - name: Verify failure
+        run: |
+          if [[ "${{ steps.action.outcome }}" != "failure" ]]; then
+            echo "Expected publish-run to reject structurally invalid run JSON"
+            exit 1
+          fi
+          echo "Action correctly rejected invalid run JSON"
+
   missing-files:
     name: "report: fail when no input exists"
     runs-on: ubuntu-latest

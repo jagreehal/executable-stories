@@ -66,6 +66,18 @@ executable-stories format .executable-stories/raw-run.json \
 
 Output: `reports/index.behavior-manifest.json` — source file rollups, tag index, doc coverage, debugger warnings (missing tags, missing source lines, etc.).
 
+## Chat Paste (`agent-text`)
+
+Not every model reading your run is a coding agent with tools. Sooner or later a product owner pastes the HTML report into ChatGPT and asks "what does this product do?". A 1.3&nbsp;MB report overflows the context window, so the model answers from whatever fraction survived truncation, without saying so.
+
+`agent-text` is the artifact for that paste: the full run (steps, doc entries, errors) as flat plain text, with a self-describing header and none of the tokens a model never reads (ids, hashes, durations, markup).
+
+```bash
+executable-stories format .executable-stories/raw-run.json --format agent-text
+```
+
+Output: `reports/index.agent.txt`. On a real 74-scenario run: HTML 1,312&nbsp;KB (~330k tokens), `agent-text` 107&nbsp;KB (~27k tokens). The same behavior, at a size a chat window actually keeps. For tool-using agents, prefer the JSON artifacts above; this format optimizes tokens, not parseability.
+
 ## Release Manifest
 
 For release evidence, generate a tested-together manifest:
@@ -148,7 +160,7 @@ Recommended CI flow:
 ```bash
 pnpm test
 executable-stories format reports/raw-run.json \
-  --format story-report-json,scenario-index-json,behavior-manifest-json,release-manifest,traceability-matrix,html,markdown \
+  --format story-report-json,scenario-index-json,behavior-manifest-json,agent-text,release-manifest,traceability-matrix,html,markdown \
   --output-dir reports \
   --output-name index
 ```
@@ -158,6 +170,7 @@ Publish as CI artifacts:
 - `reports/index.story-report.json`
 - `reports/index.scenario-index.json`
 - `reports/index.behavior-manifest.json`
+- `reports/index.agent.txt`
 - `reports/index.release-manifest.md`
 - `reports/index.traceability-matrix.md`
 

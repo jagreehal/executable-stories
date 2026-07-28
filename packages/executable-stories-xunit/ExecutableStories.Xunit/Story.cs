@@ -230,6 +230,18 @@ namespace ExecutableStories.Xunit
         }
 
         /// <summary>
+        /// Add a snapshot of the world at the current step (kind=state).
+        /// Label names the entity for diffing across steps; omitted when null.
+        /// </summary>
+        public static DocEntry State(object value, string? label = null, DocEntry[]? children = null)
+        {
+            StoryContext ctx = RequireContext();
+            var entry = DocEntry.State(value, label, children);
+            ctx.AddDoc(entry);
+            return entry;
+        }
+
+        /// <summary>
         /// Add a code block with optional language.
         /// </summary>
         public static DocEntry Code(string label, string content, string? lang = null, DocEntry[]? children = null)

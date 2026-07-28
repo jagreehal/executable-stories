@@ -602,6 +602,93 @@ pre.mermaid { white-space: pre-wrap; word-break: break-word; margin: 0; font-siz
   border: 1px solid var(--es-border); border-radius: 999px;
   color: var(--es-muted); font-size: 0.7rem;
 }
+/* Data-card thumbnail: a story.state() snapshot standing in for a screenshot,
+   so non-UI scenarios still get a meaningful card in the catalog. */
+.es-states__data {
+  display: flex; flex-direction: column; gap: 0.15rem;
+  height: 120px; padding: 0.5rem 0.65rem; overflow: hidden;
+  background: var(--es-surface); color: var(--es-fg);
+  font-family: var(--es-mono); font-size: 0.72rem; text-align: left;
+}
+.es-states__data-label {
+  align-self: flex-start; margin-bottom: 0.15rem; padding: 0.05rem 0.4rem;
+  border: 1px solid var(--es-border); border-radius: 999px;
+  background: var(--es-card); color: var(--es-muted);
+  font-family: var(--es-font); font-size: 0.68rem; font-weight: 600;
+}
+.es-states__data-line { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Journey chapter-end state strip ("at the end of this chapter") */
+.es-journey__endstate {
+  margin: 0.6rem 0 0; padding: 0.55rem 0.75rem;
+  border: 1px solid var(--es-border); border-left: 3px solid var(--es-pass-edge);
+  border-radius: var(--es-radius-sm); background: var(--es-surface);
+}
+.es-journey__endstate-label {
+  display: block; margin-bottom: 0.35rem;
+  font-size: 0.68rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--es-muted);
+}
+.es-journey__endstate ul {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem;
+}
+.es-journey__endstate-card { display: flex; align-items: baseline; gap: 0.45rem; }
+.es-journey__endstate-chip {
+  padding: 0.05rem 0.4rem;
+  border: 1px solid var(--es-border); border-radius: 999px;
+  background: var(--es-card); font-size: 0.7rem; font-weight: 600;
+}
+.es-journey__endstate-lines { display: flex; flex-direction: column; gap: 0.1rem; }
+.es-journey__endstate-lines code {
+  font-family: var(--es-mono); font-size: 0.75rem;
+  background: none; padding: 0;
+}
+
+/* Design context strip (figma/zeplin/sketch links from story.link) */
+.es-design {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 0.45rem 0.7rem;
+  margin-top: 0.7rem; font-size: 0.85rem;
+}
+.es-design__label {
+  font-size: 0.68rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--es-muted);
+}
+.es-design a {
+  display: inline-flex; align-items: center;
+  padding: 0.14rem 0.55rem;
+  border: 1px solid var(--es-border); border-radius: 999px;
+  background: var(--es-card); color: var(--es-fg);
+  text-decoration: none;
+}
+.es-design a:hover { border-color: var(--es-accent, var(--sl-color-text-accent, #1a7f37)); }
+
+/* Journey-level run history badge ("7/10 recent runs passed · flaky") */
+.es-run-history {
+  font-family: var(--es-mono); font-size: 0.78rem;
+  padding: 0.14rem 0.5rem; border-radius: 0.3rem;
+  background: var(--es-surface); color: var(--es-muted);
+}
+.es-run-history.is-flaky,
+.es-run-history.is-unstable {
+  background: color-mix(in srgb, var(--es-warn) 13%, var(--es-card));
+  color: var(--es-warn);
+}
+
+/* Environment drift table */
+.es-drift__summary { color: var(--es-muted); font-size: 0.92rem; margin: 0.25rem 0 1rem; }
+.es-drift { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.es-drift th {
+  text-align: left; padding: 0.5rem 0.65rem;
+  border-bottom: 1px solid var(--es-border);
+  font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--es-muted);
+}
+.es-drift td { padding: 0.45rem 0.65rem; border-bottom: 1px solid var(--es-border); }
+.es-drift td a { color: var(--es-fg); text-decoration: none; }
+.es-drift td a:hover { text-decoration: underline; }
+.es-drift__row--drifted { background: var(--es-warn-tint); }
+.es-drift__absent { color: var(--es-muted); font-size: 0.8rem; font-style: italic; }
 
 /* Journey walkthrough (ordered member scenarios) */
 .es-journey__steps { list-style: none; margin: 1.25rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 1.5rem; }

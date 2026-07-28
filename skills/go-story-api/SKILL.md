@@ -105,6 +105,20 @@ func TestProcessesPayment(t *testing.T) {
 }
 ```
 
+### State snapshots (State)
+
+`s.State(label, value)` captures what the world looks like at the current step as a JSON-serializable snapshot (pass `""` to omit the label). Steps carrying state docs (or screenshots) become storyboard frames: a label's first appearance shows the full snapshot, consecutive snapshots with the same label render as a diff (`total: 0 → 45`), and multiple labels appear as side-by-side lanes.
+
+```go
+s.Given("an empty basket")
+s.State("Basket", map[string]any{"items": []string{}, "total": 0})
+
+s.When("the shopper adds a hoodie")
+s.State("Basket", map[string]any{"items": []string{"hoodie"}, "total": 45})
+```
+
+Capture the business-relevant projection, not the ORM entity.
+
 ### Embedded HTML
 
 Embed generated HTML (charts, single-file reports, skill/agent output) in an

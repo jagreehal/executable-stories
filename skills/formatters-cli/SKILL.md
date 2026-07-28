@@ -4,19 +4,17 @@ description: >
   Use when running the executable-stories CLI or formatters API: turning a
   RawRun into a report (Astro, Confluence, HTML, Markdown, JUnit, Cucumber,
   story-report-json, etc.), gating a release, comparing runs, reviewing
-  AI-authored changes, or driving agent-loop commands (check/triage/goal).
-type: core
-library: executable-stories-formatters
-library_version: "1.0.0"
-sources:
-  - "jagreehal/executable-stories:packages/executable-stories-formatters/src/cli.ts"
-  - "jagreehal/executable-stories:packages/executable-stories-formatters/src/index.ts"
-  - "jagreehal/executable-stories:apps/docs-site/src/content/docs/reference/formatters-api.md"
+  AI-authored changes, driving agent-loop commands (check/triage/goal), or
+  sharing a run with a chat LLM (agent-text).
 ---
 
 # executable-stories-formatters — CLI & API
 
 ## Setup
+
+Sources of truth: `packages/executable-stories-formatters/src/cli.ts`,
+`packages/executable-stories-formatters/src/index.ts`, and the docs-site
+formatters API reference.
 
 ```bash
 npm install -D executable-stories-formatters
@@ -35,11 +33,16 @@ executable-stories format raw-run.json --format markdown --output-dir docs
 # Generate multiple formats
 executable-stories format raw-run.json --format html,markdown,junit
 
-# Requirement traceability for auditors (Markdown matrix, or flat CSV for spreadsheets)
+# Requirement traceability for auditors. CSV includes evidence_grade.
 executable-stories format raw-run.json --format traceability-matrix,traceability-csv
 
-# Format presets, instead of remembering which of 13 formats you need:
-#   agent -> story-report-json, scenario-index-json, behavior-manifest-json
+# Pasting a run into a chat LLM (a stakeholder asking ChatGPT "what does this
+# product do?"): flat token-lean text, ~12x smaller than the HTML report.
+# HTML pasted into a chat window silently truncates; agent-text fits.
+executable-stories format raw-run.json --format agent-text
+
+# Format presets, instead of remembering which of 15 formats you need:
+#   agent -> story-report-json, scenario-index-json, behavior-manifest-json, agent-text
 #   ci    -> junit, story-report-json
 #   docs  -> html, markdown
 executable-stories format --preset agent
@@ -64,6 +67,8 @@ executable-stories compare baseline.json current.json \
   --input-type canonical \
   --format html,markdown \
   --output-name review-diff
+# HTML adds a storyboard to regressed/fixed scenarios when their current
+# step docs contain browser-renderable screenshots or state snapshots.
 
 # Behavior changelog between two tagged runs + PR-comment summary
 executable-stories compare v1.2-run.json v1.3-run.json \
@@ -88,6 +93,13 @@ executable-stories completion zsh > ~/.zsh/completions/_executable-stories
 executable-stories publish-confluence reports/test-results.adf.json --page-id 12345 --dry-run
 executable-stories publish-jira reports/test-results.adf.json --issue PROJ-123 --mode comment --dry-run
 ```
+
+The Astro site reads run JSON directly. Configure persona `views`, journeys,
+states, multi-source drift, and journey history in
+`story-docs/executable-stories.config.mjs`; do not generate per-story Markdown
+with the removed `build-docs` command. For a cross-repository hub, publish each
+product's run with the GitHub Action's `mode: publish-run`, fetch the stable
+URLs, then run the hub's normal Astro build.
 
 ### Programmatic usage
 
@@ -138,7 +150,7 @@ Test code (story.given/when/then)
     → RawRun JSON (schemaVersion: 1)
       → canonicalizeRun() → TestRunResult
         → Formatters (Astro, Confluence, HTML, Markdown, JUnit, Cucumber JSON/HTML/Messages,
-          release-manifest, traceability-matrix, traceability-csv, story-report-json, scenario-index-json, behavior-manifest-json)
+          release-manifest, traceability-matrix, traceability-csv, story-report-json, scenario-index-json, behavior-manifest-json, agent-text)
         → Agent-loop commands (check, triage, goal) read the same TestRunResult
 ```
 

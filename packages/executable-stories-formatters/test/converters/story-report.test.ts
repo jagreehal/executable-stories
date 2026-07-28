@@ -281,3 +281,43 @@ describe("toStoryReportWithIndex", () => {
     expect(toStoryReport(run)).toEqual(toStoryReportWithIndex(run).report);
   });
 });
+
+describe("state docs in StoryReport", () => {
+  it("round-trips state docs through StoryReportJsonFormatter and validates against the schema", () => {
+    const run = makeRun([
+      makeTestCase({
+        story: {
+          scenario: "Basket grows",
+          steps: [
+            {
+              keyword: "Given",
+              text: "an empty basket",
+              docs: [{ kind: "state", label: "Basket", value: { items: [] }, phase: "runtime" }],
+            },
+            {
+              keyword: "When",
+              text: "an apple is added",
+              docs: [
+                { kind: "state", label: "Basket", value: { items: ["apple"] }, phase: "runtime" },
+                { kind: "state", value: 42, phase: "runtime" },
+              ],
+            },
+          ],
+        },
+      }),
+    ]);
+
+    const json = new StoryReportJsonFormatter().format(run);
+    const report = JSON.parse(json);
+    const v = validateStoryReport(report);
+    expect(v.errors).toEqual([]);
+    expect(v.valid).toBe(true);
+
+    const steps = report.features[0].scenarios[0].steps;
+    expect(steps[0].docEntries[0]).toMatchObject({ kind: "state", label: "Basket", value: { items: [] } });
+    expect(steps[1].docEntries[0].value).toEqual({ items: ["apple"] });
+    // Unlabeled state keeps its raw value and no label field.
+    expect(steps[1].docEntries[1]).toMatchObject({ kind: "state", value: 42 });
+    expect("label" in steps[1].docEntries[1]).toBe(false);
+  });
+});

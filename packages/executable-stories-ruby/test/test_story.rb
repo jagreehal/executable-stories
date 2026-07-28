@@ -159,11 +159,12 @@ class TestStory < Minitest::Test
     s.mermaid("graph TD; A-->B", title: "diagram")
     s.screenshot("/path/img.png", alt: "alt text")
     s.html(content: "<h1>Report</h1>", title: "Coverage")
+    s.state({ "count" => 1 }, label: "World")
     s.custom("myType", { "foo" => "bar" })
 
-    assert_equal 12, s.steps[0].docs.length
+    assert_equal 13, s.steps[0].docs.length
 
-    expected_kinds = %w[note tag kv code code table link section mermaid screenshot html custom]
+    expected_kinds = %w[note tag kv code code table link section mermaid screenshot html state custom]
     s.steps[0].docs.each_with_index do |doc, i|
       assert_equal expected_kinds[i], doc["kind"]
       assert_equal "runtime", doc["phase"]
@@ -354,6 +355,35 @@ class TestStory < Minitest::Test
     assert_equal 42, parsed["count"]
   end
 
+  def test_state_doc_attaches_to_current_step
+    s = ExecutableStories::Story.new("state doc")
+    s.given("a basket")
+    s.state({ "items" => 2, "total" => 9.98 }, label: "Basket")
+
+    doc = s.steps[0].docs[0]
+    assert_equal(
+      { "kind" => "state", "label" => "Basket", "value" => { "items" => 2, "total" => 9.98 }, "phase" => "runtime" },
+      doc
+    )
+  end
+
+  def test_state_doc_without_label_is_story_level_before_steps
+    s = ExecutableStories::Story.new("state no label")
+    s.state({ "a" => 1 })
+
+    doc = s.docs[0]
+    assert_equal "state", doc["kind"]
+    refute doc.key?("label")
+  end
+
+  def test_state_doc_nested_value_round_trip
+    s = ExecutableStories::Story.new("state round trip")
+    value = { "user" => { "name" => "alice", "roles" => ["admin"] }, "counts" => [1, 2, 3], "ok" => nil }
+    s.state(value, label: "World")
+
+    assert_equal value, JSON.parse(JSON.generate(s.docs[0]["value"]))
+  end
+
   def test_source_order
     s1 = ExecutableStories::Story.new("first")
     s2 = ExecutableStories::Story.new("second")
@@ -530,6 +560,19 @@ class TestDocEntry < Minitest::Test
   def test_screenshot_without_alt
     entry = ExecutableStories::DocEntry.screenshot("/tmp/shot.png")
     assert_nil entry["alt"]
+  end
+
+  def test_state
+    entry = ExecutableStories::DocEntry.state({ "a" => 1 }, label: "World")
+    assert_equal "state", entry["kind"]
+    assert_equal "World", entry["label"]
+    assert_equal({ "a" => 1 }, entry["value"])
+    assert_equal "runtime", entry["phase"]
+  end
+
+  def test_state_without_label
+    entry = ExecutableStories::DocEntry.state([1, 2])
+    refute entry.key?("label")
   end
 
   def test_custom

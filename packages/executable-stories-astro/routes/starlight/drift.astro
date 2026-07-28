@@ -1,0 +1,13 @@
+---
+/**
+ * Environment drift — Starlight variant, injected only when Starlight is
+ * detected (or forced via `shell`).
+ */
+import StarlightPage from "@astrojs/starlight/components/StarlightPage.astro";
+import "../../styles/es.css";
+import DriftView from "../../components/DriftView.astro";
+---
+
+<StarlightPage frontmatter={{ title: "Environment drift", tableOfContents: false, prev: false, next: false }}>
+  <DriftView shell="starlight" />
+</StarlightPage>

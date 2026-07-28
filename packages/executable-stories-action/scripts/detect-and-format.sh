@@ -288,19 +288,48 @@ run_publish() {
     echo "::error::Set run-json (or raw-run) to your test run output. JS reporters can emit raw-run.json; non-JS adapters write .executable-stories/raw-run.json."
     exit 1
   fi
-  # Gate on the file actually being a run JSON: a JSON object whose testCases
-  # is an array (the invariant shared by raw AND canonical runs). Publishing
-  # an empty file, an HTML error page, or unrelated JSON would break every
-  # docs-hub build that fetches this branch, so refuse rather than commit
-  # garbage. Node is the validator because any runner executing this action
-  # already has it (the comment step is actions/github-script) — no optional
-  # jq dependency, no validation bypass.
+  # Gate on the file actually being a run JSON. Validate the structural fields
+  # the raw -> canonical transform dereferences so a payload accepted here
+  # cannot later crash an executable-stories-astro loader. This deliberately
+  # accepts both permissive raw runs and strict canonical runs; it is not a
+  # second versioned schema. Node is available on every Actions runner that can
+  # execute this composite action, so validation has no optional dependency or
+  # bypass path.
   if ! node -e '
     const fs = require("fs");
     const d = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
-    if (typeof d !== "object" || d === null || Array.isArray(d) || !Array.isArray(d.testCases)) process.exit(1);
+    const record = (v) => typeof v === "object" && v !== null && !Array.isArray(v);
+    const strings = (v) => Array.isArray(v) && v.every((item) => typeof item === "string");
+    const optionalStrings = (v) => v === undefined || strings(v);
+    const validStep = (step) => record(step) && typeof step.keyword === "string" && typeof step.text === "string";
+    const validTicket = (ticket) =>
+      typeof ticket === "string" || (record(ticket) && typeof ticket.id === "string");
+    const validAttachment = (attachment) =>
+      record(attachment) &&
+      typeof attachment.name === "string" &&
+      typeof attachment.mediaType === "string" &&
+      (attachment.path === undefined || typeof attachment.path === "string") &&
+      (attachment.body === undefined || typeof attachment.body === "string");
+    const validStory = (story) =>
+      story === undefined ||
+      (record(story) &&
+        (story.scenario === undefined || typeof story.scenario === "string") &&
+        (story.steps === undefined || (Array.isArray(story.steps) && story.steps.every(validStep))) &&
+        optionalStrings(story.tags) &&
+        optionalStrings(story.suitePath) &&
+        (story.tickets === undefined || (Array.isArray(story.tickets) && story.tickets.every(validTicket))));
+    const validCase = (testCase) =>
+      record(testCase) &&
+      typeof testCase.status === "string" &&
+      validStory(testCase.story) &&
+      optionalStrings(testCase.titlePath) &&
+      (testCase.attachments === undefined ||
+        (Array.isArray(testCase.attachments) && testCase.attachments.every(validAttachment))) &&
+      (testCase.stepEvents === undefined ||
+        (Array.isArray(testCase.stepEvents) && testCase.stepEvents.every(record)));
+    if (!record(d) || !Array.isArray(d.testCases) || !d.testCases.every(validCase)) process.exit(1);
   ' "$SOURCE" >/dev/null 2>&1; then
-    echo "::error::publish-run: '${SOURCE}' is not a run JSON (expected a JSON object whose testCases is an array)."
+    echo "::error::publish-run: '${SOURCE}' is not a structurally valid raw/canonical run JSON."
     echo "::error::Refusing to publish — downstream docs hubs fetch this file at build time."
     exit 1
   fi

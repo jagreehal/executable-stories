@@ -1,5 +1,6 @@
 import type { RunDiffResult, ScenarioDiff } from "../types/compare";
 import type { DocEntry, StoryStep } from "executable-stories-core/types/story";
+import { isLocalFsPath, safeImageUrl } from "executable-stories-core";
 import { REPORT_THEME_CSS } from "./report-theme-css";
 
 export interface RunDiffHtmlOptions {
@@ -82,12 +83,50 @@ function formatDocEntry(doc: DocEntry): string {
       return `${doc.title ? `${escapeHtml(doc.title)}: ` : ""}${escapeHtml(doc.url ?? doc.path ?? "(inline html)")}`;
     case "custom":
       return `${escapeHtml(doc.type)}: ${escapeHtml(JSON.stringify(doc.data))}`;
+    case "state":
+      return `${escapeHtml(doc.label ?? "State")}: <code>${escapeHtml(JSON.stringify(doc.value) ?? "null")}</code>`;
   }
 }
 
 function formatDocs(docs: DocEntry[]): string {
   if (docs.length === 0) return "&nbsp;";
   return `<ul class="doc-list">${docs.map((d) => `<li>${formatDocEntry(d)}</li>`).join("")}</ul>`;
+}
+
+/** Depth-first search for the first screenshot doc on a step (covers grouped docs). */
+function firstScreenshot(docs: DocEntry[]): { path: string; alt?: string } | undefined {
+  for (const doc of docs) {
+    if (doc.kind === "screenshot") return doc;
+    if (doc.children) {
+      const nested = firstScreenshot(doc.children);
+      if (nested) return nested;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Regression storyboard: for scenarios whose status flipped (regressed/fixed),
+ * render the current run's step screenshots as a filmstrip so triage starts
+ * from what the product looked like, not a stack trace. Frames come from the
+ * same step-attached screenshots the report filmstrip uses; steps without a
+ * browser-renderable screenshot contribute no frame.
+ */
+function renderStoryboardStrip(scenario: ScenarioDiff): string {
+  if (scenario.kind !== "regressed" && scenario.kind !== "fixed") return "";
+  const steps = (scenario.current ?? scenario.baseline)?.steps ?? [];
+  const frames: string[] = [];
+  for (const step of steps) {
+    const shot = firstScreenshot(step.docs ?? []);
+    if (!shot || isLocalFsPath(shot.path)) continue;
+    const src = safeImageUrl(shot.path);
+    if (!src) continue;
+    frames.push(
+      `<figure class="storyboard-frame"><img src="${escapeHtml(src)}" alt="${escapeHtml(shot.alt ?? step.text)}" loading="lazy" /><figcaption><strong>${escapeHtml(step.keyword)}</strong> ${escapeHtml(step.text)}</figcaption></figure>`,
+    );
+  }
+  if (frames.length === 0) return "";
+  return `<div class="storyboard" aria-label="Storyboard">${frames.join("")}</div>`;
 }
 
 function renderScenarioCard(scenario: ScenarioDiff): string {
@@ -118,6 +157,7 @@ function renderScenarioCard(scenario: ScenarioDiff): string {
           ${durationDelta ? `<div class="duration-delta">${escapeHtml(durationDelta)}</div>` : ""}
         </div>
       </header>
+      ${renderStoryboardStrip(scenario)}
       ${
         scenario.changedFields.length > 0
           ? `<div class="field-list">${scenario.changedFields
@@ -290,6 +330,31 @@ const DIFF_CSS = `
       .status-pair { display: flex; gap: 8px; justify-content: flex-end; font-family: var(--font-mono, ui-monospace, monospace); }
       .duration-delta { margin-top: 8px; text-align: right; color: var(--muted-foreground); }
       .field-list { margin-top: 10px; }
+      .storyboard {
+        display: flex;
+        gap: 10px;
+        overflow-x: auto;
+        margin-top: 14px;
+        padding-bottom: 6px;
+      }
+      .storyboard-frame {
+        flex: 0 0 auto;
+        width: 220px;
+        margin: 0;
+        border: 1px solid var(--border);
+        border-radius: var(--radius, 10px);
+        overflow: hidden;
+        background: color-mix(in srgb, var(--card) 60%, var(--background));
+      }
+      .storyboard-frame img { width: 100%; height: 130px; object-fit: cover; object-position: top; display: block; }
+      .storyboard-frame figcaption {
+        padding: 6px 10px;
+        font-size: 0.8rem;
+        color: var(--muted-foreground);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
       .comparison-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));

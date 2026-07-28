@@ -68,6 +68,7 @@ const FLAG_VALUES: Record<string, string[]> = {
     "story-report-json",
     "scenario-index-json",
     "behavior-manifest-json",
+    "agent-text",
     "release-manifest",
     "traceability-matrix",
     "traceability-csv",

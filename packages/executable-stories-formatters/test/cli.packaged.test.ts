@@ -597,3 +597,61 @@ describe("packaged CLI", () => {
     );
   });
 });
+
+describe("large state snapshot notice", () => {
+  let tmpDir: string | undefined;
+
+  afterEach(() => {
+    if (tmpDir) {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+      tmpDir = undefined;
+    }
+  });
+
+  it(
+    "validate prints a non-fatal stderr notice for state snapshots over 100KB and still exits 0",
+    () => {
+      ensurePackagedCliBuilt();
+
+      tmpDir = fs.mkdtempSync(join(os.tmpdir(), "es-state-notice-"));
+      const rawRun = {
+        schemaVersion: 1,
+        projectRoot: tmpDir,
+        testCases: [
+          {
+            title: "Big basket",
+            status: "pass",
+            story: {
+              scenario: "Big basket",
+              steps: [
+                {
+                  keyword: "Given",
+                  text: "a huge basket",
+                  docs: [
+                    { kind: "state", label: "Basket", value: { blob: "x".repeat(120_000) }, phase: "runtime" },
+                    { kind: "state", label: "Small", value: { ok: true }, phase: "runtime" },
+                  ],
+                },
+              ],
+            },
+          },
+        ],
+      };
+      const runPath = join(tmpDir, "raw-run.json");
+      fs.writeFileSync(runPath, JSON.stringify(rawRun), "utf8");
+
+      const result = spawnSync("node", [packagedCliPath, "validate", runPath], {
+        cwd: packageDir,
+        encoding: "utf8",
+      });
+
+      expect(result.status).toBe(0);
+      expect(result.stdout).toContain("Valid RawRun (schemaVersion 1).");
+      expect(result.stderr).toContain('notice: scenario "Big basket" state "Basket" is');
+      expect(result.stderr).toContain("large snapshots slow reports");
+      // The small snapshot stays quiet.
+      expect(result.stderr).not.toContain('state "Small"');
+    },
+    120_000
+  );
+});

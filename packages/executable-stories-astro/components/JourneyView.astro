@@ -9,11 +9,12 @@
 import { ReportScenario } from "executable-stories-react";
 import "executable-stories-react/tailwind.css";
 import "../styles/es.css";
-import { joinHref } from "executable-stories-astro";
+import { chapterEndStates, designLinks, joinHref, journeyRunHistory, stateValueLines } from "executable-stories-astro";
 import type { Journey } from "executable-stories-astro";
 import type { StoryEntryData } from "executable-stories-astro";
 import DocHydration from "./DocHydration.astro";
-import { journeysBase, routeBase } from "virtual:executable-stories/config";
+import DesignContext from "./DesignContext.astro";
+import { historyFile, journeysBase, routeBase } from "virtual:executable-stories/config";
 
 interface Props {
   journey: Journey<StoryEntryData>;
@@ -23,6 +24,11 @@ interface Props {
 }
 const { journey, shell = "standalone", backLink = true } = Astro.props as Props;
 const starlight = shell === "starlight";
+// Journey-level run history ("7/10 recent runs passed · flaky") from the CLI's
+// --history-file store, when the config points at one. Undefined otherwise.
+const history = journeyRunHistory({ historyFile, scenarios: journey.scenarios });
+// Design references (figma/zeplin/sketch links) across every member scenario.
+const design = designLinks(journey.scenarios);
 ---
 
 <div class={`es-story${starlight ? " es-embed" : ""}`}>
@@ -34,20 +40,52 @@ const starlight = shell === "starlight";
       <span class="es-story__feature">
         {journey.scenarios.length} scenario{journey.scenarios.length === 1 ? "" : "s"} in order
       </span>
+      {history && (
+        <span
+          class={`es-run-history${history.level !== "stable" ? ` is-${history.level}` : ""}`}
+          data-testid="journey-history"
+          title={`Aggregated from ${journey.scenarios.length} member scenario histories`}
+        >
+          {history.passed}/{history.total} recent runs passed{history.level !== "stable" ? ` · ${history.level}` : ""}
+        </span>
+      )}
     </div>
+    <DesignContext links={design} />
   </header>
   <ol class="es-journey__steps">
-    {journey.scenarios.map((s, i) => (
-      <li class="es-journey__step">
-        <p class="es-journey__step-label">
-          <span class="es-journey__step-n">{i + 1}</span>
-          <a href={joinHref(routeBase, s.slug)}>{s.title}</a>
-        </p>
-        <div class="es-report-island font-sans text-foreground">
-          <ReportScenario scenario={s} hideTitle />
-        </div>
-      </li>
-    ))}
+    {journey.scenarios.map((s, i) => {
+      // The chapter's closing state — the last `story.state()` snapshot per
+      // lane — so a reader scrolling the journey sees the world progressing.
+      const endStates = chapterEndStates(s);
+      return (
+        <li class="es-journey__step">
+          <p class="es-journey__step-label">
+            <span class="es-journey__step-n">{i + 1}</span>
+            <a href={joinHref(routeBase, s.slug)}>{s.title}</a>
+          </p>
+          <div class="es-report-island font-sans text-foreground">
+            <ReportScenario scenario={s} hideTitle />
+          </div>
+          {endStates.length > 0 && (
+            <aside class="es-journey__endstate" data-testid="chapter-end-state">
+              <span class="es-journey__endstate-label">At the end of this chapter</span>
+              <ul>
+                {endStates.map((card) => (
+                  <li class="es-journey__endstate-card">
+                    {card.label && <span class="es-journey__endstate-chip">{card.label}</span>}
+                    <span class="es-journey__endstate-lines">
+                      {stateValueLines(card.value).map((line) => (
+                        <code>{line}</code>
+                      ))}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </aside>
+          )}
+        </li>
+      );
+    })}
   </ol>
   <DocHydration />
 </div>

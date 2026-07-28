@@ -33,8 +33,11 @@ export * from "./theme/tokens.js";
 // Session trajectory primitive (ported from serve.ts)
 export * from "./trajectory.js";
 
-// Storyboard derivation (step screenshots → filmstrip frames)
+// Storyboard derivation (step screenshots + state snapshots → filmstrip frames)
 export * from "./storyboard.js";
+
+// State diffing (frame-to-frame changes for story.state() snapshots)
+export * from "./state-diff.js";
 
 // Journey derivation (journey:<id>[:<n>] tags → ordered multi-scenario walkthroughs)
 export * from "./journeys.js";

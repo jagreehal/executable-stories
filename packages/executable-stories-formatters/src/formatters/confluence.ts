@@ -431,6 +431,11 @@ export class ConfluenceFormatter {
         content.push(codeBlock(entry.content ?? "", "html"));
         break;
 
+      case "state":
+        content.push(paragraph([text(entry.label ?? "State", strong())]));
+        content.push(codeBlock(JSON.stringify(entry.value ?? null, null, 2), "json"));
+        break;
+
       case "custom":
         content.push(paragraph([text(`[${entry.type}]`, strong())]));
         content.push(codeBlock(JSON.stringify(entry.data ?? null, null, 2), "json"));

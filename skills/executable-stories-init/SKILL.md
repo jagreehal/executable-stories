@@ -136,10 +136,10 @@ Add scripts: `"test:e2e": "playwright test"`.
 ### 6. Scaffold the living-docs site (default — skip only if the user declines)
 
 The Astro site is the first-class human surface: browsable stories, the Scenario
-Explorer, and explainer pages with freshness banners. The single-file HTML report
-stays available as a per-run artifact (CI attachments, email), but a bootstrap is
-not complete without the site. Running tests never creates it — it is scaffolded
-once and consumes every run thereafter:
+Explorer, persona views, journeys, UI states, and explainer pages with freshness
+banners. The single-file HTML report stays available as a per-run artifact (CI
+attachments, email), but a bootstrap is not complete without the site. Running
+tests never creates it: scaffold it once and let it consume every later run.
 
 ```bash
 npx executable-stories init-astro --install   # scaffold ./story-docs + install deps
@@ -152,9 +152,58 @@ Then confirm the loop works end to end:
   (it finds `./story-docs`, installs its deps if missing, and runs the dev server)
 
 The site shows bundled sample scenarios until the first real run lands. All site
-configuration lives in `story-docs/executable-stories.config.mjs` (sources,
-selection, grouping, theme). Add `docs:dev` / `docs:build` scripts to the host
-package.json pointing into `story-docs/` so the site is one command away.
+configuration lives in `story-docs/executable-stories.config.mjs`. Start with
+one source and add stakeholder surfaces only when the suite carries the relevant
+tags or data:
+
+```js
+import { defineExecutableStories } from 'executable-stories-astro';
+
+export default defineExecutableStories({
+  source: '../reports/raw-run.json',
+  groupBy: 'feature',
+  views: [
+    {
+      base: '/for/product',
+      include: { tags: ['audience:stakeholder'] },
+      groupBy: 'tag',
+    },
+    { base: '/for/design', include: { tags: ['storyboard'] } },
+  ],
+  // historyFile: '../reports/history.json', // same store as CLI --history-file
+});
+```
+
+- `journey:<id>:<n>` tags create ordered pages under `/journeys`.
+- `state:<name>` and `viewport:<name>` feed `/states`.
+- Existing Figma/Zeplin/Sketch/Abstract `story.link()` docs appear as design
+  context on story and journey pages.
+- Two or more `sources` enable `/drift`; use `injectDrift` and `driftBase` to
+  override it.
+- `historyFile` adds recent-run stability to journeys. Ensure the test or CI
+  command actually maintains that file with CLI `--history-file`.
+
+Add `docs:dev` / `docs:build` scripts to the host package.json pointing into
+`story-docs/` so the site is one command away. Do not use the removed
+`build-docs` command or expect the GitHub Action to create a portal project.
+
+For a multi-repository hub, configure named `sources` in one Astro project and
+publish each product run after tests:
+
+```yaml
+permissions:
+  contents: write
+steps:
+  - uses: jagreehal/executable-stories-action@v2
+    with:
+      mode: publish-run
+      run-json: reports/raw-run.json
+      runs-path: web/raw-run.json
+```
+
+Fetch each `published-run-url` before the hub build. Assign a distinct
+`runs-path` per suite and serialize heavily parallel publishers when they share
+the same runs branch.
 
 ### 7. Wire agent backpressure (recommended)
 

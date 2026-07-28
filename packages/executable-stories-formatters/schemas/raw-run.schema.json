@@ -729,6 +729,38 @@
         },
         {
           "type": "object",
+          "description": "State snapshot captured at a step (data storyboard frame; diffed label-to-label across steps).",
+          "properties": {
+            "kind": {
+              "const": "state"
+            },
+            "label": {
+              "type": "string",
+              "description": "Entity name ('Basket') \u2014 diff identity across steps."
+            },
+            "value": {
+              "description": "JSON-serializable snapshot of the state at this step."
+            },
+            "phase": {
+              "$ref": "#/$defs/DocPhase"
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/DocEntry"
+              },
+              "description": "Nested child doc entries for grouping."
+            }
+          },
+          "required": [
+            "kind",
+            "value",
+            "phase"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
           "description": "Custom documentation entry with arbitrary data.",
           "properties": {
             "kind": {

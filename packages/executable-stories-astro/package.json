@@ -41,6 +41,9 @@
     "./routes/starlight/journeys.astro": "./routes/starlight/journeys.astro",
     "./routes/starlight/journey.astro": "./routes/starlight/journey.astro",
     "./components/StoryJourney.astro": "./components/StoryJourney.astro",
+    "./routes/drift.astro": "./routes/drift.astro",
+    "./routes/starlight/drift.astro": "./routes/starlight/drift.astro",
+    "./components/DesignContext.astro": "./components/DesignContext.astro",
     "./routes/starlight/stories.astro": "./routes/starlight/stories.astro",
     "./routes/starlight/story.astro": "./routes/starlight/story.astro",
     "./routes/starlight/explorer.astro": "./routes/starlight/explorer.astro"

@@ -1,5 +1,9 @@
 import type { TestCaseResult, TestRunResult, TestStatus } from "executable-stories-core/types/test-result";
 
+import { gradeEvidence } from "../review/build-review";
+import { deriveAudience } from "../review/conventions";
+import type { EvidenceStrength } from "../types/review";
+
 /**
  * Requirement-first view of a run. Groups scenarios under the ticket/user-story
  * they verify, rolls up the code each requirement covers and whether it passed,
@@ -121,8 +125,19 @@ export class TraceabilityMatrixFormatter {
 export class TraceabilityCsvFormatter {
   format(run: TestRunResult): string {
     const matrix = toTraceabilityMatrix(run);
+    // Evidence grade per scenario, same grading the Evidence Review uses
+    // (screenshot/trace/mutation/failing-first signals), so the audit CSV says
+    // not just "passed" but how credible the proof is. Duplicate scenario ids
+    // keep the WEAKEST grade — an audit column must never overstate.
+    const RANK: Record<EvidenceStrength, number> = { none: 0, weak: 1, moderate: 2, strong: 3 };
+    const gradeById = new Map<string, EvidenceStrength>();
+    for (const tc of run.testCases) {
+      const strength = gradeEvidence(tc, deriveAudience(tc.sourceFile, tc.tags)).strength;
+      const prior = gradeById.get(tc.id);
+      if (prior === undefined || RANK[strength] < RANK[prior]) gradeById.set(tc.id, strength);
+    }
     const rows: string[][] = [
-      ["ticket", "ticket_url", "requirement_status", "scenario_id", "scenario_title", "scenario_status", "source", "covers"],
+      ["ticket", "ticket_url", "requirement_status", "scenario_id", "scenario_title", "scenario_status", "evidence_grade", "source", "covers"],
     ];
     for (const req of matrix.requirements) {
       for (const s of req.scenarios) {
@@ -133,13 +148,14 @@ export class TraceabilityCsvFormatter {
           s.id,
           s.title,
           s.status,
+          gradeById.get(s.id) ?? "",
           `${s.sourceFile}:${s.sourceLine}`,
           s.covers.join("; "),
         ]);
       }
     }
     for (const s of matrix.untraced) {
-      rows.push(["", "", "untraced", s.id, s.title, s.status, `${s.sourceFile}:${s.sourceLine}`, ""]);
+      rows.push(["", "", "untraced", s.id, s.title, s.status, gradeById.get(s.id) ?? "", `${s.sourceFile}:${s.sourceLine}`, ""]);
     }
     return rows.map((row) => row.map(csvCell).join(",")).join("\r\n");
   }

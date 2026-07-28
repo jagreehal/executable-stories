@@ -139,3 +139,86 @@ describe("docEntryToMarkdown", () => {
     expect(lines).toEqual(["parent", "", "child"]);
   });
 });
+
+describe("state docs", () => {
+  it("renders label, collapsed snapshot, and no diff without lane context", () => {
+    const lines = docEntryToMarkdown({ kind: "state", label: "Basket", value: { qty: 1 }, phase: "runtime" });
+    expect(lines[0]).toBe("**Basket**");
+    expect(lines).toContain("<details>");
+    expect(lines).toContain("<summary>snapshot</summary>");
+    expect(lines.join("\n")).toContain('"qty": 1');
+    expect(lines).toContain("</details>");
+  });
+
+  it("falls back to 'State' when unlabeled", () => {
+    const lines = docEntryToMarkdown({ kind: "state", value: 42, phase: "runtime" });
+    expect(lines[0]).toBe("**State**");
+  });
+
+  it("diffs repeat same-label captures within one scenario", () => {
+    const md = scenarioToMarkdown(
+      scenario({
+        steps: [
+          {
+            id: "s1",
+            index: 0,
+            keyword: "Given",
+            text: "an apple in the basket",
+            status: "passed",
+            durationMs: 1,
+            docEntries: [{ kind: "state", label: "Basket", value: { items: [{ qty: 1 }] }, phase: "runtime" }],
+          },
+          {
+            id: "s2",
+            index: 1,
+            keyword: "When",
+            text: "the quantity is bumped",
+            status: "passed",
+            durationMs: 1,
+            docEntries: [
+              { kind: "state", label: "Basket", value: { items: [{ qty: 2 }], coupon: "SAVE10" }, phase: "runtime" },
+            ],
+          },
+        ],
+      }),
+    );
+    expect(md).toContain("items[0].qty: 1 → 2");
+    expect(md).toContain('+ coupon: "SAVE10"');
+    // First capture renders no diff lines — the summary appears exactly once.
+    expect(md.match(/items\[0\]\.qty: 1 → 2/g)).toHaveLength(1);
+    expect(md).toContain("<summary>snapshot</summary>");
+  });
+
+  it("keeps unlabeled captures in their own lane", () => {
+    const md = scenarioToMarkdown(
+      scenario({
+        steps: [
+          {
+            id: "s1",
+            index: 0,
+            keyword: "Given",
+            text: "setup",
+            status: "passed",
+            durationMs: 1,
+            docEntries: [
+              { kind: "state", label: "Basket", value: { qty: 1 }, phase: "runtime" },
+              { kind: "state", value: { qty: 9 }, phase: "runtime" },
+            ],
+          },
+          {
+            id: "s2",
+            index: 1,
+            keyword: "When",
+            text: "acted",
+            status: "passed",
+            durationMs: 1,
+            docEntries: [{ kind: "state", value: { qty: 10 }, phase: "runtime" }],
+          },
+        ],
+      }),
+    );
+    // Unlabeled lane diffs 9 → 10; the Basket lane never diffs against it.
+    expect(md).toContain("qty: 9 → 10");
+    expect(md).not.toContain("qty: 1 → 10");
+  });
+});

@@ -33,6 +33,7 @@ story.then("the user should see the dashboard")
 - `tag(*names, children: nil)`
 - `kv(label, value, children: nil)`
 - `json(label, value, children: nil)`
+- `state(value, label: nil, children: nil)` - state snapshot; same-label snapshots diffed in reports
 - `code(label, content, lang: nil, children: nil)`
 - `table(label, columns, rows, children: nil)`
 - `link(label, url, children: nil)`

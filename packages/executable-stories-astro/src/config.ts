@@ -122,6 +122,12 @@ export interface ExecutableStoriesConfig {
   inputType?: "raw" | "canonical";
   /** Default synthesize for sources that don't set their own. */
   synthesize?: boolean;
+  /**
+   * Path to the run-history store the CLI's `--history-file` maintains.
+   * When set, journey pages show journey-level run history ("7/10 recent runs
+   * passed · flaky") aggregated from their member scenarios' histories.
+   */
+  historyFile?: string;
 
   // ── Selection: which scenarios to show ────────────────────────
   /** Allowlist filter. */
@@ -170,6 +176,18 @@ export interface ExecutableStoriesConfig {
   statesBase?: string;
   /** Inject the states grid route. Default true. */
   injectStates?: boolean;
+  /**
+   * URL base the environment-drift page mounts under. Default "/drift". The
+   * page compares scenario status per configured source (staging vs
+   * production, ...) and floats mismatches to the top.
+   */
+  driftBase?: string;
+  /**
+   * Inject the drift route. Default: only when the config has two or more
+   * sources (with one source there is nothing to compare). Set true/false to
+   * force either way.
+   */
+  injectDrift?: boolean;
   /** Inject the stories index + detail routes. Default true. */
   injectStoryRoute?: boolean;
   /** Inject the searchable Scenario Explorer. Default true. */
@@ -272,6 +290,16 @@ export function resolveSources(config: ExecutableStoriesConfig): ResolvedSource[
       synthesize: s.synthesize ?? config.synthesize ?? true,
     };
   });
+}
+
+/**
+ * Whether the drift page should inject: an explicit `injectDrift` wins, else
+ * only when there are two or more sources to compare. Pure field inspection
+ * (no resolveSources) so callers with no source configured don't throw.
+ */
+export function driftEnabled(config: ExecutableStoriesConfig): boolean {
+  if (config.injectDrift !== undefined) return config.injectDrift;
+  return (config.source ? 1 : 0) + (config.sources?.length ?? 0) >= 2;
 }
 
 /** Minimal scenario shape the filter inspects. */

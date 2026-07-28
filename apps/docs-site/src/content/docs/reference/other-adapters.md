@@ -59,6 +59,7 @@ func TestLogin(t *testing.T) {
 | `s.Tag(names...)` | Tag annotation |
 | `s.Kv(label, value)` | Key-value pair |
 | `s.JSON(label, value)` | JSON code block |
+| `s.State(label, value)` | State snapshot (pass `""` to omit the label); same-label snapshots diffed in reports |
 | `s.Code(label, content, lang)` | Syntax-highlighted code |
 | `s.Table(label, columns, rows)` | Data table |
 | `s.Link(label, url)` | Hyperlink |
@@ -164,6 +165,7 @@ Note: `and_` and `assert_` use a trailing underscore to avoid clashing with Pyth
 | `story.tag(names)` | Tag annotation |
 | `story.kv(label, value)` | Key-value pair |
 | `story.json(label, value)` | JSON code block |
+| `story.state(value, label=None)` | State snapshot; same-label snapshots diffed in reports |
 | `story.code(label, content, lang=None)` | Syntax-highlighted code |
 | `story.table(label, columns=[], rows=[])` | Data table |
 | `story.link(label, url)` | Hyperlink |
@@ -262,6 +264,7 @@ All step methods take `&mut self` and return `&mut Self` for chaining.
 | `s.tag(names)` | Tag annotation |
 | `s.kv(label, value)` | Key-value pair |
 | `s.json(label, value)` | JSON code block |
+| `s.state(label, value)` | State snapshot (`label` is `Option<&str>`); same-label snapshots diffed in reports |
 | `s.code(label, content, Some("lang"))` | Syntax-highlighted code (lang is `Option<&str>`) |
 | `s.table(label, columns, rows)` | Data table |
 | `s.link(label, url)` | Hyperlink |
@@ -370,6 +373,7 @@ Note: `when` requires backtick quoting in Kotlin because it is a reserved keywor
 | `Story.tag(names)` | Tag annotation |
 | `Story.kv(label, value)` | Key-value pair |
 | `Story.json(label, value)` | JSON code block |
+| `Story.state(value, label?)` | State snapshot; same-label snapshots diffed in reports |
 | `Story.code(label, content, lang?)` | Syntax-highlighted code |
 | `Story.table(label, arrayOf(...), arrayOf(...))` | Data table |
 | `Story.link(label, url)` | Hyperlink |
@@ -475,6 +479,7 @@ public class LoginTests : IDisposable
 | `Story.Tag(names)` | Tag annotation |
 | `Story.Kv(label, value)` | Key-value pair |
 | `Story.Json(label, value)` | JSON code block |
+| `Story.State(value, label?)` | State snapshot; same-label snapshots diffed in reports |
 | `Story.Code(label, content, lang?)` | Syntax-highlighted code |
 | `Story.Table(label, new[] {...}, new[] {...})` | Data table |
 | `Story.Link(label, url)` | Hyperlink |

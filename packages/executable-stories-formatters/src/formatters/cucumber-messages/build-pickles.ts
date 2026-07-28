@@ -120,6 +120,11 @@ function docEntryToPickleDocString(doc: DocEntry): PickleDocString | undefined {
       return { mediaType: "text/markdown", content: `[${doc.label}](${doc.url})` };
     case "custom":
       return { mediaType: "application/json", content: JSON.stringify(doc.data, null, 2) };
+    case "state":
+      return {
+        mediaType: "application/json",
+        content: JSON.stringify({ state: doc.label ?? "State", value: doc.value ?? null }, null, 2),
+      };
     case "tag":
       return { mediaType: "text/plain", content: doc.names.map((n) => `@${n}`).join(" ") };
     default:

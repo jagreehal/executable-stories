@@ -94,6 +94,20 @@ fun `processes payment`() {
 }
 ```
 
+### State snapshots (state)
+
+`Story.state(value, label = null)` captures what the world looks like at the current step as a JSON-serializable snapshot. Steps carrying state docs (or screenshots) become storyboard frames: a label's first appearance shows the full snapshot, consecutive snapshots with the same label render as a diff (`total: 0 → 45`), and multiple labels appear as side-by-side lanes.
+
+```kotlin
+Story.given("an empty basket")
+Story.state(mapOf("items" to emptyList<String>(), "total" to 0), label = "Basket")
+
+Story.`when`("the shopper adds a hoodie")
+Story.state(mapOf("items" to listOf("hoodie"), "total" to 45), label = "Basket")
+```
+
+Capture the business-relevant projection, not the ORM entity.
+
 ### Embedded HTML
 
 Embed generated HTML (charts, single-file reports, skill/agent output) in an

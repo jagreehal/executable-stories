@@ -134,6 +134,14 @@ function copyDocEntry(entry: DocEntry): ReportDocEntry {
         phase: entry.phase,
         ...children,
       };
+    case "state":
+      return {
+        kind: "state",
+        ...(entry.label !== undefined ? { label: entry.label } : {}),
+        value: entry.value,
+        phase: entry.phase,
+        ...children,
+      };
     case "custom":
       return {
         kind: "custom",

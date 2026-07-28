@@ -43,6 +43,7 @@ import type {
   TicketInput,
   KvOptions,
   JsonOptions,
+  StateOptions,
   CodeOptions,
   TableOptions,
   LinkOptions,
@@ -247,6 +248,10 @@ function convertStoryDocsToEntries(docs: StoryDocs): DocEntry[] {
   if (docs.json) {
     entries.push({ kind: "code", label: docs.json.label, content: JSON.stringify(docs.json.value, null, 2), lang: "json", phase: "runtime" });
   }
+  if (docs.state) {
+    warnIfLargeState(docs.state.label, docs.state.value);
+    entries.push({ kind: "state", label: docs.state.label, value: docs.state.value, phase: "runtime" });
+  }
   if (docs.table) {
     entries.push({ kind: "table", label: docs.table.label, columns: docs.table.columns, rows: docs.table.rows, phase: "runtime" });
   }
@@ -273,6 +278,20 @@ function convertStoryDocsToEntries(docs: StoryDocs): DocEntry[] {
   }
 
   return entries;
+}
+
+/** Warn (non-fatal) when a state snapshot is suspiciously large. */
+function warnIfLargeState(label: string | undefined, value: unknown): void {
+  try {
+    const length = JSON.stringify(value)?.length ?? 0;
+    if (length > 100_000) {
+      console.warn(
+        `[executable-stories] state "${label ?? 'state'}" is ${Math.round(length / 1024)}KB — consider capturing a projection of the entity instead of the whole thing`,
+      );
+    }
+  } catch {
+    /* non-serializable value; still recorded */
+  }
 }
 
 // ============================================================================
@@ -629,6 +648,23 @@ export const story = {
   json(options: JsonOptions, children?: DocEntry[]): DocEntry {
     const content = JSON.stringify(options.value, null, 2);
     return attachDoc({ kind: "code", label: options.label, content, lang: "json", phase: "runtime" }, children);
+  },
+
+  /**
+   * Capture what the world looks like at this step — a data snapshot that
+   * becomes a storyboard frame in generated docs. Consecutive snapshots with
+   * the same label get diffed downstream. The value must be JSON-serializable.
+   * @example
+   * ```ts
+   * story.given('an empty basket');
+   * story.state({ label: 'Basket', value: { items: [], total: 0 } });
+   * story.when('a widget is added');
+   * story.state({ label: 'Basket', value: { items: ['widget'], total: 49.99 } });
+   * ```
+   */
+  state(options: StateOptions, children?: DocEntry[]): DocEntry {
+    warnIfLargeState(options.label, options.value);
+    return attachDoc({ kind: "state", label: options.label, value: options.value, phase: "runtime" }, children);
   },
 
   code(options: CodeOptions, children?: DocEntry[]): DocEntry {

@@ -209,6 +209,12 @@ module ExecutableStories
       entry
     end
 
+    def state(value, label: nil, children: nil)
+      entry = DocEntry.state(value, label: label, children: children)
+      attach_doc(entry)
+      entry
+    end
+
     def html(path: nil, url: nil, content: nil, title: nil, height: nil, children: nil)
       entry = DocEntry.html(path: path, url: url, content: content, title: title, height: height, children: children)
       attach_doc(entry)

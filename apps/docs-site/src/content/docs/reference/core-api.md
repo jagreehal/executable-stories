@@ -51,6 +51,7 @@ type DocEntry =
   | { kind: 'note'; text: string; phase: DocPhase }
   | { kind: 'tag'; names: string[]; phase: DocPhase }
   | { kind: 'kv'; label: string; value: unknown; phase: DocPhase }
+  | { kind: 'state'; label?: string; value: unknown; phase: DocPhase }
   | {
       kind: 'code';
       label: string;
@@ -136,6 +137,7 @@ interface StoryDocs {
   kv?: Record<string, unknown>;
   code?: { label: string; content: string; lang?: string };
   json?: { label: string; value: unknown };
+  state?: { label?: string; value: unknown };
   table?: { label: string; columns: string[]; rows: string[][] };
   link?: { label: string; url: string };
   section?: { title: string; markdown: string };

@@ -18,9 +18,10 @@ import { ReportScenario } from "executable-stories-react";
 // The report components ship their own compiled, preflight-free stylesheet
 // scoped to `.es-report-island` (so it never leaks onto the host page).
 import "executable-stories-react/tailwind.css";
-import { joinHref } from "executable-stories-astro";
+import { designLinks, joinHref } from "executable-stories-astro";
 import type { StoryEntryData } from "executable-stories-astro";
 import DocHydration from "./DocHydration.astro";
+import DesignContext from "./DesignContext.astro";
 // Resolved by the integration so the back link honours the config.
 import { routeBase } from "virtual:executable-stories/config";
 
@@ -30,6 +31,7 @@ interface Props {
 }
 const { story: s, shell = "standalone" } = Astro.props as Props;
 const embed = shell === "starlight" ? " es-embed" : "";
+const design = designLinks([s]);
 ---
 
 <div class={`es-story${embed}`}>
@@ -40,6 +42,7 @@ const embed = shell === "starlight" ? " es-embed" : "";
       <span class={`es-status es-status--${s.status}`} data-testid="status">{s.status}</span>
       <span class="es-story__feature">{s.feature?.title} · <code>{s.feature?.sourceFile}</code></span>
     </div>
+    <DesignContext links={design} />
   </header>
   <div class="es-report-island font-sans text-foreground">
     <ReportScenario scenario={s} hideTitle />

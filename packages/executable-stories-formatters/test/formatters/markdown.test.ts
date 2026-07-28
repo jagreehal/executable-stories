@@ -758,3 +758,94 @@ describe("MarkdownFormatter", () => {
     });
   });
 });
+
+describe("MarkdownFormatter — state docs", () => {
+  const formatter = new MarkdownFormatter();
+
+  function runWithStateDocs() {
+    const raw = createRawRun({
+      testCases: [
+        createTestCase({
+          story: createStory({
+            steps: [
+              {
+                keyword: "Given",
+                text: "a basket with one apple",
+                docs: [
+                  { kind: "state", label: "Basket", value: { items: [{ sku: "apple", qty: 1 }] }, phase: "runtime" },
+                  { kind: "state", value: { mode: "guest" }, phase: "runtime" },
+                ],
+              },
+              {
+                keyword: "When",
+                text: "the quantity is bumped and a coupon applied",
+                docs: [
+                  {
+                    kind: "state",
+                    label: "Basket",
+                    value: { items: [{ sku: "apple", qty: 2 }], coupon: "SAVE10" },
+                    phase: "runtime",
+                  },
+                ],
+              },
+            ],
+          }),
+        }),
+      ],
+    });
+    return canonicalizeRun(raw);
+  }
+
+  it("renders the label (or 'State' when unlabeled) in bold", () => {
+    const result = formatter.format(runWithStateDocs());
+    expect(result).toContain("**Basket**");
+    expect(result).toContain("**State**");
+  });
+
+  it("renders diff summary lines against the previous same-label snapshot", () => {
+    const result = formatter.format(runWithStateDocs());
+    expect(result).toContain("items[0].qty: 1 → 2");
+    expect(result).toContain('+ coupon: "SAVE10"');
+  });
+
+  it("does not render diff lines on a label's first appearance", () => {
+    const result = formatter.format(runWithStateDocs());
+    // Only the second Basket capture diffs; the summary appears exactly once.
+    expect(result.match(/items\[0\]\.qty: 1 → 2/g)).toHaveLength(1);
+  });
+
+  it("puts the full snapshot in a collapsed details block", () => {
+    const result = formatter.format(runWithStateDocs());
+    expect(result).toContain("<details>");
+    expect(result).toContain("<summary>snapshot</summary>");
+    expect(result).toContain('"coupon": "SAVE10"');
+    expect(result).toContain("</details>");
+  });
+
+  it("scopes state lanes per scenario (no diff across scenarios)", () => {
+    const raw = createRawRun({
+      testCases: [
+        createTestCase({
+          story: createStory({
+            scenario: "First",
+            steps: [
+              { keyword: "Given", text: "a", docs: [{ kind: "state", label: "Basket", value: { qty: 1 }, phase: "runtime" }] },
+            ],
+          }),
+        }),
+        createTestCase({
+          title: "Second",
+          titlePath: ["Authentication", "Second"],
+          story: createStory({
+            scenario: "Second",
+            steps: [
+              { keyword: "Given", text: "b", docs: [{ kind: "state", label: "Basket", value: { qty: 2 }, phase: "runtime" }] },
+            ],
+          }),
+        }),
+      ],
+    });
+    const result = formatter.format(canonicalizeRun(raw));
+    expect(result).not.toContain("qty: 1 → 2");
+  });
+});

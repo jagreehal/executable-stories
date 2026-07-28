@@ -49,7 +49,7 @@ test('admin deletes user', async ({ page }, testInfo) => {
 
 Same as Vitest/Jest: **`story.given`**, **`story.when`**, **`story.then`**, **`story.and`**, **`story.but`**, plus AAA aliases. Steps accept an optional second argument **`StoryDocs`** for inline docs.
 
-Doc methods: **`story.note`**, **`story.tag`**, **`story.kv`**, **`story.json`**, **`story.code`**, **`story.table`**, **`story.link`**, **`story.section`**, **`story.mermaid`**, **`story.screenshot`**, **`story.video`**, **`story.html`**, **`story.custom`** — same signatures as Vitest.
+Doc methods: **`story.note`**, **`story.tag`**, **`story.kv`**, **`story.json`**, **`story.state`**, **`story.code`**, **`story.table`**, **`story.link`**, **`story.section`**, **`story.mermaid`**, **`story.screenshot`**, **`story.video`**, **`story.html`**, **`story.custom`** — same signatures as Vitest.
 
 **Example:**
 

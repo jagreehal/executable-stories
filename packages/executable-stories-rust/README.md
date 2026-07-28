@@ -50,6 +50,18 @@ fn write_story_results() {
 
 OTel methods and trace-URL templating are gated behind the optional `otel` Cargo feature. Without it, those methods compile as no-ops. Enable with `executable-stories = { version = "0.1", features = ["otel"] }`.
 
+## State snapshots
+
+`story.state(label, value)` captures a JSON-serializable snapshot of "what the world looks like" at the current step. Consecutive snapshots with the same label are diffed by the report renderer (storyboard frames); the adapter only serializes and emits. Pass `None` for an anonymous state lane (the label field is omitted).
+
+```rust
+story.given("an item is added to the basket");
+story.state(Some("Basket"), serde_json::json!({"items": [{"sku": "A1", "qty": 2}]}));
+
+story.when("a discount is applied");
+story.state(Some("Basket"), serde_json::json!({"items": [{"sku": "A1", "qty": 2}], "discount": 0.1}));
+```
+
 ## Output
 
 Call `write_results()` (re-exported at the crate root; the `collector` module is private) to write `.executable-stories/raw-run.json`. Register it with `#[dtor::dtor]` so it runs after every test in the binary completes — a plain teardown function is never invoked by the test harness. Override the output path with the `EXECUTABLE_STORIES_OUTPUT` env var.

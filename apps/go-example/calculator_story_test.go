@@ -35,9 +35,11 @@ func TestCalculatorMultipliesTwoNumbers(t *testing.T) {
 	s.Given("two numbers 7 and 6")
 	a, b := 7, 6
 	s.Note("This is a note")
+	s.State("Inputs", map[string]any{"a": a, "b": b})
 	s.When("the numbers are multiplied")
 	result := Multiply(a, b)
 	s.Then("the result is 42")
+	s.State("Inputs", map[string]any{"a": a, "b": b, "product": result})
 	if result != 42 {
 		t.Fatalf("expected 42, got %d", result)
 	}
