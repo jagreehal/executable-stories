@@ -478,7 +478,7 @@ steps:
 
 | Input | Default | Description |
 |---|---|---|
-| `mode` | `report` | `report`, `review`, `gate-release`, `deploy`, or `publish-run` |
+| `mode` | `report` | `report`, `review`, `gate-release`, `deploy`, `publish-run`, or `ingest` |
 | `report-dir` | `reports` | Directory containing or receiving generated reports |
 | `output-name` | `test-results` | Base filename for reports (without extension) |
 | `raw-run` | `.executable-stories/raw-run.json` | Path to raw run JSON |
@@ -503,6 +503,8 @@ steps:
 | `deploy-ledger` | `.executable-stories/deployments.json` | (deploy) Path to the deployment ledger JSON |
 | `runs-branch` | `executable-stories-runs` | (publish-run) Branch the run JSON is committed to. Created as orphan on first use |
 | `runs-path` | `raw-run.json` | (publish-run) Path of the published file within `runs-branch` |
+| `api-key` | — | (ingest) Executable Stories Cloud API key (`es_…`). Store as a secret |
+| `ingest-url` | `https://app.executablestories.com` | (ingest) Cloud instance to push runs to |
 
 ## Outputs
 
@@ -514,6 +516,7 @@ steps:
 | `gate-failed` | (gate-release, review) `true`/`false` — whether the gate failed |
 | `deploy-ledger-path` | (deploy) Path to the deployment ledger written in deploy mode |
 | `published-run-url` | (publish-run) Stable `raw.githubusercontent.com` URL of the published run JSON |
+| `ingest-run-id` | (ingest) Id of the run stored by the cloud ingest endpoint |
 
 ## Permissions
 

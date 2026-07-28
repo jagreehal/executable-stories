@@ -15,6 +15,7 @@ inputs:
           band changed code as uncovered / weak / strong. Requires a run JSON (see run-json).
         - "gate-release": verify a release candidate matches the dev test baseline
         - "deploy": record a deployment to the environment ledger
+        - "ingest": push the run's StoryReport to Executable Stories Cloud (requires api-key)
         - "publish-run": commit the run JSON to an orphan branch (runs-branch) so other
           repos — e.g. a multi-repo docs hub built with executable-stories-astro — can
           fetch it from a stable raw.githubusercontent.com URL. Requires `contents: write`.
@@ -119,6 +120,14 @@ inputs:
     description: "Path to a prebuilt executable-stories binary to use instead of downloading from Releases (for dev/testing before release)."
     required: false
     default: ""
+  api-key:
+    description: "(ingest) Executable Stories Cloud API key (es_…). Store it as a repo/org secret. When unset, ingest mode fails fast."
+    required: false
+    default: ""
+  ingest-url:
+    description: "(ingest) Base URL of the Executable Stories Cloud instance to push runs to."
+    required: false
+    default: "https://app.executablestories.com"
 
 outputs:
   html-report-path:
@@ -139,6 +148,9 @@ outputs:
   published-run-url:
     description: "(publish-run) Stable raw.githubusercontent.com URL of the published run JSON"
     value: ${{ steps.publish.outputs.published-run-url }}
+  ingest-run-id:
+    description: "(ingest) Id of the run stored by the cloud ingest endpoint"
+    value: ${{ steps.detect.outputs.ingest-run-id }}
 
 runs:
   using: "composite"
@@ -167,6 +179,8 @@ runs:
         DEPLOY_ENV: ${{ inputs.deploy-env }}
         DEPLOY_TAG: ${{ inputs.deploy-tag }}
         DEPLOY_LEDGER: ${{ inputs.deploy-ledger }}
+        API_KEY: ${{ inputs.api-key }}
+        INGEST_URL: ${{ inputs.ingest-url }}
         GH_TOKEN: ${{ github.token }}
 
     - name: Set output paths

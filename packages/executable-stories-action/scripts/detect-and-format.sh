@@ -338,6 +338,79 @@ run_publish() {
 }
 
 # ---------------------------------------------------------------------------
+# MODE: ingest — push the run's StoryReport to Executable Stories Cloud.
+# The free action stays file-based and stateless; this mode only runs when an
+# api-key is provided (the open-core line: persistence lives in the cloud).
+# ---------------------------------------------------------------------------
+run_ingest() {
+  if [[ -z "${API_KEY:-}" ]]; then
+    echo "::error::ingest mode needs api-key. Create one in Executable Stories Cloud (Settings → Ingest key) and store it as a secret."
+    exit 1
+  fi
+
+  # Use a pre-generated StoryReport if present; otherwise format the raw run.
+  local STORY_REPORT="${REPORT_DIR}/${OUTPUT_NAME}.story-report.json"
+  if [[ ! -f "$STORY_REPORT" ]]; then
+    if [[ ! -f "$RAW_RUN" ]]; then
+      echo "::error::ingest mode needs ${STORY_REPORT} or a raw run JSON at ${RAW_RUN}."
+      exit 1
+    fi
+    resolve_binary
+    mkdir -p "$REPORT_DIR"
+    "$BINARY_PATH" format "$RAW_RUN" \
+      --format story-report-json \
+      --output-dir "$REPORT_DIR" \
+      --output-name "$OUTPUT_NAME"
+    if [[ ! -f "$STORY_REPORT" ]]; then
+      echo "::error::Formatter ran but ${STORY_REPORT} was not produced."
+      exit 1
+    fi
+  fi
+
+  # POST via node (fetch is built in on Actions runners); the key is passed
+  # through the environment and never echoed.
+  local BRANCH="${GITHUB_REF_NAME:-}"
+  [[ -n "${GITHUB_HEAD_REF:-}" ]] && BRANCH="$GITHUB_HEAD_REF"
+  if RUN_ID=$(STORY_REPORT_PATH="$STORY_REPORT" BRANCH="$BRANCH" node -e '
+    const fs = require("fs");
+    const report = JSON.parse(fs.readFileSync(process.env.STORY_REPORT_PATH, "utf8"));
+    const payload = {
+      repo: process.env.GITHUB_REPOSITORY,
+      branch: process.env.BRANCH || undefined,
+      gitSha: process.env.GITHUB_SHA || undefined,
+      source: "action",
+      report,
+    };
+    fetch(new URL("/api/v1/runs", process.env.INGEST_URL), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.API_KEY}`,
+      },
+      body: JSON.stringify(payload),
+    })
+      .then(async (res) => {
+        const body = await res.text();
+        if (!res.ok) {
+          console.error(`HTTP ${res.status}: ${body.slice(0, 500)}`);
+          process.exit(1);
+        }
+        process.stdout.write(JSON.parse(body).runId ?? "");
+      })
+      .catch((err) => {
+        console.error(String(err));
+        process.exit(1);
+      });
+  '); then
+    echo "::notice::Run ingested to ${INGEST_URL} (run id: ${RUN_ID})"
+    echo "ingest-run-id=${RUN_ID}" >> "$GITHUB_OUTPUT"
+  else
+    echo "::error::Ingest failed — check api-key, ingest-url, and that the cloud instance is reachable."
+    exit 1
+  fi
+}
+
+# ---------------------------------------------------------------------------
 # Main dispatch
 #
 # Living-docs sites are no longer built here. They come from a committed Astro
@@ -361,8 +434,11 @@ case "$MODE" in
   publish-run)
     run_publish
     ;;
+  ingest)
+    run_ingest
+    ;;
   *)
-    echo "::error::Unknown mode: ${MODE}. Supported: report, review, gate-release, deploy, publish-run."
+    echo "::error::Unknown mode: ${MODE}. Supported: report, review, gate-release, deploy, publish-run, ingest."
     echo "::error::For a living-docs site, scaffold with 'executable-stories init-astro' and deploy with 'astro build' (see the action README)."
     exit 1
     ;;
