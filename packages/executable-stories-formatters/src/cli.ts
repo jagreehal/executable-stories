@@ -60,6 +60,7 @@ import {
 } from "./init-astro";
 import { scaffoldDoc, TEMPLATES } from "./scaffold-doc";
 import { checkLinks, formatLinkReport } from "./check-links";
+import { runPush } from "./push";
 import { importOpenApi } from "./import-openapi";
 import { publishConfluencePage } from "./publishers/confluence";
 import { publishJiraIssue, type JiraPublishMode } from "./publishers/jira";
@@ -109,6 +110,7 @@ USAGE
   executable-stories init-astro [directory] [--install] [--force] [--update]
   executable-stories new <template> "<name>" [options]
   executable-stories check-links <dir> [options]
+  executable-stories push <run.json> [--key <es_...>] [--url <base>] [--repo <org/name>]
   executable-stories import-openapi <spec> [options]
   executable-stories publish-confluence <file.adf.json> [options]
   executable-stories publish-jira <file.adf.json> [options]
@@ -133,6 +135,7 @@ SUBCOMMANDS
   init-astro         Scaffold a thin Astro docs site (Starlight + executable-stories-astro; live stories at /stories)
   new                Scaffold a docs page from a template (adr, runbook, decision-log, incident, scenario-note)
   check-links        Scan docs for broken internal/external links (CI-friendly exit code)
+  push               Send a run (StoryReport or raw run JSON) to Executable Stories Cloud
   import-openapi     Generate API doc pages from an OpenAPI spec, linked to verifying stories
   publish-confluence Publish an ADF JSON file to a Confluence page via REST API
   publish-jira       Publish an ADF JSON file to a Jira issue (as comment or description)
@@ -438,6 +441,7 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
     subcommand !== "init-astro" &&
     subcommand !== "new" &&
     subcommand !== "check-links" &&
+    subcommand !== "push" &&
     subcommand !== "import-openapi" &&
     subcommand !== "publish-confluence" &&
     subcommand !== "publish-jira"
@@ -456,7 +460,7 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
       process.exit(EXIT_USAGE);
     }
     console.error(
-      `Unknown subcommand: "${subcommand}". Use "format", "watch", "compare", "gate-release", "deploy", "review", "list", "check", "check-explainers", "goal", "triage", "validate", "doctor", "completion", "dev", "init-astro", "new", "check-links", "import-openapi", "publish-confluence", or "publish-jira".`,
+      `Unknown subcommand: "${subcommand}". Use "format", "watch", "compare", "gate-release", "deploy", "review", "list", "check", "check-explainers", "goal", "triage", "validate", "doctor", "completion", "dev", "init-astro", "new", "check-links", "push", "import-openapi", "publish-confluence", or "publish-jira".`,
     );
     process.exit(EXIT_USAGE);
   }
@@ -574,6 +578,7 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
   // exit code, mirroring runPublishConfluence/runPublishJira below.
   if (subcommand === "new") process.exit(runNew(args.slice(1)));
   if (subcommand === "check-links") process.exit(await runCheckLinks(args.slice(1)));
+  if (subcommand === "push") process.exit(await runPush(args.slice(1)));
   if (subcommand === "import-openapi") process.exit(await runImportOpenApi(args.slice(1)));
 
   // Parse remaining args with node:util parseArgs
