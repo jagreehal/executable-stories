@@ -101,6 +101,23 @@ describe("runPush", () => {
     });
   });
 
+  it("sends changed files when --base is given", async () => {
+    const { deps, fetchFn } = makeDeps({
+      git: vi.fn((args: string[]) => {
+        if (args[0] === "config") return "git@github.com:acme/api.git";
+        if (args[0] === "diff") return "src/checkout.ts\nsrc/cart/totals.ts";
+        if (args.includes("--abbrev-ref")) return "main";
+        return "deadbeef";
+      }),
+    });
+    expect(await runPush(["run.json", "--key", "es_test", "--base", "origin/main"], deps)).toBe(0);
+    const [, init] = fetchFn.mock.calls[0] as [URL, RequestInit];
+    expect(JSON.parse(init.body as string)).toMatchObject({
+      changedFiles: ["src/checkout.ts", "src/cart/totals.ts"],
+      baseSha: "deadbeef",
+    });
+  });
+
   it("returns usage errors without touching the network", async () => {
     const noKey = makeDeps();
     expect(await runPush(["run.json"], noKey.deps)).toBe(4);

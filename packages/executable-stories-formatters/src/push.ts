@@ -35,6 +35,8 @@ Options:
                      Default: inferred from the git origin remote.
   --branch <name>    Default: current git branch.
   --git-sha <sha>    Default: current git HEAD.
+  --base <ref>       Send files changed since <ref> (e.g. origin/main) so the
+                     cloud can recommend a test scope for the change.
   -h, --help         Show this help.
 
 Exit codes: 0 pushed, 1 push rejected/failed, 4 usage error.`;
@@ -96,6 +98,7 @@ export async function runPush(
         repo: { type: "string" },
         branch: { type: "string" },
         "git-sha": { type: "string" },
+        base: { type: "string" },
         help: { type: "boolean", short: "h" },
       },
     });
@@ -160,6 +163,15 @@ export async function runPush(
   const baseUrl =
     parsed.values.url ?? deps.env.EXECUTABLE_STORIES_URL ?? "https://app.executablestories.com";
 
+  // Change metadata for change-aware selection; best effort, never fatal.
+  const base = parsed.values.base;
+  const changedFiles = base
+    ? (deps.git(["diff", "--name-only", `${base}...HEAD`])?.split("\n").filter(Boolean) ?? [])
+    : [];
+  if (base && changedFiles.length === 0) {
+    deps.error(`Warning: no changed files found against ${base}; pushing without change metadata.`);
+  }
+
   let response: Response;
   try {
     response = await deps.fetchFn(new URL("/api/v1/runs", baseUrl), {
@@ -168,7 +180,14 @@ export async function runPush(
         "Content-Type": "application/json",
         Authorization: `Bearer ${key}`,
       },
-      body: JSON.stringify({ repo, branch, gitSha, source: "serve", report }),
+      body: JSON.stringify({
+        repo,
+        branch,
+        gitSha,
+        source: "serve",
+        report,
+        ...(changedFiles.length > 0 ? { changedFiles, baseSha: deps.git(["rev-parse", base!]) } : {}),
+      }),
     });
   } catch (err) {
     deps.error(`Could not reach ${baseUrl}: ${err instanceof Error ? err.message : String(err)}`);
