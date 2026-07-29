@@ -373,13 +373,46 @@ run_ingest() {
   [[ -n "${GITHUB_HEAD_REF:-}" ]] && BRANCH="$GITHUB_HEAD_REF"
   if RUN_ID=$(STORY_REPORT_PATH="$STORY_REPORT" BRANCH="$BRANCH" node -e '
     const fs = require("fs");
+    const { execFileSync } = require("child_process");
     const report = JSON.parse(fs.readFileSync(process.env.STORY_REPORT_PATH, "utf8"));
+
+    // Change metadata for change-aware test selection. Best effort: never
+    // fail a build over it (shallow clones may not have the base commit).
+    let change = {};
+    try {
+      const event = process.env.GITHUB_EVENT_PATH
+        ? JSON.parse(fs.readFileSync(process.env.GITHUB_EVENT_PATH, "utf8"))
+        : {};
+      const pr = event.pull_request;
+      const baseSha = pr ? pr.base?.sha : event.before;
+      const git = (args) =>
+        execFileSync("git", args, { stdio: ["ignore", "pipe", "ignore"] }).toString();
+      if (baseSha && !/^0+$/.test(baseSha)) {
+        try {
+          git(["cat-file", "-e", baseSha]);
+        } catch {
+          git(["fetch", "--depth=1", "origin", baseSha]);
+        }
+        change = {
+          baseSha,
+          changedFiles: git(["diff", "--name-only", `${baseSha}...HEAD`])
+            .split("\n")
+            .filter(Boolean),
+          prNumber: pr ? pr.number : undefined,
+          prUrl: pr ? pr.html_url : undefined,
+        };
+      }
+    } catch {
+      // no change metadata: the run still ingests
+    }
+
     const payload = {
       repo: process.env.GITHUB_REPOSITORY,
       branch: process.env.BRANCH || undefined,
       gitSha: process.env.GITHUB_SHA || undefined,
       source: "action",
       report,
+      ...change,
     };
     fetch(new URL("/api/v1/runs", process.env.INGEST_URL), {
       method: "POST",
