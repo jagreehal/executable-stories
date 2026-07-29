@@ -188,6 +188,7 @@ The formatters package provides an **`executable-stories`** CLI for generating r
 - **`executable-stories init-astro [directory]`** — Scaffold an Astro/Starlight docs site for story output.
 - **`executable-stories new <template> "<name>"`** — Scaffold a docs page from a template (`adr`, `runbook`, `decision-log`, `incident`).
 - **`executable-stories check-links <dir>`** — Scan docs for broken internal/external links (CI-friendly exit code).
+- **`executable-stories push <run.json>`** — Send a run (StoryReport v1 or raw run JSON) to Executable Stories Cloud without a custom curl script. Key via `--key` or `EXECUTABLE_STORIES_API_KEY`; repo/branch/SHA inferred from git, overridable with `--repo`, `--branch`, `--git-sha`.
 - **`executable-stories import-openapi <spec>`** — Generate API doc pages from an OpenAPI spec, linked to verifying stories.
 - **`executable-stories publish-confluence <file.adf.json>`** — Push an ADF file to a Confluence page. See the [Publishing to Confluence & Jira](../../guides/publishing-to-atlassian/) guide.
 - **`executable-stories publish-jira <file.adf.json>`** — Push an ADF file to a Jira issue as a comment or description.
