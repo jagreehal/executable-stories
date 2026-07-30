@@ -1,5 +1,12 @@
 # executable-stories-formatters
 
+## 1.8.0
+
+### Minor Changes
+
+- 50b564a: `push --base <ref>` sends the files changed since `<ref>` so Executable Stories Cloud can recommend a change-aware test scope. Best effort: a failed diff pushes the run without change metadata.
+- 73f486c: New `push` subcommand: send a run (StoryReport v1 or raw run JSON) to Executable Stories Cloud without a custom curl script. Accepts `--key`/`EXECUTABLE_STORIES_API_KEY`, `--url`/`EXECUTABLE_STORIES_URL`, and infers `--repo`/`--branch`/`--git-sha` from git. Raw runs are converted through the standard synthesize → canonicalize → StoryReport pipeline before upload.
+
 ## 1.7.0
 
 ### Minor Changes
