@@ -39,6 +39,7 @@
     }
   },
   "dependencies": {
+    "executable-stories-core": "workspace:*",
     "executable-stories-formatters": "workspace:*"
   },
   "devDependencies": {

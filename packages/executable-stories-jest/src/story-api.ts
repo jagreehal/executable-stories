@@ -29,7 +29,8 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { createHash } from "node:crypto";
 import { createRequire } from 'node:module';
-import { tryGetActiveOtelContext, resolveTraceUrl, buildHtmlDocEntry } from 'executable-stories-formatters';
+import { tryGetActiveOtelContext, resolveTraceUrl } from 'executable-stories-core/utils/otel-detect';
+import { buildHtmlDocEntry } from 'executable-stories-core/utils/doc-builders';
 import type {
   DocEntry,
   NormalizedTicket,

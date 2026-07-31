@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { resolveTraceUrl } from "../../src/utils/otel-detect";
+
+import { resolveTraceUrl } from "./otel-detect.js";
 
 describe("resolveTraceUrl", () => {
   it("returns undefined when template is undefined", () => {

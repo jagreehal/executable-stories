@@ -1,11 +1,11 @@
 /**
  * Type definitions for executable-stories-jest.
  *
- * Shared story types are imported from executable-stories-formatters.
+ * Shared story types are imported from executable-stories-core.
  * This module re-exports them and adds Jest-specific types.
  */
 
-// Re-export shared story types from formatters
+// Re-export shared story types from core
 export type {
   StepKeyword,
   StepMode,
@@ -14,9 +14,9 @@ export type {
   StoryStep,
   StoryMeta,
   NormalizedTicket,
-} from 'executable-stories-formatters';
+} from 'executable-stories-core/types/story';
 
-export { STORY_META_KEY } from 'executable-stories-formatters';
+export { STORY_META_KEY } from 'executable-stories-core/types/story';
 
 /** A ticket reference: either a plain string ID or an object with id and optional url */
 export type TicketInput = string | { id: string; url?: string };

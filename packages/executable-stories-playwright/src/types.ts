@@ -1,14 +1,14 @@
 /**
  * Type definitions for executable-stories-playwright.
  *
- * Shared story types are re-exported from the formatters package.
+ * Shared story types are re-exported from the core package.
  * Playwright-specific types are defined here.
  */
 
 import type { Page } from '@playwright/test';
 
 // ============================================================================
-// Re-export shared story types from formatters
+// Re-export shared story types from core
 // ============================================================================
 
 export type {
@@ -19,9 +19,9 @@ export type {
   StoryStep,
   StoryMeta,
   NormalizedTicket,
-} from 'executable-stories-formatters';
+} from 'executable-stories-core/types/story';
 
-export { STORY_META_KEY } from 'executable-stories-formatters';
+export { STORY_META_KEY } from 'executable-stories-core/types/story';
 
 // ============================================================================
 // Ticket Input Types

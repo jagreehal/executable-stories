@@ -7,7 +7,7 @@
 import type {
   StepKeyword as _StepKeyword,
   StoryMeta as _StoryMeta,
-} from 'executable-stories-formatters';
+} from 'executable-stories-core/types/story';
 
 // Re-export shared types for convenience (type-only to keep browser-safe)
 export type {
@@ -18,7 +18,7 @@ export type {
   StoryStep,
   StoryMeta,
   NormalizedTicket,
-} from 'executable-stories-formatters';
+} from 'executable-stories-core/types/story';
 
 // ============================================================================
 // Ticket Input Types
