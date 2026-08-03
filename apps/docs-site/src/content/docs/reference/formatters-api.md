@@ -188,7 +188,7 @@ The formatters package provides an **`executable-stories`** CLI for generating r
 - **`executable-stories init-astro [directory]`** — Scaffold an Astro/Starlight docs site for story output.
 - **`executable-stories new <template> "<name>"`** — Scaffold a docs page from a template (`adr`, `runbook`, `decision-log`, `incident`).
 - **`executable-stories check-links <dir>`** — Scan docs for broken internal/external links (CI-friendly exit code).
-- **`executable-stories push <run.json>`** — Send a run (StoryReport v1 or raw run JSON) to Executable Stories Cloud without a custom curl script. Key via `--key` or `EXECUTABLE_STORIES_API_KEY`; repo/branch/SHA inferred from git, overridable with `--repo`, `--branch`, `--git-sha`.
+- **`executable-stories push <run.json>`** — Send a run (StoryReport v1 or raw run JSON) to Executable Stories Cloud without a custom curl script. Key via `--key` or `EXECUTABLE_STORIES_API_KEY`; repo/branch/SHA inferred from git, overridable with `--repo`, `--branch`, `--git-sha`. `--base <ref>` attaches the files changed since `<ref>` for change-aware selection. A pushed run is an event, not a snapshot of the whole suite: a run from a filtered test command carries only the files it ran, and `report.features[].sourceFile` is the set of files it can speak for. Consumers should merge a run into known state per scenario and treat a scenario as gone only when its source file was in that set (or appears deleted in `changedFiles`), otherwise a one-file run reads as a mass deletion.
 - **`executable-stories import-openapi <spec>`** — Generate API doc pages from an OpenAPI spec, linked to verifying stories.
 - **`executable-stories publish-confluence <file.adf.json>`** — Push an ADF file to a Confluence page. See the [Publishing to Confluence & Jira](../../guides/publishing-to-atlassian/) guide.
 - **`executable-stories publish-jira <file.adf.json>`** — Push an ADF file to a Jira issue as a comment or description.
@@ -200,6 +200,13 @@ The formatters package provides an **`executable-stories`** CLI for generating r
 - **`executable-stories compare <baseline> <current> --format html`** — The HTML
   diff adds a step-screenshot storyboard to regressed and fixed scenarios when
   the current run contains browser-renderable frames.
+- **`--partial`** (`compare`, `gate-release`) — The current run covers only some
+  test files, as a filtered local run or a CI shard does. Baseline scenarios in
+  files the run never touched are counted as **not run** and left out of the
+  diff instead of being reported as removed, so `--fail-on-removal` does not
+  fail a shard for tests it was never asked to run. Off by default: a file
+  missing because it was deleted looks identical to one missing because it was
+  not selected, and guessing wrong would hide a real deletion from the gate.
 
 **Filtering by source file:**
 
@@ -209,6 +216,8 @@ The formatters package provides an **`executable-stories`** CLI for generating r
 **HTML report options (all enabled by default):**
 
 - Step text in the HTML report highlights **quoted strings** and **standalone numbers** (step parameter highlighting) for readability.
+- **View state is in the URL.** Search, status filter, tags, and the documentation toggle are written to the URL fragment (`#?q=login&tags=smoke`), so a refresh keeps the view and a filtered report can be shared as a link. A scenario deep link keeps working and coexists with filters: `#<scenario-id>?q=login`. The fragment is used rather than the query string because a report opened from disk (`file://`) has an opaque origin, where browsers refuse History API URL changes.
+- **Mermaid diagrams are validated before rendering** with mermaid's own `parse()`. A diagram with a syntax error shows the error message above its source instead of quietly falling back to a code block. A blocked or offline CDN still falls back silently.
 - **`--html-no-syntax-highlighting`** — Disable syntax highlighting in HTML.
 - **`--html-no-mermaid`** — Disable Mermaid diagram rendering in HTML.
 - **`--html-stale-after-days <n>`** — Days before the interactive HTML report shows a "Last verified N days ago" stale warning (default: 7; `0` disables). Fresh reports show a quiet "Verified N ago" line instead.

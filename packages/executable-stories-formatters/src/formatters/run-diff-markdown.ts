@@ -193,6 +193,12 @@ export class RunDiffMarkdownFormatter {
       `| ${diff.summary.added} | ${diff.summary.removed} | ${diff.summary.renamed} | ${diff.summary.moved} | ${diff.summary.regressed} | ${diff.summary.fixed} | ${diff.summary.changed} | ${diff.summary.unchanged} |`
     );
     lines.push("");
+    if (diff.summary.notRun > 0) {
+      lines.push(
+        `Partial run: ${diff.summary.notRun} baseline scenario(s) in files this run did not cover are excluded from the diff.`
+      );
+      lines.push("");
+    }
 
     for (const kind of ["regressed", "fixed", "added", "removed", "renamed", "moved", "changed"] as const) {
       const scenarios = diff.scenarios.filter((scenario) => scenario.kind === kind);

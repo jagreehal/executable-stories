@@ -467,6 +467,7 @@ export class RunDiffHtmlFormatter {
         <div class="summary-card"><strong>${diff.summary.moved}</strong><span>Moved</span></div>
         <div class="summary-card"><strong>${diff.summary.changed}</strong><span>Changed</span></div>
         <div class="summary-card"><strong>${diff.summary.unchanged}</strong><span>Unchanged</span></div>
+        ${diff.summary.notRun > 0 ? `<div class="summary-card"><strong>${diff.summary.notRun}</strong><span>Not run</span></div>` : ""}
       </section>
       <section class="hero-card priority-banner">
         <h2>Priority Review</h2>
@@ -505,14 +506,47 @@ export class RunDiffHtmlFormatter {
           card.style.display = matchesFilter && matchesSearch ? '' : 'none';
         });
       }
-      input.addEventListener('input', applyFilters);
+      // Filter state lives in the URL fragment so a refresh keeps the view and
+      // the link can be shared. The fragment, not the query string: this file is
+      // usually opened from disk, where Chrome blocks History API URL changes.
+      function writeUrl() {
+        const params = new URLSearchParams();
+        if (input.value) params.set('q', input.value);
+        if (activeFilter !== 'all') params.set('kind', activeFilter);
+        const next = params.toString() ? '#?' + params.toString() : '';
+        if (next === location.hash) return;
+        try {
+          history.replaceState(history.state, '', next || location.href.split('#')[0]);
+        } catch {
+          location.hash = next.slice(1);
+        }
+      }
+      function readUrl() {
+        const raw = location.hash.replace(/^#\\??/, '');
+        if (!raw) return;
+        const params = new URLSearchParams(raw);
+        input.value = params.get('q') || '';
+        const kind = params.get('kind');
+        if (kind && buttons.some((b) => b.getAttribute('data-filter') === kind)) {
+          activeFilter = kind;
+          buttons.forEach((b) => b.classList.toggle('active', b.getAttribute('data-filter') === kind));
+        }
+      }
+      let writeTimer;
+      input.addEventListener('input', () => {
+        applyFilters();
+        clearTimeout(writeTimer);
+        writeTimer = setTimeout(writeUrl, 250);
+      });
       buttons.forEach((button) => {
         button.addEventListener('click', () => {
           activeFilter = button.getAttribute('data-filter');
           buttons.forEach((candidate) => candidate.classList.toggle('active', candidate === button));
           applyFilters();
+          writeUrl();
         });
       });
+      readUrl();
       applyFilters();
     </script>
   </body>

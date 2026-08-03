@@ -55,6 +55,7 @@ function buildDiff(scenarios: ScenarioDiff[]): RunDiffResult {
     regressed: scenarios.filter((s) => s.kind === 'regressed').length,
     fixed: scenarios.filter((s) => s.kind === 'fixed').length,
     unchanged: scenarios.filter((s) => s.kind === 'unchanged').length,
+    notRun: 0,
   };
   return {
     baseline: emptyRun(),

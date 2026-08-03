@@ -70,6 +70,13 @@ export function createPrCommentSummary(
   );
   lines.push("");
 
+  if (diff.summary.notRun > 0) {
+    lines.push(
+      `Partial run: ${diff.summary.notRun} baseline scenario(s) in files this run did not cover are excluded.`
+    );
+    lines.push("");
+  }
+
   if (diff.summary.regressed > 0) {
     lines.push("> Regressions detected. Review these first.");
     lines.push("");

@@ -40,6 +40,7 @@ import { ReportFilters } from "./ReportFilters";
 import { ReportToc } from "./ReportToc";
 import { ReportTocDrawer } from "./ReportTocDrawer";
 import { useTheme, type ThemePref } from "./use-theme";
+import { useUrlState } from "./use-url-state";
 import {
   ScenarioActionsProvider,
   scenarioToMarkdown,
@@ -136,10 +137,19 @@ function ReportInteractiveView({
   staleAfterDays = 7,
   scenarioHistory,
 }: ReportInteractiveViewProps) {
-  const [query, setQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [activeTags, setActiveTags] = useState<string[]>([]);
-  const [detail, setDetail] = useState<"full" | "minimal">("full");
+  // Search, status, tags and detail live in the URL fragment, so a filtered
+  // view survives a refresh and can be pasted to someone else.
+  const [urlState, setUrlState] = useUrlState();
+  const { query, status: statusFilter, tags: activeTags, detail } = urlState;
+  const setQuery = useCallback((next: string) => setUrlState({ query: next }), [setUrlState]);
+  const setStatusFilter = useCallback(
+    (next: StatusFilter) => setUrlState({ status: next }),
+    [setUrlState],
+  );
+  const setDetail = useCallback(
+    (next: "full" | "minimal") => setUrlState({ detail: next }),
+    [setUrlState],
+  );
   const [helpOpen, setHelpOpen] = useState(false);
   const { pref: themePref, setPref: setThemePref } = useTheme();
   const searchRef = useRef<HTMLInputElement>(null);
@@ -172,8 +182,10 @@ function ReportInteractiveView({
   const tagOptions = useMemo(() => allTags(report), [report]);
   const toggleTag = useCallback(
     (tag: string) =>
-      setActiveTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag])),
-    [],
+      setUrlState({
+        tags: activeTags.includes(tag) ? activeTags.filter((t) => t !== tag) : [...activeTags, tag],
+      }),
+    [activeTags, setUrlState],
   );
 
   const [toast, setToast] = useState<string | null>(null);

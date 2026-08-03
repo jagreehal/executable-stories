@@ -1296,10 +1296,14 @@ export async function generateRunComparison(args: {
   outputDir?: string;
   outputName?: string;
   title?: string;
+  /** Current run covers only some test files; see {@link DiffRunsOptions}. */
+  partialCurrent?: boolean;
 }): Promise<GenerateCompareResult> {
   const outputDir = args.outputDir ?? "reports";
   const outputName = args.outputName ?? "test-results-diff";
-  const diff = diffRuns(args.baseline, args.current);
+  const diff = diffRuns(args.baseline, args.current, {
+    partialCurrent: args.partialCurrent,
+  });
   const files: string[] = [];
 
   await fsPromises.mkdir(outputDir, { recursive: true });
@@ -1322,7 +1326,7 @@ export async function generateRunComparison(args: {
   return { files, diff };
 }
 
-export { diffRuns } from "./compare/index";
+export { diffRuns, type DiffRunsOptions } from "./compare/index";
 export { createPrCommentSummary } from "./compare/index";
 
 // Review domain + formatter (Evidence-Driven Review report)

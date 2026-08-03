@@ -1274,3 +1274,67 @@ describe("RunDiffChangelogFormatter", () => {
     expect(changelog).toContain("- User logs in → **User signs in successfully**");
   });
 });
+
+describe("diff report URL state", () => {
+  it("keeps the filter and search in the fragment", () => {
+    const run = stubs.testRunResult({
+      testCases: [
+        stubs.testCaseResult({ id: "a", sourceFile: "src/a.story.test.ts", status: "passed" }),
+      ],
+    });
+    const html = new RunDiffHtmlFormatter().format(diffRuns(run, run));
+
+    // The fragment, not the query string: this file is opened from disk.
+    expect(html).toContain("location.hash");
+    expect(html).toContain("params.set('kind', activeFilter)");
+    expect(html).toContain("params.set('q', input.value)");
+    expect(html).toContain("readUrl();");
+  });
+});
+
+describe("partial current run", () => {
+  const scenario = (id: string, sourceFile: string) =>
+    stubs.testCaseResult({
+      id,
+      sourceFile,
+      status: "passed",
+      story: stubs.storyMeta({ scenario: id, docs: [] }),
+    });
+
+  // Baseline covers two files; the current run only ran auth, and inside auth
+  // one scenario really was deleted.
+  const baseline = stubs.testRunResult({
+    testCases: [
+      scenario("auth-kept", "src/auth.story.test.ts"),
+      scenario("auth-deleted", "src/auth.story.test.ts"),
+      scenario("billing-untouched", "src/billing.story.test.ts"),
+    ],
+  });
+  const current = stubs.testRunResult({
+    testCases: [scenario("auth-kept", "src/auth.story.test.ts")],
+  });
+
+  it("reports every unseen scenario as removed by default", () => {
+    const diff = diffRuns(baseline, current);
+
+    expect(diff.summary).toMatchObject({ removed: 2, notRun: 0 });
+  });
+
+  it("only judges files the partial run covered", () => {
+    const diff = diffRuns(baseline, current, { partialCurrent: true });
+
+    expect(diff.summary).toMatchObject({ removed: 1, notRun: 1 });
+    expect(diff.scenarios.find((s) => s.kind === "removed")?.id).toBe("auth-deleted");
+    expect(diff.scenarios.some((s) => s.id === "billing-untouched")).toBe(false);
+  });
+
+  it("says how many scenarios it left out", () => {
+    const diff = diffRuns(baseline, current, { partialCurrent: true });
+
+    expect(new RunDiffMarkdownFormatter().format(diff)).toContain(
+      "Partial run: 1 baseline scenario(s)"
+    );
+    expect(createPrCommentSummary(diff)).toContain("Partial run: 1 baseline scenario(s)");
+    expect(new RunDiffHtmlFormatter().format(diff)).toContain("Not run");
+  });
+});

@@ -72,6 +72,11 @@ export interface RunDiffSummary {
   regressed: number;
   fixed: number;
   unchanged: number;
+  /**
+   * Baseline scenarios skipped because the current run is partial and never
+   * touched their source file. Always 0 for a full-run diff.
+   */
+  notRun: number;
 }
 
 export interface RunDiffResult {

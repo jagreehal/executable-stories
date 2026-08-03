@@ -8,8 +8,10 @@ import type {
   ReportFeature,
   StoryReport,
 } from "executable-stories-core";
+import type { UrlStatusFilter } from "../lib/hash-state";
 
-export type StatusFilter = "all" | "passed" | "failed" | "skipped" | "pending";
+/** Defined with the URL codec that has to validate it, so the two can't drift. */
+export type StatusFilter = UrlStatusFilter;
 
 export interface FilterCriteria {
   query?: string;
