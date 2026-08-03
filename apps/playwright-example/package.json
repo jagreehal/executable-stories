@@ -23,7 +23,7 @@
     "eslint-plugin-executable-stories-playwright": "workspace:*",
     "executable-stories-formatters": "workspace:*",
     "executable-stories-playwright": "workspace:*",
-    "typescript": "^5.9.3",
+    "typescript": "^7.0.2",
     "typescript-eslint": "^8.54.0"
   }
 }

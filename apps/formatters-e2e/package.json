@@ -16,6 +16,6 @@
     "executable-stories-formatters": "workspace:*",
     "executable-stories-playwright": "workspace:*",
     "executable-stories-react": "workspace:*",
-    "typescript": "~5.9.3"
+    "typescript": "~7.0.2"
   }
 }
