@@ -1,6 +1,9 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "stream",
+  // Turbo's strict env mode drops TMPDIR, so child processes fall back to /tmp.
+  // That breaks any sandbox that only grants the session temp dir.
+  "globalPassThroughEnv": ["TMPDIR"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],

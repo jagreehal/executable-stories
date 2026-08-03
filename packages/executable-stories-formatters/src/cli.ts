@@ -67,7 +67,7 @@ import { publishJiraIssue, type JiraPublishMode } from "./publishers/jira";
 import { recordDeployment, getDeploymentStatus, getEnvironmentDrift } from "./deploy/index";
 import { loadConfig } from "./config.js";
 import type { Formatter } from "./types/formatter.js";
-import type { ScenarioDiff } from "./types/compare";
+import type { RunDiffSummary, ScenarioDiff } from "./types/compare";
 
 // ============================================================================
 // Exit Codes
@@ -202,6 +202,8 @@ ${presetHelpLines()
   --fail-on-added-failures      Exit non-zero when newly added scenarios are failing
   --fail-on-removal             Exit non-zero when scenarios are removed from the baseline
   --fail-on-new                 Exit non-zero when new scenarios appear that weren't in the baseline
+  --partial                     (compare/gate-release) Current run covers only some test files (filtered run or CI shard):
+                                baseline scenarios in files it never touched count as not-run, not removed
   --max-regressions <n>         Exit non-zero when regressions exceed threshold
   --release-policy <path>       (gate-release) Path to JSON policy file with allowed exceptions
   --changed-files <path>        (review) Changed files: JSON (ChangedFile[] or {changedFiles,baseRef,headRef}) or "git diff --name-status" text
@@ -390,6 +392,8 @@ interface CliArgs {
   failOnAddedFailures: boolean;
   failOnRemoval: boolean;
   failOnNew: boolean;
+  /** (compare/gate-release) Current run covers only some test files. */
+  partial: boolean;
   maxRegressions?: number;
   releasePolicy?: string;
   changedFilesPath?: string;
@@ -641,6 +645,7 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
       "fail-on-added-failures": { type: "boolean", default: false },
       "fail-on-removal": { type: "boolean", default: false },
       "fail-on-new": { type: "boolean", default: false },
+      "partial": { type: "boolean", default: false },
       "max-regressions": { type: "string" },
       "release-policy": { type: "string" },
       "changed-files": { type: "string" },
@@ -957,6 +962,7 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
     failOnAddedFailures: values["fail-on-added-failures"] as boolean,
     failOnRemoval: values["fail-on-removal"] as boolean,
     failOnNew: values["fail-on-new"] as boolean,
+    partial: values["partial"] as boolean,
     maxRegressions,
     releasePolicy: values["release-policy"] as string | undefined,
     changedFilesPath: values["changed-files"] as string | undefined,
@@ -1944,14 +1950,7 @@ interface CompareCliResult {
   files: string[];
   baselineFile: string;
   addedFailures: number;
-  summary: {
-    added: number;
-    removed: number;
-    changed: number;
-    regressed: number;
-    fixed: number;
-    unchanged: number;
-  };
+  summary: RunDiffSummary;
   scenarios: ScenarioDiff[];
   prSummary?: string;
 }
@@ -2042,6 +2041,7 @@ async function generateCompareReports(
     outputDir: args.outputDir,
     outputName: args.outputName,
     title: args.htmlTitle,
+    partialCurrent: args.partial,
   });
 
   return {
@@ -2299,6 +2299,11 @@ function printCompareResult(
     console.log(f);
   }
   console.log(`baseline: ${result.baselineFile}`);
+  if (result.summary.notRun > 0) {
+    console.error(
+      `--partial: ${result.summary.notRun} baseline scenario(s) live in files this run did not cover and were left out of the diff.`
+    );
+  }
   if (result.prSummary && args.prSummary) {
     console.log("");
     console.log(result.prSummary);
@@ -2964,6 +2969,7 @@ function createDefaultCliArgs(): CliArgs {
     failOnAddedFailures: false,
     failOnRemoval: false,
     failOnNew: false,
+    partial: false,
     strictCodeDiff: false,
     baselineMode: "explicit",
   };

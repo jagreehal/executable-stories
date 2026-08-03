@@ -203,17 +203,38 @@ function identityKind(before: TestCaseResult, after: TestCaseResult): "renamed" 
   return fileChanged && !titleChanged ? "moved" : "renamed";
 }
 
+export interface DiffRunsOptions {
+  /**
+   * The current run covers only some test files (a filtered local run, a CI
+   * shard, or a push from a watch session). A baseline scenario in a file the
+   * current run never touched is then "not run", not "removed" — without this
+   * a one-file run against a full baseline reports the whole suite as deleted.
+   *
+   * Deliberately opt-in: a file that is absent because it was deleted looks
+   * exactly like a file that is absent because it was not selected, and
+   * guessing wrong hides a real deletion from a release gate.
+   */
+  partialCurrent?: boolean;
+}
+
 export function diffRuns(
   baseline: TestRunResult,
-  current: TestRunResult
+  current: TestRunResult,
+  options: DiffRunsOptions = {}
 ): RunDiffResult {
   const baselineById = new Map(baseline.testCases.map((tc) => [tc.id, tc]));
   const currentById = new Map(current.testCases.map((tc) => [tc.id, tc]));
   const ids = new Set([...baselineById.keys(), ...currentById.keys()]);
 
+  // The current run's own scenarios define its scope: the files it covered.
+  const coveredFiles = options.partialCurrent
+    ? new Set(current.testCases.map((tc) => tc.sourceFile))
+    : undefined;
+
   const scenarios: ScenarioDiff[] = [];
   const removedCases: TestCaseResult[] = [];
   const addedCases: TestCaseResult[] = [];
+  let notRun = 0;
 
   // First pass: id-matched scenarios diff in place; id-unique ones are collected so we can
   // try to re-pair renames/moves before declaring them genuine additions/deletions.
@@ -226,6 +247,13 @@ export function diffRuns(
       continue;
     }
     if (before && !after) {
+      // Out of a partial run's scope: not observed, so nothing can be said about
+      // it. It also stays out of rename/move matching, since the file that would
+      // prove the move was never run.
+      if (coveredFiles && !coveredFiles.has(before.sourceFile)) {
+        notRun += 1;
+        continue;
+      }
       removedCases.push(before);
       continue;
     }
@@ -312,6 +340,7 @@ export function diffRuns(
     regressed: sorted.filter((s) => s.kind === "regressed").length,
     fixed: sorted.filter((s) => s.kind === "fixed").length,
     unchanged: sorted.filter((s) => s.kind === "unchanged").length,
+    notRun,
   };
 
   return {

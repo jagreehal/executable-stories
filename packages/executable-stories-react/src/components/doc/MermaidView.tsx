@@ -29,22 +29,44 @@ function prefersDark(el: HTMLElement | null): boolean {
 export function MermaidView({ entry, load }: { entry: ReportDocMermaid; load: MermaidLoader }) {
   const ref = useRef<HTMLElement>(null);
   const [svg, setSvg] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     const draw = async () => {
+      let mermaid: MermaidApi;
       try {
-        const mermaid = await load();
+        mermaid = await load();
+      } catch {
+        // No library (offline, blocked CDN). Not the diagram's fault, so keep
+        // the quiet source fallback rather than accusing the author.
+        if (!cancelled) {
+          setSvg(null);
+          setError(null);
+        }
+        return;
+      }
+      try {
         mermaid.initialize({
           startOnLoad: false,
           securityLevel: "strict",
           theme: prefersDark(ref.current) ? "dark" : "default",
         });
+        // mermaid.parse is the library's own syntax check. Running it first
+        // turns a broken diagram into a message naming the problem, and keeps
+        // mermaid from injecting its own error graphic into the document.
+        await mermaid.parse(entry.code);
         const id = `es-mermaid-${Math.random().toString(36).slice(2)}`;
         const { svg: rendered } = await mermaid.render(id, entry.code);
-        if (!cancelled) setSvg(rendered);
-      } catch {
-        if (!cancelled) setSvg(null);
+        if (!cancelled) {
+          setSvg(rendered);
+          setError(null);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setSvg(null);
+          setError(err instanceof Error ? err.message : String(err));
+        }
       }
     };
     void draw();
@@ -79,5 +101,20 @@ export function MermaidView({ entry, load }: { entry: ReportDocMermaid; load: Me
 
   // Pre-render / fallback: the readable source. The ref lets the effect locate
   // the themed ancestor from the same DOM position before the SVG swaps in.
-  return <MermaidSource entry={entry} ref={ref} />;
+  // A syntax error shows above it, because a diagram that silently degrades to
+  // a code block is a diagram nobody ever fixes.
+  return (
+    <>
+      {error ? (
+        <p
+          role="alert"
+          data-es-mermaid-error
+          className="mt-3 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+        >
+          Diagram failed to render: {error}
+        </p>
+      ) : null}
+      <MermaidSource entry={entry} ref={ref} />
+    </>
+  );
 }

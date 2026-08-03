@@ -6,6 +6,8 @@
  * explicitly here rather than in the stylesheet.
  */
 
+import { splitHash, writeHash } from "./hash-state";
+
 /** True when the user has asked the OS to minimise non-essential motion. */
 export function prefersReducedMotion(): boolean {
   if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
@@ -34,7 +36,9 @@ export function scrollToScenarioId(
     behavior: prefersReducedMotion() ? "auto" : "smooth",
     block: "start",
   });
-  if (options.updateHash !== false && typeof history !== "undefined") {
-    history.replaceState(null, "", `#${scenarioId}`);
+  if (options.updateHash !== false) {
+    // Keep any filter params already in the fragment: jumping to a scenario
+    // must not silently drop the filters that surfaced it.
+    writeHash(scenarioId, splitHash(window.location.hash).params.toString());
   }
 }
