@@ -1,5 +1,12 @@
 # executable-stories-mcp
 
+## 0.4.8
+
+### Patch Changes
+
+- Updated dependencies [075d71e]
+  - executable-stories-formatters@1.9.0
+
 ## 0.4.7
 
 ### Patch Changes
