@@ -2,7 +2,7 @@
 
 ## Overview
 
-34 skills for framework-native BDD story testing, generated reports, ESLint rules, adoption workflows, living-documentation practices, and workflow receipts. Tests are source of truth; docs are derived from test results.
+37 skills for framework-native BDD story testing, generated reports, ESLint rules, adoption workflows, living-documentation practices, and workflow receipts. Tests are source of truth; docs are derived from test results.
 
 ## Skill List
 
@@ -55,7 +55,7 @@ Each adapter gets three skills following the same pattern:
 | `eslint-jest-rules` | core | 2 rules + flat config recommended setup |
 | `eslint-playwright-rules` | core | 2 rules + flat config recommended setup |
 
-### Living Documentation (10 skills)
+### Living Documentation (11 skills)
 
 | Skill | Type | Description |
 |---|---|---|
@@ -69,6 +69,14 @@ Each adapter gets three skills following the same pattern:
 | `spec-outside-in-behaviour` | practice | Discover behaviour from user goals outside-in |
 | `spec-living-documentation` | practice | Write specs as durable living documentation |
 | `spec-evidence-review` | practice | Author changes for Evidence Review reports |
+| `spec-plan-to-stories` | practice | Turn an agreed plan into planned `it.todo` scenarios |
+
+### Understanding (2 skills)
+
+| Skill | Type | Description |
+|---|---|---|
+| `explain-change` | practice | Explain a diff as living documentation, cited to scenarios that ran |
+| `executable-lessons` | practice | Author coding lessons as runnable story tests |
 
 ### Workflow Receipts (1 skill)
 

@@ -106,6 +106,14 @@ validate_raw_run() {
     fi
   fi
 
+  # Planned scenarios: every adapter must be able to emit status "todo" so a
+  # plan renders the same way in every language. Each example app declares one.
+  if ! grep -q '"todo"' "$RAW_RUN"; then
+    echo "[$LABEL] ERROR: no planned scenario (status \"todo\") in $RAW_RUN" >&2
+    return 1
+  fi
+  echo "[$LABEL] ✓ planned scenario emitted"
+
   echo "[$LABEL] OK: all checks passed"
   return 0
 }

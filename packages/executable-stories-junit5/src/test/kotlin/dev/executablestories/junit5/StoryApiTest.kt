@@ -24,6 +24,25 @@ class StoryApiTest {
     }
 
     @Test
+    fun plannedMarksTheContextAsNotBuiltYet() {
+        Story.planned("checkout is blocked for a suspended account", "checkout")
+
+        val ctx = Story.getContext()
+        assertNotNull(ctx, "planned should create a context")
+        assertTrue(ctx!!.planned, "context should be marked planned")
+        assertEquals("checkout is blocked for a suspended account", ctx.scenario)
+        assertTrue(ctx.steps.isEmpty(), "a planned scenario carries no steps")
+        assertEquals(listOf("checkout"), ctx.tags)
+    }
+
+    @Test
+    fun initIsNotPlanned() {
+        Story.init("User logs in")
+
+        assertTrue(Story.getContext()?.planned == false)
+    }
+
+    @Test
     fun initCreatesContext() {
         assertNull(Story.getContext(), "Context should be null before init")
 

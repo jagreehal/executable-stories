@@ -7,6 +7,12 @@ import org.junit.jupiter.api.Assertions.assertThrows
 
 class CalculatorStoryTest {
 
+    // Specified but not built yet: renders as planned in the report.
+    @Test
+    fun calculatorRejectsNonNumericInput() {
+        Story.planned("Calculator rejects non-numeric input")
+    }
+
     @Test
     fun calculatorAddsTwoNumbers() {
         Story.init("Calculator adds two numbers")

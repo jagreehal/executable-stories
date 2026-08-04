@@ -62,6 +62,20 @@ interface MochaTest {
   duration?: number;
   err?: Error & { message?: string; stack?: string };
   parent?: MochaSuite;
+  /** Mocha marks both `it.skip(...)` and a bodyless `it("title")` as pending. */
+  pending?: boolean;
+  /** Absent only when the test was declared with no callback at all. */
+  fn?: unknown;
+}
+
+/**
+ * A bodyless `it("title")` is Mocha's way of writing down behaviour that does
+ * not exist yet, which is what a planned scenario is. `it.skip(title, fn)` is
+ * also pending but keeps its body: that means "do not run this now", a
+ * different claim, so it stays a skip.
+ */
+function isPlannedTest(test: MochaTest): boolean {
+  return test.pending === true && test.fn === undefined;
 }
 
 interface MochaRunner {
@@ -141,10 +155,17 @@ function createReporter(
             return all.length > 0 ? all[0].specRelative : "unknown";
           })();
 
+    // Bodyless tests never run story.init(), so they are collected separately
+    // and only kept when the spec has real story tests to sit alongside.
+    const plannedTests: MochaTest[] = [];
+
     for (const test of tests) {
       const titlePath = getTitlePath(test);
       const meta = getMeta(effectiveSpecPath, titlePath);
-      if (!meta) continue; // only document tests that used story.init()
+      if (!meta) {
+        if (isPlannedTest(test)) plannedTests.push(test);
+        continue; // only document tests that used story.init()
+      }
 
       const status = mapCypressStateToRaw(test.state);
 
@@ -192,6 +213,26 @@ function createReporter(
     if (rawTestCases.length === 0) {
       clearStore();
       return;
+    }
+
+    for (const test of plannedTests) {
+      const titlePath = getTitlePath(test);
+      const suitePath = titlePath.slice(0, -1);
+      rawTestCases.push({
+        title: test.title,
+        titlePath,
+        story: {
+          scenario: test.title,
+          steps: [],
+          ...(suitePath.length > 0 ? { suitePath } : {}),
+        },
+        sourceFile: effectiveSpecPath,
+        sourceLine: 1,
+        status: "todo",
+        durationMs: 0,
+        retry: 0,
+        retries: 0,
+      });
     }
 
     const includeMetadata = opts.markdown?.includeMetadata ?? true;

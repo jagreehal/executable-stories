@@ -283,6 +283,7 @@ When working in these areas, load the linked skill file into context for accurat
 | Specifying workflows and state transitions                   | `skills/spec-workflow-state/SKILL.md`                                                          |
 | Reviewing executable specifications                          | `skills/spec-review/SKILL.md`                                                                  |
 | Converting existing tests to executable stories              | `skills/spec-convert-tests/SKILL.md`                                                           |
+| Turning a plan into planned (`it.todo`) scenarios            | `skills/spec-plan-to-stories/SKILL.md`                                                         |
 | Refining raw examples into precise specifications            | `skills/spec-refine-examples/SKILL.md`                                                         |
 | Outside-in behaviour discovery (Dan North)                   | `skills/spec-outside-in-behaviour/SKILL.md`                                                    |
 | Writing specs as living documentation (Gojko Adzic)          | `skills/spec-living-documentation/SKILL.md`                                                    |

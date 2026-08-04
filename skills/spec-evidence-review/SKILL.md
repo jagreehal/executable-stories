@@ -102,6 +102,17 @@ it('checkout blocks a suspended user', ({ task }) => {
 
 This claim renders as **stakeholder · bugfix · 🟢 strong** (failing-first + screenshot), with the *Why* shown inline — exactly what a reviewer needs to accept the change without reading the diff.
 
+## Showing the shape of a change
+
+When *Why* needs a picture rather than a paragraph, use the narrative blocks:
+`story.custom({ type: "file-tree" })` for what moved, `story.custom({ type: "data-model" })`
+for a record that changed shape, `story.mermaid` for flow. `skills/explain-change`
+documents the payloads.
+
+Set `authored: "agent"` on any block you wrote yourself. A review surface where
+narration is indistinguishable from executed evidence is worth less than one with no
+pictures at all: the reviewer can no longer tell which claims the run backs.
+
 ## What the report does with this
 
 - **Bands changed files**: 🔴 changed code with no claim/test (review this first) → 🟡 weak evidence → 🟢 strong. Untested changed source is the reviewer's first stop.

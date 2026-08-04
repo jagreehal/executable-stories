@@ -233,11 +233,15 @@ export default defineConfig({
           ],
         },
         {
-          label: 'AI Writing Skills',
+          label: 'Agent Skills',
           items: [
             {
-              label: 'Overview',
+              label: 'Overview and install',
               slug: 'ai-skills',
+            },
+            {
+              label: 'Skill catalogue',
+              slug: 'ai-skills/catalogue',
             },
           ],
         },

@@ -11,6 +11,12 @@ fn write_story_results() {
 
 // --- Calculator story tests ---
 
+// Specified but not built yet: renders as planned in the report.
+#[test]
+fn test_calculator_rejects_non_numeric_input() {
+    Story::planned("Calculator rejects non-numeric input");
+}
+
 #[test]
 fn test_calculator_adds_two_numbers() {
     let mut s = Story::new("Calculator adds two numbers");

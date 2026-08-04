@@ -1056,3 +1056,63 @@ func TestExportedFactoryFunctions(t *testing.T) {
 		t.Errorf("unexpected TagEntry: %v", tag)
 	}
 }
+
+func TestPlannedRecordsTodoScenario(t *testing.T) {
+	reset()
+
+	mt := &mockT{name: "TestCheckoutBlocksSuspendedAccount"}
+	Planned(mt, "checkout is blocked for a suspended account", WithTags("checkout"))
+	mt.runCleanups()
+
+	cases := getAll()
+	if len(cases) != 1 {
+		t.Fatalf("expected 1 collected case, got %d", len(cases))
+	}
+	tc := cases[0]
+	if tc.Status != "todo" {
+		t.Errorf("expected status=todo, got %q", tc.Status)
+	}
+	if tc.Story.Scenario != "checkout is blocked for a suspended account" {
+		t.Errorf("unexpected scenario %q", tc.Story.Scenario)
+	}
+	if len(tc.Story.Steps) != 0 {
+		t.Errorf("planned scenario should carry no steps, got %d", len(tc.Story.Steps))
+	}
+	if len(tc.Story.Tags) != 1 || tc.Story.Tags[0] != "checkout" {
+		t.Errorf("expected the tag option to apply, got %v", tc.Story.Tags)
+	}
+}
+
+// A failure after Planned must be reported as a failure. Recording "todo" here
+// would hide a broken test behind a plan.
+func TestPlannedDoesNotMaskAFailure(t *testing.T) {
+	reset()
+
+	mt := &mockT{name: "TestNotBuiltYet", failed: true}
+	Planned(mt, "not built yet")
+	mt.runCleanups()
+
+	cases := getAll()
+	if len(cases) != 1 {
+		t.Fatalf("expected 1 collected case, got %d", len(cases))
+	}
+	if cases[0].Status != "fail" {
+		t.Errorf("expected status=fail, got %q", cases[0].Status)
+	}
+}
+
+func TestPlannedReportsASkippedTestAsSkipped(t *testing.T) {
+	reset()
+
+	mt := &mockT{name: "TestNotBuiltYet", skipped: true}
+	Planned(mt, "not built yet")
+	mt.runCleanups()
+
+	cases := getAll()
+	if len(cases) != 1 {
+		t.Fatalf("expected 1 collected case, got %d", len(cases))
+	}
+	if cases[0].Status != "skip" {
+		t.Errorf("expected status=skip, got %q", cases[0].Status)
+	}
+}

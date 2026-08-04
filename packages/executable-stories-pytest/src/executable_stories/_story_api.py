@@ -41,6 +41,7 @@ class _StoryContext:
         "active_timers",
         "timer_counter",
         "otel_spans",
+        "planned",
     )
 
     def __init__(
@@ -67,6 +68,7 @@ class _StoryContext:
         self.active_timers: dict[int, dict[str, Any]] = {}
         self.timer_counter: int = 0
         self.otel_spans: list[dict[str, Any]] | None = None
+        self.planned: bool = False
 
 
 class Story:
@@ -140,6 +142,36 @@ class Story:
             pass  # opentelemetry not installed
         except Exception:
             pass  # OTel not available or no active span
+
+    def planned(
+        self,
+        scenario: str,
+        *,
+        tags: list[str] | None = None,
+        ticket: str | list[str] | dict | list[dict | str] | None = None,
+        covers: list[str] | None = None,
+        meta: dict[str, Any] | None = None,
+    ) -> None:
+        """Declare a scenario that is specified but not built yet.
+
+        It appears in the report marked "planned" and stops being planned once
+        someone writes it as a real story with ``story.init``::
+
+            def test_checkout_blocks_suspended_account():
+                story.planned("checkout is blocked for a suspended account")
+
+        ``pytest.mark.skip`` means "do not run this now", which is a different
+        claim from "we have not built this yet", so this does not skip for you.
+        """
+        self.init(scenario, tags=tags, ticket=ticket, covers=covers, meta=meta)
+        ctx = self._ctx
+        if ctx is not None:
+            ctx.planned = True
+
+    def is_planned(self) -> bool:
+        """True when the current test declared a planned scenario."""
+        ctx = self._ctx
+        return bool(ctx and ctx.planned)
 
     def _get_meta(self) -> dict[str, Any] | None:
         """Return the StoryMeta dict for the current test, or None."""

@@ -539,5 +539,22 @@ public class CheckoutTests : IDisposable
 | Naming | PascalCase | snake_case | snake_case | camelCase | PascalCase |
 | Context | Cleanup | ThreadLocal | RAII (Drop) | ThreadLocal | AsyncLocal |
 | Output trigger | `RunAndReport()` | Plugin hooks | `write_results()` | Listener | `RecordAndClear()` |
+| Planned scenario | `es.Planned(t, "…")` | `story.planned("…")` | `Story::planned("…")` | `Story.planned("…")` | `Story.Planned("…")` |
+
+Ruby, not in the table above, uses `ExecutableStories.planned("…")`.
+
+### Planned scenarios
+
+A planned scenario is behaviour you have written down but not built. It reaches the report as status `todo` and renders as **Planned**, and it stops being planned the moment someone implements it:
+
+```go
+func TestCheckoutBlocksSuspendedAccount(t *testing.T) {
+    es.Planned(t, "checkout is blocked for a suspended account")
+}
+```
+
+These adapters take an explicit call rather than reusing `t.Skip`, `@pytest.mark.skip`, `#[ignore]`, `@Disabled`, or `Skip = "…"`. Those all mean "do not run this now", which is a different claim from "we have not built this yet". Mapping one onto the other would drop every quarantined test into your plan. Skipping, if you want it, stays yours to call.
+
+The JS adapters use their host's own idiom instead: `it.todo` (Vitest, Jest), `test.fixme` (Playwright), and a bodyless `it` (Cypress).
 
 All adapters write the same `RawRun` JSON schema. Once on disk, pass the file to `executable-stories-formatters` to produce HTML, Markdown, JUnit, Cucumber JSON, and other formats. See [Formatters CLI and API](reference/formatters-api/) for details.

@@ -38,7 +38,7 @@ class StoryTestExecutionListener : TestExecutionListener {
         if (!testIdentifier.isTest) return
 
         val context = Story.getContext()
-        val status = mapStatus(testExecutionResult.status)
+        val status = resolveStatus(context?.planned == true, testExecutionResult.status)
 
         val testCase = LinkedHashMap<String, Any?>()
         testCase["title"] = testIdentifier.displayName
@@ -192,6 +192,22 @@ class StoryTestExecutionListener : TestExecutionListener {
     }
 
     companion object {
+        /**
+         * A planned declaration only counts when the test itself came out clean.
+         * Code after [Story.planned] can still fail or abort, and reporting that
+         * as "planned" would hide a broken test behind a plan.
+         */
+        @JvmStatic
+        private fun resolveStatus(
+            planned: Boolean,
+            status: TestExecutionResult.Status,
+        ): String =
+            if (planned && status == TestExecutionResult.Status.SUCCESSFUL) {
+                "todo"
+            } else {
+                mapStatus(status)
+            }
+
         @JvmStatic
         private fun mapStatus(status: TestExecutionResult.Status): String =
             when (status) {

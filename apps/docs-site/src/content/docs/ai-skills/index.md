@@ -1,122 +1,125 @@
 ---
-title: AI Writing Skills
-description: Teach your AI coding agent to write documentation for your specific audience — product owners, developers, QA teams, or anyone else
+title: Agent skills
+description: The 37 skills shipped with executable-stories, what each one covers, and how to install them into Claude Code, Cursor, or any agent that reads project files.
 ---
 
-Your test suite is the single source of truth. But a product owner, a developer, and a QA lead all need different things from the same tests. **AI writing skills** let you control how your coding agent writes documentation — the audience, the tone, the level of detail.
+A skill is a markdown file that tells your coding agent how to do one job in this codebase. Your agent reads it when the job comes up and follows it instead of guessing.
 
-Skills are directories containing a `SKILL.md` file. Your AI agent (Claude Code, Cursor, Copilot, or any tool that reads project-level skills) picks them up and follows them when writing executable stories.
+This repo ships 37 of them. They cover writing story tests in ten languages, wiring reporters, running the CLI, converting an existing suite, shaping specifications, and explaining a change once it ships. Browse them in the [catalogue](/ai-skills/catalogue/) or on [GitHub](https://github.com/jagreehal/executable-stories/tree/main/skills).
 
-## How it works
+## Why they exist
 
-1. **Copy a skill directory** from this repo's `skills/` directory into your agent's project-level skills directory
-2. **Tell your agent** to use the skill when writing stories — or it picks it up automatically
-3. **The same test suite** produces documentation tuned for your audience
+An agent that has never seen this project will write Gherkin feature files, invent a step-matching layer, and put `then` at the top level of a Vitest module where it breaks `await import()`. Each of those mistakes costs a human review cycle to catch.
 
-No config. No build step. Just a `SKILL.md` file that shapes how your agent writes.
+A skill front-loads the answer. `vitest-story-api` states the callback-only `story.init(task)` rule. `spec-rules-decision-tables` gives you a decision table instead of nine near-identical scenarios. `explain-change` refuses to make a claim about behaviour without citing a scenario that ran.
 
-## Example: three audiences, one scenario
+## Install
 
-The same "User logs in successfully" scenario, written for three different readers:
+### Claude Code
 
-### Product Owner
+Copy the skill directory into your project. The agent finds it with no further setup:
 
-Outcomes-focused. Business language. No implementation details.
+```bash
+npx degit jagreehal/executable-stories/skills/vitest-story-api .claude/skills/vitest-story-api
+```
+
+Use `~/.claude/skills/` instead when you want a skill available in every project on your machine.
+
+### Any agent that reads a project file
+
+Cursor, Copilot, Codex, and anything else that loads `AGENTS.md` or `CLAUDE.md` can use the same files. Vendor the directory and point at it:
+
+```bash
+git clone --depth 1 https://github.com/jagreehal/executable-stories /tmp/es
+cp -R /tmp/es/skills/vitest-story-api docs/skills/vitest-story-api
+```
+
+Then add a row to your `AGENTS.md` so the agent knows when to load it:
+
+```markdown
+| Task                       | Skill                                   |
+| -------------------------- | --------------------------------------- |
+| Writing Vitest story tests | `docs/skills/vitest-story-api/SKILL.md` |
+```
+
+This repo does exactly that in its own [AGENTS.md](https://github.com/jagreehal/executable-stories/blob/main/AGENTS.md).
+
+### Which ones to start with
+
+Install the few that match your stack rather than all 37:
+
+| You are                          | Install                                     |
+| -------------------------------- | ------------------------------------------- |
+| Starting from nothing            | `executable-stories-init`                   |
+| Writing tests in Vitest          | `vitest-story-api`, `vitest-reporter-setup` |
+| Adopting in an existing suite    | `<framework>-converting-tests`              |
+| Generating reports in CI         | `formatters-cli`                            |
+| Working with product or QA input | `spec-example-mapping`, `spec-review`       |
+
+Add more when you hit the problem they solve. A skill your agent never loads costs you nothing but a directory.
+
+## Where skills stop
+
+A skill shapes what your agent writes. It cannot check the result, so pair it with something that can:
+
+- **ESLint plugins** enforce the structural rules mechanically. `require-init-before-steps` catches a missing `story.init()` whether or not the agent read the skill. See [ESLint plugins](/reference/eslint-plugins/).
+- **The report** shows what ran. An agent can claim a scenario passes. The run says whether it did.
+
+`explain-change` and `spec-evidence-review` build on that split. They let an agent narrate a change, and they mark narration as narration, so a reader never mistakes a drawn diagram for a passing test.
+
+## Write your own
+
+A skill needs frontmatter with a name and a description, then the instructions. Your agent matches against the description, so write it as the situation rather than the topic:
+
+```markdown
+---
+name: regulatory-auditor
+description: Use when writing story tests for a regulated feature that needs test case IDs and requirement traceability.
+---
+
+# Writing for regulatory auditors
+
+- Give every scenario a test case ID in the format `TC-<AREA>-<NNN>`, in `story.tag`.
+- List preconditions as `given` steps before any `when`.
+- Add a `story.kv({ label: 'Traceability', value: 'REQ-AUTH-001, SOC2-CC6.1' })` entry.
+- Write boundary conditions as separate scenarios, never as an extra assertion.
+- Use formal language. No contractions.
+```
+
+Two habits keep a custom skill useful. State what to do rather than what to avoid, because a list of prohibitions leaves your agent to invent the positive case. Include a worked example: your agent will copy a pattern it can see, and may reinterpret a rule it has to imagine.
+
+Skills stack. Keep one for your audience and one for your framework, and your agent loads whichever descriptions match the task in front of it.
+
+## Same tests, different readers
+
+Skills change how one run reads for different audiences. Here is a single scenario in three treatments.
+
+**Product owner.** Outcomes and business rules, no implementation.
 
 ```
-Feature: User Authentication
-
 Scenario: User logs in successfully
-  A registered user can access their dashboard
-  by entering valid credentials.
-
-  Outcome: User sees personalised dashboard
-  Business rule: Session expires after 30 minutes
+  A registered user reaches their dashboard with valid credentials.
+  Business rule: the session expires after 30 minutes.
 ```
 
-### Developer
-
-Technical and concise. Shows endpoints, payloads, and storage.
+**Developer.** Endpoints, payloads, storage.
 
 ```
-## User logs in successfully
-
-Given a registered user exists in the database
+Given a registered user exists
 When POST /api/auth/login { email, password }
-Then response status is 200
-And body contains { token, expiresIn: 1800 }
-And session is stored in Redis with TTL 1800s
+Then the response is 200 with { token, expiresIn: 1800 }
+And the session is stored in Redis with TTL 1800s
 ```
 
-### QA / Compliance
-
-Structured and exhaustive. Preconditions, numbered steps, traceability.
+**QA and compliance.** Preconditions, numbered checks, traceability.
 
 ```
-TC-AUTH-001: User logs in successfully
-
-Preconditions:
-- User account exists and is active
-- Account is not locked (< 5 failed attempts)
-
-Steps:
+TC-AUTH-001
+Preconditions: account active, fewer than 5 failed attempts
 1. Submit valid credentials
-2. Verify 200 response with JWT token
-3. Verify session created with correct TTL
-4. Verify audit log entry created
-
+2. Verify 200 with JWT
+3. Verify the audit log entry
 Traceability: REQ-AUTH-001, SOC2-CC6.1
 ```
 
-## Available skills
-
-Executable Stories ships 10 specification skills you can use out of the box:
-
-| Skill | Purpose | When to use |
-|-------|---------|-------------|
-| `spec-discovery-oopsi` | Structure discovery with the OOPSI mapping technique | Collaborative 3 Amigos sessions to explore requirements and avoid analysis paralysis |
-| `spec-example-mapping` | Turn conversations into rules, examples, questions | Refining requirements with stakeholders |
-| `spec-outside-in-behaviour` | Discover behaviour from user goals (Dan North) | Designing from the outside in |
-| `spec-refine-examples` | Refine raw notes into precise specs (Gojko Adzic) | Cleaning up acceptance criteria |
-| `spec-rules-decision-tables` | Decision tables for policy/calculation rules | Complex business logic with many conditions |
-| `spec-workflow-state` | Workflows, state transitions, approvals | Multi-step processes with branching |
-| `spec-living-documentation` | Write specs as lasting documentation | Ensuring docs stay useful over time |
-| `spec-convert-tests` | Convert existing tests to business-facing specs | Migrating legacy test suites |
-| `spec-review` | Review scenarios for clarity and coverage | Before merging or after writing |
-| `spec-evidence-review` | Author changes as communication-with-evidence for the Evidence Review report | Reviewing AI-authored changes by behaviour + proof, not diff |
-
-Each skill lives in the repository root `skills/<skill-name>/SKILL.md` and can be used as-is or as a starting point for your own.
-
-### Workflow receipts
-
-One skill closes the loop back to your tracker — without making it the source of truth:
-
-| Skill | Purpose | When to use |
-|-------|---------|-------------|
-| `linear-evidence-review` | Post idempotent evidence receipts to linked Linear issues via MCP | Stamping tickets with verified-behaviour receipts that point at the authoritative report |
-
-## Create your own
-
-Write a `SKILL.md` file that tells your agent how to write for your audience:
-
-```markdown
-# Skill: Write for regulatory auditors
-
-When writing executable stories, follow these rules:
-
-- Every scenario must have a unique test case ID (format: TC-AREA-NNN)
-- List all preconditions before steps
-- Number each verification step
-- Include a Traceability line mapping to requirement IDs
-- Use formal language — no contractions, no shorthand
-- Include boundary conditions as separate scenarios
-```
-
-Put it in a skill directory such as `skills/regulatory-auditor/SKILL.md`, then install or copy that directory into your agent's project-level skills directory.
-
-You can combine multiple skills — one for audience, one for methodology. The agent reads the skill names and descriptions, then loads the relevant `SKILL.md` files when they match the task.
-
-## Links
-
-- [Skills on GitHub](https://github.com/jagreehal/executable-stories/tree/main/skills) — browse and copy the shipped skill directories
-- [Executable Stories homepage](/) — see the full feature set
+The tests underneath do not change. Only the writing does, which is the point: your QA lead and your platform engineer read the same verified behaviour without either of them wading through the other's version.

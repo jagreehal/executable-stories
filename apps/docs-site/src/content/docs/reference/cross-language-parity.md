@@ -11,6 +11,7 @@ Go, Ruby, Rust, Python, JVM, and .NET adapters must reach parity with the JavaSc
 | --- | --- | --- | --- |
 | **Behavior semantics** | Given/When/Then/And/But keywords, auto-And for repeated keywords, explicit `but()` | Vitest/Jest/Playwright/Cypress adapters | Implemented; verified via RawRun fixtures and `pnpm run verify:*` |
 | **Doc model** | Same doc entry kinds and schema meaning (`json`, `state`, `table`, `code`, `section`, `link`, `mermaid`, `screenshot`, `html`, `custom`, `note`, `tag`, …) | Full surface in JS adapters | Implemented where host allows; gaps must be documented |
+| **Planned scenarios** | A scenario that is specified but not built yet reaches the report as status `todo` | `it.todo` (Vitest, Jest), `test.fixme` (Playwright), bodyless `it` (Cypress) | Explicit call: `Planned` / `planned`, since `skip` / `@Disabled` / `#[ignore]` mean "do not run this now" |
 | **Artifact outputs** | RawRun JSON → StoryReport v1 via formatters CLI | Reporter `rawRunPath` + formatters | RawRun default `.executable-stories/raw-run.json`; format with `executable-stories format` |
 | **`$schema` pointer** | Optional `$schema` in RawRun so editors validate the file as it is written | Not emitted by the JS/TS reporters | Emitted by **all six** non-JS adapters (Go, Ruby, Rust, pytest, JUnit 5, xUnit) |
 | **Agent workflow** | StoryReport JSON + `list --list-format json` index | [Agent artifact contract](/guides/agent-artifact-contract/) | Same formatter pipeline for all languages |

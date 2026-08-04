@@ -28,6 +28,27 @@ namespace ExecutableStories.Xunit.Tests
         // ========================================================================
 
         [Fact]
+        public void PlannedRecordsAndClearsWithoutInit()
+        {
+            Story.Planned("checkout is blocked for a suspended account", "checkout");
+
+            // Planned records immediately, so nothing is left for the test body.
+            Assert.Null(Story.GetContext());
+        }
+
+        [Fact]
+        public void PlannedDoesNotDisturbAFollowingStory()
+        {
+            Story.Planned("not built yet");
+            Story.Init("built and passing");
+
+            StoryContext? ctx = Story.GetContext();
+            Assert.NotNull(ctx);
+            Assert.Equal("built and passing", ctx!.Scenario);
+            Assert.Empty(ctx.Steps);
+        }
+
+        [Fact]
         public void InitCreatesContext()
         {
             Story.Init("User logs in");

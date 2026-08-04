@@ -123,8 +123,12 @@ def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo[None]) ->
     now_ms = time.time() * 1000
     duration_ms = now_ms - start_ms if start_ms else 0.0
 
-    # Status mapping
-    if hasattr(report, "wasxfail"):
+    # Status mapping. A planned declaration only counts when the test itself
+    # came out clean: code after story.planned() can still fail, and reporting
+    # that failure as "planned" would hide it.
+    if story.is_planned() and report.outcome == "passed":
+        status = "todo"
+    elif hasattr(report, "wasxfail"):
         status = "skip"
     else:
         status = _STATUS_MAP.get(report.outcome, "unknown")
