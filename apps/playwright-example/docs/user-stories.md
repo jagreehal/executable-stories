@@ -2,9 +2,9 @@
 
 | Key | Value |
 | --- | --- |
-| Date | 2026-07-27T22:01:03.537Z |
+| Date | 2026-08-04T15:04:07.607Z |
 | Version | 1.0.0 |
-| Git SHA | 3989ba1 |
+| Git SHA | b7cbe9f |
 
 ## src/all-doc-api.story.spec.ts
 
@@ -465,6 +465,13 @@ Tags: `api`, `smoke` | Tickets: `JIRA-123`
 ## src/calculator.story.spec.ts
 
 ### Calculator
+
+### 📝 Calculator rejects non-numeric input _(planned)_
+
+
+### ⏩ Calculator handles very large numbers
+
+- **Given** two very large numbers
 
 ### ✅ Calculator adds two numbers
 

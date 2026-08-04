@@ -8,6 +8,12 @@ require_relative "calculator"
 # appear in the generated raw-run.json. Recording at the end of the test (after
 # the assertions pass) mirrors scripts/verify-ruby.sh.
 class CalculatorStoryTest < Minitest::Test
+  # Specified but not built yet: renders as planned, stops being planned when
+  # someone writes it as a real story.
+  def test_rejects_non_numeric_input
+    ExecutableStories.planned("Calculator rejects non-numeric input")
+  end
+
   def test_adds_two_numbers
     story = ExecutableStories.init("Calculator adds two numbers")
     story.given("two numbers 5 and 3")

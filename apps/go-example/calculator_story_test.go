@@ -77,3 +77,9 @@ func TestCalculatorThrowsOnDivisionByZero(t *testing.T) {
 	}
 	s.Then("an error is thrown")
 }
+
+// A behaviour we have specified but not built. It renders as planned in the
+// report and stops being planned when someone writes it as a real story.
+func TestCalculatorRejectsNonNumericInput(t *testing.T) {
+	es.Planned(t, "Calculator rejects non-numeric input")
+}

@@ -6,6 +6,7 @@
 import type {
   Reporter,
   FullConfig,
+  Suite,
   TestCase,
   TestResult,
   FullResult,
@@ -85,6 +86,8 @@ export interface StoryReporterOptions extends FormatterOptions {
 // ============================================================================
 
 interface CollectedScenario {
+  /** Playwright's own test id, used to keep a runtime fixme from being counted twice. */
+  testId?: string;
   meta: StoryMeta;
   sourceFile: string;
   sourceLine: number;
@@ -195,6 +198,8 @@ function persistAttachment(
 export default class StoryReporter implements Reporter {
   private options: StoryReporterOptions;
   private scenarios: CollectedScenario[] = [];
+  /** Kept from onBegin so onEnd can find tests that never ran (planned ones). */
+  private rootSuite?: Suite;
   private startTime = 0;
   private packageVersion: string | undefined;
   private gitSha: string | undefined;
@@ -219,8 +224,9 @@ export default class StoryReporter implements Reporter {
     }
   }
 
-  onBegin(config: FullConfig): void {
+  onBegin(config: FullConfig, suite: Suite): void {
     this.startTime = Date.now();
+    this.rootSuite = suite;
     this.projectRoot = config.rootDir ?? process.cwd();
     const includeMetadata = this.options.markdown?.includeMetadata ?? true;
     if (includeMetadata) {
@@ -423,6 +429,7 @@ export default class StoryReporter implements Reporter {
         }));
 
       this.scenarios.push({
+        testId: test.id,
         meta,
         sourceFile,
         sourceLine,
@@ -439,6 +446,67 @@ export default class StoryReporter implements Reporter {
     } catch {
       // Ignore parse errors
     }
+  }
+
+  /**
+   * `test.fixme("title")` declares behaviour that is specified but not working
+   * yet, which is what a planned scenario is. Those tests never run, so they
+   * never call `story.init` and never reach `this.scenarios`; they have to be
+   * read back off the suite instead.
+   *
+   * Only files that also contain story tests contribute, so a plain spec full
+   * of fixmes does not leak into the generated docs. `test.skip` is left alone:
+   * it means "do not run this now", not "we have not built this yet".
+   */
+  private collectPlannedTestCases(): RawTestCase[] {
+    if (!this.rootSuite) return [];
+    // Eligibility is per project AND file: the same spec can carry story tests
+    // under one project and nothing under another.
+    const key = (projectName: string | undefined, sourceFile: string) => `${projectName ?? ""}\u0000${sourceFile}`;
+    const storyFiles = new Set(this.scenarios.map((s) => key(s.projectName, s.sourceFile)));
+    if (storyFiles.size === 0) return [];
+
+    // A story that ran and then called test.fixme() at runtime is already
+    // collected as a skipped scenario; it must not appear a second time as a
+    // planned one.
+    const collectedIds = new Set(this.scenarios.map((s) => s.testId).filter(Boolean));
+
+    const planned: RawTestCase[] = [];
+    for (const test of this.rootSuite.allTests()) {
+      const isFixme = test.annotations.some((a) => a.type === "fixme");
+      if (!isFixme) continue;
+      if (collectedIds.has(test.id)) continue;
+
+      const absolute = test.location?.file;
+      if (!absolute) continue;
+      const sourceFile = toRelativePosix(absolute, this.projectRoot);
+      const projectName = test.parent?.project()?.name;
+      if (!storyFiles.has(key(projectName, sourceFile))) continue;
+
+      // Walk the parent chain rather than titlePath(): suite.type tells us
+      // exactly which entries are describes, with no filename guessing.
+      const suitePath: string[] = [];
+      for (let parent: Suite | undefined = test.parent; parent; parent = parent.parent) {
+        if (parent.type === "describe" && parent.title) suitePath.unshift(parent.title);
+      }
+      planned.push({
+        title: test.title,
+        titlePath: [...suitePath, test.title],
+        story: {
+          scenario: test.title,
+          steps: [],
+          ...(suitePath.length > 0 ? { suitePath } : {}),
+        },
+        sourceFile,
+        sourceLine: test.location?.line ?? 1,
+        status: "todo",
+        durationMs: 0,
+        projectName,
+        retry: 0,
+        retries: 0,
+      });
+    }
+    return planned;
   }
 
   async onEnd(_result: FullResult): Promise<void> {
@@ -497,6 +565,8 @@ export default class StoryReporter implements Reporter {
         this.debug("tags found inside story (expected)");
       }
     }
+
+    rawTestCases.push(...this.collectPlannedTestCases());
 
     // Build RawRun
     const rawRun: RawRun = {

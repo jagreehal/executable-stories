@@ -52,6 +52,7 @@
         "spec-rules-decision-tables",
         "spec-workflow-state",
         "spec-convert-tests",
+        "spec-plan-to-stories",
         "spec-review",
         "spec-evidence-review"
       ]

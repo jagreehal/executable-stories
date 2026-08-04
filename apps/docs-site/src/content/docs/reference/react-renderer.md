@@ -87,11 +87,49 @@ export function ClientReport({ json }: { json: unknown }) {
 | Prop | Type | Description |
 | ---- | ---- | ----------- |
 | `report` | `StoryReport \| Result<StoryReport>` | Either a validated StoryReport or the `Result` returned by `parseStoryReport`. On `Result.ok=false`, renders `<ReportSchemaError>` automatically. |
-| `customRenderers` | `Record<string, (entry) => ReactNode>` | Renderers keyed by `story.custom({ type })` strings. Unmatched types fall back to a JSON dump. |
+| `customRenderers` | `Record<string, (entry) => ReactNode>` | Renderers keyed by `story.custom({ type })` strings. Unmatched types fall back to a JSON dump. The built-in narrative blocks (below) are registered by default and can be overridden here. |
 | `renderers` | `{ mermaid?, code?, section? }` | Override the three heavy built-ins. Other doc kinds (`note`, `kv`, `table`, etc.) are fixed — drop to primitives for full structural overrides. |
 | `title` | `string` | Optional override for the report's `<h1>`. Default: "Story Report". |
 | `dataTheme` | `"light" \| "dark"` | Force a theme scope. Default: auto via `prefers-color-scheme`. |
 | `className` | `string` | Extra class on the `<main>` landmark. |
+
+### Narrative blocks
+
+Two `story.custom` types render without any setup, for the shapes prose handles badly.
+They exist for explainers and plans, where an agent describes a change it did not run.
+
+```ts
+story.custom({
+  type: 'file-tree',
+  data: {
+    authored: 'agent',
+    title: 'Files changed',
+    files: [
+      { path: 'src/cart/totals.ts', change: 'modified', note: 'quantity-aware' },
+      { path: 'src/cart/line-item.ts', change: 'added' },
+    ],
+  },
+});
+
+story.custom({
+  type: 'data-model',
+  data: {
+    name: 'LineItem',
+    fields: [{ name: 'quantity', type: 'number', change: 'added', note: 'defaults to 1' }],
+  },
+});
+```
+
+- `file-tree` derives directories from flat paths. A file may be a bare string.
+- `change` accepts `added`, `modified`, `removed`, `renamed`. Unknown values are dropped.
+  The badges are intentionally uncoloured: in this report colour means test status.
+- `authored: "agent"` renders "AI-authored, not verified by a run". Set it on anything
+  you wrote from a diff rather than from a run, so narration never looks like evidence.
+- A payload that does not match renders as its raw data marked "unrecognised shape",
+  never silently blank.
+
+Both are exported (`FileTreeBlock`, `DataModelBlock`, `narrativeBlockRenderers`) and a
+`customRenderers` entry for the same type replaces them.
 
 ### `<ReportInteractive>` — loaded with chrome
 

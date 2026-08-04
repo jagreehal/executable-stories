@@ -55,6 +55,18 @@ export { DocScreenshot } from "./components/doc/DocScreenshot";
 export { DocVideo } from "./components/doc/DocVideo";
 export { DocHtml } from "./components/doc/DocHtml";
 export { DocCustom } from "./components/doc/DocCustom";
+// Narrative blocks: `story.custom` types an agent uses to explain a change.
+export {
+  FileTreeBlock,
+  DataModelBlock,
+  narrativeBlockRenderers,
+  parseFileTree,
+  parseDataModel,
+  FILE_TREE_TYPE,
+  DATA_MODEL_TYPE,
+  type FileTreeData,
+  type DataModelData,
+} from "./components/doc/NarrativeBlocks";
 
 export { ScenarioExplorer } from "./components/ScenarioExplorer";
 export type { ScenarioExplorerProps, ExplorerScenario, ExplorerStatus } from "./components/ScenarioExplorer";

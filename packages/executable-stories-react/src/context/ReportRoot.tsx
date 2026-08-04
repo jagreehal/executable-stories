@@ -2,6 +2,7 @@ import { useMemo, type ReactNode } from "react";
 import type { StoryReport } from "executable-stories-core";
 import type { BuiltinRenderers, CustomRenderers } from "../renderers";
 import { ReportContext, type ReportContextValue } from "./ReportContext";
+import { narrativeBlockRenderers } from "../components/doc/NarrativeBlocks";
 
 export interface ReportRootProps {
   report: StoryReport;
@@ -10,7 +11,6 @@ export interface ReportRootProps {
   children: ReactNode;
 }
 
-const EMPTY_CUSTOM: CustomRenderers = {};
 const EMPTY_RENDERERS: BuiltinRenderers = {};
 
 export function ReportRoot({
@@ -22,7 +22,10 @@ export function ReportRoot({
   const value = useMemo<ReportContextValue>(
     () => ({
       report,
-      customRenderers: customRenderers ?? EMPTY_CUSTOM,
+      // Narrative blocks render everywhere the report does (static SSR, the
+      // island, Astro) without every host wiring them up. A host renderer for
+      // the same type still wins.
+      customRenderers: { ...narrativeBlockRenderers, ...customRenderers },
       renderers: renderers ?? EMPTY_RENDERERS,
     }),
     [report, customRenderers, renderers],

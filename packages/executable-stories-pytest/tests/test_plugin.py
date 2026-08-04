@@ -197,3 +197,85 @@ def test_with_timed_step():
         assert tc["stepEvents"][0]["index"] == 0
         assert tc["stepEvents"][0]["title"] == "first step"
         assert tc["stepEvents"][0]["durationMs"] >= 15
+
+
+class TestPlannedScenarios:
+    def test_planned_records_todo_status(self, pytester):
+        pytester.makepyfile(
+            test_planned="""
+from executable_stories import story
+
+def test_checkout_blocks_suspended_account():
+    story.planned("checkout is blocked for a suspended account", tags=["checkout"])
+
+def test_real_story():
+    story.init("cart totals include quantity")
+    story.given("a cart with two of one item")
+    story.then("the total is doubled")
+"""
+        )
+
+        result = pytester.runpytest_subprocess(*_DISABLE_PLUGINS)
+        # The planned test itself passes; only its recorded status differs.
+        result.assert_outcomes(passed=2)
+
+        raw_run = json.loads(
+            (pytester.path / ".executable-stories" / "raw-run.json").read_text()
+        )
+        by_status = {tc["status"]: tc for tc in raw_run["testCases"]}
+
+        assert set(by_status) == {"todo", "pass"}
+        planned = by_status["todo"]
+        assert planned["story"]["scenario"] == "checkout is blocked for a suspended account"
+        # The adapter omits empty fields; the ACL fills steps in downstream.
+        assert planned["story"].get("steps", []) == []
+        assert planned["story"]["tags"] == ["checkout"]
+
+    def test_a_failure_after_planned_is_still_a_failure(self, pytester):
+        pytester.makepyfile(
+            test_planned_fail="""
+from executable_stories import story
+
+def test_declared_then_broke():
+    story.planned("not built yet")
+    raise AssertionError("something after the declaration blew up")
+
+def test_ordinary_story():
+    story.init("built and passing")
+    story.then("it passes")
+"""
+        )
+
+        result = pytester.runpytest_subprocess(*_DISABLE_PLUGINS)
+        result.assert_outcomes(passed=1, failed=1)
+
+        raw_run = json.loads(
+            (pytester.path / ".executable-stories" / "raw-run.json").read_text()
+        )
+        statuses = {tc["title"]: tc["status"] for tc in raw_run["testCases"]}
+        # Reporting this as "planned" would hide a broken test behind a plan.
+        assert statuses["test_declared_then_broke"] == "fail"
+        assert statuses["test_ordinary_story"] == "pass"
+
+    def test_planned_does_not_leak_into_the_next_test(self, pytester):
+        pytester.makepyfile(
+            test_leak="""
+from executable_stories import story
+
+def test_planned_one():
+    story.planned("not built yet")
+
+def test_ordinary_story():
+    story.init("built and passing")
+    story.then("it passes")
+"""
+        )
+
+        result = pytester.runpytest_subprocess(*_DISABLE_PLUGINS)
+        result.assert_outcomes(passed=2)
+
+        raw_run = json.loads(
+            (pytester.path / ".executable-stories" / "raw-run.json").read_text()
+        )
+        statuses = sorted(tc["status"] for tc in raw_run["testCases"])
+        assert statuses == ["pass", "todo"]

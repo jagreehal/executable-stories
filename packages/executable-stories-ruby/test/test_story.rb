@@ -14,6 +14,29 @@ class TestStory < Minitest::Test
     ExecutableStories::Collector.reset
   end
 
+  def test_planned_records_todo_scenario
+    ExecutableStories.planned("checkout is blocked for a suspended account", tags: ["checkout"])
+
+    cases = ExecutableStories::Collector.all
+    assert_equal 1, cases.length
+    tc = cases[0]
+    assert_equal "todo", tc.status
+    assert_equal "checkout is blocked for a suspended account", tc.story.scenario
+    assert_empty tc.story.steps
+    assert_equal ["checkout"], tc.story.tags
+    # Without a source location the scenario is grouped under an unknown feature.
+    assert_equal __FILE__, tc.source_file
+    assert_operator tc.source_line, :>, 0
+  end
+
+  def test_planned_accepts_an_explicit_source_location
+    ExecutableStories.planned("elsewhere", source_file: "app/checkout.rb", source_line: 42)
+
+    tc = ExecutableStories::Collector.all[0]
+    assert_equal "app/checkout.rb", tc.source_file
+    assert_equal 42, tc.source_line
+  end
+
   def test_init_creates_story
     s = ExecutableStories::Story.new("user logs in successfully")
     assert_equal "user logs in successfully", s.scenario

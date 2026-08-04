@@ -3,6 +3,18 @@ import { story } from 'executable-stories-playwright';
 import { add, divide, multiply, subtract } from './calculator.js';
 
 test.describe('Calculator', () => {
+  // Specified but not built yet: renders as a planned scenario in the report.
+  test.fixme('Calculator rejects non-numeric input', async () => {});
+
+  // A story that starts, then bails at runtime. It is a skipped scenario, not a
+  // planned one, and it must appear exactly once.
+  test('Calculator handles very large numbers', async ({}, testInfo) => {
+    story.init(testInfo);
+    story.given('two very large numbers');
+    test.fixme(true, 'overflow handling is not finished');
+    story.then('the result does not overflow');
+  });
+
   test('Calculator adds two numbers', async ({}, testInfo) => {
     story.init(testInfo);
 

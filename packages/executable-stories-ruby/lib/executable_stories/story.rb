@@ -429,4 +429,35 @@ module ExecutableStories
   def init(scenario, **opts)
     Story.new(scenario, **opts)
   end
+
+  # Records a scenario that is specified but not built yet. It appears in the
+  # report marked "planned" and stops being planned once someone writes it as a
+  # real story with init.
+  #
+  #   def test_checkout_blocks_suspended_account
+  #     ExecutableStories.planned("checkout is blocked for a suspended account")
+  #   end
+  #
+  # Minitest's skip means "do not run this now", which is a different claim from
+  # "we have not built this yet", so planned does not skip for you.
+  #
+  # Recorded at the point of the call: Minitest has no per-test hook to revisit
+  # the outcome, so keep this the only statement in the test. Anything after it
+  # that fails is recorded by your own `story.record(status: "fail")` call, not
+  # by this one.
+  #
+  # The source location defaults to the caller, so a planned scenario is grouped
+  # with the rest of its file instead of landing under an unknown feature. Pass
+  # source_file / source_line to override.
+  def planned(scenario, source_file: nil, source_line: nil, **opts)
+    location = caller_locations(1, 1)&.first
+    story = Story.new(scenario, **opts)
+    story.record(
+      status: "todo",
+      duration_ms: 0,
+      source_file: source_file || location&.path,
+      source_line: source_line || location&.lineno
+    )
+    story
+  end
 end

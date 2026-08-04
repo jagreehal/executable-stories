@@ -156,10 +156,72 @@ Anchors are content-based, so a regenerated patch relocates them; an annotation 
 lines were rewritten shows as **orphaned** rather than silently moving. Treat an
 orphaned annotation like a stale explainer: rewrite it against the current patch.
 
+## Narrative blocks
+
+An explainer needs a few shapes that prose handles badly: which files moved, what a
+record looks like now, how the pieces talk. Each has a home already, so don't invent
+markup for them:
+
+| Shape                  | Use                                               |
+| ---------------------- | ------------------------------------------------- |
+| Flow, sequence, state  | `story.mermaid({ code, title })`                   |
+| Files touched          | `story.custom({ type: "file-tree", data })`        |
+| Record / schema shape  | `story.custom({ type: "data-model", data })`       |
+| Annotated code         | `story.code`, or Code Diff evidence for a patch    |
+| HTTP surface           | `executable-stories import-openapi`                |
+| Before/after values    | `story.state`, `story.table`                       |
+
+`file-tree` and `data-model` render in every report surface with no setup. Directories
+are derived from the paths, so pass a flat list:
+
+```ts
+story.custom({
+  type: "file-tree",
+  data: {
+    authored: "agent",
+    files: [
+      { path: "src/cart/totals.ts", change: "modified", note: "quantity-aware" },
+      { path: "src/cart/line-item.ts", change: "added" },
+    ],
+  },
+});
+
+story.custom({
+  type: "data-model",
+  data: {
+    authored: "agent",
+    name: "LineItem",
+    fields: [
+      { name: "quantity", type: "number", change: "added", note: "defaults to 1" },
+      { name: "totalPence", type: "number", change: "renamed", note: "was total" },
+    ],
+  },
+});
+```
+
+`change` accepts `added`, `modified`, `removed`, `renamed`; anything else is dropped.
+A malformed block renders as its raw data with "unrecognised shape" rather than
+disappearing, so a bad payload surfaces instead of hiding.
+
+### Mark what you wrote
+
+Set `authored: "agent"` on every block you produce from a diff. It renders as
+"AI-authored, not verified by a run".
+
+This matters more than it looks. A scenario in this report earned its place by
+executing; a block you drew from reading a diff did not. Left unmarked, the two sit
+side by side looking equally trustworthy, and the report quietly becomes a place where
+confident pictures of unverified claims live. Nothing can detect the difference after
+the fact, which is why you declare it as you write.
+
+Anything that asserts what the system *does* still needs a scenario citation. If none
+covers it, say "not covered by a scenario" and leave the gap visible.
+
 ## Diagrams and interactive figures
 
-- No ASCII art. Build diagrams from simple HTML and CSS (or `story.mermaid` when
-  attaching to a story). Pick one or two diagram families and reuse them across the
+- No ASCII art. Reach for a narrative block first (above); build diagrams from simple
+  HTML and CSS (or `story.mermaid` when attaching to a story) for anything they don't
+  cover. Pick one or two diagram families and reuse them across the
   explainer so cases stay comparable. System/data-flow diagrams must include example
   data.
 - Interactive figures are allowed where fiddling genuinely teaches something a static

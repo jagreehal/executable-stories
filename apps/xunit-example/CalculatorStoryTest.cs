@@ -6,6 +6,13 @@ namespace XunitExample.Tests;
 
 public class CalculatorStoryTest
 {
+    // Specified but not built yet: renders as planned in the report.
+    [Fact]
+    public void Calculator_rejects_non_numeric_input()
+    {
+        Story.Planned("Calculator rejects non-numeric input");
+    }
+
     [Fact]
     public void Calculator_adds_two_numbers()
     {

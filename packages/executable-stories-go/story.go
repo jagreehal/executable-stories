@@ -214,6 +214,63 @@ func Init(t TestingT, scenario string, opts ...Option) *S {
 	return s
 }
 
+// Planned records a scenario that is specified but not implemented yet. It
+// appears in the report marked "planned" and stops being planned as soon as
+// someone writes it as a real story with Init.
+//
+// Go has no bodyless-test idiom, so declare one in an otherwise empty test:
+//
+//	func TestCheckoutBlocksSuspendedAccount(t *testing.T) {
+//		es.Planned(t, "checkout is blocked for a suspended account")
+//	}
+//
+// Skipping is left to you. t.Skip means "do not run this now", which is a
+// different claim from "we have not built this yet", and conflating them would
+// put every quarantined test in your plan.
+func Planned(t TestingT, scenario string, opts ...Option) {
+	t.Helper()
+
+	s := &S{
+		scenario:    scenario,
+		t:           t,
+		startTime:   time.Now(),
+		sourceOrder: nextOrder(),
+		seenPrimary: make(map[string]bool),
+	}
+	for _, opt := range opts {
+		opt(s)
+	}
+
+	// Recorded in cleanup, not here: code after Planned() can still fail the
+	// test, and reporting that failure as "planned" would hide it.
+	t.Cleanup(func() {
+		status := "todo"
+		if t.Failed() {
+			status = "fail"
+		} else if t.Skipped() {
+			status = "skip"
+		}
+
+		order := s.sourceOrder
+		duration := float64(0)
+		record(RawTestCase{
+			Title:     t.Name(),
+			TitlePath: strings.Split(t.Name(), "/"),
+			Story: &StoryMeta{
+				Scenario:    scenario,
+				Steps:       []StoryStep{},
+				Tags:        s.tags,
+				Tickets:     s.tickets,
+				Covers:      s.covers,
+				Meta:        s.meta,
+				SourceOrder: &order,
+			},
+			Status:     status,
+			DurationMs: &duration,
+		})
+	})
+}
+
 // addStep creates a new step and sets it as the current step.
 // If a primary keyword (Given/When/Then) repeats consecutively, it is
 // auto-converted to "And" while the tracker keeps the original keyword.

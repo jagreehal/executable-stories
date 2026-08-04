@@ -93,6 +93,7 @@ pub struct Story {
     source_order: Option<u32>,
     start_time: std::time::Instant,
     passed: bool,
+    planned: bool,
     step_counter: usize,
     attachments: Vec<RawAttachment>,
     active_timers: HashMap<usize, TimerEntry>,
@@ -118,6 +119,7 @@ impl Story {
             source_order: Some(collector::next_order()),
             start_time: std::time::Instant::now(),
             passed: false,
+            planned: false,
             step_counter: 0,
             attachments: Vec::new(),
             active_timers: HashMap::new(),
@@ -552,11 +554,40 @@ impl Story {
     pub fn pass(&mut self) {
         self.passed = true;
     }
+
+    /// Record a scenario that is specified but not built yet. It appears in the
+    /// report marked "planned" and stops being planned once someone writes it as
+    /// a real story.
+    ///
+    /// ```no_run
+    /// # use executable_stories::Story;
+    /// #[test]
+    /// fn checkout_blocks_suspended_account() {
+    ///     Story::planned("checkout is blocked for a suspended account");
+    /// }
+    /// ```
+    ///
+    /// `#[ignore]` means "do not run this now", which is a different claim from
+    /// "we have not built this yet", so this does not ignore the test for you.
+    ///
+    /// The scenario is recorded when this returns, so keep it the only statement
+    /// in the test: a panic afterwards cannot revise a record already written.
+    pub fn planned(scenario: &str) {
+        let mut story = Story::new(scenario);
+        story.planned = true;
+        // Drop records it: no steps, no pass() needed.
+    }
 }
 
 impl Drop for Story {
     fn drop(&mut self) {
-        let status = if self.passed { "pass" } else { "fail" };
+        let status = if self.planned {
+            "todo"
+        } else if self.passed {
+            "pass"
+        } else {
+            "fail"
+        };
         let duration = self.start_time.elapsed().as_secs_f64() * 1000.0;
 
         let step_events: Vec<RawStepEvent> = self
@@ -607,6 +638,26 @@ mod tests {
     use super::*;
     use std::thread;
     use std::time::Duration;
+
+    // The collector is global and tests run in parallel, so this filters by a
+    // scenario name no other test uses rather than asserting on the total.
+    #[test]
+    fn planned_records_a_todo_scenario() {
+        Story::planned("planned: checkout is blocked for a suspended account");
+
+        let recorded = crate::collector::get_all();
+        let tc = recorded
+            .iter()
+            .find(|tc| {
+                tc.story
+                    .as_ref()
+                    .is_some_and(|s| s.scenario == "planned: checkout is blocked for a suspended account")
+            })
+            .expect("planned scenario was not recorded");
+
+        assert_eq!(tc.status, "todo");
+        assert!(tc.story.as_ref().unwrap().steps.is_empty());
+    }
 
     #[test]
     fn auto_and_on_repeated_primary_keyword() {

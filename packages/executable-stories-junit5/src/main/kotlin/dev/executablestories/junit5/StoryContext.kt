@@ -22,6 +22,9 @@ class StoryContext(
 
     var traceUrlTemplate: String? = null
 
+    /** Set by [Story.planned]: specified, not built yet. */
+    var planned: Boolean = false
+
     var currentStep: StoryStep? = null
         private set
 

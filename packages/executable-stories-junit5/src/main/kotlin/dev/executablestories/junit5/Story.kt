@@ -31,6 +31,31 @@ class Story private constructor() {
             bridgeOtel(ctx)
         }
 
+        /**
+         * Declares a scenario that is specified but not built yet. It appears in
+         * the report marked "planned" and stops being planned once someone writes
+         * it as a real story with [init].
+         *
+         * ```kotlin
+         * @Test
+         * fun `checkout is blocked for a suspended account`() {
+         *     Story.planned("checkout is blocked for a suspended account")
+         * }
+         * ```
+         *
+         * `@Disabled` means "do not run this now", which is a different claim from
+         * "we have not built this yet", so this does not disable the test for you.
+         */
+        @JvmStatic
+        fun planned(
+            scenario: String,
+            vararg tags: String,
+        ) {
+            val ctx = StoryContext(scenario, *tags)
+            ctx.planned = true
+            CONTEXT.set(ctx)
+        }
+
         @JvmStatic
         fun withTraceUrlTemplate(template: String) {
             requireContext().traceUrlTemplate = template

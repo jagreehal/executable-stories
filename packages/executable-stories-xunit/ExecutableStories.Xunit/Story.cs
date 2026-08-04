@@ -22,6 +22,38 @@ namespace ExecutableStories.Xunit
             BridgeOtel(ctx);
         }
 
+        /// <summary>
+        /// Declare a scenario that is specified but not built yet. It is recorded
+        /// immediately with status "todo", appears in the report marked "planned",
+        /// and stops being planned once someone writes it as a real story with
+        /// <see cref="Init"/>.
+        /// </summary>
+        /// <example>
+        /// <code>
+        /// [Fact]
+        /// public void CheckoutIsBlockedForASuspendedAccount()
+        /// {
+        ///     Story.Planned("checkout is blocked for a suspended account");
+        /// }
+        /// </code>
+        /// </example>
+        /// <remarks>
+        /// Skip = "..." means "do not run this now", which is a different claim
+        /// from "we have not built this yet", so this does not skip the test.
+        /// <para>
+        /// The scenario is recorded immediately, so keep this the only statement
+        /// in the test: an assertion failure afterwards cannot revise a record
+        /// already written.
+        /// </para>
+        /// </remarks>
+        /// <param name="scenario">The scenario title.</param>
+        /// <param name="tags">Optional tags for categorization.</param>
+        public static void Planned(string scenario, params string[] tags)
+        {
+            _context.Value = new StoryContext(scenario, tags);
+            RecordAndClear("todo");
+        }
+
         // ========================================================================
         // BDD Step Markers
         // ========================================================================

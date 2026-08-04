@@ -6,6 +6,11 @@ from executable_stories import story
 from example.calculator import add, subtract, multiply, divide
 
 
+def test_calculator_rejects_non_numeric_input():
+    # Specified but not built yet: renders as planned in the report.
+    story.planned("Calculator rejects non-numeric input")
+
+
 def test_calculator_adds_two_numbers():
     story.init("Calculator adds two numbers")
     story.given("two numbers 5 and 3")
