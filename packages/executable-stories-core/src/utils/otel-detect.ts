@@ -18,7 +18,6 @@ export interface OtelTraceContext {
  * shimmed to undefined — fall back to __filename which CJS always has.
  */
 function getRequire(): NodeRequire {
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   const url = import.meta.url
     ?? (typeof __filename !== "undefined" ? `file://${__filename}` : undefined);
   if (!url) throw new Error("Cannot determine module URL");

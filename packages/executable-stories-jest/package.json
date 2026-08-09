@@ -38,6 +38,7 @@
     "jest": ">=30.4.2"
   },
   "dependencies": {
+    "executable-stories-core": "workspace:*",
     "executable-stories-formatters": "workspace:*",
     "fast-glob": "^3.3.3"
   },

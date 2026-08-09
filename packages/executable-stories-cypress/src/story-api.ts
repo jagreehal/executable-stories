@@ -51,10 +51,6 @@ import type {
   HtmlOptions,
   CustomOptions,
 } from './types';
-// Import from core's browser-safe origin, NOT executable-stories-formatters:
-// this code runs in Cypress's browser bundle, and the formatters package pulls
-// in node:fs/path/stream (fine for the Node-side reporter, fatal for webpack's
-// browser build — UnhandledSchemeError). doc-builders has type-only deps.
 import { buildHtmlDocEntry } from 'executable-stories-core/utils/doc-builders';
 
 // Re-export types for consumers

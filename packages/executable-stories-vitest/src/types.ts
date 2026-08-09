@@ -2,11 +2,11 @@
  * Type definitions for executable-stories-vitest.
  *
  * Shared story types (StepKeyword, DocEntry, StoryStep, StoryMeta, etc.)
- * are imported from executable-stories-formatters — the single source of truth.
+ * are imported from executable-stories-core — the single source of truth.
  * This module re-exports them and adds Vitest-specific types.
  */
 
-// Re-export shared story types from formatters
+// Re-export shared story types from core
 export type {
   StepKeyword,
   StepMode,
@@ -15,9 +15,9 @@ export type {
   StoryStep,
   StoryMeta,
   NormalizedTicket,
-} from 'executable-stories-formatters';
+} from 'executable-stories-core/types/story';
 
-export { STORY_META_KEY } from 'executable-stories-formatters';
+export { STORY_META_KEY } from 'executable-stories-core/types/story';
 
 // ============================================================================
 // Ticket Input Types

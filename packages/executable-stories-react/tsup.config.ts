@@ -11,12 +11,6 @@ const USE_CLIENT_BANNER = { js: '"use client";' };
 // esbuild to resolve + inline it as a plain object instead.
 const INLINE_SCHEMA_JSON = /schemas\/story-report-v1\.json$/;
 
-// Bundle executable-stories-core (and its deep subpaths) into every library
-// bundle so the published package is self-contained — core is an internal,
-// unpublished workspace package. The island entry already bundles it via its
-// own catch-all noExternal.
-const INLINE_CORE = /^executable-stories-core(\/|$)/;
-
 // Mirror the tsconfig `@/*` → ./src/* path alias so esbuild resolves the
 // shadcn component imports (`@/components/ui/*`, `@/lib/utils`) at bundle time.
 const aliasSrc = (options: { alias?: Record<string, string> }) => {
@@ -28,38 +22,38 @@ export default defineConfig([
     // Server-safe: parseStoryReport, Result types, schema constants.
     entry: { parse: "src/parse-entry.ts" },
     format: ["cjs", "esm"],
-    dts: { resolve: [/executable-stories-core/] },
+    dts: true,
     clean: true,
     splitting: false,
     sourcemap: true,
     external: ["react", "react-dom", "react/jsx-runtime"],
-    noExternal: [INLINE_SCHEMA_JSON, INLINE_CORE],
+    noExternal: [INLINE_SCHEMA_JSON],
   },
   {
     // Server-only: renderReportToHtml (renderToStaticMarkup of <Report/>).
     // No "use client" banner — this is invoked from Node (the CLI / Astro SSR).
     entry: { ssr: "src/ssr-entry.ts" },
     format: ["cjs", "esm"],
-    dts: { resolve: [/executable-stories-core/] },
+    dts: true,
     clean: false,
     splitting: false,
     sourcemap: true,
     external: ["react", "react-dom", "react-dom/server", "react/jsx-runtime"],
-    noExternal: [INLINE_SCHEMA_JSON, INLINE_CORE],
+    noExternal: [INLINE_SCHEMA_JSON],
     esbuildOptions: aliasSrc,
   },
   {
     // Client: main UI components (use createContext, hooks).
     entry: { index: "src/index.ts" },
     format: ["cjs", "esm"],
-    dts: { resolve: [/executable-stories-core/] },
+    dts: true,
     clean: false,
     splitting: false,
     sourcemap: true,
     // `mermaid` is an optional peer, dynamically imported by MermaidDiagram —
     // keep it external so it's never pulled into the base bundle.
     external: ["react", "react-dom", "react/jsx-runtime", "mermaid"],
-    noExternal: [INLINE_SCHEMA_JSON, INLINE_CORE],
+    noExternal: [INLINE_SCHEMA_JSON],
     banner: USE_CLIENT_BANNER,
     esbuildOptions: aliasSrc,
     onSuccess: async () => {
@@ -70,12 +64,12 @@ export default defineConfig([
     // Client: chrome (search, keyboard, failure banner, deep link, help).
     entry: { interactive: "src/interactive/index.ts" },
     format: ["cjs", "esm"],
-    dts: { resolve: [/executable-stories-core/] },
+    dts: true,
     clean: false,
     splitting: false,
     sourcemap: true,
     external: ["react", "react-dom", "react/jsx-runtime", "executable-stories-react"],
-    noExternal: [INLINE_SCHEMA_JSON, INLINE_CORE],
+    noExternal: [INLINE_SCHEMA_JSON],
     banner: USE_CLIENT_BANNER,
     esbuildOptions: aliasSrc,
   },

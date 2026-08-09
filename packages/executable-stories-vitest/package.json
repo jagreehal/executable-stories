@@ -39,6 +39,7 @@
     "vitest": ">=4.1.5"
   },
   "dependencies": {
+    "executable-stories-core": "workspace:*",
     "executable-stories-formatters": "workspace:*",
     "fast-glob": "^3.3.3",
     "picomatch": "^4.0.4"

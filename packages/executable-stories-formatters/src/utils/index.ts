@@ -9,4 +9,4 @@ export {
   tryGetActiveOtelContext,
   resolveTraceUrl,
   type OtelTraceContext,
-} from "./otel-detect";
+} from "executable-stories-core/utils/otel-detect";

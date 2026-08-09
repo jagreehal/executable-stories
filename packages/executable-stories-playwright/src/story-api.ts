@@ -30,11 +30,8 @@ import { createRequire } from 'node:module';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import type { TestInfo, PlaywrightTestArgs, PlaywrightTestOptions, Page } from '@playwright/test';
-import {
-  tryGetActiveOtelContext,
-  resolveTraceUrl,
-  buildHtmlDocEntry,
-} from 'executable-stories-formatters';
+import { tryGetActiveOtelContext, resolveTraceUrl } from 'executable-stories-core/utils/otel-detect';
+import { buildHtmlDocEntry } from 'executable-stories-core/utils/doc-builders';
 import type {
   StepKeyword,
   StoryMeta,

@@ -397,7 +397,7 @@ export {
   tryGetActiveOtelContext,
   resolveTraceUrl,
   type OtelTraceContext,
-} from "./utils/otel-detect";
+} from "executable-stories-core/utils/otel-detect";
 export { buildHtmlDocEntry, type HtmlDocOptions } from "executable-stories-core/utils/doc-builders";
 
 // ============================================================================

@@ -13,9 +13,6 @@
  */
 import * as fs from "node:fs";
 
-// Import from the package's main entry (not the ./explainer subpath): the astro
-// dts bundler inlines main-entry core types, so ExplainerScenarioCheck ends up
-// in our published .d.ts instead of leaking an import of the unpublished core.
 import {
   checkExplainerRef,
   explainerRefFromFrontmatter,

@@ -42,11 +42,8 @@ export * from "./state-diff.js";
 // Journey derivation (journey:<id>[:<n>] tags → ordered multi-scenario walkthroughs)
 export * from "./journeys.js";
 
-// Explainer freshness contract (also available via the ./explainer subpath).
-// Re-exported here so dependents can pull the types from the package's main
-// entry, which their dts bundlers inline (subpath types are not, so a public
-// type that referenced the subpath would leak an import of an unpublished
-// package into the dependent's own .d.ts).
+// Explainer freshness contract (also available via the ./explainer subpath,
+// which browser bundles use to avoid pulling the Node-only helpers).
 export * from "./explainer.js";
 
 // Pure doc/render helpers
