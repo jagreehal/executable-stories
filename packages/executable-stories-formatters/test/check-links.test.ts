@@ -63,4 +63,62 @@ describe("checkLinks", () => {
     const report = await checkLinks({ target: dir });
     expect(report.brokenCount).toBe(0);
   });
+
+  // Astro serves `reference/foo.md` at `/reference/foo/`, so a root-relative
+  // link is the only form that means the same thing in the file and in the
+  // browser. Skipping them left the common case unchecked.
+  describe("root-relative links", () => {
+    it("resolves them against the site root", async () => {
+      fs.mkdirSync(path.join(dir, "guides"));
+      fs.writeFileSync(path.join(dir, "guides", "real.md"), "# Real");
+      fs.writeFileSync(path.join(dir, "page.md"), "[ok](/guides/real/)\n[gone](/guides/ghost/)\n");
+
+      const report = await checkLinks({ target: dir });
+      expect(report.brokenCount).toBe(1);
+      expect(report.broken[0].link).toBe("/guides/ghost/");
+    });
+
+    it("finds assets served at the site root from a separate directory", async () => {
+      const assets = path.join(dir, "public");
+      fs.mkdirSync(path.join(assets, "screenshots"), { recursive: true });
+      fs.writeFileSync(path.join(assets, "screenshots", "hero.png"), "png");
+      fs.writeFileSync(path.join(dir, "page.md"), `<img src="/screenshots/hero.png">`);
+
+      const report = await checkLinks({ target: dir, assetRoots: [assets] });
+      expect(report.brokenCount).toBe(0);
+      // Without the asset root there is no such file under the content tree.
+      expect((await checkLinks({ target: dir, assetRoots: [] })).brokenCount).toBe(1);
+    });
+
+    it("ignores the anchor and query when naming the file", async () => {
+      fs.mkdirSync(path.join(dir, "reference"));
+      fs.writeFileSync(path.join(dir, "reference", "api.md"), "# API");
+      fs.writeFileSync(path.join(dir, "page.md"), "[a](/reference/api/#section)\n[b](/reference/api/?v=2)\n");
+
+      expect((await checkLinks({ target: dir })).brokenCount).toBe(0);
+    });
+
+    it("skips the site home, which has no file of its own", async () => {
+      fs.writeFileSync(path.join(dir, "page.md"), "[home](/)\n");
+      const report = await checkLinks({ target: dir });
+      expect(report.brokenCount).toBe(0);
+      expect(report.skipped).toBe(1);
+    });
+  });
+
+  it("detects an Astro public/ directory without being told where it is", async () => {
+    const site = fs.mkdtempSync(path.join(os.tmpdir(), "es-astro-"));
+    try {
+      fs.writeFileSync(path.join(site, "astro.config.mjs"), "export default {};");
+      fs.mkdirSync(path.join(site, "public", "icons"), { recursive: true });
+      fs.writeFileSync(path.join(site, "public", "icons", "go.svg"), "<svg/>");
+      const content = path.join(site, "src", "content", "docs");
+      fs.mkdirSync(content, { recursive: true });
+      fs.writeFileSync(path.join(content, "page.md"), `<img src="/icons/go.svg">`);
+
+      expect((await checkLinks({ target: content })).brokenCount).toBe(0);
+    } finally {
+      fs.rmSync(site, { recursive: true, force: true });
+    }
+  });
 });

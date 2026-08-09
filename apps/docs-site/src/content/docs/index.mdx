@@ -35,21 +35,21 @@ import PersonaCards from '../../components/PersonaCards.astro';
       <div class="hero-custom__stack-row">
         <span class="hero-custom__stack-label">Test frameworks</span>
         <div class="hero-custom__frameworks">
-          <a href="getting-started/installation-vitest/" class="hero-custom__fw-tag"><img src="icons/Vite.js.svg" alt="" class="fw-icon" />Vitest</a>
-          <a href="getting-started/installation-jest/" class="hero-custom__fw-tag"><img src="icons/Jest.svg" alt="" class="fw-icon" />Jest</a>
-          <a href="getting-started/installation-playwright/" class="hero-custom__fw-tag"><img src="icons/Playwright.svg" alt="" class="fw-icon" />Playwright</a>
-          <a href="getting-started/installation-cypress/" class="hero-custom__fw-tag"><img src="icons/Cypress.svg" alt="" class="fw-icon" />Cypress</a>
+          <a href="getting-started/installation-vitest/" class="hero-custom__fw-tag"><img src="/icons/Vite.js.svg" alt="" class="fw-icon" />Vitest</a>
+          <a href="getting-started/installation-jest/" class="hero-custom__fw-tag"><img src="/icons/Jest.svg" alt="" class="fw-icon" />Jest</a>
+          <a href="getting-started/installation-playwright/" class="hero-custom__fw-tag"><img src="/icons/Playwright.svg" alt="" class="fw-icon" />Playwright</a>
+          <a href="getting-started/installation-cypress/" class="hero-custom__fw-tag"><img src="/icons/Cypress.svg" alt="" class="fw-icon" />Cypress</a>
         </div>
       </div>
       <div class="hero-custom__stack-row">
         <span class="hero-custom__stack-label">Language adapters</span>
         <div class="hero-custom__frameworks">
-          <a href="getting-started/installation-go/" class="hero-custom__fw-tag"><img src="icons/Go.svg" alt="" class="fw-icon" />Go</a>
-          <a href="getting-started/installation-pytest/" class="hero-custom__fw-tag"><img src="icons/Python.svg" alt="" class="fw-icon" />Python</a>
-          <a href="getting-started/installation-ruby/" class="hero-custom__fw-tag"><img src="icons/Ruby.svg" alt="" class="fw-icon" />Ruby</a>
-          <a href="getting-started/installation-rust/" class="hero-custom__fw-tag"><img src="icons/Rust.svg" alt="" class="fw-icon" />Rust</a>
-          <a href="getting-started/installation-junit5/" class="hero-custom__fw-tag"><img src="icons/Java.svg" alt="" class="fw-icon" />Kotlin</a>
-          <a href="getting-started/installation-xunit/" class="hero-custom__fw-tag"><img src="icons/NET.svg" alt="" class="fw-icon" />C#</a>
+          <a href="getting-started/installation-go/" class="hero-custom__fw-tag"><img src="/icons/Go.svg" alt="" class="fw-icon" />Go</a>
+          <a href="getting-started/installation-pytest/" class="hero-custom__fw-tag"><img src="/icons/Python.svg" alt="" class="fw-icon" />Python</a>
+          <a href="getting-started/installation-ruby/" class="hero-custom__fw-tag"><img src="/icons/Ruby.svg" alt="" class="fw-icon" />Ruby</a>
+          <a href="getting-started/installation-rust/" class="hero-custom__fw-tag"><img src="/icons/Rust.svg" alt="" class="fw-icon" />Rust</a>
+          <a href="getting-started/installation-junit5/" class="hero-custom__fw-tag"><img src="/icons/Java.svg" alt="" class="fw-icon" />Kotlin</a>
+          <a href="getting-started/installation-xunit/" class="hero-custom__fw-tag"><img src="/icons/NET.svg" alt="" class="fw-icon" />C#</a>
         </div>
       </div>
     </div>
@@ -62,7 +62,7 @@ import PersonaCards from '../../components/PersonaCards.astro';
         <span class="hero-custom__dot hero-custom__dot--green"></span>
         <span class="hero-custom__browser-title">report.html</span>
       </div>
-      <img src="screenshots/hero-report.png" alt="Executable Stories HTML report showing passed scenarios with Given/When/Then steps, code blocks, and searchable tags" />
+      <img src="/screenshots/hero-report.png" alt="Executable Stories HTML report showing passed scenarios with Given/When/Then steps, code blocks, and searchable tags" />
     </div>
   </div>
 </div>
@@ -99,8 +99,8 @@ import PersonaCards from '../../components/PersonaCards.astro';
 <BeforeAfter
   beforeLabel="Terminal output"
   afterLabel="Generated report"
-  beforeImage="screenshots/terminal-output.png"
-  afterImage="screenshots/report-output.png"
+  beforeImage="/screenshots/terminal-output.png"
+  afterImage="/screenshots/report-output.png"
   beforeAlt="Raw Vitest terminal output — dense, unstructured"
   afterAlt="Same test data rendered as a clean, searchable HTML report"
 />
@@ -156,7 +156,7 @@ npx --package executable-stories-formatters executable-stories format --format h
       <span class="workflow__label">Share the report</span>
     </div>
     <div class="workflow__content">
-      <img src="screenshots/report-output.png" alt="Generated HTML report" class="workflow__img" />
+      <img src="/screenshots/report-output.png" alt="Generated HTML report" class="workflow__img" />
     </div>
   </div>
 </div>
@@ -172,42 +172,42 @@ npx --package executable-stories-formatters executable-stories format --format h
 
 <div class="feature-bento not-content">
   <a href="guides/formatting-and-metadata/" class="feature-tile feature-tile--wide">
-    <img src="screenshots/feature-mermaid.png" alt="Mermaid diagram in report" loading="lazy" decoding="async" class="feature-tile__img" />
+    <img src="/screenshots/feature-mermaid.png" alt="Mermaid diagram in report" loading="lazy" decoding="async" class="feature-tile__img" />
     <div class="feature-tile__body">
       <div class="feature-tile__name">Mermaid diagrams</div>
       <div class="feature-tile__desc">Sequence diagrams, flowcharts, and ER diagrams rendered live in the report.</div>
     </div>
   </a>
   <a href="guides/formatting-and-metadata/" class="feature-tile">
-    <img src="screenshots/feature-code.png" alt="Syntax-highlighted code in report" loading="lazy" decoding="async" class="feature-tile__img" />
+    <img src="/screenshots/feature-code.png" alt="Syntax-highlighted code in report" loading="lazy" decoding="async" class="feature-tile__img" />
     <div class="feature-tile__body">
       <div class="feature-tile__name">Code blocks</div>
       <div class="feature-tile__desc">Syntax-highlighted TypeScript, SQL, YAML, or any language.</div>
     </div>
   </a>
   <a href="guides/formatting-and-metadata/" class="feature-tile">
-    <img src="screenshots/feature-tables.png" alt="Table data in report" loading="lazy" decoding="async" class="feature-tile__img" />
+    <img src="/screenshots/feature-tables.png" alt="Table data in report" loading="lazy" decoding="async" class="feature-tile__img" />
     <div class="feature-tile__body">
       <div class="feature-tile__name">Tables and JSON</div>
       <div class="feature-tile__desc">Structured data, key-value pairs, and JSON objects.</div>
     </div>
   </a>
   <a href="guides/formatting-and-metadata/" class="feature-tile feature-tile--wide">
-    <img src="screenshots/feature-tickets.png" alt="JIRA ticket badge in report" loading="lazy" decoding="async" class="feature-tile__img" />
+    <img src="/screenshots/feature-tickets.png" alt="JIRA ticket badge in report" loading="lazy" decoding="async" class="feature-tile__img" />
     <div class="feature-tile__body">
       <div class="feature-tile__name">Ticket linking</div>
       <div class="feature-tile__desc">Connect scenarios to JIRA, Linear, or any issue tracker.</div>
     </div>
   </a>
   <a href="guides/formatting-and-metadata/" class="feature-tile feature-tile--wide">
-    <img src="screenshots/feature-traces.png" alt="OpenTelemetry trace waterfall" loading="lazy" decoding="async" class="feature-tile__img" />
+    <img src="/screenshots/feature-traces.png" alt="OpenTelemetry trace waterfall" loading="lazy" decoding="async" class="feature-tile__img" />
     <div class="feature-tile__body">
       <div class="feature-tile__name">OTel traces</div>
       <div class="feature-tile__desc">Waterfall view of OpenTelemetry spans with durations.</div>
     </div>
   </a>
   <a href="reference/themes/" class="feature-tile">
-    <img src="screenshots/feature-search.png" alt="Report search and filter UI" loading="lazy" decoding="async" class="feature-tile__img" />
+    <img src="/screenshots/feature-search.png" alt="Report search and filter UI" loading="lazy" decoding="async" class="feature-tile__img" />
     <div class="feature-tile__body">
       <div class="feature-tile__name">Search and filter</div>
       <div class="feature-tile__desc">Full-text search, tag filters, keyboard shortcuts.</div>
@@ -250,7 +250,7 @@ npx --package executable-stories-formatters executable-stories format --format h
     </div>
   </div>
   <div class="diff-section__image">
-    <img src="screenshots/diff-report-dark.png" alt="Sprint comparison diff report showing regressions, fixes, and changes" loading="lazy" decoding="async" />
+    <img src="/screenshots/diff-report-dark.png" alt="Sprint comparison diff report showing regressions, fixes, and changes" loading="lazy" decoding="async" />
   </div>
 </div>
 
@@ -342,12 +342,12 @@ it('user logs in', () => {
     </div>
     <h3 class="stack-section__heading stack-section__heading--langs">Also available</h3>
     <div class="lang-grid">
-      <span class="lang-tag"><img src="icons/Go.svg" alt="" class="lang-icon" />Go</span>
-      <span class="lang-tag"><img src="icons/Python.svg" alt="" class="lang-icon" />Python</span>
-      <span class="lang-tag"><img src="icons/Ruby.svg" alt="" class="lang-icon" />Ruby</span>
-      <span class="lang-tag"><img src="icons/Rust.svg" alt="" class="lang-icon" />Rust</span>
-      <span class="lang-tag"><img src="icons/Java.svg" alt="" class="lang-icon" />Kotlin</span>
-      <span class="lang-tag"><img src="icons/NET.svg" alt="" class="lang-icon" />C#</span>
+      <span class="lang-tag"><img src="/icons/Go.svg" alt="" class="lang-icon" />Go</span>
+      <span class="lang-tag"><img src="/icons/Python.svg" alt="" class="lang-icon" />Python</span>
+      <span class="lang-tag"><img src="/icons/Ruby.svg" alt="" class="lang-icon" />Ruby</span>
+      <span class="lang-tag"><img src="/icons/Rust.svg" alt="" class="lang-icon" />Rust</span>
+      <span class="lang-tag"><img src="/icons/Java.svg" alt="" class="lang-icon" />Kotlin</span>
+      <span class="lang-tag"><img src="/icons/NET.svg" alt="" class="lang-icon" />C#</span>
     </div>
   </div>
 </div>

@@ -7,6 +7,8 @@ Generate your story docs once, publish them anywhere in Atlassian. The `confluen
 
 This is useful when your team lives in Confluence for specs and Jira for tickets, and you want each feature's living documentation to land next to the work that produced it.
 
+This page publishes documents. If you want test cases and executions in Jira instead, so QA reads your automated results next to their manual ones, use `sync xray` from [TestRail & Xray sync](/guides/test-management-sync/).
+
 ## Why ADF, not markdown
 
 Confluence accepts pasted markdown, but the conversion is lossy — code blocks lose their language, tables mangle, and nested lists flatten. ADF is Confluence's and Jira's native JSON document format, so round-tripping is exact. A doc generated from one test run looks the same whether it lands in a Confluence page, a Jira issue description, or a Jira comment.

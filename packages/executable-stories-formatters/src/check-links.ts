@@ -22,6 +22,18 @@ export interface CheckLinksOptions {
   checkExternal?: boolean;
   /** Per-request timeout for external checks, ms. Default: 8000. */
   externalTimeoutMs?: number;
+  /**
+   * Directory a root-relative link (`/guides/x/`) resolves against. Defaults to
+   * the scan target, which is the content root for Astro and most static-site
+   * generators.
+   */
+  siteRoot?: string;
+  /**
+   * Extra directories a root-relative link may land in, for assets served at
+   * the site root rather than authored as pages (Astro's `public/`). Detected
+   * automatically when omitted.
+   */
+  assetRoots?: string[];
 }
 
 export interface BrokenLink {
@@ -60,9 +72,12 @@ export function extractLinks(markdown: string): string[] {
     found.push(match[1].trim());
   }
 
-  // HTML href/src attributes
-  const htmlRe = /<[a-z][^>]*\b(?:href|src)=["']([^"']+)["']/gi;
-  while ((match = htmlRe.exec(stripped)) !== null) {
+  // href/src attributes, matched on their own rather than anchored to a tag
+  // name. MDX pages pass links to components (`<ReportScreenshot src="..." />`),
+  // and a tag-anchored pattern both misses the uppercase name and stops after
+  // the first attribute it finds, so those links went unchecked.
+  const attrRe = /\b(?:href|src)\s*=\s*["']([^"']+)["']/gi;
+  while ((match = attrRe.exec(stripped)) !== null) {
     found.push(match[1].trim());
   }
 
@@ -77,11 +92,9 @@ export function classifyLink(link: string): LinkKind {
   return "internal";
 }
 
-/** Candidate filesystem paths a relative docs link might resolve to. */
-function resolutionCandidates(fromFile: string, link: string): string[] {
-  const withoutAnchor = link.split("#")[0];
-  if (!withoutAnchor) return [];
-  const base = path.resolve(path.dirname(fromFile), withoutAnchor);
+/** Candidate filesystem paths a docs link might resolve to, from one base directory. */
+function resolutionCandidates(fromDir: string, linkPath: string): string[] {
+  const base = path.resolve(fromDir, linkPath);
   const candidates = [base];
   // Authors routinely omit the extension or link the directory.
   if (!path.extname(base)) {
@@ -91,10 +104,42 @@ function resolutionCandidates(fromFile: string, link: string): string[] {
   return candidates;
 }
 
-function resolvesOnDisk(fromFile: string, link: string): boolean {
-  return resolutionCandidates(fromFile, link).some(
-    (candidate) => fs.existsSync(candidate) && fs.statSync(candidate).isFile(),
-  );
+/** Strip the anchor and query a link may carry before it names a file. */
+function linkPathOf(link: string): string {
+  return link.split("#")[0]!.split("?")[0]!;
+}
+
+function existsAsFile(candidate: string): boolean {
+  return fs.existsSync(candidate) && fs.statSync(candidate).isFile();
+}
+
+function resolvesFrom(dirs: string[], linkPath: string): boolean {
+  return dirs.some((dir) => resolutionCandidates(dir, linkPath).some(existsAsFile));
+}
+
+/**
+ * Find the `public/` directory a root-relative asset link resolves into.
+ *
+ * Walk up from the content root looking for the site root, recognised by its
+ * `astro.config.*`. Doing this by default matters: with `/screenshots/x.png`
+ * reported as broken, every real page link drowns in asset noise and the whole
+ * command gets ignored.
+ */
+export function detectAssetRoots(target: string): string[] {
+  let dir = fs.existsSync(target) && fs.statSync(target).isDirectory() ? path.resolve(target) : path.dirname(path.resolve(target));
+
+  for (let depth = 0; depth < 6; depth++) {
+    const hasConfig = ["mjs", "js", "ts", "mts"].some((ext) =>
+      fs.existsSync(path.join(dir, `astro.config.${ext}`)),
+    );
+    const publicDir = path.join(dir, "public");
+    if (hasConfig && fs.existsSync(publicDir)) return [publicDir];
+
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return [];
 }
 
 async function isExternalAlive(url: string, timeoutMs: number): Promise<boolean> {
@@ -126,6 +171,11 @@ export async function checkLinks(options: CheckLinksOptions): Promise<LinkReport
     throw new Error(`Path not found: ${target}`);
   }
 
+  // Where `/` points. Pages live under the content root; assets served at the
+  // site root live somewhere else, so both get tried.
+  const siteRoot = path.resolve(options.siteRoot ?? target);
+  const rootDirs = [siteRoot, ...(options.assetRoots ?? detectAssetRoots(target)).map((d) => path.resolve(d))];
+
   const files = collectMarkdownFiles(target);
   const broken: BrokenLink[] = [];
   let linksChecked = 0;
@@ -140,9 +190,22 @@ export async function checkLinks(options: CheckLinksOptions): Promise<LinkReport
     for (const link of extractLinks(content)) {
       const kind = classifyLink(link);
 
-      if (kind === "anchor" || kind === "mail" || kind === "root") {
-        // Anchors, mailto, and root-relative (need build routing) aren't checked.
+      if (kind === "anchor" || kind === "mail") {
         skipped += 1;
+        continue;
+      }
+
+      if (kind === "root") {
+        const linkPath = linkPathOf(link).replace(/^\/+/, "");
+        // A bare "/" is the site home, which has no file of its own to find.
+        if (linkPath === "") {
+          skipped += 1;
+          continue;
+        }
+        linksChecked += 1;
+        if (!resolvesFrom(rootDirs, linkPath)) {
+          broken.push({ file, link, reason: "target file not found" });
+        }
         continue;
       }
 
@@ -165,8 +228,13 @@ export async function checkLinks(options: CheckLinksOptions): Promise<LinkReport
       }
 
       // internal relative link
+      const linkPath = linkPathOf(link);
+      if (linkPath === "") {
+        skipped += 1;
+        continue;
+      }
       linksChecked += 1;
-      if (!resolvesOnDisk(file, link)) {
+      if (!resolvesFrom([path.dirname(file)], linkPath)) {
         broken.push({ file, link, reason: "target file not found" });
       }
     }

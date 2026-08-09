@@ -41,16 +41,28 @@
       ]
     },
     {
-      "title": "Living Docs",
-      "description": "Skills for shaping specifications into durable, audience-aware living documentation.",
+      "title": "Discovery",
+      "description": "Skills for turning a vague request into specification material before any test is written.",
       "skills": [
-        "spec-living-documentation",
+        "spec-grilling",
         "spec-example-mapping",
+        "spec-questionnaire",
+        "spec-story-mapping",
+        "spec-domain-language",
         "spec-discovery-oopsi",
         "spec-outside-in-behaviour",
         "spec-refine-examples",
         "spec-rules-decision-tables",
-        "spec-workflow-state",
+        "spec-workflow-state"
+      ]
+    },
+    {
+      "title": "Living Docs",
+      "description": "Skills for shaping specifications into durable, audience-aware living documentation.",
+      "skills": [
+        "spec-living-documentation",
+        "audience-views",
+        "living-docs-site",
         "spec-convert-tests",
         "spec-plan-to-stories",
         "spec-review",
@@ -58,10 +70,31 @@
       ]
     },
     {
+      "title": "Build Loop",
+      "description": "Skills for the daily loop: driving behaviour test-first, reproducing bugs, triaging failures, and running agents against run artifacts.",
+      "skills": [
+        "story-tdd",
+        "bug-to-scenario",
+        "failure-triage",
+        "agent-loop"
+      ]
+    },
+    {
+      "title": "Delivery",
+      "description": "Skills for gating, auditing, and reporting what a run proves at merge and release time.",
+      "skills": [
+        "ci-gates",
+        "coverage-audit",
+        "release-notes",
+        "test-management-bridge"
+      ]
+    },
+    {
       "title": "Understanding",
       "description": "Skills for keeping humans in the loop: explainers and lessons generated from executed behaviour.",
       "skills": [
         "explain-change",
+        "explain-system",
         "executable-lessons"
       ]
     },

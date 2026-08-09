@@ -23,27 +23,8 @@ export function calculateFlakiness(args: {
     (e) => e.status === "passed" || e.status === "failed",
   );
 
-  if (countable.length < MIN_FLAKINESS_SAMPLES) {
-    return {
-      flakinessLevel: "stable",
-      flakinessScore: 0,
-      failureRate: 0,
-      longestPassStreak: countable.length,
-      longestFailStreak: 0,
-    };
-  }
-
-  // Count transitions (consecutive entries with different status)
-  let transitions = 0;
-  for (let i = 1; i < countable.length; i++) {
-    if (countable[i].status !== countable[i - 1].status) {
-      transitions++;
-    }
-  }
-
-  const transitionScore = transitions / (countable.length - 1);
   const failures = countable.filter((e) => e.status === "failed").length;
-  const failureRate = failures / countable.length;
+  const failureRate = countable.length > 0 ? failures / countable.length : 0;
 
   // Calculate streaks
   let longestPassStreak = 0;
@@ -66,6 +47,30 @@ export function calculateFlakiness(args: {
       }
     }
   }
+
+  // The sample threshold gates the *classification* only: two runs cannot tell
+  // you a scenario is flaky. The counts above are plain arithmetic and stay
+  // honest at any sample size — reporting failureRate 0 for a scenario that has
+  // only ever failed is worse than reporting nothing.
+  if (countable.length < MIN_FLAKINESS_SAMPLES) {
+    return {
+      flakinessLevel: "stable",
+      flakinessScore: 0,
+      failureRate,
+      longestPassStreak,
+      longestFailStreak,
+    };
+  }
+
+  // Count transitions (consecutive entries with different status)
+  let transitions = 0;
+  for (let i = 1; i < countable.length; i++) {
+    if (countable[i].status !== countable[i - 1].status) {
+      transitions++;
+    }
+  }
+
+  const transitionScore = transitions / (countable.length - 1);
 
   // Classification
   let flakinessLevel: FlakinessLevel;

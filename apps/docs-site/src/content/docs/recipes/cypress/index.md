@@ -102,6 +102,6 @@ await generateReportsFromRawRun(rawRun, { formats: ['markdown', 'html'], outputD
 
 The [cypress-example](https://github.com/jagreehal/executable-stories/tree/main/apps/cypress-example) app includes specs for calculator, step aliases, story options, wrapped steps, and Gherkin-style patterns. Generated docs: `apps/cypress-example/docs/user-stories.md`.
 
-For a full list of patterns, see the [Vitest recipes](recipes/vitest/) — the same scenarios can be adapted to Cypress by replacing `story.init(task)` with `story.init()` and using `describe`/`it` from Mocha.
+For a full list of patterns, see the [Vitest recipes](/recipes/vitest/) — the same scenarios can be adapted to Cypress by replacing `story.init(task)` with `story.init()` and using `describe`/`it` from Mocha.
 
-[Cypress story & doc API](reference/cypress-story-api/) — steps and doc usage.
+[Cypress story & doc API](/reference/cypress-story-api/) — steps and doc usage.

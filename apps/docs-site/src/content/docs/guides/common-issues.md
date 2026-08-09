@@ -8,9 +8,9 @@ description: Troubleshooting missing reports, step errors, and framework-specifi
 **Check:**
 
 1. **Reporter is configured**
-   - **Jest:** `reporters` must include the Story reporter with options such as `formats`, `outputDir`, `outputName`, and `output: { mode: 'aggregated' }`. See [Jest reporter options](reference/jest-config/). Also add `setupFilesAfterEnv: ['executable-stories-jest/setup']`.
-   - **Vitest:** `test.reporters` must include the Story reporter. Import from **`executable-stories-vitest/reporter`** (not the main package) so Vitest is not loaded in the config context — otherwise you can see "Vitest failed to access its internal state". See [Vitest reporter options](reference/vitest-config/).
-   - **Playwright:** `reporter` must include the package path with options such as `formats`, `outputDir`, `outputName`, and `output: { mode: 'aggregated' }`. See [Playwright reporter options](reference/playwright-config/).
+   - **Jest:** `reporters` must include the Story reporter with options such as `formats`, `outputDir`, `outputName`, and `output: { mode: 'aggregated' }`. See [Jest reporter options](/reference/jest-config/). Also add `setupFilesAfterEnv: ['executable-stories-jest/setup']`.
+   - **Vitest:** `test.reporters` must include the Story reporter. Import from **`executable-stories-vitest/reporter`** (not the main package) so Vitest is not loaded in the config context — otherwise you can see "Vitest failed to access its internal state". See [Vitest reporter options](/reference/vitest-config/).
+   - **Playwright:** `reporter` must include the package path with options such as `formats`, `outputDir`, `outputName`, and `output: { mode: 'aggregated' }`. See [Playwright reporter options](/reference/playwright-config/).
 
 2. **At least one story test ran**  
    Make sure a file that calls `story.init()` (or `story.init(task)` / `story.init(testInfo)`) inside a test is included in your test run and not excluded by config or filters.

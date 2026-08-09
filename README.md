@@ -19,6 +19,7 @@ One source of truth. Code that executes. Docs that do not lie.
 - `given()`, `when()`, `then()`, `and()`, `but()` helpers that register real tests
 - Reporters/formatters that generate Markdown, HTML, JUnit XML, and Cucumber outputs from test metadata
 - Output readable by developers and stakeholders
+- `coverage` and `sync` for TestRail and Xray: see what your tests already cover, then push cases, executions, and evidence from the same run ([guide](apps/docs-site/src/content/docs/guides/test-management-sync.md))
 
 If a test is skipped, failed, or todo, the docs reflect that.
 
