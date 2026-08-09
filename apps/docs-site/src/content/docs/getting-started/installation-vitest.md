@@ -32,7 +32,7 @@ export default defineConfig({
 
 ## Default output
 
-With no options, the reporter uses the formatters package defaults (e.g. Cucumber JSON in `reports/`). To write Markdown to **`docs/user-stories.md`**, pass options to `StoryReporter` (see [Vitest reporter options](reference/vitest-config/) — e.g. `formats: ['markdown']`, `outputDir: 'docs'`, `outputName: 'user-stories'`). Run your tests:
+With no options, the reporter uses the formatters package defaults (e.g. Cucumber JSON in `reports/`). To write Markdown to **`docs/user-stories.md`**, pass options to `StoryReporter` (see [Vitest reporter options](/reference/vitest-config/) — e.g. `formats: ['markdown']`, `outputDir: 'docs'`, `outputName: 'user-stories'`). Run your tests:
 
 ```bash
 pnpm vitest run
@@ -42,6 +42,6 @@ The Markdown file is generated after the test run.
 
 ## Next
 
-[First Story (Vitest)](getting-started/first-story-vitest/) — write your first scenario and see the generated output.
+[First Story (Vitest)](/getting-started/first-story-vitest/) — write your first scenario and see the generated output.
 
-[Vitest reporter options](reference/vitest-config/) — all configuration options.
+[Vitest reporter options](/reference/vitest-config/) — all configuration options.

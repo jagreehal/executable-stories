@@ -156,7 +156,7 @@ export default defineConfig({
 });
 ```
 
-See [Vitest reporter options](reference/vitest-config/) for all options.
+See [Vitest reporter options](/reference/vitest-config/) for all options.
 
 ## Types
 

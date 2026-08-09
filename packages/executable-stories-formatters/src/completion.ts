@@ -10,6 +10,8 @@
  * script mentions every subcommand the CLI dispatches.
  */
 
+import { PROVIDER_NAMES } from "./sync/adapters/index";
+
 /** Every subcommand the CLI dispatches, with the one-line description. */
 export const COMPLETION_SUBCOMMANDS: Array<[string, string]> = [
   ["format", "Read raw test results and generate reports"],
@@ -29,6 +31,8 @@ export const COMPLETION_SUBCOMMANDS: Array<[string, string]> = [
   ["new", "Scaffold a docs page from a template"],
   ["check-links", "Scan docs for broken links"],
   ["push", "Send a run to Executable Stories Cloud"],
+  ["coverage", "Compare stories against a test-management system (read-only)"],
+  ["sync", "Push cases, executions, and evidence to TestRail or Xray"],
   ["import-openapi", "Generate API doc pages from an OpenAPI spec"],
   ["publish-confluence", "Publish an ADF JSON file to Confluence"],
   ["publish-jira", "Publish an ADF JSON file to a Jira issue"],
@@ -52,8 +56,23 @@ const COMMON_FLAGS = [
   "--baseline",
   "--baseline-dir",
   "--emit-canonical",
+  "--apply",
+  "--attach",
+  "--report-url",
   "--help",
 ];
+
+/**
+ * Values for the first positional of a subcommand that takes a closed set.
+ *
+ * `sync`/`coverage` need this more than most: the provider is a mandatory
+ * positional, and a wrong guess is a usage error rather than a prompt.
+ */
+const SUBCOMMAND_VALUES: Record<string, string[]> = {
+  completion: ["bash", "zsh", "fish"],
+  sync: [...PROVIDER_NAMES],
+  coverage: [...PROVIDER_NAMES],
+};
 
 /** Values for flags with a closed set, so completion suggests real options. */
 const FLAG_VALUES: Record<string, string[]> = {
@@ -78,6 +97,7 @@ const FLAG_VALUES: Record<string, string[]> = {
   "--input-type": ["raw", "canonical", "ndjson"],
   "--list-format": ["text", "json", "csv", "markdown-table"],
   "--check-format": ["text", "json"],
+  "--attach": ["failed", "all", "none"],
 };
 
 export type CompletionShell = "bash" | "zsh" | "fish";
@@ -85,8 +105,8 @@ export type CompletionShell = "bash" | "zsh" | "fish";
 function bashScript(): string {
   const subcommands = COMPLETION_SUBCOMMANDS.map(([name]) => name).join(" ");
   const flags = COMMON_FLAGS.join(" ");
-  const valueCases = Object.entries(FLAG_VALUES)
-    .map(([flag, values]) => `    ${flag})\n      COMPREPLY=( $(compgen -W "${values.join(" ")}" -- "$cur") ); return 0 ;;`)
+  const valueCases = [...Object.entries(FLAG_VALUES), ...Object.entries(SUBCOMMAND_VALUES)]
+    .map(([word, values]) => `    ${word})\n      COMPREPLY=( $(compgen -W "${values.join(" ")}" -- "$cur") ); return 0 ;;`)
     .join("\n");
   return `# executable-stories bash completion
 _executable_stories() {
@@ -96,8 +116,6 @@ _executable_stories() {
 
   case "$prev" in
 ${valueCases}
-    completion)
-      COMPREPLY=( $(compgen -W "bash zsh fish" -- "$cur") ); return 0 ;;
   esac
 
   if [ "$COMP_CWORD" -eq 1 ]; then
@@ -118,8 +136,8 @@ function zshScript(): string {
   const subcommands = COMPLETION_SUBCOMMANDS.map(([name, desc]) => `    '${name}:${desc.replaceAll("'", "")}'`).join(
     "\n",
   );
-  const valueCases = Object.entries(FLAG_VALUES)
-    .map(([flag, values]) => `    ${flag})\n      _values '${flag.slice(2)}' ${values.join(" ")} ;;`)
+  const valueCases = [...Object.entries(FLAG_VALUES), ...Object.entries(SUBCOMMAND_VALUES)]
+    .map(([word, values]) => `    ${word})\n      _values '${word.replace(/^--/, "")}' ${values.join(" ")} ;;`)
     .join("\n");
   return `#compdef executable-stories
 # executable-stories zsh completion
@@ -132,8 +150,6 @@ ${subcommands}
 
   case "\${words[CURRENT-1]}" in
 ${valueCases}
-    completion)
-      _values 'shell' bash zsh fish ;;
     *)
       if (( CURRENT == 2 )); then
         _describe 'subcommand' subcommands
@@ -162,6 +178,11 @@ function fishScript(): string {
   for (const [flag, values] of Object.entries(FLAG_VALUES)) {
     lines.push(
       `complete -c executable-stories -l ${flag.slice(2)} -x -a '${values.join(" ")}'`,
+    );
+  }
+  for (const [subcommand, values] of Object.entries(SUBCOMMAND_VALUES)) {
+    lines.push(
+      `complete -c executable-stories -n '__fish_seen_subcommand_from ${subcommand}' -x -a '${values.join(" ")}'`,
     );
   }
   lines.push("complete -c executable-stories -l open -d 'Open the HTML report when done'");

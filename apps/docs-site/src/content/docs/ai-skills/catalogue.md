@@ -1,6 +1,6 @@
 ---
 title: Skill catalogue
-description: All 37 shipped skills by group, what each one covers, and when your agent should load it.
+description: All 52 shipped skills by group, what each one covers, and when your agent should load it.
 ---
 
 Every skill lives at `skills/<name>/SKILL.md` in the [repository](https://github.com/jagreehal/executable-stories/tree/main/skills). See [Agent skills](/ai-skills/) for installation.
@@ -48,23 +48,58 @@ Getting from an existing codebase to a working setup.
 
 Conversion skills work file by file, so your suite keeps running through the migration.
 
-## Living docs
+## Discovery
 
-Shaping what the scenarios say, before and after they exist.
+Turning a vague request into specification material, before any test exists.
 
 | Skill                        | Load it when                                                                     |
 | ---------------------------- | -------------------------------------------------------------------------------- |
-| `spec-living-documentation`  | Writing specs meant to stay readable long after the feature ships (Gojko Adzic)  |
+| `spec-grilling`              | One person holds the answers: interrogate them in rounds until the tree is settled |
 | `spec-example-mapping`       | Turning a fuzzy conversation into rules, examples, and open questions            |
+| `spec-questionnaire`         | The answers belong to someone who is not in the room                             |
+| `spec-story-mapping`         | Planning a release as a backbone, journeys, and slices that ship                 |
+| `spec-domain-language`       | Three names for one concept, or a scenario nobody outside the team can read      |
 | `spec-discovery-oopsi`       | Shaping a specification with OOPSI decomposition                                 |
 | `spec-outside-in-behaviour`  | Driving design from user goals inward (Dan North)                                |
 | `spec-refine-examples`       | Sharpening raw notes or acceptance criteria into precise scenarios               |
 | `spec-rules-decision-tables` | Specifying policy, eligibility, or calculation rules without scenario sprawl     |
 | `spec-workflow-state`        | Specifying multi-step workflows, approvals, and state transitions                |
+
+## Living docs
+
+Shaping what the scenarios say, and who gets to read them.
+
+| Skill                        | Load it when                                                                     |
+| ---------------------------- | -------------------------------------------------------------------------------- |
+| `spec-living-documentation`  | Writing specs meant to stay readable long after the feature ships (Gojko Adzic)  |
+| `audience-views`             | Product, design, support, or leadership need to read the suite                   |
+| `living-docs-site`           | Standing up an Astro site where behaviour is generated and only intent is authored |
 | `spec-convert-tests`         | Lifting low-level tests into business-facing specifications                      |
 | `spec-plan-to-stories`       | A plan exists and the work has not started: convert it into planned `it.todo` scenarios |
 | `spec-review`                | Critiquing existing scenarios for clarity, coverage, and rule separation         |
 | `spec-evidence-review`       | Authoring a change as a claim plus typed evidence for the Evidence Review report |
+
+## Build loop
+
+The daily loop, driven by run artifacts rather than by reading the suite.
+
+| Skill              | Load it when                                                                       |
+| ------------------ | ------------------------------------------------------------------------------------ |
+| `story-tdd`        | Building a behaviour test-first, with the red step as a published promise             |
+| `bug-to-scenario`  | A bug is reported: reproduce it as a failing scenario, fix, keep the reproduction     |
+| `failure-triage`   | A run is red or flaky and you need the routed worklist, not the raw list              |
+| `agent-loop`       | An agent works unattended and needs a stopping condition it does not control          |
+
+## Delivery
+
+Gating, auditing, and reporting what a run proves.
+
+| Skill                     | Load it when                                                                  |
+| ------------------------- | ------------------------------------------------------------------------------- |
+| `ci-gates`                | Deciding what blocks a merge, what blocks a release, and what only reports       |
+| `coverage-audit`          | Answering "is it covered?" by requirement, by code, and by evidence strength     |
+| `release-notes`           | Writing notes from the behavioural diff, including what quietly disappeared      |
+| `test-management-bridge`  | TestRail or Xray runs alongside the suite and has to stay a mirror, not a source |
 
 ## Understanding
 
@@ -73,9 +108,10 @@ Explaining work that already ran.
 | Skill                | Load it when                                                                          |
 | -------------------- | ------------------------------------------------------------------------------------- |
 | `explain-change`     | Explaining a diff, branch, or PR as living documentation, with citations and a quiz    |
+| `explain-system`     | Explaining a whole area for onboarding or handover, grounded in what the suite proves  |
 | `executable-lessons` | Teaching a topic as runnable lessons that stay correct because they execute            |
 
-Both refuse to assert behaviour without a scenario behind it. `explain-change` writes "not covered by a scenario" where the run cannot back a claim, and marks anything it drew from the diff as agent-authored.
+All three refuse to assert behaviour without a scenario behind it. They write "not covered by a scenario" where the run cannot back a claim, and mark anything drawn from reading code as agent-authored.
 
 ## Workflow receipts
 

@@ -53,6 +53,42 @@ describe("loadConfig", () => {
     }
   });
 
+  describe("JSON config (the non-JS adopter path)", () => {
+    let tmpDir: string | undefined;
+
+    afterEach(() => {
+      if (tmpDir) {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+        tmpDir = undefined;
+      }
+    });
+
+    function writeConfig(contents: string): string {
+      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "es-json-config-"));
+      const file = path.join(tmpDir, "executable-stories.config.json");
+      fs.writeFileSync(file, contents);
+      return file;
+    }
+
+    it("loads sync targets from JSON so a Go or Ruby repo needs no JavaScript", async () => {
+      const file = writeConfig(
+        JSON.stringify({ sync: { testrail: { url: "https://acme.testrail.io", projectId: 7 } } }),
+      );
+      const config = await loadConfig(file);
+      expect(config.sync?.testrail?.projectId).toBe(7);
+    });
+
+    it("names the file when the JSON is malformed", async () => {
+      const file = writeConfig("{ nope");
+      await expect(loadConfig(file)).rejects.toThrow(/is not valid JSON/);
+    });
+
+    it("rejects a top-level array rather than reading keys off it", async () => {
+      const file = writeConfig("[]");
+      await expect(loadConfig(file)).rejects.toThrow(/must contain a JSON object. Got: array/);
+    });
+  });
+
   describe("auto-discovery with multiple config files", () => {
     const originalCwd = process.cwd();
     let tmpDir: string | undefined;

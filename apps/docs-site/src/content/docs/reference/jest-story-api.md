@@ -67,4 +67,4 @@ describe('Calculator', () => {
 
 ## StoryOptions
 
-Same as Vitest: `tags`, `ticket`, `meta`, `traceUrlTemplate`. See [Vitest story & doc API](reference/vitest-story-api/) for detailed doc method descriptions and inline-doc examples.
+Same as Vitest: `tags`, `ticket`, `meta`, `traceUrlTemplate`. See [Vitest story & doc API](/reference/vitest-story-api/) for detailed doc method descriptions and inline-doc examples.

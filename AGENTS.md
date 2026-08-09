@@ -246,6 +246,21 @@ executable-stories list reports/raw-run.json --list-format json > reports/scenar
 - Cypress tests are excluded from `pnpm quality` (run separately)
 - Tests in `packages/` use Vitest; `apps/jest-example` uses Jest
 
+### `formatters-e2e` under an agent sandbox
+
+`apps/formatters-e2e` drives Chromium through Playwright. macOS Seatbelt blocks Chromium from registering its Mach port, so inside an agent sandbox the browser dies on launch and all five tests fail:
+
+```
+FATAL:base/apple/mach_port_rendezvous_mac.cc:159] Check failed: kr == KERN_SUCCESS.
+bootstrap_check_in org.chromium.Chromium.MachPortRendezvousServer.NNNNN: Permission denied (1100)
+```
+
+The same tests pass outside the sandbox. Read that error as an environment limit, not a regression in your change, and rerun the gate with the sandbox disabled.
+
+No setting fixes this narrowly. Claude Code's `sandbox.excludedCommands` matches the executable, and every command in the gate runs through `pnpm`, so excluding it would unsandbox the whole repo.
+
+Turbo caches this suite. A run that touches nothing under `packages/executable-stories-formatters` or `packages/executable-stories-react` skips it, which is why the gate can pass once and fail on the next run.
+
 <!-- intent-skills:start -->
 
 ## Agent Skills
@@ -291,5 +306,20 @@ When working in these areas, load the linked skill file into context for accurat
 | Posting Evidence Review receipts to Linear via MCP           | `skills/linear-evidence-review/SKILL.md`                                                       |
 | Authoring technical/coding lessons as executable story tests | `skills/executable-lessons/SKILL.md`                                                           |
 | Explaining a code change as living documentation (with quiz) | `skills/explain-change/SKILL.md`                                                               |
+| Explaining a whole system or feature area for onboarding     | `skills/explain-system/SKILL.md`                                                               |
+| Test-driving a behaviour with a story test as the red step   | `skills/story-tdd/SKILL.md`                                                                    |
+| Reproducing a bug as a failing scenario, then fixing it      | `skills/bug-to-scenario/SKILL.md`                                                              |
+| Triaging a red or flaky run into a routed worklist           | `skills/failure-triage/SKILL.md`                                                               |
+| Running an autonomous agent loop against run artifacts       | `skills/agent-loop/SKILL.md`                                                                   |
+| Choosing and wiring CI gates (PR, release, scheduled)        | `skills/ci-gates/SKILL.md`                                                                     |
+| Auditing coverage by requirement, code, and evidence         | `skills/coverage-audit/SKILL.md`                                                               |
+| Bridging TestRail or Xray to the suite                       | `skills/test-management-bridge/SKILL.md`                                                       |
+| Routing one run to stakeholder, design, and support views    | `skills/audience-views/SKILL.md`                                                               |
+| Writing release notes from the behavioural diff              | `skills/release-notes/SKILL.md`                                                                |
+| Building a docs site that cannot go stale                    | `skills/living-docs-site/SKILL.md`                                                             |
+| Grilling a vague request into scenarios, one round at a time | `skills/spec-grilling/SKILL.md`                                                                |
+| Sending open questions to an absent expert as a questionnaire | `skills/spec-questionnaire/SKILL.md`                                                          |
+| Story mapping a release as journeys and planned scenarios    | `skills/spec-story-mapping/SKILL.md`                                                           |
+| Building a glossary the scenarios enforce                    | `skills/spec-domain-language/SKILL.md`                                                         |
 
 <!-- intent-skills:end -->

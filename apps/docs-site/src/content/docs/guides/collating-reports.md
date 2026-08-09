@@ -14,7 +14,7 @@ A dedicated **collate CLI** (e.g. `executable-stories-jest collate`, `executable
    - Reads and parses each file.
    - Merges metadata (e.g. scenario lists, file paths, timestamps) into a single JSON structure and writes it to a file (e.g. `docs/story-index.json`).
 
-2. **Formatters** — If you generate reports via [executable-stories-formatters](reference/formatters-api/) (e.g. in CI), you already get aggregated or colocated output per run. For multi-project or multi-run aggregation, combine the formatters’ output (e.g. multiple `TestRunResult` or raw JSON files) in your own script and optionally produce a single index file.
+2. **Formatters** — If you generate reports via [executable-stories-formatters](/reference/formatters-api/) (e.g. in CI), you already get aggregated or colocated output per run. For multi-project or multi-run aggregation, combine the formatters’ output (e.g. multiple `TestRunResult` or raw JSON files) in your own script and optionally produce a single index file.
 
 ## When collating is useful
 
