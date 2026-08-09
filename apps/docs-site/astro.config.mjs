@@ -176,6 +176,10 @@ export default defineConfig({
               slug: 'guides/publishing-to-atlassian',
             },
             {
+              label: 'TestRail & Xray sync',
+              slug: 'guides/test-management-sync',
+            },
+            {
               label: 'Embedding skill & agent HTML output',
               slug: 'guides/embedding-skill-html-output',
             },

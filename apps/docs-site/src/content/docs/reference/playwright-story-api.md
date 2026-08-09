@@ -77,4 +77,4 @@ test.describe('Login', () => {
 
 ## StoryOptions
 
-Same as Vitest/Jest plus Playwright-specific `fixtures`: `tags`, `ticket`, `meta`, `traceUrlTemplate`, `fixtures`. See [Vitest story & doc API](reference/vitest-story-api/) for detailed doc method descriptions.
+Same as Vitest/Jest plus Playwright-specific `fixtures`: `tags`, `ticket`, `meta`, `traceUrlTemplate`, `fixtures`. See [Vitest story & doc API](/reference/vitest-story-api/) for detailed doc method descriptions.

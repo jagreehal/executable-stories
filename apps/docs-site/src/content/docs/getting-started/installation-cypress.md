@@ -49,10 +49,10 @@ To generate Markdown or HTML from Cypress runs you can:
 - Use the Mocha reporter when Cypress invokes it: `--reporter executable-stories-cypress/reporter` with `--reporter-options outputDir=...,outputName=...`.
 - Or use the Module API: after `cypress.run()`, call `buildRawRunFromCypressResult(result, options)` then `generateReportsFromRawRun(rawRun, options)` (see exports from `executable-stories-cypress/reporter`).
 
-Options match the formatters’ `FormatterOptions` (e.g. `formats`, `outputDir`, `outputName`, `markdown`). See [Cypress reporter options](reference/cypress-config/) for details.
+Options match the formatters’ `FormatterOptions` (e.g. `formats`, `outputDir`, `outputName`, `markdown`). See [Cypress reporter options](/reference/cypress-config/) for details.
 
 ## Next
 
-[First Story (Cypress)](getting-started/first-story-cypress/) — write your first scenario and see the generated output.
+[First Story (Cypress)](/getting-started/first-story-cypress/) — write your first scenario and see the generated output.
 
-[Cypress reporter options](reference/cypress-config/) — all configuration options.
+[Cypress reporter options](/reference/cypress-config/) — all configuration options.

@@ -190,7 +190,7 @@ The formatters package provides an **`executable-stories`** CLI for generating r
 - **`executable-stories check-links <dir>`** — Scan docs for broken internal/external links (CI-friendly exit code).
 - **`executable-stories push <run.json>`** — Send a run (StoryReport v1 or raw run JSON) to Executable Stories Cloud without a custom curl script. Key via `--key` or `EXECUTABLE_STORIES_API_KEY`; repo/branch/SHA inferred from git, overridable with `--repo`, `--branch`, `--git-sha`. `--base <ref>` attaches the files changed since `<ref>` for change-aware selection. A pushed run is an event, not a snapshot of the whole suite: a run from a filtered test command carries only the files it ran, and `report.features[].sourceFile` is the set of files it can speak for. Consumers should merge a run into known state per scenario and treat a scenario as gone only when its source file was in that set (or appears deleted in `changedFiles`), otherwise a one-file run reads as a mass deletion.
 - **`executable-stories import-openapi <spec>`** — Generate API doc pages from an OpenAPI spec, linked to verifying stories.
-- **`executable-stories publish-confluence <file.adf.json>`** — Push an ADF file to a Confluence page. See the [Publishing to Confluence & Jira](../../guides/publishing-to-atlassian/) guide.
+- **`executable-stories publish-confluence <file.adf.json>`** — Push an ADF file to a Confluence page. See the [Publishing to Confluence & Jira](/guides/publishing-to-atlassian/) guide.
 - **`executable-stories publish-jira <file.adf.json>`** — Push an ADF file to a Jira issue as a comment or description.
 - **`executable-stories deploy <record|status|diff>`** — Record deployments, show per-environment status, and detect scenario drift between environments.
 - **`traceability-matrix` / `traceability-csv`** — Requirement-first Markdown
@@ -372,7 +372,7 @@ executable-stories triage raw-run.json --baseline reports/last-green.json --tria
 
 ### `publish-confluence`
 
-Publish an ADF JSON file (generated via `--format confluence`) to a Confluence Cloud page. See the [Publishing to Confluence & Jira](../../guides/publishing-to-atlassian/) guide for a full walkthrough.
+Publish an ADF JSON file (generated via `--format confluence`) to a Confluence Cloud page. See the [Publishing to Confluence & Jira](/guides/publishing-to-atlassian/) guide for a full walkthrough.
 
 ```bash
 executable-stories publish-confluence reports/index.adf.json \

@@ -48,6 +48,24 @@ Optional MCP: [MCP server](/guides/mcp-server/) (`executable-stories-mcp`).
 
 Full contract: [Agent artifact contract](/guides/agent-artifact-contract/).
 
+### Feed a test-management system (TestRail, Jira)
+
+Start read-only. `coverage` needs one API key and writes nothing:
+
+```bash
+executable-stories coverage testrail reports/raw-run.json
+```
+
+It tells you how many cases your stories already cover and which manual cases duplicate one. When you want the system updated from the same run, `sync` authors the cases, records the executions, and attaches the evidence. See [TestRail & Xray sync](/guides/test-management-sync/).
+
+Jira appears in two unrelated workflows here. Pick by what you want to land in Jira:
+
+| You want | Command | Guide |
+| --- | --- | --- |
+| Test cases and executions in Jira | `sync xray` | [TestRail & Xray sync](/guides/test-management-sync/) |
+| Living docs in a Jira issue or Confluence page | `publish-jira`, `publish-confluence` | [Publishing to Confluence & Jira](/guides/publishing-to-atlassian/) |
+| A link from a scenario to its ticket | `story.init(task, { ticket })` | [Vitest story API](/reference/vitest-story-api/) |
+
 ### Embed reports in a React product
 
 1. Generate StoryReport JSON in CI (see above).

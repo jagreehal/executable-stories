@@ -122,6 +122,59 @@ export type {
 // Formatter plugin types
 export type { Formatter, ExecutableStoriesConfig } from "./types/formatter";
 
+// Test-management sync: the port, the engine, and the built-in adapters.
+// The port is a plain object, so a third-party provider is a value someone can
+// construct — no plugin machinery needed if we ever expose it from config.
+export type {
+  SyncProvider,
+  RemoteCase,
+  CaseBody,
+  CaseResult,
+  ResultAttachment,
+  RecordResultsSummary,
+  AdapterDeps,
+} from "./sync/port";
+export {
+  analyzeSync,
+  applySync,
+  projectBehaviours,
+  toCaseBody,
+  collectAttachments,
+  type SyncAnalysis,
+  type SyncApplyResult,
+  type SyncEngineConfig,
+  type AttachPolicy,
+  type CoverageClass,
+} from "./sync/engine";
+export {
+  renderCoverageText,
+  renderCoverageMarkdown,
+  renderPlan,
+  renderApplyResult,
+  buildCoverageJson,
+  type CoverageJson,
+} from "./sync/report";
+export {
+  buildProvider,
+  isProviderName,
+  PROVIDER_NAMES,
+  type ProviderName,
+  type SyncTargets,
+} from "./sync/adapters/index";
+export { createTestRailProvider, type TestRailConfig } from "./sync/adapters/testrail";
+export { createXrayProvider, type XrayConfig } from "./sync/adapters/xray";
+export {
+  readLockfile,
+  writeLockfile,
+  parseLockfile,
+  serializeLockfile,
+  emptyLockfile,
+  hashCaseBody,
+  DEFAULT_LOCKFILE_PATH,
+  type Lockfile,
+  type LockEntry,
+} from "./sync/lockfile";
+
 // StoryReport public contract (consumed by UI renderers — additive-only within major)
 export type {
   StoryReportSchemaVersion,

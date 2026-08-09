@@ -8,14 +8,14 @@ import ReportScreenshot from '../../../components/ReportScreenshot.astro';
 The reporter turns story metadata and test results into Markdown and HTML. Each scenario gets a **status icon** and optional headings, metadata, and source links.
 
 <ReportScreenshot
-  src="screenshots/hero-report.png"
-  href="examples/report.html"
+  src="/screenshots/hero-report.png"
+  href="/examples/report.html"
   alt="The full Executable Stories HTML report: run summary, search and status filters, and Given/When/Then scenarios with inline code and tables"
   caption="The HTML report your tests generate. Search it, filter by status or tag, and toggle dark mode. Click to open the live one."
 />
 
 <ReportScreenshot
-  src="screenshots/feature-search.png"
+  src="/screenshots/feature-search.png"
   alt="Report header showing summary cards, search input, and tag filter bar"
   caption="Summary cards, search, and tag filters at the top of every report"
 />
@@ -46,11 +46,11 @@ You can override with `scenarioHeadingLevel` / `storyHeadingLevel` in reporter o
 - **Planned scenarios** — Behavior you have specified but not built yet appears as a **Planned** scenario. Every adapter can emit one: bodyless `it.todo("title")` (Vitest, Jest), `test.fixme("title")` (Playwright), bodyless `it("title")` (Cypress, via the Mocha reporter), and an explicit `Planned(...)` / `planned(...)` call in Go, Ruby, Rust, pytest, JUnit 5, and xUnit. For the four JS reporters the file must also contain real story tests, so a suite full of todos never leaks into your docs; the explicit calls in Go, Ruby, Rust, pytest, JUnit 5, and xUnit record on their own. Markdown renders the heading with _(planned)_; the HTML report shows a **Planned** badge instead of Pending.
 - **Tags and options** — If you pass `{ tags: [...], meta: {...} }` to `story.init(..., options)`, they can be included (see reporter options).
 - **Step documentation** — Notes, key-value pairs, code blocks, tables, and links added via `story.note`, `story.json`, `story.table`, etc. appear under the corresponding step.
-- **Source link** — If `permalinkBaseUrl` is set (or in GitHub Actions with the built-in fallback), each scenario can get a "Source: [file](url)" line.
+- **Source link** — If `permalinkBaseUrl` is set (or in GitHub Actions with the built-in fallback), each scenario can get a `Source: [file](url)` line.
 - **Storyboard** — When two or more steps carry a screenshot (e.g. Playwright `await story.screenshot({ page, alt })` after each step) or a [state snapshot](#state-snapshots-storyboards-for-data), the scenario opens with a horizontal filmstrip: one frame per step, captioned with the step keyword, each linking to the full detail under its step. Nothing to configure and nothing separately authored — the storyboard is derived from the step docs, so it appears in the HTML report and on Astro story pages alike. This is the view to show product owners: Given → When → Then as pictures, data, or both.
 
 <ReportScreenshot
-  src="screenshots/feature-code.png"
+  src="/screenshots/feature-code.png"
   alt="A scenario with Given/When/Then steps and syntax-highlighted code blocks"
   caption="Scenarios render with status icons, step keywords, and inline documentation"
 />
@@ -58,19 +58,19 @@ You can override with `scenarioHeadingLevel` / `storyHeadingLevel` in reporter o
 Inline documentation renders as semantic HTML. You author tables and diagrams in your test; the report draws them, so there are no image files to keep in sync:
 
 <ReportScreenshot
-  src="screenshots/feature-tables.png"
+  src="/screenshots/feature-tables.png"
   alt="A data table rendered in the report with header row and aligned columns"
   caption="story.table renders as a real, accessible HTML table."
 />
 
 <ReportScreenshot
-  src="screenshots/feature-mermaid.png"
+  src="/screenshots/feature-mermaid.png"
   alt="A Mermaid flowchart diagram rendered inside the report"
   caption="story.mermaid draws the diagram live from its source."
 />
 
 <ReportScreenshot
-  src="screenshots/feature-traces.png"
+  src="/screenshots/feature-traces.png"
   alt="An OpenTelemetry trace waterfall showing spans and durations"
   caption="An OpenTelemetry trace renders as a span waterfall, so you can see where the time went."
 />
@@ -78,7 +78,7 @@ Inline documentation renders as semantic HTML. You author tables and diagrams in
 When a scenario fails, the report leads with the error and the step that failed:
 
 <ReportScreenshot
-  src="screenshots/feature-failure.png"
+  src="/screenshots/feature-failure.png"
   alt="A failed scenario showing the error message, the failing Then step, and a trace"
   caption="A failure shows the assertion error and points at the exact step that broke."
 />

@@ -108,14 +108,30 @@ describe("calculateFlakiness", () => {
     expect(result.longestPassStreak).toBe(0);
   });
 
-  it("below MIN_FLAKINESS_SAMPLES -> stable", () => {
-    // MIN_FLAKINESS_SAMPLES is 3, so 2 entries should return stable
+  it("below MIN_FLAKINESS_SAMPLES -> stable, but the counts stay honest", () => {
+    // MIN_FLAKINESS_SAMPLES is 3, so 2 entries cannot be classified as flaky.
+    // The threshold gates the classification only: failure rate and streaks are
+    // plain counts and must still describe the runs that happened.
     const entries = [entry("passed"), entry("failed")];
     const result = calculateFlakiness({ entries });
 
     expect(result.flakinessLevel).toBe("stable");
     expect(result.flakinessScore).toBe(0);
-    expect(result.longestPassStreak).toBe(2);
+    expect(result.failureRate).toBe(0.5);
+    expect(result.longestPassStreak).toBe(1);
+    expect(result.longestFailStreak).toBe(1);
+  });
+
+  it("a scenario that has only ever failed never reports a pass streak", () => {
+    // Regression: the sub-threshold branch used to return failureRate 0 and
+    // longestPassStreak = countable.length, so two failures read as a
+    // two-run pass streak with no failures at all.
+    const entries = [entry("failed"), entry("failed")];
+    const result = calculateFlakiness({ entries });
+
+    expect(result.failureRate).toBe(1);
+    expect(result.longestPassStreak).toBe(0);
+    expect(result.longestFailStreak).toBe(2);
   });
 
   it("pending entries excluded like skipped", () => {

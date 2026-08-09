@@ -70,6 +70,6 @@ npm install -D executable-stories-formatters
 
 ## Next
 
-[First Story (Rust)](getting-started/first-story-rust/) — write your first Rust scenario.
+[First Story (Rust)](/getting-started/first-story-rust/) — write your first Rust scenario.
 
-[Rust story & doc API](reference/rust-story-api/) — steps, docs, and adapter options.
+[Rust story & doc API](/reference/other-adapters/#rust) — steps, docs, and adapter options.

@@ -557,4 +557,4 @@ These adapters take an explicit call rather than reusing `t.Skip`, `@pytest.mark
 
 The JS adapters use their host's own idiom instead: `it.todo` (Vitest, Jest), `test.fixme` (Playwright), and a bodyless `it` (Cypress).
 
-All adapters write the same `RawRun` JSON schema. Once on disk, pass the file to `executable-stories-formatters` to produce HTML, Markdown, JUnit, Cucumber JSON, and other formats. See [Formatters CLI and API](reference/formatters-api/) for details.
+All adapters write the same `RawRun` JSON schema. Once on disk, pass the file to `executable-stories-formatters` to produce HTML, Markdown, JUnit, Cucumber JSON, and other formats. See [Formatters CLI and API](/reference/formatters-api/) for details.

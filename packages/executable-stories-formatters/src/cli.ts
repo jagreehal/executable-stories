@@ -61,6 +61,7 @@ import {
 import { scaffoldDoc, TEMPLATES } from "./scaffold-doc";
 import { checkLinks, formatLinkReport } from "./check-links";
 import { runPush } from "./push";
+import { runSyncCommand } from "./sync/run";
 import { importOpenApi } from "./import-openapi";
 import { publishConfluencePage } from "./publishers/confluence";
 import { publishJiraIssue, type JiraPublishMode } from "./publishers/jira";
@@ -111,6 +112,8 @@ USAGE
   executable-stories new <template> "<name>" [options]
   executable-stories check-links <dir> [options]
   executable-stories push <run.json> [--key <es_...>] [--url <base>] [--repo <org/name>]
+  executable-stories coverage <testrail|xray> <run.json> [options]
+  executable-stories sync <testrail|xray> <run.json> [--apply] [options]
   executable-stories import-openapi <spec> [options]
   executable-stories publish-confluence <file.adf.json> [options]
   executable-stories publish-jira <file.adf.json> [options]
@@ -136,6 +139,8 @@ SUBCOMMANDS
   new                Scaffold a docs page from a template (adr, runbook, decision-log, incident, scenario-note)
   check-links        Scan docs for broken internal/external links (CI-friendly exit code)
   push               Send a run (StoryReport or raw run JSON) to Executable Stories Cloud
+  coverage           Compare your stories against a test-management system (read-only)
+  sync               Push cases, executions, and evidence to TestRail or Xray (dry run by default)
   import-openapi     Generate API doc pages from an OpenAPI spec, linked to verifying stories
   publish-confluence Publish an ADF JSON file to a Confluence page via REST API
   publish-jira       Publish an ADF JSON file to a Jira issue (as comment or description)
@@ -420,7 +425,14 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
   // Strip node + script path
   const args = argv.slice(2);
 
-  if (args.length === 0 || args.includes("--help") || args.includes("-h")) {
+  // Subcommands that own their argument parsing also own their help text, so
+  // `sync --help` must reach them rather than printing the global usage.
+  const SELF_DOCUMENTING = new Set(["sync", "coverage"]);
+
+  if (
+    args.length === 0 ||
+    ((args.includes("--help") || args.includes("-h")) && !SELF_DOCUMENTING.has(args[0] ?? ""))
+  ) {
     console.log(HELP_TEXT);
     process.exit(EXIT_SUCCESS);
   }
@@ -448,7 +460,9 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
     subcommand !== "push" &&
     subcommand !== "import-openapi" &&
     subcommand !== "publish-confluence" &&
-    subcommand !== "publish-jira"
+    subcommand !== "publish-jira" &&
+    subcommand !== "sync" &&
+    subcommand !== "coverage"
   ) {
     // `serve` was removed in favour of the Astro dev server. Give upgraders a
     // direct migration message instead of the generic "unknown subcommand", so
@@ -464,7 +478,7 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
       process.exit(EXIT_USAGE);
     }
     console.error(
-      `Unknown subcommand: "${subcommand}". Use "format", "watch", "compare", "gate-release", "deploy", "review", "list", "check", "check-explainers", "goal", "triage", "validate", "doctor", "completion", "dev", "init-astro", "new", "check-links", "push", "import-openapi", "publish-confluence", or "publish-jira".`,
+      `Unknown subcommand: "${subcommand}". Use "format", "watch", "compare", "gate-release", "deploy", "review", "list", "check", "check-explainers", "goal", "triage", "validate", "doctor", "completion", "dev", "init-astro", "new", "check-links", "push", "sync", "coverage", "import-openapi", "publish-confluence", or "publish-jira".`,
     );
     process.exit(EXIT_USAGE);
   }
@@ -583,6 +597,8 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
   if (subcommand === "new") process.exit(runNew(args.slice(1)));
   if (subcommand === "check-links") process.exit(await runCheckLinks(args.slice(1)));
   if (subcommand === "push") process.exit(await runPush(args.slice(1)));
+  if (subcommand === "sync") process.exit(await runSyncCommand("sync", args.slice(1)));
+  if (subcommand === "coverage") process.exit(await runSyncCommand("coverage", args.slice(1)));
   if (subcommand === "import-openapi") process.exit(await runImportOpenApi(args.slice(1)));
 
   // Parse remaining args with node:util parseArgs
@@ -2688,15 +2704,20 @@ async function runCheckLinks(rawArgs: string[]): Promise<number> {
     options: {
       external: { type: "boolean", default: false },
       json: { type: "boolean", default: false },
+      "site-root": { type: "string" },
+      assets: { type: "string", multiple: true },
     },
     allowPositionals: true,
     strict: true,
   });
 
   try {
+    const assets = values.assets as string[] | undefined;
     const report = await checkLinks({
       target: positionals[0] ?? ".",
       checkExternal: values.external as boolean,
+      ...(values["site-root"] ? { siteRoot: values["site-root"] as string } : {}),
+      ...(assets && assets.length > 0 ? { assetRoots: assets } : {}),
     });
     console.log(values.json ? JSON.stringify(report, null, 2) : formatLinkReport(report));
     return report.brokenCount > 0 ? EXIT_GENERATION : EXIT_SUCCESS;

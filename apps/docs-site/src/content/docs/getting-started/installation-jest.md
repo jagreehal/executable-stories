@@ -50,6 +50,6 @@ The Markdown file is generated after the test run.
 
 ## Next
 
-[First Story (Jest)](getting-started/first-story-jest/) — write your first scenario.
+[First Story (Jest)](/getting-started/first-story-jest/) — write your first scenario.
 
-[Jest reporter options](reference/jest-config/) — all configuration options.
+[Jest reporter options](/reference/jest-config/) — all configuration options.
