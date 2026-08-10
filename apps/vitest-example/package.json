@@ -7,8 +7,8 @@
   "scripts": {
     "test": "node -e \"const fs=require('fs');const {execSync}=require('child_process');const p=require('path').resolve(process.cwd(),'../../packages/executable-stories-vitest/package.json');if(!fs.existsSync(p)){console.log('Skipping test: executable-stories-vitest not in workspace');process.exit(0);}execSync('vitest run',{stdio:'inherit'});\"",
     "lint": "eslint .",
-    "report:cli": "pnpm exec executable-stories format reports/raw-run.json --format html,markdown --output-dir reports --output-name executable-stories-cli",
-    "report:agents": "pnpm exec executable-stories format reports/raw-run.json --format story-report-json,scenario-index-json,behavior-manifest-json --output-dir reports --output-name index",
+    "report:cli": "node node_modules/executable-stories-formatters/dist/cli.js format reports/raw-run.json --format html,markdown --output-dir reports --output-name executable-stories-cli",
+    "report:agents": "node node_modules/executable-stories-formatters/dist/cli.js format reports/raw-run.json --format story-report-json,scenario-index-json,behavior-manifest-json --output-dir reports --output-name index",
     "test:report": "pnpm test && pnpm report:agents && pnpm report:cli",
     "type-check": "node -e \"const fs=require('fs');const {execSync}=require('child_process');const p=require('path').resolve(process.cwd(),'../../packages/executable-stories-vitest/package.json');if(!fs.existsSync(p)){console.log('Skipping type-check: executable-stories-vitest not in workspace');process.exit(0);}execSync('tsc --noEmit',{stdio:'inherit'});\""
   },

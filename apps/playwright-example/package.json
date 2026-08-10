@@ -7,7 +7,7 @@
   "type": "module",
   "scripts": {
     "test": "node -e \"const fs=require('fs');const {execSync}=require('child_process');const p=require('path').resolve(process.cwd(),'../../packages/executable-stories-playwright/package.json');if(!fs.existsSync(p)){console.log('Skipping test: executable-stories-playwright not in workspace');process.exit(0);}execSync('playwright test',{stdio:'inherit'});\"",
-    "report:agents": "pnpm exec executable-stories format reports/raw-run.json --format story-report-json,scenario-index-json,behavior-manifest-json --output-dir reports --output-name index",
+    "report:agents": "node node_modules/executable-stories-formatters/dist/cli.js format reports/raw-run.json --format story-report-json,scenario-index-json,behavior-manifest-json --output-dir reports --output-name index",
     "test:report": "pnpm test && pnpm report:agents",
     "test:ui": "playwright test --ui",
     "lint": "eslint .",
