@@ -55,13 +55,6 @@ jobs:
         if: hashFiles('packages/executable-stories-formatters/package.json') != ''
         run: cd packages/executable-stories-formatters && pnpm run compile
 
-      - name: Upload formatters binary
-        if: hashFiles('packages/executable-stories-formatters/package.json') != ''
-        uses: actions/upload-artifact@v7
-        with:
-          name: executable-stories-linux-x64
-          path: packages/executable-stories-formatters/executable-stories
-
       - name: Install Playwright browsers
         run: pnpm --filter executable-stories-playwright exec playwright install --with-deps && pnpm --filter playwright-example exec playwright install && pnpm --filter formatters-e2e exec playwright install
 
