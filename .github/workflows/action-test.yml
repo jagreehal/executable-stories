@@ -51,6 +51,7 @@ jobs:
         with:
           name: action-test-binary
           path: packages/executable-stories-formatters/executable-stories
+          retention-days: 1
 
   raw-json:
     name: "report: format raw run JSON with the built binary"

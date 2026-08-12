@@ -135,6 +135,8 @@ jobs:
             packages/executable-stories-formatters/executable-stories-darwin-x64
             packages/executable-stories-formatters/executable-stories-darwin-arm64
             packages/executable-stories-formatters/executable-stories-windows-x64.exe
+          # binaries are attached to the GitHub Release below; this artifact is a short-lived copy
+          retention-days: 7
 
       - name: Get formatters release tag
         id: tag
