@@ -12,7 +12,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",
-    "@types/node": "^25.9.2",
+    "@types/node": "^26.2.0",
     "executable-stories-formatters": "workspace:*",
     "executable-stories-playwright": "workspace:*",
     "executable-stories-react": "workspace:*",
