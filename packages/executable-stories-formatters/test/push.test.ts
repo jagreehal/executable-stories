@@ -25,6 +25,7 @@ function makeDeps(overrides: Partial<PushDeps> = {}) {
   );
   const deps: PushDeps = {
     readFile: vi.fn().mockReturnValue(JSON.stringify(STORY_REPORT)),
+    appendFile: vi.fn(),
     fetchFn: fetchFn as unknown as typeof fetch,
     git: vi.fn((args: string[]) => {
       if (args[0] === "config") return "git@github.com:acme/api.git";
@@ -37,6 +38,50 @@ function makeDeps(overrides: Partial<PushDeps> = {}) {
     ...overrides,
   };
   return { deps, fetchFn };
+}
+
+/**
+ * A pull_request run on GitHub Actions: the CLI has to take repo/branch/sha
+ * from the environment and the base commit from the event payload, because a
+ * default depth-1 checkout has no origin/main to diff against.
+ */
+function makeActionsDeps(overrides: Partial<PushDeps> = {}) {
+  const event = {
+    pull_request: {
+      number: 7,
+      html_url: "https://github.com/acme/api/pull/7",
+      base: { sha: "base123" },
+    },
+  };
+  return makeDeps({
+    env: {
+      GITHUB_ACTIONS: "true",
+      GITHUB_REPOSITORY: "acme/api",
+      GITHUB_HEAD_REF: "feat/checkout",
+      GITHUB_REF_NAME: "7/merge",
+      GITHUB_SHA: "headsha",
+      GITHUB_EVENT_PATH: "/tmp/event.json",
+      GITHUB_STEP_SUMMARY: "/tmp/summary.md",
+      GITHUB_OUTPUT: "/tmp/output.txt",
+    },
+    readFile: vi.fn((filePath: string) =>
+      filePath === "/tmp/event.json" ? JSON.stringify(event) : JSON.stringify(STORY_REPORT),
+    ),
+    git: vi.fn((args: string[]) => {
+      if (args[0] === "cat-file") return "";
+      if (args[0] === "diff") return "src/checkout.ts";
+      return "deadbeef";
+    }),
+    ...overrides,
+  });
+}
+
+/** Everything the run wrote to one Actions file, as one string. */
+function written(deps: PushDeps, filePath: string): string {
+  return (deps.appendFile as unknown as { mock: { calls: [string, string][] } }).mock.calls
+    .filter(([target]) => target === filePath)
+    .map(([, text]) => text)
+    .join("");
 }
 
 describe("repoSlugFromRemote", () => {
@@ -62,7 +107,7 @@ describe("runPush", () => {
       repo: "acme/api",
       branch: "main",
       gitSha: "deadbeef",
-      source: "serve",
+      source: "local",
     });
     expect(payload.report.schemaVersion).toBe("1.0");
     expect(deps.log).toHaveBeenCalledWith(expect.stringContaining("run-42"));
@@ -128,6 +173,168 @@ describe("runPush", () => {
 
     const noFile = makeDeps();
     expect(await runPush(["--key", "es_test"], noFile.deps)).toBe(4);
+  });
+
+  it("prints the run URL and the scope the cloud recommends", async () => {
+    const { deps } = makeDeps({
+      fetchFn: vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            runId: "run-42",
+            url: "https://app.executablestories.com/runs/run-42",
+            recommendations: [
+              { title: "Customer pays", confidence: "high", reason: "its test file changed" },
+            ],
+          }),
+          { status: 201 },
+        ),
+      ) as unknown as typeof fetch,
+    });
+    expect(await runPush(["run.json", "--key", "es_test"], deps)).toBe(0);
+    expect(deps.log).toHaveBeenCalledWith("https://app.executablestories.com/runs/run-42");
+    expect(deps.log).toHaveBeenCalledWith(expect.stringContaining("Customer pays"));
+    expect(deps.log).toHaveBeenCalledWith(expect.stringContaining("its test file changed"));
+  });
+
+  it("--gate exits 5 and names every blocking reason", async () => {
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ runId: "run-42" }), { status: 201 }))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            status: "blocked",
+            blocking: ["2 cases failed on the latest execution."],
+            warnings: ["1 case blocked."],
+          }),
+          { status: 200 },
+        ),
+      );
+    const { deps } = makeDeps({ fetchFn: fetchFn as unknown as typeof fetch });
+
+    expect(await runPush(["run.json", "--key", "es_test", "--gate"], deps)).toBe(5);
+    const [gateUrl] = fetchFn.mock.calls[1] as [URL];
+    expect(gateUrl.toString()).toContain("/api/v1/releases/gate?repo=acme%2Fapi&sha=deadbeef");
+    expect(deps.error).toHaveBeenCalledWith(expect.stringContaining("BLOCKED"));
+    expect(deps.error).toHaveBeenCalledWith(expect.stringContaining("2 cases failed"));
+    expect(deps.log).toHaveBeenCalledWith(expect.stringContaining("1 case blocked."));
+  });
+
+  it("--gate passes a clear gate and does not fail on a commit with no release", async () => {
+    const clear = makeDeps({
+      fetchFn: vi
+        .fn()
+        .mockResolvedValueOnce(new Response(JSON.stringify({ runId: "r" }), { status: 201 }))
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify({ status: "clear", blocking: [] }), { status: 200 }),
+        ) as unknown as typeof fetch,
+    });
+    expect(await runPush(["run.json", "--key", "es_test", "--gate"], clear.deps)).toBe(0);
+
+    const none = makeDeps({
+      fetchFn: vi
+        .fn()
+        .mockResolvedValueOnce(new Response(JSON.stringify({ runId: "r" }), { status: 201 }))
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify({ status: "no-release" }), { status: 200 }),
+        ) as unknown as typeof fetch,
+    });
+    expect(await runPush(["run.json", "--key", "es_test", "--gate"], none.deps)).toBe(0);
+    expect(none.deps.log).toHaveBeenCalledWith(expect.stringContaining("nothing to gate on"));
+  });
+
+  it("--gate reports an unreachable or erroring gate as a failure, not a pass", async () => {
+    const { deps } = makeDeps({
+      fetchFn: vi
+        .fn()
+        .mockResolvedValueOnce(new Response(JSON.stringify({ runId: "r" }), { status: 201 }))
+        .mockResolvedValueOnce(new Response("nope", { status: 500 })) as unknown as typeof fetch,
+    });
+    expect(await runPush(["run.json", "--key", "es_test", "--gate"], deps)).toBe(1);
+    expect(deps.error).toHaveBeenCalledWith(expect.stringContaining("500"));
+  });
+
+  it("takes repo, branch, sha, base commit and PR from the Actions environment", async () => {
+    const { deps, fetchFn } = makeActionsDeps();
+    expect(await runPush(["run.json", "--key", "es_test"], deps)).toBe(0);
+
+    const [, init] = fetchFn.mock.calls[0] as [URL, RequestInit];
+    expect(JSON.parse(init.body as string)).toMatchObject({
+      repo: "acme/api",
+      // GITHUB_HEAD_REF, not the synthetic "7/merge" ref.
+      branch: "feat/checkout",
+      gitSha: "headsha",
+      source: "action",
+      baseSha: "base123",
+      changedFiles: ["src/checkout.ts"],
+      prNumber: 7,
+      prUrl: "https://github.com/acme/api/pull/7",
+    });
+    expect(deps.git).toHaveBeenCalledWith(["diff", "--name-only", "base123...HEAD"]);
+  });
+
+  it("fetches a base commit a shallow checkout does not have", async () => {
+    const { deps } = makeActionsDeps({
+      git: vi.fn((args: string[]) => {
+        if (args[0] === "cat-file") return undefined; // object missing locally
+        if (args[0] === "diff") return "src/checkout.ts";
+        return "deadbeef";
+      }),
+    });
+    expect(await runPush(["run.json", "--key", "es_test"], deps)).toBe(0);
+    expect(deps.git).toHaveBeenCalledWith(["fetch", "--depth=1", "origin", "base123"]);
+  });
+
+  it("writes the run URL, the scope table, and ingest-run-id to the Actions files", async () => {
+    const { deps } = makeActionsDeps({
+      fetchFn: vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            runId: "run-42",
+            url: "https://app.executablestories.com/runs/run-42",
+            recommendations: [
+              { title: "Pay | refund", confidence: "high", reason: "its test file changed" },
+            ],
+          }),
+          { status: 201 },
+        ),
+      ) as unknown as typeof fetch,
+    });
+    expect(await runPush(["run.json", "--key", "es_test"], deps)).toBe(0);
+
+    const summary = written(deps, "/tmp/summary.md");
+    expect(summary).toContain("[View this run](https://app.executablestories.com/runs/run-42)");
+    expect(summary).toContain("| Confidence | Case | Why |");
+    // A raw pipe would end the cell early and shear off the rest of the row.
+    expect(summary).toContain("| high | Pay \\| refund | its test file changed |");
+    expect(written(deps, "/tmp/output.txt")).toBe("ingest-run-id=run-42\n");
+  });
+
+  it("still reports the run id when the gate blocks — the run did ingest", async () => {
+    const { deps } = makeActionsDeps({
+      fetchFn: vi
+        .fn()
+        .mockResolvedValueOnce(new Response(JSON.stringify({ runId: "run-42" }), { status: 201 }))
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({ status: "blocked", blocking: ["2 cases failed."] }),
+            { status: 200 },
+          ),
+        ) as unknown as typeof fetch,
+    });
+    expect(await runPush(["run.json", "--key", "es_test", "--gate"], deps)).toBe(5);
+
+    expect(written(deps, "/tmp/output.txt")).toBe("ingest-run-id=run-42\n");
+    expect(written(deps, "/tmp/summary.md")).toContain("Release gate: blocked");
+    expect(deps.error).toHaveBeenCalledWith("::error::Release gate: 2 cases failed.");
+  });
+
+  it("stays out of the Actions files when not running under Actions", async () => {
+    const { deps, fetchFn } = makeDeps();
+    expect(await runPush(["run.json", "--key", "es_test"], deps)).toBe(0);
+    expect(deps.appendFile).not.toHaveBeenCalled();
+    const [, init] = fetchFn.mock.calls[0] as [URL, RequestInit];
+    expect(JSON.parse(init.body as string).source).toBe("local");
   });
 
   it("surfaces a rejection with status and Retry-After", async () => {

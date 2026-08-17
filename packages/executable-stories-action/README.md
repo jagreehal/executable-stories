@@ -503,8 +503,9 @@ steps:
 | `deploy-ledger` | `.executable-stories/deployments.json` | (deploy) Path to the deployment ledger JSON |
 | `runs-branch` | `executable-stories-runs` | (publish-run) Branch the run JSON is committed to. Created as orphan on first use |
 | `runs-path` | `raw-run.json` | (publish-run) Path of the published file within `runs-branch` |
-| `api-key` | — | (ingest) Executable Stories Cloud API key (`es_…`). Store as a secret |
+| `api-key` | — | (ingest) Cloud ingest API key (`es_…`). Store as a secret |
 | `ingest-url` | `https://app.executablestories.com` | (ingest) Cloud instance to push runs to |
+| `ingest-gate` | `false` | (ingest) Fail the step when the cloud's release gate blocks this commit. The run URL and recommended scope are written to the job summary either way |
 
 ## Outputs
 
@@ -516,7 +517,7 @@ steps:
 | `gate-failed` | (gate-release, review) `true`/`false` — whether the gate failed |
 | `deploy-ledger-path` | (deploy) Path to the deployment ledger written in deploy mode |
 | `published-run-url` | (publish-run) Stable `raw.githubusercontent.com` URL of the published run JSON |
-| `ingest-run-id` | (ingest) Id of the run stored by the cloud ingest endpoint |
+| `ingest-run-id` | (ingest) Id of the run stored by the cloud ingest endpoint. Set whenever the run was accepted, including when `ingest-gate` then blocks the commit |
 
 ## Permissions
 
