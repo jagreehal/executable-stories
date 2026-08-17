@@ -65,7 +65,7 @@
     "build-storybook": "storybook build"
   },
   "dependencies": {
-    "@cucumber/html-formatter": "^23.1.0",
+    "@cucumber/html-formatter": "^24.1.1",
     "@cucumber/messages": "^32.3.1",
     "ajv": "^8.20.0",
     "github-slugger": "^2.0.0",
