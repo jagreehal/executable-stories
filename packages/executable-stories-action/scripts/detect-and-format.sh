@@ -338,15 +338,17 @@ run_publish() {
 }
 
 # ---------------------------------------------------------------------------
-# MODE: ingest — push the run's StoryReport to Executable Stories Cloud.
+# MODE: ingest — push the run's StoryReport to a cloud ingest endpoint.
 # The free action stays file-based and stateless; this mode only runs when an
 # api-key is provided (the open-core line: persistence lives in the cloud).
 # ---------------------------------------------------------------------------
 run_ingest() {
   if [[ -z "${API_KEY:-}" ]]; then
-    echo "::error::ingest mode needs api-key. Create one in Executable Stories Cloud (Settings → Ingest key) and store it as a secret."
+    echo "::error::ingest mode needs api-key. Create one in your cloud instance's settings (Ingest key) and store it as a secret."
     exit 1
   fi
+
+  resolve_binary
 
   # Use a pre-generated StoryReport if present; otherwise format the raw run.
   local STORY_REPORT="${REPORT_DIR}/${OUTPUT_NAME}.story-report.json"
@@ -355,7 +357,6 @@ run_ingest() {
       echo "::error::ingest mode needs ${STORY_REPORT} or a raw run JSON at ${RAW_RUN}."
       exit 1
     fi
-    resolve_binary
     mkdir -p "$REPORT_DIR"
     "$BINARY_PATH" format "$RAW_RUN" \
       --format story-report-json \
@@ -367,80 +368,29 @@ run_ingest() {
     fi
   fi
 
-  # POST via node (fetch is built in on Actions runners); the key is passed
-  # through the environment and never echoed.
-  local BRANCH="${GITHUB_REF_NAME:-}"
-  [[ -n "${GITHUB_HEAD_REF:-}" ]] && BRANCH="$GITHUB_HEAD_REF"
-  if RUN_ID=$(STORY_REPORT_PATH="$STORY_REPORT" BRANCH="$BRANCH" node -e '
-    const fs = require("fs");
-    const { execFileSync } = require("child_process");
-    const report = JSON.parse(fs.readFileSync(process.env.STORY_REPORT_PATH, "utf8"));
+  # The CLI owns the wire contract: it reads repo/branch/sha, the base commit,
+  # and PR metadata from the Actions environment, writes the run URL and the
+  # recommended scope to the job summary, and appends ingest-run-id to
+  # GITHUB_OUTPUT. Duplicating any of that here is how the two drift apart.
+  local PUSH_ARGS=(push "$STORY_REPORT" --url "$INGEST_URL")
+  [[ "${INGEST_GATE:-}" == "true" ]] && PUSH_ARGS+=(--gate)
 
-    // Change metadata for change-aware test selection. Best effort: never
-    // fail a build over it (shallow clones may not have the base commit).
-    let change = {};
-    try {
-      const event = process.env.GITHUB_EVENT_PATH
-        ? JSON.parse(fs.readFileSync(process.env.GITHUB_EVENT_PATH, "utf8"))
-        : {};
-      const pr = event.pull_request;
-      const baseSha = pr ? pr.base?.sha : event.before;
-      const git = (args) =>
-        execFileSync("git", args, { stdio: ["ignore", "pipe", "ignore"] }).toString();
-      if (baseSha && !/^0+$/.test(baseSha)) {
-        try {
-          git(["cat-file", "-e", baseSha]);
-        } catch {
-          git(["fetch", "--depth=1", "origin", baseSha]);
-        }
-        change = {
-          baseSha,
-          changedFiles: git(["diff", "--name-only", `${baseSha}...HEAD`])
-            .split("\n")
-            .filter(Boolean),
-          prNumber: pr ? pr.number : undefined,
-          prUrl: pr ? pr.html_url : undefined,
-        };
-      }
-    } catch {
-      // no change metadata: the run still ingests
-    }
+  # Capture the exit code explicitly: the gate reports its verdict with a
+  # distinct code, and `set -e` would kill the step before we can name it.
+  set +e
+  EXECUTABLE_STORIES_API_KEY="$API_KEY" "$BINARY_PATH" "${PUSH_ARGS[@]}"
+  local STATUS=$?
+  set -e
 
-    const payload = {
-      repo: process.env.GITHUB_REPOSITORY,
-      branch: process.env.BRANCH || undefined,
-      gitSha: process.env.GITHUB_SHA || undefined,
-      source: "action",
-      report,
-      ...change,
-    };
-    fetch(new URL("/api/v1/runs", process.env.INGEST_URL), {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.API_KEY}`,
-      },
-      body: JSON.stringify(payload),
-    })
-      .then(async (res) => {
-        const body = await res.text();
-        if (!res.ok) {
-          console.error(`HTTP ${res.status}: ${body.slice(0, 500)}`);
-          process.exit(1);
-        }
-        process.stdout.write(JSON.parse(body).runId ?? "");
-      })
-      .catch((err) => {
-        console.error(String(err));
-        process.exit(1);
-      });
-  '); then
-    echo "::notice::Run ingested to ${INGEST_URL} (run id: ${RUN_ID})"
-    echo "ingest-run-id=${RUN_ID}" >> "$GITHUB_OUTPUT"
-  else
-    echo "::error::Ingest failed — check api-key, ingest-url, and that the cloud instance is reachable."
-    exit 1
-  fi
+  case "$STATUS" in
+    0) echo "::notice::Run ingested to ${INGEST_URL}" ;;
+    5) echo "::error::Release gate blocked this commit — see the job summary for the reasons."
+       exit 1 ;;
+    4) echo "::error::The formatter binary rejected these options. formatter-version is pinned to '${FORMATTER_VERSION}', which predates them — use 'latest' or a newer version."
+       exit 1 ;;
+    *) echo "::error::Ingest failed — check api-key, ingest-url, and that the cloud instance is reachable."
+       exit 1 ;;
+  esac
 }
 
 # ---------------------------------------------------------------------------

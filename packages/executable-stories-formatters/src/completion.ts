@@ -30,7 +30,7 @@ export const COMPLETION_SUBCOMMANDS: Array<[string, string]> = [
   ["init-astro", "Scaffold a thin Astro docs site"],
   ["new", "Scaffold a docs page from a template"],
   ["check-links", "Scan docs for broken links"],
-  ["push", "Send a run to Executable Stories Cloud"],
+  ["push", "Send a run to a cloud ingest endpoint"],
   ["coverage", "Compare stories against a test-management system (read-only)"],
   ["sync", "Push cases, executions, and evidence to TestRail or Xray"],
   ["import-openapi", "Generate API doc pages from an OpenAPI spec"],

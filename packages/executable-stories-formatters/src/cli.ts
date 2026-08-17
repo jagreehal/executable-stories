@@ -138,7 +138,7 @@ SUBCOMMANDS
   init-astro         Scaffold a thin Astro docs site (Starlight + executable-stories-astro; live stories at /stories)
   new                Scaffold a docs page from a template (adr, runbook, decision-log, incident, scenario-note)
   check-links        Scan docs for broken internal/external links (CI-friendly exit code)
-  push               Send a run (StoryReport or raw run JSON) to Executable Stories Cloud
+  push               Send a run (StoryReport or raw run JSON) to a cloud ingest endpoint
   coverage           Compare your stories against a test-management system (read-only)
   sync               Push cases, executions, and evidence to TestRail or Xray (dry run by default)
   import-openapi     Generate API doc pages from an OpenAPI spec, linked to verifying stories

@@ -15,7 +15,9 @@ inputs:
           band changed code as uncovered / weak / strong. Requires a run JSON (see run-json).
         - "gate-release": verify a release candidate matches the dev test baseline
         - "deploy": record a deployment to the environment ledger
-        - "ingest": push the run's StoryReport to Executable Stories Cloud (requires api-key)
+        - "ingest": push the run's StoryReport to a cloud ingest endpoint (requires api-key).
+          The run URL and the scope the change implies are written to the job summary;
+          set ingest-gate to also block on the org's release policy.
         - "publish-run": commit the run JSON to an orphan branch (runs-branch) so other
           repos — e.g. a multi-repo docs hub built with executable-stories-astro — can
           fetch it from a stable raw.githubusercontent.com URL. Requires `contents: write`.
@@ -121,13 +123,17 @@ inputs:
     required: false
     default: ""
   api-key:
-    description: "(ingest) Executable Stories Cloud API key (es_…). Store it as a repo/org secret. When unset, ingest mode fails fast."
+    description: "(ingest) Cloud ingest API key (es_…). Store it as a repo/org secret. When unset, ingest mode fails fast."
     required: false
     default: ""
   ingest-url:
-    description: "(ingest) Base URL of the Executable Stories Cloud instance to push runs to."
+    description: "(ingest) Base URL of the cloud instance to push runs to."
     required: false
     default: "https://app.executablestories.com"
+  ingest-gate:
+    description: "(ingest) After pushing, ask the cloud whether this commit is safe to release and fail the step if it is blocked. The policy lives in your organization's settings, not in a file in this repo."
+    required: false
+    default: "false"
 
 outputs:
   html-report-path:
@@ -149,7 +155,7 @@ outputs:
     description: "(publish-run) Stable raw.githubusercontent.com URL of the published run JSON"
     value: ${{ steps.publish.outputs.published-run-url }}
   ingest-run-id:
-    description: "(ingest) Id of the run stored by the cloud ingest endpoint"
+    description: "(ingest) Id of the run stored by the cloud ingest endpoint. Set whenever the run was accepted, including when ingest-gate then blocks the commit."
     value: ${{ steps.detect.outputs.ingest-run-id }}
 
 runs:
@@ -181,6 +187,7 @@ runs:
         DEPLOY_LEDGER: ${{ inputs.deploy-ledger }}
         API_KEY: ${{ inputs.api-key }}
         INGEST_URL: ${{ inputs.ingest-url }}
+        INGEST_GATE: ${{ inputs.ingest-gate }}
         GH_TOKEN: ${{ github.token }}
 
     - name: Set output paths
