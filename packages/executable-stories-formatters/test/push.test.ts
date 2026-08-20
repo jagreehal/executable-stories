@@ -5,7 +5,7 @@
 
 import { describe, expect, it, vi } from "vitest";
 
-import { repoSlugFromRemote, runPush, type PushDeps } from "../src/push";
+import { detectFormat, repoSlugFromRemote, runPush, type PushDeps } from "../src/push";
 import { stubs } from "./stubs";
 
 const STORY_REPORT = {
@@ -351,5 +351,101 @@ describe("runPush", () => {
     expect(code).toBe(1);
     expect(deps.error).toHaveBeenCalledWith(expect.stringContaining("429"));
     expect(deps.error).toHaveBeenCalledWith(expect.stringContaining("retry after 60s"));
+  });
+});
+
+describe("detectFormat", () => {
+  it("reads XML as JUnit, by content and by extension", () => {
+    expect(detectFormat("results.txt", '<?xml version="1.0"?><testsuites/>')).toBe("junit");
+    expect(detectFormat("out.XML", "  <testsuite/>")).toBe("junit");
+  });
+
+  it("reads a top-level array as Allure results", () => {
+    expect(detectFormat("results.json", '[{"name":"t","status":"passed"}]')).toBe("allure");
+  });
+
+  it("reads suites-without-schemaVersion as Playwright", () => {
+    expect(detectFormat("pw.json", '{"config":{},"suites":[]}')).toBe("playwright");
+  });
+
+  it("prefers a declared schemaVersion over any other hint", () => {
+    // A StoryReport can legitimately carry a "suites" key one day; the
+    // declaration is the authority.
+    expect(detectFormat("r.json", '{"schemaVersion":"1.0","suites":[]}')).toBe("story");
+  });
+
+  it("falls back to story so the existing pipeline reports the real error", () => {
+    expect(detectFormat("junk.json", "not json at all")).toBe("story");
+  });
+});
+
+describe("push --format and --force", () => {
+  it("sends JUnit XML verbatim to the junit endpoint with metadata in the query", async () => {
+    const { deps, fetchFn } = makeDeps({
+      readFile: vi.fn().mockReturnValue("<testsuites><testsuite/></testsuites>"),
+    });
+    const code = await runPush(["results.xml", "--key", "es_test"], deps);
+    expect(code).toBe(0);
+    const [url, init] = fetchFn.mock.calls[0]!;
+    expect(String(url)).toContain("/api/v1/runs/junit?");
+    expect(String(url)).toContain("repo=acme%2Fapi");
+    expect(String(url)).toContain("sha=deadbeef");
+    expect((init as RequestInit).headers).toMatchObject({ "Content-Type": "application/xml" });
+    // Verbatim: conversion lives on the server so it cannot drift between
+    // versions of this CLI in the wild.
+    expect((init as RequestInit).body).toBe("<testsuites><testsuite/></testsuites>");
+  });
+
+  it("honours an explicit --format over detection", async () => {
+    const { deps, fetchFn } = makeDeps({
+      readFile: vi.fn().mockReturnValue('[{"name":"t"}]'),
+    });
+    await runPush(["results.json", "--key", "es_test", "--format", "playwright"], deps);
+    expect(String(fetchFn.mock.calls[0]![0])).toContain("/api/v1/runs/playwright?");
+  });
+
+  it("rejects an unknown --format instead of guessing", async () => {
+    const { deps, fetchFn } = makeDeps();
+    expect(await runPush(["r.json", "--key", "es_test", "--format", "nonsense"], deps)).toBe(4);
+    expect(fetchFn).not.toHaveBeenCalled();
+  });
+
+  it("still sends StoryReport to the native endpoint", async () => {
+    const { deps, fetchFn } = makeDeps();
+    await runPush(["report.json", "--key", "es_test"], deps);
+    expect(String(fetchFn.mock.calls[0]![0])).toMatch(/\/api\/v1\/runs$/);
+  });
+
+  it("--force swallows a rejected push", async () => {
+    const { deps } = makeDeps({
+      fetchFn: vi.fn().mockResolvedValue(new Response("nope", { status: 500 })) as never,
+    });
+    expect(await runPush(["report.json", "--key", "es_test", "--force"], deps)).toBe(0);
+    const { deps: strict } = makeDeps({
+      fetchFn: vi.fn().mockResolvedValue(new Response("nope", { status: 500 })) as never,
+    });
+    expect(await runPush(["report.json", "--key", "es_test"], strict)).toBe(1);
+  });
+
+  it("--force swallows an unreachable endpoint", async () => {
+    const { deps } = makeDeps({
+      fetchFn: vi.fn().mockRejectedValue(new Error("ECONNREFUSED")) as never,
+    });
+    expect(await runPush(["report.json", "--key", "es_test", "--force"], deps)).toBe(0);
+  });
+
+  it("--force does not forgive a blocked gate", async () => {
+    // The wire is forgivable; the verdict is not. A forced push that hid a
+    // blocked release would make --gate worthless.
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ runId: "r" }), { status: 201 }))
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ status: "blocked", blocking: ["policy X"] }), {
+          status: 200,
+        }),
+      );
+    const { deps } = makeDeps({ fetchFn: fetchFn as never });
+    expect(await runPush(["report.json", "--key", "es_test", "--gate", "--force"], deps)).toBe(5);
   });
 });

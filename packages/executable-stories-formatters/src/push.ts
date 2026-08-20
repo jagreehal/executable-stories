@@ -25,9 +25,11 @@ const EXIT_GATE_BLOCKED = 5;
 const HELP = `Usage:
   executable-stories push <run.json> [options]
 
-Send a run to a cloud ingest endpoint. <run.json> is either a StoryReport v1
-(e.g. reports/index.story-report.json) or a raw run JSON, which is converted
-through the standard pipeline first.
+Send a run to a cloud ingest endpoint. <run> is a StoryReport v1
+(e.g. reports/index.story-report.json), a raw run JSON, or the output of any
+other framework: JUnit XML, Playwright's JSON reporter, or an allure-results
+directory. The format is detected from the file, so one command covers all of
+them and nothing in your tests needs a marker or an annotation.
 
 Options:
   --key <es_...>     API key. Default: EXECUTABLE_STORIES_API_KEY env var.
@@ -39,9 +41,15 @@ Options:
   --git-sha <sha>    Default: current git HEAD.
   --base <ref>       Send files changed since <ref> (e.g. origin/main) so the
                      cloud can recommend a test scope for the change.
+  --format <fmt>     auto (default), story, junit, playwright or allure.
+                     Only needed when detection guesses wrong.
   --gate             After pushing, ask the cloud whether this commit is safe
                      to release and exit 5 if it is blocked. The policy lives
                      in your organization's settings, not in a file here.
+  --force            Do not fail the build when the push itself fails
+                     (network, auth, a rejected file). A gate verdict is never
+                     forced: --gate still exits 5 when a release is blocked,
+                     because that is your tests talking, not the wire.
   -h, --help         Show this help.
 
 Under GitHub Actions, repo/branch/sha, the base commit, and PR metadata are
@@ -82,6 +90,53 @@ function defaultDeps(): PushDeps {
 }
 
 /** git@host:org/name.git or https://host/org/name(.git) -> "org/name". */
+/** Query string for the foreign-format endpoints, which take metadata in the URL. */
+function foreignQuery(input: {
+  repo: string;
+  branch: string | undefined;
+  gitSha: string | undefined;
+  changedFiles: string[];
+  baseSha: string | undefined;
+  prNumber: number | undefined;
+  prUrl: string | undefined;
+}): string {
+  const query = new URLSearchParams({ repo: input.repo });
+  if (input.branch) query.set("branch", input.branch);
+  if (input.gitSha) query.set("sha", input.gitSha);
+  if (input.changedFiles.length > 0) query.set("changedFiles", input.changedFiles.join(","));
+  if (input.baseSha) query.set("baseSha", input.baseSha);
+  if (input.prNumber) query.set("prNumber", String(input.prNumber));
+  if (input.prUrl) query.set("prUrl", input.prUrl);
+  return query.toString();
+}
+
+export type PushFormat = "story" | "junit" | "playwright" | "allure";
+
+/**
+ * Which uploader a file wants. Detection beats asking: qas-cli makes you pick
+ * a subcommand per format, and the format is sitting right there in the file.
+ */
+export function detectFormat(filePath: string, contents: string): PushFormat {
+  const head = contents.trimStart();
+  if (head.startsWith("<")) return "junit";
+  if (filePath.toLowerCase().endsWith(".xml")) return "junit";
+  // An allure-results directory arrives as an array of result objects.
+  if (head.startsWith("[")) return "allure";
+  try {
+    const parsed: unknown = JSON.parse(head);
+    if (typeof parsed === "object" && parsed !== null) {
+      const node = parsed as Record<string, unknown>;
+      // A StoryReport declares itself; Playwright's reporter has "suites" and
+      // "config" and never a schemaVersion.
+      if (node.schemaVersion !== undefined) return "story";
+      if (Array.isArray(node.suites)) return "playwright";
+    }
+  } catch {
+    // Not JSON and not XML: let the story pipeline produce the real error.
+  }
+  return "story";
+}
+
 export function repoSlugFromRemote(remoteUrl: string): string | undefined {
   const match = /(?:[:/])([^/:]+\/[^/:]+?)(?:\.git)?\/?$/.exec(remoteUrl.trim());
   return match?.[1];
@@ -180,7 +235,9 @@ export async function runPush(
         branch: { type: "string" },
         "git-sha": { type: "string" },
         base: { type: "string" },
+        format: { type: "string" },
         gate: { type: "boolean" },
+        force: { type: "boolean" },
         help: { type: "boolean", short: "h" },
       },
     });
@@ -210,25 +267,54 @@ export async function runPush(
     return EXIT_USAGE;
   }
 
-  let data: Record<string, unknown>;
+  let raw: string;
   try {
-    data = JSON.parse(deps.readFile(inputPath)) as Record<string, unknown>;
+    raw = deps.readFile(inputPath);
   } catch (err) {
     deps.error(`Could not read ${inputPath}: ${err instanceof Error ? err.message : String(err)}`);
     return EXIT_USAGE;
   }
 
+  const requested = parsed.values.format;
+  if (
+    requested !== undefined &&
+    requested !== "auto" &&
+    requested !== "story" &&
+    requested !== "junit" &&
+    requested !== "playwright" &&
+    requested !== "allure"
+  ) {
+    deps.error(`Unknown --format "${requested}". Use auto, story, junit, playwright or allure.`);
+    return EXIT_USAGE;
+  }
+  const format: PushFormat =
+    requested === undefined || requested === "auto"
+      ? detectFormat(inputPath, raw)
+      : (requested as PushFormat);
+
+  // Foreign formats go to the cloud as-is and are converted there, so the
+  // conversion rules live in one place rather than drifting between the
+  // server and every version of this CLI in the wild.
   let report: unknown;
-  if (isStoryReport(data)) {
-    report = data;
-  } else {
+  if (format === "story") {
+    let data: Record<string, unknown>;
     try {
-      report = toStoryReport(canonicalizeRun(synthesizeStories(data as never)));
+      data = JSON.parse(raw) as Record<string, unknown>;
     } catch (err) {
-      deps.error(
-        `${inputPath} is neither a StoryReport v1 nor a convertible raw run: ${err instanceof Error ? err.message : String(err)}`,
-      );
+      deps.error(`${inputPath} is not JSON: ${err instanceof Error ? err.message : String(err)}`);
       return EXIT_USAGE;
+    }
+    if (isStoryReport(data)) {
+      report = data;
+    } else {
+      try {
+        report = toStoryReport(canonicalizeRun(synthesizeStories(data as never)));
+      } catch (err) {
+        deps.error(
+          `${inputPath} is neither a StoryReport v1 nor a convertible raw run: ${err instanceof Error ? err.message : String(err)}`,
+        );
+        return EXIT_USAGE;
+      }
     }
   }
 
@@ -262,37 +348,65 @@ export async function runPush(
     deps.error(`Warning: no changed files found against ${base}; pushing without change metadata.`);
   }
 
+  const forced = parsed.values.force === true;
+
   let response: Response;
   try {
-    response = await deps.fetchFn(new URL("/api/v1/runs", baseUrl), {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${key}`,
-      },
-      body: JSON.stringify({
-        repo,
-        branch,
-        gitSha,
-        // "serve" named a subcommand that no longer exists (ADR 0006). The
-        // cloud accepts both; "local" is what this is.
-        source: onActions ? "action" : "local",
-        report,
-        ...(changedFiles.length > 0 ? { changedFiles, baseSha } : {}),
-        ...(github.prNumber ? { prNumber: github.prNumber } : {}),
-        ...(github.prUrl ? { prUrl: github.prUrl } : {}),
-      }),
-    });
+    response =
+      format === "story"
+        ? await deps.fetchFn(new URL("/api/v1/runs", baseUrl), {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${key}`,
+            },
+            body: JSON.stringify({
+              repo,
+              branch,
+              gitSha,
+              // "serve" named a subcommand that no longer exists (ADR 0006).
+              // The cloud accepts both; "local" is what this is.
+              source: onActions ? "action" : "local",
+              report,
+              ...(changedFiles.length > 0 ? { changedFiles, baseSha } : {}),
+              ...(github.prNumber ? { prNumber: github.prNumber } : {}),
+              ...(github.prUrl ? { prUrl: github.prUrl } : {}),
+            }),
+          })
+        : await deps.fetchFn(
+            new URL(
+              `/api/v1/runs/${format}?${foreignQuery({
+                repo,
+                branch,
+                gitSha,
+                changedFiles,
+                baseSha,
+                prNumber: github.prNumber,
+                prUrl: github.prUrl,
+              })}`,
+              baseUrl,
+            ),
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": format === "junit" ? "application/xml" : "application/json",
+                Authorization: `Bearer ${key}`,
+              },
+              body: raw,
+            },
+          );
   } catch (err) {
     deps.error(`Could not reach ${baseUrl}: ${err instanceof Error ? err.message : String(err)}`);
-    return EXIT_PUSH_FAILED;
+    // --force covers the wire, not the verdict: a CI job that fails because
+    // the reporting endpoint blinked teaches people to stop reporting.
+    return forced ? EXIT_SUCCESS : EXIT_PUSH_FAILED;
   }
 
   const body = await response.text();
   if (!response.ok) {
     const retryAfter = response.headers.get("Retry-After");
     deps.error(`Push rejected: HTTP ${response.status}${retryAfter ? ` (retry after ${retryAfter}s)` : ""}: ${body.slice(0, 500)}`);
-    return EXIT_PUSH_FAILED;
+    return forced ? EXIT_SUCCESS : EXIT_PUSH_FAILED;
   }
 
   let result: PushResponse = {};
