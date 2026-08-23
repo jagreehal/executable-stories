@@ -87,6 +87,33 @@ test("The explorer filters scenarios by search text", async ({ page }, testInfo)
   await expect(results.getByText(/Checkout is blocked/i)).toBeHidden();
 });
 
+test("A ticket can link the Explorer at a tag, not at one scenario", async ({ page }, testInfo) => {
+  story.init(testInfo, { tags: ["docs-site", "explorer", "filter"] });
+  story.note(
+    "Specification by Example ch.12: refer to specifications by tag, not by URL — a tag survives a scenario being renamed, moved, split, or merged.",
+  );
+
+  story.given("a ticket links the Explorer at ?tag=search");
+  await page.goto("/explorer/?tag=search");
+  const results = page.getByTestId("list");
+
+  story.then("the page opens already filtered to that tag");
+  await expect(page.getByTestId("tag-filter")).toHaveValue("search");
+  await expect(results.getByText(/Search ranks exact title matches first/i)).toBeVisible();
+  await expect(results.getByText(/A returning customer/i)).toBeHidden();
+
+  story.when("the reader narrows it further in the UI");
+  await page.getByTestId("status-filter").selectOption("passed");
+
+  story.then("the URL carries the new view, so this one is linkable too");
+  await expect(page).toHaveURL(/[?&]status=passed/);
+  await expect(page).toHaveURL(/[?&]tag=search/);
+
+  story.and("a tag that no longer exists says so instead of showing everything");
+  await page.goto("/explorer/?tag=retired-tag");
+  await expect(page.getByTestId("empty")).toBeVisible();
+});
+
 test("An authored page embeds a live scenario as evidence", async ({ page }, testInfo) => {
   story.init(testInfo, { tags: ["docs-site", "embed"] });
 

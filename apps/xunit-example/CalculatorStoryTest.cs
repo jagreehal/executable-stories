@@ -6,6 +6,17 @@ namespace XunitExample.Tests;
 
 public class CalculatorStoryTest
 {
+    static CalculatorStoryTest() => Story.Feature(
+        "Anyone can do arithmetic without reaching for a calculator app",
+        kind: "ability",
+        narrative:
+            "People doing quick sums in the middle of another task lose their place "
+            + "when they have to switch apps. Division throws rather than returning infinity.",
+        glossary: new Dictionary<string, string>
+        {
+            ["operand"] = "One of the two numbers an operation is applied to.",
+        });
+
     // Specified but not built yet: renders as planned in the report.
     [Fact]
     public void Calculator_rejects_non_numeric_input()
@@ -23,7 +34,6 @@ public class CalculatorStoryTest
         var result = Calculator.Add(a, b);
         Story.Then("the result is 8");
         Assert.Equal(8, result);
-        Story.RecordAndClear();
     }
 
     [Fact]
@@ -36,7 +46,6 @@ public class CalculatorStoryTest
         var result = Calculator.Subtract(a, b);
         Story.Then("the result is 6");
         Assert.Equal(6, result);
-        Story.RecordAndClear();
     }
 
     [Fact]
@@ -50,7 +59,6 @@ public class CalculatorStoryTest
         var result = Calculator.Multiply(a, b);
         Story.Then("the result is 42");
         Assert.Equal(42, result);
-        Story.RecordAndClear();
     }
 
     [Fact]
@@ -63,7 +71,6 @@ public class CalculatorStoryTest
         var result = Calculator.Divide(a, b);
         Story.Then("the result is 5");
         Assert.Equal(5, result);
-        Story.RecordAndClear();
     }
 
     [Fact]
@@ -76,6 +83,5 @@ public class CalculatorStoryTest
         Story.When("division is attempted");
         Assert.Throws<DivideByZeroException>(() => Calculator.Divide(a, b));
         Story.Then("an error is thrown");
-        Story.RecordAndClear();
     }
 }

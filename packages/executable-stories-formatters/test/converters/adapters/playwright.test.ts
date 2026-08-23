@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { adaptPlaywrightRun } from "../../../src/converters/adapters/playwright";
+import type {
+  PlaywrightTestCase,
+  PlaywrightTestResult,
+} from "../../../src/converters/adapters/playwright";
 
 describe("adaptPlaywrightRun", () => {
   it("preserves timeout/interrupted raw statuses", () => {
@@ -22,7 +26,7 @@ describe("adaptPlaywrightRun", () => {
     const run = adaptPlaywrightRun([
       [mkTest("timeout case"), { status: "timedOut", duration: 1, errors: [], attachments: [], retry: 0 }],
       [mkTest("interrupted case"), { status: "interrupted", duration: 1, errors: [], attachments: [], retry: 0 }],
-    ] as any);
+    ] as Array<[PlaywrightTestCase, PlaywrightTestResult]>);
 
     expect(run.testCases[0].status).toBe("timeout");
     expect(run.testCases[1].status).toBe("interrupted");
@@ -51,7 +55,7 @@ describe("adaptPlaywrightRun", () => {
         },
         { status: "passed", duration: 12, errors: [], attachments: [], retry: 0 },
       ],
-    ] as any);
+    ] as Array<[PlaywrightTestCase, PlaywrightTestResult]>);
 
     expect(run.testCases[0].stepEvents).toEqual([
       { index: 0, stepId: "step-0", title: "a", durationMs: 11 },
@@ -85,7 +89,7 @@ describe("adaptPlaywrightRun", () => {
           stepEvents: [{ index: 0, stepId: "step-0", status: "pass", durationMs: 99 }],
         },
       ],
-    ] as any);
+    ] as Array<[PlaywrightTestCase, PlaywrightTestResult]>);
 
     expect(run.testCases[0].stepEvents).toEqual([
       { index: 0, stepId: "step-0", status: "pass", durationMs: 99 },

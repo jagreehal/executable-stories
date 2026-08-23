@@ -31,6 +31,5 @@ public class LoginTests : IDisposable
         Story.Then("the user should be logged in");
     }
 
-    public void Dispose() => Story.RecordAndClear();
 }
 ```

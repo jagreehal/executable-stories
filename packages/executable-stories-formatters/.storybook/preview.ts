@@ -8,6 +8,9 @@ let mermaidPromise: Promise<{
 }> | null = null;
 function loadMermaid() {
   if (!mermaidPromise) {
+    // Mermaid is fetched from a CDN at runtime: a remote URL has no static
+    // import to write.
+    // eslint-disable-next-line no-restricted-syntax
     mermaidPromise = import(
       /* @vite-ignore */ "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs"
     ).then((m) => {
@@ -70,7 +73,6 @@ const preview: Preview = {
         loadMermaid()
           .then((mermaid) => mermaid.run({ nodes: mermaidNodes }))
           .catch((err) => {
-            // eslint-disable-next-line no-console
             console.warn("Mermaid render failed:", err);
           });
       }

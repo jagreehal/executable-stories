@@ -36,6 +36,5 @@ public class LoginTests : IDisposable
         Story.But("the user should not be logged in");
     }
 
-    public void Dispose() => Story.RecordAndClear();
 }
 ```

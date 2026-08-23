@@ -4,6 +4,7 @@ use executable_stories::{DocEntry, RawRun, RawTestCase, StoryMeta, StoryStep, Ti
 fn test_raw_run_serialization() {
     let run = RawRun {
         schema_version: 1,
+        features: Vec::new(),
         test_cases: vec![RawTestCase {
             status: "pass".to_string(),
             title: Some("example scenario".to_string()),
@@ -87,6 +88,7 @@ fn test_raw_run_serialization() {
 fn test_camel_case_field_names() {
     let run = RawRun {
         schema_version: 1,
+        features: Vec::new(),
         test_cases: vec![],
         project_root: "/tmp".to_string(),
         started_at_ms: Some(1000.0),
@@ -179,6 +181,7 @@ fn test_story_meta_with_docs() {
 fn test_json_write_roundtrip() {
     let run = RawRun {
         schema_version: 1,
+        features: Vec::new(),
         test_cases: vec![RawTestCase {
             status: "pass".to_string(),
             title: Some("roundtrip test".to_string()),

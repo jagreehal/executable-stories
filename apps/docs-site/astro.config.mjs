@@ -184,11 +184,19 @@ export default defineConfig({
               slug: 'guides/embedding-skill-html-output',
             },
             {
+              label: 'The specification layer',
+              slug: 'guides/the-specification-layer',
+            },
+            {
               label: 'Understanding the report',
               slug: 'guides/understanding-the-report',
             },
             { label: 'Common issues', slug: 'guides/common-issues' },
             { label: 'Why not Cucumber?', slug: 'guides/why-not-cucumber' },
+            {
+              label: 'Four layers, without a world object',
+              slug: 'guides/four-layer-model',
+            },
             {
               label: 'CI and source links',
               slug: 'guides/ci-and-source-links',

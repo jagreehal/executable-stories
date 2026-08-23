@@ -31,6 +31,7 @@ import { tryGetActiveOtelContext, resolveTraceUrl } from 'executable-stories-cor
 import { buildHtmlDocEntry } from 'executable-stories-core/utils/doc-builders';
 import type {
   DocEntry,
+  FeatureInput,
   NormalizedTicket,
   StepKeyword,
   StoryDocs,
@@ -378,6 +379,52 @@ function convertStoryDocsToEntries(docs: StoryDocs): DocEntry[] {
  * });
  * ```
  */
+/**
+ * Declare what the file's scenarios are for, before any of them run.
+ *
+ * Scenarios say what the system does. This says why the feature exists and who
+ * it serves, so a reader meets the intent before the examples. Call it once per
+ * test file, at module scope or at the top of the outermost `describe`.
+ *
+ * @example
+ * ```ts
+ * story.feature({
+ *   kind: 'ability',
+ *   title: 'Employees can secure their passwords',
+ *   narrative: `
+ *     Weak passwords are the way most accounts get taken over, so the signup
+ *     form rejects them outright rather than warning and letting them through.
+ *   `,
+ *   glossary: [
+ *     { term: 'password strength', definition: 'A score from weak to strong, from length and dictionary matches.' },
+ *   ],
+ * });
+ * ```
+ */
+function feature(input: FeatureInput): void {
+  declaredFeature = { input };
+}
+
+/**
+ * The declaration waiting to be attached to the next test that runs.
+ *
+ * `file` is filled in by the first `init` that claims it. With Vitest's default
+ * isolation each file gets a fresh module, so this is always that file's own
+ * declaration. Without isolation the module is shared, and the recorded file is
+ * what stops one file's declaration from leaking into the next.
+ */
+let declaredFeature: { input: FeatureInput; file?: string } | null = null;
+
+function attachFeature(task: TaskLike): void {
+  if (!declaredFeature) return;
+
+  const file = task.file?.name;
+  declaredFeature.file ??= file;
+  if (declaredFeature.file !== file) return;
+
+  task.meta.storyFeature = { ...declaredFeature.input, sourceFile: file };
+}
+
 function init(task: TaskLike, options?: StoryOptions): void {
   const meta: StoryMeta = {
     scenario: task.name,
@@ -418,6 +465,7 @@ function init(task: TaskLike, options?: StoryOptions): void {
 
   // Attach to task.meta so reporter can find it
   task.meta.story = meta;
+  attachFeature(task);
 
   // Set active context
   activeContext = {
@@ -1074,6 +1122,7 @@ function attachSpans(
 export const story = {
   // Core
   init,
+  feature,
 
   // BDD step markers
   given: createStepMarker('Given'),

@@ -20,7 +20,7 @@ import type {
   IJsonEmbedding,
   IJsonStepResult,
 } from "../types/cucumber-json";
-import { slugify, generateFeatureId, generateScenarioId } from "executable-stories-core/converters/acl/ids";
+import { generateFeatureId, generateScenarioId } from "executable-stories-core/converters/acl/ids";
 import { createLineContext, advancePastFeature, advancePastScenario, generateStepLine } from "executable-stories-core/converters/acl/lines";
 
 /** Options for Cucumber JSON formatting */

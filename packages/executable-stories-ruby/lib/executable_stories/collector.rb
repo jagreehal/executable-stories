@@ -5,6 +5,7 @@ require_relative "types"
 module ExecutableStories
   @mutex = Mutex.new
   @collected = []
+  @features = {}
   @order_seq = 0
 
   module Collector
@@ -26,6 +27,24 @@ module ExecutableStories
       end
     end
 
+    # Store a declaration, replacing an earlier one for the same file so a
+    # re-declaration reads the way it does in source order.
+    def record_feature(feature)
+      @mutex ||= Mutex.new
+      @features ||= {}
+      @mutex.synchronize do
+        @features[feature.source_file] = feature
+      end
+    end
+
+    def all_features
+      @mutex ||= Mutex.new
+      @features ||= {}
+      @mutex.synchronize do
+        @features.values
+      end
+    end
+
     def next_order
       @mutex ||= Mutex.new
       @order_seq ||= 0
@@ -40,6 +59,7 @@ module ExecutableStories
       @mutex ||= Mutex.new
       @mutex.synchronize do
         @collected = []
+        @features = {}
         @order_seq = 0
       end
     end

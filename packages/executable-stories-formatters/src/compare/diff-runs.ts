@@ -351,5 +351,3 @@ export function diffRuns(
   };
 }
 
-export { createPrCommentSummary } from "./pr-summary";
-export { pickAutoBaseline } from "./auto-baseline";

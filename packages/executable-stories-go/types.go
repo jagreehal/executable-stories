@@ -10,6 +10,7 @@ type RawRun struct {
 	Schema         string         `json:"$schema,omitempty"`
 	SchemaVersion  int            `json:"schemaVersion"`
 	TestCases      []RawTestCase  `json:"testCases"`
+	Features       []RawFeature   `json:"features,omitempty"`
 	ProjectRoot    string         `json:"projectRoot"`
 	StartedAtMs    *float64       `json:"startedAtMs,omitempty"`
 	FinishedAtMs   *float64       `json:"finishedAtMs,omitempty"`
@@ -17,6 +18,25 @@ type RawRun struct {
 	GitSha         string         `json:"gitSha,omitempty"`
 	CI             *RawCIInfo     `json:"ci,omitempty"`
 	Meta           map[string]any `json:"meta,omitempty"`
+}
+
+// RawFeature is what a package's scenarios are for, declared with Feature.
+//
+// Scenarios say what the system does. A declaration says why the feature
+// exists and who it serves, so a reader meets the intent before the examples.
+type RawFeature struct {
+	SourceFile string            `json:"sourceFile,omitempty"`
+	Title      string            `json:"title"`
+	Kind       string            `json:"kind,omitempty"`
+	Narrative  string            `json:"narrative,omitempty"`
+	Tags       []string          `json:"tags,omitempty"`
+	Glossary   []RawGlossaryTerm `json:"glossary,omitempty"`
+}
+
+// RawGlossaryTerm is one entry in a feature's glossary.
+type RawGlossaryTerm struct {
+	Term       string `json:"term"`
+	Definition string `json:"definition"`
 }
 
 // RawTestCase represents a single test case in the run.

@@ -26,6 +26,13 @@
           },
           "description": "All test cases from the run."
         },
+        "features": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RawFeature"
+          },
+          "description": "Feature declarations from story.feature(...), keyed to their source files."
+        },
         "startedAtMs": {
           "type": "number",
           "minimum": 0,
@@ -915,6 +922,72 @@
       },
       "required": [
         "name"
+      ],
+      "additionalProperties": false
+    },
+    "RawFeature": {
+      "type": "object",
+      "description": "A feature declared in a test file: what it is for, in the words the business uses.",
+      "properties": {
+        "sourceFile": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Source file the declaration was made in. Declarations without one are dropped."
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Heading for the feature."
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "feature",
+            "ability",
+            "business-need"
+          ],
+          "description": "How to introduce the feature. Defaults to feature."
+        },
+        "narrative": {
+          "type": "string",
+          "description": "Markdown explaining why the feature exists and who it serves."
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Tags applied to every scenario in the file."
+        },
+        "glossary": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RawGlossaryTerm"
+          },
+          "description": "Terms this feature defines."
+        }
+      },
+      "required": [
+        "title"
+      ],
+      "additionalProperties": false
+    },
+    "RawGlossaryTerm": {
+      "type": "object",
+      "description": "One glossary entry: a term the scenarios use and what it means.",
+      "properties": {
+        "term": {
+          "type": "string",
+          "minLength": 1
+        },
+        "definition": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "term",
+        "definition"
       ],
       "additionalProperties": false
     }

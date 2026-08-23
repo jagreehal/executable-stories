@@ -7,7 +7,7 @@
  * between them and a vendor API.
  *
  * Adding a provider is one file in `adapters/` plus one line in
- * `adapters/index.ts`, with no edits to `engine.ts`. If a new adapter forces an
+ * `adapters/registry.ts`, with no edits to `engine.ts`. If a new adapter forces an
  * engine change, this port is wrong and gets fixed then, on evidence.
  *
  * Every method except `listCases` is optional. A read-only provider implements

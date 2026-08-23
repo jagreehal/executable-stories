@@ -1,5 +1,6 @@
 import type { ReportFeature as ReportFeatureT } from "executable-stories-core";
 import { ReportScenarioList } from "./ReportScenarioList";
+import { ReportFeatureIntro, featureKindLabel } from "./ReportFeatureIntro";
 import { useCollapse } from "../interactive/collapse-context";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +22,7 @@ export function ReportFeature({ feature }: ReportFeatureProps) {
   const skipped = s.skipped + s.pending;
   const collapse = useCollapse();
   const collapsed = collapse?.isCollapsed(feature.id) ?? false;
+  const kindLabel = featureKindLabel(feature.kind);
   return (
     // Suite = a section heading + a divider, NOT another bordered card. Drops a
     // layer of nesting so the scenario cards below read as the primary unit.
@@ -50,8 +52,13 @@ export function ReportFeature({ feature }: ReportFeatureProps) {
               feature.title
             )}
           </h2>
-          <p className={cn("mt-0.5 truncate font-mono text-xs text-muted-foreground", collapse && "pl-5")}>
-            {feature.sourceFile}
+          <p className={cn("mt-0.5 flex items-center gap-2 text-xs text-muted-foreground", collapse && "pl-5")}>
+            {kindLabel ? (
+              <span className="shrink-0 rounded-sm bg-muted px-1.5 py-0.5 font-medium text-foreground">
+                {kindLabel}
+              </span>
+            ) : null}
+            <span className="truncate font-mono">{feature.sourceFile}</span>
           </p>
         </div>
         {/* Readable, failure-weighted counts — only the failure count carries
@@ -72,6 +79,7 @@ export function ReportFeature({ feature }: ReportFeatureProps) {
         </p>
       </div>
       <div id={bodyId} hidden={collapsed} className="flex flex-col gap-3">
+        <ReportFeatureIntro feature={feature} />
         <ReportScenarioList feature={feature} />
       </div>
     </section>

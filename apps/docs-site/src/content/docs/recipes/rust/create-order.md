@@ -29,6 +29,5 @@ fn test_create_order() {
     s.when("the client creates an order");
     s.then("the response status should be 201");
     s.then("the order should exist in the database");
-    s.pass();
 }
 ```

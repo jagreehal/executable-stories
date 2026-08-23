@@ -45,6 +45,15 @@ class StoryTestExecutionListener : TestExecutionListener {
         testCase["status"] = status
         testCase["externalId"] = testIdentifier.uniqueId
 
+        // The JVM does not hand us a source path, so the declaring class is the
+        // stable key the report groups by, and the one story.feature() records
+        // against. Without it every scenario lands under a single "unknown".
+        val className = declaringClassName(testIdentifier)
+        if (className != null) {
+            testCase["sourceFile"] = className
+            testCase["titlePath"] = listOf(className.substringAfterLast('.'), testIdentifier.displayName)
+        }
+
         val startNanos = testStartTimes.remove(testIdentifier.uniqueId)
         if (startNanos != null) {
             val durationMs = (System.nanoTime() - startNanos) / 1_000_000.0
@@ -89,6 +98,18 @@ class StoryTestExecutionListener : TestExecutionListener {
         Story.clear()
     }
 
+    /**
+     * Fully qualified class the test method belongs to, when JUnit reports one.
+     */
+    private fun declaringClassName(testIdentifier: TestIdentifier): String? {
+        val source = testIdentifier.source.orElse(null) ?: return null
+        return when (source) {
+            is org.junit.platform.engine.support.descriptor.MethodSource -> source.className
+            is org.junit.platform.engine.support.descriptor.ClassSource -> source.className
+            else -> null
+        }
+    }
+
     override fun testPlanExecutionFinished(testPlan: TestPlan) {
         if (testCases.isEmpty()) return
 
@@ -100,6 +121,10 @@ class StoryTestExecutionListener : TestExecutionListener {
         rawRun["\$schema"] = SCHEMA_URL
         rawRun["schemaVersion"] = 1
         rawRun["testCases"] = ArrayList(testCases)
+        val features = Story.declaredFeatures()
+        if (features.isNotEmpty()) {
+            rawRun["features"] = features
+        }
         rawRun["startedAtMs"] = startedAtMs
         rawRun["finishedAtMs"] = finishedAtMs
         rawRun["projectRoot"] = System.getProperty("user.dir")

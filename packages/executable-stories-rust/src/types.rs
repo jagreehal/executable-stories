@@ -19,6 +19,8 @@ pub const SCHEMA_URL: &str = "https://executable-stories.dev/schemas/raw-run.sch
 pub struct RawRun {
     pub schema_version: u32,
     pub test_cases: Vec<RawTestCase>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub features: Vec<RawFeature>,
     pub project_root: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub started_at_ms: Option<f64>,
@@ -26,6 +28,34 @@ pub struct RawRun {
     pub finished_at_ms: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ci: Option<RawCIInfo>,
+}
+
+/// What a file's scenarios are for, declared with [`crate::feature`].
+///
+/// Scenarios say what the system does. A declaration says why the feature
+/// exists and who it serves, so a reader meets the intent before the examples.
+#[derive(Serialize, Clone, Default, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct RawFeature {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_file: Option<String>,
+    pub title: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub narrative: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tags: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub glossary: Option<Vec<RawGlossaryTerm>>,
+}
+
+/// One entry in a feature's glossary.
+#[derive(Serialize, Clone, Default, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct RawGlossaryTerm {
+    pub term: String,
+    pub definition: String,
 }
 
 #[derive(Serialize, Clone, Default)]
@@ -38,6 +68,10 @@ pub struct RawTestCase {
     pub title: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub story: Option<StoryMeta>,
+    /// Test file the scenario was written in. The report groups by it, and a
+    /// feature declaration keys on the same path.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_file: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub duration_ms: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]

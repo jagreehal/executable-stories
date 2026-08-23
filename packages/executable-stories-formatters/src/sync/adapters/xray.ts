@@ -16,7 +16,6 @@
 
 import type {
   AdapterDeps,
-  CaseBody,
   RecordResultsSummary,
   RemoteCase,
   SyncProvider,

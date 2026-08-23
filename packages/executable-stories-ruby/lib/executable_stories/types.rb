@@ -34,10 +34,19 @@ module ExecutableStories
   )
 
   RawRun = Struct.new(
-    :schema_version, :test_cases, :project_root, :started_at_ms,
+    :schema_version, :test_cases, :features, :project_root, :started_at_ms,
     :finished_at_ms, :package_version, :git_sha, :ci, :meta,
     keyword_init: true
   )
+
+  # What a file's scenarios are for, declared with ExecutableStories.feature.
+  RawFeature = Struct.new(
+    :source_file, :title, :kind, :narrative, :tags, :glossary,
+    keyword_init: true
+  )
+
+  # One entry in a feature's glossary.
+  RawGlossaryTerm = Struct.new(:term, :definition, keyword_init: true)
 
   # Published raw-run schema, emitted as `$schema` so editors validate the
   # output file as the adapter writes it.
@@ -137,6 +146,18 @@ module ExecutableStories
     h
   end
 
+  def feature_to_h(feature)
+    h = { "title" => feature.title }
+    h["sourceFile"] = feature.source_file if feature.source_file
+    h["kind"] = feature.kind if feature.kind
+    h["narrative"] = feature.narrative if feature.narrative
+    h["tags"] = feature.tags if feature.tags && !feature.tags.empty?
+    if feature.glossary && !feature.glossary.empty?
+      h["glossary"] = feature.glossary.map { |t| { "term" => t.term, "definition" => t.definition } }
+    end
+    h
+  end
+
   def run_to_h(run)
     # $schema first so editors pick it up and validate the file as it is
     # written; `executable-stories doctor` also reports its presence.
@@ -146,6 +167,7 @@ module ExecutableStories
       "testCases" => run.test_cases.map { |tc| test_case_to_h(tc) },
       "projectRoot" => run.project_root
     }
+    h["features"] = run.features.map { |f| feature_to_h(f) } if run.features && !run.features.empty?
     h["startedAtMs"] = run.started_at_ms unless run.started_at_ms.nil?
     h["finishedAtMs"] = run.finished_at_ms unless run.finished_at_ms.nil?
     h["packageVersion"] = run.package_version if run.package_version

@@ -44,13 +44,15 @@ class CalculatorTest < Minitest::Test
 
     story.then("the result is 8")
     assert_equal 8, result
-
-    # REQUIRED for Minitest: records the story so it appears in raw-run.json.
-    # (RSpec records automatically; Minitest has no per-test hook.)
-    story.record(status: "pass", source_file: __FILE__)
   end
 end
 ```
+
+Requiring `executable_stories/minitest` is the whole setup. It hooks
+`after_teardown`, so each story is recorded with the status Minitest already
+worked out, along with the file, line, and failure message. Call
+`story.record(status: ...)` yourself only when you want to override that;
+recording happens once, and the first call wins.
 
 ### RSpec
 

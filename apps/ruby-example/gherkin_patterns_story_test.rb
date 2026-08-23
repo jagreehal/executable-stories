@@ -16,7 +16,6 @@ class GherkinPatternsStoryTest < Minitest::Test
     result = Calculator.add(10, 4)
     story.then("the result is 14")
     assert_equal 14, result
-    story.record(status: "pass", source_file: __FILE__)
   end
 
   def test_but_for_contrast
@@ -27,6 +26,5 @@ class GherkinPatternsStoryTest < Minitest::Test
     assert_equal 5, Calculator.divide(10, 2)
     story.but("a zero denominator raises instead")
     assert_raises(ArgumentError) { Calculator.divide(10, 0) }
-    story.record(status: "pass", source_file: __FILE__)
   end
 end

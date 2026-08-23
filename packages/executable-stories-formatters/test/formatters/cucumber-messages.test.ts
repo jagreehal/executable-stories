@@ -3,8 +3,8 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { CucumberMessagesFormatter } from "../../src/formatters/cucumber-messages/index";
-import { canonicalizeRun } from "executable-stories-core/converters/acl/index";
+import { CucumberMessagesFormatter } from "../../src/formatters/cucumber-messages/formatter";
+import { canonicalizeRun } from "executable-stories-core/converters/acl/canonicalize";
 import {
   createRawRun,
   createMultipleTestCasesRun,
@@ -613,7 +613,6 @@ describe("CucumberMessagesFormatter", () => {
       const run = canonicalizeRun(raw);
       const result = formatter.format(run);
 
-      const testCase = getEnvelopes(result, "testCase")[0].testCase;
       const attachments = getEnvelopes(result, "attachment");
 
       expect(attachments).toHaveLength(1);

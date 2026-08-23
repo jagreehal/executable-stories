@@ -35,6 +35,5 @@ public class OrdersTests : IDisposable
         Story.Then("the order should exist in the database");
     }
 
-    public void Dispose() => Story.RecordAndClear();
 }
 ```

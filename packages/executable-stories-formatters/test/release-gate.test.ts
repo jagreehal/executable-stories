@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { diffRuns } from "../src/compare";
+import { diffRuns } from "../src/compare/diff-runs";
 import { stubs } from "./stubs";
 
 describe("release gate", () => {

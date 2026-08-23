@@ -8,7 +8,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 
 import { ReportGenerator } from "../../src/index";
-import { canonicalizeRun } from "executable-stories-core/converters/acl/index";
+import { canonicalizeRun } from "executable-stories-core/converters/acl/canonicalize";
 import {
   createTestCase,
   createRawRun,

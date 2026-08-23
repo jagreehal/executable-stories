@@ -77,7 +77,10 @@ See the full reference in the [`executable-stories-astro` README](https://github
   linking to a detail page with its Given/When/Then steps and docs. Styled out
   of the box; no CSS to wire.
 - **`/explorer`** — a searchable, filterable Scenario Explorer (by text, status,
-  and tag).
+  and tag). Filters live in the query string (`?tag=capability:checkout`,
+  `?q=refund&status=failed`), so a filtered view is a link you can paste into a
+  ticket — see [linking in from a ticket](/guides/tagging-for-your-audience/)
+  for why that link should carry a tag rather than a scenario's URL.
 - **`/journeys`** — ordered multi-scenario walkthroughs derived from
   `journey:<id>:<n>` tags, each rendered as full scenario cards (storyboards
   included) under one aggregate status. Embed one in MDX with

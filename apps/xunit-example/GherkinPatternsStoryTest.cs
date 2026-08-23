@@ -14,7 +14,6 @@ public class GherkinPatternsStoryTest
         Story.Given("the account is active");
         Story.When("the user submits valid credentials");
         Story.Then("the user should see the dashboard");
-        Story.RecordAndClear();
     }
 
     [Fact]
@@ -25,7 +24,6 @@ public class GherkinPatternsStoryTest
         Story.When("the user navigates to settings");
         Story.When("the user changes their display name");
         Story.Then("the changes should be saved");
-        Story.RecordAndClear();
     }
 
     [Fact]
@@ -37,7 +35,6 @@ public class GherkinPatternsStoryTest
         Story.Then("the order should be created");
         Story.Then("a confirmation email should be sent");
         Story.Then("the inventory should be updated");
-        Story.RecordAndClear();
     }
 
     [Fact]
@@ -50,7 +47,6 @@ public class GherkinPatternsStoryTest
         Story.Then("the user should see an error message");
         Story.But("the user should not be logged in");
         Story.But("the session should not be created");
-        Story.RecordAndClear();
     }
 
     [Fact]
@@ -64,6 +60,5 @@ public class GherkinPatternsStoryTest
         Story.And("confirms the order");
         Story.Then("the order should be created");
         Story.And("the payment should be processed");
-        Story.RecordAndClear();
     }
 }

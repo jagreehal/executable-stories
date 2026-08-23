@@ -29,6 +29,7 @@
 import { createRequire } from 'node:module';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { TestInfo, PlaywrightTestArgs, PlaywrightTestOptions, Page } from '@playwright/test';
 import { tryGetActiveOtelContext, resolveTraceUrl } from 'executable-stories-core/utils/otel-detect';
 import { buildHtmlDocEntry } from 'executable-stories-core/utils/doc-builders';
@@ -37,6 +38,7 @@ import type {
   StoryMeta,
   StoryStep,
   DocEntry,
+  FeatureInput,
   NormalizedTicket,
   TicketInput,
 } from './types';
@@ -620,6 +622,15 @@ function init(
     description: JSON.stringify(meta),
   });
 
+  const declaredFeature =
+    declaredFeatures.get(fileKey(testInfo.file)) ?? declaredFeatures.get(UNRESOLVED_FILE);
+  if (declaredFeature) {
+    testInfo.annotations.push({
+      type: 'story-feature',
+      description: JSON.stringify(declaredFeature),
+    });
+  }
+
   // ── Feature: Tag sync (v1.43) ─────────────────────────────────────────────
   // Sync story tags to Playwright's native annotation system so they appear in
   // UI Mode tag filters and the HTML reporter's tag display.
@@ -819,6 +830,7 @@ function screenshotImpl(options: ScreenshotOptions, children?: DocEntry[]): DocE
 
 export const story = {
   init,
+  feature,
 
   // BDD step markers
   given: createStepMarker('Given'),
@@ -1096,3 +1108,92 @@ export const story = {
 };
 
 export type Story = typeof story;
+
+/**
+ * Declarations by the spec file that made them.
+ *
+ * A worker loads one spec file at a time, but it is reused across files. A
+ * single "last declaration wins" slot therefore hands file A's feature to file
+ * B when B declares none of its own, and the reporter keys features by
+ * `test.location.file`, so B ends up with a feature it never wrote. Keying on
+ * the declaring file is what stops that.
+ */
+const declaredFeatures = new Map<string, FeatureInput>();
+
+/**
+ * One canonical key for a spec file, whichever way it reached us.
+ *
+ * Under ESM a V8 stack frame carries a file: URL, so the declaring file
+ * arrives as `file:///C:/app/spec.ts` while `testInfo.file` is `C:\app\spec.ts`.
+ * Compared as text those never match and the declaration is silently dropped.
+ * Windows paths are also case-insensitive, and the two sources do not always
+ * agree on the drive letter's case.
+ */
+function fileKey(raw: string): string {
+  let file = raw;
+  if (file.startsWith('file://')) {
+    try {
+      file = fileURLToPath(file);
+    } catch {
+      // Not a URL we can decode; fall through with the raw text.
+    }
+  }
+  const resolved = path.resolve(file);
+  return process.platform === 'win32' ? resolved.toLowerCase() : resolved;
+}
+
+/**
+ * Best-effort source file of whoever called into this module.
+ *
+ * `story.feature(...)` runs at module scope, before any test is running, so
+ * the stack is the only place the spec file is available at that point.
+ */
+function callerFile(): string | undefined {
+  const stack = new Error().stack;
+  if (!stack) return undefined;
+
+  const files = stack
+    .split('\n')
+    .slice(1)
+    .map((line) => {
+      const match = /\(((?:file:\/\/)?[^()]+?):\d+:\d+\)/.exec(line)
+        ?? /at ((?:file:\/\/)?[^()\s]+?):\d+:\d+/.exec(line);
+      const file = match?.[1];
+      // node: builtins are not files and must not be normalized into one.
+      return file && !file.startsWith('node:') ? fileKey(file) : undefined;
+    });
+
+  // The first frame is this function, so its file is this module — in a build
+  // that could be dist/index.js or src/story-api.ts. Comparing against it
+  // beats matching the package name, which would also exclude a spec file
+  // living inside this package (its own tests) or any user path that happens
+  // to contain it.
+  const self = files[0];
+  return files.find((file) => file !== undefined && file !== self);
+}
+
+/**
+ * Declare what the file's scenarios are for, before any of them run.
+ *
+ * Scenarios say what the system does. This says why the feature exists and who
+ * it serves, so a reader meets the intent before the examples. Call it once per
+ * spec file, at module scope or at the top of the outermost `test.describe`.
+ *
+ * @example
+ * ```ts
+ * story.feature({
+ *   kind: 'ability',
+ *   title: 'Shoppers can check out without an account',
+ *   narrative: 'Forcing a signup before payment is where most carts are abandoned.',
+ * });
+ * ```
+ */
+function feature(input: FeatureInput): void {
+  const file = callerFile();
+  // Unresolvable file: keep the declaration rather than lose it silently, and
+  // let the next test claim it. That is the old behaviour, now the exception.
+  declaredFeatures.set(file ?? UNRESOLVED_FILE, input);
+}
+
+/** Bucket for a declaration whose file the stack could not name. */
+const UNRESOLVED_FILE = '\0unresolved';

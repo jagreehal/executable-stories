@@ -15,7 +15,7 @@ slug: recipes/rust
 | Test function | `it("name", ({ task }) => { ... })` | `#[test] fn test_name() { ... }` |
 | Steps | `story.given(...)` | `s.given(...)` |
 | Tags | `story.init(task, { tags: ["t1"] })` | `Story::new("name").with_tags(&["t1"])` |
-| Finish | (automatic) | `s.pass()` must be called at the end |
+| Finish | (automatic) | (automatic: status comes from whether the test panicked) |
 
 ## Recipe list
 

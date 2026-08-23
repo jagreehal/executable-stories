@@ -232,7 +232,6 @@ fn test_login() {
         .with_tickets(vec!["AUTH-42"])
         .with_ticket_url("https://jira.example.com/AUTH-42");
     // ...
-    s.pass(); // REQUIRED: marks the scenario as passing
 }
 ```
 
@@ -290,14 +289,14 @@ s.expect_step("assertion description", got, expected);
 
 ### JSON output mechanism
 
-Call `write_results()` at the end of your test binary or in a test harness teardown. Output path defaults to `executable-stories-output.json` and can be overridden with `ES_OUTPUT_FILE`. Output is written under CI (`CI=true`) or `ES_FORCE_OUTPUT=true`.
+The first `Story` registers a process-exit hook, so the run JSON is written with
+no setup. It lands at `.executable-stories/raw-run.json`; set
+`EXECUTABLE_STORIES_OUTPUT` to change that. Call `write_results()` directly only
+to control when the file appears.
 
-```rust
-#[test]
-fn write_output() {
-    executable_stories::write_results();
-}
-```
+Cargo builds each file under `tests/` as its own binary, and every binary writes
+the same default path. Keep story tests in one file, or give each binary its own
+output path.
 
 ### Complete example
 
@@ -314,7 +313,6 @@ fn test_checkout() {
     s.then("an order confirmation is returned");
     s.json("Order response", &order_response);
     s.note("Verified with real payment sandbox");
-    s.pass();
 }
 ```
 
@@ -447,11 +445,10 @@ public class LoginTests : IDisposable
         // ...
     }
 
-    public void Dispose() => Story.RecordAndClear(); // REQUIRED
 }
 ```
 
-`Story.RecordAndClear()` must be called in `Dispose()` to flush the current test's data before xUnit moves to the next test. Without it, story data from one test bleeds into the next.
+`[assembly: StoryRecording]` records each test's story with the status xUnit computed. Without it nothing is recorded.
 
 ### Step methods
 
@@ -525,7 +522,6 @@ public class CheckoutTests : IDisposable
         Assert.Equal("confirmed", orderResponse.Status);
     }
 
-    public void Dispose() => Story.RecordAndClear();
 }
 ```
 
@@ -538,7 +534,7 @@ public class CheckoutTests : IDisposable
 | API style | Method receiver | Module singleton | Builder | Static companion | Static class |
 | Naming | PascalCase | snake_case | snake_case | camelCase | PascalCase |
 | Context | Cleanup | ThreadLocal | RAII (Drop) | ThreadLocal | AsyncLocal |
-| Output trigger | `RunAndReport()` | Plugin hooks | `write_results()` | Listener | `RecordAndClear()` |
+| Output trigger | `RunAndReport()` | Plugin hooks | Process-exit hook | Listener | `[assembly: StoryRecording]` |
 | Planned scenario | `es.Planned(t, "…")` | `story.planned("…")` | `Story::planned("…")` | `Story.planned("…")` | `Story.Planned("…")` |
 
 Ruby, not in the table above, uses `ExecutableStories.planned("…")`.

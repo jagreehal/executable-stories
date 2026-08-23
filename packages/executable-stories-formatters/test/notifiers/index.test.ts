@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { sendNotifications } from "../../src/notifiers/index";
+import { sendNotifications } from "../../src/notifiers/send-notifications";
 import type { TestRunResult } from "executable-stories-core/types/test-result";
 import type { CIInfo } from "executable-stories-core/types/ci";
 
@@ -80,7 +80,7 @@ function createMockLogger() {
 }
 
 function createMockToCIInfo() {
-  return vi.fn((raw?: any): CIInfo | undefined => {
+  return vi.fn((raw?: unknown): CIInfo | undefined => {
     if (!raw) return undefined;
     return {
       provider: raw.provider ?? "unknown",
@@ -345,7 +345,7 @@ describe("sendNotifications", () => {
     );
 
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-    const actionsBlock = body.blocks.find((b: any) => b.type === "actions");
+    const actionsBlock = body.blocks.find((b: { type?: string }) => b.type === "actions");
     expect(actionsBlock).toBeDefined();
     expect(actionsBlock.elements[0].url).toBe("https://example.com/my-report");
   });

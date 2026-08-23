@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { createPrCommentSummary, diffRuns } from "../src/compare";
+import { diffRuns } from "../src/compare/diff-runs";
+import { createPrCommentSummary } from "../src/compare/pr-summary";
 import {
   behaviourFingerprint,
   behaviourSimilarity,

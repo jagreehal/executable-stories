@@ -5,7 +5,7 @@
  */
 
 import type { StoryMeta } from "executable-stories-core/types/story";
-import type { RawRun, RawTestCase, RawStatus, RawAttachment } from "executable-stories-core/types/raw";
+import type { RawFeature, RawRun, RawTestCase, RawStatus, RawAttachment } from "executable-stories-core/types/raw";
 import { detectCI } from "../../utils/ci-detect";
 
 /** Playwright test status */
@@ -116,12 +116,25 @@ export function adaptPlaywrightRun(
   options: PlaywrightAdapterOptions = {}
 ): RawRun {
   const testCases: RawTestCase[] = [];
+  const featuresByFile = new Map<string, RawFeature>();
   const projectRoot = options.projectRoot ?? process.cwd();
 
   for (const [test, result] of testResults) {
     // Find story-meta annotation
     const storyAnnotation = test.annotations.find((a) => a.type === "story-meta");
     if (!storyAnnotation?.description) continue;
+
+    const featureAnnotation = test.annotations.find((a) => a.type === "story-feature");
+    if (featureAnnotation?.description && !featuresByFile.has(test.location.file)) {
+      try {
+        const declared = JSON.parse(featureAnnotation.description) as RawFeature;
+        if (declared?.title) {
+          featuresByFile.set(test.location.file, { ...declared, sourceFile: test.location.file });
+        }
+      } catch {
+        // A malformed annotation should not lose the run's test cases.
+      }
+    }
 
     let story: StoryMeta;
     try {
@@ -183,6 +196,7 @@ export function adaptPlaywrightRun(
 
   return {
     testCases,
+    ...(featuresByFile.size > 0 ? { features: [...featuresByFile.values()] } : {}),
     startedAtMs: options.startedAtMs,
     finishedAtMs: Date.now(),
     projectRoot,

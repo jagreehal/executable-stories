@@ -202,6 +202,7 @@ describe("explainer-v1 schema ↔ core coercion sync", () => {
     // and core's coercion (light, Astro banner). This pin keeps their idea of
     // a valid hash identical so CI and the docs site never disagree about the
     // same file.
+    // eslint-disable-next-line no-restricted-syntax -- loaded here so the test reads top-to-bottom next to the schema it compares against
     const { SCENARIO_HASH_PATTERN } = await import("executable-stories-core/explainer");
     const schema = JSON.parse(
       fs.readFileSync(path.resolve(__dirname, "../schemas/explainer-v1.json"), "utf8"),

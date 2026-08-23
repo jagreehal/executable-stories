@@ -10,7 +10,7 @@
  * script mentions every subcommand the CLI dispatches.
  */
 
-import { PROVIDER_NAMES } from "./sync/adapters/index";
+import { PROVIDER_NAMES } from "./sync/adapters/registry";
 
 /** Every subcommand the CLI dispatches, with the one-line description. */
 export const COMPLETION_SUBCOMMANDS: Array<[string, string]> = [
@@ -30,7 +30,7 @@ export const COMPLETION_SUBCOMMANDS: Array<[string, string]> = [
   ["init-astro", "Scaffold a thin Astro docs site"],
   ["new", "Scaffold a docs page from a template"],
   ["check-links", "Scan docs for broken links"],
-  ["push", "Send a run to a cloud ingest endpoint"],
+  ["push", "Send a run to a cloud ingest endpoint (any framework's output)"],
   ["coverage", "Compare stories against a test-management system (read-only)"],
   ["sync", "Push cases, executions, and evidence to TestRail or Xray"],
   ["import-openapi", "Generate API doc pages from an OpenAPI spec"],
@@ -59,6 +59,8 @@ const COMMON_FLAGS = [
   "--apply",
   "--attach",
   "--report-url",
+  "--force",
+  "--gate",
   "--help",
 ];
 

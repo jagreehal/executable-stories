@@ -16,7 +16,7 @@ Example app using [ExecutableStories.Xunit](../../packages/executable-stories-xu
    dotnet test apps/xunit-example/xunit-example.csproj
    ```
 
-   The package is used via a project reference. When using `dotnet test`, call `Story.RecordAndClear()` at the end of each test so results are written to `.executable-stories/raw-run.json` on process exit.
+   The package is used via a project reference. `AssemblyInfo.cs` carries `[assembly: StoryRecording]`, so every test records itself and results are written to `.executable-stories/raw-run.json` on process exit.
 
 2. **Check output** — After tests, `apps/xunit-example/.executable-stories/raw-run.json` should exist (the verify script sets `EXECUTABLE_STORIES_OUTPUT` so the file is written there).
 

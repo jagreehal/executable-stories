@@ -13,7 +13,6 @@ class StepAliasesStoryTest < Minitest::Test
     result = Calculator.add(5, 3)
     story.assert_that("the result is 8")      # -> Then
     assert_equal 8, result
-    story.record(status: "pass", source_file: __FILE__)
   end
 
   def test_and_but_keywords
@@ -26,6 +25,5 @@ class StepAliasesStoryTest < Minitest::Test
     story.but("the result is not negative")   # -> But (explicit)
     assert_equal 8, result
     refute result.negative?
-    story.record(status: "pass", source_file: __FILE__)
   end
 end

@@ -4,7 +4,7 @@
 
 import { describe, it, expect } from "vitest";
 import { CucumberHtmlFormatter } from "../../src/formatters/cucumber-html";
-import { canonicalizeRun } from "executable-stories-core/converters/acl/index";
+import { canonicalizeRun } from "executable-stories-core/converters/acl/canonicalize";
 import {
   createRawRun,
   createMultipleTestCasesRun,

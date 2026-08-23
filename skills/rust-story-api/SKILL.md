@@ -2,8 +2,7 @@
 name: rust-story-api
 description: >
   Use when writing BDD story tests in Rust with executable-stories-rust: the
-  Story::new() builder, given/when/then/and/but steps, or write_results()
-  JSON output.
+  Story::new() builder, given/when/then/and/but steps, or raw-run JSON output.
 type: core
 library: executable-stories-rust
 library_version: "0.1.0"
@@ -16,18 +15,17 @@ sources:
 
 ## Setup
 
-Add the crate (and `dtor`, used to flush results at exit — destructors moved out of `ctor` into the `dtor` crate at `ctor` 1.0) as dev-dependencies:
+Add the crate as a dev-dependency:
 
 ```toml
 [dev-dependencies]
 executable-stories = "0.1"
-dtor = "1.0"
 ```
 
-The crate name is `executable-stories`, so the import path is `executable_stories` (hyphens become underscores). `write_results` is re-exported at the crate root — the `collector` module itself is private.
+The crate name is `executable-stories`, so the import path is `executable_stories` (hyphens become underscores).
 
 ```rust
-use executable_stories::{Story, write_results};
+use executable_stories::Story;
 
 #[test]
 fn applies_discount_code() {
@@ -47,22 +45,26 @@ fn applies_discount_code() {
 
     s.and("the discount is shown in the summary");
     assert_eq!(cart.discounts.len(), 1);
-
-    s.pass();
-}
-
-// Write results once when the test binary exits.
-// Register a destructor with #[dtor::dtor] — the test harness never calls a
-// plain teardown() function, so without this nothing is written.
-#[dtor::dtor]
-fn write_story_results() {
-    write_results();
 }
 ```
 
-**Important:** Call `s.pass()` at the end of each passing test. Without it, the test defaults to "fail" status when the `Story` is dropped.
+Nothing else to wire up. The story records its own status on drop, and the first
+story registers a process-exit hook that writes the run JSON.
 
-`write_results()` writes `.executable-stories/raw-run.json` (override the path with the `EXECUTABLE_STORIES_OUTPUT` env var). It must run after every test in the binary has finished, so register it with `#[dtor::dtor]` (requires the `dtor = "1.0"` dev-dependency). Put all story tests in a single integration-test file so they share one process and one destructor. A bare `fn teardown()` is never invoked by the Rust test harness and silently produces no output. The run JSON's first key is a `$schema` pointer, so editors validate it as it is written; the adapter also prints a `next:` hint to stderr (silence with `EXECUTABLE_STORIES_QUIET`). Render it with `executable-stories format` (path optional — defaults to `.executable-stories/raw-run.json`) or diagnose it with `executable-stories doctor`.
+**Status.** A failing assertion panics, and a story dropped while the thread
+unwinds records `fail`. Everything else records `pass`. The one exception is a
+`#[test]` returning `Result`, which fails by returning `Err` without panicking:
+pass the fallible call through `s.record_result(...)`, or call `s.fail()`.
+
+**Output.** The hook writes `.executable-stories/raw-run.json` after the last
+test in the binary finishes. Override the path with `EXECUTABLE_STORIES_OUTPUT`,
+or call `write_results()` yourself to choose the moment. Rust builds each file
+under `tests/` as its own binary writing the same path, so keep story tests in
+one file unless you give each binary its own output path. The run JSON opens
+with a `$schema` pointer so editors validate it as it is written, and the
+adapter prints a `next:` hint to stderr (silence it with
+`EXECUTABLE_STORIES_QUIET`). Render with `executable-stories format` (the path
+argument is optional) or inspect with `executable-stories doctor`.
 
 ## Core Patterns
 
@@ -80,8 +82,6 @@ fn blocks_suspended_user_login() {
     s.when("the user submits valid credentials");
     s.then("the user sees an error message");
     s.but("the user is not logged in");           // renders "But" (always)
-
-    s.pass();
 }
 ```
 
@@ -114,8 +114,6 @@ fn processes_payment() {
     );
     s.link("API docs", "https://docs.example.com/payments");
     s.note("Payment processed in sandbox mode");
-
-    s.pass();
 }
 ```
 
@@ -212,16 +210,18 @@ executable-stories = { version = "0.1", features = ["otel"] }
 
 ## Common Mistakes
 
-### CRITICAL Forgetting to call pass()
+### HIGH Test returns Result and fails without panicking
 
 Wrong:
 
 ```rust
 #[test]
-fn my_test() {
-    let mut s = Story::new("My scenario");
-    s.given("something");
-    // Story dropped without pass() — recorded as "fail"
+fn parses_a_price() -> Result<(), std::num::ParseIntError> {
+    let mut s = Story::new("Parses a price");
+    s.then("the string parses");
+    let parsed: u32 = "not a number".parse()?; // test fails, story records "pass"
+    assert_eq!(parsed, 499);
+    Ok(())
 }
 ```
 
@@ -229,38 +229,38 @@ Correct:
 
 ```rust
 #[test]
-fn my_test() {
-    let mut s = Story::new("My scenario");
-    s.given("something");
-    s.pass(); // Marks test as passed before drop
+fn parses_a_price() -> Result<(), std::num::ParseIntError> {
+    let mut s = Story::new("Parses a price");
+    s.then("the string parses");
+    let parsed = s.record_result("not a number".parse::<u32>())?;
+    assert_eq!(parsed, 499);
+    Ok(())
 }
 ```
 
-The `Drop` trait emits the test case to the collector. Without `pass()`, the default status is "fail".
+Status detection keys off panics. Returning `Err` fails the test without one, so
+route the fallible call through `record_result`, or call `s.fail()`.
 
 Source: packages/executable-stories-rust/src/story.rs
 
-### CRITICAL Forgetting to call write_results
+### HIGH Splitting story tests across files under tests/
 
 Wrong:
 
-```rust
-// Tests run but no raw-run.json is written
+```
+tests/checkout.rs   → writes .executable-stories/raw-run.json
+tests/billing.rs    → writes .executable-stories/raw-run.json (overwrites)
 ```
 
 Correct:
 
-```rust
-use executable_stories::write_results;
-
-// Register a destructor so it runs after all tests in the binary finish.
-#[dtor::dtor]
-fn write_story_results() {
-    write_results();
-}
+```
+tests/stories.rs    → one binary, one raw-run.json
 ```
 
-Without `write_results()`, the in-memory test cases are never persisted to disk. The formatters pipeline has nothing to consume. A plain `fn teardown()` is never called by the harness — use `#[dtor::dtor]` (the `dtor = "1.0"` dev-dependency). Note `write_results` is re-exported at the crate root; `collector` is a private module and cannot be imported.
+Cargo compiles each file under `tests/` into its own binary, and each writes the
+same default path. Keep story tests in one file, or set
+`EXECUTABLE_STORIES_OUTPUT` per binary and format each run separately.
 
 Source: packages/executable-stories-rust/src/collector.rs
 

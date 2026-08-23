@@ -28,6 +28,5 @@ fn test_checkout_calculates_totals() {
     s.then("the subtotal should be $40.00");
     s.then("the tax should be $4.00");
     s.then("the total should be $44.00");
-    s.pass();
 }
 ```

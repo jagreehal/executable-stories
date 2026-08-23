@@ -10,6 +10,12 @@ class Story private constructor() {
     companion object {
         private val CONTEXT = ThreadLocal<StoryContext>()
 
+        /**
+         * Declarations keyed by the class that made them, so a re-declaration
+         * reads the way it does in source order.
+         */
+        private val FEATURES = java.util.concurrent.ConcurrentHashMap<String, Map<String, Any?>>()
+
         // ====================================================================
         // Init
         // ====================================================================
@@ -611,6 +617,75 @@ class Story private constructor() {
         // ====================================================================
         // Internal
         // ====================================================================
+
+        /**
+         * Declare what a class's scenarios are for, ahead of the examples.
+         *
+         * Scenarios say what the system does. A declaration says why the
+         * feature exists and who it serves, so a reader meets the intent
+         * before the examples. Call it once per test class, from `@BeforeAll`:
+         *
+         * ```kotlin
+         * companion object {
+         *     @BeforeAll
+         *     @JvmStatic
+         *     fun declareFeature() {
+         *         Story.feature(
+         *             title = "Anyone can do arithmetic without a calculator app",
+         *             kind = "ability",
+         *             narrative = "Switching apps for a quick sum loses your place.",
+         *         )
+         *     }
+         * }
+         * ```
+         *
+         * The JVM gives us no source path, so the declaring class is the key
+         * the report groups by, taken from the call stack.
+         */
+        @JvmStatic
+        @JvmOverloads
+        fun feature(
+            title: String,
+            kind: String? = null,
+            narrative: String? = null,
+            tags: List<String>? = null,
+            glossary: Map<String, String>? = null,
+        ) {
+            val key = callerClassName() ?: return
+            val declared = LinkedHashMap<String, Any?>()
+            declared["sourceFile"] = key
+            declared["title"] = title
+            if (kind != null) declared["kind"] = kind
+            if (narrative != null) declared["narrative"] = narrative
+            if (!tags.isNullOrEmpty()) declared["tags"] = tags
+            if (!glossary.isNullOrEmpty()) {
+                declared["glossary"] =
+                    glossary.map { (term, definition) ->
+                        linkedMapOf<String, Any?>("term" to term, "definition" to definition)
+                    }
+            }
+            FEATURES[key] = declared
+        }
+
+        @JvmStatic
+        internal fun declaredFeatures(): List<Map<String, Any?>> = FEATURES.values.toList()
+
+        /**
+         * Class that called into this object, with Kotlin's synthetic suffixes
+         * dropped so a declaration made from a companion object still keys to
+         * the test class itself.
+         */
+        private fun callerClassName(): String? {
+            val frames = Thread.currentThread().stackTrace
+            for (frame in frames) {
+                val name = frame.className
+                if (name.startsWith("java.") || name.startsWith("dev.executablestories.junit5.Story")) {
+                    continue
+                }
+                return name.substringBefore("\$Companion").substringBefore("\$\$")
+            }
+            return null
+        }
 
         @JvmStatic
         internal fun getContext(): StoryContext? = CONTEXT.get()

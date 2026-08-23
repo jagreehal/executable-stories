@@ -19,30 +19,36 @@ public class LoginTests
     public void UserLogsInSuccessfully()
     {
         Story.Init("user logs in successfully");
-        try
-        {
-            Story.Given("the user is on the login page");
-            var email = "user@example.com";
-            var password = "secret";
+        Story.Given("the user is on the login page");
+        var email = "user@example.com";
+        var password = "secret";
 
-            Story.When("the user submits valid credentials");
-            var authenticated = email == "user@example.com" && password == "secret";
+        Story.When("the user submits valid credentials");
+        var authenticated = email == "user@example.com" && password == "secret";
 
-            Story.Then("the user should see the dashboard");
-            Assert.True(authenticated);
+        Story.Then("the user should see the dashboard");
+        Assert.True(authenticated);
 
-            Story.RecordAndClear();
-        }
-        catch
-        {
-            Story.RecordAndClear("fail");
-            throw;
-        }
     }
 }
 ```
 
-`Story.RecordAndClear()` flushes the scenario after each test. Wrap the body in `try/catch` and call `Story.RecordAndClear("fail")` when the test throws — `RecordAndClear()` defaults to a `"pass"` status, so recording in a plain `Dispose()` would mark every test green even when assertions fail.
+Add the recording attribute once, in any file in your test project:
+
+```csharp
+using ExecutableStories.Xunit;
+
+[assembly: StoryRecording]
+```
+
+That covers every test in the assembly. It runs after each test, reads the
+outcome xUnit already computed, and records the story with the right status,
+the failure message, and the test class as its suite. Tests themselves call
+`Story.Init` and the step methods, nothing more.
+
+`[StoryRecording]` also works on a single class or method when you want
+narrower scope. `Story.RecordAndClear(...)` is still there for hand-rolled
+setups.
 
 ## Richer example with doc entries
 
@@ -60,45 +66,36 @@ public class PasswordPolicyTests
     {
         Story.Init("password rules are enforced", "auth", "security");
         Story.Ticket("AUTH-42");
-        try
-        {
-            Story.Given("the user is registering a new account");
-            Story.Note("Password policy: min 12 chars, one uppercase, one digit, one symbol");
+        Story.Given("the user is registering a new account");
+        Story.Note("Password policy: min 12 chars, one uppercase, one digit, one symbol");
 
-            Story.When("the user submits a password that is too short");
-            var password = "short";
-            var valid = password.Length >= 12;
+        Story.When("the user submits a password that is too short");
+        var password = "short";
+        var valid = password.Length >= 12;
 
-            Story.Then("the registration should be rejected");
-            Story.Json(
-                "validation result",
-                new { valid, reason = "too short" }
-            );
-            Story.Code(
-                "password policy",
-                "min_length: 12\nrequire_uppercase: true\nrequire_digit: true",
-                "yaml"
-            );
-            Story.Table(
-                "rule summary",
-                new[] { "Rule", "Required", "Met" },
-                new[]
-                {
-                    new[] { "min length 12", "yes", "no" },
-                    new[] { "uppercase letter", "yes", "yes" },
-                    new[] { "digit", "yes", "no" },
-                }
-            );
+        Story.Then("the registration should be rejected");
+        Story.Json(
+            "validation result",
+            new { valid, reason = "too short" }
+        );
+        Story.Code(
+            "password policy",
+            "min_length: 12\nrequire_uppercase: true\nrequire_digit: true",
+            "yaml"
+        );
+        Story.Table(
+            "rule summary",
+            new[] { "Rule", "Required", "Met" },
+            new[]
+            {
+                new[] { "min length 12", "yes", "no" },
+                new[] { "uppercase letter", "yes", "yes" },
+                new[] { "digit", "yes", "no" },
+            }
+        );
 
-            Assert.False(valid);
+        Assert.False(valid);
 
-            Story.RecordAndClear();
-        }
-        catch
-        {
-            Story.RecordAndClear("fail");
-            throw;
-        }
     }
 }
 ```

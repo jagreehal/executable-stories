@@ -5,7 +5,7 @@
  */
 
 import type { StoryMeta } from "executable-stories-core/types/story";
-import type { RawRun, RawTestCase, RawStatus } from "executable-stories-core/types/raw";
+import type { RawFeature, RawRun, RawTestCase, RawStatus } from "executable-stories-core/types/raw";
 import { detectCI } from "../../utils/ci-detect";
 
 /** Jest test result shape (subset of what Jest provides) */
@@ -32,6 +32,8 @@ export interface JestAggregatedResult {
 export interface StoryFileReport {
   testFilePath: string;
   scenarios: StoryMeta[];
+  /** Feature declaration from story.feature(), when the file made one. */
+  feature?: Omit<RawFeature, "sourceFile">;
 }
 
 /** Options for Jest adapter */
@@ -76,6 +78,7 @@ export function adaptJestRun(
   options: JestAdapterOptions = {}
 ): RawRun {
   const testCases: RawTestCase[] = [];
+  const features: RawFeature[] = [];
 
   // Build map of Jest results by file for lookup
   const fileResultsMap = new Map<string, JestFileResult>();
@@ -86,6 +89,10 @@ export function adaptJestRun(
   // Process each story report
   for (const report of storyReports) {
     const fileResult = fileResultsMap.get(report.testFilePath);
+
+    if (report.feature?.title) {
+      features.push({ ...report.feature, sourceFile: report.testFilePath });
+    }
 
     for (const meta of report.scenarios) {
       if (!meta?.scenario) continue;
@@ -119,6 +126,7 @@ export function adaptJestRun(
 
   return {
     testCases,
+    ...(features.length > 0 ? { features } : {}),
     startedAtMs: jestResults.startTime,
     finishedAtMs: Date.now(),
     projectRoot: options.projectRoot ?? process.cwd(),

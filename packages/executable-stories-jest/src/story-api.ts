@@ -33,6 +33,7 @@ import { tryGetActiveOtelContext, resolveTraceUrl } from 'executable-stories-cor
 import { buildHtmlDocEntry } from 'executable-stories-core/utils/doc-builders';
 import type {
   DocEntry,
+  FeatureInput,
   NormalizedTicket,
   StepKeyword,
   StoryDocs,
@@ -113,6 +114,9 @@ declare global {
   var __jestExecutableStoriesExitHandler: boolean | undefined;
 }
 
+/** Feature declarations, keyed by test file path */
+const featureRegistry = new Map<string, FeatureInput>();
+
 /** Stories collected during test execution, keyed by test file path */
 const storyRegistry: Map<string, StoryMeta[]> = globalThis.__jestExecutableStoriesRegistry ??= new Map();
 
@@ -154,12 +158,18 @@ function flushStories(): void {
       ...(fileOtelSpans?.get(i) ? { _otelSpans: fileOtelSpans.get(i) } : {}),
     }));
 
-    const payload = { testFilePath, scenarios: scenariosWithAttachments };
+    const declared = featureRegistry.get(testFilePath);
+    const payload = {
+      testFilePath,
+      ...(declared ? { feature: declared } : {}),
+      scenarios: scenariosWithAttachments,
+    };
     fs.writeFileSync(outFile, JSON.stringify(payload, null, 2) + "\n", "utf8");
   }
   storyRegistry.clear();
   attachmentRegistry.clear();
   otelSpansRegistry.clear();
+  featureRegistry.clear();
 }
 
 /** Register process exit handler to flush stories (once per worker) */
@@ -415,6 +425,52 @@ function createStepMarker(keyword: StepKeyword) {
  * });
  * ```
  */
+/**
+ * Declare what the file's scenarios are for, before any of them run.
+ *
+ * Scenarios say what the system does. This says why the feature exists and who
+ * it serves, so a reader meets the intent before the examples. Call it once per
+ * test file, at module scope or at the top of the outermost `describe`.
+ *
+ * @example
+ * ```ts
+ * story.feature({
+ *   kind: 'ability',
+ *   title: 'Employees can secure their passwords',
+ *   narrative: 'Weak passwords are how most accounts get taken over.',
+ * });
+ * ```
+ */
+function feature(input: FeatureInput): void {
+  // Jest only knows the current file once a test is running, so resolve it the
+  // same way `init` does and fall back to the module that called us.
+  const testPath = expect.getState().testPath || callerFile() || "unknown";
+  featureRegistry.set(testPath, input);
+  registerExitHandler();
+}
+
+/**
+ * Best-effort source file of whoever called into this module.
+ *
+ * `story.feature(...)` usually runs at module scope, where Jest has not yet set
+ * `testPath`. The stack is the only place the file name is available then.
+ */
+function callerFile(): string | undefined {
+  const stack = new Error().stack;
+  if (!stack) return undefined;
+
+  for (const line of stack.split("\n").slice(1)) {
+    const match = /\((?:file:\/\/)?([^()]+?):\d+:\d+\)/.exec(line)
+      ?? /at (?:file:\/\/)?([^()\s]+?):\d+:\d+/.exec(line);
+    const file = match?.[1];
+    if (file && !file.includes("executable-stories-jest") && !file.startsWith("node:")) {
+      return file;
+    }
+  }
+
+  return undefined;
+}
+
 function init(options?: StoryOptions): void {
   // Get current test info from Jest globals
   const state = expect.getState();
@@ -612,6 +668,7 @@ function storyExpect<T>(text: string, body: () => T): T {
 export const story = {
   // Jest-specific init
   init,
+  feature,
 
   // BDD step markers
   given: createStepMarker("Given"),

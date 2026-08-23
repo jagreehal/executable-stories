@@ -1,8 +1,6 @@
 import type { TestRunResult } from "executable-stories-core/types/test-result";
 import {
   type DeploymentEntry,
-  type DeploymentLedger,
-  createEmptyLedger,
   getLatestDeployment,
   loadLedger,
   saveLedger,

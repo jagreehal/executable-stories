@@ -4,9 +4,18 @@ require "minitest/autorun"
 require "executable_stories/minitest"
 require_relative "calculator"
 
-# Minitest has no per-test hook, so each story must call `story.record(...)` to
-# appear in the generated raw-run.json. Recording at the end of the test (after
-# the assertions pass) mirrors scripts/verify-ruby.sh.
+# Requiring executable_stories/minitest is the whole setup: stories are recorded
+# after each test with the status Minitest already worked out.
+ExecutableStories.feature(
+  kind: "ability",
+  title: "Anyone can do arithmetic without reaching for a calculator app",
+  narrative: "People doing quick sums in the middle of another task lose their place " \
+             "when they have to switch apps. Division raises rather than returning Infinity.",
+  glossary: [
+    { term: "operand", definition: "One of the two numbers an operation is applied to." }
+  ]
+)
+
 class CalculatorStoryTest < Minitest::Test
   # Specified but not built yet: renders as planned, stops being planned when
   # someone writes it as a real story.
@@ -24,7 +33,6 @@ class CalculatorStoryTest < Minitest::Test
     story.state({ "a" => a, "b" => b, "result" => result }, label: "Calculator")
     story.then("the result is 8")
     assert_equal 8, result
-    story.record(status: "pass", source_file: __FILE__)
   end
 
   def test_subtracts_two_numbers
@@ -34,7 +42,6 @@ class CalculatorStoryTest < Minitest::Test
     result = Calculator.subtract(10, 4)
     story.then("the result is 6")
     assert_equal 6, result
-    story.record(status: "pass", source_file: __FILE__)
   end
 
   def test_multiplies_two_numbers
@@ -45,7 +52,6 @@ class CalculatorStoryTest < Minitest::Test
     result = Calculator.multiply(7, 6)
     story.then("the result is 42")
     assert_equal 42, result
-    story.record(status: "pass", source_file: __FILE__)
   end
 
   def test_divides_two_numbers
@@ -55,7 +61,6 @@ class CalculatorStoryTest < Minitest::Test
     result = Calculator.divide(20, 4)
     story.then("the result is 5")
     assert_equal 5, result
-    story.record(status: "pass", source_file: __FILE__)
   end
 
   def test_raises_on_division_by_zero
@@ -65,6 +70,5 @@ class CalculatorStoryTest < Minitest::Test
     story.when("division is attempted")
     story.then("an error is raised")
     assert_raises(ArgumentError) { Calculator.divide(10, 0) }
-    story.record(status: "pass", source_file: __FILE__)
   end
 end

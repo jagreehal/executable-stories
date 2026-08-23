@@ -140,10 +140,41 @@ export interface CoverageSummary {
   statementsPct?: number;
 }
 
+/** One entry in a feature's glossary. */
+export interface GlossaryTerm {
+  /** The term as it appears in scenario and step text. */
+  term: string;
+  /** What it means, in one or two sentences. */
+  definition: string;
+}
+
+/**
+ * A feature declared in a test file, canonicalized.
+ *
+ * `sourceFile` is required here: the report groups scenarios by file, and a
+ * declaration with no file has nothing to attach to.
+ */
+export interface FeatureDeclaration {
+  /** Source file the declaration was made in. */
+  sourceFile: string;
+  /** Heading for the feature. */
+  title: string;
+  /** How to introduce it. */
+  kind: "feature" | "ability" | "business-need";
+  /** Markdown explaining why the feature exists and who it serves. */
+  narrative?: string;
+  /** Tags applied to every scenario in the file. */
+  tags?: string[];
+  /** Terms this feature defines. */
+  glossary?: GlossaryTerm[];
+}
+
 /** Canonical test run result */
 export interface TestRunResult {
   /** All test case results */
   testCases: TestCaseResult[];
+  /** Feature declarations, one per declaring source file. */
+  features?: FeatureDeclaration[];
   /** Run start time (epoch ms, required) */
   startedAtMs: number;
   /** Run finish time (epoch ms, required) */

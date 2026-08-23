@@ -75,9 +75,9 @@ function parseAdf(adf: string): {
   try {
     parsed = JSON.parse(adf);
   } catch (err) {
-    throw new Error(
-      `ADF payload is not valid JSON: ${(err as Error).message}`,
-    );
+    throw new Error(`ADF payload is not valid JSON: ${(err as Error).message}`, {
+      cause: err,
+    });
   }
   if (
     !parsed ||

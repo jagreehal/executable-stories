@@ -15,7 +15,7 @@ import * as path from "node:path";
 
 import { validateRawRun } from "./validation/schema-validator";
 import { synthesizeStories } from "executable-stories-core/converters/synthesize";
-import { canonicalizeRun } from "executable-stories-core/converters/acl/index";
+import { canonicalizeRun } from "executable-stories-core/converters/acl/canonicalize";
 import { assertValidRun } from "executable-stories-core/converters/acl/validate";
 // eslint-disable-next-line no-restricted-imports -- ReportGenerator and compare helpers currently live in the package entrypoint.
 import {
@@ -31,10 +31,11 @@ import { ReviewHtmlFormatter } from "./formatters/review-html";
 import type { ChangedFile, ReviewContext, EvidenceStrength } from "./types/review";
 import { assembleCodeDiff, type CodeDiffSidecar } from "./review/code-diff-sidecar";
 import type { OutputFormat } from "./types/options";
-import { sendNotifications } from "./notifiers";
+import { sendNotifications } from "./notifiers/send-notifications";
 import { toCIInfo } from "executable-stories-core/types/ci";
 import type { NotifyCondition, GenericWebhookNotifierOptions, WebhookSignerHmac } from "./notifiers/types";
-import { loadHistory, saveHistory, updateHistory, type HistoryStore } from "./history";
+import { loadHistory, saveHistory, updateHistory } from "./history/history-store";
+import type { HistoryStore } from "./history/types";
 import { pickAutoBaseline } from "./compare/auto-baseline";
 import { listScenarios } from "./list-scenarios";
 import { writeArtifactsReadme } from "./artifacts-readme";
@@ -44,7 +45,7 @@ import { buildGoal, renderGoal } from "./goal";
 import { buildTriage, renderTriage } from "./triage";
 import { selectTestCases } from "./select-test-cases";
 import { DEFAULT_RUN_FILES, diagnoseRunFile, findDefaultRunFile, formatDoctorReport } from "./run-file";
-import { expandPreset, presetHelpLines, PRESET_NAMES } from "./presets";
+import { expandPreset, presetHelpLines } from "./presets";
 import { runCompletion } from "./completion";
 import { openInBrowser, pickOpenTarget } from "./open-report";
 import { summaryLine } from "./summary-line";
@@ -65,7 +66,7 @@ import { runSyncCommand } from "./sync/run";
 import { importOpenApi } from "./import-openapi";
 import { publishConfluencePage } from "./publishers/confluence";
 import { publishJiraIssue, type JiraPublishMode } from "./publishers/jira";
-import { recordDeployment, getDeploymentStatus, getEnvironmentDrift } from "./deploy/index";
+import { recordDeployment, getDeploymentStatus, getEnvironmentDrift } from "./deploy/deployments";
 import { loadConfig } from "./config.js";
 import type { Formatter } from "./types/formatter.js";
 import type { RunDiffSummary, ScenarioDiff } from "./types/compare";
@@ -101,7 +102,7 @@ USAGE
   executable-stories gate-release <dev-run.json> <rc-run.json> [options]
   executable-stories review <file> --changed-files <path> [options]
   executable-stories list <file> [options]
-  executable-stories check <file> [--baseline <path|auto>] [--check-format text|json] [--no-fail]
+  executable-stories check <file> [--baseline <path|auto>] [--check-format text|json] [--max-skipped <n>] [--no-fail]
   executable-stories check-explainers <file> --explainers-dir <dir> [--check-format text|json] [--no-fail]
   executable-stories goal <file> [--require-tags <csv>] [--require-tickets <csv>] [--require-scenarios <csv>] [--baseline <path|auto>] [--no-regressions] [--goal-format text|json]
   executable-stories triage <file> [--baseline <path|auto>] [--triage-format text|json]
@@ -111,7 +112,7 @@ USAGE
   executable-stories init-astro [directory] [--install] [--force] [--update]
   executable-stories new <template> "<name>" [options]
   executable-stories check-links <dir> [options]
-  executable-stories push <run.json> [--key <es_...>] [--url <base>] [--repo <org/name>]
+  executable-stories push <run.json|results.xml|allure-results/> [--format <fmt>] [--gate] [--force]
   executable-stories coverage <testrail|xray> <run.json> [options]
   executable-stories sync <testrail|xray> <run.json> [--apply] [options]
   executable-stories import-openapi <spec> [options]
@@ -138,7 +139,7 @@ SUBCOMMANDS
   init-astro         Scaffold a thin Astro docs site (Starlight + executable-stories-astro; live stories at /stories)
   new                Scaffold a docs page from a template (adr, runbook, decision-log, incident, scenario-note)
   check-links        Scan docs for broken internal/external links (CI-friendly exit code)
-  push               Send a run (StoryReport or raw run JSON) to a cloud ingest endpoint
+  push               Send a run to a cloud ingest endpoint: StoryReport, raw run, JUnit XML, Playwright JSON or allure-results
   coverage           Compare your stories against a test-management system (read-only)
   sync               Push cases, executions, and evidence to TestRail or Xray (dry run by default)
   import-openapi     Generate API doc pages from an OpenAPI spec, linked to verifying stories
@@ -190,6 +191,7 @@ ${presetHelpLines()
   --minify                      emit compact JSON for agent artifacts (story-report, scenario-index, list --json)
   --json-summary                Deprecated alias for --list-format json
   --check-format <format>       check / check-explainers output format: text (default) or json
+  --max-skipped <n>             (check) Exit 5 when more than n scenarios are turned off
   --explainers-dir <dir>        (check-explainers) Directory of explainer markdown to audit
   --no-fail                     (check) Report only — always exit 0 even when scenarios failed
   --require-tags <csv>          (goal) Every scenario carrying any of these tags must pass
@@ -236,6 +238,12 @@ CHECK
   check exits 5 when any scenario failed (so the agent loop pushes back); pass
   --no-fail to report only. --baseline <path|auto> adds "N regressed / N fixed"
   since the prior run. --check-format json emits the structured report.
+  Switched-off scenarios are named, not just counted: a skipped scenario is one
+  you stopped validating, so it is listed with its location and ticket (or "no
+  ticket"), and the run reads "All running scenarios green." rather than green.
+  it.todo scenarios are planned, not switched off, and stay out of that list.
+  --max-skipped <n> puts a budget on that list and exits 5 when it is exceeded,
+  so switching a spec off is a decision someone makes rather than a habit.
 
 GOAL
   goal is the behavioral stopping condition for an agent loop (the /goal pattern).
@@ -368,6 +376,8 @@ interface CliArgs {
   /** check-explainers: directory of explainer markdown to audit. */
   explainersDir?: string;
   noFail: boolean;
+  /** (check) Fail when more than N scenarios are switched off. Unset = no budget. */
+  maxSkipped?: number;
   requireTags: string[];
   requireTickets: string[];
   requireScenarios: string[];
@@ -632,6 +642,7 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
       "check-format": { type: "string", default: "text" },
       "explainers-dir": { type: "string" },
       "no-fail": { type: "boolean", default: false },
+      "max-skipped": { type: "string" },
       "require-tags": { type: "string" },
       "require-tickets": { type: "string" },
       "require-scenarios": { type: "string" },
@@ -808,6 +819,18 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
   const parseGlobs = (v: string | undefined): string[] =>
     v ? v.split(",").map((s) => s.trim()).filter(Boolean) : [];
 
+  // A budget of 0 is meaningful ("nothing may be switched off"), so undefined
+  // is the only "no budget" — never fall back to a truthiness check here.
+  const parseMaxSkipped = (v: string | undefined): number | undefined => {
+    if (v === undefined) return undefined;
+    const n = Number(v);
+    if (!Number.isInteger(n) || n < 0) {
+      console.error(`Error: --max-skipped must be a non-negative integer, got "${v}".`);
+      process.exit(EXIT_USAGE);
+    }
+    return n;
+  };
+
   // Validate --notify
   const notifyValue = values.notify as string;
   const validNotifyConditions = new Set(["always", "on-failure", "never"]);
@@ -949,6 +972,7 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
     checkFormat,
     explainersDir: values["explainers-dir"] as string | undefined,
     noFail: values["no-fail"] as boolean,
+    maxSkipped: parseMaxSkipped(values["max-skipped"] as string | undefined),
     requireTags: parseGlobs(values["require-tags"] as string | undefined),
     requireTickets: parseGlobs(values["require-tickets"] as string | undefined),
     requireScenarios: parseGlobs(values["require-scenarios"] as string | undefined),
@@ -1494,7 +1518,18 @@ async function runCheck(ctx: CliContext): Promise<void> {
     );
     console.log(renderCheck(report, args.checkFormat));
 
-    if (report.summary.failed > 0 && !args.noFail) {
+    // Gojko Adzic calls this out in Specification by Example ch.11: a pack of
+    // switched-off specs needs a limit, or it becomes a get-out-of-jail card
+    // and the documentation quietly stops describing the system.
+    const overBudget =
+      args.maxSkipped !== undefined && report.turnedOff.length > args.maxSkipped;
+    if (overBudget) {
+      console.error(
+        `${report.turnedOff.length} scenarios are turned off; the budget is ${args.maxSkipped}. Fix them, delete them, or raise --max-skipped deliberately.`,
+      );
+    }
+
+    if ((report.summary.failed > 0 || overBudget) && !args.noFail) {
       process.exit(EXIT_AGENT_GATE);
     }
     process.exit(EXIT_SUCCESS);
@@ -2968,6 +3003,7 @@ function createDefaultCliArgs(): CliArgs {
     listFormat: "text",
     checkFormat: "text",
     noFail: false,
+    maxSkipped: undefined,
     requireTags: [],
     requireTickets: [],
     requireScenarios: [],

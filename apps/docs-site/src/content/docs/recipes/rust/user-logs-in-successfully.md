@@ -32,6 +32,5 @@ fn test_user_logs_in_successfully() {
     s.given("the account is active");
     s.when("the user submits valid credentials");
     s.then("the user should see the dashboard");
-    s.pass();
 }
 ```

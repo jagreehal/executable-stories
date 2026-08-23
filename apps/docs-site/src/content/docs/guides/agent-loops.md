@@ -114,13 +114,20 @@ The fastest backpressure runs without anyone asking. Add it to `CLAUDE.md` or `A
 ```text
 After changing code:
 - run the tests
-- run: executable-stories check .executable-stories/raw-run.json --baseline reports/last-green.json
+- run: executable-stories check .executable-stories/raw-run.json --baseline reports/last-green.json --max-skipped 0
 - fix every failure before continuing. Do not edit or skip a scenario to make it pass.
 
 Stopping condition for this task:
 - executable-stories goal .executable-stories/raw-run.json --require-tickets <TICKET> --baseline reports/last-green.json --no-regressions
 - the task is done only when this exits 0.
 ```
+
+`--max-skipped 0` closes the cheapest way out of a red loop. An agent that
+cannot make a scenario pass can always make it skip, and a headline that reads
+`⊘ 1 skipped   All scenarios green.` will not stop it. `check` names every
+switched-off scenario with its location and ticket, and exits 5 when there are
+more of them than the budget allows. Raise the number if your suite already
+carries some; the point is that the count has to be a decision.
 
 ## What the loop still leaves to you
 

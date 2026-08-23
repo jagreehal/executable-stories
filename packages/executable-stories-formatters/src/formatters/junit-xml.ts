@@ -65,7 +65,7 @@ export class JUnitFormatter {
     const byFile = groupBy(run.testCases, (tc) => tc.sourceFile);
 
     for (const [file, testCases] of byFile) {
-      lines.push(...this.buildTestSuite(file, testCases, indent, newline));
+      lines.push(...this.buildTestSuite(file, testCases, indent));
     }
 
     lines.push("</testsuites>");
@@ -79,8 +79,7 @@ export class JUnitFormatter {
   private buildTestSuite(
     file: string,
     testCases: TestCaseResult[],
-    indent: string,
-    newline: string
+    indent: string
   ): string[] {
     const lines: string[] = [];
 
@@ -100,7 +99,7 @@ export class JUnitFormatter {
     );
 
     for (const tc of testCases) {
-      lines.push(...this.buildTestCase(tc, indent + indent, newline));
+      lines.push(...this.buildTestCase(tc, indent + indent));
     }
 
     lines.push(`${indent}</testsuite>`);
@@ -111,11 +110,7 @@ export class JUnitFormatter {
   /**
    * Build a testcase element.
    */
-  private buildTestCase(
-    tc: TestCaseResult,
-    indent: string,
-    newline: string
-  ): string[] {
+  private buildTestCase(tc: TestCaseResult, indent: string): string[] {
     const lines: string[] = [];
 
     // Build classname from titlePath or sourceFile

@@ -22,7 +22,7 @@ export {
 export {
   CucumberMessagesFormatter,
   type CucumberMessagesOptions,
-} from "./cucumber-messages/index";
+} from "./cucumber-messages/formatter";
 
 export {
   CucumberHtmlFormatter,

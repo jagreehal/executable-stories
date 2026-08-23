@@ -836,6 +836,7 @@ describe("ReportGenerator", () => {
 describe("createReportGenerator factory", () => {
   it("creates a generator with injected dependencies", async () => {
     // This test verifies the factory function works
+    // eslint-disable-next-line no-restricted-syntax -- loads the built entry the way a consumer would, which is what this test is about
     const { createReportGenerator, canonicalizeRun } = await import("../src/index.js");
 
     const mockWriteFile = vi.fn().mockResolvedValue(undefined);

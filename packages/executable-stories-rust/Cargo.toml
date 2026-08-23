@@ -11,6 +11,7 @@ repository = "https://github.com/jagreehal/executable-stories.git"
 documentation = "https://github.com/jagreehal/executable-stories#readme"
 
 [dependencies]
+libc = "0.2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 opentelemetry = { version = "0.32", optional = true }

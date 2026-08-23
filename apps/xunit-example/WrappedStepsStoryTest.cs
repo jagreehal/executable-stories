@@ -18,7 +18,6 @@ public class WrappedStepsStoryTest
 
         Story.Expect("the result is 8", () => Assert.Equal(8, result));
 
-        Story.RecordAndClear();
     }
 
     [Fact]
@@ -33,7 +32,6 @@ public class WrappedStepsStoryTest
 
         Story.Expect("the result is 6", () => Assert.Equal(6, result));
 
-        Story.RecordAndClear();
     }
 
     [Fact]
@@ -46,7 +44,6 @@ public class WrappedStepsStoryTest
         Story.Expect("division by zero throws an error", () =>
             Assert.Throws<DivideByZeroException>(() => Calculator.Divide(10, 0)));
 
-        Story.RecordAndClear();
     }
 
     [Fact]
@@ -63,6 +60,5 @@ public class WrappedStepsStoryTest
         Story.And("the result is a positive number");
         Assert.True(result > 0);
 
-        Story.RecordAndClear();
     }
 }

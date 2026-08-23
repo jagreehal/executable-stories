@@ -2,7 +2,7 @@ namespace ExecutableStories.Xunit
 {
     /// <summary>
     /// In-process collector for when tests run under dotnet test (VSTest does not use IRunnerReporter).
-    /// Record via <see cref="Story.RecordAndClear"/>. Written on process exit.
+    /// Record via <see cref="Story.RecordAndClear(string)"/>. Written on process exit.
     /// </summary>
     internal static class InProcessCollector
     {
@@ -28,6 +28,17 @@ namespace ExecutableStories.Xunit
             }
         }
 
+        /// <summary>
+        /// Copy of what has been recorded so far. Tests only.
+        /// </summary>
+        internal static IReadOnlyList<RawTestCase> Snapshot()
+        {
+            lock (_list)
+            {
+                return [.. _list];
+            }
+        }
+
         private static void WriteIfAny()
         {
             List<RawTestCase> copy;
@@ -46,6 +57,7 @@ namespace ExecutableStories.Xunit
                 Schema = RawRun.SchemaUrl,
                 SchemaVersion = 1,
                 TestCases = copy,
+                Features = Story.DeclaredFeatures(),
                 StartedAtMs = _startedAtMs > 0 ? _startedAtMs : null,
                 FinishedAtMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
                 ProjectRoot = Directory.GetCurrentDirectory(),

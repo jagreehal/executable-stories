@@ -25,34 +25,37 @@ Import `Story` from the crate in any test file:
 use executable_stories::Story;
 ```
 
-At the end of your test suite, call `write_results()` to flush the raw run JSON. The conventional place is a dedicated integration test or a `#[test]` that runs last:
+There is no reporter to register. The first `Story` installs a process-exit hook
+that writes `.executable-stories/raw-run.json` relative to the working
+directory, so run tests from the crate root. Set `EXECUTABLE_STORIES_OUTPUT` to
+write elsewhere, or call `write_results()` yourself to choose the moment.
+
+Cargo compiles every file under `tests/` into a separate binary, and each one
+writes that same default path. Keep story tests in one file, or give each binary
+its own `EXECUTABLE_STORIES_OUTPUT` and format the runs separately.
+
+## How a scenario gets its status
+
+The story records `pass` or `fail` when it drops. A failing assertion panics,
+and a story dropped while the thread unwinds records `fail`.
+
+A `#[test]` that returns `Result` is the exception, because returning `Err`
+fails the test without panicking. Route the fallible call through
+`record_result`:
 
 ```rust
-#[cfg(test)]
-mod tests {
-    use executable_stories::{write_results, Story};
+#[test]
+fn parses_a_price() -> Result<(), std::num::ParseIntError> {
+    let mut s = Story::new("parses a price");
+    s.then("the string parses to 499");
 
-    // ... your story tests ...
-
-    #[test]
-    fn write_report() {
-        write_results();
-    }
+    let parsed = s.record_result("499".parse::<u32>())?;
+    assert_eq!(parsed, 499);
+    Ok(())
 }
 ```
 
-`write_results()` writes `.executable-stories/raw-run.json` relative to the working directory. Run your tests from the crate root so the file lands in the expected location.
-
-## Marking tests as passed
-
-Every `Story` must be explicitly marked as passed by calling `.pass()`. If `.pass()` is not called before the value is dropped, the scenario is recorded as failed.
-
-```rust
-let mut s = Story::new("my scenario");
-s.given("the system is ready");
-// ... test logic ...
-s.pass(); // required — omitting this records a failure
-```
+`s.fail()` sets the status directly if you would rather branch yourself.
 
 ## Generate a report
 

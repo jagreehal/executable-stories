@@ -2,7 +2,7 @@ import Ajv2020 from "ajv/dist/2020";
 import { describe, expect, it } from "vitest";
 import * as fs from "node:fs";
 
-import { canonicalizeRun } from "executable-stories-core/converters/acl/index";
+import { canonicalizeRun } from "executable-stories-core/converters/acl/canonicalize";
 import {
   BehaviorManifestJsonFormatter,
   toBehaviorManifest,

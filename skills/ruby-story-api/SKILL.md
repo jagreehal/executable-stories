@@ -50,20 +50,19 @@ class CalculatorTest < Minitest::Test
 
     story.then("the result is 8")
     assert_equal 8, result
-
-    # REQUIRED: Minitest has no per-test hook, so the story only appears in the
-    # generated raw-run.json if you record it. Record after the assertions pass.
-    story.record(status: "pass", source_file: __FILE__)
   end
 end
 ```
 
-> **Minitest requires an explicit `story.record(...)`.** `ExecutableStories.init`
-> only builds the story; nothing is written until you call `record`. The
-> `require "executable_stories/minitest"` integration flushes all recorded
-> stories to `.executable-stories/raw-run.json` on `Minitest.after_run` (override
-> the path with the `EXECUTABLE_STORIES_OUTPUT` env var). RSpec records
-> automatically; Minitest does not.
+`require "executable_stories/minitest"` is the whole setup. It prepends a hook
+on `after_teardown`, so each story is recorded with the status Minitest already
+worked out, plus the test's file, line, class, and failure message. On
+`Minitest.after_run` the collected stories are written to
+`.executable-stories/raw-run.json` (override with `EXECUTABLE_STORIES_OUTPUT`).
+
+Call `story.record(status: ...)` yourself only to override that. Recording
+happens once per story and the first call wins, so an explicit call still takes
+precedence over the hook.
 
 ## API Reference
 

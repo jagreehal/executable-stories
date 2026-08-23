@@ -18,7 +18,7 @@ The story API for each language. Load the one matching the suite you are writing
 | `go-story-api`          | `Init(t, scenario, opts...)`, `RunAnd`, JSON output                                 |
 | `ruby-story-api`        | `ExecutableStories.init` in Minitest                                                |
 | `junit5-story-api`      | The static `Story.init` API in Kotlin and Java, with wrapped steps                  |
-| `rust-story-api`        | The `Story::new()` builder and `write_results()`                                    |
+| `rust-story-api`        | The `Story::new()` builder and raw-run output                                       |
 | `xunit-story-api`       | The static `Story.Init` API in C#                                                   |
 | `pytest-story-api`      | The module-singleton `story` API, including `and_` and `assert_`                    |
 

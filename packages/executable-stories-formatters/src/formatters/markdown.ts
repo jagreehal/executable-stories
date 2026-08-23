@@ -7,7 +7,7 @@
 
 import { diffStateValues, summarizeStateChanges } from "executable-stories-core";
 import type { StoryStep, DocEntry } from "executable-stories-core/types/story";
-import type { TestRunResult, TestCaseResult, TestStatus } from "executable-stories-core/types/test-result";
+import type { FeatureDeclaration, TestRunResult, TestCaseResult, TestStatus } from "executable-stories-core/types/test-result";
 import type { MarkdownRenderers } from "../types/options";
 
 /**
@@ -182,7 +182,7 @@ export class MarkdownFormatter {
         break;
       case "file":
       default:
-        this.renderByFile(lines, run.testCases);
+        this.renderByFile(lines, run.testCases, run.features);
         break;
     }
 
@@ -306,15 +306,49 @@ export class MarkdownFormatter {
   /**
    * Render scenarios grouped by file.
    */
-  private renderByFile(lines: string[], testCases: TestCaseResult[]): void {
+  private renderByFile(
+    lines: string[],
+    testCases: TestCaseResult[],
+    features?: FeatureDeclaration[]
+  ): void {
     const byFile = groupBy(testCases, (tc) => tc.sourceFile);
+    const declarations = new Map((features ?? []).map((f) => [f.sourceFile, f]));
 
     for (const [file, fileTestCases] of byFile) {
-      lines.push(`## ${file}`);
+      const declared = declarations.get(file);
+      lines.push(`## ${declared ? formatFeatureHeading(declared) : file}`);
       lines.push("");
+
+      if (declared) {
+        this.renderFeatureDeclaration(lines, declared, file);
+      }
 
       // Group by suite path within file
       this.renderSuiteGroups(lines, fileTestCases, 3);
+    }
+  }
+
+  /**
+   * Render what a feature is for, ahead of the scenarios that prove it.
+   */
+  private renderFeatureDeclaration(
+    lines: string[],
+    declared: FeatureDeclaration,
+    file: string
+  ): void {
+    lines.push(`_${file}_`);
+    lines.push("");
+
+    if (declared.narrative) {
+      lines.push(dedentNarrative(declared.narrative));
+      lines.push("");
+    }
+
+    if (declared.glossary?.length) {
+      for (const { term, definition } of declared.glossary) {
+        lines.push(`- **${term}** — ${definition}`);
+      }
+      lines.push("");
     }
   }
 
@@ -819,4 +853,41 @@ function groupBy<T, K>(items: T[], keyFn: (item: T) => K): Map<K, T[]> {
     }
   }
   return map;
+}
+
+/**
+ * Label the feature the way it was declared.
+ *
+ * An ability reads as something a person can now do; a business need covers the
+ * cross-cutting concerns nobody asks for by name, like security or performance.
+ * Naming the kind in the heading keeps that distinction visible to a reader who
+ * never sees the test code.
+ */
+function formatFeatureHeading(declared: FeatureDeclaration): string {
+  const label =
+    declared.kind === "ability"
+      ? "Ability"
+      : declared.kind === "business-need"
+        ? "Business Need"
+        : "Feature";
+  return `${label}: ${declared.title}`;
+}
+
+/**
+ * Strip the leading indentation a template literal picks up from its source.
+ *
+ * Narratives are written inline in test files, so they arrive indented to match
+ * the surrounding code. Left alone, four spaces would make Markdown render the
+ * whole paragraph as a code block.
+ */
+function dedentNarrative(narrative: string): string {
+  const lines = narrative.replace(/\t/g, "  ").split("\n");
+  const indents = lines
+    .filter((line) => line.trim().length > 0)
+    .map((line) => line.length - line.trimStart().length);
+  const shortest = indents.length > 0 ? Math.min(...indents) : 0;
+  return lines
+    .map((line) => line.slice(shortest))
+    .join("\n")
+    .trim();
 }

@@ -12,5 +12,5 @@ Per-adapter init syntax:
 - Ruby/Minitest: use `ExecutableStories.init("Scenario", ...)` and call steps on the returned story object.
 - pytest: use `story.init("Scenario", ...)`; Python keyword collisions are `and_()` and `assert_()`.
 - JUnit 5: use static `Story.init("Scenario", ...)`; Kotlin escapes the `when` call as ``Story.`when`("...")``.
-- Rust: use `Story::new("Scenario")`; call `s.pass()` for passing tests and `executable_stories::write_results()` for output.
-- xUnit: use `Story.Init("Scenario", ...)`; call `Story.RecordAndClear()` at the end of each test.
+- Rust: use `Story::new("Scenario")`. Status and output are automatic; a `#[test]` returning `Result` needs `s.record_result(...)` so an `Err` records as a failure.
+- xUnit: use `Story.Init("Scenario", ...)`. Add `[assembly: StoryRecording]` once per test project; tests record themselves after that.

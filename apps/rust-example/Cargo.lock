@@ -3,18 +3,10 @@
 version = 4
 
 [[package]]
-name = "dtor"
-version = "1.0.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6d738e43aa64edab57c983d56de890d65fea7dc05605490c74451ce721dfd84b"
-dependencies = [
- "linktime-proc-macro",
-]
-
-[[package]]
 name = "executable-stories"
 version = "0.1.0"
 dependencies = [
+ "libc",
  "serde",
  "serde_json",
 ]
@@ -26,10 +18,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "92ecc6618181def0457392ccd0ee51198e065e016d1d527a7ac1b6dc7c1f09d2"
 
 [[package]]
-name = "linktime-proc-macro"
-version = "0.2.0"
+name = "libc"
+version = "0.2.189"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8c7b0a3383c2a1002d11349c92c85a666a5fb679e96c79d782cf0dbe557fd6ee"
+checksum = "3eaf3ede3fee6db1a4c2ee091bf8a8b4dccdc6d17f656fb07896ee72867612f2"
 
 [[package]]
 name = "memchr"
@@ -59,7 +51,6 @@ dependencies = [
 name = "rust-example"
 version = "0.1.0"
 dependencies = [
- "dtor",
  "executable-stories",
  "serde_json",
 ]

@@ -33,6 +33,7 @@ import type {
   DocEntry,
   StoryDocs,
   StoryOptions,
+  GlossaryTerm,
   AttachmentOptions,
   ScopedAttachment,
   RecordMetaPayload,
@@ -50,6 +51,7 @@ import type {
   VideoOptions,
   HtmlOptions,
   CustomOptions,
+  FeatureInput,
 } from './types';
 import { buildHtmlDocEntry } from 'executable-stories-core/utils/doc-builders';
 
@@ -61,12 +63,13 @@ export type {
   StepKeyword,
   StoryDocs,
   StoryOptions,
+  GlossaryTerm,
   AttachmentOptions,
   NormalizedTicket,
   TicketInput,
 } from './types';
 
-export type { RecordMetaPayload } from './types';
+export type { RecordMetaPayload, FeatureInput } from './types';
 
 // ============================================================================
 // Internal types
@@ -477,6 +480,7 @@ export function getAndClearMeta(): RecordMetaPayload | null {
     meta: activeContext.meta,
     attachments: activeContext.attachments.length > 0 ? activeContext.attachments : undefined,
     otelSpans: activeContext.otelSpans,
+    ...(declaredFeature ? { feature: declaredFeature } : {}),
   };
   activeContext = null;
   return payload;
@@ -546,6 +550,7 @@ function storyExpect<T>(text: string, body: () => T): T {
 
 export const story = {
   init,
+  feature,
   skip(title: string, body: ScenarioBody, options?: StoryOptions): unknown {
     return runScenario('skip', title, body, options);
   },
@@ -744,3 +749,22 @@ export const doc = {
 };
 
 export type Story = typeof story;
+
+/**
+ * The declaration for the spec currently being loaded.
+ *
+ * Cypress runs one spec per browser context, so the last declaration seen is
+ * the one that belongs to the tests registering after it.
+ */
+let declaredFeature: FeatureInput | null = null;
+
+/**
+ * Declare what the spec's scenarios are for, before any of them run.
+ *
+ * Scenarios say what the system does. This says why the feature exists and who
+ * it serves, so a reader meets the intent before the examples. Call it once per
+ * spec file, at module scope or at the top of the outermost `describe`.
+ */
+function feature(input: FeatureInput): void {
+  declaredFeature = input;
+}

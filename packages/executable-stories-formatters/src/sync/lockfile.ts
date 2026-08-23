@@ -86,6 +86,7 @@ export function parseLockfile(contents: string, label: string): Lockfile {
     throw new Error(
       `Sync lockfile at ${label} is not valid JSON: ${(err as Error).message}\n` +
         `Fix or delete it — deleting orphans every existing case binding, so prefer fixing.`,
+      { cause: err },
     );
   }
 

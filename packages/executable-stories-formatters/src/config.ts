@@ -52,9 +52,14 @@ export async function loadConfig(configPath?: string): Promise<ExecutableStories
     try {
       config = JSON.parse(readFileSync(resolved, "utf8"));
     } catch (err) {
-      throw new Error(`Config file at ${resolved} is not valid JSON: ${(err as Error).message}`);
+      throw new Error(`Config file at ${resolved} is not valid JSON: ${(err as Error).message}`, {
+        cause: err,
+      });
     }
   } else {
+    // A config file is a path chosen at runtime, so there is no static import
+    // to write: this is the one thing dynamic import is for.
+    // eslint-disable-next-line no-restricted-syntax
     config = (await import(resolved)).default;
   }
 

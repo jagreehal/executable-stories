@@ -43,7 +43,7 @@ export function loadLedger(ledgerPath: string): DeploymentLedger {
     return raw as DeploymentLedger;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    throw new Error(`Failed to load deployment ledger at ${resolved}: ${msg}`);
+    throw new Error(`Failed to load deployment ledger at ${resolved}: ${msg}`, { cause: err });
   }
 }
 

@@ -9,6 +9,7 @@ import (
 var (
 	mu        sync.Mutex
 	collected []RawTestCase
+	features  []RawFeature
 	startTime time.Time
 	orderSeq  int
 )
@@ -18,6 +19,29 @@ func record(tc RawTestCase) {
 	mu.Lock()
 	defer mu.Unlock()
 	collected = append(collected, tc)
+}
+
+// recordFeature stores a declaration, replacing an earlier one for the same
+// file so a re-declaration reads the way it does in source order.
+func recordFeature(f RawFeature) {
+	mu.Lock()
+	defer mu.Unlock()
+	for i, existing := range features {
+		if existing.SourceFile == f.SourceFile {
+			features[i] = f
+			return
+		}
+	}
+	features = append(features, f)
+}
+
+// getFeatures returns a copy of all declared features.
+func getFeatures() []RawFeature {
+	mu.Lock()
+	defer mu.Unlock()
+	result := make([]RawFeature, len(features))
+	copy(result, features)
+	return result
 }
 
 // getAll returns a copy of all collected test cases.

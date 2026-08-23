@@ -38,6 +38,5 @@ public class LoginTests : IDisposable
         Story.Then("the user should see the dashboard");
     }
 
-    public void Dispose() => Story.RecordAndClear();
 }
 ```

@@ -22,7 +22,7 @@ import type {
   TestStatus,
 } from "../types/story-report.js";
 import type { DocEntry } from "../types/story.js";
-import type { TestCaseResult, TestRunResult } from "../types/test-result.js";
+import type { FeatureDeclaration, TestCaseResult, TestRunResult } from "../types/test-result.js";
 import { STORY_REPORT_SCHEMA_VERSION } from "../types/story-report.js";
 
 function reportSlug(text: string): string {
@@ -285,9 +285,10 @@ function buildFeature(
   relSourceFile: string,
   group: TestCaseResult[],
   scenarioRefs?: Map<string, ReportScenario>,
+  declaration?: FeatureDeclaration,
 ): ReportFeature {
   const id = `feature-${reportSlug(relSourceFile.replace(/\.[^.]+$/, "")) || "untitled"}`;
-  const title = deriveFeatureTitle(group, relSourceFile);
+  const title = declaration?.title ?? deriveFeatureTitle(group, relSourceFile);
   const summary = emptySummary();
   const scenarios: ReportScenario[] = [];
 
@@ -299,7 +300,14 @@ function buildFeature(
 
   scenarios.sort(compareScenarios);
 
-  return { id, title, sourceFile: relSourceFile, summary, scenarios };
+  const feature: ReportFeature = { id, title, sourceFile: relSourceFile, summary, scenarios };
+  if (declaration) {
+    feature.kind = declaration.kind;
+    if (declaration.narrative) feature.narrative = declaration.narrative;
+    if (declaration.glossary?.length) feature.glossary = declaration.glossary;
+  }
+
+  return feature;
 }
 
 function ensureUniqueFeatureIds(features: ReportFeature[]): void {
@@ -358,10 +366,15 @@ export function toStoryReportWithIndex(run: TestRunResult): {
     else groups.set(rel, [tc]);
   }
 
+  const declarations = new Map<string, FeatureDeclaration>();
+  for (const declaration of run.features ?? []) {
+    declarations.set(toRelativeSourceFile(declaration.sourceFile, run.projectRoot), declaration);
+  }
+
   const scenarioRefs = new Map<string, ReportScenario>();
   const features: ReportFeature[] = [];
   for (const [rel, group] of groups) {
-    features.push(buildFeature(rel, group, scenarioRefs));
+    features.push(buildFeature(rel, group, scenarioRefs, declarations.get(rel)));
   }
 
   features.sort((a, b) => a.title.localeCompare(b.title));

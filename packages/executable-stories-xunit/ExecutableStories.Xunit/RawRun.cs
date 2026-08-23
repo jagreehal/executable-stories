@@ -25,6 +25,11 @@ namespace ExecutableStories.Xunit
         [JsonPropertyName("testCases")]
         public List<RawTestCase> TestCases { get; set; } = [];
 
+        /// <summary>Feature declarations, keyed to the class that made them.</summary>
+        [JsonPropertyName("features")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public List<RawFeature>? Features { get; set; }
+
         [JsonPropertyName("startedAtMs")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public long? StartedAtMs { get; set; }

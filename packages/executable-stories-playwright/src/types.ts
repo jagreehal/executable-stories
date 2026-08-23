@@ -151,6 +151,32 @@ export interface StoryDocs {
 }
 
 /** Options for story.init(). */
+/** One entry in a feature's glossary. */
+export interface GlossaryTerm {
+  /** The term as it appears in scenario and step text. */
+  term: string;
+  /** What it means, in one or two sentences. */
+  definition: string;
+}
+
+/** What `story.feature(...)` accepts. */
+export interface FeatureInput {
+  /** Heading for the feature. */
+  title: string;
+  /**
+   * How to introduce it. `ability` frames the feature as something a person can
+   * now do; `business-need` covers cross-cutting concerns like security or
+   * performance that no single user asks for. Defaults to `feature`.
+   */
+  kind?: "feature" | "ability" | "business-need";
+  /** Markdown explaining why the feature exists and who it serves. */
+  narrative?: string;
+  /** Tags applied to every scenario in the file. */
+  tags?: string[];
+  /** Terms this feature defines, linked wherever they appear in the report. */
+  glossary?: GlossaryTerm[];
+}
+
 export interface StoryOptions {
   tags?: string[];
   ticket?: TicketInput | TicketInput[];

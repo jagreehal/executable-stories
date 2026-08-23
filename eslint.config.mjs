@@ -2,6 +2,20 @@ import baseConfig from "eslint-config-executable-stories";
 
 export default [
   ...baseConfig,
+  // Build output and generated code are not source: they are rewritten on every
+  // build and nobody can act on a finding in them. The base config's "dist/**"
+  // is relative to this file, so it misses every package's own dist.
+  {
+    ignores: [
+      "**/dist/**",
+      "**/storybook-static/**",
+      "**/.turbo/**",
+      "**/.astro/**",
+      "**/src/generated/**",
+      // Scaffolding shipped to users, run in their project, not built here.
+      "**/templates/**",
+    ],
+  },
   {
     rules: {
       // No barrel imports - import from concrete files for better tree-shaking
@@ -18,12 +32,20 @@ export default [
       ],
     },
   },
-  // Allow package entry / config imports from index (no-barrels exception) - must be after main rules
+  // Tests and config are consumers of a package, not internals of it: importing
+  // the entry point is exactly what a consumer does. The no-barrels rule is for
+  // source reaching sideways through a barrel. Must come after the main rules.
   {
     files: [
-      "**/login.story.spec.ts",
-      "**/vitest.config.ts",
-      "**/__tests__/story-api.test.ts",
+      "**/*.test.ts",
+      "**/*.test.tsx",
+      "**/*.spec.ts",
+      "**/test/**",
+      "**/tests/**",
+      "**/__tests__/**",
+      "**/*.config.ts",
+      "**/*.config.mts",
+      "**/.storybook/**",
     ],
     rules: { "no-restricted-imports": "off" },
   },

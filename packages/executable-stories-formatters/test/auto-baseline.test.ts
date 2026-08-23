@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { pickAutoBaseline } from "../src/compare";
+import { pickAutoBaseline } from "../src/compare/auto-baseline";
 import { stubs } from "./stubs";
 
 describe("pickAutoBaseline", () => {
