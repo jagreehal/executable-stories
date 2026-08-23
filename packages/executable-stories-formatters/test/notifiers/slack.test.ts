@@ -3,6 +3,18 @@ import { sendSlackNotification } from "../../src/notifiers/slack";
 import type { NotificationSummary } from "../../src/notifiers/types";
 import type { CIInfo } from "executable-stories-core/types/ci";
 
+/**
+ * The parts of a Slack Block Kit payload these tests assert on. Slack's own
+ * types are not a dependency here, and the notifier builds the payload inline,
+ * so this is the contract the tests actually pin.
+ */
+interface SlackBlock {
+  type?: string;
+  text?: { text?: string };
+  elements?: { text?: string }[];
+}
+
+
 function createSummary(overrides: Partial<NotificationSummary> = {}): NotificationSummary {
   return {
     total: 10,
@@ -84,7 +96,7 @@ describe("sendSlackNotification", () => {
 
     // Check failed tests block exists
     const failedBlock = body.blocks.find(
-      (b: any) => b.type === "section" && b.text?.text?.includes("test 1"),
+      (b: SlackBlock) => b.type === "section" && b.text?.text?.includes("test 1"),
     );
     expect(failedBlock).toBeDefined();
     expect(failedBlock.text.text).toContain("test 1");
@@ -106,7 +118,7 @@ describe("sendSlackNotification", () => {
 
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
     const failedBlock = body.blocks.find(
-      (b: any) => b.type === "section" && b.text?.text?.includes("test 1"),
+      (b: SlackBlock) => b.type === "section" && b.text?.text?.includes("test 1"),
     );
     // The error text inside code fences should be truncated to 500 chars (497 + "...")
     const errorInBlock = failedBlock.text.text;
@@ -174,10 +186,10 @@ describe("sendSlackNotification", () => {
     );
 
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-    const contextBlock = body.blocks.find((b: any) => b.type === "context");
+    const contextBlock = body.blocks.find((b: SlackBlock) => b.type === "context");
     expect(contextBlock).toBeDefined();
 
-    const elements = contextBlock.elements.map((e: any) => e.text);
+    const elements = contextBlock.elements.map((e: { text?: string }) => e.text);
     expect(elements).toContainEqual(expect.stringContaining("feature/test"));
     expect(elements).toContainEqual(expect.stringContaining("abcdef1"));
   });
@@ -192,7 +204,7 @@ describe("sendSlackNotification", () => {
     );
 
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-    const actionsBlock = body.blocks.find((b: any) => b.type === "actions");
+    const actionsBlock = body.blocks.find((b: SlackBlock) => b.type === "actions");
     expect(actionsBlock).toBeDefined();
     expect(actionsBlock.elements[0].text.text).toBe("View Report");
     expect(actionsBlock.elements[0].url).toBe("https://example.com/report");
@@ -213,7 +225,7 @@ describe("sendSlackNotification", () => {
 
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
     const failedBlock = body.blocks.find(
-      (b: any) => b.type === "section" && b.text?.text?.includes("test 1"),
+      (b: SlackBlock) => b.type === "section" && b.text?.text?.includes("test 1"),
     );
     const text = failedBlock.text.text;
 
@@ -271,7 +283,7 @@ describe("sendSlackNotification", () => {
     );
 
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-    const actionsBlock = body.blocks.find((b: any) => b.type === "actions");
+    const actionsBlock = body.blocks.find((b: SlackBlock) => b.type === "actions");
     expect(actionsBlock).toBeUndefined();
   });
 
@@ -285,7 +297,7 @@ describe("sendSlackNotification", () => {
     );
 
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-    const contextBlock = body.blocks.find((b: any) => b.type === "context");
+    const contextBlock = body.blocks.find((b: SlackBlock) => b.type === "context");
     expect(contextBlock).toBeUndefined();
   });
 });

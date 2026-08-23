@@ -13,7 +13,22 @@ Requires .NET 8.0 or later and C# 12 or later.
 
 ## Test class setup
 
-The `Story` class uses static methods. Because xUnit creates a new test class instance per test, you must call `Story.RecordAndClear()` at the end of each test (or in `Dispose`) to flush the scenario before the next one starts.
+Add the recording attribute once, in any file in your test project:
+
+```csharp
+using ExecutableStories.Xunit;
+
+[assembly: StoryRecording]
+```
+
+That covers every test in the assembly. It runs after each test, reads the
+outcome xUnit already computed, and records the story with the right status,
+the failure message, and the test class as its suite. Tests themselves call
+`Story.Init` and the step methods, nothing more.
+
+`[StoryRecording]` also works on a single class or method when you want
+narrower scope. `Story.RecordAndClear(...)` is still there for hand-rolled
+setups.
 
 The recommended pattern is to implement `IDisposable` on your test class:
 
@@ -25,7 +40,6 @@ public class LoginTests : IDisposable
 {
     public void Dispose()
     {
-        Story.RecordAndClear();
     }
 
     [Fact]
@@ -42,7 +56,7 @@ public class LoginTests : IDisposable
 }
 ```
 
-If you do not call `Story.RecordAndClear()`, data from one test will bleed into the next.
+Without the attribute nothing is recorded, since no test flushes its own story.
 
 ## Default output
 

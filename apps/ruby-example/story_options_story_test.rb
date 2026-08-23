@@ -21,7 +21,6 @@ class StoryOptionsStoryTest < Minitest::Test
     story.then("the result is 4")
     story.json("Result", { value: result })
     assert_equal 4, result
-    story.record(status: "pass", source_file: __FILE__)
   end
 
   def test_story_with_object_ticket
@@ -34,6 +33,5 @@ class StoryOptionsStoryTest < Minitest::Test
     result = Calculator.subtract(9, 5)
     story.then("the result is 4")
     assert_equal 4, result
-    story.record(status: "pass", source_file: __FILE__)
   end
 end

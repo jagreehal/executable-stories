@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import { canonicalizeRun } from "executable-stories-core/converters/acl/index";
+import { canonicalizeRun } from "executable-stories-core/converters/acl/canonicalize";
 import { toStoryReport } from "executable-stories-core/converters/story-report";
 import { listScenarios } from "../../src/list-scenarios";
 import type { RawRun } from "executable-stories-core/types/raw";

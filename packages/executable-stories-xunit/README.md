@@ -6,6 +6,16 @@ Provides a static `Story` API for framework-native xUnit tests and emits reporta
 
 ## Usage
 
+Add the recording attribute once per test project, in any file:
+
+```csharp
+using ExecutableStories.Xunit;
+
+[assembly: StoryRecording]
+```
+
+Then write tests:
+
 ```csharp
 using ExecutableStories.Xunit;
 using Xunit;
@@ -24,6 +34,11 @@ public class CalculatorTests
     }
 }
 ```
+
+`[assembly: StoryRecording]` runs after each test, reads the outcome xUnit
+already computed, and records the story with its status, failure message, and
+the test class as its suite. Put it on a single class or method instead when you
+want narrower scope. `Story.RecordAndClear(...)` remains for hand-rolled setups.
 
 ## Features
 

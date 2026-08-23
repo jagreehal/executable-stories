@@ -98,7 +98,8 @@ const cardsHtml = scenarios
       const empty = document.querySelector('[data-testid="empty"]');
 
       function apply() {
-        const q = (search.value || "").trim().toLowerCase();
+        const raw = (search.value || "").trim();
+        const q = raw.toLowerCase();
         const status = statusSel.value;
         const tag = tagSel ? tagSel.value : "";
         let visible = 0;
@@ -111,7 +112,36 @@ const cardsHtml = scenarios
           if (show) visible++;
         }
         if (empty) empty.hidden = visible !== 0;
+
+        // Put the filters in the URL so a view of the docs is a link someone
+        // can paste into a ticket. replaceState, not pushState: filtering is
+        // not navigation, and Back should leave the page.
+        const next = new URLSearchParams();
+        if (raw) next.set("q", raw);
+        if (status) next.set("status", status);
+        if (tag) next.set("tag", tag);
+        const qs = next.toString();
+        history.replaceState(null, "", (qs ? "?" + qs : location.pathname) + location.hash);
       }
+
+      // An external tool links here by tag, not at one scenario's page: a tag
+      // survives the scenario being renamed, moved, split, or merged, and a
+      // per-scenario URL does not (Specification by Example, ch.12).
+      const params = new URLSearchParams(location.search);
+      search.value = params.get("q") || "";
+      statusSel.value = params.get("status") || "";
+      const wantTag = params.get("tag") || "";
+      if (tagSel && wantTag) {
+        // The tag in an old link may no longer exist here. Keep filtering by
+        // it anyway, so the page says nothing matches instead of silently
+        // showing everything and reading like the tag still passes.
+        if (!Array.from(tagSel.options).some((o) => o.value === wantTag)) {
+          tagSel.add(new Option(wantTag, wantTag));
+        }
+        tagSel.value = wantTag;
+      }
+      apply();
+
       search.addEventListener("input", apply);
       statusSel.addEventListener("change", apply);
       if (tagSel) tagSel.addEventListener("change", apply);

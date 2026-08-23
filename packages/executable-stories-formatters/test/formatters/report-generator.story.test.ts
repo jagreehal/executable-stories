@@ -4,8 +4,8 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { ReportGenerator } from "../../src/index";
-import { canonicalizeRun } from "executable-stories-core/converters/acl/index";
-import { createRawRun, createMultiFileRun } from "../fixtures/raw-runs/basic";
+import { canonicalizeRun } from "executable-stories-core/converters/acl/canonicalize";
+import { createRawRun } from "../fixtures/raw-runs/basic";
 
 describe("Report Generator", () => {
   it("generates a markdown report file from a raw run", async ({ task }) => {

@@ -8,7 +8,124 @@ namespace ExecutableStories.Xunit
     /// </summary>
     public static class Story
     {
-        private static readonly AsyncLocal<StoryContext?> _context = new();
+        // A mutable holder rather than AsyncLocal<StoryContext?> directly: xUnit
+        // runs the test body in its own ExecutionContext, so a context assigned
+        // inside the test would not be visible to StoryRecordingAttribute.After.
+        // The holder reference flows down into the test and mutating its field
+        // is visible on the way back out.
+        private sealed class ContextHolder
+        {
+            public StoryContext? Context { get; set; }
+        }
+
+        private static readonly AsyncLocal<ContextHolder?> _holder = new();
+
+        // Declarations keyed by the class that made them, so a re-declaration
+        // reads the way it does in source order.
+        private static readonly Dictionary<string, RawFeature> _features = [];
+
+        private static ContextHolder Holder()
+        {
+            ContextHolder? holder = _holder.Value;
+            if (holder == null)
+            {
+                holder = new ContextHolder();
+                _holder.Value = holder;
+            }
+
+            return holder;
+        }
+
+        /// <summary>
+        /// Declare what a class's scenarios are for, ahead of the examples.
+        /// </summary>
+        /// <remarks>
+        /// Scenarios say what the system does. A declaration says why the feature
+        /// exists and who it serves, so a reader meets the intent before the
+        /// examples. Call it once per test class, from a static constructor:
+        /// <code>
+        /// static CheckoutTests() => Story.Feature(
+        ///     "Shoppers can check out without an account",
+        ///     kind: "ability",
+        ///     narrative: "Forcing a signup before payment is where carts get abandoned.");
+        /// </code>
+        /// .NET gives us no source path, so the declaring class is the key the
+        /// report groups by, taken from the call stack.
+        /// </remarks>
+        /// <param name="title">Heading for the feature.</param>
+        /// <param name="kind">"feature" (default), "ability", or "business-need".</param>
+        /// <param name="narrative">Markdown explaining why the feature exists.</param>
+        /// <param name="tags">Tags applied to every scenario in the class.</param>
+        /// <param name="glossary">Terms this feature defines, term to definition.</param>
+        public static void Feature(
+            string title,
+            string? kind = null,
+            string? narrative = null,
+            IEnumerable<string>? tags = null,
+            IReadOnlyDictionary<string, string>? glossary = null)
+        {
+            var key = DeclaringClassName();
+            if (key == null)
+            {
+                return;
+            }
+
+            var declared = new RawFeature
+            {
+                SourceFile = key,
+                Title = title,
+                Kind = kind,
+                Narrative = narrative,
+                Tags = tags?.ToList(),
+                Glossary = glossary?
+                    .Select(pair => new RawGlossaryTerm { Term = pair.Key, Definition = pair.Value })
+                    .ToList(),
+            };
+
+            lock (_features)
+            {
+                _features[key] = declared;
+            }
+        }
+
+        internal static List<RawFeature>? DeclaredFeatures()
+        {
+            lock (_features)
+            {
+                return _features.Count > 0 ? [.. _features.Values] : null;
+            }
+        }
+
+        /// <summary>
+        /// Class that called into this type, so a declaration keys to the test class.
+        /// </summary>
+        private static string? DeclaringClassName()
+        {
+            var trace = new StackTrace(false);
+            for (var i = 0; i < trace.FrameCount; i++)
+            {
+                Type? declaring = trace.GetFrame(i)?.GetMethod()?.DeclaringType;
+                if (declaring != null && declaring != typeof(Story))
+                {
+                    return declaring.FullName;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Open a slot for the story a test is about to create.
+        /// </summary>
+        /// <remarks>
+        /// <see cref="StoryRecordingAttribute"/> calls this before the test body
+        /// so the story survives back out to the recording hook. Calling it
+        /// directly is only needed when driving the adapter by hand.
+        /// </remarks>
+        public static void BeginTest()
+        {
+            _holder.Value = new ContextHolder();
+        }
 
         /// <summary>
         /// Initialize a new story for the current test.
@@ -18,7 +135,7 @@ namespace ExecutableStories.Xunit
         public static void Init(string scenario, params string[] tags)
         {
             var ctx = new StoryContext(scenario, tags);
-            _context.Value = ctx;
+            Holder().Context = ctx;
             BridgeOtel(ctx);
         }
 
@@ -50,7 +167,7 @@ namespace ExecutableStories.Xunit
         /// <param name="tags">Optional tags for categorization.</param>
         public static void Planned(string scenario, params string[] tags)
         {
-            _context.Value = new StoryContext(scenario, tags);
+            Holder().Context = new StoryContext(scenario, tags);
             RecordAndClear("todo");
         }
 
@@ -403,7 +520,23 @@ namespace ExecutableStories.Xunit
         /// <param name="status">Test status: pass, fail, or skip.</param>
         public static void RecordAndClear(string status = "pass")
         {
-            StoryContext? ctx = _context.Value;
+            RecordAndClear(status, null, null);
+        }
+
+        /// <summary>
+        /// Record the current story with an outcome and failure details, then clear it.
+        /// </summary>
+        /// <param name="status">Test status: pass, fail, or skip.</param>
+        /// <param name="error">Failure details, when the test failed.</param>
+        /// <param name="titlePath">Suite path for the scenario, outermost first.</param>
+        /// <param name="sourceKey">Key the report groups by. On .NET, the test class.</param>
+        public static void RecordAndClear(
+            string status,
+            RawTestError? error,
+            IReadOnlyList<string>? titlePath,
+            string? sourceKey = null)
+        {
+            StoryContext? ctx = _holder.Value?.Context;
             if (ctx == null)
             {
                 return;
@@ -433,10 +566,13 @@ namespace ExecutableStories.Xunit
                 Retry = 0,
                 Retries = 0,
                 Attachments = attachments.Count > 0 ? attachments : null,
-                StepEvents = stepEvents.Count > 0 ? stepEvents : null
+                StepEvents = stepEvents.Count > 0 ? stepEvents : null,
+                Error = error,
+                TitlePath = titlePath is null ? null : [.. titlePath, ctx.Scenario],
+                SourceFile = sourceKey
             };
             InProcessCollector.Record(testCase);
-            _context.Value = null;
+            Holder().Context = null;
         }
 
         // ========================================================================
@@ -570,12 +706,12 @@ namespace ExecutableStories.Xunit
 
         internal static StoryContext? GetContext()
         {
-            return _context.Value;
+            return _holder.Value?.Context;
         }
 
         internal static void Clear()
         {
-            _context.Value = null;
+            Holder().Context = null;
         }
 
         private static void BridgeOtel(StoryContext ctx)
@@ -639,7 +775,7 @@ namespace ExecutableStories.Xunit
 
         private static StoryContext RequireContext()
         {
-            return _context.Value
+            return _holder.Value?.Context
                 ?? throw new InvalidOperationException(
                     "Story.Init() must be called before using step or doc methods. " +
                     "Call Story.Init(\"scenario name\") at the start of your test.");

@@ -225,12 +225,27 @@ export interface ReportScenario {
   otelSpans?: OtelSpan[];
 }
 
+/** One entry in a feature's glossary. */
+export interface ReportGlossaryTerm {
+  term: string;
+  definition: string;
+}
+
 export interface ReportFeature {
   id: string;
   title: string;
   sourceFile: string;
   summary: ReportSummary;
   scenarios: ReportScenario[];
+  /**
+   * How the feature was declared. Absent when the title was derived from the
+   * file name, which is what happens with no `story.feature(...)` call.
+   */
+  kind?: "feature" | "ability" | "business-need";
+  /** Markdown explaining why the feature exists and who it serves. */
+  narrative?: string;
+  /** Terms this feature defines. */
+  glossary?: ReportGlossaryTerm[];
 }
 
 export interface StoryReport {

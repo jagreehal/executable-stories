@@ -1,11 +1,27 @@
 package example
 
 import dev.executablestories.junit5.Story
+import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 
 class CalculatorStoryTest {
+    companion object {
+        @BeforeAll
+        @JvmStatic
+        fun declareFeature() {
+            Story.feature(
+                title = "Anyone can do arithmetic without reaching for a calculator app",
+                kind = "ability",
+                narrative =
+                    "People doing quick sums in the middle of another task lose their place " +
+                        "when they have to switch apps. Division throws rather than returning infinity.",
+                glossary = mapOf("operand" to "One of the two numbers an operation is applied to."),
+            )
+        }
+    }
+
 
     // Specified but not built yet: renders as planned in the report.
     @Test

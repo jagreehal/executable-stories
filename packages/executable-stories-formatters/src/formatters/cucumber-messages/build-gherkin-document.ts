@@ -15,7 +15,6 @@ import type {
   DocString,
   DataTable,
   TableRow,
-  TableCell,
 } from "executable-stories-core/types/cucumber-messages";
 import type { SynthesizedFeature } from "./synthesize-feature";
 import { deterministicId, keywordToKeywordType } from "../../utils/cucumber-messages";
@@ -32,7 +31,7 @@ export function buildGherkinDocumentEnvelopes(
   const { lineMap, featureName, featureTags, text } = synthesized;
 
   // Build feature-level tags
-  const featureTagNodes: Tag[] = featureTags.map((tag, i) => ({
+  const featureTagNodes: Tag[] = featureTags.map((tag) => ({
     location: {
       line: lineMap.featureTagLine ?? 1,
       column: undefined,
@@ -60,17 +59,11 @@ export function buildGherkinDocumentEnvelopes(
       id: deterministicId("scenarioTag", salt, uri, scenarioName, tag),
     }));
 
-    // Build steps with keyword type tracking for And/But inheritance
-    let lastNonConjunctionType: "Context" | "Action" | "Outcome" = "Context";
+    // An AST step keeps its own keyword type: And/But stay "Conjunction" here,
+    // as they do in Gherkin's own parser. Inheriting the previous non-
+    // conjunction type is a pickle concern, and resolvePickleStepTypes does it.
     const steps: Step[] = tc.story.steps.map((step, i) => {
       const keyword = step.keyword as StepKeyword;
-      let kwType = keywordToKeywordType(keyword);
-
-      if (kwType === "Conjunction") {
-        kwType = lastNonConjunctionType;
-      } else if (kwType === "Context" || kwType === "Action" || kwType === "Outcome") {
-        lastNonConjunctionType = kwType;
-      }
 
       const stepLine = scenarioInfo.stepLines.get(i) ?? 0;
       const astStep: Step = {

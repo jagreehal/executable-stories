@@ -21,7 +21,7 @@ import {
   type FormatterOptions,
 } from "executable-stories-formatters";
 
-import { getMeta, getAttachments, getAllMeta, clearStore } from "./store";
+import { getMeta, getAttachments, getAllMeta, getFeature, clearStore } from "./store";
 
 // Re-export types from formatters
 export type {
@@ -236,8 +236,12 @@ function createReporter(
     }
 
     const includeMetadata = opts.markdown?.includeMetadata ?? true;
+    const declaredFeature = getFeature(effectiveSpecPath);
     const rawRun: RawRun = {
       testCases: rawTestCases,
+      ...(declaredFeature
+        ? { features: [{ ...declaredFeature, sourceFile: effectiveSpecPath }] }
+        : {}),
       startedAtMs: startTime,
       finishedAtMs: Date.now(),
       projectRoot,

@@ -2,6 +2,10 @@
  * Framework adapters - Layer 1.
  *
  * Transform framework-specific data to RawRun for ACL processing.
+ *
+ * This file exists as the published `executable-stories-formatters/adapters`
+ * entry point (see tsup.config.ts). Source inside this package imports the
+ * concrete adapter modules instead of reaching through here.
  */
 
 export {

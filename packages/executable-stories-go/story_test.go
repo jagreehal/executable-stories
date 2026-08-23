@@ -2,6 +2,7 @@ package es
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 	"time"
 )
@@ -257,6 +258,34 @@ func TestCleanupPassedStatus(t *testing.T) {
 	}
 	if cases[0].DurationMs == nil {
 		t.Fatal("expected durationMs to be set")
+	}
+}
+
+// A scenario and its file's Feature declaration have to land on the same
+// source file, or the report groups the scenario under "unknown" and the
+// declaration reaches nothing. Both take it from the calling test file.
+func TestSourceFileMatchesTheFeatureDeclaration(t *testing.T) {
+	reset()
+
+	Feature(FeatureSpec{Title: "Arithmetic"})
+
+	mt := &mockT{name: "TestSourceFile"}
+	Init(mt, "a scenario in this file")
+	mt.runCleanups()
+
+	Planned(&mockT{name: "TestPlannedSourceFile"}, "a scenario not written yet")
+
+	features := getFeatures()
+	if len(features) != 1 {
+		t.Fatalf("expected 1 feature, got %d", len(features))
+	}
+	if !strings.HasSuffix(features[0].SourceFile, "story_test.go") {
+		t.Fatalf("feature landed on %q, not this test file", features[0].SourceFile)
+	}
+	for _, tc := range getAll() {
+		if tc.SourceFile != features[0].SourceFile {
+			t.Errorf("case %q has sourceFile %q, want %q", tc.Title, tc.SourceFile, features[0].SourceFile)
+		}
 	}
 }
 

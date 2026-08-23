@@ -15,7 +15,7 @@ slug: recipes/xunit
 | Test function | `it("name", ({ task }) => { ... })` | `[Fact] public void TestName() { ... }` |
 | Steps | `story.given(...)` | `Story.Given(...)` |
 | Tags | `story.init(task, { tags: ["t1"] })` | `Story.Init("name", "t1", "t2");` |
-| Cleanup | (automatic) | Class must implement `IDisposable`; call `Story.RecordAndClear()` in `Dispose()` |
+| Cleanup | (automatic) | (automatic, via `[assembly: StoryRecording]`) |
 
 ## Recipe list
 

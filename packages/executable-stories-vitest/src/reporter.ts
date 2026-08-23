@@ -37,6 +37,7 @@ import {
   loadHistory,
   updateHistory,
   saveHistory,
+  type RawFeature,
   type RawRun,
   type RawTestCase,
   type RawAttachment,
@@ -295,10 +296,12 @@ export default class StoryReporter implements StoryReporterProtocol {
 
     // Collect test cases
     const rawTestCases = this.collectTestCases(testModules, root);
+    const features = collectFeatures(testModules, root);
 
     // Build RawRun
     const rawRun: RawRun = {
       testCases: rawTestCases,
+      ...(features.length > 0 ? { features } : {}),
       startedAtMs: this.startTime,
       finishedAtMs: Date.now(),
       projectRoot: root,
@@ -602,3 +605,39 @@ export function createStoryReporter(
 }
 
 export { StoryReporter };
+
+/**
+ * Read the feature declarations tests attached to their metadata.
+ *
+ * `story.feature(...)` runs in the worker, so the declaration travels on
+ * `task.meta` like everything else. Every test in a file carries the same one;
+ * keying by the module's path collapses them back to one per file.
+ */
+function collectFeatures(
+  testModules: ReadonlyArray<TestModule>,
+  root: string
+): RawFeature[] {
+  const byFile = new Map<string, RawFeature>();
+
+  for (const mod of testModules) {
+    const collection = mod.children;
+    if (!collection) continue;
+
+    const moduleId =
+      mod.moduleId ?? (mod as { relativeModuleId?: string }).relativeModuleId ?? "";
+    const absoluteModuleId = path.isAbsolute(moduleId)
+      ? moduleId
+      : path.resolve(root, moduleId);
+    const sourceFile = toRelativePosix(absoluteModuleId, root);
+
+    for (const test of collection.allTests()) {
+      const declared = (test.meta() as { storyFeature?: RawFeature } | undefined)?.storyFeature;
+      if (declared?.title) {
+        byFile.set(sourceFile, { ...declared, sourceFile });
+        break;
+      }
+    }
+  }
+
+  return [...byFile.values()];
+}

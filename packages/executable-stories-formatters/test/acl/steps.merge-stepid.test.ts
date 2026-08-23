@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import type { StepResult } from "executable-stories-core/types/test-result";
 import { mergeStepResults } from "executable-stories-core/converters/acl/steps";
 
 describe("mergeStepResults stepId matching", () => {
@@ -8,7 +9,7 @@ describe("mergeStepResults stepId matching", () => {
       { index: 1, stepId: "step-b", status: "passed", durationMs: 0 as const },
     ];
 
-    const merged = mergeStepResults(derived as any, [
+    const merged = mergeStepResults(derived as StepResult[], [
       { stepId: "step-a", status: "failed", durationMs: 42, errorMessage: "boom" },
     ]);
 

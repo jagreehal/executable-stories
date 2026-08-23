@@ -60,6 +60,5 @@ public class UsersTests : IDisposable
         );
     }
 
-    public void Dispose() => Story.RecordAndClear();
 }
 ```

@@ -459,6 +459,16 @@ test.describe("step with inline docs", () => {
     expect(entry.caption).toBe("Demo");
   });
 
+  test("does not inherit a feature declared by another spec file", async ({}, testInfo) => {
+    // This file declares no feature. A worker that ran feature-declaration.
+    // test.ts first must not hand its declaration to these tests: the reporter
+    // keys features by test.location.file, so it would record a feature
+    // against a file that never wrote one. Vacuous in a fresh worker, decisive
+    // in a reused one (`--workers=1`).
+    story.init(testInfo);
+    expect(testInfo.annotations.find((a) => a.type === "story-feature")).toBeUndefined();
+  });
+
   test("featureVideo flag is recorded on story meta", async ({}, testInfo) => {
     story.init(testInfo, { featureVideo: true });
     const meta = getStoryMeta(testInfo);

@@ -221,6 +221,10 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
         "finishedAtMs": round(finished_at_ms, 2),
     }
 
+    features = _collector.get_features()
+    if features:
+        raw_run["features"] = features
+
     ci = _detect_ci()
     if ci is not None:
         raw_run["ci"] = ci

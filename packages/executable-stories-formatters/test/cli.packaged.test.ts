@@ -161,6 +161,80 @@ describe("packaged CLI", () => {
     );
   });
 
+  describe("check --max-skipped", () => {
+    let tmpDir: string | undefined;
+
+    afterEach(() => {
+      if (tmpDir) {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+        tmpDir = undefined;
+      }
+    });
+
+    it(
+      "names switched-off scenarios and fails once they exceed the budget",
+      () => {
+        ensurePackagedCliBuilt();
+
+        tmpDir = fs.mkdtempSync(join(os.tmpdir(), "es-max-skipped-"));
+        const sourceFile = "src/billing.story.test.ts";
+        const run = {
+          schemaVersion: 1,
+          projectRoot: tmpDir,
+          startedAtMs: 1706745600000,
+          finishedAtMs: 1706745610000,
+          testCases: [
+            {
+              title: "Charge a card",
+              sourceFile,
+              sourceLine: 1,
+              status: "pass",
+              story: { scenario: "Charge a card", steps: [{ keyword: "Given", text: "a card" }] },
+            },
+            {
+              title: "Refund a part-used subscription",
+              sourceFile,
+              sourceLine: 20,
+              status: "skip",
+              story: {
+                scenario: "Refund a part-used subscription",
+                tickets: [{ id: "BILL-402" }],
+                steps: [{ keyword: "Given", text: "a part-used subscription" }],
+              },
+            },
+          ],
+        };
+        const runPath = join(tmpDir, "run.json");
+        fs.writeFileSync(runPath, JSON.stringify(run), "utf8");
+
+        const budgeted = spawnSync(
+          "node",
+          [packagedCliPath, "check", runPath, "--max-skipped", "0"],
+          { cwd: packageDir, encoding: "utf8" }
+        );
+
+        // No scenario failed, so the only thing that can fail the run is the budget.
+        expect(budgeted.status).toBe(5);
+        expect(budgeted.stdout).toContain("All running scenarios green.");
+        expect(budgeted.stdout).toContain("1 turned off (not validated)");
+        expect(budgeted.stdout).toContain("Refund a part-used subscription");
+        expect(budgeted.stdout).toContain("ticket: BILL-402");
+        expect(budgeted.stderr).toContain("the budget is 0");
+
+        const unbudgeted = spawnSync(
+          "node",
+          [packagedCliPath, "check", runPath],
+          { cwd: packageDir, encoding: "utf8" }
+        );
+
+        // Without a budget the list is still named, but it is not a gate.
+        expect(unbudgeted.status).toBe(0);
+        expect(unbudgeted.stdout).toContain("1 turned off (not validated)");
+      },
+      60_000
+    );
+  });
+
   describe("gate-release", () => {
     let tmpDir: string | undefined;
 

@@ -1,9 +1,9 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-import { canonicalizeRun } from "executable-stories-core/converters/acl/index";
+import { canonicalizeRun } from "executable-stories-core/converters/acl/canonicalize";
 import { synthesizeStories } from "executable-stories-core/converters/synthesize";
-import { ReportGenerator } from "./index";
+import { ReportGenerator } from "./report-generator";
 import type { OutputFormat } from "./types/options";
 import type { RawRun } from "executable-stories-core/types/raw";
 import type { TestRunResult } from "executable-stories-core/types/test-result";

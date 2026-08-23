@@ -46,6 +46,5 @@ public class ApiTests : IDisposable
         Story.Then("the response body should include \"token\"");
     }
 
-    public void Dispose() => Story.RecordAndClear();
 }
 ```

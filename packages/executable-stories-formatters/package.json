@@ -57,6 +57,7 @@
   "scripts": {
     "embed-assets": "node scripts/embed-react-assets.mjs",
     "build": "node scripts/embed-react-assets.mjs && tsup",
+    "lint": "eslint .",
     "test": "node scripts/embed-react-assets.mjs && vitest run",
     "test:watch": "node scripts/embed-react-assets.mjs && vitest",
     "type-check": "node scripts/embed-react-assets.mjs && tsc --noEmit",

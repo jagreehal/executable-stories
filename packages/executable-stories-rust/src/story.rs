@@ -77,8 +77,13 @@ struct TimerEntry {
 
 /// A BDD story builder that captures steps and emits a `RawTestCase` on drop.
 ///
-/// Call `.pass()` before the story goes out of scope to mark the test as passed.
-/// If `.pass()` is not called, the test case will be recorded with status `"fail"`.
+/// The status is detected on drop: a story dropped while the thread unwinds
+/// from a panic records `"fail"`, otherwise `"pass"`. Every failing assertion
+/// panics, so a passing test needs no extra call.
+///
+/// Tests that return `Result` are the exception. Returning `Err` fails the test
+/// without panicking, so call [`Story::fail`] on that path, or use
+/// [`Story::record_result`], which does it for you.
 pub struct Story {
     scenario: String,
     steps: Vec<StoryStep>,
@@ -93,17 +98,27 @@ pub struct Story {
     source_order: Option<u32>,
     start_time: std::time::Instant,
     passed: bool,
+    failed: bool,
     planned: bool,
     step_counter: usize,
     attachments: Vec<RawAttachment>,
     active_timers: HashMap<usize, TimerEntry>,
     timer_counter: usize,
     otel_spans: Option<Vec<serde_json::Value>>,
+    /// `pub(crate)` so a test in another file can prove `#[track_caller]`
+    /// records the caller's file and not this one.
+    pub(crate) source_file: Option<String>,
 }
 
 impl Story {
     /// Create a new story with the given scenario description.
+    ///
+    /// `#[track_caller]` so the scenario records the test file it was written
+    /// in, the same path `declare_feature!` records through `file!()`. The
+    /// report groups by source file: without it a scenario lands under
+    /// "unknown" and its file's feature declaration never reaches it.
     #[must_use]
+    #[track_caller]
     pub fn new(scenario: &str) -> Self {
         let mut story = Story {
             scenario: scenario.to_string(),
@@ -119,13 +134,16 @@ impl Story {
             source_order: Some(collector::next_order()),
             start_time: std::time::Instant::now(),
             passed: false,
+            failed: false,
             planned: false,
             step_counter: 0,
             attachments: Vec::new(),
             active_timers: HashMap::new(),
             timer_counter: 0,
             otel_spans: None,
+            source_file: Some(std::panic::Location::caller().file().to_string()),
         };
+        collector::ensure_exit_hook();
         story.bridge_otel();
         story
     }
@@ -550,9 +568,47 @@ impl Story {
         self
     }
 
-    /// Mark the story as passed. Must be called before the story goes out of scope.
+    /// Mark the story as passed.
+    ///
+    /// Optional: a story dropped with no panic in flight already records
+    /// `"pass"`. Kept so existing tests still compile, and so a `Result`-returning
+    /// test can state its happy path.
     pub fn pass(&mut self) {
         self.passed = true;
+        self.failed = false;
+    }
+
+    /// Mark the story as failed.
+    ///
+    /// Needed only when a test fails without panicking, which in practice means
+    /// a `#[test]` returning `Err`. Panicking assertions are detected on drop.
+    pub fn fail(&mut self) {
+        self.failed = true;
+    }
+
+    /// Record the outcome of a `Result`, then hand it back for `?` to bubble up.
+    ///
+    /// # Errors
+    ///
+    /// Returns `result` untouched, so the caller sees the original error.
+    ///
+    /// ```
+    /// # use executable_stories::Story;
+    /// fn parses_a_price() -> Result<(), std::num::ParseIntError> {
+    ///     let mut story = Story::new("parses a price");
+    ///     story.given("the string 499");
+    ///     story.then("it parses to 499");
+    ///     let parsed = story.record_result("499".parse::<u32>())?;
+    ///     assert_eq!(parsed, 499);
+    ///     Ok(())
+    /// }
+    /// # parses_a_price().unwrap();
+    /// ```
+    pub fn record_result<T, E>(&mut self, result: Result<T, E>) -> Result<T, E> {
+        if result.is_err() {
+            self.fail();
+        }
+        result
     }
 
     /// Record a scenario that is specified but not built yet. It appears in the
@@ -572,6 +628,7 @@ impl Story {
     ///
     /// The scenario is recorded when this returns, so keep it the only statement
     /// in the test: a panic afterwards cannot revise a record already written.
+    #[track_caller]
     pub fn planned(scenario: &str) {
         let mut story = Story::new(scenario);
         story.planned = true;
@@ -583,10 +640,10 @@ impl Drop for Story {
     fn drop(&mut self) {
         let status = if self.planned {
             "todo"
-        } else if self.passed {
-            "pass"
-        } else {
+        } else if self.failed || (!self.passed && std::thread::panicking()) {
             "fail"
+        } else {
+            "pass"
         };
         let duration = self.start_time.elapsed().as_secs_f64() * 1000.0;
 
@@ -607,6 +664,7 @@ impl Drop for Story {
         let tc = RawTestCase {
             status: status.to_string(),
             title: Some(self.scenario.clone()),
+            source_file: self.source_file.clone(),
             story: Some(StoryMeta {
                 scenario: self.scenario.clone(),
                 steps: self.steps.clone(),
@@ -657,6 +715,48 @@ mod tests {
 
         assert_eq!(tc.status, "todo");
         assert!(tc.story.as_ref().unwrap().steps.is_empty());
+    }
+
+    fn find(scenario: &str) -> crate::types::RawTestCase {
+        crate::collector::get_all()
+            .into_iter()
+            .find(|tc| tc.story.as_ref().is_some_and(|s| s.scenario == scenario))
+            .unwrap_or_else(|| panic!("{scenario} was not recorded"))
+    }
+
+    #[test]
+    fn passing_test_records_pass_without_calling_pass() {
+        {
+            let mut story = Story::new("auto-status: no pass() call");
+            story.given("a story that never calls pass()");
+            story.then("it still records as passed");
+        }
+
+        assert_eq!(find("auto-status: no pass() call").status, "pass");
+    }
+
+    #[test]
+    fn panicking_test_records_fail() {
+        let outcome = std::panic::catch_unwind(|| {
+            let mut story = Story::new("auto-status: assertion panics");
+            story.given("a story whose assertion fails");
+            story.then("it records as failed");
+            panic!("assertion failed");
+        });
+        assert!(outcome.is_err());
+
+        assert_eq!(find("auto-status: assertion panics").status, "fail");
+    }
+
+    #[test]
+    fn record_result_marks_err_as_fail() {
+        {
+            let mut story = Story::new("auto-status: Result test returns Err");
+            story.given("a Result-returning test");
+            let _ = story.record_result("not a number".parse::<u32>());
+        }
+
+        assert_eq!(find("auto-status: Result test returns Err").status, "fail");
     }
 
     #[test]

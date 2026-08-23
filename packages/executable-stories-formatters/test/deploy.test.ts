@@ -6,7 +6,7 @@ import {
   recordDeployment,
   getDeploymentStatus,
   getEnvironmentDrift,
-} from "../src/deploy/index";
+} from "../src/deploy/deployments";
 import { loadLedger, createEmptyLedger, saveLedger } from "../src/deploy/ledger";
 import { stubs } from "./stubs";
 

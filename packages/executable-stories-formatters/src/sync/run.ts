@@ -16,7 +16,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { parseArgs } from "node:util";
 
-import { canonicalizeRun } from "executable-stories-core/converters/acl/index";
+import { canonicalizeRun } from "executable-stories-core/converters/acl/canonicalize";
 import { synthesizeStories } from "executable-stories-core/converters/synthesize";
 import type { TestRunResult } from "executable-stories-core/types/test-result";
 
@@ -28,7 +28,7 @@ import {
   PROVIDER_NAMES,
   type ProviderName,
   type SyncTargets,
-} from "./adapters/index";
+} from "./adapters/registry";
 import {
   DEFAULT_LOCKFILE_PATH,
   emptyLockfile,

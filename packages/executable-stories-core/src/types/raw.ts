@@ -116,10 +116,46 @@ export interface RawCIInfo {
   prNumber?: string;
 }
 
+/**
+ * A feature declared by `story.feature(...)` in a test file.
+ *
+ * Scenarios say what the system does. A declaration says what the feature is
+ * for, in the words the business uses, so a reader meets the intent before the
+ * examples.
+ */
+export interface RawFeature {
+  /** Source file the declaration was made in. */
+  sourceFile?: string;
+  /** Heading for the feature. */
+  title: string;
+  /**
+   * How to introduce it. `ability` frames the feature as something a person can
+   * now do; `business-need` covers cross-cutting concerns like security or
+   * performance that no single user asks for. Defaults to `feature`.
+   */
+  kind?: "feature" | "ability" | "business-need";
+  /** Markdown explaining why the feature exists and who it serves. */
+  narrative?: string;
+  /** Tags applied to every scenario in the file. */
+  tags?: string[];
+  /** Terms this feature defines, for the report glossary. */
+  glossary?: RawGlossaryTerm[];
+}
+
+/** One entry in a feature's glossary. */
+export interface RawGlossaryTerm {
+  /** The term as it appears in scenario and step text. */
+  term: string;
+  /** What it means, in one or two sentences. */
+  definition: string;
+}
+
 /** Raw run - all framework data gathered */
 export interface RawRun {
   /** All test cases from the run */
   testCases: RawTestCase[];
+  /** Feature declarations, keyed to their source files. */
+  features?: RawFeature[];
   /** Run start time (epoch ms) */
   startedAtMs?: number;
   /** Run finish time (epoch ms) */

@@ -25,6 +25,5 @@ fn test_login_works() {
     s.given("the user is on the login page");
     s.when("the user logs in with valid credentials");
     s.then("the user should be logged in");
-    s.pass();
 }
 ```

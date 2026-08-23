@@ -40,6 +40,5 @@ fn test_api_accepts_json_payload() {
     s.when("the client sends the request");
     s.then("the response status should be 200");
     s.then("the response body should include \"token\"");
-    s.pass();
 }
 ```

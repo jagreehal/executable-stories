@@ -1,13 +1,19 @@
-//! All story-based tests in one file so they run in one process; dtor writes raw-run.json at exit.
+//! One test binary, so one raw-run.json. Rust compiles each file under
+//! `tests/` into its own binary, and they would each write over the last.
 
-use executable_stories::Story;
+use executable_stories::{declare_feature, Feature, Story};
 use rust_example::{add, divide, multiply, subtract};
 
-// Register destructor to write raw-run.json when the test binary exits.
-#[dtor::dtor]
-fn write_story_results() {
-    executable_stories::write_results();
-}
+declare_feature!(
+    Feature::new("Anyone can do arithmetic without reaching for a calculator app")
+        .ability()
+        .narrative(
+            "People doing quick sums in the middle of another task lose their place \
+             when they have to switch apps. Division returns an error rather than \
+             an infinity."
+        )
+        .term("operand", "One of the two numbers an operation is applied to.")
+);
 
 // --- Calculator story tests ---
 
@@ -26,7 +32,6 @@ fn test_calculator_adds_two_numbers() {
     let result = add(a, b);
     s.then("the result is 8");
     assert_eq!(result, 8);
-    s.pass();
 }
 
 #[test]
@@ -38,7 +43,6 @@ fn test_calculator_subtracts_two_numbers() {
     let result = subtract(a, b);
     s.then("the result is 6");
     assert_eq!(result, 6);
-    s.pass();
 }
 
 #[test]
@@ -53,7 +57,6 @@ fn test_calculator_multiplies_two_numbers() {
     s.then("the result is 42");
     s.state(Some("Inputs"), serde_json::json!({"a": a, "b": b, "product": result}));
     assert_eq!(result, 42);
-    s.pass();
 }
 
 #[test]
@@ -65,7 +68,6 @@ fn test_calculator_divides_two_numbers() {
     let result = divide(a, b);
     s.then("the result is 5");
     assert_eq!(result, 5);
-    s.pass();
 }
 
 #[test]
@@ -78,7 +80,6 @@ fn test_calculator_throws_on_division_by_zero() {
     let result = std::panic::catch_unwind(|| divide(a, b));
     assert!(result.is_err());
     s.then("an error is thrown");
-    s.pass();
 }
 
 // --- Story options ---
@@ -90,7 +91,6 @@ fn test_story_with_single_tag() {
     s.given("a tagged story");
     s.when("tests are filtered");
     s.then("this story matches the 'smoke' tag");
-    s.pass();
 }
 
 #[test]
@@ -100,7 +100,6 @@ fn test_story_with_multiple_tags() {
     s.given("a story with multiple tags");
     s.when("tests are filtered by any tag");
     s.then("this story matches multiple filters");
-    s.pass();
 }
 
 #[test]
@@ -110,7 +109,6 @@ fn test_story_with_ticket() {
     s.given("a story linked to JIRA-123");
     s.when("documentation is generated");
     s.then("ticket reference appears in docs");
-    s.pass();
 }
 
 // --- Step aliases (and / but) ---
@@ -126,7 +124,6 @@ fn test_explicit_and_and_but_steps() {
         .then("the order should be created")
         .and("the payment should be processed")
         .but("the inventory is not yet decremented");
-    s.pass();
 }
 
 #[test]
@@ -138,7 +135,6 @@ fn test_but_for_negative_assertion() {
     s.then("the user should see an error message");
     s.but("the user should not be logged in");
     s.but("the session should not be created");
-    s.pass();
 }
 
 #[test]
@@ -152,7 +148,6 @@ fn test_mixed_given_when_then_with_and() {
     s.and("the result is positive");
     assert_eq!(total, 15);
     assert!(total > 0);
-    s.pass();
 }
 
 // --- Gherkin patterns ---
@@ -165,7 +160,6 @@ fn test_multiple_given_auto_and() {
     s.given("the account is active");
     s.when("the user submits valid credentials");
     s.then("the user should see the dashboard");
-    s.pass();
 }
 
 #[test]
@@ -175,7 +169,6 @@ fn test_multiple_when_auto_and() {
     s.when("the user navigates to settings");
     s.when("the user changes their display name");
     s.then("the changes should be saved");
-    s.pass();
 }
 
 #[test]
@@ -186,7 +179,6 @@ fn test_multiple_then_auto_and() {
     s.then("the order should be created");
     s.then("a confirmation email should be sent");
     s.then("the inventory should be updated");
-    s.pass();
 }
 
 #[test]
@@ -198,7 +190,6 @@ fn test_but_keyword_for_contrast() {
     s.then("the user should see an error message");
     s.but("the user should not be logged in");
     s.but("the session should not be created");
-    s.pass();
 }
 
 #[test]
@@ -211,7 +202,6 @@ fn test_explicit_and_steps() {
         .and("confirms the order")
         .then("the order should be created")
         .and("the payment should be processed");
-    s.pass();
 }
 
 // --- Wrapped steps (fn_step / expect_step) ---
@@ -225,7 +215,6 @@ fn test_wrapped_steps_addition() {
     s.expect_step("the result is 8", || {
         assert_eq!(result, 8);
     });
-    s.pass();
 }
 
 #[test]
@@ -238,7 +227,6 @@ fn test_wrapped_steps_subtraction() {
     s.expect_step("the result is 6", || {
         assert_eq!(result, 6);
     });
-    s.pass();
 }
 
 #[test]
@@ -249,7 +237,6 @@ fn test_wrapped_steps_division_by_zero() {
         let result = std::panic::catch_unwind(|| divide(10, 0));
         assert!(result.is_err());
     });
-    s.pass();
 }
 
 #[test]
@@ -262,5 +249,4 @@ fn test_wrapped_steps_mixed() {
     });
     s.and("the result is a positive number");
     assert!(result > 0);
-    s.pass();
 }

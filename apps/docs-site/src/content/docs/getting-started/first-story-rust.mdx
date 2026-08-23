@@ -10,7 +10,7 @@ import ReportScreenshot from '../../../components/ReportScreenshot.astro';
 Create a test file such as `tests/login.rs`:
 
 ```rust
-use executable_stories::{write_results, Story};
+use executable_stories::Story;
 
 #[cfg(test)]
 mod tests {
@@ -29,25 +29,23 @@ mod tests {
 
         s.then("the user should see the dashboard");
         assert!(authenticated);
-
-        s.pass();
-    }
-
-    #[test]
-    fn write_report() {
-        write_results();
     }
 }
 ```
 
-Call `.pass()` at the end of each test that succeeds. If `.pass()` is not called before the `Story` is dropped, the scenario is recorded as failed.
+That is the whole setup. The story records `pass` or `fail` when it drops, and
+the first story registers a process-exit hook that writes the run JSON.
+
+A failing assertion panics, and a story dropped mid-unwind records `fail`. Only
+a `#[test]` returning `Result` escapes that, since returning `Err` never panics:
+route the fallible call through `s.record_result(...)`, or call `s.fail()`.
 
 ## Richer example with doc entries
 
 Use tags, tickets, and doc entries to add context to your scenarios:
 
 ```rust
-use executable_stories::{write_results, Story};
+use executable_stories::Story;
 use serde_json::json;
 
 #[test]
@@ -81,7 +79,6 @@ fn password_rules_enforced() {
     );
 
     assert!(!valid);
-    s.pass();
 }
 ```
 

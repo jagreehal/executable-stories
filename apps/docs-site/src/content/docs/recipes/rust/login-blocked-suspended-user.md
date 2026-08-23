@@ -30,6 +30,5 @@ fn test_login_blocked_suspended_user() {
     s.when("the user submits valid credentials");
     s.then("the user should see an error message");
     s.but("the user should not be logged in");
-    s.pass();
 }
 ```

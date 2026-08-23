@@ -2,6 +2,22 @@ import { story } from 'executable-stories-vitest';
 import { describe, expect, it } from 'vitest';
 import { add, divide, multiply, subtract } from './calculator.js';
 
+story.feature({
+  kind: 'ability',
+  title: 'Anyone can do arithmetic without reaching for a calculator app',
+  narrative: `
+    People doing quick sums in the middle of another task lose their place when
+    they have to switch apps. These four operations cover what they reach for,
+    and division guards against a divide by zero rather than returning Infinity.
+  `,
+  glossary: [
+    {
+      term: 'operand',
+      definition: 'One of the two numbers an operation is applied to.',
+    },
+  ],
+});
+
 describe('Calculator', () => {
   it('adds two numbers', ({ task }) => {
     story.init(task);

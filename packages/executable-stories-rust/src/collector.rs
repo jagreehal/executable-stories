@@ -1,10 +1,35 @@
-use std::sync::Mutex;
+use std::sync::{Mutex, Once};
 
 use crate::json_writer;
 use crate::types::{RawCIInfo, RawRun, RawTestCase};
 
 static COLLECTED: Mutex<Vec<RawTestCase>> = Mutex::new(Vec::new());
+static FEATURES: Mutex<Vec<crate::types::RawFeature>> = Mutex::new(Vec::new());
 static ORDER_SEQ: Mutex<u32> = Mutex::new(0);
+
+static EXIT_HOOK: Once = Once::new();
+
+extern "C" fn write_results_at_exit() {
+    // Unwinding across an FFI boundary is undefined behaviour, so swallow any
+    // panic here. A failed write already printed on the way out.
+    let _ = std::panic::catch_unwind(write_results);
+}
+
+/// Flush results when the process exits.
+///
+/// The test harness calls `std::process::exit`, which runs `atexit` handlers,
+/// and it never calls a teardown function of ours. Registering from the first
+/// `Story` keeps the boilerplate out of the consuming crate.
+pub(crate) fn ensure_exit_hook() {
+    EXIT_HOOK.call_once(|| {
+        // SAFETY: `atexit` takes an `extern "C" fn()`. The handler touches only
+        // process-wide statics, which outlive every atexit callback, and cannot
+        // unwind past the boundary.
+        unsafe {
+            libc::atexit(write_results_at_exit);
+        }
+    });
+}
 
 /// Record a completed test case into the global collector.
 pub fn record(tc: RawTestCase) {
@@ -22,6 +47,21 @@ pub fn next_order() -> u32 {
 /// Get a clone of all collected test cases.
 pub fn get_all() -> Vec<RawTestCase> {
     COLLECTED.lock().unwrap().clone()
+}
+
+/// Store a declaration, replacing an earlier one for the same file so a
+/// re-declaration reads the way it does in source order.
+pub(crate) fn record_feature(feature: crate::types::RawFeature) {
+    let mut features = FEATURES.lock().unwrap();
+    match features.iter_mut().find(|f| f.source_file == feature.source_file) {
+        Some(existing) => *existing = feature,
+        None => features.push(feature),
+    }
+}
+
+/// Get a clone of all declared features.
+pub(crate) fn get_features() -> Vec<crate::types::RawFeature> {
+    FEATURES.lock().unwrap().clone()
 }
 
 fn detect_ci() -> Option<RawCIInfo> {
@@ -79,7 +119,8 @@ fn detect_ci() -> Option<RawCIInfo> {
 /// The output path is determined by the `EXECUTABLE_STORIES_OUTPUT` environment variable,
 /// defaulting to `.executable-stories/raw-run.json`.
 ///
-/// Call this at the end of your test suite.
+/// Called automatically when the test binary exits. Call it directly only to
+/// control when the file lands.
 ///
 /// # Panics
 ///
@@ -99,6 +140,7 @@ pub fn write_results() {
     let run = RawRun {
         schema_version: 1,
         test_cases: cases,
+        features: get_features(),
         project_root: cwd,
         started_at_ms: None,
         finished_at_ms: None,
@@ -127,5 +169,6 @@ fn print_next_step(output_path: &str) {
 #[allow(dead_code)]
 pub fn reset() {
     COLLECTED.lock().unwrap().clear();
+    FEATURES.lock().unwrap().clear();
     *ORDER_SEQ.lock().unwrap() = 0;
 }

@@ -6,6 +6,19 @@ import (
 	es "github.com/anthropics/executable-stories/packages/executable-stories-go"
 )
 
+func init() {
+	es.Feature(es.FeatureSpec{
+		Kind:  "ability",
+		Title: "Anyone can do arithmetic without reaching for a calculator app",
+		Narrative: "People doing quick sums in the middle of another task lose their place " +
+			"when they have to switch apps. Division guards against a divide by zero " +
+			"rather than returning +Inf.",
+		Glossary: []es.RawGlossaryTerm{
+			{Term: "operand", Definition: "One of the two numbers an operation is applied to."},
+		},
+	})
+}
+
 func TestCalculatorAddsTwoNumbers(t *testing.T) {
 	s := es.Init(t, "Calculator adds two numbers")
 	s.Given("two numbers 5 and 3")

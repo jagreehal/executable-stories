@@ -2,8 +2,8 @@
 name: xunit-story-api
 description: >
   Use when writing BDD story tests in xUnit (C#) with ExecutableStories.Xunit:
-  the static Story.Init/Given/When/Then/And/But API, wrapped steps, or
-  Story.RecordAndClear() output.
+  the static Story.Init/Given/When/Then/And/But API, wrapped steps, or the
+  [assembly: StoryRecording] attribute that records them.
 type: core
 library: ExecutableStories.Xunit
 library_version: "0.1.0"
@@ -14,6 +14,16 @@ sources:
 # ExecutableStories.Xunit — Story API
 
 ## Setup
+
+Add the recording attribute once per test project, in any file:
+
+```csharp
+using ExecutableStories.Xunit;
+
+[assembly: StoryRecording]
+```
+
+Then write tests:
 
 ```csharp
 using ExecutableStories.Xunit;
@@ -39,12 +49,22 @@ public class CartCheckoutTests
         Story.And("the discount is shown in the summary");
         Assert.Single(cart.Discounts);
 
-        Story.RecordAndClear();
     }
 }
 ```
 
-**Important:** Call `Story.RecordAndClear()` at the end of each test. This records the test case and clears context. Output is written to `.executable-stories/raw-run.json` on process exit via `InProcessCollector`. Override path with `EXECUTABLE_STORIES_OUTPUT` env var. The run JSON's first key is a `$schema` pointer, so editors validate it as it is written; the collector also prints a `next:` hint to stderr (silence with `EXECUTABLE_STORIES_QUIET`). Render it with `executable-stories format` (path optional — defaults to `.executable-stories/raw-run.json`) or diagnose it with `executable-stories doctor`.
+`[assembly: StoryRecording]` runs after every test, reads the outcome xUnit
+already computed, and records the story with its status, failure message, and
+the test class as its suite. The attribute also works on one class or one
+method. `Story.RecordAndClear(...)` stays available for hand-rolled setups.
+
+Recorded cases are held in process and written to
+`.executable-stories/raw-run.json` on exit; `EXECUTABLE_STORIES_OUTPUT`
+overrides the path. The run JSON opens with a `$schema` pointer so editors
+validate it as it is written, and the collector prints a `next:` hint to stderr
+(silence it with `EXECUTABLE_STORIES_QUIET`). Render with
+`executable-stories format` (the path argument is optional) or inspect with
+`executable-stories doctor`.
 
 ## Core Patterns
 
@@ -64,7 +84,6 @@ public void Blocks_suspended_user_login()
     Story.Then("the user sees an error message");
     Story.But("the user is not logged in");          // renders "But" (always)
 
-    Story.RecordAndClear();
 }
 ```
 
@@ -97,7 +116,6 @@ public void Processes_payment()
     Story.Link("API docs", "https://docs.example.com/payments");
     Story.Note("Payment processed in sandbox mode");
 
-    Story.RecordAndClear();
 }
 ```
 
@@ -181,35 +199,39 @@ Story.AttachInline("config", "application/json", "{\"key\":\"val\"}");
 
 ## Common Mistakes
 
-### CRITICAL Forgetting Story.RecordAndClear()
+### CRITICAL Missing [assembly: StoryRecording]
 
 Wrong:
 
 ```csharp
+// no attribute anywhere in the test project
+
 [Fact]
 public void My_test()
 {
     Story.Init("My scenario");
     Story.Given("something");
-    // Test ends — story data is lost
+    // Test ends, nothing is recorded
 }
 ```
 
 Correct:
 
 ```csharp
+[assembly: StoryRecording]
+
 [Fact]
 public void My_test()
 {
     Story.Init("My scenario");
     Story.Given("something");
-    Story.RecordAndClear(); // Records test case and clears context
 }
 ```
 
-There is no automatic test-lifecycle hook. You must call `RecordAndClear()` at the end of each test; recorded cases are collected in-process and flushed to `.executable-stories/raw-run.json` on process exit.
+Nothing else hooks the test lifecycle, so without the attribute no story reaches
+the collector.
 
-Source: packages/executable-stories-xunit/ExecutableStories.Xunit/Story.cs
+Source: packages/executable-stories-xunit/ExecutableStories.Xunit/StoryRecordingAttribute.cs
 
 ### CRITICAL Missing Story.Init() before steps
 
@@ -220,7 +242,6 @@ Wrong:
 public void My_test()
 {
     Story.Given("something"); // No context — steps are lost
-    Story.RecordAndClear();
 }
 ```
 
@@ -232,15 +253,14 @@ public void My_test()
 {
     Story.Init("My scenario");
     Story.Given("something");
-    Story.RecordAndClear();
 }
 ```
 
 Source: packages/executable-stories-xunit/ExecutableStories.Xunit/Story.cs
 
-### HIGH Not calling RecordAndClear on test failure
+### HIGH Wrapping the test body in try/finally to record failures
 
-Use try/finally to ensure recording even when assertions fail:
+Wrong:
 
 ```csharp
 [Fact]
@@ -250,9 +270,7 @@ public void My_test()
     try
     {
         Story.Given("something");
-        Story.When("action");
-        Story.Then("result");
-        Assert.True(false); // This throws
+        Assert.True(false);
     }
     finally
     {
@@ -261,4 +279,20 @@ public void My_test()
 }
 ```
 
-Source: packages/executable-stories-xunit/ExecutableStories.Xunit/Story.cs
+Correct:
+
+```csharp
+[Fact]
+public void My_test()
+{
+    Story.Init("My scenario");
+    Story.Given("something");
+    Assert.True(false);
+}
+```
+
+The recording attribute already sees the failure, along with its message and
+stack. A `finally` that hard-codes `"fail"` marks passing tests red, and one
+that hard-codes `"pass"` marks failing tests green.
+
+Source: packages/executable-stories-xunit/ExecutableStories.Xunit/StoryRecordingAttribute.cs

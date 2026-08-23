@@ -30,6 +30,7 @@ func RunAndReport(m *testing.M) {
 			Schema:        SchemaURL,
 			SchemaVersion: 1,
 			TestCases:     cases,
+			Features:      getFeatures(),
 			ProjectRoot:   cwd,
 			StartedAtMs:   &startMs,
 			FinishedAtMs:  &finishMs,

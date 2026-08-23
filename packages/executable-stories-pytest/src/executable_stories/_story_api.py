@@ -13,11 +13,14 @@ Usage in tests::
 
 from __future__ import annotations
 
+import inspect
 import json
 import os
 import threading
 import time
 from typing import Any, Callable, TypeVar
+
+from executable_stories._collector import _collector
 
 _T = TypeVar("_T")
 
@@ -142,6 +145,52 @@ class Story:
             pass  # opentelemetry not installed
         except Exception:
             pass  # OTel not available or no active span
+
+    def feature(
+        self,
+        title: str,
+        *,
+        kind: str | None = None,
+        narrative: str | None = None,
+        tags: list[str] | None = None,
+        glossary: list[dict[str, str]] | None = None,
+        source_file: str | None = None,
+    ) -> None:
+        """Declare what a module's scenarios are for, ahead of the examples.
+
+        Scenarios say what the system does. A declaration says why the feature
+        exists and who it serves, so a reader meets the intent before the
+        examples. Call it once per test module, at module scope::
+
+            story.feature(
+                "Anyone can do arithmetic without a calculator app",
+                kind="ability",
+                narrative="Switching apps for a quick sum loses your place.",
+            )
+
+        ``kind`` is ``"feature"`` by default. ``"ability"`` frames it as
+        something a person can now do; ``"business-need"`` covers cross-cutting
+        concerns like security or performance that nobody asks for by name.
+
+        The source file is taken from the caller, so the declaration lands on
+        the module that made it.
+        """
+        declared: dict[str, Any] = {
+            "title": title,
+            "sourceFile": source_file or _caller_file(),
+        }
+        if kind is not None:
+            declared["kind"] = kind
+        if narrative is not None:
+            declared["narrative"] = narrative
+        if tags:
+            declared["tags"] = tags
+        if glossary:
+            declared["glossary"] = [
+                {"term": t["term"], "definition": t["definition"]} for t in glossary
+            ]
+
+        _collector.record_feature(declared)
 
     def planned(
         self,
@@ -635,3 +684,22 @@ class Story:
 
 # Module-level singleton
 story = Story()
+
+
+def _caller_file() -> str:
+    """Source file of whoever called into this module.
+
+    ``story.feature(...)`` runs at import time, before pytest has a current
+    item, so the stack is the only place the module path is available.
+    """
+    frame = inspect.currentframe()
+    try:
+        while frame is not None:
+            filename = frame.f_code.co_filename
+            if not filename.endswith(os.sep + "_story_api.py"):
+                return filename
+            frame = frame.f_back
+    finally:
+        del frame
+
+    return ""

@@ -34,6 +34,5 @@ public class CheckoutTests : IDisposable
         Story.Then("the total should be $44.00");
     }
 
-    public void Dispose() => Story.RecordAndClear();
 }
 ```

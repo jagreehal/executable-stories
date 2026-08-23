@@ -16,7 +16,7 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, it, expect } from "vitest";
 import { renderReportToHtml } from "executable-stories-react/ssr";
-import { canonicalizeRun } from "executable-stories-core/converters/acl/index";
+import { canonicalizeRun } from "executable-stories-core/converters/acl/canonicalize";
 import { toStoryReport } from "executable-stories-core/converters/story-report";
 import type { StoryReport } from "executable-stories-core/types/story-report";
 

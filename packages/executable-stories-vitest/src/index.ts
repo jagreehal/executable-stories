@@ -49,6 +49,8 @@ export type {
   StoryMeta,
   StoryStep,
   DocEntry,
+  FeatureInput,
+  GlossaryTerm,
   StepKeyword,
   StepMode,
   DocPhase,

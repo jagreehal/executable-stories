@@ -172,6 +172,49 @@ describe("buildCheck", () => {
     });
   });
 
+  it("names turned-off scenarios and does not call the run green", () => {
+    const off = stubs.testCaseResult({
+      id: "off1",
+      status: "skipped",
+      sourceFile: "src/billing/refund.story.test.ts",
+      sourceLine: 12,
+      story: stubs.storyMeta({ scenario: "Refund a part-used subscription", tickets: [] }),
+    });
+    const offWithTicket = stubs.testCaseResult({
+      id: "off2",
+      status: "skipped",
+      sourceFile: "src/auth/lockout.story.test.ts",
+      sourceLine: 8,
+      story: stubs.storyMeta({
+        scenario: "Lock the account after five bad passwords",
+        tickets: [{ id: "AUTH-9" }],
+      }),
+    });
+    // it.todo is a planned spec, not a switched-off one.
+    const planned = stubs.testCaseResult({
+      id: "todo1",
+      status: "pending",
+      rawStatus: "todo",
+      story: stubs.storyMeta({ scenario: "Split a refund across two cards" }),
+    });
+
+    const report = buildCheck(
+      { testCases: [stubs.testCaseResult({ status: "passed" }), off, offWithTicket, planned], format: "text" },
+      {},
+    );
+
+    expect(report.turnedOff.map((t) => t.id)).toEqual(["off2", "off1"]);
+
+    const text = renderCheck(report, "text");
+    expect(text).toContain("All running scenarios green.");
+    expect(text).not.toContain("All scenarios green.");
+    expect(text).toContain("2 turned off (not validated)");
+    expect(text).toContain("Refund a part-used subscription");
+    expect(text).toContain("no ticket");
+    expect(text).toContain("ticket: AUTH-9");
+    expect(text).not.toContain("Split a refund across two cards");
+  });
+
   it("handles an empty run", () => {
     const report = buildCheck({ testCases: [], format: "text" }, {});
     expect(report.summary.total).toBe(0);

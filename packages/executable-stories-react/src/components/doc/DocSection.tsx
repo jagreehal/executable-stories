@@ -1,37 +1,6 @@
-import { marked } from "marked";
 import type { ReportDocSection } from "executable-stories-core";
 import { useBuiltinRenderers } from "../../hooks/useRenderers";
-import { safeUrl } from "../../lib/url";
-
-/**
- * Best-effort sanitizer for marked-generated HTML. `section` markdown is
- * authored in the test source (developer-trusted), so this is defense-in-depth,
- * not a hard boundary against hostile input. It:
- *   - drops <script>/<style> and other active elements (iframe/object/embed/form)
- *   - strips on* event-handler attributes
- *   - neutralizes any non-http(s) scheme on href/src via the shared `safeUrl`
- *     allow-list (covers javascript:/data:/vbscript:/file:, not just javascript:)
- *
- * It is NOT a substitute for a full HTML sanitizer (it won't catch entity-
- * obfuscated schemes). For untrusted markdown, supply `renderers.section` with
- * your own sanitizer.
- */
-function neutralizeUrl(value: string): string {
-  return safeUrl(value) ?? "#";
-}
-
-function safeMarkdownHtml(markdown: string): string {
-  const raw = marked.parse(markdown, { async: false }) as string;
-  return raw
-    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
-    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, "")
-    .replace(/<\/?(?:iframe|object|embed|form|base)\b[^>]*>/gi, "")
-    .replace(/\son[a-z]+\s*=\s*"[^"]*"/gi, "")
-    .replace(/\son[a-z]+\s*=\s*'[^']*'/gi, "")
-    .replace(/\son[a-z]+\s*=\s*[^\s>]+/gi, "")
-    .replace(/(href|src)\s*=\s*"([^"]*)"/gi, (_m, attr, val) => `${attr}="${neutralizeUrl(val)}"`)
-    .replace(/(href|src)\s*=\s*'([^']*)'/gi, (_m, attr, val) => `${attr}='${neutralizeUrl(val)}'`);
-}
+import { safeMarkdownHtml } from "../../lib/markdown";
 
 export function DocSection({ entry }: { entry: ReportDocSection }) {
   const renderers = useBuiltinRenderers();

@@ -1,5 +1,5 @@
 import type { TestRunResult } from "executable-stories-core/types/test-result";
-import type { SyncTargets } from "../sync/adapters/index";
+import type { SyncTargets } from "../sync/adapters/registry";
 
 export interface Formatter {
   name: string;

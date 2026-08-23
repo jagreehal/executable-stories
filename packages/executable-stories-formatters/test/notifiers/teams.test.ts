@@ -3,6 +3,22 @@ import { sendTeamsNotification } from "../../src/notifiers/teams";
 import type { NotificationSummary } from "../../src/notifiers/types";
 import type { CIInfo } from "executable-stories-core/types/ci";
 
+/**
+ * The parts of the Adaptive Card these tests assert on. The notifier builds the
+ * card inline and Microsoft's types are not a dependency, so this is the
+ * contract the tests actually pin.
+ */
+interface CardElement {
+  type?: string;
+  separator?: boolean;
+  fontType?: string;
+  text?: string;
+  isSubtle?: boolean;
+  facts?: { title?: string; value?: string }[];
+  items?: CardElement[];
+}
+
+
 function createSummary(overrides: Partial<NotificationSummary> = {}): NotificationSummary {
   return {
     total: 10,
@@ -85,17 +101,17 @@ describe("sendTeamsNotification", () => {
 
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
     const card = body.attachments[0].content;
-    const factSet = card.body.find((item: any) => item.type === "FactSet" && !item.separator);
+    const factSet = card.body.find((item: CardElement) => item.type === "FactSet" && !item.separator);
     expect(factSet).toBeDefined();
 
-    const factTitles = factSet.facts.map((f: any) => f.title);
+    const factTitles = factSet.facts.map((f: { title?: string; value?: string }) => f.title);
     expect(factTitles).toContain("Total");
     expect(factTitles).toContain("Passed");
     expect(factTitles).toContain("Failed");
     expect(factTitles).toContain("Skipped");
     expect(factTitles).toContain("Duration");
 
-    const totalFact = factSet.facts.find((f: any) => f.title === "Total");
+    const totalFact = factSet.facts.find((f: { title?: string; value?: string }) => f.title === "Total");
     expect(totalFact.value).toBe("20");
   });
 
@@ -117,12 +133,12 @@ describe("sendTeamsNotification", () => {
 
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
     const card = body.attachments[0].content;
-    const container = card.body.find((item: any) => item.type === "Container");
+    const container = card.body.find((item: CardElement) => item.type === "Container");
     expect(container).toBeDefined();
 
     // Find error TextBlock for test A
     const errorBlocks = container.items.filter(
-      (item: any) => item.fontType === "Monospace",
+      (item: CardElement) => item.fontType === "Monospace",
     );
     expect(errorBlocks).toHaveLength(2);
     // First error should be truncated
@@ -164,18 +180,18 @@ describe("sendTeamsNotification", () => {
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
     const card = body.attachments[0].content;
     const ciFactSet = card.body.find(
-      (item: any) => item.type === "FactSet" && item.separator === true,
+      (item: CardElement) => item.type === "FactSet" && item.separator === true,
     );
     expect(ciFactSet).toBeDefined();
 
-    const factTitles = ciFactSet.facts.map((f: any) => f.title);
+    const factTitles = ciFactSet.facts.map((f: { title?: string; value?: string }) => f.title);
     expect(factTitles).toContain("Branch");
     expect(factTitles).toContain("Commit");
 
-    const branchFact = ciFactSet.facts.find((f: any) => f.title === "Branch");
+    const branchFact = ciFactSet.facts.find((f: { title?: string; value?: string }) => f.title === "Branch");
     expect(branchFact.value).toBe("develop");
 
-    const commitFact = ciFactSet.facts.find((f: any) => f.title === "Commit");
+    const commitFact = ciFactSet.facts.find((f: { title?: string; value?: string }) => f.title === "Commit");
     expect(commitFact.value).toBe("1234567");
   });
 
@@ -226,16 +242,16 @@ describe("sendTeamsNotification", () => {
 
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
     const card = body.attachments[0].content;
-    const container = card.body.find((item: any) => item.type === "Container");
+    const container = card.body.find((item: CardElement) => item.type === "Container");
 
     // Should have: "Failed Tests" header + test1 name + test1 error + test2 name + test2 error + "...and 6 more"
     const nameBlocks = container.items.filter(
-      (item: any) => item.text?.startsWith("**test"),
+      (item: CardElement) => item.text?.startsWith("**test"),
     );
     expect(nameBlocks).toHaveLength(2);
 
     const moreBlock = container.items.find(
-      (item: any) => item.isSubtle === true,
+      (item: CardElement) => item.isSubtle === true,
     );
     expect(moreBlock).toBeDefined();
     expect(moreBlock.text).toContain("6 more");

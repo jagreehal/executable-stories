@@ -10,9 +10,10 @@
 
 import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
+import * as path from "node:path";
 import { parseArgs } from "node:util";
 
-import { canonicalizeRun } from "executable-stories-core/converters/acl/index";
+import { canonicalizeRun } from "executable-stories-core/converters/acl/canonicalize";
 import { toStoryReport } from "executable-stories-core/converters/story-report";
 import { synthesizeStories } from "executable-stories-core/converters/synthesize";
 
@@ -23,11 +24,13 @@ const EXIT_USAGE = 4;
 const EXIT_GATE_BLOCKED = 5;
 
 const HELP = `Usage:
-  executable-stories push <run.json> [options]
+  executable-stories push <run.json|results.xml|allure-results/> [options]
 
-Send a run to a cloud ingest endpoint. <run.json> is either a StoryReport v1
-(e.g. reports/index.story-report.json) or a raw run JSON, which is converted
-through the standard pipeline first.
+Send a run to a cloud ingest endpoint. The input is a StoryReport v1
+(e.g. reports/index.story-report.json), a raw run JSON, or the output of any
+other framework: JUnit XML, Playwright's JSON reporter, or an allure-results
+directory. The format is detected from what you point at, so one command
+covers all of them and nothing in your tests needs a marker or an annotation.
 
 Options:
   --key <es_...>     API key. Default: EXECUTABLE_STORIES_API_KEY env var.
@@ -39,9 +42,16 @@ Options:
   --git-sha <sha>    Default: current git HEAD.
   --base <ref>       Send files changed since <ref> (e.g. origin/main) so the
                      cloud can recommend a test scope for the change.
+  --format <fmt>     auto (default), story, junit, playwright or allure.
+                     Only needed when detection guesses wrong.
   --gate             After pushing, ask the cloud whether this commit is safe
                      to release and exit 5 if it is blocked. The policy lives
                      in your organization's settings, not in a file here.
+  --force            Do not fail the build when the push itself fails
+                     (network, auth, a rejected file). A gate verdict is never
+                     forced: --gate still runs after a forced failure and still
+                     exits 5 when a release is blocked, because that is your
+                     tests talking, not the wire.
   -h, --help         Show this help.
 
 Under GitHub Actions, repo/branch/sha, the base commit, and PR metadata are
@@ -52,6 +62,8 @@ Exit codes: 0 pushed, 1 push rejected/failed, 4 usage error, 5 gate blocked.`;
 
 export interface PushDeps {
   readFile: (filePath: string) => string;
+  /** Entry names in a directory, or undefined when the path is not one. */
+  listDir: (dirPath: string) => string[] | undefined;
   appendFile: (filePath: string, text: string) => void;
   fetchFn: typeof fetch;
   /** Run a git command, returning trimmed stdout or undefined on failure. */
@@ -64,6 +76,14 @@ export interface PushDeps {
 function defaultDeps(): PushDeps {
   return {
     readFile: (filePath) => fs.readFileSync(filePath, "utf8"),
+    listDir: (dirPath) => {
+      try {
+        return fs.readdirSync(dirPath);
+      } catch {
+        // A file (ENOTDIR) or nothing there (ENOENT): readFile reports it.
+        return undefined;
+      }
+    },
     appendFile: (filePath, text) => fs.appendFileSync(filePath, text),
     fetchFn: fetch,
     git: (args) => {
@@ -79,6 +99,109 @@ function defaultDeps(): PushDeps {
     log: console.log,
     error: console.error,
   };
+}
+
+/** Query string for the foreign-format endpoints, which take metadata in the URL. */
+function foreignQuery(input: {
+  repo: string;
+  branch: string | undefined;
+  gitSha: string | undefined;
+  changedFiles: string[];
+  baseSha: string | undefined;
+  prNumber: number | undefined;
+  prUrl: string | undefined;
+}): string {
+  const query = new URLSearchParams({ repo: input.repo });
+  if (input.branch) query.set("branch", input.branch);
+  if (input.gitSha) query.set("sha", input.gitSha);
+  if (input.changedFiles.length > 0) query.set("changedFiles", input.changedFiles.join(","));
+  if (input.baseSha) query.set("baseSha", input.baseSha);
+  if (input.prNumber) query.set("prNumber", String(input.prNumber));
+  if (input.prUrl) query.set("prUrl", input.prUrl);
+  return query.toString();
+}
+
+/**
+ * Allure writes a directory, not a file: one `*-result.json` per test, plus
+ * container files for fixtures and loose attachments. The results carry the
+ * tests, so they are collected into the array the ingest endpoint expects and
+ * the rest is left on disk. Every other format is a single file.
+ */
+function readInput(inputPath: string, deps: PushDeps): string {
+  const entries = deps.listDir(inputPath);
+  if (!entries) return deps.readFile(inputPath);
+
+  const results = entries
+    .filter((name) => name.endsWith("-result.json"))
+    .sort()
+    .map((name) => {
+      const file = path.join(inputPath, name);
+      try {
+        return JSON.parse(deps.readFile(file)) as unknown;
+      } catch (err) {
+        // Name the file: a directory can hold hundreds, and "not JSON" alone
+        // leaves you grepping for which one.
+        throw new Error(`${file} is not valid JSON`, { cause: err });
+      }
+    });
+  if (results.length === 0) {
+    // The caller prefixes the path, so this says what is wrong, not where.
+    throw new Error(
+      "no *-result.json files in it. Point push at an allure-results directory or at a run file.",
+    );
+  }
+  return JSON.stringify(results);
+}
+
+/**
+ * The foreign-format endpoints take change metadata in the URL, and a large
+ * PR's file list overflows what a server accepts. A 414 would lose the whole
+ * run for the sake of its metadata, so the list is capped and the drop said out
+ * loud rather than left to look like a small diff.
+ */
+const CHANGED_FILES_QUERY_BUDGET = 4000;
+
+function capForQuery(files: string[], deps: PushDeps): string[] {
+  const kept: string[] = [];
+  let used = 0;
+  for (const file of files) {
+    used += file.length + 1;
+    if (used > CHANGED_FILES_QUERY_BUDGET) break;
+    kept.push(file);
+  }
+  if (kept.length < files.length) {
+    deps.error(
+      `Warning: sending ${kept.length} of ${files.length} changed files; the rest would overflow the request URL.`,
+    );
+  }
+  return kept;
+}
+
+export type PushFormat = "story" | "junit" | "playwright" | "allure";
+
+/**
+ * Which uploader a file wants. Detection beats asking: qas-cli makes you pick
+ * a subcommand per format, and the format is sitting right there in the file.
+ */
+export function detectFormat(filePath: string, contents: string): PushFormat {
+  const head = contents.trimStart();
+  if (head.startsWith("<")) return "junit";
+  if (filePath.toLowerCase().endsWith(".xml")) return "junit";
+  // An allure-results directory arrives as an array of result objects.
+  if (head.startsWith("[")) return "allure";
+  try {
+    const parsed: unknown = JSON.parse(head);
+    if (typeof parsed === "object" && parsed !== null) {
+      const node = parsed as Record<string, unknown>;
+      // A StoryReport declares itself; Playwright's reporter has "suites" and
+      // "config" and never a schemaVersion.
+      if (node.schemaVersion !== undefined) return "story";
+      if (Array.isArray(node.suites)) return "playwright";
+    }
+  } catch {
+    // Not JSON and not XML: let the story pipeline produce the real error.
+  }
+  return "story";
 }
 
 /** git@host:org/name.git or https://host/org/name(.git) -> "org/name". */
@@ -180,7 +303,9 @@ export async function runPush(
         branch: { type: "string" },
         "git-sha": { type: "string" },
         base: { type: "string" },
+        format: { type: "string" },
         gate: { type: "boolean" },
+        force: { type: "boolean" },
         help: { type: "boolean", short: "h" },
       },
     });
@@ -197,7 +322,9 @@ export async function runPush(
 
   const inputPath = parsed.positionals[0];
   if (!inputPath) {
-    deps.error("push needs a run file: executable-stories push <run.json>");
+    deps.error(
+      "push needs a run file: executable-stories push <run.json|results.xml|allure-results/>",
+    );
     deps.error(HELP);
     return EXIT_USAGE;
   }
@@ -210,25 +337,54 @@ export async function runPush(
     return EXIT_USAGE;
   }
 
-  let data: Record<string, unknown>;
+  let raw: string;
   try {
-    data = JSON.parse(deps.readFile(inputPath)) as Record<string, unknown>;
+    raw = readInput(inputPath, deps);
   } catch (err) {
     deps.error(`Could not read ${inputPath}: ${err instanceof Error ? err.message : String(err)}`);
     return EXIT_USAGE;
   }
 
+  const requested = parsed.values.format;
+  if (
+    requested !== undefined &&
+    requested !== "auto" &&
+    requested !== "story" &&
+    requested !== "junit" &&
+    requested !== "playwright" &&
+    requested !== "allure"
+  ) {
+    deps.error(`Unknown --format "${requested}". Use auto, story, junit, playwright or allure.`);
+    return EXIT_USAGE;
+  }
+  const format: PushFormat =
+    requested === undefined || requested === "auto"
+      ? detectFormat(inputPath, raw)
+      : (requested as PushFormat);
+
+  // Foreign formats go to the cloud as-is and are converted there, so the
+  // conversion rules live in one place rather than drifting between the
+  // server and every version of this CLI in the wild.
   let report: unknown;
-  if (isStoryReport(data)) {
-    report = data;
-  } else {
+  if (format === "story") {
+    let data: Record<string, unknown>;
     try {
-      report = toStoryReport(canonicalizeRun(synthesizeStories(data as never)));
+      data = JSON.parse(raw) as Record<string, unknown>;
     } catch (err) {
-      deps.error(
-        `${inputPath} is neither a StoryReport v1 nor a convertible raw run: ${err instanceof Error ? err.message : String(err)}`,
-      );
+      deps.error(`${inputPath} is not JSON: ${err instanceof Error ? err.message : String(err)}`);
       return EXIT_USAGE;
+    }
+    if (isStoryReport(data)) {
+      report = data;
+    } else {
+      try {
+        report = toStoryReport(canonicalizeRun(synthesizeStories(data as never)));
+      } catch (err) {
+        deps.error(
+          `${inputPath} is neither a StoryReport v1 nor a convertible raw run: ${err instanceof Error ? err.message : String(err)}`,
+        );
+        return EXIT_USAGE;
+      }
     }
   }
 
@@ -262,37 +418,91 @@ export async function runPush(
     deps.error(`Warning: no changed files found against ${base}; pushing without change metadata.`);
   }
 
+  const forced = parsed.values.force === true;
+
+  // Every exit path that can reach the gate needs the same five values; a
+  // closure keeps them from drifting apart across the three call sites.
+  const gateArgs = () => ({
+    wanted: parsed.values.gate === true,
+    forced,
+    baseUrl,
+    key,
+    repo,
+    gitSha,
+    onActions,
+  });
+
   let response: Response;
   try {
-    response = await deps.fetchFn(new URL("/api/v1/runs", baseUrl), {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${key}`,
-      },
-      body: JSON.stringify({
-        repo,
-        branch,
-        gitSha,
-        // "serve" named a subcommand that no longer exists (ADR 0006). The
-        // cloud accepts both; "local" is what this is.
-        source: onActions ? "action" : "local",
-        report,
-        ...(changedFiles.length > 0 ? { changedFiles, baseSha } : {}),
-        ...(github.prNumber ? { prNumber: github.prNumber } : {}),
-        ...(github.prUrl ? { prUrl: github.prUrl } : {}),
-      }),
-    });
+    response =
+      format === "story"
+        ? await deps.fetchFn(new URL("/api/v1/runs", baseUrl), {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${key}`,
+            },
+            body: JSON.stringify({
+              repo,
+              branch,
+              gitSha,
+              // "serve" named a subcommand that no longer exists (ADR 0006).
+              // The cloud accepts both; "local" is what this is.
+              source: onActions ? "action" : "local",
+              report,
+              ...(changedFiles.length > 0 ? { changedFiles, baseSha } : {}),
+              ...(github.prNumber ? { prNumber: github.prNumber } : {}),
+              ...(github.prUrl ? { prUrl: github.prUrl } : {}),
+            }),
+          })
+        : await deps.fetchFn(
+            new URL(
+              `/api/v1/runs/${format}?${foreignQuery({
+                repo,
+                branch,
+                gitSha,
+                changedFiles: capForQuery(changedFiles, deps),
+                baseSha,
+                prNumber: github.prNumber,
+                prUrl: github.prUrl,
+              })}`,
+              baseUrl,
+            ),
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": format === "junit" ? "application/xml" : "application/json",
+                Authorization: `Bearer ${key}`,
+              },
+              body: raw,
+            },
+          );
   } catch (err) {
     deps.error(`Could not reach ${baseUrl}: ${err instanceof Error ? err.message : String(err)}`);
-    return EXIT_PUSH_FAILED;
+    // --force covers the wire, not the verdict: a CI job that fails because
+    // the reporting endpoint blinked teaches people to stop reporting. The
+    // gate still runs — a release blocked against this sha was blocked before
+    // this push and is not un-blocked by the push failing to land.
+    return forced ? await gateIfRequested(gateArgs(), deps) : EXIT_PUSH_FAILED;
   }
 
-  const body = await response.text();
+  // fetch() resolves on headers; the connection can still reset while the body
+  // streams. Reading it outside the try would throw past --force and past the
+  // gate, turning a wire problem into an unhandled rejection.
+  let body: string;
+  try {
+    body = await response.text();
+  } catch (err) {
+    deps.error(
+      `Could not read the response from ${baseUrl}: ${err instanceof Error ? err.message : String(err)}`,
+    );
+    return forced ? await gateIfRequested(gateArgs(), deps) : EXIT_PUSH_FAILED;
+  }
+
   if (!response.ok) {
     const retryAfter = response.headers.get("Retry-After");
     deps.error(`Push rejected: HTTP ${response.status}${retryAfter ? ` (retry after ${retryAfter}s)` : ""}: ${body.slice(0, 500)}`);
-    return EXIT_PUSH_FAILED;
+    return forced ? await gateIfRequested(gateArgs(), deps) : EXIT_PUSH_FAILED;
   }
 
   let result: PushResponse = {};
@@ -333,12 +543,7 @@ export async function runPush(
     }
   }
 
-  if (!parsed.values.gate) return EXIT_SUCCESS;
-  if (!gitSha) {
-    deps.error("--gate needs a commit sha: pass --git-sha or run inside a git repository.");
-    return EXIT_USAGE;
-  }
-  return await runGate({ baseUrl, key, repo, gitSha, onActions }, deps);
+  return await gateIfRequested(gateArgs(), deps);
 }
 
 interface PushResponse {
@@ -352,6 +557,35 @@ interface GateResponse {
   blocking?: string[];
   warnings?: string[];
   release?: { name?: string };
+}
+
+/**
+ * Run the gate when one was asked for. `forced` covers the wire, never the
+ * verdict: with --force, a gate that cannot be reached is a reporting problem
+ * and exits 0, while a BLOCKED release still exits 5. Without --force every
+ * gate failure is fatal, as before.
+ */
+async function gateIfRequested(
+  args: {
+    wanted: boolean;
+    forced: boolean;
+    baseUrl: string;
+    key: string;
+    repo: string;
+    gitSha: string | undefined;
+    onActions: boolean;
+  },
+  deps: PushDeps,
+): Promise<number> {
+  if (!args.wanted) return EXIT_SUCCESS;
+  if (!args.gitSha) {
+    // A missing sha is the caller's mistake, not the network's, so --force
+    // does not cover it.
+    deps.error("--gate needs a commit sha: pass --git-sha or run inside a git repository.");
+    return EXIT_USAGE;
+  }
+  const code = await runGate({ ...args, gitSha: args.gitSha }, deps);
+  return args.forced && code !== EXIT_GATE_BLOCKED ? EXIT_SUCCESS : code;
 }
 
 /** Ask the cloud whether this commit is safe to release. */
@@ -377,13 +611,22 @@ async function runGate(
     return EXIT_PUSH_FAILED;
   }
 
-  const body = await response.text();
+  // Same reset-mid-body case as the push: the gate's caller maps this to 0
+  // under --force and to a failure without it, which is what a wire error is.
+  let body: string;
+  try {
+    body = await response.text();
+  } catch (err) {
+    deps.error(`Could not read the gate response: ${err instanceof Error ? err.message : String(err)}`);
+    return EXIT_PUSH_FAILED;
+  }
+
   if (!response.ok) {
     deps.error(`Gate check failed: HTTP ${response.status}: ${body.slice(0, 500)}`);
     return EXIT_PUSH_FAILED;
   }
 
-  let gate: GateResponse = {};
+  let gate: GateResponse;
   try {
     gate = JSON.parse(body) as GateResponse;
   } catch {

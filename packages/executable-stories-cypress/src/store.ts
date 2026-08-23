@@ -3,7 +3,7 @@
  * Plugin writes; reporter reads. Keyed by spec + titlePath for merging with run results.
  */
 
-import type { StoryMeta, ScopedAttachment, RecordMetaPayload } from "./types";
+import type { StoryMeta, ScopedAttachment, RecordMetaPayload, FeatureInput } from "./types";
 
 export interface StoredMeta {
   specRelative: string;
@@ -17,6 +17,7 @@ function key(specRelative: string, titlePath: string[]): string {
 }
 
 const store = new Map<string, StoredMeta>();
+const features = new Map<string, FeatureInput>();
 
 export function recordMeta(payload: RecordMetaPayload): null {
   store.set(key(payload.specRelative, payload.titlePath), {
@@ -25,7 +26,13 @@ export function recordMeta(payload: RecordMetaPayload): null {
     meta: payload.meta,
     attachments: payload.attachments,
   });
+  if (payload.feature?.title) features.set(payload.specRelative, payload.feature);
   return null;
+}
+
+/** The feature declared by a spec, if it declared one. */
+export function getFeature(specRelative: string): FeatureInput | undefined {
+  return features.get(specRelative);
 }
 
 export function getAttachments(specRelative: string, titlePath: string[]): ScopedAttachment[] | undefined {
@@ -42,4 +49,5 @@ export function getAllMeta(): StoredMeta[] {
 
 export function clearStore(): void {
   store.clear();
+  features.clear();
 }

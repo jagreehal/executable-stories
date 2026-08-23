@@ -52,6 +52,5 @@ fn test_bulk_user_creation() {
             &["eve@example.com", "user", "locked"],
         ],
     );
-    s.pass();
 }
 ```

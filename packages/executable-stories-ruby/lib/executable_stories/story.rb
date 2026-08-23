@@ -32,8 +32,17 @@ module ExecutableStories
       @otel_spans = nil
       @trace_url_template = trace_url_template
       @suite_path = nil
+      @recorded = false
+
+      Thread.current[:executable_stories_current] = self
 
       bridge_otel
+    end
+
+    # True once this story has been written to the collector. The Minitest hook
+    # checks it so an explicit `story.record(...)` still wins.
+    def recorded?
+      @recorded
     end
 
     def given(text)
@@ -283,13 +292,14 @@ module ExecutableStories
     end
 
     def record(status:, title: nil, suite_path: nil, source_file: nil, source_line: nil, duration_ms: nil, error: nil)
+      return if @recorded
+
+      @recorded = true
+      Thread.current[:executable_stories_current] = nil if Thread.current[:executable_stories_current].equal?(self)
       @end_time = Process.clock_gettime(Process::CLOCK_MONOTONIC) * 1000.0
       @suite_path = suite_path if suite_path
       duration = duration_ms || (@end_time - @start_time)
-
-      step_events = @steps.each_with_index.map do |s, i|
-        s.duration_ms ? RawStepEvent.new(index: i, title: s.text, duration_ms: s.duration_ms) : nil
-      end.compact
+      step_events = timed_step_events
 
       tc = RawTestCase.new(
         status: status,
@@ -312,6 +322,12 @@ module ExecutableStories
     end
 
     private
+
+    def timed_step_events
+      @steps.each_with_index.map do |s, i|
+        s.duration_ms ? RawStepEvent.new(index: i, title: s.text, duration_ms: s.duration_ms) : nil
+      end.compact
+    end
 
     def add_step(keyword, text)
       effective = keyword
@@ -430,6 +446,34 @@ module ExecutableStories
     Story.new(scenario, **opts)
   end
 
+  # Declare what a file's scenarios are for, ahead of the examples.
+  #
+  # Scenarios say what the system does. A declaration says why the feature
+  # exists and who it serves, so a reader meets the intent before the examples.
+  # Call it once per test file, at the top of the file or of the test class.
+  #
+  #   ExecutableStories.feature(
+  #     kind: "ability",
+  #     title: "Anyone can do arithmetic without a calculator app",
+  #     narrative: "Switching apps for a quick sum loses your place."
+  #   )
+  #
+  # The source file is taken from the caller, so the declaration lands on the
+  # file that made it.
+  def feature(title:, kind: nil, narrative: nil, tags: nil, glossary: nil, source_file: nil)
+    location = caller_locations(1, 1)&.first
+    Collector.record_feature(
+      RawFeature.new(
+        source_file: source_file || location&.path,
+        title: title,
+        kind: kind,
+        narrative: narrative,
+        tags: tags,
+        glossary: glossary&.map { |t| RawGlossaryTerm.new(term: t[:term], definition: t[:definition]) }
+      )
+    )
+  end
+
   # Records a scenario that is specified but not built yet. It appears in the
   # report marked "planned" and stops being planned once someone writes it as a
   # real story with init.
@@ -441,10 +485,9 @@ module ExecutableStories
   # Minitest's skip means "do not run this now", which is a different claim from
   # "we have not built this yet", so planned does not skip for you.
   #
-  # Recorded at the point of the call: Minitest has no per-test hook to revisit
-  # the outcome, so keep this the only statement in the test. Anything after it
-  # that fails is recorded by your own `story.record(status: "fail")` call, not
-  # by this one.
+  # Recorded at the point of the call, so keep it the only statement in the
+  # test. Recording happens once per story, so a later failure cannot revise a
+  # scenario already marked planned.
   #
   # The source location defaults to the caller, so a planned scenario is grouped
   # with the rest of its file instead of landing under an unknown feature. Pass

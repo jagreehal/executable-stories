@@ -18,6 +18,7 @@ module ExecutableStories
       run = RawRun.new(
         schema_version: 1,
         test_cases: cases,
+        features: Collector.all_features,
         project_root: Dir.pwd,
         started_at_ms: started,
         finished_at_ms: finished,

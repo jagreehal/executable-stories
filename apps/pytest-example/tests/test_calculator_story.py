@@ -5,6 +5,18 @@ import pytest
 from executable_stories import story
 from example.calculator import add, subtract, multiply, divide
 
+story.feature(
+    "Anyone can do arithmetic without reaching for a calculator app",
+    kind="ability",
+    narrative=(
+        "People doing quick sums in the middle of another task lose their place "
+        "when they have to switch apps. Division raises rather than returning inf."
+    ),
+    glossary=[
+        {"term": "operand", "definition": "One of the two numbers an operation is applied to."}
+    ],
+)
+
 
 def test_calculator_rejects_non_numeric_input():
     # Specified but not built yet: renders as planned in the report.

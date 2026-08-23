@@ -848,6 +848,85 @@ class TestMinitestPlugin < Minitest::Test
   end
 end
 
+class TestMinitestAutoRecord < Minitest::Test
+  def setup
+    @tmpdir = Dir.mktmpdir("executable_stories_minitest_hook")
+  end
+
+  def teardown
+    FileUtils.rm_rf(@tmpdir) if @tmpdir
+  end
+
+  # The hook is what makes a failing test show up at all: before it existed a
+  # failed assertion skipped the record call and the scenario vanished from the
+  # report. Run it in a subprocess so the outer Minitest run stays green.
+  def test_status_comes_from_minitest_without_an_explicit_record
+    run = run_stories(<<~RUBY)
+      class HookTest < Minitest::Test
+        def test_passes
+          s = ExecutableStories.init("a passing story")
+          s.given("no record call")
+          assert_equal 2, 1 + 1
+        end
+
+        def test_fails
+          s = ExecutableStories.init("a failing story")
+          s.given("an assertion that fails")
+          assert_equal 3, 1 + 1
+        end
+
+        def test_skips
+          s = ExecutableStories.init("a skipped story")
+          s.given("a skip")
+          skip "not today"
+        end
+
+        def test_explicit_record_wins
+          s = ExecutableStories.init("an explicitly recorded story")
+          s.given("an explicit record call")
+          s.record(status: "pass", source_file: __FILE__)
+          assert_equal 3, 1 + 1
+        end
+      end
+    RUBY
+
+    by_title = run["testCases"].to_h { |tc| [tc["title"], tc] }
+
+    assert_equal "pass", by_title["a passing story"]["status"]
+    assert_equal "fail", by_title["a failing story"]["status"]
+    assert_equal "skip", by_title["a skipped story"]["status"]
+    assert_equal "pass", by_title["an explicitly recorded story"]["status"]
+
+    failing = by_title["a failing story"]
+    assert_includes failing["error"]["message"], "Expected: 3"
+    assert_equal ["HookTest"], failing["titlePath"].first(1)
+    assert failing["sourceFile"], "expected the hook to fill in sourceFile"
+    assert failing["sourceLine"].positive?, "expected the hook to fill in sourceLine"
+  end
+
+  private
+
+  def run_stories(body)
+    script_path = File.join(@tmpdir, "hook_test.rb")
+    output_path = File.join(@tmpdir, "raw-run.json")
+    lib_path = File.expand_path("../lib", __dir__)
+
+    File.write(script_path, <<~RUBY)
+      require "minitest/autorun"
+      require "executable_stories"
+      require "executable_stories/minitest"
+
+      #{body}
+    RUBY
+
+    env = { "EXECUTABLE_STORIES_OUTPUT" => output_path }
+    stdout, stderr, _status = Open3.capture3(env, RbConfig.ruby, "-I", lib_path, script_path)
+
+    assert File.exist?(output_path), "expected #{output_path}\nstdout:\n#{stdout}\nstderr:\n#{stderr}"
+    JSON.parse(File.read(output_path))
+  end
+end
+
 class TestRSpecAdapter < Minitest::Test
   def setup
     @tmpdir = Dir.mktmpdir("executable_stories_rspec")

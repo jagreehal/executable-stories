@@ -35,6 +35,5 @@ fn test_import_xml_invoice() {
     s.when("the user imports the invoice");
     s.then("the invoice should be saved");
     s.then("the invoice total should be 42.50 USD");
-    s.pass();
 }
 ```

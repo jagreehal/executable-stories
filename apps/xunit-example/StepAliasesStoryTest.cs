@@ -17,7 +17,6 @@ public class StepAliasesStoryTest
         Story.Then("the order should be created");
         Story.And("the payment should be processed");
         Story.But("the inventory is not yet decremented");
-        Story.RecordAndClear();
     }
 
     [Fact]
@@ -30,7 +29,6 @@ public class StepAliasesStoryTest
         Story.Then("the user should see an error message");
         Story.But("the user should not be logged in");
         Story.But("the session should not be created");
-        Story.RecordAndClear();
     }
 
     [Fact]
@@ -45,6 +43,5 @@ public class StepAliasesStoryTest
         Story.And("the result is positive");
         Assert.Equal(15, total);
         Assert.True(total > 0);
-        Story.RecordAndClear();
     }
 }

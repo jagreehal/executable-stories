@@ -179,6 +179,32 @@ No separate dashboard is needed: a `/for/leadership` view grouped by
 `<HealthDashboard />` and `<Trajectory />` components drop into any authored
 page for run health and trend.
 
+## Linking in from a ticket or a wiki
+
+Point external tools at a tag, not at a scenario. The Explorer reads its
+filters from the query string, so `/explorer/?tag=capability:checkout` is a
+stable address for "every scenario that verifies checkout", and
+`?tag=BILL-402&status=failed` narrows it further. `q`, `status`, and `tag` all
+work, and the URL updates as you filter, so any view you reach is a link you
+can paste back into the ticket.
+
+A per-scenario URL is the thing to avoid. Gojko Adzic makes the case in
+*Specification by Example* (ch. 12):
+
+> Avoid referring to a particular specification in the living documentation
+> system directly, because that prevents you from reorganizing the
+> documentation later.
+
+Specifications get renamed, moved, split, and merged as the domain model
+changes; that is the documentation working, not failing. A tag survives all
+four, so a Jira ticket that links `?tag=BILL-402` still resolves after the
+scenario it pointed at was split in two. A link to
+`/stories/refund-a-part-used-subscription/` does not.
+
+A tag with nothing behind it renders an empty result rather than the full
+list, so a link that has gone stale says so instead of quietly reading as
+green.
+
 ## Rules of thumb
 
 - **Tag behaviors, not tests.** `capability:refunds` describes what the
@@ -187,5 +213,7 @@ page for run health and trend.
   (`groupBy: 'tag'`), QA in statuses, engineers in features/files.
 - **Start with two views.** `/for/product` and one more. Add lenses when
   someone asks for them, not before.
+- **Link by tag, never by scenario URL.** Tags survive the renames and merges
+  that a healthy living documentation system goes through.
 - **Outcome-first titles do half the work.** "Refund lands within 5 days"
   reads in every view; "test_refund_worker_retry" reads in none.

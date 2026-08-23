@@ -6,7 +6,6 @@ fn test_story_new() {
     s.given("a precondition");
     s.when("an action");
     s.then("an outcome");
-    s.pass();
 }
 
 #[test]
@@ -17,7 +16,6 @@ fn test_story_with_and_but() {
     s.when("an action");
     s.then("an outcome");
     s.but("not this other outcome");
-    s.pass();
 }
 
 #[test]
@@ -28,7 +26,6 @@ fn test_story_with_tickets() {
     s.given("a setup");
     s.when("something happens");
     s.then("it works");
-    s.pass();
 }
 
 #[test]
@@ -37,7 +34,6 @@ fn test_story_with_covers() {
     s.given("a setup");
     s.when("something happens");
     s.then("it works");
-    s.pass();
 }
 
 #[test]
@@ -45,7 +41,6 @@ fn test_doc_methods() {
     let mut s = Story::new("test docs");
     s.given("something");
     s.note("a note");
-    s.pass();
 }
 
 #[test]
@@ -57,7 +52,6 @@ fn test_doc_methods_on_steps() {
     s.code("request", "POST /login", Some("http"));
     s.then("login succeeds");
     s.link("docs", "https://example.com/auth");
-    s.pass();
 }
 
 #[test]
@@ -66,15 +60,15 @@ fn test_story_level_docs() {
     // Docs added before any step go to story-level
     s.note("this is a story-level note");
     s.given("something");
-    s.pass();
 }
 
 #[test]
-fn test_fail_without_pass() {
-    // This story will record as "fail" because pass() is never called.
+fn test_explicit_fail() {
+    // A test that fails without panicking (a `#[test] -> Result` returning Err)
+    // has to say so; panicking assertions are detected on drop.
     let mut s = Story::new("failing scenario");
     s.given("a precondition");
     s.when("something goes wrong");
-    // no s.pass() -- intentionally failing
+    s.fail();
     drop(s);
 }

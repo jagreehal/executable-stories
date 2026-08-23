@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"runtime"
 	"strings"
 	"time"
 
@@ -46,6 +47,7 @@ type S struct {
 	t                TestingT
 	startTime        time.Time
 	sourceOrder      int
+	sourceFile       string
 	stepCounter      int
 	attachments      []RawAttachment
 	traceUrlTemplate string // URL template with {traceId} placeholder for OTel trace links
@@ -163,6 +165,7 @@ func Init(t TestingT, scenario string, opts ...Option) *S {
 		t:            t,
 		startTime:    time.Now(),
 		sourceOrder:  nextOrder(),
+		sourceFile:   callerFile(),
 		seenPrimary:  make(map[string]bool),
 		activeTimers: make(map[int]*timerEntry),
 	}
@@ -201,6 +204,7 @@ func Init(t TestingT, scenario string, opts ...Option) *S {
 			Title:       t.Name(),
 			TitlePath:   strings.Split(t.Name(), "/"),
 			Story:       story,
+			SourceFile:  s.sourceFile,
 			Status:      status,
 			DurationMs:  &duration,
 			Retry:       0,
@@ -235,6 +239,7 @@ func Planned(t TestingT, scenario string, opts ...Option) {
 		t:           t,
 		startTime:   time.Now(),
 		sourceOrder: nextOrder(),
+		sourceFile:  callerFile(),
 		seenPrimary: make(map[string]bool),
 	}
 	for _, opt := range opts {
@@ -265,6 +270,7 @@ func Planned(t TestingT, scenario string, opts ...Option) {
 				Meta:        s.meta,
 				SourceOrder: &order,
 			},
+			SourceFile: s.sourceFile,
 			Status:     status,
 			DurationMs: &duration,
 		})
@@ -587,4 +593,73 @@ func (s *S) AttachInline(name, mediaType, body, encoding string) *S {
 func (s *S) AttachSpans(spans []any) *S {
 	s.otelSpans = spans
 	return s
+}
+
+// Feature declares what a package's scenarios are for, ahead of the examples.
+//
+// Scenarios say what the system does. A declaration says why the feature exists
+// and who it serves, so a reader meets the intent before the examples. Call it
+// once per test file, from an init function or the top of TestMain.
+//
+//	func init() {
+//	    es.Feature(es.FeatureSpec{
+//	        Kind:      "ability",
+//	        Title:     "Anyone can do arithmetic without a calculator app",
+//	        Narrative: "Switching apps for a quick sum loses your place.",
+//	    })
+//	}
+//
+// The source file is taken from the caller, so the declaration lands on the
+// file that made it.
+func Feature(spec FeatureSpec) {
+	if spec.Title == "" {
+		return
+	}
+
+	sourceFile := spec.SourceFile
+	if sourceFile == "" {
+		if _, file, _, ok := runtime.Caller(1); ok {
+			sourceFile = file
+		}
+	}
+
+	recordFeature(RawFeature{
+		SourceFile: sourceFile,
+		Title:      spec.Title,
+		Kind:       spec.Kind,
+		Narrative:  spec.Narrative,
+		Tags:       spec.Tags,
+		Glossary:   spec.Glossary,
+	})
+}
+
+// callerFile is the test file that called into this package. Scenarios and
+// feature declarations both key on it, which is what lets a declaration made in
+// init() attach to the scenarios in the same file — the report groups by source
+// file, so a scenario without one lands under "unknown" and the feature never
+// finds it.
+func callerFile() string {
+	// 0 is callerFile, 1 is Init/Planned, 2 is the test that called them.
+	if _, file, _, ok := runtime.Caller(2); ok {
+		return file
+	}
+	return ""
+}
+
+// FeatureSpec is what Feature accepts.
+type FeatureSpec struct {
+	// Title is the heading for the feature.
+	Title string
+	// Kind is how to introduce it: "feature" (the default), "ability" for
+	// something a person can now do, or "business-need" for cross-cutting
+	// concerns like security and performance that nobody asks for by name.
+	Kind string
+	// Narrative is markdown explaining why the feature exists and who it serves.
+	Narrative string
+	// Tags apply to every scenario in the file.
+	Tags []string
+	// Glossary holds terms this feature defines.
+	Glossary []RawGlossaryTerm
+	// SourceFile overrides the caller's file. Rarely needed.
+	SourceFile string
 }

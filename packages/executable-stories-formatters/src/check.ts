@@ -49,6 +49,20 @@ export interface CheckFailure {
   regressed: boolean;
 }
 
+/**
+ * A scenario that is switched off: skipped or pending, but not `it.todo`.
+ * A planned scenario is a spec waiting for code; a turned-off one is a spec
+ * you stopped validating, and the pack forgets it exists unless it is named.
+ */
+export interface CheckTurnedOff {
+  id: string;
+  scenario: string;
+  /** `sourceFile:sourceLine` */
+  location: string;
+  status: "skipped" | "pending";
+  tickets: string[];
+}
+
 export interface CheckReport {
   summary: {
     total: number;
@@ -58,6 +72,8 @@ export interface CheckReport {
     pending: number;
   };
   failures: CheckFailure[];
+  /** Scenarios switched off — named, not just counted (see {@link CheckTurnedOff}). */
+  turnedOff: CheckTurnedOff[];
   /** Count of scenarios that went passed → failed vs. the baseline. */
   regressed: number;
   /** Count of scenarios that went failed → passed vs. the baseline. */
@@ -107,9 +123,24 @@ export function buildCheck(args: CheckArgs, _deps: CheckDeps = {}): CheckReport 
       return a.location.localeCompare(b.location);
     });
 
+  const turnedOff: CheckTurnedOff[] = testCases
+    .filter(
+      (tc) =>
+        (tc.status === "skipped" || tc.status === "pending") && tc.rawStatus !== "todo",
+    )
+    .map((tc) => ({
+      id: tc.id,
+      scenario: tc.story.scenario,
+      location: `${tc.sourceFile}:${tc.sourceLine}`,
+      status: tc.status as "skipped" | "pending",
+      tickets: (tc.story.tickets ?? []).map((t) => t.id),
+    }))
+    .sort((a, b) => a.location.localeCompare(b.location));
+
   return {
     summary,
     failures,
+    turnedOff,
     regressed,
     fixed,
     comparedToBaseline: baseline !== undefined,
@@ -167,8 +198,15 @@ function renderCheckText(report: CheckReport): string {
     if (report.comparedToBaseline && report.fixed > 0) {
       lines.push(`${ICON_PASS} ${report.fixed} fixed since baseline.`);
     }
-    lines.push("All scenarios green.");
-    return lines.join("\n");
+    // "Green" has to mean the whole pack ran. A run with scenarios switched
+    // off is green about less than it looks, so say which ones.
+    lines.push(
+      report.turnedOff.length === 0
+        ? "All scenarios green."
+        : "All running scenarios green.",
+    );
+    lines.push(...turnedOffLines(report.turnedOff));
+    return lines.join("\n").trimEnd();
   }
 
   const lines = [headline, ""];
@@ -194,6 +232,9 @@ function renderCheckText(report: CheckReport): string {
     lines.push("");
   }
 
+  lines.push(...turnedOffLines(report.turnedOff));
+  if (report.turnedOff.length > 0) lines.push("");
+
   // Retained signal: what changed since the baseline.
   if (report.comparedToBaseline) {
     if (report.regressed > 0) {
@@ -208,4 +249,23 @@ function renderCheckText(report: CheckReport): string {
   }
 
   return lines.join("\n").trimEnd();
+}
+
+/**
+ * Name every switched-off scenario. Counting them is how a pack quietly rots:
+ * someone turns one off for a decision that never comes back, and the headline
+ * still reads green. A ticket next to each one is what makes the list
+ * reviewable; missing tickets are called out rather than left blank.
+ */
+function turnedOffLines(turnedOff: CheckTurnedOff[]): string[] {
+  if (turnedOff.length === 0) return [];
+  const lines = ["", `${ICON_WARN} ${turnedOff.length} turned off (not validated):`];
+  for (const t of turnedOff) {
+    const icon = t.status === "skipped" ? ICON_SKIP : ICON_PENDING;
+    lines.push(`  ${icon} ${t.scenario}`);
+    lines.push(
+      `    ${t.location}  ${t.tickets.length > 0 ? `ticket: ${t.tickets.join(", ")}` : "no ticket"}`,
+    );
+  }
+  return lines;
 }

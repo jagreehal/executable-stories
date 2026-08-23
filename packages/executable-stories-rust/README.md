@@ -6,20 +6,19 @@ Provides a `Story` API for Rust tests and writes raw story metadata for downstre
 
 ## Install
 
-The crate name is `executable-stories`, so the import path is `executable_stories` (hyphens become underscores). Add it as a dev-dependency along with `dtor`, used to flush results when the test binary exits (destructors moved out of `ctor` into the companion `dtor` crate as of `ctor` 1.0):
+The crate name is `executable-stories`, so the import path is `executable_stories` (hyphens become underscores):
 
 ```toml
 [dev-dependencies]
 executable-stories = "0.1"
-dtor = "1.0"
 ```
 
-Or: `cargo add --dev executable-stories dtor`.
+Or: `cargo add --dev executable-stories`.
 
 ## Usage
 
 ```rust
-use executable_stories::{Story, write_results};
+use executable_stories::Story;
 
 #[test]
 fn addition() {
@@ -29,16 +28,31 @@ fn addition() {
     story.then("the result is 5");
 
     assert_eq!(2 + 3, 5);
-    story.pass();
-}
-
-// Register a destructor so raw-run.json is written when the binary exits.
-// The harness never calls a plain teardown function, so #[dtor::dtor] is required.
-#[dtor::dtor]
-fn write_story_results() {
-    write_results();
 }
 ```
+
+## Status
+
+The story records `pass` or `fail` on drop. A failing assertion panics, and a
+story dropped mid-unwind records `fail`, so passing tests need no extra call.
+
+One case escapes that: a `#[test]` returning `Result` fails by returning `Err`,
+which never panics. Wrap the fallible call so the story sees it:
+
+```rust
+#[test]
+fn parses_a_price() -> Result<(), std::num::ParseIntError> {
+    let mut story = Story::new("parses a price");
+    story.given("the string 499");
+    story.then("it parses to 499");
+
+    let parsed = story.record_result("499".parse::<u32>())?;
+    assert_eq!(parsed, 499);
+    Ok(())
+}
+```
+
+`story.fail()` sets the status directly if you would rather branch yourself.
 
 ## Features
 
@@ -64,7 +78,9 @@ story.state(Some("Basket"), serde_json::json!({"items": [{"sku": "A1", "qty": 2}
 
 ## Output
 
-Call `write_results()` (re-exported at the crate root; the `collector` module is private) to write `.executable-stories/raw-run.json`. Register it with `#[dtor::dtor]` so it runs after every test in the binary completes — a plain teardown function is never invoked by the test harness. Override the output path with the `EXECUTABLE_STORIES_OUTPUT` env var.
+The first `Story` registers a process-exit hook, so `.executable-stories/raw-run.json` lands after the last test in the binary finishes. Nothing to wire up. Call `write_results()` directly if you want to control when the file is written, and set `EXECUTABLE_STORIES_OUTPUT` to change the path.
+
+Rust compiles every file under `tests/` into its own binary, and each one writes the same path. Keep story tests in a single file, or give each binary its own `EXECUTABLE_STORIES_OUTPUT`.
 
 Then feed the raw-run JSON to `executable-stories-formatters` for report generation:
 

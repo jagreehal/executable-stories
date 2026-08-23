@@ -4,10 +4,10 @@
 
 import { describe, it, expect } from "vitest";
 import { parseNdjson, parseEnvelopes } from "executable-stories-core/converters/ndjson-parser";
-import { CucumberMessagesFormatter } from "../../src/formatters/cucumber-messages/index";
+import { CucumberMessagesFormatter } from "../../src/formatters/cucumber-messages/formatter";
 import { renderReportToHtml } from "executable-stories-react/ssr";
 import { toStoryReport } from "executable-stories-core/converters/story-report";
-import { canonicalizeRun } from "executable-stories-core/converters/acl/index";
+import { canonicalizeRun } from "executable-stories-core/converters/acl/canonicalize";
 import {
   createRawRun,
   createMultipleTestCasesRun,
@@ -15,7 +15,7 @@ import {
   createTestCase,
   createStory,
 } from "../fixtures/raw-runs/basic";
-import type { Envelope } from "executable-stories-core/types/cucumber-messages";
+import type { DocEntry } from "executable-stories-core/types/story";
 
 describe("parseNdjson", () => {
   const formatter = new CucumberMessagesFormatter();
@@ -298,10 +298,10 @@ describe("DocString/DataTable round-trip", () => {
     expect(step.docs).toBeDefined();
     expect(step.docs!.length).toBeGreaterThanOrEqual(1);
 
-    const codeDocs = step.docs!.filter((d) => d.kind === "code");
+    const codeDocs = step.docs!.filter((d): d is Extract<DocEntry, { kind: "code" }> => d.kind === "code");
     expect(codeDocs).toHaveLength(1);
-    expect((codeDocs[0] as any).content).toBe('{"user": "admin"}');
-    expect((codeDocs[0] as any).lang).toBe("json");
+    expect(codeDocs[0].content).toBe('{"user": "admin"}');
+    expect(codeDocs[0].lang).toBe("json");
   });
 
   it("should reconstruct table doc from DataTable", () => {
@@ -340,10 +340,10 @@ describe("DocString/DataTable round-trip", () => {
     const step = parsed.testCases[0].story.steps[0];
     expect(step.docs).toBeDefined();
 
-    const tableDocs = step.docs!.filter((d) => d.kind === "table");
+    const tableDocs = step.docs!.filter((d): d is Extract<DocEntry, { kind: "table" }> => d.kind === "table");
     expect(tableDocs).toHaveLength(1);
 
-    const table = tableDocs[0] as any;
+    const table = tableDocs[0];
     expect(table.columns).toEqual(["name", "role"]);
     expect(table.rows).toEqual([
       ["Alice", "admin"],
@@ -382,9 +382,9 @@ describe("DocString/DataTable round-trip", () => {
     const step = parsed.testCases[0].story.steps[0];
     expect(step.docs).toBeDefined();
 
-    const noteDocs = step.docs!.filter((d) => d.kind === "note");
+    const noteDocs = step.docs!.filter((d): d is Extract<DocEntry, { kind: "note" }> => d.kind === "note");
     expect(noteDocs).toHaveLength(1);
-    expect((noteDocs[0] as any).text).toBe("Important context");
+    expect(noteDocs[0].text).toBe("Important context");
   });
 
   it("should reconstruct section doc from text/markdown DocString", () => {
@@ -419,9 +419,9 @@ describe("DocString/DataTable round-trip", () => {
     const step = parsed.testCases[0].story.steps[0];
     expect(step.docs).toBeDefined();
 
-    const sectionDocs = step.docs!.filter((d) => d.kind === "section");
+    const sectionDocs = step.docs!.filter((d): d is Extract<DocEntry, { kind: "section" }> => d.kind === "section");
     expect(sectionDocs).toHaveLength(1);
-    expect((sectionDocs[0] as any).markdown).toBe(
+    expect(sectionDocs[0].markdown).toBe(
       "# Heading\n\nSome **bold** text"
     );
   });

@@ -129,7 +129,7 @@
         "title": {
           "type": "string",
           "minLength": 1,
-          "description": "Display title. Derived from describe block when present, otherwise the file basename."
+          "description": "Display title. Comes from story.feature(...) when declared, otherwise the describe block or file basename."
         },
         "sourceFile": {
           "type": "string",
@@ -145,6 +145,26 @@
             "$ref": "#/$defs/Scenario"
           },
           "description": "Scenarios in this feature, in declaration order."
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "feature",
+            "ability",
+            "business-need"
+          ],
+          "description": "How the feature was declared. Absent when the title was derived rather than declared."
+        },
+        "narrative": {
+          "type": "string",
+          "description": "Markdown explaining why the feature exists and who it serves."
+        },
+        "glossary": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/GlossaryTerm"
+          },
+          "description": "Terms this feature defines, linked wherever they appear in scenario text."
         }
       },
       "required": [
@@ -955,6 +975,25 @@
           "type": "object"
         }
       },
+      "additionalProperties": false
+    },
+    "GlossaryTerm": {
+      "type": "object",
+      "description": "One glossary entry: a term the scenarios use and what it means.",
+      "properties": {
+        "term": {
+          "type": "string",
+          "minLength": 1
+        },
+        "definition": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "term",
+        "definition"
+      ],
       "additionalProperties": false
     }
   }

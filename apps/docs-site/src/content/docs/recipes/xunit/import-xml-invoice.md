@@ -45,6 +45,5 @@ public class InvoiceTests : IDisposable
         Story.Then("the invoice total should be 42.50 USD");
     }
 
-    public void Dispose() => Story.RecordAndClear();
 }
 ```
