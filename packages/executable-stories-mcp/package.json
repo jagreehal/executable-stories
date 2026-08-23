@@ -1,6 +1,6 @@
 {
   "name": "executable-stories-mcp",
-  "version": "0.4.12",
+  "version": "0.4.13",
   "description": "Read-only MCP server for executable-stories StoryReport JSON behavior catalogs.",
   "author": "Jag Reehal <jag@jagreehal.com>",
   "license": "Apache-2.0",
