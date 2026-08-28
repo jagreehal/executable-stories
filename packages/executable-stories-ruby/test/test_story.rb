@@ -1009,3 +1009,108 @@ class TestRSpecAdapter < Minitest::Test
     assert_equal [], skip_case["story"]["steps"]
   end
 end
+
+# A run narrowed with `ruby -Itest test/x.rb -n /pattern/` reports only the
+# matching tests, so it is not the complete contents of the files it touches.
+class TestNameFiltering < Minitest::Test
+  def with_options(options)
+    previous = ExecutableStories::Output.instance_variable_get(:@run_options)
+    ExecutableStories::Output.record_run_options(options)
+    yield
+  ensure
+    ExecutableStories::Output.instance_variable_set(:@run_options, previous)
+  end
+
+  def test_plain_run_reports_full_scope
+    # Minitest ran and applied no name filter, so "no filter" is something the
+    # adapter observed rather than assumed.
+    with_options({}) { assert_equal "full", ExecutableStories::Output.run_scope }
+  end
+
+  def test_minitest_filter_reports_filtered_scope
+    with_options({ filter: "/refuses/" }) do
+      assert_equal "filtered", ExecutableStories::Output.run_scope
+    end
+  end
+
+  def test_scope_is_unknown_when_no_runner_was_observed
+    # Nothing was inspected, so nothing is claimed and consumers keep what this
+    # run did not report.
+    with_options(nil) { assert_nil ExecutableStories::Output.run_scope }
+  end
+
+  def test_serializes_the_scope_only_when_known
+    run = ExecutableStories::RawRun.new(
+      schema_version: 1, test_cases: [], project_root: ".", run_scope: "filtered"
+    )
+    assert_equal "filtered", ExecutableStories.run_to_h(run)["runScope"]
+
+    plain = ExecutableStories::RawRun.new(
+      schema_version: 1, test_cases: [], project_root: "."
+    )
+    refute ExecutableStories.run_to_h(plain).key?("runScope")
+  end
+end
+
+class TestMinitestAssertionCounts < Minitest::Test
+  def setup
+    @tmpdir = Dir.mktmpdir("executable_stories_assertion_counts")
+  end
+
+  def teardown
+    FileUtils.rm_rf(@tmpdir) if @tmpdir
+  end
+
+  # Minitest keeps a live per-test assertion counter, so Ruby can observe what
+  # each step checked rather than take the author's word for it. Run in a
+  # subprocess so the outer run's own assertions stay out of the count.
+  def test_counts_the_assertions_each_step_made
+    run = run_stories(<<~RUBY)
+      class CountTest < Minitest::Test
+        def test_a_claim_that_is_checked
+          s = ExecutableStories.init("a checked claim")
+          s.given("two numbers 5 and 3")
+          s.then("the result is 8")
+          assert_equal 8, 5 + 3
+        end
+
+        def test_a_claim_that_is_not_checked
+          s = ExecutableStories.init("an unchecked claim")
+          s.given("a warm cache")
+          s.then("p99 stays under 50ms")
+        end
+      end
+    RUBY
+
+    by_title = run["testCases"].to_h { |tc| [tc["title"], tc] }
+
+    checked = by_title["a checked claim"]["story"]["steps"]
+    assert_equal 0, checked[0]["assertions"], "setup did not make the assertion"
+    assert_equal 1, checked[1]["assertions"], "the claim was checked once"
+
+    unchecked = by_title["an unchecked claim"]["story"]["steps"]
+    assert_equal 0, unchecked[1]["assertions"], "the claim checked nothing"
+  end
+
+  private
+
+  def run_stories(body)
+    script_path = File.join(@tmpdir, "count_test.rb")
+    output_path = File.join(@tmpdir, "raw-run.json")
+    lib_path = File.expand_path("../lib", __dir__)
+
+    File.write(script_path, <<~RUBY)
+      require "minitest/autorun"
+      require "executable_stories"
+      require "executable_stories/minitest"
+
+      #{body}
+    RUBY
+
+    env = { "EXECUTABLE_STORIES_OUTPUT" => output_path }
+    stdout, stderr, _status = Open3.capture3(env, RbConfig.ruby, "-I", lib_path, script_path)
+
+    assert File.exist?(output_path), "expected #{output_path}\nstdout:\n#{stdout}\nstderr:\n#{stderr}"
+    JSON.parse(File.read(output_path))
+  end
+end

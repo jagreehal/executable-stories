@@ -6,6 +6,7 @@
  *
  *   trajectory: defineCollection({ loader: trajectoryLoader({ source: "reports/raw-run.json" }) })
  */
+import fs from "node:fs";
 import path from "node:path";
 
 import {
@@ -17,6 +18,7 @@ import {
 } from "executable-stories-core";
 
 import { resolveSources, type ExecutableStoriesConfig } from "./config.js";
+import { expandSource } from "./loader.js";
 import {
   readSource,
   toRunResult,
@@ -38,18 +40,44 @@ function mergeRunResults(runs: TestRunResult[]): TestRunResult {
   };
 }
 
+/**
+ * Read every configured source into runs.
+ *
+ * A source may name a directory of per-file reports, which reading as one JSON
+ * file simply failed at — leaving the trajectory empty for the scaffold's own
+ * default source.
+ */
+export function readRunsFromSources(
+  options: ExecutableStoriesConfig,
+  read: (absPath: string) => unknown | null
+): TestRunResult[] {
+  const runs: TestRunResult[] = [];
+  for (const src of resolveSources(options)) {
+    const resolved = path.resolve(src.source);
+    const isDir = (() => {
+      try {
+        return fs.statSync(resolved).isDirectory();
+      } catch {
+        return false;
+      }
+    })();
+    const inputType = src.inputType ?? (isDir ? "canonical" : "raw");
+    for (const abs of isDir ? expandSource(resolved) : [resolved]) {
+      const raw = read(abs);
+      if (raw == null) continue;
+      runs.push(toRunResult(raw, { inputType, synthesize: src.synthesize }));
+    }
+  }
+  return runs;
+}
+
 export function trajectoryLoader(options: ExecutableStoriesConfig): StoriesLoader {
   const sources = resolveSources(options).map((s) => ({ ...s, abs: path.resolve(s.source) }));
   // Module-level so it persists across the loader's re-invocations within one dev session.
   let state: RunState = initialRunState;
 
   function sync(ctx: LoaderContext): void {
-    const runs: TestRunResult[] = [];
-    for (const src of sources) {
-      const raw = readSource(src.abs, ctx);
-      if (raw == null) continue;
-      runs.push(toRunResult(raw, { inputType: src.inputType, synthesize: src.synthesize }));
-    }
+    const runs = readRunsFromSources(options, (abs) => readSource(abs, ctx));
     if (runs.length === 0) return; // keep prior trajectory until a readable run
     state = advanceState(state, mergeRunResults(runs));
     const summary = trajectorySummary(state);

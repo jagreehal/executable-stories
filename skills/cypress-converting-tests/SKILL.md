@@ -5,13 +5,14 @@ description: >
   test suite, converting cy.ts specs to story tests, or adding story.init()
   without a full rewrite. Progressive enhancement of .story.cy.ts files;
   requires plugin and support-file wiring.
-type: lifecycle
-library: executable-stories-cypress
-library_version: "8.4.7"
-requires:
-  - cypress-story-api
-sources:
-  - "jagreehal/executable-stories:packages/executable-stories-cypress/src/index.ts"
+metadata:
+  type: lifecycle
+  library: executable-stories-cypress
+  library_version: "8.7.0"
+  requires:
+    - cypress-story-api
+  sources:
+    - "jagreehal/executable-stories:packages/executable-stories-cypress/src/index.ts"
 ---
 
 This skill builds on cypress-story-api. Read cypress-story-api first.

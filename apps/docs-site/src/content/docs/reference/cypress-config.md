@@ -27,7 +27,9 @@ import {
 } from 'executable-stories-cypress/reporter';
 
 const result = await cypress.run();
-const rawRun = buildRawRunFromCypressResult(result, { projectRoot: process.cwd() });
+const rawRun = buildRawRunFromCypressResult(result, {
+  projectRoot: process.cwd(),
+});
 await generateReportsFromRawRun(rawRun, {
   formats: ['markdown', 'html'],
   outputDir: 'docs',
@@ -40,12 +42,14 @@ Options are the same **FormatterOptions** used by the other framework reporters:
 
 ## Options reference
 
-| Option       | Type             | Default                  | Description                                                           |
-| ------------ | ---------------- | ------------------------ | --------------------------------------------------------------------- |
-| `formats`    | `OutputFormat[]` | `["cucumber-json"]`      | Output formats: `"markdown"`, `"html"`, `"junit"`, `"cucumber-json"`, `"cucumber-messages"`, `"cucumber-html"`. |
-| `outputDir`  | `string`         | `"reports"`              | Base directory for output files.                                      |
-| `outputName` | `string`         | `"test-results"`         | Base filename (without extension).                                    |
-| `outputNameTimestamp` | `boolean` | `false`                | Append a UTC timestamp suffix to the output filename.                 |
-| `output`     | `OutputConfig`   | `{ mode: "aggregated" }` | Output routing configuration.                                         |
+| Option                | Type             | Default                  | Description                                                                                                     |
+| --------------------- | ---------------- | ------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| `formats`             | `OutputFormat[]` | `["html"]`               | Output formats: `"markdown"`, `"html"`, `"junit"`, `"cucumber-json"`, `"cucumber-messages"`, `"cucumber-html"`. |
+| `outputDir`           | `string`         | `"reports"`              | Base directory for output files.                                                                                |
+| `outputName`          | `string`         | `"index"`                | Base filename (without extension).                                                                              |
+| `outputNameTimestamp` | `boolean`        | `false`                  | Append a UTC timestamp suffix to the output filename.                                                           |
+| `output`              | `OutputConfig`   | `{ mode: "aggregated" }` | Output routing configuration.                                                                                   |
 
 For **OutputConfig**, **markdown**, **html**, and other nested options, see [Vitest reporter options](/reference/vitest-config/).
+
+Every run writes `raw-run.json` for the current execution and updates canonical per-source reports under `<outputDir>/by-file/`. Documentation formats render that directory; JUnit, Cucumber, and release-manifest formats contain only the current execution. Cypress cannot infer external title filters such as `@cypress/grep`, so pass `runScope: "filtered"` when narrowed, or `"full"` only when the run covered every scenario in its specs.

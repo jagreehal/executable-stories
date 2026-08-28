@@ -51,7 +51,7 @@ re-grouped index per audience — same collection, different lens:
 ```js
 // executable-stories.config.mjs
 export default defineExecutableStories({
-  source: 'reports/raw-run.json',
+  source: 'reports/by-file',
   views: [
     {
       base: '/for/product',
@@ -127,7 +127,7 @@ member failed it):
 
 ```js
 export default defineExecutableStories({
-  source: 'reports/raw-run.json',
+  source: 'reports/by-file',
   historyFile: 'reports/history.json',
 });
 ```

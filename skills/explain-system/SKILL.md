@@ -33,7 +33,7 @@ for a week. This one explains an area to someone who has never seen it.
 
 ```bash
 executable-stories format reports/raw-run.json --preset agent --output-dir reports --output-name index
-executable-stories list reports/raw-run.json --list-format json
+executable-stories list reports/by-file --list-format json
 ```
 
 1. **Feature summary** for the shape: which areas exist and how healthy each is.

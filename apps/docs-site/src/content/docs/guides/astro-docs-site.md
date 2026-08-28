@@ -6,9 +6,10 @@ description: A live Starlight documentation site from your test results, driven 
 The `executable-stories-astro` integration turns your test output into a full
 [Starlight](https://starlight.astro.build/) site — generated scenarios and your
 hand-authored docs side by side, with sidebar navigation, status badges, Mermaid
-diagrams, and search. It is **live**: a content loader watches your run JSON, so
-a fresh test run hot-reloads the open page. Nothing is written to disk — your
-tests stay the source of truth.
+diagrams, and search. It is **live**: a content loader watches canonical
+per-source reports, so a focused test run hot-reloads the open page without
+hiding untouched scenarios. The generated state is disposable; tests stay the
+source of truth.
 
 This guide scaffolds a new site. Already have an Astro site? See
 [Add to an existing Astro site](/guides/existing-astro-site/). Collating runs
@@ -26,7 +27,7 @@ This scaffolds a thin, ready-to-run Starlight project. The docs framework itself
 ships in the `executable-stories-astro` package, so the scaffold is just ~8
 user-owned files — chiefly **one config file** you edit.
 
-Then emit the run JSON your reporter must write (see below), run your tests in
+Then let the reporter populate `reports/by-file/` (see below), run your tests in
 watch mode in one terminal, and `astro dev` in another:
 
 ```bash
@@ -44,7 +45,7 @@ Everything lives in `executable-stories.config.mjs`, imported by both
 import { defineExecutableStories } from 'executable-stories-astro';
 
 export default defineExecutableStories({
-  source: '../reports/raw-run.json',         // or `sources: [...]` for several suites
+  source: '../reports/by-file',               // per-file reports, a single run JSON, or `sources: [...]`
   include: { tags: ['security'] },           // which scenarios to show (optional)
   groupBy: 'tag',                            // feature | tag | source | status | none
   docs: [{ path: 'src/content/docs/runbooks', label: 'Runbooks', base: 'runbooks' }],
@@ -55,7 +56,7 @@ export default defineExecutableStories({
 
 | Field | What it does |
 |---|---|
-| `source` / `sources` | One run JSON, or several named suites (combined in one site, groupable by suite). |
+| `source` / `sources` | One per-file directory, an intentional run snapshot, or several named suites (combined in one site, groupable by suite). |
 | `include` / `exclude` | Select scenarios by `tags`, `status`, or `features`. |
 | `groupBy` | How the index/Explorer categorise scenarios. |
 | `docs` | Authored markdown folders to surface in the nav. |
@@ -115,13 +116,52 @@ executable-stories format reports/raw-run.json --format html \
 
 ```js
 export default defineExecutableStories({
-  source: '../reports/raw-run.json',
+  source: '../reports/by-file',
   historyFile: '../reports/history.json',
 });
 ```
 
 Journey history is aggregated by run: any failed member fails the journey run.
 The badge uses the same stable/unstable/flaky classification as the HTML report.
+
+## Showing the whole suite, not just the last run
+
+`raw-run.json` holds one test run. Point a site at it and a teammate who ran a
+single test file publishes a site missing everything else.
+
+A `source` may name a directory instead. Each test source file owns a report
+under `<outputDir>/by-file/` (see
+[Output modes](/guides/output-modes/#running-part-of-the-suite)), and the site
+reads all of them:
+
+```js
+export default defineExecutableStories({
+  source: '../reports/by-file', // every test file, however much of the suite last ran
+});
+```
+
+This is the scaffold default, so `init-astro` sites get it without configuration.
+
+`inputType` needs no setting either way: a directory holds the canonical reports a
+test run writes, a single path is a raw run, and the loader reads each as what it
+is. Set it explicitly only to override that.
+
+A directory counts as one source, because it is one suite split across files.
+`sources: [...]` still combines separate suites, and each entry can be a
+directory:
+
+```js
+export default defineExecutableStories({
+  sources: [
+    { name: 'unit', label: 'Unit', source: '../reports/by-file' },
+    { name: 'e2e', label: 'End to end', source: '../e2e/reports/by-file' },
+  ],
+});
+```
+
+In dev the watcher picks up changes to files inside the directory, including run
+files that did not exist when the server started, so a new test file appears
+without a restart.
 
 ## Persona views
 
@@ -178,16 +218,17 @@ GitHub-style markdown work without edits:
 Point a `docs` source's `path` at a folder outside the site and set `base` to
 mount an external docs folder (e.g. another package's `docs/`) under a URL prefix.
 
-## Emitting the run JSON
+## Emitting per-source report state
 
-The loader reads the **raw run JSON**, which your reporter writes only when you
-set `rawRunPath`:
+The reporter maintains canonical files under `reports/by-file/`; that directory is the
+recommended loader source. Keep `rawRunPath` when current-run CLI commands also need the
+execution event:
 
 ```js
 new StoryReporter({ formats: ['html'], rawRunPath: 'reports/raw-run.json' })
 ```
 
-Point the config's `source` at that path.
+Point the config's `source` at `../reports/by-file`.
 
 ## Deploying
 
@@ -197,7 +238,7 @@ The scaffolded site is a standard Astro project — build it and deploy `dist/`:
 pnpm build
 ```
 
-Run your tests and regenerate the run JSON in CI before `astro build` so the
+Run your full suite in CI before `astro build` so the per-source state and
 deployed site reflects the latest results. Works with Vercel, Netlify, GitHub
 Pages, Cloudflare Pages, or any static host.
 
@@ -217,6 +258,6 @@ npx --package executable-stories-formatters executable-stories init-astro [direc
 
 > **Migrating from `build-docs`?** It generated Markdown into
 > `src/content/docs/stories/` and has been removed in favour of the live
-> integration, which renders stories from the run JSON with no generation step.
+> integration, which renders stories from canonical run state with no Markdown generation step.
 > Scaffold with `init-astro` and run `astro dev`. (`format --format astro-markdown`
 > still exists for a one-off single-page Markdown export.)

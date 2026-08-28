@@ -4,11 +4,12 @@ description: >
   Use when configuring the executable-stories-playwright custom reporter:
   wiring the playwright.config.ts reporter array, or output
   format/directory/naming and aggregated vs. colocated modes.
-type: core
-library: executable-stories-playwright
-library_version: "8.5.7"
-sources:
-  - "jagreehal/executable-stories:packages/executable-stories-playwright/src/reporter.ts"
+metadata:
+  type: core
+  library: executable-stories-playwright
+  library_version: "8.9.0"
+  sources:
+    - "jagreehal/executable-stories:packages/executable-stories-playwright/src/reporter.ts"
 ---
 
 # executable-stories-playwright — Reporter Setup
@@ -35,6 +36,12 @@ export default defineConfig({
 ```
 
 `executable-stories-formatters` is a bundled dependency (installed automatically with `executable-stories-playwright`).
+
+Every run also updates `<outputDir>/by-file/`, one canonical report per test source.
+Documentation formats render that accumulated suite; JUnit, Cucumber, and release
+manifests describe only the current execution. Playwright detects `grep`, `grepInvert`,
+and sharding automatically. Full runs may retire missing scenarios, filtered runs merge,
+and incompletely collected files preserve their earlier scenarios with a warning.
 
 ## Core Patterns
 
@@ -63,6 +70,8 @@ export default defineConfig({
         outputName: "test-results",
         output: {
           mode: "aggregated",
+          // mode: "colocated",
+          // colocatedStyle: "flat", // or "mirrored" / "adjacent"
         },
         markdown: {
           title: "User Stories",

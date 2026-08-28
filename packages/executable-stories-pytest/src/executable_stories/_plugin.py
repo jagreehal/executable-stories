@@ -203,6 +203,24 @@ def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo[None]) ->
 # ── Session finish — write output ──────────────────────────────────
 
 
+def _run_scope(config: Any) -> str | None:
+    """How much of each source file this run covered.
+
+    ``"filtered"`` when either selector pytest narrows a run with is set (``-k``
+    keyword or ``-m`` marker expression), ``"full"`` when both were inspected and
+    neither was, and ``None`` when there is no option object to inspect — some
+    entry points build a config without one. ``None`` means unknown, and a
+    consumer keeps what an unknown-scope run did not report rather than retiring
+    it on a guess.
+    """
+    option = getattr(config, "option", None)
+    if option is None:
+        return None
+    if bool(getattr(option, "keyword", "")) or bool(getattr(option, "markexpr", "")):
+        return "filtered"
+    return "full"
+
+
 def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
     test_cases = _collector.get_all()
     if not test_cases:
@@ -228,6 +246,12 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
     ci = _detect_ci()
     if ci is not None:
         raw_run["ci"] = ci
+
+    # Absent means pytest gave us nothing to inspect; consumers then keep what
+    # this run did not report rather than retiring it on a guess.
+    scope = _run_scope(session.config)
+    if scope is not None:
+        raw_run["runScope"] = scope
 
     output_path = os.environ.get(
         "EXECUTABLE_STORIES_OUTPUT",

@@ -81,6 +81,9 @@ The full schema is in [`raw-run.schema.json`](raw-run.schema.json). Here are the
 | `gitSha`         | `string`        | No       | Git commit SHA                                               |
 | `ci`             | `RawCIInfo`     | No       | CI environment info (`name`, `url`, `buildNumber`)           |
 | `meta`           | `object`        | No       | Arbitrary metadata (escape hatch)                            |
+| `runScope`       | `full \| filtered` | No    | Whether the adapter knows the run covered whole source files or used a name filter |
+| `coveredSourceFiles` | `string[]` | No       | Every test source executed, including files that produced no scenarios |
+| `incompleteSourceFiles` | `string[]` | No    | Source files whose collection failed and must not retire earlier scenarios |
 
 ### RawTestCase
 
@@ -142,6 +145,7 @@ Emitters/converters should output these RawStatus values. Canonicalization norma
 | `text`    | `string`                                                | Yes      | Step description               |
 | `mode`    | `normal \| skip \| only \| todo \| fails \| concurrent` | No       | Execution mode                 |
 | `docs`    | `DocEntry[]`                                            | No       | Step-level documentation       |
+| `assertions` | `integer >= 0`                                      | No       | Assertions observed or declared for the step; absent means unknown, zero means observed none |
 
 ### DocEntry kinds
 

@@ -109,6 +109,27 @@ interface CollectedScenario {
 /**
  * Convert path to relative posix format.
  */
+/**
+ * Whether the run was narrowed by title, via `--grep` / `--grep-invert` or the
+ * config equivalents. Such a run reports a subset of each file it touches, so
+ * consumers must not read it as those files' full contents.
+ *
+ * `grep` is always present on FullConfig and defaults to a match-everything
+ * pattern, so presence is not the signal; only a pattern that actually narrows
+ * the run is. `--shard` narrows just as much and must count too.
+ */
+function isNameFiltered(config: Partial<FullConfig> | undefined): boolean {
+  if (!config) return false;
+  // Sharding splits a file's tests across machines, so this process sees only
+  // some of them. Scenario ids do not carry the project, so project selection
+  // is not a hazard the same way: every project reports the same scenario ids,
+  // and a single-project run still names every scenario in a file.
+  if (config.shard != null) return true;
+  if (config.grepInvert != null) return true;
+  const patterns = Array.isArray(config.grep) ? config.grep : config.grep ? [config.grep] : [];
+  return patterns.some((pattern) => pattern.source !== ".*");
+}
+
 function toRelativePosix(absolutePath: string, projectRoot: string): string {
   return path.relative(projectRoot, absolutePath).split(path.sep).join("/");
 }
@@ -204,6 +225,23 @@ export default class StoryReporter implements Reporter {
   private packageVersion: string | undefined;
   private gitSha: string | undefined;
   private projectRoot: string = process.cwd();
+  /**
+   * Left unknown until onBegin sees a config. Claiming full coverage without
+   * having looked would let a later merge retire scenarios on a guess.
+   */
+  private runScope: "full" | "filtered" | undefined;
+  /**
+   * Every spec file this run executed, story-bearing or not. Collected from all
+   * tests rather than from the scenarios, so a file whose last story was
+   * deleted is still known to have run and can have its report emptied.
+   */
+  private coveredSourceFiles = new Set<string>();
+  /**
+   * Files where a test ended badly without ever declaring its story — a hook
+   * that threw before `story.init()`, a timeout during collection. Those
+   * scenarios are missing because the run broke, not because they were deleted.
+   */
+  private incompleteSourceFiles = new Set<string>();
   private autotel: AutotelApi | null = null;
   private testSpans = new Map<
     string,
@@ -228,6 +266,7 @@ export default class StoryReporter implements Reporter {
     this.startTime = Date.now();
     this.rootSuite = suite;
     this.projectRoot = config.rootDir ?? process.cwd();
+    if (config) this.runScope = isNameFiltered(config) ? "filtered" : "full";
     const includeMetadata = this.options.markdown?.includeMetadata ?? true;
     if (includeMetadata) {
       this.packageVersion = readPackageVersion(this.projectRoot);
@@ -281,6 +320,22 @@ export default class StoryReporter implements Reporter {
   }
 
   onTestEnd(test: TestCase, result: TestResult): void {
+    // Record the file whether or not this test carries a story: the point is to
+    // know the file ran, so a report emptied of stories can be retired.
+    const file = test.location?.file;
+    if (file) {
+      const relative = toRelativePosix(file, this.projectRoot);
+      this.coveredSourceFiles.add(relative);
+      // No story annotation on a test that failed or timed out means the story
+      // never got the chance to declare itself.
+      const declared = test.annotations?.some((a) => a.type === "story-meta");
+      const brokeEarly =
+        result.status === "failed" ||
+        result.status === "timedOut" ||
+        result.status === "interrupted";
+      if (!declared && brokeEarly) this.incompleteSourceFiles.add(relative);
+    }
+
     // Defensive: unwind leftover step spans (interrupted/crash)
     if (this.autotel) {
       const stack = this.stepSpanStacks.get(test.id);
@@ -510,7 +565,8 @@ export default class StoryReporter implements Reporter {
   }
 
   async onEnd(_result: FullResult): Promise<void> {
-    if (this.scenarios.length === 0) return;
+    // Nothing ran and nothing was covered: there is genuinely nothing to say.
+    if (this.scenarios.length === 0 && this.coveredSourceFiles.size === 0) return;
 
     if (this.scenarios.length > 0) {
       const sampleScenario = this.scenarios[0];
@@ -574,6 +630,13 @@ export default class StoryReporter implements Reporter {
       startedAtMs: this.startTime,
       finishedAtMs: Date.now(),
       projectRoot: this.projectRoot,
+      ...(this.runScope ? { runScope: this.runScope } : {}),
+      ...(this.coveredSourceFiles.size > 0
+        ? { coveredSourceFiles: [...this.coveredSourceFiles].sort() }
+        : {}),
+      ...(this.incompleteSourceFiles.size > 0
+        ? { incompleteSourceFiles: [...this.incompleteSourceFiles].sort() }
+        : {}),
       packageVersion: this.packageVersion,
       gitSha: this.gitSha,
       ci: detectCI(),

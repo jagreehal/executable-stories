@@ -642,6 +642,14 @@ namespace ExecutableStories.Xunit
             ctx.AddStep(keyword, text);
             StoryStep step = ctx.CurrentStep!;
             step.Wrapped = true;
+            // Wrapping a claim is the only signal xUnit can give that the step
+            // checked something: the body ran to completion. Setup steps
+            // arrange, so only a claim counts — tested against the keyword as
+            // written, since auto-And rewrites a repeated Then before storage.
+            if (keyword == "Then")
+            {
+                step.Assertions = 1;
+            }
 
             var start = Stopwatch.GetTimestamp();
             try
@@ -663,6 +671,14 @@ namespace ExecutableStories.Xunit
             ctx.AddStep(keyword, text);
             StoryStep step = ctx.CurrentStep!;
             step.Wrapped = true;
+            // Wrapping a claim is the only signal xUnit can give that the step
+            // checked something: the body ran to completion. Setup steps
+            // arrange, so only a claim counts — tested against the keyword as
+            // written, since auto-And rewrites a repeated Then before storage.
+            if (keyword == "Then")
+            {
+                step.Assertions = 1;
+            }
 
             var start = Stopwatch.GetTimestamp();
             try

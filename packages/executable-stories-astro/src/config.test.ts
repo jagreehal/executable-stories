@@ -6,7 +6,15 @@ describe("resolveSources", () => {
   it("accepts the single `source` shorthand", () => {
     const [s, ...rest] = resolveSources({ source: "reports/raw-run.json" });
     expect(rest).toHaveLength(0);
-    expect(s).toMatchObject({ source: "reports/raw-run.json", inputType: "raw", synthesize: true });
+    expect(s).toMatchObject({ source: "reports/raw-run.json", synthesize: true });
+    // Left unresolved on purpose: the loader decides from what the path turns
+    // out to be, since a directory of per-file reports is canonical.
+    expect(s!.inputType).toBeUndefined();
+  });
+
+  it("keeps an input type the author stated", () => {
+    const [s] = resolveSources({ source: "reports/raw-run.json", inputType: "canonical" });
+    expect(s!.inputType).toBe("canonical");
   });
 
   it("derives a meaningful name from a generic filename via the parent dir", () => {

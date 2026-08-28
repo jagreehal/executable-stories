@@ -56,7 +56,7 @@ skip it. `executable-stories new adr "<title>"` scaffolds one.
 The suite already knows what vocabulary is in use:
 
 ```bash
-executable-stories list reports/raw-run.json --list-format json
+executable-stories list reports/by-file --list-format json
 ```
 
 Read the scenario titles as a corpus, not as a list. Three patterns are worth acting on:

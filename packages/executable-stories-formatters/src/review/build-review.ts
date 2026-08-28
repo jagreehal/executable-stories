@@ -8,6 +8,7 @@
  */
 
 import type { DocEntry } from "executable-stories-core/types/story";
+import { assertionState } from "executable-stories-core";
 import type { TestCaseResult } from "executable-stories-core/types/test-result";
 import type {
   ChangedFileReview,
@@ -104,6 +105,17 @@ export function gradeEvidence(
     return {
       strength: "none",
       reasons: [`test is ${testCase.status} — the proof does not hold`],
+    };
+  }
+
+  // A scenario that asserted nothing cannot fail, so it proves nothing, and no
+  // attached artifact changes that. This floor sits above every other signal:
+  // mutation score and failing-first are unreachable for a test that is green
+  // by construction.
+  if (assertionState(testCase.story.steps) === "unasserted") {
+    return {
+      strength: "none",
+      reasons: ["the scenario passed without asserting anything"],
     };
   }
 

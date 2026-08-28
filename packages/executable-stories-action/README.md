@@ -409,7 +409,7 @@ Scaffold it once:
 npx --package executable-stories-formatters executable-stories init-astro docs-site
 ```
 
-Commit `docs-site/` and point its `executable-stories.config.mjs` at your run JSON (`reports/raw-run.json` by default). Then build and deploy it from your own workflow — the site reads the run JSON at build time, so each run only needs to refresh that JSON and rebuild:
+Commit `docs-site/` and point its `executable-stories.config.mjs` at the reporter's per-source directory (`reports/by-file` by default). Then build and deploy it from your own workflow. A full CI run refreshes that directory before the site build; a raw-run source is appropriate only when it is deliberately a complete run snapshot:
 
 ```yaml
 jobs:

@@ -5,11 +5,12 @@ description: >
   Mocha reporter via --reporter or cypress.config.ts, or using the module
   API (buildRawRunFromCypressResult, generateReportsFromRawRun) for
   programmatic report generation.
-type: core
-library: executable-stories-cypress
-library_version: "8.4.7"
-sources:
-  - "jagreehal/executable-stories:packages/executable-stories-cypress/src/reporter.ts"
+metadata:
+  type: core
+  library: executable-stories-cypress
+  library_version: "8.7.0"
+  sources:
+    - "jagreehal/executable-stories:packages/executable-stories-cypress/src/reporter.ts"
 ---
 
 # executable-stories-cypress — Reporter Setup
@@ -56,6 +57,13 @@ await generateReportsFromRawRun(rawRun, {
 ```
 
 `executable-stories-formatters` is a bundled dependency (installed automatically with `executable-stories-cypress`).
+
+Every formatted run updates `<outputDir>/by-file/`, one canonical report per test
+source. Documentation formats render that accumulated suite; JUnit, Cucumber, and
+release manifests describe only the current execution. Cypress cannot detect
+`@cypress/grep`: pass `runScope: "filtered"` for a narrowed run, or `"full"` only when
+the run covered every scenario in its specs. Leaving it absent preserves earlier
+scenarios and warns rather than deleting on a guess.
 
 CI-pipeline variant of the Module API (guarding on `result.status`): [REFERENCE.md](REFERENCE.md).
 

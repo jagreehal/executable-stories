@@ -4,12 +4,13 @@ description: >
   Use when writing BDD story tests in Cypress with executable-stories-cypress:
   story.init(), given/when/then steps, doc entries, or the browser-Node bridge
   via cy.task.
-type: core
-library: executable-stories-cypress
-library_version: "8.4.7"
-sources:
-  - "jagreehal/executable-stories:packages/executable-stories-cypress/src/story-api.ts"
-  - "jagreehal/executable-stories:packages/executable-stories-cypress/src/index.ts"
+metadata:
+  type: core
+  library: executable-stories-cypress
+  library_version: "8.7.0"
+  sources:
+    - "jagreehal/executable-stories:packages/executable-stories-cypress/src/story-api.ts"
+    - "jagreehal/executable-stories:packages/executable-stories-cypress/src/index.ts"
 ---
 
 # executable-stories-cypress — Story API
@@ -156,6 +157,11 @@ story.expect("the result is correct", () => {
   expect(result).to.equal(5);
 });
 ```
+
+Cypress has no live assertion counter. `story.expect` therefore **declares** one
+assertion for its claim step; it does not inspect the callback. A normal `story.then()`
+followed by queued `.should()` commands stays unobserved rather than becoming zero. Use
+the wrapper when assertion evidence must be visible in reports.
 
 ## Common Mistakes
 

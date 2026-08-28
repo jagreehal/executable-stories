@@ -4,11 +4,12 @@ description: >
   Use when setting up ESLint rules for executable-stories-jest: enforcing
   story.init() ordering before steps, story-context scoping for step calls,
   or test-context requirements for doc.story.
-type: core
-library: eslint-plugin-executable-stories-jest
-library_version: "2.1.9"
-sources:
-  - "jagreehal/executable-stories:packages/eslint-plugin-executable-stories-jest/src/index.ts"
+metadata:
+  type: core
+  library: eslint-plugin-executable-stories-jest
+  library_version: '2.1.11'
+  sources:
+    - 'jagreehal/executable-stories:packages/eslint-plugin-executable-stories-jest/src/index.ts'
 ---
 
 # ESLint Plugin: executable-stories-jest
@@ -17,7 +18,7 @@ sources:
 
 ```typescript
 // eslint.config.mjs
-import jestStories from "eslint-plugin-executable-stories-jest";
+import jestStories from 'eslint-plugin-executable-stories-jest';
 
 export default [
   // Option A: Use recommended config (enables all rules at error)
@@ -26,12 +27,12 @@ export default [
   // Option B: Manual configuration
   {
     plugins: {
-      "executable-stories-jest": jestStories,
+      'executable-stories-jest': jestStories,
     },
     rules: {
-      "executable-stories-jest/require-init-before-steps": "error",
-      "executable-stories-jest/require-story-context-for-steps": "error",
-      "executable-stories-jest/require-test-context-for-doc-story": "error",
+      'executable-stories-jest/require-init-before-steps': 'error',
+      'executable-stories-jest/require-story-context-for-steps': 'error',
+      'executable-stories-jest/require-test-context-for-doc-story': 'error',
     },
   },
 ];
@@ -45,15 +46,15 @@ Ensures `story.init()` is called before any step markers.
 
 ```typescript
 // Fails lint
-it("my test", () => {
-  story.given("something", () => {}); // Error: story.init() must be called first
+it('my test', () => {
+  story.given('something', () => {}); // Error: story.init() must be called first
   story.init();
 });
 
 // Passes lint
-it("my test", () => {
+it('my test', () => {
   story.init();
-  story.given("something", () => {});
+  story.given('something', () => {});
 });
 ```
 
@@ -65,21 +66,21 @@ Ensures bare step functions (`given`, `when`, `then`, `and`, `but` and aliases) 
 
 ```typescript
 // Fails lint
-it("my test", () => {
-  given("something", () => {}); // Error: must be inside story() or story.init() scope
+it('my test', () => {
+  given('something', () => {}); // Error: must be inside story() or story.init() scope
 });
 
 // Passes lint — inside story() callback
-story("Login", () => {
-  given("a user", () => {});
-  when("they sign in", () => {});
-  then("they see the dashboard", () => {});
+story('Login', () => {
+  given('a user', () => {});
+  when('they sign in', () => {});
+  then('they see the dashboard', () => {});
 });
 
 // Passes lint — story.init() in same scope
-it("my test", () => {
+it('my test', () => {
   story.init();
-  given("a user", () => {});
+  given('a user', () => {});
 });
 ```
 
@@ -90,22 +91,22 @@ Ensures `doc.story(title)` is called inside a `test()` or `it()` callback.
 ```typescript
 // Fails lint
 function setup() {
-  doc.story("My story"); // Error: must be inside test/it callback
+  doc.story('My story'); // Error: must be inside test/it callback
 }
 
 // Fails lint
-it("my test", () => {
+it('my test', () => {
   doc.story(); // Error: requires a title argument
 });
 
 // Passes lint
-it("my test", () => {
-  doc.story("My story");
+it('my test', () => {
+  doc.story('My story');
 });
 
 // Also detects modifiers: it.only, it.skip, it.todo, it.concurrent, it.failing
-it.only("focused test", () => {
-  doc.story("My story"); // Passes lint
+it.only('focused test', () => {
+  doc.story('My story'); // Passes lint
 });
 ```
 
@@ -128,7 +129,7 @@ Correct:
 
 ```typescript
 // eslint.config.mjs (flat config)
-import jestStories from "eslint-plugin-executable-stories-jest";
+import jestStories from 'eslint-plugin-executable-stories-jest';
 
 export default [...jestStories.configs.recommended];
 ```
@@ -141,19 +142,19 @@ Source: packages/eslint-plugin-executable-stories-jest/src/index.ts
 
 ```typescript
 // eslint.config.mjs
-import jestStories from "eslint-plugin-executable-stories-jest";
+import jestStories from 'eslint-plugin-executable-stories-jest';
 
 export default [
   {
     // Scope to story test files only
-    files: ["**/*.story.test.ts", "**/*.story.spec.ts"],
+    files: ['**/*.story.test.ts', '**/*.story.spec.ts'],
     plugins: {
-      "executable-stories-jest": jestStories,
+      'executable-stories-jest': jestStories,
     },
     rules: {
-      "executable-stories-jest/require-init-before-steps": "error",
-      "executable-stories-jest/require-story-context-for-steps": "error",
-      "executable-stories-jest/require-test-context-for-doc-story": "error",
+      'executable-stories-jest/require-init-before-steps': 'error',
+      'executable-stories-jest/require-story-context-for-steps': 'error',
+      'executable-stories-jest/require-test-context-for-doc-story': 'error',
     },
   },
 ];

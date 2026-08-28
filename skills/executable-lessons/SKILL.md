@@ -1,6 +1,12 @@
 ---
 name: executable-lessons
-description: Use when teaching a technical or coding topic (onboarding, katas, LeetCode-style practice, a library, a pattern) and you want each lesson to be runnable and self-proving. Authors lessons as executable story tests so the lesson, the test, and the living documentation are one artifact. Companion to the `teach` skill: teach owns the pedagogy (mission, progression, references) and this skill owns the verification layer.
+description: >
+  Use when teaching a technical or coding topic (onboarding, katas,
+  LeetCode-style practice, a library, a pattern) and you want each lesson to
+  be runnable and self-proving. Authors lessons as executable story tests so
+  the lesson, the test, and the living documentation are one artifact.
+  Companion to the teach skill: teach owns the pedagogy and this skill owns
+  the verification layer.
 ---
 
 # Executable Lessons

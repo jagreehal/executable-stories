@@ -147,7 +147,7 @@ npx executable-stories init-astro --install   # scaffold ./story-docs + install 
 
 Then confirm the loop works end to end:
 
-- Terminal 1: the test command in watch mode (writes `reports/raw-run.json`)
+- Terminal 1: the test command in watch mode (updates `reports/by-file/`; `raw-run.json` remains the current execution event)
 - Terminal 2: `npx executable-stories dev` — stories hot-reload on every test run
   (it finds `./story-docs`, installs its deps if missing, and runs the dev server)
 
@@ -160,7 +160,7 @@ tags or data:
 import { defineExecutableStories } from 'executable-stories-astro';
 
 export default defineExecutableStories({
-  source: '../reports/raw-run.json',
+  source: '../reports/by-file',
   groupBy: 'feature',
   views: [
     {

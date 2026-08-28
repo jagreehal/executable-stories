@@ -10,7 +10,11 @@ Shared types and constants for story metadata are **re-exported from each framew
 Import metadata types and constants from the package for your test runner:
 
 ```typescript
-import type { StepKeyword, StoryMeta, StoryStep } from 'executable-stories-vitest';
+import type {
+  StepKeyword,
+  StoryMeta,
+  StoryStep,
+} from 'executable-stories-vitest';
 import { STORY_META_KEY } from 'executable-stories-vitest';
 ```
 
@@ -70,7 +74,13 @@ type DocEntry =
   | { kind: 'section'; title: string; markdown: string; phase: DocPhase }
   | { kind: 'mermaid'; code: string; title?: string; phase: DocPhase }
   | { kind: 'screenshot'; path: string; alt?: string; phase: DocPhase }
-  | { kind: 'video'; path: string; caption?: string; poster?: string; phase: DocPhase }
+  | {
+      kind: 'video';
+      path: string;
+      caption?: string;
+      poster?: string;
+      phase: DocPhase;
+    }
   | {
       kind: 'html';
       // exactly one of path / url / content
@@ -94,6 +104,8 @@ interface StoryStep {
   text: string;
   mode?: StepMode;
   docs?: DocEntry[];
+  /** Absent = unobserved; zero = observed or declared with no assertions. */
+  assertions?: number;
 }
 ```
 
@@ -144,7 +156,13 @@ interface StoryDocs {
   mermaid?: { code: string; title?: string };
   screenshot?: { path: string; alt?: string };
   video?: { path: string; caption?: string; poster?: string };
-  html?: { path?: string; url?: string; content?: string; title?: string; height?: number | string };
+  html?: {
+    path?: string;
+    url?: string;
+    content?: string;
+    title?: string;
+    height?: number | string;
+  };
   custom?: { type: string; data: unknown };
 }
 ```

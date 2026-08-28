@@ -32,7 +32,7 @@ One config object drives everything. Put it next to `astro.config.mjs`:
 import { defineExecutableStories } from 'executable-stories-astro';
 
 export default defineExecutableStories({
-  source: 'reports/raw-run.json',
+  source: 'reports/by-file',
 });
 ```
 
@@ -71,17 +71,19 @@ export const collections = {
 };
 ```
 
-## 5. Emit the run JSON
+## 5. Emit per-source report state
 
-The loader reads the raw run JSON your reporter writes when `rawRunPath` is
-set:
+The reporter maintains one canonical report per test source under `reports/by-file/`.
+Point the loader there so a focused run updates its source without hiding every untouched
+scenario. `rawRunPath` is still useful for current-run CLI commands:
 
 ```js
 new StoryReporter({ formats: ['html'], rawRunPath: 'reports/raw-run.json' })
 ```
 
 That's it. Run your tests, start `astro dev`, and open `/stories`. The loader
-watches the file, so a fresh test run hot-reloads the open page.
+watches the directory, so a fresh focused run hot-reloads the open page while preserving
+the rest of the suite.
 
 ## Starlight or not
 
@@ -122,16 +124,16 @@ Discounts are capped at 30%, enforced end-to-end
   move the injected routes with `routeBase` and `explorerBase`.
 - **Monorepos**: `source` resolves relative to the Astro project root, so a
   site in `apps/docs` reads a sibling app's output with
-  `source: '../web/reports/raw-run.json'`.
+  `source: '../web/reports/by-file'`.
 
 ## Several suites, one site
 
-`sources` combines multiple run JSONs, each shown as a named suite:
+`sources` combines multiple per-file directories or intentional run snapshots, each shown as a named suite:
 
 ```js
 sources: [
-  { name: 'web', label: 'Web app', source: '../apps/web/reports/raw-run.json' },
-  { name: 'api', label: 'API',     source: '../apps/api/reports/raw-run.json' },
+  { name: 'web', label: 'Web app', source: '../apps/web/reports/by-file' },
+  { name: 'api', label: 'API',     source: '../apps/api/reports/by-file' },
 ],
 groupBy: 'source',
 ```

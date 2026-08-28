@@ -24,7 +24,8 @@ module ExecutableStories
         finished_at_ms: finished,
         package_version: nil,
         git_sha: nil,
-        ci: detect_ci
+        ci: detect_ci,
+        run_scope: run_scope
       )
 
       JsonWriter.write_raw_run(run, output_path)
@@ -43,6 +44,51 @@ module ExecutableStories
       warn ""
       warn "executable-stories: wrote #{output_path}"
       warn "  next: executable-stories format #{output_path} --format html"
+    end
+
+    # Whether the run was narrowed by test name, so the scenarios it reports
+    # are not the complete contents of its files.
+    #
+    # Both runners record what they parsed, so this needs nothing from the
+    # caller: Minitest keeps `-n` in its options, RSpec keeps `-e` in its
+    # filter manager. Either runner may be absent, hence the `defined?` guards.
+    # Record the options Minitest parsed, from the plugin hook.
+    #
+    # Minitest consumes `-n` out of ARGV during option parsing, so ARGV is empty
+    # by the time results are written; this is the only place the filter
+    # survives. See lib/minitest/executable_stories_plugin.rb.
+    def record_run_options(options)
+      @run_options = options
+    end
+
+    # How much of each file the run covered, or nil when that cannot be
+    # determined. Only "full" permits a consumer to retire a scenario, so it is
+    # returned solely when a runner was positively observed to have applied no
+    # name filter. nil means unknown, and unknown keeps data.
+    def run_scope
+      return "filtered" if minitest_filter? || rspec_filter?
+      return "full" if @run_options || rspec_running?
+
+      nil
+    end
+
+    def minitest_filter?
+      filter = @run_options && @run_options[:filter]
+      !filter.nil? && filter.to_s != ""
+    end
+
+    def rspec_running?
+      defined?(RSpec) && RSpec.respond_to?(:configuration)
+    end
+
+    def rspec_filter?
+      return false unless rspec_running?
+
+      inclusions = RSpec.configuration.filter_manager.inclusions
+      !inclusions.empty?
+    rescue StandardError
+      # Filter internals are not public API; never fail a run over them.
+      false
     end
 
     def detect_ci

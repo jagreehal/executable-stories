@@ -32,7 +32,7 @@ export default defineConfig({
 
 ## Default output
 
-With no options, the reporter uses the formatters package defaults (e.g. Cucumber JSON in `reports/`). To write Markdown to **`docs/user-stories.md`**, pass options to `StoryReporter` (see [Vitest reporter options](/reference/vitest-config/) — e.g. `formats: ['markdown']`, `outputDir: 'docs'`, `outputName: 'user-stories'`). Run your tests:
+With no options, the reporter writes **`reports/index.html`** and maintains one canonical report per test source under **`reports/by-file/`**. To write Markdown to **`docs/user-stories.md`**, pass options to `StoryReporter` (see [Vitest reporter options](/reference/vitest-config/) — e.g. `formats: ['markdown']`, `outputDir: 'docs'`, `outputName: 'user-stories'`). Run your tests:
 
 ```bash
 pnpm vitest run

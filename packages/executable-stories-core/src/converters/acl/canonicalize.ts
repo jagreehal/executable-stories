@@ -66,6 +66,13 @@ export function canonicalizeRun(
     packageVersion: raw.packageVersion,
     gitSha: raw.gitSha,
     ci: raw.ci,
+    ...(raw.runScope ? { runScope: raw.runScope } : {}),
+    ...(raw.coveredSourceFiles?.length
+      ? { coveredSourceFiles: [...raw.coveredSourceFiles] }
+      : {}),
+    ...(raw.incompleteSourceFiles?.length
+      ? { incompleteSourceFiles: [...raw.incompleteSourceFiles] }
+      : {}),
   };
 }
 

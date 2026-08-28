@@ -78,6 +78,14 @@ story.state(Some("Basket"), serde_json::json!({"items": [{"sku": "A1", "qty": 2}
 
 ## Output
 
+The adapter inspects libtest arguments: positional name filters and `--skip` report
+`runScope: "filtered"`; ordinary runner flags leave the run `"full"`. Formatting the raw
+run updates one canonical report per source under `reports/by-file/`.
+
+Rust exposes no assertion counter. Use `story.expect_step("claim", || { ... })` to
+declare assertion evidence. A plain `story.then()` followed by `assert!` remains
+unobserved rather than being treated as zero.
+
 The first `Story` registers a process-exit hook, so `.executable-stories/raw-run.json` lands after the last test in the binary finishes. Nothing to wire up. Call `write_results()` directly if you want to control when the file is written, and set `EXECUTABLE_STORIES_OUTPUT` to change the path.
 
 Rust compiles every file under `tests/` into its own binary, and each one writes the same path. Keep story tests in a single file, or give each binary its own `EXECUTABLE_STORIES_OUTPUT`.

@@ -33,6 +33,60 @@ function resetForTest(title: string, titlePath?: string[]) {
   getAndClearMeta();
 }
 
+describe("assertions attributable to a step", () => {
+  beforeEach(() => {
+    resetForTest("assertion count test");
+  });
+
+  afterEach(() => {
+    getAndClearMeta();
+  });
+
+  // Cypress assertions are queued commands, not synchronous calls, so there is
+  // no per-step counter to read. A claim counts only when the author routes it
+  // through a wrapped body. Bare markers stay unobserved: absent is honest,
+  // zero would be an accusation.
+
+  it("records an assertion for a wrapped claim", () => {
+    story.init();
+    story.given("two numbers 5 and 3");
+    story.expect("the result is 8", () => undefined);
+
+    const meta = getAndClearMeta()!.meta;
+    expect(meta.steps[1].assertions).toBe(1);
+  });
+
+  it("leaves marker steps unobserved", () => {
+    story.init();
+    story.given("two numbers 5 and 3");
+    story.then("the result is 8");
+
+    const meta = getAndClearMeta()!.meta;
+    for (const step of meta.steps) {
+      expect(step.assertions).toBeUndefined();
+    }
+  });
+
+  it("does not count a wrapped setup step as a claim", () => {
+    story.init();
+    story.given("an expensive fixture", () => undefined);
+
+    const meta = getAndClearMeta()!.meta;
+    expect(meta.steps[0].assertions).toBeUndefined();
+  });
+
+  it("counts a second wrapped claim that auto-And rewrote", () => {
+    story.init();
+    story.given("two numbers 5 and 3");
+    story.expect("the result is 8", () => undefined);
+    story.expect("the result is positive", () => undefined);
+
+    const meta = getAndClearMeta()!.meta;
+    expect(meta.steps[2].keyword).toBe("And");
+    expect(meta.steps[2].assertions).toBe(1);
+  });
+});
+
 describe("step callbacks", () => {
   beforeEach(() => {
     resetForTest("step callback test");

@@ -123,6 +123,16 @@ Supported options: `tags`, `ticket`, `covers`, `meta`, `traceUrlTemplate`.
 
 ## Developer Experience
 
+The reporter maintains one canonical JSON report per test source under
+`<outputDir>/by-file/`. Documentation formats render the accumulated suite; JUnit,
+Cucumber, and release manifests contain only the current execution. Jest
+`testNamePattern` filtering is detected automatically. Files that fail during collection
+are merged conservatively, so a broken run does not silently retire their earlier stories.
+
+Jest's live assertion counter is attributed to both marker-style steps and
+`story.expect` wrappers. A passing observable claim with zero assertions is called out in
+Markdown, HTML, the CLI summary, and Evidence Review.
+
 - **API:** `story.init()` plus `story.given`, `story.when`, `story.then`, `story.and`, `story.but`. Top-level step helpers are also exported.
 - **Attach story to a plain test:** call `story.init()` inside the Jest `test()` or `it()` callback. Scenario title comes from the Jest test title.
 - **Rich docs:** use `story.note()`, `story.json()`, `story.code()`, `story.table()`, `story.mermaid()`, and related doc methods.

@@ -5,13 +5,14 @@ description: >
   test suite, converting it/test blocks to story tests, or adding
   story.init(task) without a full rewrite. Progressive enhancement of
   .story.test.ts files.
-type: lifecycle
-library: executable-stories-vitest
-library_version: "8.4.7"
-requires:
-  - vitest-story-api
-sources:
-  - "jagreehal/executable-stories:apps/docs-site/src/content/docs/guides/converting-vitest.md"
+metadata:
+  type: lifecycle
+  library: executable-stories-vitest
+  library_version: "8.7.0"
+  requires:
+    - vitest-story-api
+  sources:
+    - "jagreehal/executable-stories:apps/docs-site/src/content/docs/guides/converting-vitest.md"
 ---
 
 This skill builds on vitest-story-api. Read vitest-story-api first.

@@ -14,15 +14,29 @@ module ExecutableStories
   # still wins: recording is idempotent, and the first call is the one that
   # counts.
   module MinitestHook
+    # The story reads Minitest's assertion counter off this instance, so it has
+    # to be reachable from the step methods while the test body runs.
+    def before_setup
+      Thread.current[:executable_stories_minitest_test] = self
+      super
+    end
+
     def after_teardown
       super
     ensure
       ExecutableStories::MinitestHook.record_current(self)
+      Thread.current[:executable_stories_minitest_test] = nil
     end
 
     def self.record_current(test)
       story = Thread.current[:executable_stories_current]
-      return if story.nil? || story.recorded?
+      return if story.nil?
+
+      # The last marker's assertions land after every step call, so its count is
+      # only final now. Done before the recorded? guard: an explicitly recorded
+      # story still needs its final step closed off.
+      story.send(:flush_pending_assertions)
+      return if story.recorded?
 
       failure = test.failures.first
       status =

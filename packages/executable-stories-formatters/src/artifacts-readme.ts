@@ -23,6 +23,21 @@ gitignore; every file regenerates from a test run.
 | \`*.html\` | Single-file human report for this run | CI attachments, quick local viewing |
 | \`*.md\` | Markdown report | PRs, wikis |
 | \`*.junit.xml\`, \`*.cucumber.json\`, \`*.ndjson\` | Interop formats | CI dashboards, Cucumber tooling |
+| \`by-file/\` | One report per test source file, named after it | The CLI and the docs site, as the input to any combined view |
+
+Each test file owns a report in \`by-file/\`. Running one test file rewrites one
+report and leaves the rest alone, which is why a focused run does not shrink the
+docs to the file it ran.
+
+Any combined view is derived from that directory rather than accumulated:
+
+\`\`\`bash
+executable-stories format reports/by-file --format html --output-dir reports
+\`\`\`
+
+Delete a report and its scenarios leave the combined view; delete the directory
+and the next full test run rebuilds it. \`executable-stories runs status\` shows
+how old each file's results are.
 
 Useful commands (all take \`raw-run.json\`):
 

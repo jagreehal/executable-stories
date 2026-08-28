@@ -106,7 +106,16 @@ The package outputs to the **executable-stories-formatters** schema (RawRun). Yo
 - Use the Mocha reporter (when Cypress invokes it) with `--reporter executable-stories-cypress/reporter.cjs` and `--reporter-options outputDir=...,outputName=...`.
 - Or use the Module API: after `cypress.run()`, call `buildRawRunFromCypressResult(result, options)` then `generateReportsFromRawRun(rawRun, options)` (see exports from `executable-stories-cypress/reporter`).
 
-Options match the formatters’ `FormatterOptions` (e.g. `formats`, `outputDir`, `outputName`, `markdown`, `rawRunPath`).
+Options match the formatters’ `FormatterOptions` (e.g. `formats`, `outputDir`, `outputName`, `markdown`, `rawRunPath`). Every formatted run updates one canonical report per test source under `<outputDir>/by-file/`; documentation formats render that accumulated state, while JUnit, Cucumber, and release manifests contain only the execution in hand.
+
+Cypress cannot observe `@cypress/grep` title filtering. Pass `runScope: "filtered"`
+to the reporter/module API for a narrowed run, or `runScope: "full"` only when the run
+covered every scenario in its source files. Leaving it absent preserves earlier scenarios
+and warns rather than deleting on a guess.
+
+Cypress also exposes no live assertion counter. `story.expect("claim", callback)` declares
+one assertion for that claim step; a normal `story.then()` followed by queued `.should()`
+commands remains unobserved rather than being recorded as zero.
 
 ## Exports
 

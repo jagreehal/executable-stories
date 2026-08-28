@@ -1349,3 +1349,87 @@ test.describe('StoryReporter', () => {
     });
   });
 });
+
+test.describe('name-filtered runs', () => {
+  const FILTER_DIR = path.join(os.tmpdir(), `es-pw-filtered-${process.pid}`);
+
+  test.beforeEach(() => fs.mkdirSync(FILTER_DIR, { recursive: true }));
+  test.afterEach(() => fs.rmSync(FILTER_DIR, { recursive: true, force: true }));
+
+  /** Run the reporter once under the given config, return the raw run it wrote. */
+  async function rawRunFor(config: unknown) {
+    const rawRunPath = path.join(FILTER_DIR, 'raw-run.json');
+    const reporter = new StoryReporter({
+      formats: [],
+      outputDir: FILTER_DIR,
+      outputName: 'out',
+      rawRunPath,
+    });
+
+    const meta: StoryMeta = {
+      scenario: 'refuses a negative amount',
+      steps: [{ keyword: 'Given', text: 'an amount', docs: [] }],
+    };
+    const mockTestCase: MockTestCase = {
+      annotations: [{ type: 'story-meta', description: JSON.stringify(meta) }],
+      location: { file: 'pay.story.spec.ts', line: 1 },
+    };
+
+    reporter.onBegin(config as Parameters<typeof reporter.onBegin>[0]);
+    reporter.onTestEnd(
+      mockTestCase as unknown as Parameters<typeof reporter.onTestEnd>[0],
+      { status: 'passed', duration: 1 } as unknown as Parameters<typeof reporter.onTestEnd>[1],
+    );
+    await reporter.onEnd({ status: 'passed' } as Parameters<typeof reporter.onEnd>[0]);
+
+    return JSON.parse(fs.readFileSync(rawRunPath, 'utf8')) as { runScope?: string };
+  }
+
+  test('reports filtered scope when --grep narrowed it', async () => {
+    expect((await rawRunFor({ grep: /refuses/ })).runScope).toBe('filtered');
+  });
+
+  test('reports filtered scope when the run was sharded', async () => {
+    // A shard sees only some of each file's tests, so calling it authoritative
+    // would retire whatever landed on the other machines.
+    expect(
+      (await rawRunFor({ grep: /.*/, grepInvert: null, shard: { current: 1, total: 3 } }))
+        .runScope,
+    ).toBe('filtered');
+  });
+
+  test('reports filtered scope when --grep-invert excluded something', async () => {
+    expect((await rawRunFor({ grep: /.*/, grepInvert: /slow/ })).runScope).toBe('filtered');
+  });
+
+  test("treats Playwright's match-everything default as full coverage", async () => {
+    // `grep` is always present on FullConfig and defaults to a match-everything
+    // pattern, so presence is not the signal; only a narrowing pattern is.
+    expect((await rawRunFor({ grep: /.*/, grepInvert: null })).runScope).toBe('full');
+  });
+
+  test('states no scope when onBegin never ran', async () => {
+    // Playwright always supplies a FullConfig to onBegin, so the realistic gap
+    // is the hook not running at all. Nothing was inspected, so nothing is
+    // claimed, and consumers keep what this run did not report.
+    const rawRunPath = path.join(FILTER_DIR, 'no-begin.json');
+    const reporter = new StoryReporter({
+      formats: [],
+      outputDir: FILTER_DIR,
+      outputName: 'out',
+      rawRunPath,
+    });
+    const meta: StoryMeta = { scenario: 'refuses a negative amount', steps: [] };
+    reporter.onTestEnd(
+      {
+        annotations: [{ type: 'story-meta', description: JSON.stringify(meta) }],
+        location: { file: 'pay.story.spec.ts', line: 1 },
+      } as unknown as Parameters<typeof reporter.onTestEnd>[0],
+      { status: 'passed', duration: 1 } as unknown as Parameters<typeof reporter.onTestEnd>[1],
+    );
+    await reporter.onEnd({ status: 'passed' } as Parameters<typeof reporter.onEnd>[0]);
+
+    const run = JSON.parse(fs.readFileSync(rawRunPath, 'utf8')) as { runScope?: string };
+    expect(run.runScope).toBeUndefined();
+  });
+});

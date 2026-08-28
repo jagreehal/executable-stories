@@ -16,7 +16,7 @@ module ExecutableStories
   RawStepEvent = Struct.new(:index, :title, :status, :duration_ms, keyword_init: true)
 
   StoryStep = Struct.new(
-    :id, :keyword, :text, :mode, :wrapped, :duration_ms, :docs,
+    :id, :keyword, :text, :mode, :wrapped, :duration_ms, :docs, :assertions,
     keyword_init: true
   )
 
@@ -35,7 +35,7 @@ module ExecutableStories
 
   RawRun = Struct.new(
     :schema_version, :test_cases, :features, :project_root, :started_at_ms,
-    :finished_at_ms, :package_version, :git_sha, :ci, :meta,
+    :finished_at_ms, :package_version, :git_sha, :ci, :meta, :run_scope,
     keyword_init: true
   )
 
@@ -63,6 +63,8 @@ module ExecutableStories
     h["mode"] = step.mode if step.mode
     h["wrapped"] = step.wrapped if step.wrapped
     h["durationMs"] = step.duration_ms if step.duration_ms
+    # 0 is a finding, so test for nil rather than truthiness.
+    h["assertions"] = step.assertions unless step.assertions.nil?
     h["docs"] = step.docs.map { |d| d.is_a?(Hash) ? d : d.to_h } if step.docs && !step.docs.empty?
     h
   end
@@ -174,6 +176,9 @@ module ExecutableStories
     h["gitSha"] = run.git_sha if run.git_sha
     h["ci"] = ci_info_to_h(run.ci) if run.ci
     h["meta"] = run.meta if run.meta
+    # Absent means the runner could not tell; consumers then keep what the run
+    # did not report rather than retiring it on a guess.
+    h["runScope"] = run.run_scope if run.run_scope
     h
   end
 end

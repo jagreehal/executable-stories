@@ -4,12 +4,13 @@ description: >
   Use when configuring the StoryReporter in vitest.config.ts for
   executable-stories-vitest: OutputConfig, aggregated vs. colocated output
   modes, or GitHub Actions summary integration.
-type: core
-library: executable-stories-vitest
-library_version: "8.4.7"
-sources:
-  - "jagreehal/executable-stories:packages/executable-stories-vitest/src/reporter.ts"
-  - "jagreehal/executable-stories:apps/docs-site/src/content/docs/vitest/vitest-config.md"
+metadata:
+  type: core
+  library: executable-stories-vitest
+  library_version: "8.7.0"
+  sources:
+    - "jagreehal/executable-stories:packages/executable-stories-vitest/src/reporter.ts"
+    - "jagreehal/executable-stories:apps/docs-site/src/content/docs/vitest/vitest-config.md"
 ---
 
 # executable-stories-vitest — Reporter Setup
@@ -40,6 +41,12 @@ Use the `createStoryReporter()` factory: it returns a correctly typed reporter, 
 Peer dependency: `executable-stories-formatters` must be installed.
 
 Output-mode variants (colocated/aggregated), format-specific options, pattern-based rules, and raw-run output: [REFERENCE.md](REFERENCE.md).
+
+Every run also updates `<outputDir>/by-file/`, one canonical report per test source.
+Documentation formats render that accumulated suite; JUnit, Cucumber, and release
+manifests describe only the current execution. Vitest detects `testNamePattern`
+automatically. Full runs may retire missing scenarios, filtered runs merge, and files
+whose collection was incomplete preserve their earlier scenarios with a warning.
 
 ## Common Mistakes
 

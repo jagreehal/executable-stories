@@ -58,7 +58,7 @@ page and of every journey it belongs to.
 ```js
 // executable-stories.config.mjs
 export default defineExecutableStories({
-  source: 'reports/raw-run.json',
+  source: 'reports/by-file',
   views: [
     {
       base: '/for/product',

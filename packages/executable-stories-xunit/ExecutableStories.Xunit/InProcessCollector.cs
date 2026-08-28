@@ -61,7 +61,9 @@ namespace ExecutableStories.Xunit
                 StartedAtMs = _startedAtMs > 0 ? _startedAtMs : null,
                 FinishedAtMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
                 ProjectRoot = Directory.GetCurrentDirectory(),
-                Ci = CIDetector.ToRawCIInfo(CIDetector.Detect())
+                Ci = CIDetector.ToRawCIInfo(CIDetector.Detect()),
+                RunScope = ResolveRunScope(
+                    Environment.GetEnvironmentVariable("EXECUTABLE_STORIES_FILTERED"))
             };
 
             var outputPath = Environment.GetEnvironmentVariable("EXECUTABLE_STORIES_OUTPUT")
@@ -69,6 +71,30 @@ namespace ExecutableStories.Xunit
 
             RawRunWriter.Write(run, outputPath);
             PrintNextStep(outputPath);
+        }
+
+        /// <summary>
+        /// How much of each source file this run covered, or null when that
+        /// cannot be determined.
+        /// </summary>
+        /// <remarks>
+        /// <c>dotnet test --filter</c> is applied by the test host before the
+        /// adapter sees anything, and xUnit does not surface it in process, so
+        /// unlike the Vitest, Jest and Playwright adapters this cannot be
+        /// detected. Null means unknown, and a consumer keeps what an
+        /// unknown-scope run did not report rather than retiring it on a guess;
+        /// EXECUTABLE_STORIES_FILTERED lets a wrapper state what it knows.
+        /// </remarks>
+        internal static string? ResolveRunScope(string? filteredEnv)
+        {
+            var value = filteredEnv?.Trim().ToLowerInvariant();
+            if (string.IsNullOrEmpty(value))
+            {
+                return null;
+            }
+
+            // Explicit either way: an operator saying "0" states a complete run.
+            return value is "0" or "false" ? "full" : "filtered";
         }
 
         /// <summary>

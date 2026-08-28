@@ -5,11 +5,12 @@ description: >
   enforcing story.init() ordering before steps, story-context scoping for
   step calls, doc.story test-context requirements, or detecting Playwright
   test modifiers (only/skip/fixme/fail/slow).
-type: core
-library: eslint-plugin-executable-stories-playwright
-library_version: "2.1.9"
-sources:
-  - "jagreehal/executable-stories:packages/eslint-plugin-executable-stories-playwright/src/index.ts"
+metadata:
+  type: core
+  library: eslint-plugin-executable-stories-playwright
+  library_version: '2.1.11'
+  sources:
+    - 'jagreehal/executable-stories:packages/eslint-plugin-executable-stories-playwright/src/index.ts'
 ---
 
 # ESLint Plugin: executable-stories-playwright
@@ -18,7 +19,7 @@ sources:
 
 ```typescript
 // eslint.config.mjs
-import playwrightStories from "eslint-plugin-executable-stories-playwright";
+import playwrightStories from 'eslint-plugin-executable-stories-playwright';
 
 export default [
   // Option A: Use recommended config (enables all rules at error)
@@ -27,12 +28,13 @@ export default [
   // Option B: Manual configuration
   {
     plugins: {
-      "executable-stories-playwright": playwrightStories,
+      'executable-stories-playwright': playwrightStories,
     },
     rules: {
-      "executable-stories-playwright/require-init-before-steps": "error",
-      "executable-stories-playwright/require-story-context-for-steps": "error",
-      "executable-stories-playwright/require-test-context-for-doc-story": "error",
+      'executable-stories-playwright/require-init-before-steps': 'error',
+      'executable-stories-playwright/require-story-context-for-steps': 'error',
+      'executable-stories-playwright/require-test-context-for-doc-story':
+        'error',
     },
   },
 ];
@@ -46,15 +48,15 @@ Ensures `story.init(testInfo)` is called before any step markers.
 
 ```typescript
 // Fails lint
-test("my test", async ({ page }, testInfo) => {
-  story.given("something", async () => {}); // Error: story.init(testInfo) must be called first
+test('my test', async ({ page }, testInfo) => {
+  story.given('something', async () => {}); // Error: story.init(testInfo) must be called first
   story.init(testInfo);
 });
 
 // Passes lint
-test("my test", async ({ page }, testInfo) => {
+test('my test', async ({ page }, testInfo) => {
   story.init(testInfo);
-  story.given("something", async () => {});
+  story.given('something', async () => {});
 });
 ```
 
@@ -66,21 +68,21 @@ Ensures bare step functions (`given`, `when`, `then`, `and`, `but` and aliases) 
 
 ```typescript
 // Fails lint
-test("my test", async ({ page }, testInfo) => {
-  given("something", async () => {}); // Error: must be inside story() or story.init() scope
+test('my test', async ({ page }, testInfo) => {
+  given('something', async () => {}); // Error: must be inside story() or story.init() scope
 });
 
 // Passes lint — inside story() callback
-story("Login", () => {
-  given("a user", async () => {});
-  when("they sign in", async () => {});
-  then("they see the dashboard", async () => {});
+story('Login', () => {
+  given('a user', async () => {});
+  when('they sign in', async () => {});
+  then('they see the dashboard', async () => {});
 });
 
 // Passes lint — story.init() in same scope
-test("my test", async ({ page }, testInfo) => {
+test('my test', async ({ page }, testInfo) => {
   story.init(testInfo);
-  given("a user", async () => {});
+  given('a user', async () => {});
 });
 ```
 
@@ -91,17 +93,17 @@ Ensures `doc.story(title)` is called inside a `test()` callback.
 ```typescript
 // Fails lint
 function setup() {
-  doc.story("My story"); // Error: must be inside test() callback
+  doc.story('My story'); // Error: must be inside test() callback
 }
 
 // Passes lint
-test("my test", async ({ page }, testInfo) => {
-  doc.story("My story");
+test('my test', async ({ page }, testInfo) => {
+  doc.story('My story');
 });
 
 // Detects Playwright modifiers: test.only, test.skip, test.fixme, test.fail, test.slow
-test.skip("skipped test", async ({ page }, testInfo) => {
-  doc.story("My story"); // Passes lint
+test.skip('skipped test', async ({ page }, testInfo) => {
+  doc.story('My story'); // Passes lint
 });
 ```
 
@@ -124,7 +126,7 @@ Correct:
 
 ```typescript
 // eslint.config.mjs (flat config)
-import playwrightStories from "eslint-plugin-executable-stories-playwright";
+import playwrightStories from 'eslint-plugin-executable-stories-playwright';
 
 export default [...playwrightStories.configs.recommended];
 ```
@@ -137,19 +139,20 @@ Source: packages/eslint-plugin-executable-stories-playwright/src/index.ts
 
 ```typescript
 // eslint.config.mjs
-import playwrightStories from "eslint-plugin-executable-stories-playwright";
+import playwrightStories from 'eslint-plugin-executable-stories-playwright';
 
 export default [
   {
     // Scope to story test files only
-    files: ["**/*.story.spec.ts", "**/*.story.test.ts"],
+    files: ['**/*.story.spec.ts', '**/*.story.test.ts'],
     plugins: {
-      "executable-stories-playwright": playwrightStories,
+      'executable-stories-playwright': playwrightStories,
     },
     rules: {
-      "executable-stories-playwright/require-init-before-steps": "error",
-      "executable-stories-playwright/require-story-context-for-steps": "error",
-      "executable-stories-playwright/require-test-context-for-doc-story": "error",
+      'executable-stories-playwright/require-init-before-steps': 'error',
+      'executable-stories-playwright/require-story-context-for-steps': 'error',
+      'executable-stories-playwright/require-test-context-for-doc-story':
+        'error',
     },
   },
 ];

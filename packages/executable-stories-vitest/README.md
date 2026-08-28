@@ -153,6 +153,18 @@ story.init(task, {
 
 ## Developer experience
 
+The reporter also maintains canonical state under `<outputDir>/by-file/`, one JSON
+report per test source. Documentation formats render that accumulated suite; JUnit,
+Cucumber, and release manifests contain only the current execution. Vitest name filters
+are detected automatically. A full run may retire scenarios no longer reported, while a
+filtered or incompletely collected file preserves its earlier scenarios and emits a
+warning instead of deleting documentation.
+
+Vitest's live assertion counter is attributed to steps. Marker-style assertions are
+assigned to the current step until the next step or test end, and `story.expect` measures
+its own body. An observable Then/And/But claim with zero assertions is marked in Markdown
+and HTML and grades `none` in Evidence Review.
+
 - **API:** Steps are on the `story` object: `story.given`, `story.when`, `story.then`, `story.and`, `story.but`. There are no top-level `given`/`when`/`then` exports (to avoid `then` being treated as a thenable on the package namespace).
 - **Modifiers:** Use Vitest’s `.skip`, `.only`, `.todo`, `.fails`, `.concurrent` on step calls when needed (e.g. `story.then.skip('...')`). Use `story.skip` / `story.only` for scenario-level modifiers.
 - **Attach story to a plain `it()`:** Call `story.init(task)` inside a normal `it('...', ({ task }) => { ... })` so that test appears in generated docs. Vitest does not export top-level step helpers or `doc`.

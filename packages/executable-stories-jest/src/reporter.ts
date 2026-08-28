@@ -100,9 +100,23 @@ export default class StoryReporter {
   private startTime = 0;
   private packageVersion: string | undefined;
   private gitSha: string | undefined;
+  /**
+   * Left unknown when Jest hands us no global config. Claiming full coverage
+   * without having looked would let a later merge retire scenarios on a guess.
+   */
+  private runScope: "full" | "filtered" | undefined;
 
-  constructor(_globalConfig: unknown, reporterOptions: StoryReporterOptions = {}) {
+  constructor(globalConfig: unknown, reporterOptions: StoryReporterOptions = {}) {
     this.options = reporterOptions;
+    // `jest -t` runs only the matching tests, so a run carrying a pattern
+    // reports a subset of each file it touches and must not be read as that
+    // file's full contents.
+    const config = globalConfig as { testNamePattern?: unknown } | undefined;
+    if (config) {
+      const pattern = config.testNamePattern;
+      const filtered = typeof pattern === "string" ? pattern.length > 0 : pattern != null;
+      this.runScope = filtered ? "filtered" : "full";
+    }
   }
 
   /** Get the output directory for story JSON files */
@@ -172,10 +186,15 @@ export default class StoryReporter {
     // Collect test cases
     const rawTestCases: RawTestCase[] = [];
 
+    // Which tests actually declared a story, per file. A failed test missing
+    // from here never got the chance to declare one.
+    const declaredByFile = new Map<string, Set<string>>();
+
     for (const report of reports) {
       const fileResult = fileResults.get(report.testFilePath);
       const sourceFile = toRelativePosix(report.testFilePath, root);
       const matchedFullNames = new Set<string>();
+      declaredByFile.set(sourceFile, matchedFullNames);
 
       for (const meta of report.scenarios) {
         if (!meta?.scenario) continue;
@@ -250,6 +269,7 @@ export default class StoryReporter {
       for (const test of fileResult?.testResults ?? []) {
         if (test.status !== "todo" || matchedFullNames.has(test.fullName)) continue;
         const title = test.title ?? test.fullName;
+        matchedFullNames.add(test.fullName);
         rawTestCases.push({
           title,
           titlePath: [title],
@@ -264,7 +284,45 @@ export default class StoryReporter {
       }
     }
 
-    if (rawTestCases.length === 0) return;
+    // Every file Jest executed, whether or not it produced a story. Without
+    // this a file whose last story was deleted looks like a file that did not
+    // run, and keeps its old scenarios for good.
+    const coveredSourceFiles = [
+      ...new Set(
+        (results.testResults ?? [])
+          .map((r) => r.testFilePath)
+          .filter((f): f is string => typeof f === "string" && f.length > 0)
+          .map((f) => toRelativePosix(f, root))
+      ),
+    ].sort();
+
+    // A story that never declared itself — a throwing beforeAll, an import
+    // error, a timeout before `story.init()` — is missing because the run
+    // broke, not because someone deleted it. Checked per test, not per file:
+    // one healthy story in a file does not vouch for its broken siblings.
+    const incompleteSourceFiles = [
+      ...new Set(
+        (results.testResults ?? [])
+          .filter((r) => {
+            const declared =
+              declaredByFile.get(toRelativePosix(r.testFilePath, root)) ??
+              new Set<string>();
+            const undeclaredFailure = (r.testResults ?? []).some(
+              (t) => t.status === "failed" && !declared.has(t.fullName)
+            );
+            // No tests at all plus a failure means the module never loaded.
+            const suiteError =
+              Boolean((r as { testExecError?: unknown }).testExecError) ||
+              ((r.testResults ?? []).length === 0 &&
+                Boolean((r as { failureMessage?: string | null }).failureMessage));
+            return undeclaredFailure || suiteError;
+          })
+          .map((r) => toRelativePosix(r.testFilePath, root))
+      ),
+    ].sort();
+
+    // Nothing ran and nothing was covered: there is genuinely nothing to say.
+    if (rawTestCases.length === 0 && coveredSourceFiles.length === 0) return;
 
     // Build RawRun
     const rawRun: RawRun = {
@@ -275,6 +333,9 @@ export default class StoryReporter {
       packageVersion: this.packageVersion,
       gitSha: this.gitSha,
       ci: detectCI(),
+      ...(this.runScope ? { runScope: this.runScope } : {}),
+      ...(coveredSourceFiles.length > 0 ? { coveredSourceFiles } : {}),
+      ...(incompleteSourceFiles.length > 0 ? { incompleteSourceFiles } : {}),
     };
 
     // Optionally write raw run JSON for CLI/binary consumption

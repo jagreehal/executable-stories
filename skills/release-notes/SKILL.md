@@ -60,6 +60,10 @@ with its source location and tags, and a `testedTogetherHash`. That hash is the 
 part months later: it identifies this exact set of behaviours as verified together, so
 "was this combination ever tested?" has an answer.
 
+`release-manifest` is an execution format: it never folds in scenarios carried over from
+`by-file/`. Generate it from the complete release-candidate run, not from a focused run;
+otherwise the hash honestly identifies only that focused batch.
+
 Record the deployment as well, and the ledger answers the incident question:
 
 ```bash

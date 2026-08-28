@@ -133,6 +133,14 @@ end
 
 ## Output
 
+Minitest `-n` and RSpec example filters are detected automatically as
+`runScope: "filtered"`; an unfiltered invocation reports `"full"`. Formatting the raw
+run updates one canonical report per source under `reports/by-file/`.
+
+Ruby/Minitest observes the framework's assertion counter. Assertions after a marker and
+inside `story.expect` are attributed to their claim step; an observable passing claim with
+zero assertions is marked in the generated reports and Evidence Review.
+
 After running tests with the Minitest or RSpec plugin, a `raw-run.json` file is written to `.executable-stories/` by default. Set the `EXECUTABLE_STORIES_OUTPUT` environment variable to customize the output path.
 
 That raw run uses the same schema as `executable-stories-formatters`, so you can render it to HTML, Markdown, JUnit, or Cucumber output without a translation step. Pass the file to the `executable-stories` CLI (a positional argument):

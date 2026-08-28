@@ -122,6 +122,35 @@ fn detect_ci() -> Option<RawCIInfo> {
 /// Called automatically when the test binary exits. Call it directly only to
 /// control when the file lands.
 ///
+/// libtest flags that consume the argument after them. Their value is a bare
+/// word in argv that names no test, so it must not be read as a filter.
+const VALUE_TAKING_FLAGS: &[&str] =
+    &["--test-threads", "--logfile", "--format", "--color", "--skip", "-Z", "--shuffle-seed"];
+
+/// Whether the run was narrowed by test name, so the tests reported for each
+/// source file are not that file's complete set.
+///
+/// `cargo test <filter>` reaches the test binary as a positional argument, and
+/// `--skip` narrows a run just as much, so both count. Everything else in argv
+/// is a flag or a flag's value.
+fn is_name_filtered(args: &[String]) -> bool {
+    let mut rest = args.iter().skip(1); // argv[0] is the binary
+    while let Some(arg) = rest.next() {
+        if arg == "--skip" {
+            return true;
+        }
+        if VALUE_TAKING_FLAGS.contains(&arg.as_str()) {
+            rest.next(); // consume the value so it is not read as a filter
+            continue;
+        }
+        if arg == "--" || arg.starts_with('-') {
+            continue;
+        }
+        return true;
+    }
+    false
+}
+
 /// # Panics
 ///
 /// Panics if writing the JSON file fails (e.g. permission or I/O error).
@@ -145,6 +174,13 @@ pub fn write_results() {
         started_at_ms: None,
         finished_at_ms: None,
         ci: detect_ci(),
+        run_scope: Some(
+            if is_name_filtered(&std::env::args().collect::<Vec<_>>()) {
+                "filtered".to_string()
+            } else {
+                "full".to_string()
+            },
+        ),
     };
 
     json_writer::write_raw_run(&run, &output).expect("Failed to write raw run JSON");
@@ -171,4 +207,41 @@ pub fn reset() {
     COLLECTED.lock().unwrap().clear();
     FEATURES.lock().unwrap().clear();
     *ORDER_SEQ.lock().unwrap() = 0;
+}
+
+#[cfg(test)]
+mod name_filter_tests {
+    use super::is_name_filtered;
+
+    fn args(list: &[&str]) -> Vec<String> {
+        list.iter().map(|s| (*s).to_string()).collect()
+    }
+
+    #[test]
+    fn plain_run_is_not_filtered() {
+        assert!(!is_name_filtered(&args(&["target/debug/deps/story-abc123"])));
+    }
+
+    #[test]
+    fn positional_filter_marks_the_run_filtered() {
+        // `cargo test refuses` reaches the binary as a positional argument.
+        assert!(is_name_filtered(&args(&["bin", "refuses"])));
+    }
+
+    #[test]
+    fn skip_flag_marks_the_run_filtered() {
+        assert!(is_name_filtered(&args(&["bin", "--skip", "slow"])));
+    }
+
+    #[test]
+    fn libtest_flags_alone_are_not_a_filter() {
+        assert!(!is_name_filtered(&args(&["bin", "--nocapture", "--exact"])));
+    }
+
+    #[test]
+    fn a_flags_value_is_not_mistaken_for_a_filter() {
+        // `--test-threads 1` puts a bare "1" in argv that names no test.
+        assert!(!is_name_filtered(&args(&["bin", "--test-threads", "1"])));
+        assert!(!is_name_filtered(&args(&["bin", "--format", "terse"])));
+    }
 }

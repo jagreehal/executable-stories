@@ -358,6 +358,12 @@ class Story:
         step = ctx._current_step
         assert step is not None
         step["wrapped"] = True
+        # Wrapping a claim is the only signal pytest can give that the step
+        # checked something: the body ran to completion. Setup steps arrange, so
+        # only a claim counts — tested against the keyword as written, since
+        # auto-And rewrites a repeated Then before the step is stored.
+        if keyword == "Then":
+            step["assertions"] = 1
 
         start = time.perf_counter()
         try:

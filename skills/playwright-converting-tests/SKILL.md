@@ -5,13 +5,14 @@ description: >
   Playwright test suite, converting spec blocks to story tests, or adding
   story.init(testInfo) without a full rewrite. Progressive enhancement of
   .story.spec.ts files.
-type: lifecycle
-library: executable-stories-playwright
-library_version: "8.5.7"
-requires:
-  - playwright-story-api
-sources:
-  - "jagreehal/executable-stories:apps/docs-site/src/content/docs/guides/converting-playwright.md"
+metadata:
+  type: lifecycle
+  library: executable-stories-playwright
+  library_version: "8.9.0"
+  requires:
+    - playwright-story-api
+  sources:
+    - "jagreehal/executable-stories:apps/docs-site/src/content/docs/guides/converting-playwright.md"
 ---
 
 This skill builds on playwright-story-api. Read playwright-story-api first.

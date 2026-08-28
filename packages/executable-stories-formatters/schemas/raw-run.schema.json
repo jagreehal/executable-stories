@@ -62,6 +62,28 @@
         "meta": {
           "type": "object",
           "description": "Arbitrary runner-specific metadata. Escape hatch for data not covered by the schema."
+        },
+        "runScope": {
+          "type": "string",
+          "enum": [
+            "full",
+            "filtered"
+          ],
+          "description": "How much of each source file this run covered. \"full\" means the adapter determined no name filter was applied, so the reported test cases are each file's complete set and a scenario missing from them may be retired. \"filtered\" means a name filter was applied (vitest -t, jest -t, playwright --grep), so the run saw only part of its own files. Omit when the adapter cannot tell: consumers then keep what the run did not report rather than deleting on a guess."
+        },
+        "coveredSourceFiles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Source files this run executed, whether or not they produced test cases. A run's test cases only name files that produced something, so without this a file whose last scenario was deleted is indistinguishable from one that did not run. Optional."
+        },
+        "incompleteSourceFiles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Source files whose scenarios could not be collected in full (a hook threw before the story was declared, a collection error, a crash). Such a file looks exactly like one whose scenarios were deleted, so it is never treated as authoritative however complete the rest of the run is."
         }
       },
       "required": [
@@ -302,6 +324,11 @@
           "type": "number",
           "minimum": 0,
           "description": "Step-level duration in milliseconds (from startTimer/endTimer)."
+        },
+        "assertions": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Assertions observed while this step ran. Omit when the adapter cannot observe assertions at all: absent means unknown, 0 means observed none."
         }
       },
       "required": [

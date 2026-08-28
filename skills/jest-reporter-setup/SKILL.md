@@ -4,11 +4,12 @@ description: >
   Use when configuring the executable-stories-jest custom reporter: wiring
   the jest.config reporters array, setupFilesAfterEnv for story flushing, or
   output format/directory/naming and aggregated vs. colocated modes.
-type: core
-library: executable-stories-jest
-library_version: "8.4.7"
-sources:
-  - "jagreehal/executable-stories:packages/executable-stories-jest/src/reporter.ts"
+metadata:
+  type: core
+  library: executable-stories-jest
+  library_version: "8.7.0"
+  sources:
+    - "jagreehal/executable-stories:packages/executable-stories-jest/src/reporter.ts"
 ---
 
 # executable-stories-jest — Reporter Setup
@@ -36,6 +37,12 @@ export default {
 Both the `setup` file and the `reporter` entry are required. Peer dependency: `executable-stories-formatters` must be installed.
 
 Full option surface (all formatter fields, output modes) and worker-file mechanics: [REFERENCE.md](REFERENCE.md).
+
+Every run also updates `<outputDir>/by-file/`, one canonical report per test source.
+Documentation formats render that accumulated suite; JUnit, Cucumber, and release
+manifests describe only the current execution. Jest detects `testNamePattern`
+automatically. Full runs may retire missing scenarios, filtered runs merge, and files
+whose collection failed preserve their earlier scenarios with a warning.
 
 ## Common Mistakes
 

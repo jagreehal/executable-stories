@@ -9,6 +9,7 @@ import path from "node:path";
 
 import { canonicalizeRun, toStoryReport, type StoryReport } from "executable-stories-core";
 
+import { expandSource } from "./loader.js";
 import { resolveSources, passesFilter, type ExecutableStoriesConfig } from "./config.js";
 
 /** Normalize a route base to a leading-slash, no-trailing-slash form ("/stories"). */
@@ -55,22 +56,34 @@ export function loadStoryReports(config: ExecutableStoriesConfig): StoryReport[]
   }
   const reports: StoryReport[] = [];
   for (const src of sources) {
+    // A source may name a directory of per-file reports. Reading that as one
+    // JSON file threw, and the nav fell back to a bare link — which is what the
+    // scaffold's own default source does.
+    const resolved = path.resolve(src.source);
+    const isDir = fs.existsSync(resolved) && fs.statSync(resolved).isDirectory();
+    const inputType = src.inputType ?? (isDir ? "canonical" : "raw");
+    const files = isDir
+      ? expandSource(resolved)
+      : fs.existsSync(resolved)
+        ? [resolved]
+        : config.sampleSource
+          ? [path.resolve(config.sampleSource)]
+          : [];
+
+    for (const abs of files) {
     try {
-      const abs = path.resolve(src.source);
       let text: string | undefined;
       if (fs.existsSync(abs)) {
         text = fs.readFileSync(abs, "utf8");
-      } else if (config.sampleSource) {
-        const sampleAbs = path.resolve(config.sampleSource);
-        if (fs.existsSync(sampleAbs)) text = fs.readFileSync(sampleAbs, "utf8");
       }
       if (!text) continue;
       const json = JSON.parse(text);
-      const canonical = src.inputType === "canonical" ? json : canonicalizeRun(json);
+      const canonical = inputType === "canonical" ? json : canonicalizeRun(json);
       reports.push(toStoryReport(canonical));
     } catch {
       // A malformed/partial run JSON for one source must not break site nav.
       continue;
+    }
     }
   }
   return reports;

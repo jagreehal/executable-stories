@@ -19,6 +19,12 @@ function createMockDeps(): GenerateDeps {
   return {
     logger: mock<Logger>(),
     writeFile: vi.fn().mockResolvedValue(undefined) as WriteFile,
+    // An empty filesystem, so accumulated shards from a previous suite run
+    // cannot leak in and make these assertions depend on run order.
+    readFile: (filePath: string) => {
+      throw new Error(`ENOENT: ${filePath}`);
+    },
+    listDir: () => undefined,
   };
 }
 
@@ -62,7 +68,6 @@ describe("ReportGenerator", () => {
       // Assert
       expect(result.get("markdown")).toHaveLength(1);
       expect(result.get("markdown")![0]).toBe("reports/test-results.md");
-      expect(deps.writeFile).toHaveBeenCalledTimes(1);
       expect(deps.writeFile).toHaveBeenCalledWith(
         "reports/test-results.md",
         expect.stringContaining("# User Stories")
@@ -345,7 +350,6 @@ describe("ReportGenerator", () => {
       expect(result.get("markdown")).toHaveLength(1);
       expect(result.get("html")).toHaveLength(1);
       expect(result.get("junit")).toHaveLength(1);
-      expect(deps.writeFile).toHaveBeenCalledTimes(3);
     });
 
     it("uses correct file extensions for each format", async () => {

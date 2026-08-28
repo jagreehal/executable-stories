@@ -52,7 +52,7 @@ The questions usually already exist and are scattered:
   can ask because it comes with evidence:
 
   ```bash
-  executable-stories list reports/raw-run.json --list-format json
+  executable-stories list reports/by-file --list-format json
   ```
 
   "These two scenarios both pass and they appear to disagree about partial refunds. Which

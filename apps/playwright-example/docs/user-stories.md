@@ -2,9 +2,9 @@
 
 | Key | Value |
 | --- | --- |
-| Date | 2026-08-23T13:39:56.140Z |
+| Date | 2026-08-29T09:51:53.803Z |
 | Version | 1.0.0 |
-| Git SHA | bef7367 |
+| Git SHA | 6fdd51e |
 
 ## src/all-doc-api.story.spec.ts
 
@@ -1077,9 +1077,9 @@ This story demonstrates:
 
 - **Given** the user has items in cart
 - **When** the user completes checkout
-- **Then** the order should be created
-- **And** a confirmation email should be sent
-- **And** the inventory should be updated
+- **Then** the order should be created _(no assertion)_
+- **And** a confirmation email should be sent _(no assertion)_
+- **And** the inventory should be updated _(no assertion)_
 
 ### ✅ Complex user journey
 
@@ -1087,17 +1087,17 @@ This story demonstrates:
 - **And** the user has admin privileges
 - **When** the user logs in
 - **And** the user navigates to admin panel
-- **Then** the admin dashboard should load
-- **And** the user count should be displayed
+- **Then** the admin dashboard should load _(no assertion)_
+- **And** the user count should be displayed _(no assertion)_
 
 ### ✅ Login blocked for suspended user
 
 - **Given** the user account exists
 - **And** the account is suspended
 - **When** the user submits valid credentials
-- **Then** the user should see an error message
-- **But** the user should not be logged in
-- **But** the session should not be created
+- **Then** the user should see an error message _(no assertion)_
+- **But** the user should not be logged in _(no assertion)_
+- **But** the session should not be created _(no assertion)_
 
 ### ✅ Bulk user creation
 
@@ -1171,8 +1171,8 @@ This story demonstrates:
 - **Given** the user account exists
 - **And** the user is logged in
 - **When** the user updates their password
-- **Then** the old sessions should be invalidated
-- **And** a confirmation email should be sent
+- **Then** the old sessions should be invalidated _(no assertion)_
+- **And** a confirmation email should be sent _(no assertion)_
 
 ### ✅ Login error: Invalid credentials
 
@@ -1232,8 +1232,8 @@ This story demonstrates:
 
 - **Given** a user with role "user"
 - **When** the user attempts to "delete users"
-- **Then** the action should be denied
-- **But** the user should see a permission error
+- **Then** the action should be denied _(no assertion)_
+- **But** the user should see a permission error _(no assertion)_
 
 ### ✅ user can view reports
 
@@ -1245,8 +1245,8 @@ This story demonstrates:
 
 - **Given** a user with role "guest"
 - **When** the user attempts to "view reports"
-- **Then** the action should be denied
-- **But** the user should see a permission error
+- **Then** the action should be denied _(no assertion)_
+- **But** the user should see a permission error _(no assertion)_
 
 ### ✅ Order with explicit And steps
 
@@ -1255,19 +1255,19 @@ This story demonstrates:
 - **And** the user has items in cart
 - **When** the user clicks checkout
 - **And** confirms the order
-- **Then** the order should be created
-- **And** the payment should be processed
-- **And** a confirmation should be displayed
+- **Then** the order should be created _(no assertion)_
+- **And** the payment should be processed _(no assertion)_
+- **And** a confirmation should be displayed _(no assertion)_
 
 ### ✅ Partial success scenario
 
 - **Given** the user has multiple items in cart
 - **And** one item is out of stock
 - **When** the user attempts to checkout
-- **Then** the available items should be ordered
-- **But** the out of stock item should be removed
-- **And** the user should be notified
-- **But** the order should not be cancelled
+- **Then** the available items should be ordered _(no assertion)_
+- **But** the out of stock item should be removed _(no assertion)_
+- **And** the user should be notified _(no assertion)_
+- **But** the order should not be cancelled _(no assertion)_
 
 ### ✅ Premium user gets early access
 Tags: `feature-flag`, `premium` | Tickets: `JIRA-456`
@@ -1330,11 +1330,11 @@ Tags: `feature-flag`, `premium` | Tickets: `JIRA-456`
 - **And** the user selects standard shipping
 - **And** the user confirms the payment method
 - **And** the user places the order
-- **Then** the order should be created
-- **And** the payment should be authorized
-- **And** the inventory should be reserved
-- **And** a confirmation email should be sent
-- **And** the order should appear in order history
+- **Then** the order should be created _(no assertion)_
+- **And** the payment should be authorized _(no assertion)_
+- **And** the inventory should be reserved _(no assertion)_
+- **And** a confirmation email should be sent _(no assertion)_
+- **And** the order should appear in order history _(no assertion)_
 
 ### ✅ API endpoint documentation
 
@@ -1434,9 +1434,9 @@ Tags: `feature-flag`, `premium` | Tickets: `JIRA-456`
 - **And** step three is complete
 - **When** the process continues
 - **And** additional processing occurs
-- **Then** result one is correct
-- **And** result two is correct
-- **And** result three is correct
+- **Then** result one is correct _(no assertion)_
+- **And** result two is correct _(no assertion)_
+- **And** result three is correct _(no assertion)_
 
 ### ✅ User registration flow
 
@@ -1452,8 +1452,8 @@ Tags: `feature-flag`, `premium` | Tickets: `JIRA-456`
         F --> G[Success Page]
     ```
 - **When** the user submits valid information
-- **Then** the account should be created
-- **And** a verification email should be sent
+- **Then** the account should be created _(no assertion)_
+- **And** a verification email should be sent _(no assertion)_
 
 ### ✅ Complete keyword demonstration
 
@@ -1462,10 +1462,10 @@ Tags: `feature-flag`, `premium` | Tickets: `JIRA-456`
 - **And** an explicit and step
 - **When** a when step
 - **And** another when step
-- **Then** a then step
-- **And** another then step
-- **But** a but step
-- **And** a final and step
+- **Then** a then step _(no assertion)_
+- **And** another then step _(no assertion)_
+- **But** a but step _(no assertion)_
+- **And** a final and step _(no assertion)_
 
 ### ✅ Standard order
 
@@ -1501,16 +1501,16 @@ Tags: `feature-flag`, `premium` | Tickets: `JIRA-456`
 - **Given** the customer is eligible for discounts
 - **And** the customer has items worth $100
 - **When** the customer checks out
-- **Then** a 10% discount should be applied
-- **And** the total should be $90
+- **Then** a 10% discount should be applied _(no assertion)_
+- **And** the total should be $90 _(no assertion)_
 
 ### ✅ Ineligible customer does not get discount
 
 - **Given** the customer is not eligible for discounts
 - **And** the customer has items worth $100
 - **When** the customer checks out
-- **Then** no discount should be applied
-- **And** the total should be $100
+- **Then** no discount should be applied _(no assertion)_
+- **And** the total should be $100 _(no assertion)_
 
 ### Rule: Authenticated users can manage their data
 
@@ -1526,8 +1526,8 @@ Tags: `feature-flag`, `premium` | Tickets: `JIRA-456`
 - **Given** the user is authenticated
 - **And** the user session is valid
 - **When** the user updates their profile
-- **Then** the changes should be saved
-- **And** a success message should be shown
+- **Then** the changes should be saved _(no assertion)_
+- **And** a success message should be shown _(no assertion)_
 
 ## src/kitchen-sink.story.spec.ts
 
@@ -1592,11 +1592,11 @@ graph LR
 
 - **Given** all doc methods were called
 - **When** steps are recorded
-- **Then** generated doc contains note, table, kv, json, code, link, section, mermaid, screenshot, custom
-- **And** step keywords given/when/then/and appear
-- **And** arrange alias works
-- **And** act alias works
-- **And** assert alias works
+- **Then** generated doc contains note, table, kv, json, code, link, section, mermaid, screenshot, custom _(no assertion)_
+- **And** step keywords given/when/then/and appear _(no assertion)_
+- **And** arrange alias works _(no assertion)_
+- **And** act alias works _(no assertion)_
+- **And** assert alias works _(no assertion)_
 
 ## src/new-apis.story.spec.ts
 
@@ -1698,8 +1698,8 @@ Tags: `@regression`, `@smoke`
 
 - **Given** a page with screencast support
 - **When** the first async step runs
-- **Then** the second async step runs
-- **And** chapter markers were shown for each step
+- **Then** the second async step runs _(no assertion)_
+- **And** chapter markers were shown for each step _(no assertion)_
     **Screencast integration**
     
     Each `async` step callback automatically calls `page.screencast.showChapter(label)`
@@ -1779,9 +1779,9 @@ Tags: `@regression`, `@smoke`
 
 - **Given** the cart has 2 items
 - **When** the user proceeds to checkout
-- **Then** the subtotal should be $40.00
-- **And** the tax should be $4.00
-- **And** the total should be $44.00
+- **Then** the subtotal should be $40.00 _(no assertion)_
+- **And** the tax should be $4.00 _(no assertion)_
+- **And** the total should be $44.00 _(no assertion)_
 
 ### ✅ Password reset flow
 
@@ -1790,16 +1790,16 @@ Tags: `@regression`, `@smoke`
 - **When** the user requests a password reset
 - **And** the user opens the reset email link
 - **And** the user sets a new password
-- **Then** the user should be able to log in with the new password
-- **And** the old password should no longer work
+- **Then** the user should be able to log in with the new password _(no assertion)_
+- **And** the old password should no longer work _(no assertion)_
 
 ### ✅ Login blocked for suspended user
 
 - **Given** the user account exists
 - **And** the account is suspended
 - **When** the user submits valid credentials
-- **Then** the user should see an error message
-- **But** the user should not be logged in
+- **Then** the user should see an error message _(no assertion)_
+- **But** the user should not be logged in _(no assertion)_
 
 ### ✅ Bulk user creation
 
@@ -1833,9 +1833,9 @@ Tags: `@regression`, `@smoke`
     | US | CA | 94107 |
     
 - **When** shipping options are calculated
-- **Then** the available options should include "Standard"
-- **And** the available options should include "Express"
-- **And** the estimated delivery date should be shown
+- **Then** the available options should include "Standard" _(no assertion)_
+- **And** the available options should include "Express" _(no assertion)_
+- **And** the estimated delivery date should be shown _(no assertion)_
 
 ### ✅ API accepts a JSON payload
 
@@ -1851,8 +1851,8 @@ Tags: `@regression`, `@smoke`
     ```
     
 - **When** the client sends the request
-- **Then** the response status should be 200
-- **And** the response body should include "token"
+- **Then** the response status should be 200 _(no assertion)_
+- **And** the response body should include "token" _(no assertion)_
 
 ### ✅ Import XML invoice
 
@@ -1868,8 +1868,8 @@ Tags: `@regression`, `@smoke`
     ```
     
 - **When** the user imports the invoice
-- **Then** the invoice should be saved
-- **And** the invoice total should be 42.50 USD
+- **Then** the invoice should be saved _(no assertion)_
+- **And** the invoice total should be 42.50 USD _(no assertion)_
 
 ### ✅ Login errors: Invalid credentials (user@example.com)
 
@@ -1894,16 +1894,16 @@ Tags: `@regression`, `@smoke`
 - **Given** the cart subtotal is 100.00
 - **And** the shipping region is "CA"
 - **When** taxes are calculated
-- **Then** the tax should be 8.25
-- **And** the total should be 108.25
+- **Then** the tax should be 8.25 _(no assertion)_
+- **And** the total should be 108.25 _(no assertion)_
 
 ### ✅ Tax calculation by region: NY
 
 - **Given** the cart subtotal is 100.00
 - **And** the shipping region is "NY"
 - **When** taxes are calculated
-- **Then** the tax should be 8.00
-- **And** the total should be 108.00
+- **Then** the tax should be 8.00 _(no assertion)_
+- **And** the total should be 108.00 _(no assertion)_
 
 ### ✅ Create users from table input: a@example.com
 
@@ -1936,16 +1936,16 @@ Tags: `@regression`, `@smoke`
 - **And** the user selects a delivery option
 - **And** the user enters payment information
 - **And** the user confirms the order
-- **Then** the order should be created
-- **And** a confirmation email should be sent
+- **Then** the order should be created _(no assertion)_
+- **And** a confirmation email should be sent _(no assertion)_
 
 ### ✅ Payment declined
 
 - **Given** the user is on the checkout page
 - **When** the user submits a declined card
-- **Then** the payment should be declined
-- **And** the user should see "Payment failed"
-- **But** the order should not be created
+- **Then** the payment should be declined _(no assertion)_
+- **And** the user should see "Payment failed" _(no assertion)_
+- **But** the order should not be created _(no assertion)_
 
 ### ✅ Login works
 Tags: `auth`, `smoke`
@@ -1979,8 +1979,8 @@ Tags: `auth`, `smoke`
     | api | strict_rate_limiting | false |
     
 - **When** the system starts
-- **Then** the flag "new_checkout_ui" should be enabled for "web"
-- **And** the flag "strict_rate_limiting" should be disabled for "api"
+- **Then** the flag "new_checkout_ui" should be enabled for "web" _(no assertion)_
+- **And** the flag "strict_rate_limiting" should be disabled for "api" _(no assertion)_
 
 ### ✅ Guest checkout allowed
 
@@ -1994,16 +1994,16 @@ Tags: `auth`, `smoke`
 
 - **Given** the user is logged in
 - **When** the user logs out
-- **Then** the session cookie should be cleared
-- **And** the auth token should be revoked
-- **And** the user should be redirected to the login page
+- **Then** the session cookie should be cleared _(no assertion)_
+- **And** the auth token should be revoked _(no assertion)_
+- **And** the user should be redirected to the login page _(no assertion)_
 
 ### ✅ Document status changes
 
 - **Given** a document exists with status "draft"
 - **When** the user submits the document
-- **Then** the document status should change to "submitted"
-- **And** an audit log entry should be created
+- **Then** the document status should change to "submitted" _(no assertion)_
+- **And** an audit log entry should be created _(no assertion)_
 
 ### ✅ Shipping eligibility: US -> yes
 
@@ -2038,15 +2038,15 @@ Tags: `auth`, `smoke`
     ```
     
 - **When** the user previews the markdown
-- **Then** the preview should show a heading "Title"
-- **And** the preview should show a list with 2 items
+- **Then** the preview should show a heading "Title" _(no assertion)_
+- **And** the preview should show a list with 2 items _(no assertion)_
 
 ### ✅ Search results show highlights
 
 - **Given** the search index contains "hello world"
 - **When** the user searches for "hello"
-- **Then** results should include "hello world"
-- **And** the matching text should be highlighted
+- **Then** results should include "hello world" _(no assertion)_
+- **And** the matching text should be highlighted _(no assertion)_
 
 ### ✅ Post JSON payload: 123 -> 200
 
@@ -2106,9 +2106,9 @@ Tags: `auth`, `smoke`
 
 - **Given** a report exists for account "A1"
 - **When** the user downloads the report
-- **Then** the report header should be "Account Report"
-- **And** the first column should be "Date"
-- **And** the second column should be "Amount"
+- **Then** the report header should be "Account Report" _(no assertion)_
+- **And** the first column should be "Date" _(no assertion)_
+- **And** the second column should be "Amount" _(no assertion)_
 
 ### ✅ Import users and send welcome email
 
@@ -2129,8 +2129,8 @@ Tags: `auth`, `smoke`
     ```
     
 - **When** the import job runs
-- **Then** the users should exist
-- **And** welcome emails should be sent
+- **Then** the users should exist _(no assertion)_
+- **And** welcome emails should be sent _(no assertion)_
 
 ### Feature: Account settings
 
@@ -2139,8 +2139,8 @@ Tags: `auth`, `smoke`
 - **Given** the user account exists
 - **And** the user is logged in
 - **When** the user updates their email to "new@example.com"
-- **Then** a verification email should be sent
-- **And** the email status should be "pending verification"
+- **Then** a verification email should be sent _(no assertion)_
+- **And** the email status should be "pending verification" _(no assertion)_
 
 ### ✅ Change password
 
@@ -2171,8 +2171,8 @@ Tags: `db`, `smoke`
 - **Given** the database is seeded
 - **And** the API is running
 - **When** the client creates an order
-- **Then** the response status should be 201
-- **And** the order should exist in the database
+- **Then** the response status should be 201 _(no assertion)_
+- **And** the order should exist in the database _(no assertion)_
 
 ## src/screenshot-in-report.story.spec.ts
 

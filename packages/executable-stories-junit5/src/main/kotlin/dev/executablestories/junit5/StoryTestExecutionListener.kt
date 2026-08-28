@@ -134,6 +134,13 @@ class StoryTestExecutionListener : TestExecutionListener {
             rawRun["ci"] = ci
         }
 
+        // Absent means neither signal said anything; consumers then keep what
+        // this run did not report rather than retiring it on a guess.
+        val scope = runScope(System.getProperty("test"), System.getenv("EXECUTABLE_STORIES_FILTERED"))
+        if (scope != null) {
+            rawRun["runScope"] = scope
+        }
+
         val outputEnv = System.getenv("EXECUTABLE_STORIES_OUTPUT")
         val outputPath =
             if (!outputEnv.isNullOrBlank()) {

@@ -16,7 +16,7 @@ export default {
         output: {
           mode: "aggregated",
           // mode: "colocated",
-          // colocatedStyle: "mirrored",
+          // colocatedStyle: "flat", // or "mirrored" / "adjacent"
         },
         markdown: {
           title: "User Stories",
@@ -41,3 +41,9 @@ export default {
 ## File-based communication
 
 Jest uses worker processes. Stories are written to `.jest-executable-stories/worker-{id}/*.json` during execution. The reporter aggregates these files in `onRunComplete`. The `JEST_STORY_DOCS_DIR` env var overrides the temp directory.
+
+Use a unique absolute `JEST_STORY_DOCS_DIR` for any nested Jest process in an
+integration test and clean it afterward; sharing the default scratch directory lets
+unrelated nested runs contaminate each other. The final reporter then updates canonical
+per-source state under `<outputDir>/by-file/`. `rawRunPath` remains the current execution
+event.

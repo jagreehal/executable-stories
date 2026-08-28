@@ -65,13 +65,22 @@ export function readSource(abs: string, ctx: LoaderContext): unknown | null {
   }
 }
 
-/** Register a resync callback against every source file the dev watcher tracks. */
+/**
+ * Register a resync callback against every source the dev watcher tracks.
+ *
+ * A source can be a directory of run files, where the change event names a file
+ * inside it rather than the directory. Matching on the prefix as well as the
+ * path itself is what keeps that case hot-reloading, including for run files
+ * that did not exist when watching began.
+ */
 export function watchAll(ctx: LoaderContext, absPaths: string[], sync: () => void): void {
   if (!ctx.watcher) return;
   const set = new Set(absPaths);
+  const prefixes = absPaths.map((abs) => abs + path.sep);
   for (const abs of absPaths) ctx.watcher.add(abs);
   const onChange = (changed: string) => {
-    if (set.has(path.resolve(changed))) sync();
+    const abs = path.resolve(changed);
+    if (set.has(abs) || prefixes.some((prefix) => abs.startsWith(prefix))) sync();
   };
   ctx.watcher.on("change", onChange);
   ctx.watcher.on("add", onChange);

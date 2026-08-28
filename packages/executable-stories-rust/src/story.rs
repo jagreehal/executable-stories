@@ -263,6 +263,7 @@ impl Story {
             id: Some(id),
             mode: None,
             wrapped: None,
+            assertions: None,
             duration_ms: None,
             docs: None,
         });
@@ -401,6 +402,13 @@ impl Story {
         self.add_step(keyword, text);
         let idx = self.steps.len() - 1;
         self.steps[idx].wrapped = Some(true);
+        // Wrapping a claim is the only signal Rust can give that the step
+        // checked something: the body ran to completion. Setup steps arrange,
+        // so only a claim counts — tested against the keyword as written, since
+        // auto-And rewrites a repeated Then before the step is stored.
+        if keyword == "Then" {
+            self.steps[idx].assertions = Some(1);
+        }
 
         let start = std::time::Instant::now();
         let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(body));
@@ -696,6 +704,73 @@ mod tests {
     use super::*;
     use std::thread;
     use std::time::Duration;
+
+    // Rust has no assertion counter to read, so a step's count is only known
+    // when the author routes the claim through a wrapped body. Bare markers
+    // stay unobserved: absent is honest, zero would be an accusation.
+    fn steps_for(scenario: &str) -> Vec<crate::types::StoryStep> {
+        crate::collector::get_all()
+            .into_iter()
+            .find(|tc| tc.story.as_ref().is_some_and(|m| m.scenario == scenario))
+            .expect("scenario was not recorded")
+            .story
+            .expect("story meta was not recorded")
+            .steps
+    }
+
+    #[test]
+    fn expect_step_records_an_assertion() {
+        let scenario = "assertions: a wrapped claim";
+        let mut s = Story::new(scenario);
+        s.given("two numbers 5 and 3");
+        s.expect_step("the result is 8", || {});
+        s.pass();
+        drop(s);
+
+        let steps = steps_for(scenario);
+        assert_eq!(steps[1].assertions, Some(1));
+    }
+
+    #[test]
+    fn marker_steps_stay_unobserved() {
+        let scenario = "assertions: an unwrapped claim";
+        let mut s = Story::new(scenario);
+        s.given("two numbers 5 and 3");
+        s.then("the result is 8");
+        s.pass();
+        drop(s);
+
+        for step in steps_for(scenario) {
+            assert_eq!(step.assertions, None);
+        }
+    }
+
+    #[test]
+    fn wrapped_setup_does_not_count_as_a_claim() {
+        let scenario = "assertions: wrapped setup";
+        let mut s = Story::new(scenario);
+        s.fn_step("Given", "an expensive fixture", || {});
+        s.pass();
+        drop(s);
+
+        assert_eq!(steps_for(scenario)[0].assertions, None);
+    }
+
+    #[test]
+    fn second_wrapped_claim_still_counts() {
+        // Auto-And rewrites a repeated Then before the step is stored.
+        let scenario = "assertions: two claims";
+        let mut s = Story::new(scenario);
+        s.given("two numbers 5 and 3");
+        s.expect_step("the result is 8", || {});
+        s.expect_step("the result is positive", || {});
+        s.pass();
+        drop(s);
+
+        let steps = steps_for(scenario);
+        assert_eq!(steps[2].keyword, "And");
+        assert_eq!(steps[2].assertions, Some(1));
+    }
 
     // The collector is global and tests run in parallel, so this filters by a
     // scenario name no other test uses rather than asserting on the total.

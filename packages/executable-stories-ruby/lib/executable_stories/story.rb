@@ -349,9 +349,40 @@ module ExecutableStories
         docs: nil
       )
       @step_counter += 1
+      # Close the previous marker before this step's own assertions begin.
+      flush_pending_assertions
       @steps << step
       @current_step = step
+      arm_pending_assertions(step)
       nil
+    end
+
+    # Minitest's live per-test assertion counter, or nil when there is no test
+    # to read it from. Nil is not zero: it means we could not observe.
+    def assertion_count
+      test = Thread.current[:executable_stories_minitest_test]
+      count = test.respond_to?(:assertions) ? test.assertions : nil
+      count.is_a?(Integer) ? count : nil
+    end
+
+    # A marker states the claim and the assertion follows it, so the count is
+    # only known once the next step starts or the test ends.
+    def arm_pending_assertions(step)
+      @pending_step = step
+      @pending_from = assertion_count
+    end
+
+    def flush_pending_assertions
+      step = @pending_step
+      from = @pending_from
+      @pending_step = nil
+      @pending_from = nil
+      return if step.nil? || from.nil?
+
+      now = assertion_count
+      return if now.nil? || now < from
+
+      step.assertions = now - from
     end
 
     def add_explicit_step(keyword, text)
@@ -365,8 +396,10 @@ module ExecutableStories
         docs: nil
       )
       @step_counter += 1
+      flush_pending_assertions
       @steps << step
       @current_step = step
+      arm_pending_assertions(step)
       nil
     end
 

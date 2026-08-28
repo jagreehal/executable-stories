@@ -1,0 +1,73 @@
+{
+  "testCases": [
+    {
+      "id": "b665f845702e",
+      "story": {
+        "scenario": "Feature tour",
+        "steps": [
+          {
+            "keyword": "Given",
+            "text": "the user is on dashboard",
+            "mode": "sync",
+            "phase": "runtime"
+          },
+          {
+            "keyword": "When",
+            "text": "the user opens usage analytics",
+            "mode": "sync",
+            "phase": "runtime"
+          },
+          {
+            "keyword": "Then",
+            "text": "key metrics are visible",
+            "mode": "sync",
+            "phase": "runtime"
+          }
+        ],
+        "tags": [
+          "demo",
+          "analytics"
+        ],
+        "tickets": []
+      },
+      "sourceFile": "tests/feature-tour.story.spec.ts",
+      "sourceLine": 1,
+      "status": "passed",
+      "rawStatus": "pass",
+      "durationMs": 1800,
+      "attachments": [],
+      "stepResults": [
+        {
+          "index": 0,
+          "status": "passed",
+          "durationMs": 0
+        },
+        {
+          "index": 1,
+          "status": "passed",
+          "durationMs": 0
+        },
+        {
+          "index": 2,
+          "status": "passed",
+          "durationMs": 0
+        }
+      ],
+      "titlePath": [
+        "Feature Tour"
+      ],
+      "retry": 0,
+      "retries": 0,
+      "tags": [
+        "analytics",
+        "demo"
+      ],
+      "lastRunAtMs": 1710000005000
+    }
+  ],
+  "startedAtMs": 1710000000000,
+  "finishedAtMs": 1710000005000,
+  "durationMs": 5000,
+  "projectRoot": ".",
+  "runId": "b8d0ddc43502e3e8"
+}

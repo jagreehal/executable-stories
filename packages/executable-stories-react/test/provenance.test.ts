@@ -3,6 +3,7 @@ import {
   reportLastRunMs,
   formatRelativeAge,
   isReportStale,
+  scenarioLastRunMs,
   commitUrl,
   prUrl,
 } from "../src/lib/provenance";
@@ -95,5 +96,27 @@ describe("prUrl", () => {
   it("returns undefined without a PR number or for non-GitHub URLs", () => {
     expect(prUrl({ name: "GitHub Actions", url: "https://github.com/acme/shop/actions/runs/42" })).toBeUndefined();
     expect(prUrl({ name: "GitLab CI", url: "https://gitlab.com/acme/shop/-/pipelines/9", prNumber: "3" })).toBeUndefined();
+  });
+});
+
+describe("scenarioLastRunMs", () => {
+  const report = { startedAtMs: DAY * 100, finishedAtMs: DAY * 100 };
+
+  it("reports when the scenario itself last ran, not when the report was rendered", () => {
+    const carried = { lastRunAtMs: DAY * 90 };
+    expect(scenarioLastRunMs(carried, report)).toBe(DAY * 90);
+  });
+
+  it("falls back to the run for scenarios with no stamp of their own", () => {
+    expect(scenarioLastRunMs({}, report)).toBe(DAY * 100);
+  });
+
+  it("marks a carried-over scenario stale inside a freshly rendered report", () => {
+    const now = DAY * 100;
+    // The report itself just ran, so the report-level banner stays fresh.
+    expect(isReportStale(reportLastRunMs(report), 7, now)).toBe(false);
+    // This scenario has not run in ten days and must not borrow that freshness.
+    const carried = { lastRunAtMs: DAY * 90 };
+    expect(isReportStale(scenarioLastRunMs(carried, report), 7, now)).toBe(true);
   });
 });

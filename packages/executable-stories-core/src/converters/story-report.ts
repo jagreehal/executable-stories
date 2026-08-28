@@ -9,7 +9,7 @@
  * - Generates stable IDs suitable for deep linking.
  */
 
-import { posix as path } from "node:path";
+import { posix as path } from 'node:path';
 import type {
   ReportAttachment,
   ReportDocEntry,
@@ -20,46 +20,70 @@ import type {
   StepKeyword,
   StoryReport,
   TestStatus,
-} from "../types/story-report.js";
-import type { DocEntry } from "../types/story.js";
-import type { FeatureDeclaration, TestCaseResult, TestRunResult } from "../types/test-result.js";
-import { STORY_REPORT_SCHEMA_VERSION } from "../types/story-report.js";
+} from '../types/story-report.js';
+import { STORY_REPORT_SCHEMA_VERSION } from '../types/story-report.js';
+import type { DocEntry } from '../types/story.js';
+import type {
+  FeatureDeclaration,
+  TestCaseResult,
+  TestRunResult,
+} from '../types/test-result.js';
 
 function reportSlug(text: string): string {
   return text
     .toLowerCase()
-    .replace(/[/\\.]+/g, "-")
-    .replace(/[^\w\s-]/g, "")
-    .replace(/[\s_]+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-+|-+$/g, "");
+    .replace(/[/\\.]+/g, '-')
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '');
 }
 
 function toRelativeSourceFile(sourceFile: string, projectRoot: string): string {
   if (!sourceFile) return sourceFile;
-  const normalized = sourceFile.split(path.sep).join("/");
-  const root = projectRoot.split(path.sep).join("/").replace(/\/$/, "");
-  if (root && normalized.startsWith(root + "/")) return normalized.slice(root.length + 1);
+  const normalized = sourceFile.split(path.sep).join('/');
+  const root = projectRoot.split(path.sep).join('/').replace(/\/$/, '');
+  if (root && normalized.startsWith(root + '/'))
+    return normalized.slice(root.length + 1);
   return normalized;
 }
 
 function fileBasenameTitle(sourceFile: string): string {
-  const base = sourceFile.split("/").pop() ?? sourceFile;
-  return base.replace(/\.(story\.)?(test|spec)\.[tj]sx?$/, "").replace(/\.[tj]sx?$/, "");
+  const base = sourceFile.split('/').pop() ?? sourceFile;
+  return base
+    .replace(/\.(story\.)?(test|spec)\.[tj]sx?$/, '')
+    .replace(/\.[tj]sx?$/, '');
 }
 
 function emptySummary(): ReportSummary {
-  return { total: 0, passed: 0, failed: 0, skipped: 0, pending: 0, durationMs: 0 };
+  return {
+    total: 0,
+    passed: 0,
+    failed: 0,
+    skipped: 0,
+    pending: 0,
+    durationMs: 0,
+  };
 }
 
-function addToSummary(summary: ReportSummary, status: TestStatus, durationMs: number): void {
+function addToSummary(
+  summary: ReportSummary,
+  status: TestStatus,
+  durationMs: number,
+): void {
   summary.total += 1;
   summary[status] += 1;
   summary.durationMs += durationMs;
 }
 
 function isKeyword(value: string): value is StepKeyword {
-  return value === "Given" || value === "When" || value === "Then" || value === "And" || value === "But";
+  return (
+    value === 'Given' ||
+    value === 'When' ||
+    value === 'Then' ||
+    value === 'And' ||
+    value === 'But'
+  );
 }
 
 function copyDocEntries(entries: DocEntry[] | undefined): ReportDocEntry[] {
@@ -68,64 +92,94 @@ function copyDocEntries(entries: DocEntry[] | undefined): ReportDocEntry[] {
 }
 
 function copyDocEntry(entry: DocEntry): ReportDocEntry {
-  const children = entry.children ? { children: copyDocEntries(entry.children) } : {};
+  const children = entry.children
+    ? { children: copyDocEntries(entry.children) }
+    : {};
   switch (entry.kind) {
-    case "note":
-      return { kind: "note", text: entry.text, phase: entry.phase, ...children };
-    case "tag":
-      return { kind: "tag", names: [...entry.names], phase: entry.phase, ...children };
-    case "kv":
-      return { kind: "kv", label: entry.label, value: entry.value, phase: entry.phase, ...children };
-    case "code":
+    case 'note':
       return {
-        kind: "code",
+        kind: 'note',
+        text: entry.text,
+        phase: entry.phase,
+        ...children,
+      };
+    case 'tag':
+      return {
+        kind: 'tag',
+        names: [...entry.names],
+        phase: entry.phase,
+        ...children,
+      };
+    case 'kv':
+      return {
+        kind: 'kv',
+        label: entry.label,
+        value: entry.value,
+        phase: entry.phase,
+        ...children,
+      };
+    case 'code':
+      return {
+        kind: 'code',
         label: entry.label,
         content: entry.content,
         ...(entry.lang ? { lang: entry.lang } : {}),
         phase: entry.phase,
         ...children,
       };
-    case "table":
+    case 'table':
       return {
-        kind: "table",
+        kind: 'table',
         label: entry.label,
         columns: [...entry.columns],
         rows: entry.rows.map((r) => [...r]),
         phase: entry.phase,
         ...children,
       };
-    case "link":
-      return { kind: "link", label: entry.label, url: entry.url, phase: entry.phase, ...children };
-    case "section":
-      return { kind: "section", title: entry.title, markdown: entry.markdown, phase: entry.phase, ...children };
-    case "mermaid":
+    case 'link':
       return {
-        kind: "mermaid",
+        kind: 'link',
+        label: entry.label,
+        url: entry.url,
+        phase: entry.phase,
+        ...children,
+      };
+    case 'section':
+      return {
+        kind: 'section',
+        title: entry.title,
+        markdown: entry.markdown,
+        phase: entry.phase,
+        ...children,
+      };
+    case 'mermaid':
+      return {
+        kind: 'mermaid',
         code: entry.code,
         ...(entry.title ? { title: entry.title } : {}),
         phase: entry.phase,
         ...children,
       };
-    case "screenshot":
+    case 'screenshot':
       return {
-        kind: "screenshot",
+        kind: 'screenshot',
         path: entry.path,
         ...(entry.alt ? { alt: entry.alt } : {}),
         phase: entry.phase,
         ...children,
       };
-    case "video":
+    case 'video':
       return {
-        kind: "video",
+        kind: 'video',
         path: entry.path,
         ...(entry.caption ? { caption: entry.caption } : {}),
         ...(entry.poster ? { poster: entry.poster } : {}),
         phase: entry.phase,
         ...children,
       };
-    case "html":
+    case 'html':
       return {
-        kind: "html",
+        kind: 'html',
         ...(entry.path !== undefined ? { path: entry.path } : {}),
         ...(entry.url !== undefined ? { url: entry.url } : {}),
         ...(entry.content !== undefined ? { content: entry.content } : {}),
@@ -134,17 +188,17 @@ function copyDocEntry(entry: DocEntry): ReportDocEntry {
         phase: entry.phase,
         ...children,
       };
-    case "state":
+    case 'state':
       return {
-        kind: "state",
+        kind: 'state',
         ...(entry.label !== undefined ? { label: entry.label } : {}),
         value: entry.value,
         phase: entry.phase,
         ...children,
       };
-    case "custom":
+    case 'custom':
       return {
-        kind: "custom",
+        kind: 'custom',
         type: entry.type,
         data: entry.data,
         phase: entry.phase,
@@ -160,8 +214,9 @@ function buildStep(args: {
   text: string;
   status: TestStatus;
   durationMs: number;
+  assertions?: number;
   errorMessage?: string;
-  mode?: ReportStep["mode"];
+  mode?: ReportStep['mode'];
   docEntries: ReportDocEntry[];
 }): ReportStep {
   const step: ReportStep = {
@@ -174,6 +229,7 @@ function buildStep(args: {
     docEntries: args.docEntries,
   };
   if (args.errorMessage !== undefined) step.errorMessage = args.errorMessage;
+  if (args.assertions !== undefined) step.assertions = args.assertions;
   if (args.mode !== undefined) step.mode = args.mode;
   return step;
 }
@@ -189,23 +245,31 @@ function buildSteps(scenarioId: string, tc: TestCaseResult): ReportStep[] {
     const res = results[i];
 
     const keywordSource = decl?.keyword;
-    const keyword: StepKeyword = keywordSource && isKeyword(keywordSource) ? keywordSource : "Given";
-    const text = decl?.text ?? "";
-    const status: TestStatus = res?.status ?? "pending";
+    const keyword: StepKeyword =
+      keywordSource && isKeyword(keywordSource) ? keywordSource : 'Given';
+    const text = decl?.text ?? '';
+    const status: TestStatus = res?.status ?? 'pending';
     const durationMs = res?.durationMs ?? decl?.durationMs ?? 0;
     const docEntries = copyDocEntries(decl?.docs);
 
-    steps.push(buildStep({
-      scenarioId,
-      index: i,
-      keyword,
-      text,
-      status,
-      durationMs,
-      ...(res?.errorMessage !== undefined ? { errorMessage: res.errorMessage } : {}),
-      ...(decl?.mode !== undefined ? { mode: decl.mode } : {}),
-      docEntries,
-    }));
+    steps.push(
+      buildStep({
+        scenarioId,
+        index: i,
+        keyword,
+        text,
+        status,
+        durationMs,
+        ...(decl?.assertions !== undefined
+          ? { assertions: decl.assertions }
+          : {}),
+        ...(res?.errorMessage !== undefined
+          ? { errorMessage: res.errorMessage }
+          : {}),
+        ...(decl?.mode !== undefined ? { mode: decl.mode } : {}),
+        docEntries,
+      }),
+    );
   }
 
   return steps;
@@ -225,7 +289,7 @@ function buildScenario(
   featureId: string,
   scenarioRefs?: Map<string, ReportScenario>,
 ): ReportScenario {
-  const titleRaw = tc.story.scenario?.trim() || "(untitled scenario)";
+  const titleRaw = tc.story.scenario?.trim() || '(untitled scenario)';
   const id = `${featureId}--${reportSlug(titleRaw) || `case-${tc.id}`}`;
   const steps = buildSteps(id, tc);
 
@@ -247,11 +311,13 @@ function buildScenario(
   if (tc.errorStack !== undefined) scenario.errorStack = tc.errorStack;
   // Canonical status collapses todo → pending; keep "planned, not yet
   // implemented" as a first-class presentation signal for formatters.
-  if (tc.rawStatus === "todo") scenario.planned = true;
+  if (tc.rawStatus === 'todo') scenario.planned = true;
 
   const tickets = tc.story.tickets;
   if (tickets && tickets.length > 0) {
-    scenario.tickets = tickets.map((t) => (t.url ? { id: t.id, url: t.url } : { id: t.id }));
+    scenario.tickets = tickets.map((t) =>
+      t.url ? { id: t.id, url: t.url } : { id: t.id },
+    );
   }
 
   if (tc.story.covers && tc.story.covers.length > 0) {
@@ -262,11 +328,17 @@ function buildScenario(
     scenario.otelSpans = tc.story.otelSpans;
   }
 
+  if (tc.lastRunAtMs !== undefined) scenario.lastRunAtMs = tc.lastRunAtMs;
+  if (tc.lastRunGitSha !== undefined) scenario.lastRunGitSha = tc.lastRunGitSha;
+
   scenarioRefs?.set(tc.id, scenario);
   return scenario;
 }
 
-function deriveFeatureTitle(group: TestCaseResult[], relSourceFile: string): string {
+function deriveFeatureTitle(
+  group: TestCaseResult[],
+  relSourceFile: string,
+): string {
   for (const tc of group) {
     const head = tc.titlePath?.[0];
     if (head && head.trim()) return head.trim();
@@ -287,7 +359,7 @@ function buildFeature(
   scenarioRefs?: Map<string, ReportScenario>,
   declaration?: FeatureDeclaration,
 ): ReportFeature {
-  const id = `feature-${reportSlug(relSourceFile.replace(/\.[^.]+$/, "")) || "untitled"}`;
+  const id = `feature-${reportSlug(relSourceFile.replace(/\.[^.]+$/, '')) || 'untitled'}`;
   const title = declaration?.title ?? deriveFeatureTitle(group, relSourceFile);
   const summary = emptySummary();
   const scenarios: ReportScenario[] = [];
@@ -300,7 +372,13 @@ function buildFeature(
 
   scenarios.sort(compareScenarios);
 
-  const feature: ReportFeature = { id, title, sourceFile: relSourceFile, summary, scenarios };
+  const feature: ReportFeature = {
+    id,
+    title,
+    sourceFile: relSourceFile,
+    summary,
+    scenarios,
+  };
   if (declaration) {
     feature.kind = declaration.kind;
     if (declaration.narrative) feature.narrative = declaration.narrative;
@@ -368,13 +446,18 @@ export function toStoryReportWithIndex(run: TestRunResult): {
 
   const declarations = new Map<string, FeatureDeclaration>();
   for (const declaration of run.features ?? []) {
-    declarations.set(toRelativeSourceFile(declaration.sourceFile, run.projectRoot), declaration);
+    declarations.set(
+      toRelativeSourceFile(declaration.sourceFile, run.projectRoot),
+      declaration,
+    );
   }
 
   const scenarioRefs = new Map<string, ReportScenario>();
   const features: ReportFeature[] = [];
   for (const [rel, group] of groups) {
-    features.push(buildFeature(rel, group, scenarioRefs, declarations.get(rel)));
+    features.push(
+      buildFeature(rel, group, scenarioRefs, declarations.get(rel)),
+    );
   }
 
   features.sort((a, b) => a.title.localeCompare(b.title));
@@ -405,7 +488,7 @@ export function toStoryReportWithIndex(run: TestRunResult): {
   if (run.packageVersion) report.packageVersion = run.packageVersion;
   if (run.gitSha) report.gitSha = run.gitSha;
   if (run.ci) {
-    const ci: StoryReport["ci"] = { name: run.ci.name };
+    const ci: StoryReport['ci'] = { name: run.ci.name };
     if (run.ci.url) ci.url = run.ci.url;
     if (run.ci.buildNumber) ci.buildNumber = run.ci.buildNumber;
     if (run.ci.branch) ci.branch = run.ci.branch;
@@ -414,11 +497,15 @@ export function toStoryReportWithIndex(run: TestRunResult): {
     report.ci = ci;
   }
   if (run.coverage) {
-    const cov: NonNullable<StoryReport["coverage"]> = {};
-    if (run.coverage.linesPct !== undefined) cov.linesPct = run.coverage.linesPct;
-    if (run.coverage.branchesPct !== undefined) cov.branchesPct = run.coverage.branchesPct;
-    if (run.coverage.functionsPct !== undefined) cov.functionsPct = run.coverage.functionsPct;
-    if (run.coverage.statementsPct !== undefined) cov.statementsPct = run.coverage.statementsPct;
+    const cov: NonNullable<StoryReport['coverage']> = {};
+    if (run.coverage.linesPct !== undefined)
+      cov.linesPct = run.coverage.linesPct;
+    if (run.coverage.branchesPct !== undefined)
+      cov.branchesPct = run.coverage.branchesPct;
+    if (run.coverage.functionsPct !== undefined)
+      cov.functionsPct = run.coverage.functionsPct;
+    if (run.coverage.statementsPct !== undefined)
+      cov.statementsPct = run.coverage.statementsPct;
     report.coverage = cov;
   }
 

@@ -104,6 +104,8 @@ All framework adapters expose the same API surface:
 - **Docs** (object params): `story.json({ label, value })`, `story.kv({ label, value })`, `story.code({ label, content, lang? })`, `story.table({ label, columns, rows })`, `story.link({ label, url })`, `story.section({ title, markdown })`, `story.mermaid({ code, title? })`, `story.custom({ type, data })`, `story.screenshot({ path, alt? })`
 - **Simple docs**: `story.note(text)`, `story.tag(names)`
 
+**Assertions per step:** steps carry an `assertions` count so a claim nothing checked stops reading as proof. Vitest, Jest, Playwright and Ruby/Minitest observe it from the framework's own assertion counter, so tests are written unchanged. Cypress `story.expect`, Go `s.Expect`, Rust `expect_step`, pytest `story.expect`, JUnit 5 `Story.expect` and xUnit `Story.Expect` declare one, because those hosts expose no counter. Where nothing can be observed the field is omitted: absent means "cannot observe" and is deliberately not `0`. A scenario whose observable claim steps asserted nothing grades `none` in Evidence Review and is counted in the CLI summary and `--json-summary` (`unasserted`).
+
 ## Conventions
 
 - Package scripts use **kebab-case**: `type-check`, not `typecheck`
@@ -223,17 +225,21 @@ Use this when you want a framework-native test (e.g. `it("adds two numbers", () 
 
 Agents should read generated artifacts, not source tests first.
 
-**Canonical machine contract:** StoryReport v1 JSON (`story-report-json` format). Default filename: `reports/index.story-report.json` when using `--output-name index`.
+**Canonical machine contract:** StoryReport v1 JSON (`story-report-json` format). Default filename: `reports/index.story-report.json` when using `--output-name index`. Generate it from `reports/by-file/` for the accumulated suite; formatting one raw run first updates that per-source state.
 
-**Scenario index:** `executable-stories list <raw-run.json> --list-format json` — use for discovery and failure triage.
+**Run state:** `executable-stories runs status` lists the per-file reports with ages; `runs reset` deletes them. A run declares `runScope` (`"full"` retires what it no longer names, `"filtered"` updates only what it names, absent keeps the rest); adapters that cannot read their own filter take it from a reporter option or `EXECUTABLE_STORIES_FILTERED`.
+
+**Scenario index:** `executable-stories list reports/by-file --list-format json` — use the directory for accumulated-suite discovery and failure triage, or pass `raw-run.json` when you intentionally want only the current execution.
 
 **Typical CI flow:**
 
 ```bash
 pnpm test
 executable-stories format reports/raw-run.json --format story-report-json --output-dir reports --output-name index
-executable-stories list reports/raw-run.json --list-format json > reports/scenario-index.json
+executable-stories list reports/by-file --list-format json > reports/scenario-index.json
 ```
+
+Documentation formats render accumulated per-source state. JUnit, Cucumber, and release-manifest formats always describe only the current execution.
 
 **MCP:** `executable-stories-mcp` exposes read-only tools (`list_scenarios`, `get_scenario`, `get_failing_scenarios`, `get_feature_summary`, `get_scenario_index`, `get_behavior_manifest`) and `run_scenario` for focused test runs. See [agent artifact contract](apps/docs-site/src/content/docs/guides/agent-artifact-contract.md) and `packages/executable-stories-mcp/README.md`.
 
@@ -246,20 +252,28 @@ executable-stories list reports/raw-run.json --list-format json > reports/scenar
 - Cypress tests are excluded from `pnpm quality` (run separately)
 - Tests in `packages/` use Vitest; `apps/jest-example` uses Jest
 
-### `formatters-e2e` under an agent sandbox
+### Chromium under an agent sandbox
 
-`apps/formatters-e2e` drives Chromium through Playwright. macOS Seatbelt blocks Chromium from registering its Mach port, so inside an agent sandbox the browser dies on launch and all five tests fail:
+`apps/formatters-e2e` and `apps/playwright-example` drive Chromium through Playwright. macOS Seatbelt denies the Mach port registration Chromium needs to talk to its child processes, so inside an agent sandbox the browser dies on launch:
 
 ```
 FATAL:base/apple/mach_port_rendezvous_mac.cc:159] Check failed: kr == KERN_SUCCESS.
 bootstrap_check_in org.chromium.Chromium.MachPortRendezvousServer.NNNNN: Permission denied (1100)
 ```
 
-The same tests pass outside the sandbox. Read that error as an environment limit, not a regression in your change, and rerun the gate with the sandbox disabled.
+Set `ES_CHROMIUM_SINGLE_PROCESS=1`. Both configs then launch Chromium with `--single-process`, which spawns no children and so never registers that port:
 
-No setting fixes this narrowly. Claude Code's `sandbox.excludedCommands` matches the executable, and every command in the gate runs through `pnpm`, so excluding it would unsandbox the whole repo.
+```bash
+ES_CHROMIUM_SINGLE_PROCESS=1 pnpm quality
+```
 
-Turbo caches this suite. A run that touches nothing under `packages/executable-stories-formatters` or `packages/executable-stories-react` skips it, which is why the gate can pass once and fail on the next run.
+That clears `formatters-e2e` entirely. In `playwright-example` two tests still fail, because a single-process browser cannot open a context that needs its own process: `screenshot-in-report` ("Video is recorded and linked in report") and `storyboard` ("Browse the catalog on mobile"), for video recording and mobile device emulation respectively. Plain contexts are fine. Read those two as an environment limit, not a regression, and confirm them outside the sandbox before believing any failure there.
+
+CI leaves the variable unset, so it runs a normal multi-process Chromium.
+
+`sandbox.excludedCommands` is not the lever. It is worth knowing that listing `pnpm`, `npx` and `node` there does not lift the sandbox from this suite — commands still run sandboxed, so a Chromium failure is not evidence that your settings are wrong.
+
+Turbo caches these suites. A run that touches nothing under `packages/executable-stories-formatters` or `packages/executable-stories-react` skips `formatters-e2e`, which is why the gate can pass once and fail on the next run.
 
 <!-- intent-skills:start -->
 

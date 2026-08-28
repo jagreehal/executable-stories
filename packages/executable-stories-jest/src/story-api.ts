@@ -99,6 +99,80 @@ interface StoryContext {
   testPath: string;
   /** Index into the storyRegistry array for this scenario */
   scenarioIndex: number;
+  /**
+   * Marker step awaiting its assertion count.
+   *
+   * A marker states the claim and the assertion follows it, so the count is
+   * only known once the next step starts or the test ends.
+   */
+  pendingStep: StoryStep | null;
+  /** Assertion counter reading taken when {@link pendingStep} was created. */
+  pendingFrom?: number;
+}
+
+/**
+ * Jest's live per-test assertion counter, or undefined when it cannot be read.
+ *
+ * Undefined is not zero: it means we could not observe, and the report must not
+ * report an unobserved step as one that asserted nothing.
+ */
+function readAssertionCount(): number | undefined {
+  try {
+    const state = (expect as unknown as {
+      getState?: () => { assertionCalls?: number };
+    }).getState?.();
+    return typeof state?.assertionCalls === "number" ? state.assertionCalls : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Record how many assertions ran between `before` and now. */
+function recordAssertions(step: StoryStep, before: number | undefined): void {
+  if (before === undefined) return;
+  const after = readAssertionCount();
+  if (after === undefined || after < before) return;
+  step.assertions = after - before;
+}
+
+/**
+ * Flush at the end of every test, registered from this module.
+ *
+ * tsup bundles a separate copy of this file into `dist/setup.js`, so a hook
+ * registered from the setup entry would flush a different module instance with
+ * its own empty context. Registering here keeps the hook and the state
+ * together. Runs at import time, which in a Jest test file is inside the root
+ * describe scope.
+ */
+try {
+  // The global, not a static @jest/globals import: this module is also bundled
+  // into the reporter entry, which runs outside any test context.
+  const registerAfterEach = (globalThis as {
+    afterEach?: (fn: () => void) => void;
+  }).afterEach;
+  registerAfterEach?.(() => {
+    flushPendingAssertions();
+  });
+} catch {
+  // Imported outside a Jest test context (the reporter, tooling): nothing to
+  // register against, and nothing to flush.
+}
+
+/**
+ * Close off the marker step waiting on a count.
+ *
+ * Called from the `afterEach` registered above, so the last marker in a test
+ * still collects the assertions written after it.
+ */
+function flushPendingAssertions(): void {
+  const ctx = activeContext;
+  if (!ctx) return;
+  const step = ctx.pendingStep;
+  const before = ctx.pendingFrom;
+  ctx.pendingStep = null;
+  ctx.pendingFrom = undefined;
+  if (!step) return;
+  recordAssertions(step, before);
 }
 
 // ============================================================================
@@ -363,8 +437,15 @@ function createStepMarker(keyword: StepKeyword) {
       ...(isCallback ? { wrapped: true } : {}),
     };
 
+    // Close the previous marker before this step's own assertions begin.
+    flushPendingAssertions();
+
     ctx.meta.steps.push(step);
     ctx.currentStep = step;
+    if (!isCallback) {
+      ctx.pendingStep = step;
+      ctx.pendingFrom = readAssertionCount();
+    }
 
     // Handle DocEntry[] children: attach as step docs and deduplicate from story-level
     if (isChildrenArray) {
@@ -388,19 +469,22 @@ function createStepMarker(keyword: StepKeyword) {
 
     const body = docsOrBody as () => T;
     const start = performance.now();
+    const assertionsBefore = readAssertionCount();
 
     try {
       const result = body();
       if (result instanceof Promise) {
         return result.then(
-          (val) => { step.durationMs = performance.now() - start; return val; },
-          (err) => { step.durationMs = performance.now() - start; throw err; },
+          (val) => { step.durationMs = performance.now() - start; recordAssertions(step, assertionsBefore); return val; },
+          (err) => { step.durationMs = performance.now() - start; recordAssertions(step, assertionsBefore); throw err; },
         ) as T;
       }
       step.durationMs = performance.now() - start;
+      recordAssertions(step, assertionsBefore);
       return result;
     } catch (err) {
       step.durationMs = performance.now() - start;
+      recordAssertions(step, assertionsBefore);
       throw err;
     }
   }
@@ -549,6 +633,7 @@ function init(options?: StoryOptions): void {
     timerCounter: 0,
     testPath,
     scenarioIndex,
+    pendingStep: null,
   };
 
   // Link attachments to the registry for this test file + scenario index
@@ -837,6 +922,7 @@ export type Story = typeof story;
  */
 export const _internal = {
   flushStories,
+  flushPendingAssertions,
   /** Clear active context (for tests that assert getContext() throws). */
   clearContext(): void {
     activeContext = null;

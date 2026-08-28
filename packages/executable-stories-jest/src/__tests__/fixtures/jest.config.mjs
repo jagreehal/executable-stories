@@ -9,6 +9,8 @@ export default {
   rootDir,
   testEnvironment: "node",
   testMatch: ["<rootDir>/src/__tests__/fixtures/**/*.story.test.ts"],
+  // The incomplete fixture is deliberately red; it has its own config.
+  testPathIgnorePatterns: ["/fixtures/incomplete/", "/fixtures/assertions/"],
   setupFilesAfterEnv: ["executable-stories-jest/setup"],
   extensionsToTreatAsEsm: [".ts"],
   transform: {

@@ -4,12 +4,13 @@ description: >
   Use when writing BDD story tests in Go with executable-stories-go:
   Init(t, scenario, opts...), Given/When/Then/And/But steps, doc entries, or
   RunAndReport output in TestMain.
-type: core
-library: executable-stories-go
-library_version: "0.1.0"
-sources:
-  - "jagreehal/executable-stories:packages/executable-stories-go/story.go"
-  - "jagreehal/executable-stories:packages/executable-stories-go/doc.go"
+metadata:
+  type: core
+  library: executable-stories-go
+  library_version: "0.1.0"
+  sources:
+    - "jagreehal/executable-stories:packages/executable-stories-go/story.go"
+    - "jagreehal/executable-stories:packages/executable-stories-go/doc.go"
 ---
 
 # executable-stories-go — Story API
@@ -164,6 +165,11 @@ func TestFetchesUserProfile(t *testing.T) {
 ```
 
 `Fn` and `Expect` wrap a closure as a step with automatic timing. Panics propagate after duration is recorded.
+
+Go exposes no assertion counter. `Expect` therefore declares one assertion for that
+claim step. A plain `Then` followed by `t.Error` or `t.Errorf` remains unobserved, not
+zero. `RunAndReport` detects `go test -run`: narrowed invocations report
+`runScope: "filtered"`, while a plain invocation reports `"full"`.
 
 ### Init options
 

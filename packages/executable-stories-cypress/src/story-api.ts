@@ -509,6 +509,12 @@ function fn<T>(keyword: StepKeyword, text: string, body: () => T): T {
     text,
     docs: [],
     wrapped: true,
+    // Wrapping a claim is the only signal Cypress can give that the step
+    // checked something: its assertions are queued commands, so there is no
+    // per-step counter to read. Setup steps arrange, so only a claim counts —
+    // tested against the keyword as written, since auto-And rewrites a repeated
+    // Then before the step is stored.
+    ...(keyword === 'Then' ? { assertions: 1 } : {}),
   };
   ctx.meta.steps.push(step);
   ctx.currentStep = step;

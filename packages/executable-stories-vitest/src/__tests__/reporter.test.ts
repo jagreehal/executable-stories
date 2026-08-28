@@ -4,6 +4,7 @@
  * Tests the StoryReporter class for correct markdown generation.
  */
 import * as fs from 'node:fs';
+import * as os from 'node:os';
 import * as path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import StoryReporter from '../reporter';
@@ -1334,5 +1335,150 @@ describe('StoryReporter', () => {
       expect(testCases[0].story.otelSpans).toHaveLength(1);
       expect(testCases[0].story.otelSpans?.[0]?.name).toBe('valid-span');
     });
+  });
+});
+
+describe('name-filtered runs', () => {
+  const FILTER_DIR = path.join(os.tmpdir(), `es-vitest-filtered-${process.pid}`);
+
+  beforeEach(() => fs.mkdirSync(FILTER_DIR, { recursive: true }));
+  afterEach(() => fs.rmSync(FILTER_DIR, { recursive: true, force: true }));
+
+  /** Run the reporter once and hand back the raw run it wrote. */
+  async function rawRunFor(testNamePattern?: string) {
+    const rawRunPath = path.join(FILTER_DIR, 'raw-run.json');
+    const reporter = new StoryReporter({
+      formats: [],
+      outputDir: FILTER_DIR,
+      outputName: 'out',
+      rawRunPath,
+    });
+    reporter.onInit({
+      config: { root: process.cwd(), testNamePattern },
+    } as unknown as Parameters<typeof reporter.onInit>[0]);
+
+    const mockModule = createMockTestModule('pay.story.test.ts', [
+      {
+        meta: { scenario: 'refuses a negative amount', steps: [], sourceOrder: 0 },
+        result: { state: 'passed', duration: 1 },
+      },
+    ]);
+    await reporter.onTestRunEnd(
+      [mockModule as unknown as Parameters<typeof reporter.onTestRunEnd>[0][0]],
+      [],
+      'passed',
+    );
+    return JSON.parse(fs.readFileSync(rawRunPath, 'utf8')) as { runScope?: string };
+  }
+
+  it('reports filtered scope when vitest was given a name pattern', async () => {
+    // `vitest -t` reports only the matching test, so this run cannot speak for
+    // the rest of its file. Downstream that is the difference between updating
+    // the file's scenarios and retiring them.
+    expect((await rawRunFor('refuses')).runScope).toBe('filtered');
+  });
+
+  it('reports full scope for an ordinary run', async () => {
+    // Vitest hands over the pattern either way, so "no filter" is something the
+    // adapter determined, not something it assumed.
+    expect((await rawRunFor()).runScope).toBe('full');
+  });
+});
+
+describe('incomplete source files', () => {
+  beforeEach(() => {
+    fs.mkdirSync(TEMP_DIR, { recursive: true });
+  });
+
+  afterEach(() => {
+    fs.rmSync(TEMP_DIR, { recursive: true, force: true });
+  });
+
+  it('flags a file where one story ran and a sibling failed before declaring', async () => {
+    const rawRunPath = path.join(TEMP_DIR, 'raw-run.json');
+    const reporter = new StoryReporter({
+      formats: [],
+      outputDir: TEMP_DIR,
+      outputName: 'incomplete',
+      output: { mode: 'aggregated' },
+      rawRunPath,
+    });
+    reporter.onInit({
+      config: { root: process.cwd() },
+    } as unknown as Parameters<typeof reporter.onInit>[0]);
+
+    // One healthy story plus a sibling whose beforeAll threw: the sibling
+    // failed without ever reaching story.init(), so it has no story meta.
+    const mockModule = {
+      moduleId: 'mixed.story.test.ts',
+      relativeModuleId: 'mixed.story.test.ts',
+      children: {
+        allTests: () => [
+          {
+            meta: () => ({
+              story: {
+                scenario: 'healthy story',
+                steps: [{ keyword: 'Given', text: 'a thing', docs: [] }],
+                sourceOrder: 0,
+              } as StoryMeta,
+            }),
+            result: () => ({ state: 'passed' as const, duration: 1 }),
+          },
+          {
+            meta: () => ({}),
+            result: () => ({ state: 'failed' as const, duration: 1 }),
+          },
+        ],
+      },
+    };
+
+    await reporter.onTestRunEnd(
+      [mockModule as unknown as Parameters<typeof reporter.onTestRunEnd>[0][0]],
+      [],
+      'failed',
+    );
+
+    const raw = JSON.parse(fs.readFileSync(rawRunPath, 'utf8')) as {
+      incompleteSourceFiles?: string[];
+    };
+    expect(raw.incompleteSourceFiles).toEqual(['mixed.story.test.ts']);
+  });
+
+  it('leaves a fully declared file alone', async () => {
+    const rawRunPath = path.join(TEMP_DIR, 'raw-run-clean.json');
+    const reporter = new StoryReporter({
+      formats: [],
+      outputDir: TEMP_DIR,
+      outputName: 'clean',
+      output: { mode: 'aggregated' },
+      rawRunPath,
+    });
+    reporter.onInit({
+      config: { root: process.cwd() },
+    } as unknown as Parameters<typeof reporter.onInit>[0]);
+
+    // A story that declared itself and then failed its assertion is a normal
+    // red test, not a broken collection.
+    const mockModule = createMockTestModule('clean.story.test.ts', [
+      {
+        meta: {
+          scenario: 'failing story',
+          steps: [{ keyword: 'Then', text: 'it holds', docs: [] }],
+          sourceOrder: 0,
+        },
+        result: { state: 'failed', duration: 1 },
+      },
+    ]);
+
+    await reporter.onTestRunEnd(
+      [mockModule as unknown as Parameters<typeof reporter.onTestRunEnd>[0][0]],
+      [],
+      'failed',
+    );
+
+    const raw = JSON.parse(fs.readFileSync(rawRunPath, 'utf8')) as {
+      incompleteSourceFiles?: string[];
+    };
+    expect(raw.incompleteSourceFiles).toBeUndefined();
   });
 });

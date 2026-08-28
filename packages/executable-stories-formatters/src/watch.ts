@@ -54,7 +54,11 @@ export async function regenerateRun(
     outputName: options.outputName,
   });
   const result = await generator.generate(run);
-  return { files: [...result.values()].flat(), run };
+  // The generator folds this run into what earlier runs accumulated, so the
+  // rendered run is what the artifacts on disk describe. A caller diffing or
+  // reporting against the run it handed in would see only the fraction this
+  // invocation read.
+  return { files: [...result.values()].flat(), run: generator.renderedRun ?? run };
 }
 
 /** Regenerate artifacts and return just the written file paths. */

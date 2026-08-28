@@ -1,7 +1,7 @@
 # executable-stories-astro
 
 Make Astro a first-class way to view living documentation. An Astro integration +
-content loaders that turn your test run JSON into a **hot-reloading** docs site —
+content loaders that turn canonical per-source reports or an intentional run snapshot into a **hot-reloading** docs site —
 generated scenarios and your hand-authored docs, side by side, driven by **one
 config object**.
 
@@ -21,10 +21,10 @@ import { defineExecutableStories } from 'executable-stories-astro';
 
 export default defineExecutableStories({
   // ── Sources: what test output to include ──────────────────────────
-  source: '../reports/raw-run.json',        // single suite (shorthand)
+  source: '../reports/by-file',             // whole local suite (shorthand)
   // sources: [                              // …or several, grouped by suite
-  //   { name: 'web', label: 'Web app', source: '../apps/web/reports/raw-run.json' },
-  //   { name: 'api', label: 'API',     source: '../apps/api/reports/raw-run.json' },
+  //   { name: 'web', label: 'Web app', source: '../apps/web/reports/by-file' },
+  //   { name: 'api', label: 'API',     source: '../apps/api/reports/by-file' },
   // ],
 
   // ── Selection: which scenarios to show ────────────────────────────
@@ -75,7 +75,7 @@ export const collections = {
 
 | Field | Type | Default | What it does |
 |---|---|---|---|
-| `source` | `string` | — | One run JSON (shorthand for `sources: [{ source }]`). |
+| `source` | `string` | — | One per-file directory or run snapshot (shorthand for `sources: [{ source }]`). |
 | `sources` | `StorySource[]` | — | Several named suites. `{ name?, label?, source, inputType?, synthesize? }`. Names are derived from the path when omitted. |
 | `include` | `StoryFilter` | — | Allowlist: `{ tags?, status?, features? }`. A scenario must match. |
 | `exclude` | `StoryFilter` | — | Denylist, applied after `include`. |
@@ -102,8 +102,8 @@ export const collections = {
 - **Injected routes** — a stories index at `routeBase`, one detail page per
   scenario, and a searchable/filterable Explorer. All styled out of the box (you
   do not wire any CSS) and link-correct for any `routeBase`.
-- **Hot reload** — the loader watches the run JSON; a fresh test run updates the
-  open page with no reload. Nothing is written to disk; tests stay the source of
+- **Hot reload** — the loader watches the configured report source; a focused test run updates the
+  open page without hiding untouched scenarios. Generated state is disposable; tests stay the source of
   truth. When a run changes the *nav tree* (scenario added/renamed/removed) the
   integration triggers a dev-server restart so the Starlight sidebar rebuilds
   too; status-only changes stay pure HMR.
@@ -171,10 +171,11 @@ not run remark plugins — `markdown.remarkPlugins` only applies if you install
 is also exported as a standalone remark plugin for that unified pipeline, but with
 `authoredDocsLoader` you don't need it.
 
-## Emitting the run JSON
+## Emitting per-source report state
 
-The loader reads the **raw run JSON**, which your reporter writes only when you
-set `rawRunPath`:
+The reporter maintains one canonical report per test source in `reports/by-file/`,
+which is the recommended local site source. Keep `rawRunPath` when current-run CLI
+commands also need the execution event:
 
 ```js
 new StoryReporter({ formats: ['html'], rawRunPath: 'reports/raw-run.json' })

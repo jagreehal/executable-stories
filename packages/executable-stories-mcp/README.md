@@ -8,10 +8,12 @@ It consumes `story-report-json` output from `executable-stories-formatters` and 
 
 First run your test suite so the adapter writes a raw run (JS/TS reporters write
 `reports/raw-run.json`; the non-JS adapters write `.executable-stories/raw-run.json`).
-Then turn it into the StoryReport the server reads:
+Formatting the run updates persistent per-source state. Build the stable whole-suite
+StoryReport the server reads from that directory:
 
 ```bash
-executable-stories format .executable-stories/raw-run.json \
+executable-stories format .executable-stories/raw-run.json --format html
+executable-stories format reports/by-file \
   --format story-report-json,scenario-index-json,behavior-manifest-json \
   --output-dir reports \
   --output-name index
@@ -77,7 +79,7 @@ Each read-only tool accepts optional `reportPath` to point at a specific StoryRe
 StoryReport v1 JSON remains the canonical artifact:
 
 ```bash
-executable-stories format <raw-run.json> --format story-report-json
+executable-stories format reports/by-file --format story-report-json
 ```
 
 MCP is a query and optional execution layer over that artifact.

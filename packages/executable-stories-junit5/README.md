@@ -68,6 +68,15 @@ Render reports with `executable-stories-formatters`.
 
 ## CLI handoff
 
+The listener detects Maven Surefire's `-Dtest=...` selector. For other launcher filters,
+set `EXECUTABLE_STORIES_FILTERED=1`; set it to `0` only when the invocation covered every
+scenario in its source files. With neither signal, scope is unknown and formatting keeps
+earlier scenarios rather than deleting on a guess.
+
+JUnit 5 exposes no assertion counter. Use `Story.expect("claim") { ... }` to declare
+assertion evidence. A plain `Story.then()` followed by `assertEquals` remains unobserved,
+not zero.
+
 After running tests, turn the raw-run JSON into reports with the `executable-stories` CLI:
 
 ```bash
@@ -84,7 +93,7 @@ executable-stories format .executable-stories/raw-run.json --format html
 executable-stories format .executable-stories/raw-run.json --format story-report-json --output-dir reports --output-name index
 
 # List scenarios (discovery / failure triage)
-executable-stories list .executable-stories/raw-run.json --list-format json
+executable-stories list reports/by-file --list-format json
 ```
 
 ## Verify

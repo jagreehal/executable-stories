@@ -4,11 +4,12 @@ description: >
   Use when setting up ESLint rules for executable-stories-vitest: enforcing
   the story.init(task) argument requirement, test-context scoping for
   story.init, or init-before-steps ordering.
-type: core
-library: eslint-plugin-executable-stories-vitest
-library_version: "2.1.9"
-sources:
-  - "jagreehal/executable-stories:packages/eslint-plugin-executable-stories-vitest/src/index.ts"
+metadata:
+  type: core
+  library: eslint-plugin-executable-stories-vitest
+  library_version: '2.1.11'
+  sources:
+    - 'jagreehal/executable-stories:packages/eslint-plugin-executable-stories-vitest/src/index.ts'
 ---
 
 # ESLint Plugin: executable-stories-vitest
@@ -17,7 +18,7 @@ sources:
 
 ```typescript
 // eslint.config.mjs
-import vitestStories from "eslint-plugin-executable-stories-vitest";
+import vitestStories from 'eslint-plugin-executable-stories-vitest';
 
 export default [
   // Option A: Use recommended config (enables all rules at error)
@@ -26,12 +27,12 @@ export default [
   // Option B: Manual rule configuration
   {
     plugins: {
-      "executable-stories-vitest": vitestStories,
+      'executable-stories-vitest': vitestStories,
     },
     rules: {
-      "executable-stories-vitest/require-task-for-story-init": "error",
-      "executable-stories-vitest/require-test-context-for-story-init": "error",
-      "executable-stories-vitest/require-init-before-steps": "error",
+      'executable-stories-vitest/require-task-for-story-init': 'error',
+      'executable-stories-vitest/require-test-context-for-story-init': 'error',
+      'executable-stories-vitest/require-init-before-steps': 'error',
     },
   },
 ];
@@ -45,12 +46,12 @@ Ensures `story.init(task)` is called with the `task` argument.
 
 ```typescript
 // Fails lint
-it("my test", ({ task }) => {
+it('my test', ({ task }) => {
   story.init(); // Error: story.init(task) requires the task argument
 });
 
 // Passes lint
-it("my test", ({ task }) => {
+it('my test', ({ task }) => {
   story.init(task);
 });
 ```
@@ -66,12 +67,12 @@ function helper() {
 }
 
 // Passes lint
-it("my test", ({ task }) => {
+it('my test', ({ task }) => {
   story.init(task);
 });
 
 // Also detects modifiers: it.only, it.skip, it.todo, it.concurrent, it.fails
-it.only("focused test", ({ task }) => {
+it.only('focused test', ({ task }) => {
   story.init(task); // Passes lint
 });
 ```
@@ -82,15 +83,15 @@ Ensures `story.init(task)` is called before any step markers.
 
 ```typescript
 // Fails lint
-it("my test", ({ task }) => {
-  story.given("something"); // Error: story.init(task) must be called first
+it('my test', ({ task }) => {
+  story.given('something'); // Error: story.init(task) must be called first
   story.init(task);
 });
 
 // Passes lint
-it("my test", ({ task }) => {
+it('my test', ({ task }) => {
   story.init(task);
-  story.given("something");
+  story.given('something');
 });
 ```
 
@@ -115,7 +116,7 @@ Correct:
 
 ```typescript
 // eslint.config.mjs (flat config)
-import vitestStories from "eslint-plugin-executable-stories-vitest";
+import vitestStories from 'eslint-plugin-executable-stories-vitest';
 
 export default [...vitestStories.configs.recommended];
 ```
@@ -128,19 +129,19 @@ Source: packages/eslint-plugin-executable-stories-vitest/src/index.ts
 
 ```typescript
 // eslint.config.mjs
-import vitestStories from "eslint-plugin-executable-stories-vitest";
+import vitestStories from 'eslint-plugin-executable-stories-vitest';
 
 export default [
   {
     // Scope to story test files only
-    files: ["**/*.story.test.ts", "**/*.story.spec.ts"],
+    files: ['**/*.story.test.ts', '**/*.story.spec.ts'],
     plugins: {
-      "executable-stories-vitest": vitestStories,
+      'executable-stories-vitest': vitestStories,
     },
     rules: {
-      "executable-stories-vitest/require-task-for-story-init": "error",
-      "executable-stories-vitest/require-test-context-for-story-init": "error",
-      "executable-stories-vitest/require-init-before-steps": "error",
+      'executable-stories-vitest/require-task-for-story-init': 'error',
+      'executable-stories-vitest/require-test-context-for-story-init': 'error',
+      'executable-stories-vitest/require-init-before-steps': 'error',
     },
   },
 ];

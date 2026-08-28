@@ -16,6 +16,22 @@ export function reportLastRunMs(
 }
 
 /**
+ * Epoch ms of the run that produced one scenario.
+ *
+ * A report assembled from accumulated runs holds scenarios that last ran at
+ * different times, so the run-level timestamp overstates how fresh most of them
+ * are. Falls back to the report for scenarios recorded before stamping, and for
+ * reports rendered straight from a single run.
+ */
+export function scenarioLastRunMs(
+  scenario: { lastRunAtMs?: number },
+  report: Pick<StoryReport, "startedAtMs" | "finishedAtMs">,
+): number | undefined {
+  if (scenario.lastRunAtMs && scenario.lastRunAtMs > 0) return scenario.lastRunAtMs;
+  return reportLastRunMs(report);
+}
+
+/**
  * Human-readable age like "just now", "5 minutes ago", "3 hours ago",
  * "12 days ago". Clock skew (thenMs in the future) reads as "just now".
  */

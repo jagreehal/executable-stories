@@ -79,6 +79,7 @@ export {
   reportLastRunMs,
   formatRelativeAge,
   isReportStale,
+  scenarioLastRunMs,
   ciDisplayName,
   commitUrl,
   prUrl,

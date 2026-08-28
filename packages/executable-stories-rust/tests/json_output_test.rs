@@ -19,6 +19,7 @@ fn test_raw_run_serialization() {
                         wrapped: None,
                         duration_ms: None,
                         docs: None,
+                        assertions: None,
                     },
                     StoryStep {
                         keyword: "When".to_string(),
@@ -28,6 +29,7 @@ fn test_raw_run_serialization() {
                         wrapped: None,
                         duration_ms: None,
                         docs: None,
+                        assertions: None,
                     },
                     StoryStep {
                         keyword: "Then".to_string(),
@@ -37,6 +39,7 @@ fn test_raw_run_serialization() {
                         wrapped: None,
                         duration_ms: None,
                         docs: None,
+                        assertions: None,
                     },
                 ],
                 tags: Some(vec!["smoke".to_string()]),
@@ -54,6 +57,7 @@ fn test_raw_run_serialization() {
         started_at_ms: None,
         finished_at_ms: None,
         ci: None,
+        run_scope: None,
     };
 
     let json = serde_json::to_value(&run).unwrap();
@@ -94,6 +98,7 @@ fn test_camel_case_field_names() {
         started_at_ms: Some(1000.0),
         finished_at_ms: Some(2000.0),
         ci: None,
+        run_scope: None,
     };
 
     let json_str = serde_json::to_string(&run).unwrap();
@@ -133,6 +138,7 @@ fn test_step_with_docs() {
         id: None,
         mode: None,
         wrapped: None,
+        assertions: None,
         duration_ms: None,
         docs: Some(vec![DocEntry::note("important detail")]),
     };
@@ -191,6 +197,7 @@ fn test_json_write_roundtrip() {
         started_at_ms: None,
         finished_at_ms: None,
         ci: None,
+        run_scope: None,
     };
 
     let output_path = std::env::temp_dir().join("executable-stories-test").join("roundtrip.json");

@@ -4,12 +4,13 @@ description: >
   Use when writing BDD story tests in Vitest with executable-stories-vitest:
   the callback-only story.init(task) API, given/when/then/and/but steps, or
   doc entries.
-type: core
-library: executable-stories-vitest
-library_version: "8.4.7"
-sources:
-  - "jagreehal/executable-stories:packages/executable-stories-vitest/src/story-api.ts"
-  - "jagreehal/executable-stories:apps/docs-site/src/content/docs/vitest/vitest-story-api.md"
+metadata:
+  type: core
+  library: executable-stories-vitest
+  library_version: "8.7.0"
+  sources:
+    - "jagreehal/executable-stories:packages/executable-stories-vitest/src/story-api.ts"
+    - "jagreehal/executable-stories:apps/docs-site/src/content/docs/vitest/vitest-story-api.md"
 ---
 
 # executable-stories-vitest — Story API
@@ -153,6 +154,11 @@ it("fetches user profile", ({ task }) => {
   });
 });
 ```
+
+Vitest's live assertion counter is observed automatically. Assertions after a step
+marker belong to that marker until the next step or test end; `story.expect` measures
+its own callback. A passing observable Then/And/But claim with zero assertions is marked
+in Markdown and HTML and grades `none`. An absent count means unobservable, not zero.
 
 ### Planned scenarios with it.todo
 
