@@ -154,6 +154,16 @@ story.init(testInfo, {
 
 ## Developer experience
 
+The reporter maintains one canonical JSON report per test source under
+`<outputDir>/by-file/`. Documentation formats render the accumulated suite; JUnit,
+Cucumber, and release manifests contain only the current execution. Playwright `grep`,
+`grepInvert`, and sharding are detected as filtered runs. Incomplete collection preserves
+earlier scenarios for affected files rather than treating them as deleted.
+
+Playwright's live assertion counter is attributed to marker-style steps and
+`story.expect` wrappers. A passing observable claim with zero assertions is marked in
+Markdown and HTML and grades `none` in Evidence Review.
+
 - **API:** Top-level step functions: `given`, `when`, `then`, `and`, `but` from `executable-stories-playwright`, plus `story` object with `story.init()` and the same steps on `story` for a consistent entry point. Use `story.init(testInfo)` and then `story.given` / `story.when` / `story.then`, etc.
 - **Modifiers:** Use Playwright’s native test modifiers — `test.skip`, `test.only`, `test.fixme`, `test.slow`, `test.fail` (and `.todo`) — for scenario-level control. The `story` object does not provide its own modifiers.
 - **Attach story to a plain test:** Call `story.init(testInfo)` inside a normal `test()` so that test appears in generated docs. Playwright does not export `doc`; scenario title comes from the Playwright test title.

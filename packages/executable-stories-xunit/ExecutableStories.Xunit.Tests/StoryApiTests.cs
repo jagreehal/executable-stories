@@ -579,6 +579,58 @@ namespace ExecutableStories.Xunit.Tests
         // Fn and Expect
         // ========================================================================
 
+        // xUnit has no assertion counter to read, so a step's count is only
+        // known when the author routes the claim through a wrapped body. Bare
+        // markers stay unobserved: absent is honest, zero would be an
+        // accusation.
+
+        [Fact]
+        public void ExpectRecordsAnAssertion()
+        {
+            Story.Init("a checked claim");
+            Story.Given("two numbers 5 and 3");
+            Story.Expect("the result is 8", () => { });
+
+            StoryContext ctx = Story.GetContext()!;
+            Assert.Equal(1, ctx.Steps[1].Assertions);
+        }
+
+        [Fact]
+        public void MarkerStepsStayUnobserved()
+        {
+            Story.Init("an unwrapped claim");
+            Story.Given("two numbers 5 and 3");
+            Story.Then("the result is 8");
+
+            foreach (StoryStep step in Story.GetContext()!.Steps)
+            {
+                Assert.Null(step.Assertions);
+            }
+        }
+
+        [Fact]
+        public void WrappedSetupDoesNotCountAsAClaim()
+        {
+            Story.Init("wrapped setup");
+            Story.Fn("Given", "an expensive fixture", () => { });
+
+            Assert.Null(Story.GetContext()!.Steps[0].Assertions);
+        }
+
+        [Fact]
+        public void SecondWrappedClaimStillCounts()
+        {
+            // Auto-And rewrites a repeated Then before the step is stored.
+            Story.Init("two claims");
+            Story.Given("two numbers 5 and 3");
+            Story.Expect("the result is 8", () => { });
+            Story.Expect("the result is positive", () => { });
+
+            StoryContext ctx = Story.GetContext()!;
+            Assert.Equal("And", ctx.Steps[2].Keyword);
+            Assert.Equal(1, ctx.Steps[2].Assertions);
+        }
+
         [Fact]
         public void FnCreatesWrappedStep()
         {

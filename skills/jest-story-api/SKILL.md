@@ -3,12 +3,13 @@ name: jest-story-api
 description: >
   Use when writing BDD story tests in Jest with executable-stories-jest:
   top-level given/when/then/and/but imports, story.init(), or doc entries.
-type: core
-library: executable-stories-jest
-library_version: "8.4.7"
-sources:
-  - "jagreehal/executable-stories:packages/executable-stories-jest/src/index.ts"
-  - "jagreehal/executable-stories:packages/executable-stories-jest/src/story-api.ts"
+metadata:
+  type: core
+  library: executable-stories-jest
+  library_version: "8.7.0"
+  sources:
+    - "jagreehal/executable-stories:packages/executable-stories-jest/src/index.ts"
+    - "jagreehal/executable-stories:packages/executable-stories-jest/src/story-api.ts"
 ---
 
 # executable-stories-jest — Story API
@@ -130,6 +131,11 @@ await story.expect("the profile contains the correct name", () => {
   expect(profile.name).toBe("Alice");
 });
 ```
+
+Jest's live assertion counter is observed automatically. Assertions after a marker
+belong to that marker until the next step or test end; `story.expect` measures its own
+callback. A passing observable Then/And/But claim with zero assertions is marked in
+Markdown and HTML and grades `none`. An absent count means unobservable, not zero.
 
 ### Inline docs via second argument
 

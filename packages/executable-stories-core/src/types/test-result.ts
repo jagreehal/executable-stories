@@ -7,6 +7,9 @@
 
 import type { StoryMeta } from "./story.js";
 
+/** How much of each source file a run covered. See {@link TestRunResult.runScope}. */
+export type RunScope = "full" | "filtered";
+
 /** Canonical test status (Cucumber-compatible) */
 export type TestStatus = "passed" | "failed" | "skipped" | "pending";
 
@@ -86,6 +89,16 @@ export interface TestCaseResult {
   tags: string[];
   /** All retry attempts (optional, includes details per attempt) */
   attempts?: TestCaseAttempt[];
+  /**
+   * When the run that produced this result finished (epoch ms).
+   *
+   * A report assembled from accumulated shards holds results from several runs,
+   * so the run-level `finishedAtMs` stops describing its contents. Stamped when
+   * a result is folded into the accumulated state, never by adapters.
+   */
+  lastRunAtMs?: number;
+  /** Commit the run that produced this result was on. Stamped alongside {@link lastRunAtMs}. */
+  lastRunGitSha?: string;
   /**
    * Ingested evidence (mutation/coverage/failing-first) used by the review
    * formatter to grade proof strength. Populated at the ACL/ingestion layer,
@@ -193,4 +206,45 @@ export interface TestRunResult {
   ci?: CIInfo;
   /** Coverage summary for the run */
   coverage?: CoverageSummary;
+  /**
+   * How much of each source file this run covered, which decides whether it may
+   * retire scenarios it did not report.
+   *
+   * - `"full"` — the adapter positively determined no name filter was applied,
+   *   so the scenarios reported for each file ARE that file's contents. Only
+   *   this may delete: a scenario renamed or removed since the last run goes.
+   * - `"filtered"` — a name filter was applied (`vitest -t`, an MCP
+   *   `run_scenario` call), so the run saw part of its own files and updates
+   *   only what it names.
+   * - absent (unknown) — the adapter cannot tell. Merges like `"filtered"`, and
+   *   warns, naming what it kept.
+   *
+   * Absent is the default on purpose. Deleting on a guess is destructive and
+   * silent; keeping on a guess is merely stale and visible. Uncertainty
+   * preserves data, and only certainty removes it.
+   */
+  runScope?: RunScope;
+  /**
+   * Source files this run actually executed, whether or not they produced any
+   * scenarios.
+   *
+   * A run's test cases only name the files that produced something, so a file
+   * whose last scenario was deleted is indistinguishable from one that did not
+   * run — and, still existing on disk, it survives pruning too. This inventory
+   * is what lets a `"full"` run empty a file's report.
+   *
+   * Optional: an adapter that cannot enumerate what it ran omits it, and a file
+   * that reports nothing keeps its previous scenarios.
+   */
+  coveredSourceFiles?: string[];
+  /**
+   * Source files whose scenarios this run could not collect in full — a hook
+   * that threw before the story was declared, a collection error, a crash.
+   *
+   * Such a file looks exactly like one whose scenarios were deleted, and a run
+   * claiming `"full"` would retire them. Losing documentation because the suite
+   * broke is the worst moment to lose it, so these files are merged rather than
+   * replaced however authoritative the rest of the run is.
+   */
+  incompleteSourceFiles?: string[];
 }

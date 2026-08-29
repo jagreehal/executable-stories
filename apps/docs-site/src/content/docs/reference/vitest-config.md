@@ -23,24 +23,30 @@ export default defineConfig({
 
 ## Options reference
 
-The reporter uses `FormatterOptions` from `executable-stories-formatters`. All options are optional. When you pass no options, the formatters package defaults apply (for example `formats: ["cucumber-json"]`, `outputDir: "reports"`). To get Markdown written to `docs/user-stories.md`, pass options explicitly as in the examples below.
+The reporter uses `FormatterOptions` from `executable-stories-formatters`. All options are optional. When you pass no options, the formatters package defaults apply (`formats: ["html"]`, `outputDir: "reports"`, `outputName: "index"`). To get Markdown written to `docs/user-stories.md`, pass options explicitly as in the examples below.
 
 ### Output configuration
 
 | Option       | Type             | Default                  | Description                                                           |
 | ------------ | ---------------- | ------------------------ | --------------------------------------------------------------------- |
-| `formats`    | `OutputFormat[]` | `["cucumber-json"]`      | Output formats: `"markdown"`, `"html"`, `"junit"`, `"cucumber-json"`, `"cucumber-messages"`, `"cucumber-html"`. |
+| `formats`    | `OutputFormat[]` | `["html"]`               | Output formats: `"markdown"`, `"html"`, `"junit"`, `"cucumber-json"`, `"cucumber-messages"`, `"cucumber-html"`. |
 | `outputDir`  | `string`         | `"reports"`              | Base directory for output files.                                      |
-| `outputName` | `string`         | `"test-results"`         | Base filename (without extension).                                    |
+| `outputName` | `string`         | `"index"`                | Base filename (without extension).                                    |
 | `outputNameTimestamp` | `boolean` | `false`                | Append a UTC timestamp suffix to the output filename.                 |
 | `output`     | `OutputConfig`   | `{ mode: "aggregated" }` | Output routing configuration.                                         |
+
+Every run also maintains one canonical JSON report per test source under
+`<outputDir>/by-file/`. The `output` option routes rendered views; it does not change that
+storage boundary. Documentation formats render accumulated state, while JUnit, Cucumber,
+and release manifests contain only the current execution. Vitest detects name filtering
+and incomplete collection automatically before deciding whether missing scenarios may be retired.
 
 ### OutputConfig
 
 | Field            | Type                            | Default        | Description                                                   |
 | ---------------- | ------------------------------- | -------------- | ------------------------------------------------------------- |
 | `mode`           | `"aggregated"` \| `"colocated"` | `"aggregated"` | Single file vs one file per source.                           |
-| `colocatedStyle` | `"mirrored"` \| `"adjacent"`    | `"mirrored"`   | Colocated: mirrored under `outputDir` or next to source file. |
+| `colocatedStyle` | `"mirrored"` \| `"adjacent"` \| `"flat"` | `"mirrored"` | Colocated: mirrored under `outputDir`, next to source, or directly under `outputDir` with a clean name. |
 | `rules`          | `OutputRule[]`                  | `[]`           | Pattern-based overrides (first match wins).                   |
 
 ### Markdown options

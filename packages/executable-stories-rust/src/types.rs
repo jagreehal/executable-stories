@@ -28,6 +28,12 @@ pub struct RawRun {
     pub finished_at_ms: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ci: Option<RawCIInfo>,
+    /// How much of each source file this run covered: `"full"` when the test
+    /// binary's arguments were inspected and narrowed nothing, `"filtered"`
+    /// when they did. Only `"full"` lets a consumer retire a scenario it no
+    /// longer reports.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub run_scope: Option<String>,
 }
 
 /// What a file's scenarios are for, declared with [`crate::feature`].
@@ -120,6 +126,13 @@ pub struct StoryStep {
     pub duration_ms: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub docs: Option<Vec<DocEntry>>,
+    /// Assertions attributable to this step.
+    ///
+    /// Rust has no assertion counter, so this is set only when the author wraps
+    /// a claim in `expect_step`/`fn_step("Then", ..)`. `None` means unobserved,
+    /// which is not the same as zero.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub assertions: Option<u32>,
 }
 
 #[derive(Serialize, Clone)]

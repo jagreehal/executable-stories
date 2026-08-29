@@ -149,6 +149,10 @@ class StoryStep(TypedDict):
     id: NotRequired[str]
     mode: NotRequired[str]
     wrapped: NotRequired[bool]
+    # Assertions attributable to this step. pytest has no assertion counter, so
+    # this is set only when the author wraps a claim in expect/fn("Then", ...).
+    # An absent key means unobserved, which is not the same as zero.
+    assertions: NotRequired[int]
     durationMs: NotRequired[float]
     docs: NotRequired[list[DocEntry]]
 
@@ -216,3 +220,6 @@ class RawRun(TypedDict):
     gitSha: NotRequired[str]
     ci: NotRequired[RawCIInfo]
     meta: NotRequired[dict[str, Any]]
+    # How much of each source file this run covered: "full" (no name filter was
+    # applied), "filtered" (one was), or absent when it cannot be determined.
+    runScope: NotRequired[str]

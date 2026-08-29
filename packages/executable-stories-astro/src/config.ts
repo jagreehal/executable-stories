@@ -225,8 +225,15 @@ export function defineExecutableStories<T extends ExecutableStoriesConfig>(confi
 }
 
 /** A source with every field resolved (name/label filled in). */
-export interface ResolvedSource extends Required<Omit<StorySource, "label">> {
+export interface ResolvedSource
+  extends Required<Omit<StorySource, "label" | "inputType">> {
   label: string;
+  /**
+   * Undefined when the author did not say. The loader resolves it from what the
+   * source turns out to be: a directory of per-file reports is canonical, a
+   * single run file is raw.
+   */
+  inputType?: StorySource["inputType"];
 }
 
 /** A short, URL/identifier-safe slug. */
@@ -286,7 +293,11 @@ export function resolveSources(config: ExecutableStoriesConfig): ResolvedSource[
       source: s.source,
       name,
       label: s.label ?? name,
-      inputType: s.inputType ?? config.inputType ?? "raw",
+      // Left undefined when nobody said, so the loader can decide from what the
+      // source actually is: a directory holds canonical per-file reports, a
+      // single file is a raw run. Guessing "raw" for a directory silently
+      // rewrites every canonical status into "skipped".
+      inputType: s.inputType ?? config.inputType,
       synthesize: s.synthesize ?? config.synthesize ?? true,
     };
   });

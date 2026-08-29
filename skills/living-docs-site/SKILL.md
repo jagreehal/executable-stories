@@ -39,9 +39,9 @@ pnpm dev
 ```
 
 You get a thin Starlight project: the framework lives in `executable-stories-astro`, so
-the scaffold is a handful of files you own, chiefly one config. The loader watches the run
-JSON, so a test re-run hot-reloads the open page and nothing is written to disk. The tests
-stay the source of truth.
+the scaffold is a handful of files you own, chiefly one config. The loader watches the
+per-source report directory, so a focused re-run hot-reloads its page without hiding
+untouched scenarios. Generated state is disposable; the tests stay the source of truth.
 
 `executable-stories dev` runs the site and installs its dependencies on first use.
 `init-astro --update` refreshes the framework files while keeping your content and config.
@@ -55,7 +55,7 @@ the `existing-astro-site` guide.
 import { defineExecutableStories } from 'executable-stories-astro';
 
 export default defineExecutableStories({
-  source: '../reports/raw-run.json',
+  source: '../reports/by-file',
   groupBy: 'tag',
   docs: [{ path: 'src/content/docs/runbooks', label: 'Runbooks', base: 'runbooks' }],
   views: [{ base: '/for/product', include: { tags: ['audience:stakeholder'] }, groupBy: 'tag' }],
@@ -66,7 +66,7 @@ export default defineExecutableStories({
 
 | Field | What it does |
 | --- | --- |
-| `source` / `sources` | One run, or several named suites combined in one site |
+| `source` / `sources` | One per-file directory, intentional run snapshot, or several named suites combined in one site |
 | `include` / `exclude` | Select scenarios by `tags`, `status`, or `features` |
 | `groupBy` | `feature`, `tag`, `source`, `status`, `none` |
 | `docs` | Authored markdown folders surfaced in the nav |

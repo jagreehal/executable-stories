@@ -514,6 +514,52 @@ class StoryApiTest {
     // Fn and Expect tests
     // ========================================================================
 
+    // JUnit 5 has no assertion counter to read, so a step's count is only known
+    // when the author routes the claim through a wrapped body. Bare markers
+    // stay unobserved: absent is honest, zero would be an accusation.
+
+    @Test
+    fun expectRecordsAnAssertion() {
+        Story.init("a checked claim")
+        Story.given("two numbers 5 and 3")
+        Story.expect("the result is 8", Runnable {})
+
+        val steps = Story.getContext()!!.steps
+        assertEquals(1, steps[1].assertions)
+    }
+
+    @Test
+    fun markerStepsStayUnobserved() {
+        Story.init("an unwrapped claim")
+        Story.given("two numbers 5 and 3")
+        Story.then("the result is 8")
+
+        for (step in Story.getContext()!!.steps) {
+            assertNull(step.assertions)
+        }
+    }
+
+    @Test
+    fun wrappedSetupDoesNotCountAsAClaim() {
+        Story.init("wrapped setup")
+        Story.fn("Given", "an expensive fixture", Runnable {})
+
+        assertNull(Story.getContext()!!.steps[0].assertions)
+    }
+
+    @Test
+    fun secondWrappedClaimStillCounts() {
+        // Auto-And rewrites a repeated Then before the step is stored.
+        Story.init("two claims")
+        Story.given("two numbers 5 and 3")
+        Story.expect("the result is 8", Runnable {})
+        Story.expect("the result is positive", Runnable {})
+
+        val steps = Story.getContext()!!.steps
+        assertEquals("And", steps[2].keyword)
+        assertEquals(1, steps[2].assertions)
+    }
+
     @Test
     fun fnCreatesWrappedStep() {
         Story.init("fn test")

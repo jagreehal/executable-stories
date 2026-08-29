@@ -16,7 +16,11 @@ pnpm add -D executable-stories-formatters
 If you only need adapters in a separate build, you can use the **`/adapters`** subpath:
 
 ```ts
-import { adaptJestRun, adaptVitestRun, adaptPlaywrightRun } from "executable-stories-formatters/adapters";
+import {
+  adaptJestRun,
+  adaptPlaywrightRun,
+  adaptVitestRun,
+} from 'executable-stories-formatters/adapters';
 ```
 
 ## Architecture
@@ -37,15 +41,15 @@ Normalize framework results, then generate reports:
 import {
   normalizeVitestResults,
   ReportGenerator,
-} from "executable-stories-formatters";
+} from 'executable-stories-formatters';
 
 // After a Vitest run, you have testModules (from the reporter or custom harvest).
 const run = normalizeVitestResults(testModules);
 
 const generator = new ReportGenerator({
-  formats: ["markdown", "cucumber-json"],
-  outputDir: "reports",
-  output: { mode: "aggregated" },
+  formats: ['markdown', 'cucumber-json'],
+  outputDir: 'reports',
+  output: { mode: 'aggregated' },
 });
 
 const written = await generator.generate(run);
@@ -59,11 +63,11 @@ Same idea for Jest or Playwright: use **`normalizeJestResults`** or **`normalize
 
 Adapters turn framework output into **`RawRun`** (input to the ACL).
 
-| Adapter | Input | Usage |
-| ------- | ----- | ----- |
-| `adaptJestRun` | Jest aggregated result + story reports | `adaptJestRun(jestResults, storyReports, adapterOptions?)` |
-| `adaptVitestRun` | Vitest test modules | `adaptVitestRun(testModules, adapterOptions?)` |
-| `adaptPlaywrightRun` | Playwright test results | `adaptPlaywrightRun(testResults, adapterOptions?)` |
+| Adapter              | Input                                  | Usage                                                      |
+| -------------------- | -------------------------------------- | ---------------------------------------------------------- |
+| `adaptJestRun`       | Jest aggregated result + story reports | `adaptJestRun(jestResults, storyReports, adapterOptions?)` |
+| `adaptVitestRun`     | Vitest test modules                    | `adaptVitestRun(testModules, adapterOptions?)`             |
+| `adaptPlaywrightRun` | Playwright test results                | `adaptPlaywrightRun(testResults, adapterOptions?)`         |
 
 Adapter options are framework-specific (e.g. `projectRoot`, `startedAtMs`). See the package types for `JestAdapterOptions`, `VitestAdapterOptions`, `PlaywrightAdapterOptions`.
 
@@ -83,28 +87,28 @@ Use these when you have framework results and want a canonical run for **ReportG
 
 ### Options
 
-| Option | Type | Default | Description |
-| ------ | ---- | ------- | ----------- |
-| `formats` | `OutputFormat[]` | `["cucumber-json"]` | Output formats: `"cucumber-json"`, `"cucumber-html"`, `"cucumber-messages"`, `"html"`, `"junit"`, `"markdown"`, `"release-manifest"`, `"traceability-matrix"`, `"astro-markdown"`, `"confluence"`, `"story-report-json"`, `"scenario-index-json"`, `"behavior-manifest-json"`, `"agent-text"`. |
-| `outputDir` | `string` | `"reports"` | Base directory for output files. |
-| `outputName` | `string` | `"index"` | Base filename (without extension) for aggregated output. |
-| `output` | `OutputConfig` | see below | Output routing (mode, colocated style, rules). |
-| `cucumberJson` | `{ pretty?: boolean }` | `{ pretty: false }` | Cucumber JSON options. |
-| `html` | `HtmlOptions` | — | Title, darkMode, searchable, startCollapsed, embedScreenshots. |
-| `junit` | `JUnitOptions` | — | suiteName, includeOutput. |
-| `markdown` | `MarkdownFormatterOptions` | — | title, includeStatusIcons, includeMetadata, includeErrors, scenarioHeadingLevel, stepStyle, groupBy, sortScenarios, includeFrontMatter, includeSummaryTable, permalinkBaseUrl, ticketUrlTemplate, includeSourceLinks, customRenderers. |
-| `confluence` | `ConfluenceFormatterOptions` | — | title, includeStatusIcons, includeMetadata, includeSummaryTable, includeErrors, scenarioHeadingLevel, groupBy, sortScenarios, pretty, permalinkBaseUrl, ticketUrlTemplate. |
-| `scenarioIndexJson` | `{ pretty?: boolean }` | `{ pretty: true }` | Scenario index (`scenario-index` v1) JSON options. |
-| `behaviorManifestJson` | `{ pretty?: boolean }` | `{ pretty: true }` | Behavior manifest JSON options. |
+| Option                 | Type                         | Default             | Description                                                                                                                                                                                                                                                                                    |
+| ---------------------- | ---------------------------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `formats`              | `OutputFormat[]`             | `["html"]`          | Output formats: `"cucumber-json"`, `"cucumber-html"`, `"cucumber-messages"`, `"html"`, `"junit"`, `"markdown"`, `"release-manifest"`, `"traceability-matrix"`, `"astro-markdown"`, `"confluence"`, `"story-report-json"`, `"scenario-index-json"`, `"behavior-manifest-json"`, `"agent-text"`. |
+| `outputDir`            | `string`                     | `"reports"`         | Base directory for output files.                                                                                                                                                                                                                                                               |
+| `outputName`           | `string`                     | `"index"`           | Base filename (without extension) for aggregated output.                                                                                                                                                                                                                                       |
+| `output`               | `OutputConfig`               | see below           | Output routing (mode, colocated style, rules).                                                                                                                                                                                                                                                 |
+| `cucumberJson`         | `{ pretty?: boolean }`       | `{ pretty: false }` | Cucumber JSON options.                                                                                                                                                                                                                                                                         |
+| `html`                 | `HtmlOptions`                | —                   | Title, darkMode, searchable, startCollapsed, embedScreenshots.                                                                                                                                                                                                                                 |
+| `junit`                | `JUnitOptions`               | —                   | suiteName, includeOutput.                                                                                                                                                                                                                                                                      |
+| `markdown`             | `MarkdownFormatterOptions`   | —                   | title, includeStatusIcons, includeMetadata, includeErrors, scenarioHeadingLevel, stepStyle, groupBy, sortScenarios, includeFrontMatter, includeSummaryTable, permalinkBaseUrl, ticketUrlTemplate, includeSourceLinks, customRenderers.                                                         |
+| `confluence`           | `ConfluenceFormatterOptions` | —                   | title, includeStatusIcons, includeMetadata, includeSummaryTable, includeErrors, scenarioHeadingLevel, groupBy, sortScenarios, pretty, permalinkBaseUrl, ticketUrlTemplate.                                                                                                                     |
+| `scenarioIndexJson`    | `{ pretty?: boolean }`       | `{ pretty: true }`  | Scenario index (`scenario-index` v1) JSON options.                                                                                                                                                                                                                                             |
+| `behaviorManifestJson` | `{ pretty?: boolean }`       | `{ pretty: true }`  | Behavior manifest JSON options.                                                                                                                                                                                                                                                                |
 
 **OutputConfig:**
 
-| Field | Type | Default | Description |
-| ----- | ---- | ------- | ----------- |
-| `mode` | `"aggregated"` \| `"colocated"` | `"aggregated"` | Single file vs one file per source. |
-| `colocatedStyle` | `"mirrored"` \| `"adjacent"` | `"mirrored"` | Colocated: mirrored under `outputDir` or next to source file. |
-| `rules` | `OutputRule[]` | `[]` | Pattern-based overrides (first match wins). |
-| `outputName` | `string` | — | Override base filename for rules. |
+| Field            | Type                                     | Default        | Description                                                                                                                    |
+| ---------------- | ---------------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `mode`           | `"aggregated"` \| `"colocated"`          | `"aggregated"` | Single file vs one file per source.                                                                                            |
+| `colocatedStyle` | `"mirrored"` \| `"adjacent"` \| `"flat"` | `"mirrored"`   | Colocated: mirrored under `outputDir`, next to the source file, or one cleanly-named page per file directly under `outputDir`. |
+| `rules`          | `OutputRule[]`                           | `[]`           | Pattern-based overrides (first match wins).                                                                                    |
+| `outputName`     | `string`                                 | —              | Override base filename for rules.                                                                                              |
 
 **OutputRule:** `match` (glob), `mode`, `colocatedStyle`, `outputDir`, `outputName`, `formats`.
 
@@ -113,10 +117,83 @@ Use these when you have framework results and want a canonical run for **ReportG
 - **Aggregated** — All test cases in one file per format under `outputDir` (e.g. `reports/index.md`).
 - **Colocated mirrored** — One file per source file, directory structure mirrored under `outputDir`.
 - **Colocated adjacent** — One file per source file, written next to the test file (ignores `outputDir` for that rule).
+- **Colocated flat** — One cleanly-named page per source file directly under `outputDir` (e.g. `reports/convert-currency.md`), for a browsable docs nav with tidy URLs.
 
 Rules allow different routing per path (e.g. `src/**` colocated, `e2e/**` aggregated).
 
 For **colocated HTML** output, the generator also writes an `index.html` in `outputDir` linking every per-file report, failures first — the entry point a bare tree of colocated reports otherwise lacks. It is skipped (with a warning) when a report already occupies `index.html` (for example an aggregated report named `index` in mixed aggregated + colocated output). Aggregated output needs no index page: the single file already is the entry point.
+
+### Per-file reports
+
+Each test source file owns a canonical run under `<outputDir>/by-file/`, named after the file it belongs to. Running one test file rewrites one report; nothing merges across files.
+
+```
+reports/by-file/src-checkout.story-report.json
+reports/by-file/src-payments.story-report.json
+```
+
+They are canonical `TestRunResult`, not StoryReport v1: StoryReport has already grouped scenarios into features with generated ids, so combining those would mean un-grouping and colliding them. `TestRunResult` concatenates.
+
+- **One writer per file.** Parallel test files never contend for the same report.
+- **Full run replaces, filtered run updates.** A run that applied a name filter saw part of its own file, so it updates the scenarios it names. A run that determined no filter applied replaces the report, retiring anything it no longer reports.
+- **Deleted tests are dropped.** A report whose source file is gone from the working tree is removed, guarded on the run's own sources resolving so a mismatched `projectRoot` cannot wipe everything.
+- **Per-scenario freshness.** Each scenario records `lastRunAtMs` and `lastRunGitSha`, so a result carried into a combined view cannot borrow that view's freshness.
+- **Readable, stable names.** `src/pay.story.test.ts` becomes `src-pay-1a2b3c.story-report.json`. The digest is always present, not just on collision, so a source file's report name is a pure function of its path and cannot change as other files come and go.
+- **Feature declarations follow the scenarios.** A run only retires a file's declaration when it claims the whole file, so a focused rerun cannot drop the feature title, narrative or glossary it never mentioned.
+- **A broken run never retires anything.** A run may report `incompleteSourceFiles`: files whose scenarios could not be collected in full, because a hook threw before the story was declared or the module failed to load. Those files look exactly like ones whose scenarios were deleted, so they are merged rather than replaced however authoritative the rest of the run is. Losing documentation because the suite broke is the worst moment to lose it.
+- **A file emptied of scenarios loses its report.** Test cases only name files that produced something, so a run may also report `coveredSourceFiles` — every file it executed. Without it, deleting a file's last scenario would leave that scenario in the docs for good.
+
+`executable-stories runs status` lists them with ages; `runs reset` deletes them.
+
+### Combining them
+
+Point `format` at the directory instead of a run file:
+
+```bash
+executable-stories format reports/by-file --format html --output-dir reports
+```
+
+Programmatically:
+
+```ts
+import { aggregateReports } from 'executable-stories-formatters';
+
+const result = aggregateReports({ dir: 'reports/by-file' }, deps);
+// result.run          — one TestRunResult, ordered by source file
+// result.files        — how many reports went into it
+// result.unreadable   — reports that could not be parsed, named not skipped
+// result.duplicateIds — scenario ids claimed by more than one report
+```
+
+The combined run spans its inputs (`startedAtMs` from the oldest, `finishedAtMs` from the newest) rather than claiming a single moment, and is ordered by source file so the same directory always renders the same document.
+
+Aggregating is a **pure read**. It writes no reports and restamps nothing, so looking at a directory cannot change what it says. That split is explicit in the API: `generate(run)` treats the run as owning the files it covered and updates their reports, while `generate(run, { persist: false })` renders a run that owns nothing.
+
+### Execution formats report the run, not the suite
+
+`junit`, `cucumber-json`, `cucumber-messages`, `cucumber-html`, and `release-manifest` are records of what a build executed, so they are always rendered from the run in hand, never from accumulated reports. A focused run emits only the tests it ran, which is what a CI dashboard and a tested-together manifest need to be true. Documentation formats (`html`, `markdown`, `story-report-json`, `astro-markdown`, and the rest) describe the suite and read the accumulated reports.
+
+When one command requests both kinds, the human summary labels their counts as `Documentation` and `Execution`. With `--json-summary`, the same distinction appears in the `documented` and `executed` objects, each with its own `files` and `counts`; the existing top-level fields remain for compatibility.
+
+### Filtered runs
+
+`RawRun.runScope` says how much of each source file a run covered, which is what decides whether it may retire a scenario it no longer reports.
+
+| Value        | Meaning                                                         | Effect                                                                            |
+| ------------ | --------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `"full"`     | The adapter determined no name filter applied                   | Replaces the file's report; anything missing is retired, with a warning naming it |
+| `"filtered"` | A name filter applied (`vitest -t`, an MCP `run_scenario` call) | Updates only the scenarios it names                                               |
+| absent       | The adapter cannot tell                                         | Updates only what it names, and warns that it kept the rest                       |
+
+Absent is the default on purpose. Deleting on a guess is destructive and silent; keeping on a guess is merely stale and visible, and a visible stale report is something you can `ls` and delete.
+
+Adapters report the scope themselves where the runner exposes its filter: Vitest and Jest from `testNamePattern`, Playwright from `grep`/`grepInvert`, Go from `-run`, Ruby through the Minitest plugin options, pytest from `-k`/`-m`, Rust from the test binary's arguments. Three cannot see theirs:
+
+| Adapter | Why it cannot be detected                                                   | How to declare it                                                                                         |
+| ------- | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Cypress | Narrowing by title needs `@cypress/grep`, which the reporter cannot observe | `runScope: "filtered"` reporter option                                                                    |
+| JUnit 5 | The JUnit Platform keeps discovery filters from execution listeners         | `EXECUTABLE_STORIES_FILTERED=1`, or `=0` to state a complete run (Maven Surefire's `-Dtest=` is detected) |
+| xUnit   | `dotnet test --filter` is applied by the host before the adapter runs       | `EXECUTABLE_STORIES_FILTERED=1`, or `=0` to state a complete run                                          |
 
 ### Generate
 
@@ -125,7 +202,7 @@ const generator = new ReportGenerator(options);
 const result: Map<OutputFormat, string[]> = await generator.generate(run);
 ```
 
-**result** maps each requested format to the list of written file paths.
+`generate(run)` updates the per-source reports owned by that execution before rendering. Use `generate(run, { persist: false })` when `run` is already an assembled snapshot and rendering must not mutate or restamp persistent state. **result** maps each requested format to the list of written file paths.
 
 ## Individual formatters
 
@@ -179,11 +256,16 @@ The formatters package provides an **`executable-stories`** CLI for generating r
 - **`executable-stories watch <file>`** — Watch the raw-run file and regenerate the chosen `--format` artifacts on every change (live agent index). Pairs with the framework's own watch mode; long-lived until interrupted.
 - **`executable-stories compare <current>`** — Compare two runs and generate a diff report.
 - **`executable-stories gate-release <dev-run.json> <rc-run.json>`** — Verify a release candidate against the dev test baseline (RC gate). See [Release confidence](/guides/release-confidence/).
-- **`executable-stories review <file> --changed-files <path>`** — Generate an Evidence Review of AI-authored changes, correlating a run to the diff. Add `--patch <file>` (from `git diff --histogram`) plus `--code-diff <sidecar.json>` to embed annotated Code Diff evidence: content-anchored annotations with scenario deep links, rendered after the behavioural explanation. `--strict-code-diff` fails the gate on orphaned anchors or unverified scenario references.
-- **`executable-stories list <file>`** — List scenarios from a test run.
-- **`executable-stories check <file>`** — Backpressure summary for coding agents: passing scenarios collapse to a count, each failing scenario expands to its Given/When/Then, failing step, error, and the code it `covers`. Exits non-zero on failures. Scenarios that are switched off are named rather than counted — each skipped scenario is listed with its location and its ticket, or `no ticket`, and a run with any of them reads `All running scenarios green.` instead of green, because a count in a headline is how a turned-off spec gets forgotten. Planned (`it.todo`) scenarios are a spec waiting for code, not a spec you stopped validating, so they stay out of that list. `--max-skipped <n>` puts a budget on that list and exits 5 when it is exceeded, so switching a spec off stays a decision someone makes rather than a habit that accumulates. See [Agent loops and backpressure](/guides/agent-loops/).
-- **`executable-stories goal <file>`** — Behavioral definition-of-done for agent loops: met when the required scenarios/tags/tickets pass, nothing regressed, and no scenario was removed or weakened versus a baseline. Exit 0 = met, 5 = not yet.
-- **`executable-stories triage <file>`** — Discovery worklist for agent loops: failing scenarios, regressions first, each with the code it `covers`, the error, and its tickets.
+- **`executable-stories review <file|directory> --changed-files <path>`** — Generate an Evidence Review of AI-authored changes, correlating a run to the diff. Add `--patch <file>` (from `git diff --histogram`) plus `--code-diff <sidecar.json>` to embed annotated Code Diff evidence: content-anchored annotations with scenario deep links, rendered after the behavioural explanation. `--strict-code-diff` fails the gate on orphaned anchors or unverified scenario references.
+- **`executable-stories list <file|directory>`** — List scenarios from a test run or the accumulated per-file directory.
+- **`executable-stories check <file|directory>`** — Backpressure summary for coding agents: passing scenarios collapse to a count, each failing scenario expands to its Given/When/Then, failing step, error, and the code it `covers`. Exits non-zero on failures. Scenarios that are switched off are named rather than counted — each skipped scenario is listed with its location and its ticket, or `no ticket`, and a run with any of them reads `All running scenarios green.` instead of green, because a count in a headline is how a turned-off spec gets forgotten. Planned (`it.todo`) scenarios are a spec waiting for code, not a spec you stopped validating, so they stay out of that list. `--max-skipped <n>` puts a budget on that list and exits 5 when it is exceeded, so switching a spec off stays a decision someone makes rather than a habit that accumulates. See [Agent loops and backpressure](/guides/agent-loops/).
+- **`executable-stories goal <file|directory>`** — Behavioral definition-of-done for agent loops: met when the required scenarios/tags/tickets pass, nothing regressed, and no scenario was removed or weakened versus a baseline. Exit 0 = met, 5 = not yet.
+- **`executable-stories triage <file|directory>`** — Discovery worklist for agent loops: failing scenarios, regressions first, each with the code it `covers`, the error, and its tickets.
+
+`review`, `list`, `check`, `check-explainers`, `goal`, and `triage` aggregate the canonical reports only when their input is a directory. Pass `raw-run.json` for current-execution truth or `reports/by-file/` for accumulated-suite truth.
+
+- **`executable-stories runs status [directory]`** — List persistent per-source reports and their ages. Defaults to `reports/by-file`.
+- **`executable-stories runs reset [directory]`** — Delete persistent per-source reports so the next run starts from empty state.
 - **`executable-stories validate <file>`** — Validate a JSON file against the schema (no output generated).
 - **`executable-stories init-astro [directory]`** — Scaffold an Astro/Starlight docs site for story output.
 - **`executable-stories new <template> "<name>"`** — Scaffold a docs page from a template (`adr`, `runbook`, `decision-log`, `incident`).
@@ -232,39 +314,46 @@ The formatters package provides an **`executable-stories`** CLI for generating r
 
 ### `format` flags reference
 
-| Flag | Type | Default | Description |
-|------|------|---------|-------------|
-| `--format` | string | `html` | Output format(s): `html`, `cucumber-html`, `markdown`, `release-manifest`, `traceability-matrix`, `junit`, `cucumber-json`, `cucumber-messages`, `astro-markdown`, `confluence`, `story-report-json`, `scenario-index-json`, `behavior-manifest-json`, `agent-text` |
-| `--preset` | string | — | Format bundle: `agent` (`story-report-json`, `scenario-index-json`, `behavior-manifest-json`, `agent-text`), `ci` (`junit`, `story-report-json`), or `docs` (`html`, `markdown`). Unions with `--format` when both are given |
-| `--open` | boolean | `false` | Open the generated HTML report in the default browser after writing |
-| `--output-dir` | string | `reports` | Directory to write output files |
-| `--output-name` | string | `index` | Base filename (without extension) for aggregated output |
-| `--input-type` | string | `raw` | Input type: `raw`, `canonical`, or `ndjson` |
-| `--sort-test-cases` | string | `none` | Sort scenarios: `id`, `source`, or `none` |
-| `--include-tags` | string | — | Comma-separated tags to include (any match) |
-| `--exclude-tags` | string | — | Comma-separated tags to exclude (any match) |
-| `--include` | string | — | Glob patterns to include by source file |
-| `--exclude` | string | — | Glob patterns to exclude by source file |
-| `--synthesize-stories` | boolean | `true` | Synthesize story metadata for plain tests |
-| `--no-synthesize-stories` | boolean | — | Disable story synthesis (strict mode) |
-| `--html-no-syntax-highlighting` | boolean | `false` | Disable syntax highlighting in HTML |
-| `--html-no-mermaid` | boolean | `false` | Disable Mermaid diagram rendering in HTML |
-| `--html-stale-after-days` | number | `7` | Days before the HTML report warns it is stale (`0` disables) |
-| `--asset-mode` | string | `none` | Asset bundling: `none` or `copy` |
-| `--allow-missing-assets` | boolean | `false` | Warn instead of fail on missing assets |
-| `--output-name-timestamp` | boolean | `false` | Append UTC timestamp to output filename |
-| `--emit-canonical` | string | — | Write canonical JSON to given path |
-| `--json-summary` | boolean | `false` | Print machine-parsable JSON summary |
-| `--history-file` | string | — | Path to run history JSON file |
-| `--max-history-runs` | number | `10` | Maximum runs to keep per test in history |
-| `--slack-webhook` | string | — | Slack webhook URL for notifications |
-| `--teams-webhook` | string | — | Microsoft Teams webhook URL for notifications |
-| `--webhook-url` | string | — | Generic webhook URL (repeatable) |
-| `--notify` | string | `on-failure` | When to send notifications: `always`, `on-failure`, or `never` |
-| `--report-url` | string | — | Link to the report included in notification messages |
-| `--webhook-hmac-secret` | string | — | HMAC secret for webhook signing |
-| `--webhook-hmac-header` | string | — | Header name for HMAC signature |
-| `--webhook-hmac-timestamp` | boolean | `false` | Include timestamp in HMAC signing |
+| Flag                            | Type    | Default      | Description                                                                                                                                                                                                                                                         |
+| ------------------------------- | ------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--format`                      | string  | `html`       | Output format(s): `html`, `cucumber-html`, `markdown`, `release-manifest`, `traceability-matrix`, `junit`, `cucumber-json`, `cucumber-messages`, `astro-markdown`, `confluence`, `story-report-json`, `scenario-index-json`, `behavior-manifest-json`, `agent-text` |
+| `--preset`                      | string  | —            | Format bundle: `agent` (`story-report-json`, `scenario-index-json`, `behavior-manifest-json`, `agent-text`), `ci` (`junit`, `story-report-json`), or `docs` (`html`, `markdown`). Unions with `--format` when both are given                                        |
+| `--open`                        | boolean | `false`      | Open the generated HTML report in the default browser after writing                                                                                                                                                                                                 |
+| `--output-dir`                  | string  | `reports`    | Directory to write output files                                                                                                                                                                                                                                     |
+| `--output-name`                 | string  | `index`      | Base filename (without extension) for aggregated output                                                                                                                                                                                                             |
+| `--input-type`                  | string  | `raw`        | Input type: `raw`, `canonical`, or `ndjson`                                                                                                                                                                                                                         |
+| `--sort-test-cases`             | string  | `none`       | Sort scenarios: `id`, `source`, or `none`                                                                                                                                                                                                                           |
+| `--include-tags`                | string  | —            | Comma-separated tags to include (any match)                                                                                                                                                                                                                         |
+| `--exclude-tags`                | string  | —            | Comma-separated tags to exclude (any match)                                                                                                                                                                                                                         |
+| `--include`                     | string  | —            | Glob patterns to include by source file                                                                                                                                                                                                                             |
+| `--exclude`                     | string  | —            | Glob patterns to exclude by source file                                                                                                                                                                                                                             |
+| `--synthesize-stories`          | boolean | `true`       | Synthesize story metadata for plain tests                                                                                                                                                                                                                           |
+| `--no-synthesize-stories`       | boolean | —            | Disable story synthesis (strict mode)                                                                                                                                                                                                                               |
+| `--html-no-syntax-highlighting` | boolean | `false`      | Disable syntax highlighting in HTML                                                                                                                                                                                                                                 |
+| `--html-no-mermaid`             | boolean | `false`      | Disable Mermaid diagram rendering in HTML                                                                                                                                                                                                                           |
+| `--html-stale-after-days`       | number  | `7`          | Days before the HTML report warns it is stale (`0` disables)                                                                                                                                                                                                        |
+| `--asset-mode`                  | string  | `none`       | Asset bundling: `none` or `copy`                                                                                                                                                                                                                                    |
+| `--allow-missing-assets`        | boolean | `false`      | Warn instead of fail on missing assets                                                                                                                                                                                                                              |
+| `--output-name-timestamp`       | boolean | `false`      | Append UTC timestamp to output filename                                                                                                                                                                                                                             |
+| `--emit-canonical`              | string  | —            | Write canonical JSON to given path                                                                                                                                                                                                                                  |
+| `--json-summary`                | boolean | `false`      | Print machine-parsable JSON summary; includes `ranCount`, optional `unasserted`, and separate `documented`/`executed` groups for mixed output                                                                                                                       |
+| `--history-file`                | string  | —            | Path to run history JSON file                                                                                                                                                                                                                                       |
+| `--max-history-runs`            | number  | `10`         | Maximum runs to keep per test in history                                                                                                                                                                                                                            |
+| `--slack-webhook`               | string  | —            | Slack webhook URL for notifications                                                                                                                                                                                                                                 |
+| `--teams-webhook`               | string  | —            | Microsoft Teams webhook URL for notifications                                                                                                                                                                                                                       |
+| `--webhook-url`                 | string  | —            | Generic webhook URL (repeatable)                                                                                                                                                                                                                                    |
+| `--notify`                      | string  | `on-failure` | When to send notifications: `always`, `on-failure`, or `never`                                                                                                                                                                                                      |
+| `--report-url`                  | string  | —            | Link to the report included in notification messages                                                                                                                                                                                                                |
+| `--webhook-hmac-secret`         | string  | —            | HMAC secret for webhook signing                                                                                                                                                                                                                                     |
+| `--webhook-hmac-header`         | string  | —            | Header name for HMAC signature                                                                                                                                                                                                                                      |
+| `--webhook-hmac-timestamp`      | boolean | `false`      | Include timestamp in HMAC signing                                                                                                                                                                                                                                   |
+
+`--json-summary` always includes `files`, `counts`, `durationMs`, and `ranCount`.
+`unasserted` is present only when at least one scenario came from an adapter that can
+observe or declare assertion counts; absence means unknown, not zero. When documentation
+and execution formats are requested together, `documented` and `executed` each carry
+their own `files`, `counts`, and optional `unasserted`, matching the two human summary
+lines.
 
 ### `compare`
 
@@ -274,12 +363,12 @@ Compare two test runs and generate a diff report showing regressions, fixes, and
 executable-stories compare current.json --baseline baseline.json --format html
 ```
 
-| Flag | Type | Default | Description |
-|------|------|---------|-------------|
-| `--baseline` | string | — | Baseline JSON file, or `auto` to pick the most recent prior run |
-| `--baseline-dir` | string | — | Directory to scan when using `--baseline auto` |
-| `--pr-summary` | boolean | `false` | Print PR-friendly markdown summary to stdout |
-| `--pr-summary-file` | string | — | Write the PR summary to a file |
+| Flag                | Type    | Default | Description                                                     |
+| ------------------- | ------- | ------- | --------------------------------------------------------------- |
+| `--baseline`        | string  | —       | Baseline JSON file, or `auto` to pick the most recent prior run |
+| `--baseline-dir`    | string  | —       | Directory to scan when using `--baseline auto`                  |
+| `--pr-summary`      | boolean | `false` | Print PR-friendly markdown summary to stdout                    |
+| `--pr-summary-file` | string  | —       | Write the PR summary to a file                                  |
 
 Inherits all `format` flags. Diff reports support the `html`, `markdown`, and `changelog` formats.
 
@@ -308,19 +397,20 @@ executable-stories compare current.json \
 
 ### `list`
 
-List all scenarios from a test run.
+List scenarios. Pass one run file for the current execution, or `reports/by-file` for the accumulated suite.
 
 ```bash
-executable-stories list raw-run.json
+executable-stories list reports/by-file --list-format json   # accumulated suite
+executable-stories list raw-run.json                         # this run only
 ```
 
-| Flag | Type | Default | Description |
-|------|------|---------|-------------|
-| `--include-tags` | string | — | Comma-separated tags to include |
-| `--exclude-tags` | string | — | Comma-separated tags to exclude |
-| `--json-summary` | boolean | `false` | Output as JSON instead of text table |
-| `--input-type` | string | `raw` | Input type: `raw`, `canonical`, or `ndjson` |
-| `--stdin` | boolean | `false` | Read from stdin |
+| Flag             | Type    | Default | Description                                 |
+| ---------------- | ------- | ------- | ------------------------------------------- |
+| `--include-tags` | string  | —       | Comma-separated tags to include             |
+| `--exclude-tags` | string  | —       | Comma-separated tags to exclude             |
+| `--json-summary` | boolean | `false` | Output as JSON instead of text table        |
+| `--input-type`   | string  | `raw`   | Input type: `raw`, `canonical`, or `ndjson` |
+| `--stdin`        | boolean | `false` | Read from stdin                             |
 
 ### `check`
 
@@ -330,12 +420,12 @@ Backpressure summary for coding agents: passing scenarios collapse to one line, 
 executable-stories check .executable-stories/raw-run.json --baseline reports/previous.json
 ```
 
-| Flag | Type | Default | Description |
-|------|------|---------|-------------|
-| `--baseline` | string | — | Prior run (path or `auto`) to add "N regressed / N fixed" deltas |
-| `--check-format` | string | `text` | `text` or `json` |
-| `--no-fail` | boolean | `false` | Report only — always exit 0 even when scenarios failed |
-| `--stdin` | boolean | `false` | Read from stdin |
+| Flag             | Type    | Default | Description                                                      |
+| ---------------- | ------- | ------- | ---------------------------------------------------------------- |
+| `--baseline`     | string  | —       | Prior run (path or `auto`) to add "N regressed / N fixed" deltas |
+| `--check-format` | string  | `text`  | `text` or `json`                                                 |
+| `--no-fail`      | boolean | `false` | Report only — always exit 0 even when scenarios failed           |
+| `--stdin`        | boolean | `false` | Read from stdin                                                  |
 
 ### `goal`
 
@@ -345,16 +435,16 @@ Behavioral definition-of-done for an agent loop (the `/goal` stopping condition)
 executable-stories goal raw-run.json --require-tickets US-101 --baseline prev.json --no-regressions
 ```
 
-| Flag | Type | Default | Description |
-|------|------|---------|-------------|
-| `--require-tags` | string | — | Every scenario carrying any of these tags must pass |
-| `--require-tickets` | string | — | Every scenario carrying any of these tickets must pass |
-| `--require-scenarios` | string | — | These scenarios (by id or exact title) must pass |
-| `--baseline` | string | — | Prior run (path or `auto`) for regression and ratchet checks |
-| `--no-regressions` | boolean | `false` | Not met if any scenario regressed vs baseline |
-| `--no-ratchet` | boolean | `false` | Disable the removed/weakened-scenario guard (on by default with `--baseline`) |
-| `--goal-format` | string | `text` | `text` or `json` |
-| `--stdin` | boolean | `false` | Read from stdin |
+| Flag                  | Type    | Default | Description                                                                   |
+| --------------------- | ------- | ------- | ----------------------------------------------------------------------------- |
+| `--require-tags`      | string  | —       | Every scenario carrying any of these tags must pass                           |
+| `--require-tickets`   | string  | —       | Every scenario carrying any of these tickets must pass                        |
+| `--require-scenarios` | string  | —       | These scenarios (by id or exact title) must pass                              |
+| `--baseline`          | string  | —       | Prior run (path or `auto`) for regression and ratchet checks                  |
+| `--no-regressions`    | boolean | `false` | Not met if any scenario regressed vs baseline                                 |
+| `--no-ratchet`        | boolean | `false` | Disable the removed/weakened-scenario guard (on by default with `--baseline`) |
+| `--goal-format`       | string  | `text`  | `text` or `json`                                                              |
+| `--stdin`             | boolean | `false` | Read from stdin                                                               |
 
 ### `triage`
 
@@ -364,11 +454,11 @@ Discovery-phase worklist for an agent loop: failing scenarios, regressions first
 executable-stories triage raw-run.json --baseline reports/last-green.json --triage-format json
 ```
 
-| Flag | Type | Default | Description |
-|------|------|---------|-------------|
-| `--baseline` | string | — | Prior run (path or `auto`) to flag and rank regressions first |
-| `--triage-format` | string | `text` | `text` or `json` |
-| `--stdin` | boolean | `false` | Read from stdin |
+| Flag              | Type    | Default | Description                                                   |
+| ----------------- | ------- | ------- | ------------------------------------------------------------- |
+| `--baseline`      | string  | —       | Prior run (path or `auto`) to flag and rank regressions first |
+| `--triage-format` | string  | `text`  | `text` or `json`                                              |
+| `--stdin`         | boolean | `false` | Read from stdin                                               |
 
 ### `publish-confluence`
 
@@ -380,16 +470,16 @@ executable-stories publish-confluence reports/index.adf.json \
   --base-url https://acme.atlassian.net/wiki
 ```
 
-| Flag | Type | Default | Description |
-|------|------|---------|-------------|
-| `--page-id` | string | — | Update an existing page (alternative to `--space-id`) |
-| `--space-id` | string | — | Create a new page in this space (requires `--title`) |
-| `--parent-id` | string | — | Parent page ID (for new pages) |
-| `--title` | string | — | Page title (required for create; overrides current title on update) |
-| `--base-url` | string | — | Confluence base URL, e.g. `https://acme.atlassian.net/wiki` (env: `CONFLUENCE_BASE_URL`) |
-| `--email` | string | — | Atlassian account email (env: `CONFLUENCE_EMAIL`) |
-| `--token` | string | — | API token (env: `CONFLUENCE_TOKEN`) |
-| `--dry-run` | boolean | `false` | Validate inputs and print request plan, don't POST |
+| Flag          | Type    | Default | Description                                                                              |
+| ------------- | ------- | ------- | ---------------------------------------------------------------------------------------- |
+| `--page-id`   | string  | —       | Update an existing page (alternative to `--space-id`)                                    |
+| `--space-id`  | string  | —       | Create a new page in this space (requires `--title`)                                     |
+| `--parent-id` | string  | —       | Parent page ID (for new pages)                                                           |
+| `--title`     | string  | —       | Page title (required for create; overrides current title on update)                      |
+| `--base-url`  | string  | —       | Confluence base URL, e.g. `https://acme.atlassian.net/wiki` (env: `CONFLUENCE_BASE_URL`) |
+| `--email`     | string  | —       | Atlassian account email (env: `CONFLUENCE_EMAIL`)                                        |
+| `--token`     | string  | —       | API token (env: `CONFLUENCE_TOKEN`)                                                      |
+| `--dry-run`   | boolean | `false` | Validate inputs and print request plan, don't POST                                       |
 
 ### `publish-jira`
 
@@ -401,13 +491,13 @@ executable-stories publish-jira reports/index.adf.json \
   --base-url https://acme.atlassian.net
 ```
 
-| Flag | Type | Default | Description |
-|------|------|---------|-------------|
-| `--issue` | string | — | Issue key, e.g. `PROJ-123` (required) |
-| `--mode` | string | `comment` | `comment` (appends) or `description` (replaces) |
-| `--base-url` | string | — | Jira base URL, e.g. `https://acme.atlassian.net` (env: `JIRA_BASE_URL`) |
-| `--email` | string | — | Atlassian account email (env: `JIRA_EMAIL`) |
-| `--token` | string | — | API token (env: `JIRA_TOKEN`) |
-| `--dry-run` | boolean | `false` | Validate inputs and print request plan, don't POST |
+| Flag         | Type    | Default   | Description                                                             |
+| ------------ | ------- | --------- | ----------------------------------------------------------------------- |
+| `--issue`    | string  | —         | Issue key, e.g. `PROJ-123` (required)                                   |
+| `--mode`     | string  | `comment` | `comment` (appends) or `description` (replaces)                         |
+| `--base-url` | string  | —         | Jira base URL, e.g. `https://acme.atlassian.net` (env: `JIRA_BASE_URL`) |
+| `--email`    | string  | —         | Atlassian account email (env: `JIRA_EMAIL`)                             |
+| `--token`    | string  | —         | API token (env: `JIRA_TOKEN`)                                           |
+| `--dry-run`  | boolean | `false`   | Validate inputs and print request plan, don't POST                      |
 
 Both publishers are also available as library functions: **`publishConfluencePage(args, deps)`** and **`publishJiraIssue(args, deps)`**. The `deps` object accepts an injected `fetch` for testing.

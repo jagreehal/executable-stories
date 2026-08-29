@@ -5,12 +5,17 @@ import { defineExecutableStories } from 'executable-stories-astro';
  * astro.config.mjs (route injection, nav, theme) and src/content.config.ts
  * (the loaders) — so everything lives in one place.
  *
- * `source` points at the run JSON your test adapter writes. Emit it by setting
- * `rawRunPath: "reports/raw-run.json"` in your StoryReporter config, then run
- * your tests in watch mode + `astro dev` to hot-reload these pages.
+ * `source` points at the directory of per-file reports your test run writes,
+ * one per test source file. Pointing at the directory rather than a single run
+ * JSON is what keeps the site showing your whole suite when you have only run
+ * part of it. Run your tests in watch mode + `astro dev` to hot-reload these
+ * pages; new test files appear without a restart.
+ *
+ * A single run JSON still works if you want only the last run:
+ * `source: '../reports/raw-run.json'`.
  */
 export default defineExecutableStories({
-  source: process.env.ES_RUN_JSON ?? '../reports/raw-run.json',
+  source: process.env.ES_RUN_JSON ?? '../reports/by-file',
 
   // Shown only until your tests emit the run JSON above, so `astro dev` is
   // populated on first run instead of empty. Replaced automatically the moment
@@ -28,8 +33,8 @@ export default defineExecutableStories({
 
   // Combine several test suites in one site (optional):
   // sources: [
-  //   { name: 'web', label: 'Web app', source: '../apps/web/reports/raw-run.json' },
-  //   { name: 'api', label: 'API',     source: '../apps/api/reports/raw-run.json' },
+  //   { name: 'web', label: 'Web app', source: '../apps/web/reports/by-file' },
+  //   { name: 'api', label: 'API',     source: '../apps/api/reports/by-file' },
   // ],
 
   // Audience lenses (optional): each view mounts a filtered, re-grouped index

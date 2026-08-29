@@ -9,16 +9,22 @@
  * Source of truth: schemas/story-report-v1.json. Types here must stay in sync.
  */
 
-import type { DocPhase } from "./story.js";
-import type { OtelSpan } from "./otel.js";
+import type { OtelSpan } from './otel.js';
+import type { DocPhase } from './story.js';
 
 export type StoryReportSchemaVersion = `1.${number}`;
 
-export type TestStatus = "passed" | "failed" | "skipped" | "pending";
+export type TestStatus = 'passed' | 'failed' | 'skipped' | 'pending';
 
-export type StepKeyword = "Given" | "When" | "Then" | "And" | "But";
+export type StepKeyword = 'Given' | 'When' | 'Then' | 'And' | 'But';
 
-export type StepMode = "normal" | "skip" | "only" | "todo" | "fails" | "concurrent";
+export type StepMode =
+  | 'normal'
+  | 'skip'
+  | 'only'
+  | 'todo'
+  | 'fails'
+  | 'concurrent';
 
 export interface ReportSummary {
   total: number;
@@ -38,7 +44,7 @@ export interface ReportAttachment {
   name: string;
   mediaType: string;
   body: string;
-  contentEncoding: "BASE64" | "IDENTITY";
+  contentEncoding: 'BASE64' | 'IDENTITY';
 }
 
 export interface ReportCIInfo {
@@ -73,21 +79,21 @@ export type ReportDocEntry =
   | ReportDocCustom;
 
 export interface ReportDocNote {
-  kind: "note";
+  kind: 'note';
   text: string;
   phase: DocPhase;
   children?: ReportDocEntry[];
 }
 
 export interface ReportDocTag {
-  kind: "tag";
+  kind: 'tag';
   names: string[];
   phase: DocPhase;
   children?: ReportDocEntry[];
 }
 
 export interface ReportDocKv {
-  kind: "kv";
+  kind: 'kv';
   label: string;
   value: unknown;
   phase: DocPhase;
@@ -95,7 +101,7 @@ export interface ReportDocKv {
 }
 
 export interface ReportDocCode {
-  kind: "code";
+  kind: 'code';
   label: string;
   content: string;
   lang?: string;
@@ -104,7 +110,7 @@ export interface ReportDocCode {
 }
 
 export interface ReportDocTable {
-  kind: "table";
+  kind: 'table';
   label: string;
   columns: string[];
   rows: string[][];
@@ -113,7 +119,7 @@ export interface ReportDocTable {
 }
 
 export interface ReportDocLink {
-  kind: "link";
+  kind: 'link';
   label: string;
   url: string;
   phase: DocPhase;
@@ -121,7 +127,7 @@ export interface ReportDocLink {
 }
 
 export interface ReportDocSection {
-  kind: "section";
+  kind: 'section';
   title: string;
   markdown: string;
   phase: DocPhase;
@@ -129,7 +135,7 @@ export interface ReportDocSection {
 }
 
 export interface ReportDocMermaid {
-  kind: "mermaid";
+  kind: 'mermaid';
   code: string;
   title?: string;
   phase: DocPhase;
@@ -137,7 +143,7 @@ export interface ReportDocMermaid {
 }
 
 export interface ReportDocScreenshot {
-  kind: "screenshot";
+  kind: 'screenshot';
   path: string;
   alt?: string;
   phase: DocPhase;
@@ -145,7 +151,7 @@ export interface ReportDocScreenshot {
 }
 
 export interface ReportDocVideo {
-  kind: "video";
+  kind: 'video';
   path: string;
   caption?: string;
   poster?: string;
@@ -154,7 +160,7 @@ export interface ReportDocVideo {
 }
 
 export interface ReportDocHtml {
-  kind: "html";
+  kind: 'html';
   /** Local HTML file path (exactly one of path/url/content) */
   path?: string;
   /** Remote URL rendered via iframe src (exactly one of path/url/content) */
@@ -169,7 +175,7 @@ export interface ReportDocHtml {
 }
 
 export interface ReportDocState {
-  kind: "state";
+  kind: 'state';
   /** Entity name ("Basket") — diff identity across steps. Unlabeled states share one lane. */
   label?: string;
   /** JSON-serializable snapshot of the state at this step. */
@@ -179,7 +185,7 @@ export interface ReportDocState {
 }
 
 export interface ReportDocCustom {
-  kind: "custom";
+  kind: 'custom';
   type: string;
   data: unknown;
   phase: DocPhase;
@@ -193,6 +199,11 @@ export interface ReportStep {
   text: string;
   status: TestStatus;
   durationMs: number;
+  /**
+   * Assertions observed or declared for this step. Absent means the adapter
+   * cannot observe assertions; zero means it observed that none ran.
+   */
+  assertions?: number;
   errorMessage?: string;
   mode?: StepMode;
   docEntries: ReportDocEntry[];
@@ -223,6 +234,13 @@ export interface ReportScenario {
   attachments: ReportAttachment[];
   /** OTel spans for the trace waterfall (carried through from the run). */
   otelSpans?: OtelSpan[];
+  /**
+   * When this scenario last actually ran (epoch ms), and the commit it ran on.
+   * Present when the report was assembled from accumulated runs, where the
+   * run-level timestamp no longer describes every scenario in it.
+   */
+  lastRunAtMs?: number;
+  lastRunGitSha?: string;
 }
 
 /** One entry in a feature's glossary. */
@@ -241,7 +259,7 @@ export interface ReportFeature {
    * How the feature was declared. Absent when the title was derived from the
    * file name, which is what happens with no `story.feature(...)` call.
    */
-  kind?: "feature" | "ability" | "business-need";
+  kind?: 'feature' | 'ability' | 'business-need';
   /** Markdown explaining why the feature exists and who it serves. */
   narrative?: string;
   /** Terms this feature defines. */
@@ -263,5 +281,5 @@ export interface StoryReport {
   features: ReportFeature[];
 }
 
-export const STORY_REPORT_SCHEMA_VERSION: StoryReportSchemaVersion = "1.0";
+export const STORY_REPORT_SCHEMA_VERSION: StoryReportSchemaVersion = '1.0';
 export const STORY_REPORT_SCHEMA_MAJOR = 1 as const;

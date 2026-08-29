@@ -26,6 +26,7 @@
  * ```
  */
 
+import { expect, onTestFinished } from 'vitest';
 import { createRequire } from 'node:module';
 import { tryGetActiveOtelContext, resolveTraceUrl } from 'executable-stories-core/utils/otel-detect';
 import { buildHtmlDocEntry } from 'executable-stories-core/utils/doc-builders';
@@ -105,6 +106,15 @@ interface StoryContext {
   timerCounter: number;
   /** Trace-link URL template, captured at init for later use by attachSpans. */
   traceUrlTemplate?: string;
+  /**
+   * Marker step awaiting its assertion count.
+   *
+   * A marker states the claim and the assertion follows it, so the count is
+   * only known once the next step starts or the test ends.
+   */
+  pendingStep: StoryStep | null;
+  /** Assertion counter reading taken when {@link pendingStep} was created. */
+  pendingFrom?: number;
 }
 
 /** Active story context - set by story.init() */
@@ -477,12 +487,69 @@ function init(task: TaskLike, options?: StoryOptions): void {
     activeTimers: new Map(),
     timerCounter: 0,
     traceUrlTemplate,
+    pendingStep: null,
   };
+
+  // The last marker step's assertions land after every step call, so the count
+  // is only final at the end of the test. Registered first, so LIFO ordering
+  // runs it after any cleanup the test adds, and the reporter reads the total.
+  const ctx = activeContext;
+  try {
+    onTestFinished(() => {
+      flushPendingAssertions(ctx);
+      task.meta.story = ctx.meta;
+    });
+  } catch {
+    // Outside a running test (or a framework without the hook) there is nothing
+    // to flush against; wrapped steps still measure themselves precisely.
+  }
+}
+
+/**
+ * Close off the marker step waiting on a count.
+ *
+ * Left undefined when the counter was unreadable at either end: an unobserved
+ * step must not be reported as a step that asserted nothing.
+ */
+function flushPendingAssertions(ctx: StoryContext): void {
+  const step = ctx.pendingStep;
+  const before = ctx.pendingFrom;
+  ctx.pendingStep = null;
+  ctx.pendingFrom = undefined;
+  if (!step || before === undefined) return;
+  const after = readAssertionCount();
+  if (after === undefined) return;
+  step.assertions = after - before;
 }
 
 // ============================================================================
 // Step Markers
 // ============================================================================
+
+/**
+ * Vitest's live per-test assertion counter, or undefined when it cannot be read.
+ *
+ * Undefined is not zero: it means we could not observe, and the report must not
+ * report an unobserved step as one that asserted nothing.
+ */
+function readAssertionCount(): number | undefined {
+  try {
+    const state = (expect as unknown as {
+      getState?: () => { assertionCalls?: number };
+    }).getState?.();
+    return typeof state?.assertionCalls === 'number' ? state.assertionCalls : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Record how many assertions ran between `before` and now. */
+function recordAssertions(step: StoryStep, before: number | undefined): void {
+  if (before === undefined) return;
+  const after = readAssertionCount();
+  if (after === undefined) return;
+  step.assertions = after - before;
+}
 
 /**
  * Create a step marker function for a given keyword.
@@ -515,8 +582,15 @@ function createStepMarker(keyword: StepKeyword) {
       ...(isCallback ? { wrapped: true } : {}),
     };
 
+    // Close the previous marker before this step's own assertions begin.
+    flushPendingAssertions(ctx);
+
     ctx.meta.steps.push(step);
     ctx.currentStep = step;
+    if (!isCallback) {
+      ctx.pendingStep = step;
+      ctx.pendingFrom = readAssertionCount();
+    }
     syncMetaToTask();
 
     // Handle DocEntry[] children: attach as step docs and deduplicate from story-level
@@ -542,20 +616,23 @@ function createStepMarker(keyword: StepKeyword) {
 
     const body = docsOrBody as () => T;
     const start = performance.now();
+    const assertionsBefore = readAssertionCount();
 
     try {
       const result = body();
       if (result instanceof Promise) {
         return result.then(
-          (val) => { step.durationMs = performance.now() - start; syncMetaToTask(); return val; },
-          (err) => { step.durationMs = performance.now() - start; syncMetaToTask(); throw err; },
+          (val) => { step.durationMs = performance.now() - start; recordAssertions(step, assertionsBefore); syncMetaToTask(); return val; },
+          (err) => { step.durationMs = performance.now() - start; recordAssertions(step, assertionsBefore); syncMetaToTask(); throw err; },
         ) as T;
       }
       step.durationMs = performance.now() - start;
+      recordAssertions(step, assertionsBefore);
       syncMetaToTask();
       return result;
     } catch (err) {
       step.durationMs = performance.now() - start;
+      recordAssertions(step, assertionsBefore);
       syncMetaToTask();
       throw err;
     }

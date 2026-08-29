@@ -41,6 +41,14 @@ def test_login_success():
 
 ## Output
 
+The plugin detects `-k` and `-m` selectors as `runScope: "filtered"`; an invocation
+without either reports `"full"`. Formatting the raw run updates one canonical report per
+source under `reports/by-file/`.
+
+pytest exposes no assertion counter. Use `story.expect("claim", callable)` to declare
+assertion evidence. A plain `story.then()` followed by Python `assert` remains unobserved,
+not zero.
+
 The plugin writes raw run JSON under:
 
 - `.executable-stories/raw-run.json`

@@ -67,9 +67,20 @@ Audience is **derived from the file**, no tagging needed:
 
 So put behaviour the business cares about in an e2e/spec file, and unit/integration detail in colocated tests. Override only when truly needed with an `audience:stakeholder` or `audience:engineer` tag.
 
-### 4. Make the evidence credible — a green tick is the *weakest* proof
+### 4. Make the evidence credible — an assertion-free green proves nothing
 
-A passing self-authored unit test grades **weak**. Strength climbs toward tamper-resistant or constraint-proving evidence. Reach for the strongest the change warrants:
+A passing scenario whose observable claim steps asserted nothing grades **none**, and
+that floor overrides screenshots, traces, coverage, mutation scores, and failing-first
+metadata. A missing assertion count means the host could not observe it, not that it ran
+zero assertions. A passing self-authored assertion grades **weak**; strength then climbs
+toward tamper-resistant or constraint-proving evidence.
+
+Use ordinary assertions in Vitest, Jest, Playwright, and Ruby/Minitest: their live
+counters are observed. Cypress, Go, Rust, pytest, JUnit 5, and xUnit must use their story
+assertion wrapper (`story.expect`, `s.Expect`, `expect_step`, `Story.expect`, or
+`Story.Expect`) when the claim needs visible assertion evidence.
+
+Reach for the strongest evidence the change warrants:
 
 - **Stakeholder claims**: attach a real **screenshot** and/or an **OTEL trace** (autotel). A rendered page or a completed span is hard to fake — it grades **strong**.
 - **Bugfixes**: do failing-first (rule 5) — it grades **strong** because it proves the test constrains the fix.

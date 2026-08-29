@@ -18,7 +18,7 @@ The package has two required peer dependencies (`react >=19.2.7`, `react-dom >=1
 Import the stylesheet once at the root of your app:
 
 ```ts
-import "executable-stories-react/styles.css";
+import 'executable-stories-react/styles.css';
 ```
 
 ## The StoryReport contract
@@ -32,26 +32,28 @@ executable-stories format raw-run.json --format story-report-json
 
 The schema is **pre-grouped** (features → scenarios → steps) with **pre-computed summaries** at every level. It's the canonical UI-facing shape — distinct from the internal `TestRunResult` formatters use. Schema version follows semver (`"1.0"` today; additive-only within `1.x`).
 
+Each step may include `assertions`. An absent value means the adapter could not observe assertion activity; `0` means it observed or declared that none ran. When all observed claim steps (`Then` and its continuing `And`/`But` steps) total zero, the renderer labels them **No assertion**. It never treats an absent count as zero.
+
 Source: [`schemas/story-report-v1.json`](https://github.com/jagreehal/executable-stories/tree/main/packages/executable-stories-formatters/schemas/story-report-v1.json) in the formatters package.
 
 ## Three entry points
 
 The package ships three subpath imports so Next.js App Router can statically detect client boundaries:
 
-| Subpath | What | Use when |
-| --- | --- | --- |
-| `executable-stories-react/parse` | `parseStoryReport`, `Result` types, Zod schema. Server-safe. | Validating JSON in a Server Component or build script. |
-| `executable-stories-react` | `<Report>` + primitives. `"use client"`. | Rendering the report. SSRs on the server, hydrates on the client. |
-| `executable-stories-react/interactive` | `<ReportInteractive>` + chrome. `"use client"`. | Adding live search, failure banner, keyboard shortcuts. |
+| Subpath                                | What                                                         | Use when                                                          |
+| -------------------------------------- | ------------------------------------------------------------ | ----------------------------------------------------------------- |
+| `executable-stories-react/parse`       | `parseStoryReport`, `Result` types, Zod schema. Server-safe. | Validating JSON in a Server Component or build script.            |
+| `executable-stories-react`             | `<Report>` + primitives. `"use client"`.                     | Rendering the report. SSRs on the server, hydrates on the client. |
+| `executable-stories-react/interactive` | `<ReportInteractive>` + chrome. `"use client"`.              | Adding live search, failure banner, keyboard shortcuts.           |
 
 ```tsx
 // app/report/page.tsx (Next.js Server Component)
-import { readFile } from "node:fs/promises";
-import { parseStoryReport } from "executable-stories-react/parse";
-import { Report } from "executable-stories-react";
+import { readFile } from 'node:fs/promises';
+import { Report } from 'executable-stories-react';
+import { parseStoryReport } from 'executable-stories-react/parse';
 
 export default async function ReportPage() {
-  const raw = await readFile("./story-report.json", "utf8");
+  const raw = await readFile('./story-report.json', 'utf8');
   return <Report report={parseStoryReport(JSON.parse(raw))} />;
 }
 ```
@@ -60,9 +62,10 @@ For the interactive flavor inside the same App Router setup:
 
 ```tsx
 // app/report/client.tsx
-"use client";
-import { parseStoryReport } from "executable-stories-react/parse";
-import { ReportInteractive } from "executable-stories-react/interactive";
+'use client';
+
+import { ReportInteractive } from 'executable-stories-react/interactive';
+import { parseStoryReport } from 'executable-stories-react/parse';
 
 export function ClientReport({ json }: { json: unknown }) {
   return <ReportInteractive report={parseStoryReport(json)} />;
@@ -84,14 +87,14 @@ export function ClientReport({ json }: { json: unknown }) {
 
 **Props:**
 
-| Prop | Type | Description |
-| ---- | ---- | ----------- |
-| `report` | `StoryReport \| Result<StoryReport>` | Either a validated StoryReport or the `Result` returned by `parseStoryReport`. On `Result.ok=false`, renders `<ReportSchemaError>` automatically. |
+| Prop              | Type                                   | Description                                                                                                                                                                                |
+| ----------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `report`          | `StoryReport \| Result<StoryReport>`   | Either a validated StoryReport or the `Result` returned by `parseStoryReport`. On `Result.ok=false`, renders `<ReportSchemaError>` automatically.                                          |
 | `customRenderers` | `Record<string, (entry) => ReactNode>` | Renderers keyed by `story.custom({ type })` strings. Unmatched types fall back to a JSON dump. The built-in narrative blocks (below) are registered by default and can be overridden here. |
-| `renderers` | `{ mermaid?, code?, section? }` | Override the three heavy built-ins. Other doc kinds (`note`, `kv`, `table`, etc.) are fixed — drop to primitives for full structural overrides. |
-| `title` | `string` | Optional override for the report's `<h1>`. Default: "Story Report". |
-| `dataTheme` | `"light" \| "dark"` | Force a theme scope. Default: auto via `prefers-color-scheme`. |
-| `className` | `string` | Extra class on the `<main>` landmark. |
+| `renderers`       | `{ mermaid?, code?, section? }`        | Override the three heavy built-ins. Other doc kinds (`note`, `kv`, `table`, etc.) are fixed — drop to primitives for full structural overrides.                                            |
+| `title`           | `string`                               | Optional override for the report's `<h1>`. Default: "Story Report".                                                                                                                        |
+| `dataTheme`       | `"light" \| "dark"`                    | Force a theme scope. Default: auto via `prefers-color-scheme`.                                                                                                                             |
+| `className`       | `string`                               | Extra class on the `<main>` landmark.                                                                                                                                                      |
 
 ### Narrative blocks
 
@@ -105,7 +108,11 @@ story.custom({
     authored: 'agent',
     title: 'Files changed',
     files: [
-      { path: 'src/cart/totals.ts', change: 'modified', note: 'quantity-aware' },
+      {
+        path: 'src/cart/totals.ts',
+        change: 'modified',
+        note: 'quantity-aware',
+      },
       { path: 'src/cart/line-item.ts', change: 'added' },
     ],
   },
@@ -115,7 +122,14 @@ story.custom({
   type: 'data-model',
   data: {
     name: 'LineItem',
-    fields: [{ name: 'quantity', type: 'number', change: 'added', note: 'defaults to 1' }],
+    fields: [
+      {
+        name: 'quantity',
+        type: 'number',
+        change: 'added',
+        note: 'defaults to 1',
+      },
+    ],
   },
 });
 ```
@@ -141,18 +155,18 @@ Every primitive is exported so you can compose your own layout:
 
 ```tsx
 import {
-  ReportRoot,
-  ReportSummary,
-  ReportFeatureList,
-  ReportFeature,
-  ReportScenarioList,
-  ReportScenario,
-  ReportSteps,
   ReportDocEntries,
   ReportEmpty,
+  ReportFeature,
+  ReportFeatureList,
+  ReportRoot,
+  ReportScenario,
+  ReportScenarioList,
   ReportSchemaError,
+  ReportSteps,
+  ReportSummary,
   useReport,
-} from "executable-stories-react";
+} from 'executable-stories-react';
 ```
 
 Each per-kind doc entry is also a named export: `DocNote`, `DocTag`, `DocKv`, `DocCode`, `DocTable`, `DocLink`, `DocSection`, `DocMermaid`, `DocScreenshot`, `DocCustom`, plus the `DocEntry` dispatcher.
@@ -164,10 +178,10 @@ Theme via CSS custom properties on `:root` or any ancestor of the report. The fu
 ```css
 :root {
   --es-color-passed: oklch(72% 0.16 145);
-  --es-color-failed: oklch(64% 0.20 25);
+  --es-color-failed: oklch(64% 0.2 25);
   --es-color-bg: #fff;
   --es-radius: 0.25rem;
-  --es-font-body: "Inter", system-ui;
+  --es-font-body: 'Inter', system-ui;
 }
 ```
 
@@ -184,11 +198,11 @@ Dark/light adapts automatically to `prefers-color-scheme`. Force a scheme with `
 
 Error codes:
 
-| Code | When |
-| ---- | ---- |
-| `INVALID_INPUT` | Input isn't an object. |
-| `SCHEMA_VERSION_MISMATCH` | Major version differs from the package's expected major (currently `1`). |
-| `VALIDATION_FAILED` | Shape passed the version check but failed Zod validation. `issues` lists each problem. |
+| Code                      | When                                                                                   |
+| ------------------------- | -------------------------------------------------------------------------------------- |
+| `INVALID_INPUT`           | Input isn't an object.                                                                 |
+| `SCHEMA_VERSION_MISMATCH` | Major version differs from the package's expected major (currently `1`).               |
+| `VALIDATION_FAILED`       | Shape passed the version check but failed Zod validation. `issues` lists each problem. |
 
 `<Report>` and `<ReportInteractive>` accept a `Result<StoryReport>` directly. On error they render `<ReportSchemaError>` with an upgrade hint when relevant.
 

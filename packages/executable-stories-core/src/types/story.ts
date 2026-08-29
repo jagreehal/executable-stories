@@ -63,6 +63,13 @@ export interface StoryStep {
   durationMs?: number;
   /** Whether this step wrapped a function body (step.fn / step.step) vs a text marker */
   wrapped?: boolean;
+  /**
+   * Assertions observed while this step ran.
+   *
+   * Absent means the adapter cannot see assertions at all, which is not the
+   * same as having seen none: `0` is a finding, absent is a capability gap.
+   */
+  assertions?: number;
 }
 
 // ============================================================================

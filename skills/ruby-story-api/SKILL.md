@@ -4,11 +4,12 @@ description: >
   Use when writing BDD story tests in Ruby Minitest with
   executable-stories-ruby: ExecutableStories.init, given/when/then/and/but
   steps, or doc entries.
-type: core
-library: executable-stories-ruby
-library_version: "0.1.1"
-sources:
-  - "jagreehal/executable-stories:packages/executable-stories-ruby/lib/executable_stories"
+metadata:
+  type: core
+  library: executable-stories-ruby
+  library_version: "0.1.1"
+  sources:
+    - "jagreehal/executable-stories:packages/executable-stories-ruby/lib/executable_stories"
 ---
 
 # Writing Ruby Story Tests
@@ -108,6 +109,13 @@ story.verify("outcome")          # -> Then
 result = story.fn("Given", "setup data") { some_expensive_operation }
 story.expect("the result is correct") { assert_equal 8, result }
 ```
+
+Minitest's live assertion counter is observed automatically. Assertions after a marker
+are attributed to the current step, and `story.expect` measures its block. A passing
+observable claim with zero assertions is marked in the reports and grades `none`.
+
+Minitest `-n` and RSpec example filters report `runScope: "filtered"`; unfiltered runs
+report `"full"`, so persistent per-source state retires missing scenarios only when safe.
 
 ### Doc Methods
 

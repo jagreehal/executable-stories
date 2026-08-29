@@ -68,6 +68,11 @@ export type {
 export type VitestContext = {
   config?: {
     root?: string;
+    /**
+     * Set by `vitest -t` / `--testNamePattern`. Vitest reports only the tests
+     * that match, so a run carrying one cannot speak for the rest of a file.
+     */
+    testNamePattern?: string | RegExp;
   };
 };
 
@@ -259,6 +264,11 @@ export default class StoryReporter implements StoryReporterProtocol {
   private startTime: number = 0;
   private packageVersion: string | undefined;
   private gitSha: string | undefined;
+  /**
+   * Left unknown until onInit sees a config. Claiming full coverage without
+   * having looked would let a later merge retire scenarios on a guess.
+   */
+  private runScope: "full" | "filtered" | undefined;
   private coverageByFile: Record<string, CoverageFile> = {};
 
   constructor(options: StoryReporterOptions = {}) {
@@ -269,6 +279,12 @@ export default class StoryReporter implements StoryReporterProtocol {
     this.ctx = ctx;
     this.startTime = Date.now();
     const root = ctx.config?.root ?? process.cwd();
+    // `vitest -t` reports the matching tests and nothing else, so consumers
+    // must not read this run as the full contents of the files it touches.
+    // Vitest hands us the pattern either way, so the answer is never a guess.
+    if (ctx.config) {
+      this.runScope = ctx.config.testNamePattern != null ? "filtered" : "full";
+    }
 
     // Read metadata if needed
     const includeMetadata = this.options.markdown?.includeMetadata ?? true;
@@ -296,6 +312,8 @@ export default class StoryReporter implements StoryReporterProtocol {
 
     // Collect test cases
     const rawTestCases = this.collectTestCases(testModules, root);
+    const coveredSourceFiles = this.collectCoveredSourceFiles(testModules, root);
+    const incompleteSourceFiles = this.collectIncompleteSourceFiles(testModules, root);
     const features = collectFeatures(testModules, root);
 
     // Build RawRun
@@ -308,6 +326,9 @@ export default class StoryReporter implements StoryReporterProtocol {
       packageVersion: this.packageVersion,
       gitSha: this.gitSha,
       ci: detectCI(),
+      ...(this.runScope ? { runScope: this.runScope } : {}),
+      ...(coveredSourceFiles.length > 0 ? { coveredSourceFiles } : {}),
+      ...(incompleteSourceFiles.length > 0 ? { incompleteSourceFiles } : {}),
     };
 
     // Optionally write raw run JSON for CLI/binary consumption
@@ -396,6 +417,70 @@ export default class StoryReporter implements StoryReporterProtocol {
   /**
    * Collect test cases from Vitest test modules.
    */
+  /**
+   * Every module vitest ran, whether or not it produced a story.
+   *
+   * The collected test cases only name modules that produced something, so a
+   * file whose last story was deleted would otherwise look like a file that did
+   * not run and keep its old scenarios for good.
+   */
+  private collectCoveredSourceFiles(
+    testModules: ReadonlyArray<TestModule>,
+    root: string
+  ): string[] {
+    const files = new Set<string>();
+    for (const mod of testModules) {
+      const moduleId =
+        mod.moduleId ?? (mod as { relativeModuleId?: string }).relativeModuleId ?? "";
+      if (!moduleId) continue;
+      const absolute = path.isAbsolute(moduleId) ? moduleId : path.resolve(root, moduleId);
+      files.add(toRelativePosix(absolute, root));
+    }
+    return [...files].sort();
+  }
+
+  /**
+   * Files whose scenarios could not be collected in full.
+   *
+   * A module that errored, or a test that failed without ever declaring a
+   * story, is missing scenarios because the run broke. Treating that as
+   * deletion would throw away documentation at the exact moment the suite is
+   * unhealthy. Checked per test, not per file: one healthy story in a module
+   * does not vouch for its broken siblings.
+   */
+  private collectIncompleteSourceFiles(
+    testModules: ReadonlyArray<TestModule>,
+    root: string
+  ): string[] {
+    const incomplete = new Set<string>();
+    for (const mod of testModules) {
+      const moduleId =
+        mod.moduleId ?? (mod as { relativeModuleId?: string }).relativeModuleId ?? "";
+      if (!moduleId) continue;
+      const absolute = path.isAbsolute(moduleId) ? moduleId : path.resolve(root, moduleId);
+      const sourceFile = toRelativePosix(absolute, root);
+
+      const errors = (mod as { errors?: () => unknown[] }).errors?.() ?? [];
+      const collection = mod.children;
+      if (errors.length > 0 || !collection) {
+        const state = (mod as { state?: () => string }).state?.();
+        if (errors.length > 0 || state === "failed") incomplete.add(sourceFile);
+        continue;
+      }
+
+      for (const test of collection.allTests()) {
+        const meta = this.getStoryMeta(test);
+        if (meta?.scenario && Array.isArray(meta.steps)) continue;
+        if (test.options?.mode === "todo") continue;
+        if (test.result?.()?.state === "failed") {
+          incomplete.add(sourceFile);
+          break;
+        }
+      }
+    }
+    return [...incomplete].sort();
+  }
+
   private collectTestCases(
     testModules: ReadonlyArray<TestModule>,
     root: string

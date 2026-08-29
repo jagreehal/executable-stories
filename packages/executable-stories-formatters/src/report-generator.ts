@@ -7,6 +7,7 @@
  */
 
 import * as path from "node:path";
+import * as fs from "node:fs";
 import * as fsPromises from "node:fs/promises";
 import { toStoryReportWithIndex } from "executable-stories-core/converters/story-report";
 import type { ScenarioRunEvent } from "executable-stories-react/ssr";
@@ -26,6 +27,7 @@ import { TraceabilityCsvFormatter, TraceabilityMatrixFormatter } from "./formatt
 import { CucumberMessagesFormatter } from "./formatters/cucumber-messages/formatter";
 import { CucumberHtmlFormatter } from "./formatters/cucumber-html";
 import { buildIndexEntries, renderColocatedIndex } from "./colocated-index";
+import { updateFileReports } from "./file-reports";
 import { matchesPattern, selectTestCases } from "./select-test-cases";
 import { AstroFormatter } from "./formatters/astro";
 import { cleanTestStem } from "executable-stories-core/utils/source-file";
@@ -51,7 +53,38 @@ export interface GenerateDeps {
   logger: Logger;
   /** File writer function */
   writeFile: WriteFile;
+  /** Read a file. Throws when it is not there, like `fs.readFileSync`. */
+  readFile: (filePath: string) => string;
+  /** List a directory's entries, or undefined when it is not one. */
+  listDir: (dir: string) => string[] | undefined;
+  /** True when the path is present in the working tree. */
+  fileExists: (filePath: string) => boolean;
+  /** Delete a file. Absent paths are not an error. */
+  removeFile: (filePath: string) => Promise<void>;
 }
+
+/** Options for one `generate` call. */
+export interface GenerateOptions {
+  /**
+   * Whether this run owns the reports of the files it covers and should update
+   * them. True for a test run. False when rendering an already-assembled run,
+   * such as the aggregate of a shard directory, which owns nothing.
+   */
+  persist?: boolean;
+}
+
+/**
+ * Formats that describe one execution rather than the documented behaviour of a
+ * suite. CI dashboards and Cucumber tooling read these as "what this build ran",
+ * so they are rendered from the run in hand, never from accumulated reports.
+ */
+const EXECUTION_FORMATS: ReadonlySet<OutputFormat> = new Set<OutputFormat>([
+  "junit",
+  "cucumber-json",
+  "cucumber-messages",
+  "cucumber-html",
+  "release-manifest",
+]);
 
 /** Result of generate function: Map of format to array of file paths */
 export type GenerateResult = Map<OutputFormat, string[]>;
@@ -310,13 +343,48 @@ export function normalizeFormats(formats: ReadonlyArray<FormatInput>): OutputFor
 export class ReportGenerator {
   private options: ResolvedFormatterOptions;
   private deps: GenerateDeps;
+  /**
+   * The run the last `generate()` actually rendered: this run folded into what
+   * previous runs accumulated. Callers that report on the output (the CLI's
+   * summary line) need to describe what was written, not just what was handed
+   * in. Undefined before the first generate.
+   */
+  private lastRenderedRun?: TestRunResult;
+  /**
+   * What the execution formats rendered: this run after the same selection the
+   * documentation set gets. The CLI counts whichever set its output actually
+   * contains, so an excluded scenario is not reported as written.
+   */
+  private lastExecutedRun?: TestRunResult;
 
   constructor(options: FormatterOptions = {}, deps?: Partial<GenerateDeps>) {
     this.options = this.resolveOptions(options);
     this.deps = {
       logger: deps?.logger ?? console,
       writeFile: deps?.writeFile ?? ((p, c) => fsPromises.writeFile(p, c, "utf8")),
+      readFile: deps?.readFile ?? ((p) => fs.readFileSync(p, "utf8")),
+      listDir:
+        deps?.listDir ??
+        ((dir) => {
+          try {
+            return fs.readdirSync(dir);
+          } catch {
+            return undefined;
+          }
+        }),
+      fileExists: deps?.fileExists ?? ((p) => fs.existsSync(p)),
+      removeFile: deps?.removeFile ?? ((p) => fsPromises.rm(p, { force: true })),
     };
+  }
+
+  /** The run the last `generate()` rendered, stored reports included. */
+  get renderedRun(): TestRunResult | undefined {
+    return this.lastRenderedRun;
+  }
+
+  /** What the last `generate()` handed the execution formats. */
+  get executedRun(): TestRunResult | undefined {
+    return this.lastExecutedRun;
   }
 
   /**
@@ -431,10 +499,25 @@ export class ReportGenerator {
    * @param run - Canonical TestRunResult (use canonicalizeRun to create from RawRun)
    * @returns Map of output format to generated file paths
    */
-  async generate(run: TestRunResult): Promise<GenerateResult> {
+  async generate(
+    run: TestRunResult,
+    options: GenerateOptions = {}
+  ): Promise<GenerateResult> {
+    // Two operations, deliberately kept apart.
+    //
+    // A test run owns the reports of the files it covered: it updates those,
+    // then renders. Rendering an already-assembled run (the shard directory)
+    // owns nothing, so it must not write reports or restamp anything — doing
+    // both from one path made reading a directory destroy the freshness data
+    // the whole design exists to protect.
+    const persist = options.persist ?? true;
+    const accumulated = persist
+      ? await updateFileReports({ run, outputDir: this.options.outputDir }, this.deps)
+      : run;
+
     const testCases = selectTestCases(
       {
-        testCases: run.testCases,
+        testCases: accumulated.testCases,
         include: this.options.include,
         exclude: this.options.exclude,
         includeTags: this.options.includeTags,
@@ -444,12 +527,34 @@ export class ReportGenerator {
       { logger: this.deps.logger }
     );
 
-    const filteredRun: TestRunResult = { ...run, testCases };
+    const filteredRun: TestRunResult = { ...accumulated, testCases };
+    this.lastRenderedRun = filteredRun;
+
+    // Execution formats are a record of what this build ran. Handing them
+    // scenarios carried over from earlier runs would report tests to CI as
+    // having just passed when they did not run at all.
+    const executedRun: TestRunResult = {
+      ...run,
+      testCases: selectTestCases(
+        {
+          testCases: run.testCases,
+          include: this.options.include,
+          exclude: this.options.exclude,
+          includeTags: this.options.includeTags,
+          excludeTags: this.options.excludeTags,
+          sortTestCases: this.options.sortTestCases,
+        },
+        { logger: this.deps.logger }
+      ),
+    };
+
+    this.lastExecutedRun = executedRun;
 
     const results: GenerateResult = new Map();
 
     for (const format of this.options.formats) {
-      const paths = await this.generateFormat(filteredRun, format);
+      const source = EXECUTION_FORMATS.has(format) ? executedRun : filteredRun;
+      const paths = await this.generateFormat(source, format);
       results.set(format, paths);
     }
 

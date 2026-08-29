@@ -5,12 +5,28 @@ description: Use executable-stories as behavior context for coding agents
 
 Executable Stories can publish a behavior catalog for coding agents. Tests stay in the host framework; agents read generated artifacts.
 
+## What the artifacts cover
+
+Executable Stories has three related artifacts. A framework's `raw-run.json` is the execution that just happened. Each test source file also owns persistent canonical state under `<outputDir>/by-file/`. A generated StoryReport is a whole-suite snapshot when it is rendered from that directory, or when a documentation format updates and reads that state. Keep those boundaries explicit: `check`, `list`, `review`, `check-explainers`, `goal`, and `triage` accept either one run file or a `by-file/` directory. They aggregate only when you pass the directory; passing `raw-run.json` always means the current execution.
+
+| Field           | Where         | Meaning                                                                                                                                      |
+| --------------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lastRunAtMs`   | each scenario | When that scenario last actually ran (epoch ms). Present on scenarios read from persistent per-file state.                                   |
+| `lastRunGitSha` | each scenario | The commit it last ran against.                                                                                                              |
+| `runScope`      | RawRun        | `"full"` (no name filter applied), `"filtered"` (one was), or absent when the adapter cannot tell. Only `"full"` lets a scenario be retired. |
+
+**Read `lastRunAtMs` before trusting a green.** A scenario can be passing in the report and not have run since a commit that changed the code under it. Compare it against `lastRunGitSha` and rerun anything you are about to rely on.
+
+**Say so when you narrow a run.** An agent shelling out to `vitest -t` or `jest -t` gets this for free — those adapters read their own filter. Driving Cypress, JUnit 5 or xUnit through a filter means declaring it (`EXECUTABLE_STORIES_FILTERED=1`, or the Cypress reporter option). Undeclared, the run reports no scope, which keeps the file's other scenarios and warns rather than retiring them: incomplete detection leaves stale data, never missing data. The MCP `run_scenario` tool handles this itself.
+
+**Combine reports explicitly for a stable snapshot.** `executable-stories format reports/by-file --format story-report-json` reads every per-file report without updating or restamping them. Formatting one `raw-run.json` first updates the reports owned by that execution, then renders documentation formats from the accumulated state. Execution formats—JUnit, Cucumber, and the release manifest—always describe only that execution.
+
 ## Canonical Artifact
 
 Use StoryReport v1 JSON as the stable machine contract:
 
 ```bash
-executable-stories format .executable-stories/raw-run.json --format story-report-json
+executable-stories format reports/by-file --format story-report-json
 ```
 
 Default output (with `--output-name index`):
@@ -24,7 +40,7 @@ StoryReport v1 contains:
 - run metadata: id, timestamps, project root, package version, git SHA, CI info
 - features: title, source file, status summary
 - scenarios: id, title, status, duration, tags, tickets, `covers`, source line, docs, steps, attachments
-- steps: keyword, text, status, duration, errors, doc entries
+- steps: keyword, text, status, duration, optional assertion count, errors, doc entries
 
 ### Code → scenario (`covers`)
 
@@ -34,10 +50,10 @@ Agents should depend on this artifact before reading prose docs.
 
 ## Agent Index
 
-Preferred: generate the scenario index artifact from RawRun:
+Preferred: generate the scenario index from the whole-suite per-file state:
 
 ```bash
-executable-stories format .executable-stories/raw-run.json \
+executable-stories format reports/by-file \
   --format scenario-index-json \
   --output-dir reports \
   --output-name index
@@ -58,7 +74,7 @@ The index includes scenario id, title, status, source file/line, tags, tickets, 
 For agent-oriented discovery and quality signals:
 
 ```bash
-executable-stories format .executable-stories/raw-run.json \
+executable-stories format reports/by-file \
   --format behavior-manifest-json \
   --output-dir reports \
   --output-name index

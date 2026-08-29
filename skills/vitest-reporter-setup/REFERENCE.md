@@ -2,6 +2,9 @@ Disclosed reference for [`vitest-reporter-setup`](SKILL.md) — output-mode vari
 
 ## Output modes
 
+These modes route rendered pages. Independently, every run maintains canonical
+per-source state under `<outputDir>/by-file/`.
+
 ```typescript
 // Aggregated (default) — one file per format
 createStoryReporter({
@@ -26,6 +29,14 @@ createStoryReporter({
   output: { mode: "colocated", colocatedStyle: "adjacent" },
 })
 // test/auth/login.story.test.ts → test/auth/login.story.md
+
+// Colocated flat — tidy page names directly under outputDir
+createStoryReporter({
+  formats: ["markdown"],
+  outputDir: "docs",
+  output: { mode: "colocated", colocatedStyle: "flat" },
+})
+// test/auth/login.story.test.ts → docs/login.md
 ```
 
 ## Format-specific options
@@ -88,3 +99,7 @@ createStoryReporter({
   enableGithubActionsSummary: true,
 })
 ```
+
+`rawRunPath` is the current execution event for `check`, `triage`, and `goal`.
+Use `reports/by-file/` or a StoryReport generated from it when a consumer needs the
+whole accumulated suite.

@@ -65,6 +65,14 @@ Use `executable-stories-formatters` to generate HTML/Markdown/JUnit/Cucumber out
 
 ## CLI handoff
 
+`go test -run` is detected automatically: a plain invocation reports `runScope: "full"`
+and a narrowed one reports `"filtered"`. Formatting the raw run updates one canonical
+report per source under `reports/by-file/`, so focused runs preserve untouched sources.
+
+Go has no assertion counter. Use `s.Expect("claim", func() { ... })` when a claim should
+declare assertion evidence. A plain `s.Then()` followed by `t.Error`/`t.Errorf` remains
+unobserved, not zero.
+
 After running tests, turn the raw-run JSON into reports with the `executable-stories` CLI:
 
 ```bash
@@ -81,7 +89,7 @@ executable-stories format .executable-stories/raw-run.json --format html
 executable-stories format .executable-stories/raw-run.json --format story-report-json --output-dir reports --output-name index
 
 # List scenarios (discovery / failure triage)
-executable-stories list .executable-stories/raw-run.json --list-format json
+executable-stories list reports/by-file --list-format json
 ```
 
 ## Verify

@@ -22,10 +22,12 @@ Each changed source file lands in one of three bands, worst first:
 | Band | Meaning |
 | --- | --- |
 | 🔴 Uncovered | no claim or test correlates to this file — review it first |
-| 🟡 Weak | only weak evidence (a passing self-authored unit assertion) stands behind it |
+| 🟡 Weak | only weak or no evidence stands behind it; inspect the claim grade |
 | 🟢 Covered | at least moderate evidence: integration-level, screenshot/trace-corroborated, or stronger |
 
-Claim strength climbs from `weak` (a passing test, nothing else) through `moderate` (integration-level, screenshot, OTEL trace, changed-line coverage) to `strong` (failing-first verified, mutation score ≥ 80%, or stakeholder e2e proof backed by screenshot and trace).
+Claim strength has four rungs: `none` when the test did not pass or its observable claim steps asserted nothing; `weak` for a passing self-authored assertion; `moderate` for integration-level, screenshot, OTEL trace, or changed-line coverage; and `strong` for failing-first verification, mutation score ≥ 80%, or stakeholder e2e proof backed by screenshot and trace. An assertion-free claim stays `none` even if it attached stronger-looking artifacts.
+
+Assertion counts are deliberately three-state. A positive count means an assertion was observed or declared, zero means the adapter observed none, and an absent field means the host cannot count. Unknown evidence is never silently graded as assertion-free.
 
 Two opt-in gates make the review bite in CI:
 

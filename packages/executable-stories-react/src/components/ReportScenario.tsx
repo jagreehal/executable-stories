@@ -6,6 +6,7 @@ import { ReportDocEntries } from "./ReportDocEntries";
 import { ReportAttachments } from "./ReportAttachments";
 import { ReportTrace } from "./ReportTrace";
 import { ScenarioRunHistory } from "./ScenarioRunHistory";
+import { ScenarioStaleness } from "./ScenarioStaleness";
 import { useCollapse } from "../interactive/collapse-context";
 import { useScenarioActions } from "../interactive/scenario-actions";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -97,6 +98,7 @@ export function ReportScenario({ scenario, hideTitle = false }: ReportScenarioPr
           )}
           <div className="flex shrink-0 items-center gap-2">
             <ScenarioRunHistory scenarioId={scenario.id} />
+            <ScenarioStaleness scenario={scenario} />
             {scenario.durationMs > 0 ? (
               <span className="whitespace-nowrap font-mono text-[0.6875rem] text-muted-foreground">
                 {formatDuration(scenario.durationMs)}

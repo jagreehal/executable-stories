@@ -473,6 +473,38 @@ describe("reporter", () => {
     });
   });
 
+  describe("name-filtered runs", () => {
+    it("carries the scope the caller declares", () => {
+      // Cypress has no built-in name filter; narrowing by title needs
+      // @cypress/grep, which the reporter cannot see. So the caller declares it,
+      // and consumers learn this run does not hold the whole spec.
+      const payload = makePayload("spec.cy.ts", ["Suite", "test"], {
+        scenario: "test",
+        steps: [],
+      });
+      recordMeta(payload);
+      const result = makeResult("spec.cy.ts", [{ title: ["Suite", "test"], state: "passed" }]);
+      const rawRun = buildRawRunFromCypressResult(result, {
+        projectRoot: process.cwd(),
+        runScope: "filtered",
+      });
+      expect(rawRun.runScope).toBe("filtered");
+    });
+
+    it("states no scope when the caller declares none", () => {
+      const payload = makePayload("spec.cy.ts", ["Suite", "test"], {
+        scenario: "test",
+        steps: [],
+      });
+      recordMeta(payload);
+      const result = makeResult("spec.cy.ts", [{ title: ["Suite", "test"], state: "passed" }]);
+      // A plain Cypress run usually covers a whole spec, but the reporter
+      // cannot confirm that, so it claims nothing and consumers keep what the
+      // run did not report.
+      expect(buildRawRunFromCypressResult(result).runScope).toBeUndefined();
+    });
+  });
+
   describe("empty output handling", () => {
     it("generateReportsFromRawRun does not write file when no test cases", async () => {
       const result = makeResult("spec.cy.ts", []);

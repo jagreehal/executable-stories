@@ -29,19 +29,24 @@ The reporter uses `FormatterOptions` from `executable-stories-formatters`. Same 
 
 | Option       | Type             | Default                  | Description                                                           |
 | ------------ | ---------------- | ------------------------ | --------------------------------------------------------------------- |
-| `formats`    | `OutputFormat[]` | `["cucumber-json"]`      | Output formats: `"markdown"`, `"html"`, `"junit"`, `"cucumber-json"`, `"cucumber-messages"`, `"cucumber-html"`. |
+| `formats`    | `OutputFormat[]` | `["html"]`               | Output formats: `"markdown"`, `"html"`, `"junit"`, `"cucumber-json"`, `"cucumber-messages"`, `"cucumber-html"`. |
 | `outputDir`  | `string`         | `"reports"`              | Base directory for output files.                                      |
-| `outputName` | `string`         | `"test-results"`         | Base filename (without extension).                                    |
+| `outputName` | `string`         | `"index"`                | Base filename (without extension).                                    |
 | `outputNameTimestamp` | `boolean` | `false`                | Append a UTC timestamp suffix to the output filename.                 |
 | `output`     | `OutputConfig`   | `{ mode: "aggregated" }` | Output routing configuration.                                         |
 | `rawRunPath` | `string`         | —                        | Write the raw run JSON to disk for later CLI use.                     |
+
+Every run also maintains one canonical JSON report per test source under
+`<outputDir>/by-file/`. Documentation formats render accumulated state, while JUnit,
+Cucumber, and release manifests contain only the current execution. Playwright detects
+`grep`, `grepInvert`, sharding, and incomplete collection automatically.
 
 ### OutputConfig
 
 | Field            | Type                            | Default        | Description                                                   |
 | ---------------- | ------------------------------- | -------------- | ------------------------------------------------------------- |
 | `mode`           | `"aggregated"` \| `"colocated"` | `"aggregated"` | Single file vs one file per source.                           |
-| `colocatedStyle` | `"mirrored"` \| `"adjacent"`    | `"mirrored"`   | Colocated: mirrored under `outputDir` or next to source file. |
+| `colocatedStyle` | `"mirrored"` \| `"adjacent"` \| `"flat"` | `"mirrored"` | Colocated: mirrored under `outputDir`, next to source, or directly under `outputDir` with a clean name. |
 | `rules`          | `OutputRule[]`                  | `[]`           | Pattern-based overrides (first match wins).                   |
 
 ### Markdown options

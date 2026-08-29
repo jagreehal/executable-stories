@@ -168,4 +168,22 @@ export interface RawRun {
   gitSha?: string;
   /** CI environment info */
   ci?: RawCIInfo;
+  /**
+   * How much of each source file this run covered: `"full"` (the adapter
+   * determined no name filter was applied), `"filtered"` (one was), or absent
+   * when the adapter cannot tell. Only `"full"` lets a scenario be retired.
+   * See {@link TestRunResult.runScope}.
+   */
+  runScope?: "full" | "filtered";
+  /**
+   * Source files this run executed, whether or not they produced scenarios.
+   * See {@link TestRunResult.coveredSourceFiles}.
+   */
+  coveredSourceFiles?: string[];
+  /**
+   * Source files whose scenarios could not be collected in full (a hook threw
+   * before the story was declared, a collection error, a crash). Never treated
+   * as authoritative. See {@link TestRunResult.incompleteSourceFiles}.
+   */
+  incompleteSourceFiles?: string[];
 }

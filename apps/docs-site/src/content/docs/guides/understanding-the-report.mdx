@@ -137,6 +137,21 @@ noise. Done well, this makes the generated site the document of record for
 how a feature behaves — the thing teams otherwise hand-maintain in Confluence
 or TestRail — for backend behaviour as much as UI flows.
 
+## Claims that asserted nothing
+
+Claim steps can carry an `assertions` count. Jest, Vitest, Playwright, and
+Ruby/Minitest observe their framework's live counter. Cypress, Go, Rust, pytest,
+JUnit 5, and xUnit can only declare an assertion through their story wrapper.
+
+- A positive count means the adapter observed or declared assertions for that step.
+- `0` means it observed that none ran.
+- An absent field means the host cannot observe assertion counts; it does not mean zero.
+
+When every observable Then/And/But claim step has zero assertions, Markdown appends
+`_(no assertion)_` and HTML shows a **No assertion** badge. The CLI summary reports how
+many passing scenarios asserted nothing, while Evidence Review grades those claims
+`none`. This signal proves only that an assertion ran, not that it matched the sentence.
+
 ## Run history in the interactive report
 
 When the CLI runs with `--history-file` (or the reporter is configured with `history.filePath`), the interactive HTML report layers run-over-run context on top of the current results:
@@ -146,6 +161,16 @@ When the CLI runs with `--history-file` (or the reporter is configured with `his
 - **"Since last run" strip** — one line in the report header summarizing what changed against the previous run: newly failing scenarios (deep-linked), fixed scenarios, and first-seen scenarios. A quiet run says "no behavior changes" rather than nothing.
 
 All of this is presentation-layer data derived from the history store; the StoryReport JSON contract is unchanged. See [Run history](../reference/formatters-api/#format) in the CLI reference.
+
+## How fresh is each scenario
+
+A combined report covers your whole suite, whatever fraction of it you last ran: each test file owns a report and the combined view is built from all of them (see [Output modes](/guides/output-modes/#running-part-of-the-suite)). So a freshly-rendered report can hold a scenario that has not run in a fortnight.
+
+Rather than let those borrow the rendering run's freshness, each scenario records when it last ran. Any older than the staleness threshold shows a **Last ran N days ago** badge on its card. Scenarios that ran in this run show nothing, since that is the normal case and a badge on every card would say nothing at all.
+
+The threshold is `--html-stale-after-days` (7 by default); `0` turns the signal off. It is the same threshold behind the report-level freshness banner, applied per scenario. The metadata table also says when a report was built from more than one run, and over what span.
+
+Read it as: a green scenario with a stale badge passed **the last time it ran**, which may be several commits before the code it covers changed.
 
 ## Enabling or hiding elements
 

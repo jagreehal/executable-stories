@@ -31,7 +31,7 @@ change has nothing to convert; say so and stop.
 
 ## The conversion
 
-1. **Read the plan and the existing scenarios.** `executable-stories list <raw-run.json>
+1. **Read the plan and the existing scenarios.** `executable-stories list reports/by-file
    --list-format json` tells you what already exists. A plan item already covered by a
    passing scenario is done, not planned. Say so rather than duplicating it.
 2. **Split the plan into behaviours a user could observe.** One scenario per behaviour,
@@ -97,7 +97,7 @@ change has nothing to convert; say so and stop.
 5. **Record what you could not answer.** Open questions go in the `story.section` prose
    as a list, not into invented scenarios. A question you guessed at is worse than a
    question you left visible.
-6. **Show the burn-down.** `executable-stories list <raw-run.json> --list-format json`
+6. **Show the burn-down.** `executable-stories list reports/by-file --list-format json`
    after each run: planned scenarios carry `planned: true` in the StoryReport, and the
    markdown report suffixes them with *(planned)*. The count going down is the progress
    report, and nobody has to maintain it.

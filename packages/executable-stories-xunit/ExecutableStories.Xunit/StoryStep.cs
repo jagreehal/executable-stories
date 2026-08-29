@@ -22,6 +22,14 @@ namespace ExecutableStories.Xunit
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public bool? Wrapped { get; set; }
 
+        /// <summary>
+        /// Assertions attributable to this step.
+        /// xUnit has no assertion counter, so this is set only when the author
+        /// wraps a claim in <c>Expect</c>/<c>Fn("Then", ..)</c>. Null means
+        /// unobserved, which is not the same as zero.
+        /// </summary>
+        public int? Assertions { get; set; }
+
         [JsonPropertyName("id")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? Id { get; set; }

@@ -30,6 +30,16 @@ namespace ExecutableStories.Xunit
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public List<RawFeature>? Features { get; set; }
 
+        /// <summary>
+        /// How much of each source file this run covered: <c>"full"</c> when no
+        /// name filter was applied, <c>"filtered"</c> when one was, or null when
+        /// that cannot be determined. Only <c>"full"</c> lets a consumer retire
+        /// a scenario the run no longer reports.
+        /// </summary>
+        [JsonPropertyName("runScope")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? RunScope { get; set; }
+
         [JsonPropertyName("startedAtMs")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public long? StartedAtMs { get; set; }

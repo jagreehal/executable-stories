@@ -148,11 +148,7 @@
         },
         "kind": {
           "type": "string",
-          "enum": [
-            "feature",
-            "ability",
-            "business-need"
-          ],
+          "enum": ["feature", "ability", "business-need"],
           "description": "How the feature was declared. Absent when the title was derived rather than declared."
         },
         "narrative": {
@@ -167,13 +163,7 @@
           "description": "Terms this feature defines, linked wherever they appear in scenario text."
         }
       },
-      "required": [
-        "id",
-        "title",
-        "sourceFile",
-        "summary",
-        "scenarios"
-      ],
+      "required": ["id", "title", "sourceFile", "summary", "scenarios"],
       "additionalProperties": false
     },
     "Scenario": {
@@ -303,6 +293,11 @@
           "type": "number",
           "minimum": 0
         },
+        "assertions": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Assertions observed or declared for this step. Omit when the adapter cannot observe assertions; zero means observed none."
+        },
         "errorMessage": {
           "type": "string"
         },
@@ -330,33 +325,15 @@
     },
     "StepKeyword": {
       "type": "string",
-      "enum": [
-        "Given",
-        "When",
-        "Then",
-        "And",
-        "But"
-      ]
+      "enum": ["Given", "When", "Then", "And", "But"]
     },
     "StepMode": {
       "type": "string",
-      "enum": [
-        "normal",
-        "skip",
-        "only",
-        "todo",
-        "fails",
-        "concurrent"
-      ]
+      "enum": ["normal", "skip", "only", "todo", "fails", "concurrent"]
     },
     "TestStatus": {
       "type": "string",
-      "enum": [
-        "passed",
-        "failed",
-        "skipped",
-        "pending"
-      ]
+      "enum": ["passed", "failed", "skipped", "pending"]
     },
     "Ticket": {
       "type": "object",
@@ -369,9 +346,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "id"
-      ],
+      "required": ["id"],
       "additionalProperties": false
     },
     "Attachment": {
@@ -389,18 +364,10 @@
         },
         "contentEncoding": {
           "type": "string",
-          "enum": [
-            "BASE64",
-            "IDENTITY"
-          ]
+          "enum": ["BASE64", "IDENTITY"]
         }
       },
-      "required": [
-        "name",
-        "mediaType",
-        "body",
-        "contentEncoding"
-      ],
+      "required": ["name", "mediaType", "body", "contentEncoding"],
       "additionalProperties": false
     },
     "CIInfo": {
@@ -425,9 +392,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "name"
-      ],
+      "required": ["name"],
       "additionalProperties": false
     },
     "CoverageSummary": {
@@ -458,10 +423,7 @@
     },
     "DocPhase": {
       "type": "string",
-      "enum": [
-        "static",
-        "runtime"
-      ]
+      "enum": ["static", "runtime"]
     },
     "DocEntry": {
       "oneOf": [
@@ -525,11 +487,7 @@
           }
         }
       },
-      "required": [
-        "kind",
-        "text",
-        "phase"
-      ],
+      "required": ["kind", "text", "phase"],
       "additionalProperties": false
     },
     "DocTag": {
@@ -554,11 +512,7 @@
           }
         }
       },
-      "required": [
-        "kind",
-        "names",
-        "phase"
-      ],
+      "required": ["kind", "names", "phase"],
       "additionalProperties": false
     },
     "DocKv": {
@@ -581,12 +535,7 @@
           }
         }
       },
-      "required": [
-        "kind",
-        "label",
-        "value",
-        "phase"
-      ],
+      "required": ["kind", "label", "value", "phase"],
       "additionalProperties": false
     },
     "DocCode": {
@@ -614,12 +563,7 @@
           }
         }
       },
-      "required": [
-        "kind",
-        "label",
-        "content",
-        "phase"
-      ],
+      "required": ["kind", "label", "content", "phase"],
       "additionalProperties": false
     },
     "DocTable": {
@@ -656,13 +600,7 @@
           }
         }
       },
-      "required": [
-        "kind",
-        "label",
-        "columns",
-        "rows",
-        "phase"
-      ],
+      "required": ["kind", "label", "columns", "rows", "phase"],
       "additionalProperties": false
     },
     "DocLink": {
@@ -687,12 +625,7 @@
           }
         }
       },
-      "required": [
-        "kind",
-        "label",
-        "url",
-        "phase"
-      ],
+      "required": ["kind", "label", "url", "phase"],
       "additionalProperties": false
     },
     "DocSection": {
@@ -717,12 +650,7 @@
           }
         }
       },
-      "required": [
-        "kind",
-        "title",
-        "markdown",
-        "phase"
-      ],
+      "required": ["kind", "title", "markdown", "phase"],
       "additionalProperties": false
     },
     "DocMermaid": {
@@ -747,11 +675,7 @@
           }
         }
       },
-      "required": [
-        "kind",
-        "code",
-        "phase"
-      ],
+      "required": ["kind", "code", "phase"],
       "additionalProperties": false
     },
     "DocScreenshot": {
@@ -776,11 +700,7 @@
           }
         }
       },
-      "required": [
-        "kind",
-        "path",
-        "phase"
-      ],
+      "required": ["kind", "path", "phase"],
       "additionalProperties": false
     },
     "DocVideo": {
@@ -808,11 +728,7 @@
           }
         }
       },
-      "required": [
-        "kind",
-        "path",
-        "phase"
-      ],
+      "required": ["kind", "path", "phase"],
       "additionalProperties": false
     },
     "DocHtml": {
@@ -853,26 +769,17 @@
           }
         }
       },
-      "required": [
-        "kind",
-        "phase"
-      ],
+      "required": ["kind", "phase"],
       "additionalProperties": false,
       "oneOf": [
         {
-          "required": [
-            "path"
-          ]
+          "required": ["path"]
         },
         {
-          "required": [
-            "url"
-          ]
+          "required": ["url"]
         },
         {
-          "required": [
-            "content"
-          ]
+          "required": ["content"]
         }
       ]
     },
@@ -896,11 +803,7 @@
           }
         }
       },
-      "required": [
-        "kind",
-        "value",
-        "phase"
-      ],
+      "required": ["kind", "value", "phase"],
       "additionalProperties": false
     },
     "DocCustom": {
@@ -924,21 +827,12 @@
           }
         }
       },
-      "required": [
-        "kind",
-        "type",
-        "data",
-        "phase"
-      ],
+      "required": ["kind", "type", "data", "phase"],
       "additionalProperties": false
     },
     "OtelSpan": {
       "type": "object",
-      "required": [
-        "spanId",
-        "name",
-        "status"
-      ],
+      "required": ["spanId", "name", "status"],
       "properties": {
         "spanId": {
           "type": "string"
@@ -962,11 +856,7 @@
           "type": "number"
         },
         "status": {
-          "enum": [
-            "ok",
-            "error",
-            "unset"
-          ]
+          "enum": ["ok", "error", "unset"]
         },
         "statusMessage": {
           "type": "string"
@@ -990,10 +880,7 @@
           "minLength": 1
         }
       },
-      "required": [
-        "term",
-        "definition"
-      ],
+      "required": ["term", "definition"],
       "additionalProperties": false
     }
   }

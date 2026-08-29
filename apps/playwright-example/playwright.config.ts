@@ -10,6 +10,13 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
 const reporterPath = require.resolve('executable-stories-playwright/reporter');
 
+// Chromium cannot register its Mach port under the macOS agent sandbox, so it
+// dies on launch. A single-process browser spawns no children and never needs
+// that port. Opt in with ES_CHROMIUM_SINGLE_PROCESS=1; CI leaves it unset.
+const sandboxLaunchOptions = process.env.ES_CHROMIUM_SINGLE_PROCESS
+  ? { args: ['--single-process'] }
+  : {};
+
 export default defineConfig({
   testDir: __dirname,
   testMatch: '**/*.story.spec.ts',
@@ -135,5 +142,6 @@ export default defineConfig({
     ...devices['Desktop Chrome'],
     baseURL: 'http://localhost:3000',
     video: 'on',
+    launchOptions: sandboxLaunchOptions,
   },
 });

@@ -3,12 +3,13 @@ name: rust-story-api
 description: >
   Use when writing BDD story tests in Rust with executable-stories-rust: the
   Story::new() builder, given/when/then/and/but steps, or raw-run JSON output.
-type: core
-library: executable-stories-rust
-library_version: "0.1.0"
-sources:
-  - "jagreehal/executable-stories:packages/executable-stories-rust/src/story.rs"
-  - "jagreehal/executable-stories:packages/executable-stories-rust/src/doc_entry.rs"
+metadata:
+  type: core
+  library: executable-stories-rust
+  library_version: "0.1.0"
+  sources:
+    - "jagreehal/executable-stories:packages/executable-stories-rust/src/story.rs"
+    - "jagreehal/executable-stories:packages/executable-stories-rust/src/doc_entry.rs"
 ---
 
 # executable-stories-rust — Story API
@@ -182,6 +183,11 @@ s.expect_step("the profile contains the correct name", || {
 ```
 
 `fn_step` and `expect_step` wrap a closure with automatic timing. Panics are caught (duration still recorded) then re-raised. Both return the closure's result.
+
+Rust exposes no assertion counter. `expect_step` therefore declares one assertion for
+that claim step. A plain `then` followed by `assert!` remains unobserved, not zero. The
+adapter reports positional libtest filters and `--skip` as `runScope: "filtered"`;
+ordinary runner flags leave the run `"full"`.
 
 ### Manual step timing
 

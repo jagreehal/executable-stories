@@ -1,0 +1,80 @@
+{
+  "testCases": [
+    {
+      "id": "ca311591c352",
+      "story": {
+        "scenario": "Onboarding flow",
+        "steps": [
+          {
+            "keyword": "Given",
+            "text": "the user opens the signup page",
+            "mode": "sync",
+            "phase": "runtime"
+          },
+          {
+            "keyword": "When",
+            "text": "the user completes onboarding",
+            "mode": "sync",
+            "phase": "runtime"
+          },
+          {
+            "keyword": "Then",
+            "text": "the dashboard is shown",
+            "mode": "sync",
+            "phase": "runtime"
+          }
+        ],
+        "tags": [
+          "demo",
+          "onboarding"
+        ],
+        "tickets": []
+      },
+      "sourceFile": "tests/onboarding-flow.story.spec.ts",
+      "sourceLine": 1,
+      "status": "passed",
+      "rawStatus": "pass",
+      "durationMs": 2200,
+      "attachments": [
+        {
+          "name": "Onboarding video",
+          "mediaType": "video/webm",
+          "body": "fixtures/demo.webm",
+          "contentEncoding": "IDENTITY"
+        }
+      ],
+      "stepResults": [
+        {
+          "index": 0,
+          "status": "passed",
+          "durationMs": 0
+        },
+        {
+          "index": 1,
+          "status": "passed",
+          "durationMs": 0
+        },
+        {
+          "index": 2,
+          "status": "passed",
+          "durationMs": 0
+        }
+      ],
+      "titlePath": [
+        "Onboarding"
+      ],
+      "retry": 0,
+      "retries": 0,
+      "tags": [
+        "demo",
+        "onboarding"
+      ],
+      "lastRunAtMs": 1710000005000
+    }
+  ],
+  "startedAtMs": 1710000000000,
+  "finishedAtMs": 1710000005000,
+  "durationMs": 5000,
+  "projectRoot": ".",
+  "runId": "b8d0ddc43502e3e8"
+}

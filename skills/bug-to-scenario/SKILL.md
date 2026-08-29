@@ -53,7 +53,7 @@ suite that is the scenario index; in a plain unit suite it is the test file cove
 function, which is the one time reading tests beats reading artifacts.
 
 ```bash
-executable-stories list reports/raw-run.json --list-format json
+executable-stories list reports/by-file --list-format json
 ```
 
 Three outcomes, and they lead to different work:

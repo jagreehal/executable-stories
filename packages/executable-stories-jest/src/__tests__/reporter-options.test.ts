@@ -336,4 +336,45 @@ describe("StoryReporter (unit)", () => {
     expect(raw.testCases).toHaveLength(1);
     expect(raw.testCases[0].title).toBe("checkout works");
   });
+
+  describe("name-filtered runs", () => {
+    /** Run the reporter once with the given Jest global config, return the raw run. */
+    async function rawRunFor(globalConfig: unknown) {
+      const rawRunPath = path.join(testOutputDir, "raw-run.json");
+      const reporter = new StoryReporter(globalConfig, {
+        formats: [],
+        outputDir: testOutputDir,
+        outputName: "out",
+        rawRunPath,
+      });
+      reporter.onRunStart();
+      writeStoryReport("/fake/path/pay.story.test.ts", [
+        { scenario: "refuses a negative amount", steps: [], suitePath: [] },
+      ]);
+      await reporter.onRunComplete(
+        new Set(),
+        mockJestResults("/fake/path/pay.story.test.ts", [
+          { fullName: "refuses a negative amount", status: "passed" },
+        ])
+      );
+      return JSON.parse(fs.readFileSync(rawRunPath, "utf-8")) as { runScope?: string };
+    }
+
+    it("reports filtered scope when jest was given a name pattern", async () => {
+      // `jest -t` runs only the matching tests, so this run cannot speak for the
+      // rest of its file. Consumers use that to decide whether the scenarios it
+      // reports retire a file's contents or merely update part of them.
+      expect((await rawRunFor({ testNamePattern: "refuses" })).runScope).toBe("filtered");
+    });
+
+    it("reports full scope for an ordinary run", async () => {
+      expect((await rawRunFor({})).runScope).toBe("full");
+    });
+
+    it("states no scope when Jest hands over no config to inspect", async () => {
+      // Nothing was looked at, so nothing is claimed: consumers keep what this
+      // run did not report rather than retiring it on a guess.
+      expect((await rawRunFor(undefined)).runScope).toBeUndefined();
+    });
+  });
 });

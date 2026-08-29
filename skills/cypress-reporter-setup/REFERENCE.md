@@ -21,4 +21,9 @@ if (result.status === "finished") {
 }
 ```
 
+When `cypress.run()` used `@cypress/grep` or another external title filter, pass
+`{ runScope: "filtered" }` to `buildRawRunFromCypressResult`. Use `"full"` only for a
+run that covered whole specs. The generated documentation formats update and render
+`<outputDir>/by-file/`; execution formats contain only this Cypress result.
+
 Guard on `result.status === "finished"` before building the RawRun — `cypress.run()` can also resolve with a `failed` status (e.g. a config error) that carries no test results.

@@ -43,6 +43,20 @@ export interface StoryReporterOptions extends FormatterOptions {
   specPath?: string;
   /** Project root. Defaults to process.cwd(). */
   projectRoot?: string;
+  /**
+   * Declare how much of each spec this run covered.
+   *
+   * Cypress has no built-in name filter — narrowing by title needs
+   * @cypress/grep, which the reporter cannot observe — so unlike the Vitest,
+   * Jest and Playwright adapters this cannot be detected. Left unset the run
+   * states no scope, and consumers keep what it did not report rather than
+   * retiring it on a guess.
+   *
+   * Set `"filtered"` when running under @cypress/grep. Set `"full"` only when
+   * you know the run covered whole specs, since that is what permits a
+   * scenario to be removed from the accumulated report.
+   */
+  runScope?: "full" | "filtered";
 }
 
 // ============================================================================
@@ -248,6 +262,7 @@ function createReporter(
       packageVersion: includeMetadata ? readPackageVersion(projectRoot) : undefined,
       gitSha: includeMetadata ? readGitSha(projectRoot) : undefined,
       ci: detectCI(),
+      ...(opts.runScope ? { runScope: opts.runScope } : {}),
     };
 
     const rawRunPath = opts.rawRunPath;
@@ -340,6 +355,7 @@ export function buildRawRunFromCypressResult(
     packageVersion: includeMetadata ? readPackageVersion(projectRoot) : undefined,
     gitSha: includeMetadata ? readGitSha(projectRoot) : undefined,
     ci: detectCI(),
+    ...(options.runScope ? { runScope: options.runScope } : {}),
   };
 }
 

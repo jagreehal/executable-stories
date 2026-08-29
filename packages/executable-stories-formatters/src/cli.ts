@@ -9,67 +9,103 @@
  *   executable-stories validate run.json
  */
 
-import { parseArgs } from "node:util";
-import * as fs from "node:fs";
-import * as path from "node:path";
-
-import { validateRawRun } from "./validation/schema-validator";
-import { synthesizeStories } from "executable-stories-core/converters/synthesize";
-import { canonicalizeRun } from "executable-stories-core/converters/acl/canonicalize";
-import { assertValidRun } from "executable-stories-core/converters/acl/validate";
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import { parseArgs } from 'node:util';
+import { canonicalizeRun } from 'executable-stories-core/converters/acl/canonicalize';
+import {
+  assertValidRun,
+  validateCanonicalRun,
+} from 'executable-stories-core/converters/acl/validate';
+import { parseNdjson } from 'executable-stories-core/converters/ndjson-parser';
+import { synthesizeStories } from 'executable-stories-core/converters/synthesize';
+import { toCIInfo } from 'executable-stories-core/types/ci';
+import type { RawRun } from 'executable-stories-core/types/raw';
+import type { DocEntry } from 'executable-stories-core/types/story';
+import type {
+  TestRunResult,
+  TestStatus,
+} from 'executable-stories-core/types/test-result';
+import { assertionState } from 'executable-stories-core/utils/assertive-steps';
+import { aggregateReports } from './aggregate-reports';
+import { writeArtifactsReadme } from './artifacts-readme';
+import { buildCheck, renderCheck } from './check';
+import { checkLinks, formatLinkReport } from './check-links';
+import { pickAutoBaseline } from './compare/auto-baseline';
+import { runCompletion } from './completion';
+import { loadConfig } from './config.js';
+import {
+  getDeploymentStatus,
+  getEnvironmentDrift,
+  recordDeployment,
+} from './deploy/deployments';
+import {
+  buildExplainersReport,
+  explainersGateFailed,
+  renderExplainersReport,
+} from './explainers';
+import { ReviewHtmlFormatter } from './formatters/review-html';
+import { ReviewMarkdownFormatter } from './formatters/review-markdown';
+import { buildGoal, renderGoal } from './goal';
+import {
+  loadHistory,
+  saveHistory,
+  updateHistory,
+} from './history/history-store';
+import type { HistoryStore } from './history/types';
+import { importOpenApi } from './import-openapi';
 // eslint-disable-next-line no-restricted-imports -- ReportGenerator and compare helpers currently live in the package entrypoint.
 import {
-  ReportGenerator,
   createPrCommentSummary,
   generateRunComparison,
+  ReportGenerator,
   startWatch,
-} from "./index.js";
-import { parseNdjson } from "executable-stories-core/converters/ndjson-parser";
-import { buildReview, codeDiffDiagnostics } from "./review/build-review";
-import { ReviewMarkdownFormatter } from "./formatters/review-markdown";
-import { ReviewHtmlFormatter } from "./formatters/review-html";
-import type { ChangedFile, ReviewContext, EvidenceStrength } from "./types/review";
-import { assembleCodeDiff, type CodeDiffSidecar } from "./review/code-diff-sidecar";
-import type { OutputFormat } from "./types/options";
-import { sendNotifications } from "./notifiers/send-notifications";
-import { toCIInfo } from "executable-stories-core/types/ci";
-import type { NotifyCondition, GenericWebhookNotifierOptions, WebhookSignerHmac } from "./notifiers/types";
-import { loadHistory, saveHistory, updateHistory } from "./history/history-store";
-import type { HistoryStore } from "./history/types";
-import { pickAutoBaseline } from "./compare/auto-baseline";
-import { listScenarios } from "./list-scenarios";
-import { writeArtifactsReadme } from "./artifacts-readme";
-import { buildCheck, renderCheck } from "./check";
-import { buildExplainersReport, explainersGateFailed, renderExplainersReport } from "./explainers";
-import { buildGoal, renderGoal } from "./goal";
-import { buildTriage, renderTriage } from "./triage";
-import { selectTestCases } from "./select-test-cases";
-import { DEFAULT_RUN_FILES, diagnoseRunFile, findDefaultRunFile, formatDoctorReport } from "./run-file";
-import { expandPreset, presetHelpLines } from "./presets";
-import { runCompletion } from "./completion";
-import { openInBrowser, pickOpenTarget } from "./open-report";
-import { summaryLine } from "./summary-line";
-import type { RawRun } from "executable-stories-core/types/raw";
-import type { DocEntry } from "executable-stories-core/types/story";
-import type { TestRunResult, TestStatus } from "executable-stories-core/types/test-result";
+} from './index.js';
 import {
   detectPackageManager,
   initAstro as initAstroFn,
   installScaffoldDependencies,
   isScaffoldedAstroSite,
   runDocsDev,
-} from "./init-astro";
-import { scaffoldDoc, TEMPLATES } from "./scaffold-doc";
-import { checkLinks, formatLinkReport } from "./check-links";
-import { runPush } from "./push";
-import { runSyncCommand } from "./sync/run";
-import { importOpenApi } from "./import-openapi";
-import { publishConfluencePage } from "./publishers/confluence";
-import { publishJiraIssue, type JiraPublishMode } from "./publishers/jira";
-import { recordDeployment, getDeploymentStatus, getEnvironmentDrift } from "./deploy/deployments";
-import { loadConfig } from "./config.js";
-import type { Formatter } from "./types/formatter.js";
-import type { RunDiffSummary, ScenarioDiff } from "./types/compare";
+} from './init-astro';
+import { listScenarios } from './list-scenarios';
+import { sendNotifications } from './notifiers/send-notifications';
+import type {
+  GenericWebhookNotifierOptions,
+  NotifyCondition,
+  WebhookSignerHmac,
+} from './notifiers/types';
+import { openInBrowser, pickOpenTarget } from './open-report';
+import { expandPreset, presetHelpLines } from './presets';
+import { publishConfluencePage } from './publishers/confluence';
+import { publishJiraIssue, type JiraPublishMode } from './publishers/jira';
+import { runPush } from './push';
+import { buildReview, codeDiffDiagnostics } from './review/build-review';
+import {
+  assembleCodeDiff,
+  type CodeDiffSidecar,
+} from './review/code-diff-sidecar';
+import {
+  DEFAULT_RUN_FILES,
+  diagnoseRunFile,
+  findDefaultRunFile,
+  formatDoctorReport,
+} from './run-file';
+import { runsReset, runsStatus } from './runs-lifecycle';
+import { scaffoldDoc, TEMPLATES } from './scaffold-doc';
+import { selectTestCases } from './select-test-cases';
+import { summaryLine, type SummaryCounts } from './summary-line';
+import { runSyncCommand } from './sync/run';
+import { buildTriage, renderTriage } from './triage';
+import type { RunDiffSummary, ScenarioDiff } from './types/compare';
+import type { Formatter } from './types/formatter.js';
+import type { OutputFormat } from './types/options';
+import type {
+  ChangedFile,
+  EvidenceStrength,
+  ReviewContext,
+} from './types/review';
+import { validateRawRun } from './validation/schema-validator';
 
 // ============================================================================
 // Exit Codes
@@ -78,6 +114,19 @@ import type { RunDiffSummary, ScenarioDiff } from "./types/compare";
 const EXIT_SUCCESS = 0;
 const EXIT_SCHEMA_VALIDATION = 1;
 const EXIT_CANONICAL_VALIDATION = 2;
+
+/**
+ * Formats that record one execution rather than documenting a suite. Kept in
+ * step with EXECUTION_FORMATS in report-generator, so the summary counts the
+ * same set of scenarios the output actually contains.
+ */
+const EXECUTION_ONLY_FORMATS = new Set([
+  'junit',
+  'cucumber-json',
+  'cucumber-messages',
+  'cucumber-html',
+  'release-manifest',
+]);
 const EXIT_GENERATION = 3;
 const EXIT_USAGE = 4;
 const EXIT_COMPARE_GATE = 5;
@@ -100,12 +149,12 @@ USAGE
   executable-stories watch <raw-run.json> [options]
   executable-stories compare <baseline-file> <current-file> [options]
   executable-stories gate-release <dev-run.json> <rc-run.json> [options]
-  executable-stories review <file> --changed-files <path> [options]
-  executable-stories list <file> [options]
-  executable-stories check <file> [--baseline <path|auto>] [--check-format text|json] [--max-skipped <n>] [--no-fail]
-  executable-stories check-explainers <file> --explainers-dir <dir> [--check-format text|json] [--no-fail]
-  executable-stories goal <file> [--require-tags <csv>] [--require-tickets <csv>] [--require-scenarios <csv>] [--baseline <path|auto>] [--no-regressions] [--goal-format text|json]
-  executable-stories triage <file> [--baseline <path|auto>] [--triage-format text|json]
+  executable-stories review <file|directory> --changed-files <path> [options]
+  executable-stories list <file|directory> [options]
+  executable-stories check <file|directory> [--baseline <path|auto>] [--check-format text|json] [--max-skipped <n>] [--no-fail]
+  executable-stories check-explainers <file|directory> --explainers-dir <dir> [--check-format text|json] [--no-fail]
+  executable-stories goal <file|directory> [--require-tags <csv>] [--require-tickets <csv>] [--require-scenarios <csv>] [--baseline <path|auto>] [--no-regressions] [--goal-format text|json]
+  executable-stories triage <file|directory> [--baseline <path|auto>] [--triage-format text|json]
   executable-stories validate <file>
   executable-stories validate --stdin
   executable-stories dev [directory]
@@ -135,6 +184,7 @@ SUBCOMMANDS
   triage             Discovery worklist for agent loops: failing scenarios, regressions first, each with the code it covers
   validate           Validate a JSON file against the schema (no output generated)
   doctor             Diagnose the run JSON: where it is, whether it parses, schema version vs this CLI, what it contains
+  runs               Inspect or clear the accumulated run state: "runs status", "runs reset"
   completion         Output a shell completion script (bash, zsh, fish)
   init-astro         Scaffold a thin Astro docs site (Starlight + executable-stories-astro; live stories at /stories)
   new                Scaffold a docs page from a template (adr, runbook, decision-log, incident, scenario-note)
@@ -166,7 +216,7 @@ OPTIONS
   --preset <name>               Format bundle (unioned with --format when both are given):
 ${presetHelpLines()
   .map((l) => `                                  ${l}`)
-  .join("\n")}
+  .join('\n')}
   --open                        Open the generated HTML report in the default browser
   --config <path>               Path to executable-stories.config.js (default: ./executable-stories.config.js)
   --input-type <type>           Input type: raw, canonical, or ndjson (default: raw)
@@ -342,23 +392,34 @@ EXIT CODES
 `.trim();
 
 interface CliArgs {
-  subcommand: "format" | "watch" | "compare" | "gate-release" | "review" | "list" | "check" | "check-explainers" | "goal" | "triage" | "validate";
+  subcommand:
+    | 'format'
+    | 'watch'
+    | 'compare'
+    | 'gate-release'
+    | 'review'
+    | 'list'
+    | 'check'
+    | 'check-explainers'
+    | 'goal'
+    | 'triage'
+    | 'validate';
   inputFile?: string;
   baselineFile?: string;
   /** Raw --baseline value (path or "auto"), used by check for delta detection. */
   baselineArg?: string;
   currentFile?: string;
-  baselineMode: "explicit" | "auto";
+  baselineMode: 'explicit' | 'auto';
   baselineDir?: string;
   stdin: boolean;
   formats: OutputFormat[];
   /** --open: reveal the generated HTML report in the default browser. */
   open: boolean;
-  inputType: "raw" | "canonical" | "ndjson";
+  inputType: 'raw' | 'canonical' | 'ndjson';
   outputDir: string;
   outputName: string;
   outputNameTimestamp: boolean;
-  sortTestCases: "id" | "source" | "none";
+  sortTestCases: 'id' | 'source' | 'none';
   include: string[];
   exclude: string[];
   includeTags: string[];
@@ -371,8 +432,8 @@ interface CliArgs {
   jsonSummary: boolean;
   /** Emit compact JSON for agent-facing artifacts (story-report, scenario-index, behavior-manifest, list --json). */
   minify: boolean;
-  listFormat: "text" | "json" | "csv" | "markdown-table";
-  checkFormat: "text" | "json";
+  listFormat: 'text' | 'json' | 'csv' | 'markdown-table';
+  checkFormat: 'text' | 'json';
   /** check-explainers: directory of explainer markdown to audit. */
   explainersDir?: string;
   noFail: boolean;
@@ -383,8 +444,8 @@ interface CliArgs {
   requireScenarios: string[];
   noRegressions: boolean;
   noRatchet: boolean;
-  goalFormat: "text" | "json";
-  triageFormat: "text" | "json";
+  goalFormat: 'text' | 'json';
+  triageFormat: 'text' | 'json';
   emitCanonical?: string;
   slackWebhook?: string;
   teamsWebhook?: string;
@@ -395,11 +456,11 @@ interface CliArgs {
   maxHistoryRuns: number;
   webhookUrls: string[];
   webhookHeaders: Record<string, string>;
-  webhookMethod: "POST" | "PUT";
+  webhookMethod: 'POST' | 'PUT';
   webhookHmacSecret?: string;
   webhookHmacHeader: string;
   webhookHmacTimestamp: boolean;
-  assetMode: "none" | "copy";
+  assetMode: 'none' | 'copy';
   allowMissingAssets: boolean;
   prSummary: boolean;
   prSummaryFile?: string;
@@ -414,7 +475,7 @@ interface CliArgs {
   changedFilesPath?: string;
   baseRef?: string;
   headRef?: string;
-  failOn?: "uncovered" | "weak";
+  failOn?: 'uncovered' | 'weak';
   minEvidence?: EvidenceStrength;
   codeDiffPath?: string;
   patchPath?: string;
@@ -423,25 +484,32 @@ interface CliArgs {
 }
 
 /** Validate a `--*-format text|json` flag, exiting with a usage error otherwise. */
-function parseTextJsonFormat(flag: string, value: string): "text" | "json" {
-  if (value !== "text" && value !== "json") {
+function parseTextJsonFormat(flag: string, value: string): 'text' | 'json' {
+  if (value !== 'text' && value !== 'json') {
     console.error(`Error: ${flag} must be "text" or "json", got "${value}".`);
     process.exit(EXIT_USAGE);
   }
   return value;
 }
 
-async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConfig: Awaited<ReturnType<typeof loadConfig>>; customRequested: string[] }> {
+async function parseCliArgs(
+  argv: string[],
+): Promise<{
+  args: CliArgs;
+  pluginConfig: Awaited<ReturnType<typeof loadConfig>>;
+  customRequested: string[];
+}> {
   // Strip node + script path
   const args = argv.slice(2);
 
   // Subcommands that own their argument parsing also own their help text, so
   // `sync --help` must reach them rather than printing the global usage.
-  const SELF_DOCUMENTING = new Set(["sync", "coverage"]);
+  const SELF_DOCUMENTING = new Set(['sync', 'coverage']);
 
   if (
     args.length === 0 ||
-    ((args.includes("--help") || args.includes("-h")) && !SELF_DOCUMENTING.has(args[0] ?? ""))
+    ((args.includes('--help') || args.includes('-h')) &&
+      !SELF_DOCUMENTING.has(args[0] ?? ''))
   ) {
     console.log(HELP_TEXT);
     process.exit(EXIT_SUCCESS);
@@ -449,41 +517,42 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
 
   const subcommand = args[0];
   if (
-    subcommand !== "format" &&
-    subcommand !== "watch" &&
-    subcommand !== "compare" &&
-    subcommand !== "gate-release" &&
-    subcommand !== "deploy" &&
-    subcommand !== "review" &&
-    subcommand !== "list" &&
-    subcommand !== "check" &&
-    subcommand !== "check-explainers" &&
-    subcommand !== "goal" &&
-    subcommand !== "triage" &&
-    subcommand !== "validate" &&
-    subcommand !== "doctor" &&
-    subcommand !== "completion" &&
-    subcommand !== "dev" &&
-    subcommand !== "init-astro" &&
-    subcommand !== "new" &&
-    subcommand !== "check-links" &&
-    subcommand !== "push" &&
-    subcommand !== "import-openapi" &&
-    subcommand !== "publish-confluence" &&
-    subcommand !== "publish-jira" &&
-    subcommand !== "sync" &&
-    subcommand !== "coverage"
+    subcommand !== 'format' &&
+    subcommand !== 'watch' &&
+    subcommand !== 'compare' &&
+    subcommand !== 'gate-release' &&
+    subcommand !== 'deploy' &&
+    subcommand !== 'review' &&
+    subcommand !== 'list' &&
+    subcommand !== 'check' &&
+    subcommand !== 'check-explainers' &&
+    subcommand !== 'goal' &&
+    subcommand !== 'triage' &&
+    subcommand !== 'validate' &&
+    subcommand !== 'doctor' &&
+    subcommand !== 'completion' &&
+    subcommand !== 'dev' &&
+    subcommand !== 'init-astro' &&
+    subcommand !== 'new' &&
+    subcommand !== 'check-links' &&
+    subcommand !== 'push' &&
+    subcommand !== 'import-openapi' &&
+    subcommand !== 'publish-confluence' &&
+    subcommand !== 'publish-jira' &&
+    subcommand !== 'sync' &&
+    subcommand !== 'coverage' &&
+    subcommand !== 'runs'
   ) {
     // `serve` was removed in favour of the Astro dev server. Give upgraders a
     // direct migration message instead of the generic "unknown subcommand", so
     // agent/docs loops that still call it fail with an actionable hint.
-    if (subcommand === "serve" || subcommand === "build-docs") {
+    if (subcommand === 'serve' || subcommand === 'build-docs') {
       console.error(
         `The "${subcommand}" subcommand was removed. Living docs are now an Astro site, rendered live from the run JSON (no Markdown generation step):\n` +
-          "  1. executable-stories init-astro --install   (one-time scaffold)\n" +
-          "  2. run your tests in watch mode in one terminal\n" +
-          "  3. run `executable-stories dev` in another — it hot-reloads the docs.\n" +
-          "See: https://github.com/jagreehal/executable-stories (executable-stories-astro).",
+          '  1. executable-stories init-astro --install   (one-time scaffold)\n' +
+          '  2. run your tests in watch mode in one terminal\n' +
+          '  3. run `executable-stories dev` in another — it hot-reloads the docs.\n' +
+          'See: https://github.com/jagreehal/executable-stories (executable-stories-astro).',
       );
       process.exit(EXIT_USAGE);
     }
@@ -494,17 +563,17 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
   }
 
   // Handle completion early — pure stdout, no config or input file needed.
-  if (subcommand === "completion") {
+  if (subcommand === 'completion') {
     process.exit(runCompletion(args.slice(1)));
   }
 
   // Handle doctor early: it diagnoses the run file (including the cases that
   // would make normal arg parsing fail), so it must not go through the shared
   // input-file resolution below.
-  if (subcommand === "doctor") {
-    const target = args.slice(1).find((a) => !a.startsWith("-"));
+  if (subcommand === 'doctor') {
+    const target = args.slice(1).find((a) => !a.startsWith('-'));
     const report = diagnoseRunFile(target);
-    const asJson = args.includes("--json");
+    const asJson = args.includes('--json');
     if (asJson) {
       console.log(JSON.stringify(report, null, 2));
     } else {
@@ -513,59 +582,104 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
     process.exit(report.healthy ? EXIT_SUCCESS : EXIT_USAGE);
   }
 
+  // The accumulated run state is hidden by design, so it needs a way to be
+  // looked at and thrown away. Neither changes how a report is produced.
+  if (subcommand === 'runs') {
+    const action = args[1];
+    const outputDirFlag = args.indexOf('--output-dir');
+    const outputDir = outputDirFlag >= 0 ? args[outputDirFlag + 1] : undefined;
+    const deps = {
+      readFile: (filePath: string) => fs.readFileSync(filePath, 'utf8'),
+      listDir: (dir: string) => {
+        try {
+          return fs.readdirSync(dir);
+        } catch {
+          return undefined;
+        }
+      },
+      removeFile: (filePath: string) => fs.rmSync(filePath, { force: true }),
+      logger: console,
+    };
+
+    if (action === 'status') {
+      console.log(
+        runsStatus(
+          { outputDir: outputDir ?? 'reports', nowMs: Date.now() },
+          deps,
+        ).text,
+      );
+      process.exit(EXIT_SUCCESS);
+    }
+    if (action === 'reset') {
+      console.log(runsReset({ outputDir: outputDir ?? 'reports' }, deps).text);
+      process.exit(EXIT_SUCCESS);
+    }
+    console.error(
+      `Error: unknown "runs" action ${action ? `"${action}"` : '(none given)'}. Expected "status" or "reset".`,
+    );
+    process.exit(EXIT_USAGE);
+  }
+
   // Handle publish-confluence early (has its own arg shape — exits after completion)
-  if (subcommand === "publish-confluence") {
+  if (subcommand === 'publish-confluence') {
     await runPublishConfluence(args.slice(1));
     process.exit(EXIT_SUCCESS);
   }
 
   // Handle publish-jira early (has its own arg shape — exits after completion)
-  if (subcommand === "publish-jira") {
+  if (subcommand === 'publish-jira') {
     await runPublishJira(args.slice(1));
     process.exit(EXIT_SUCCESS);
   }
 
   // Handle deploy early (has its own arg shape — exits after completion)
-  if (subcommand === "deploy") {
+  if (subcommand === 'deploy') {
     process.exit(await runDeploy(args.slice(1)));
   }
 
   // Handle dev early (no parseArgs needed). The command body lives in
   // init-astro.ts (runDocsDev); this branch only maps outcomes to messages
   // and exit codes.
-  if (subcommand === "dev") {
+  if (subcommand === 'dev') {
     const devArgs = args.slice(1);
-    const siteDir = devArgs.find((a) => !a.startsWith("--")) ?? "./story-docs";
+    const siteDir = devArgs.find((a) => !a.startsWith('--')) ?? './story-docs';
     const dev = runDocsDev(siteDir);
-    if (dev.kind === "not-scaffolded") {
+    if (dev.kind === 'not-scaffolded') {
       console.error(
         `No docs site found at ${siteDir}. Create one (scaffold + install) with:\n` +
           `  npx executable-stories init-astro --install`,
       );
       process.exit(EXIT_USAGE);
     }
-    if (dev.kind === "install-failed") {
-      console.error(`"${dev.pm} install" failed in ${siteDir} — run it manually, then retry.`);
+    if (dev.kind === 'install-failed') {
+      console.error(
+        `"${dev.pm} install" failed in ${siteDir} — run it manually, then retry.`,
+      );
       process.exit(EXIT_GENERATION);
     }
     process.exit(dev.status ?? EXIT_GENERATION);
   }
 
   // Handle init-astro early (no parseArgs needed)
-  if (subcommand === "init-astro") {
+  if (subcommand === 'init-astro') {
     const initArgs = args.slice(1);
-    const targetDir = initArgs.find((a) => !a.startsWith("--")) ?? "./story-docs";
-    const force = initArgs.includes("--force");
+    const targetDir =
+      initArgs.find((a) => !a.startsWith('--')) ?? './story-docs';
+    const force = initArgs.includes('--force');
     // --update merges any new template deps; the framework itself ships in the
     // executable-stories-astro package, so there are no framework files to refresh.
-    const update = initArgs.includes("--update");
-    const install = initArgs.includes("--install");
+    const update = initArgs.includes('--update');
+    const install = initArgs.includes('--install');
 
     try {
       const result = initAstroFn({ targetDir, force, update });
       if (update) {
-        console.log(`Updated ${result.targetDir} (content + config left untouched)`);
-        console.log("  Framework updates come via: pnpm update executable-stories-astro");
+        console.log(
+          `Updated ${result.targetDir} (content + config left untouched)`,
+        );
+        console.log(
+          '  Framework updates come via: pnpm update executable-stories-astro',
+        );
         process.exit(EXIT_SUCCESS);
       }
       console.log(`Scaffolded Astro docs site at ${result.targetDir}`);
@@ -581,20 +695,34 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
         }
       }
 
-      console.log("");
-      console.log("Next steps:");
+      console.log('');
+      console.log('Next steps:');
       let step = 1;
       if (!install) {
         console.log(`  ${step++}. cd ${result.targetDir} && ${pm} install`);
       }
-      console.log(`  ${step++}. In your TEST project, add the StoryReporter with a rawRunPath, e.g.`);
-      console.log("       StoryReporter({ rawRunPath: 'reports/raw-run.json' })");
-      console.log(`  ${step++}. Run your tests in watch mode (terminal 1):  ${pm} test --watch`);
-      console.log(`  ${step++}. Run the docs dev server (terminal 2):  npx executable-stories dev`);
-      console.log("     Editing tests hot-reloads the Stories pages — nothing is written to disk.");
-      console.log("");
-      console.log("Everything is configured in one file: executable-stories.config.mjs");
-      console.log("  — sources, scenario selection (include/exclude), grouping (groupBy), docs, and theme.");
+      console.log(
+        `  ${step++}. In your TEST project, add the StoryReporter with a rawRunPath, e.g.`,
+      );
+      console.log(
+        "       StoryReporter({ rawRunPath: 'reports/raw-run.json' })",
+      );
+      console.log(
+        `  ${step++}. Run your tests in watch mode (terminal 1):  ${pm} test --watch`,
+      );
+      console.log(
+        `  ${step++}. Run the docs dev server (terminal 2):  npx executable-stories dev`,
+      );
+      console.log(
+        '     Editing tests hot-reloads the Stories pages — nothing is written to disk.',
+      );
+      console.log('');
+      console.log(
+        'Everything is configured in one file: executable-stories.config.mjs',
+      );
+      console.log(
+        '  — sources, scenario selection (include/exclude), grouping (groupBy), docs, and theme.',
+      );
       process.exit(EXIT_SUCCESS);
     } catch (err) {
       console.error(`Error: ${(err as Error).message}`);
@@ -604,87 +732,91 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
 
   // Docs-site subcommands have their own arg shapes — each owns its parsing and
   // exit code, mirroring runPublishConfluence/runPublishJira below.
-  if (subcommand === "new") process.exit(runNew(args.slice(1)));
-  if (subcommand === "check-links") process.exit(await runCheckLinks(args.slice(1)));
-  if (subcommand === "push") process.exit(await runPush(args.slice(1)));
-  if (subcommand === "sync") process.exit(await runSyncCommand("sync", args.slice(1)));
-  if (subcommand === "coverage") process.exit(await runSyncCommand("coverage", args.slice(1)));
-  if (subcommand === "import-openapi") process.exit(await runImportOpenApi(args.slice(1)));
+  if (subcommand === 'new') process.exit(runNew(args.slice(1)));
+  if (subcommand === 'check-links')
+    process.exit(await runCheckLinks(args.slice(1)));
+  if (subcommand === 'push') process.exit(await runPush(args.slice(1)));
+  if (subcommand === 'sync')
+    process.exit(await runSyncCommand('sync', args.slice(1)));
+  if (subcommand === 'coverage')
+    process.exit(await runSyncCommand('coverage', args.slice(1)));
+  if (subcommand === 'import-openapi')
+    process.exit(await runImportOpenApi(args.slice(1)));
 
   // Parse remaining args with node:util parseArgs
   const { values, positionals } = parseArgs({
     args: args.slice(1),
     options: {
-      format: { type: "string", default: "html" },
-      preset: { type: "string" },
-      open: { type: "boolean", default: false },
-      baseline: { type: "string" },
-      "baseline-dir": { type: "string" },
-      "input-type": { type: "string", default: "raw" },
-      "output-dir": { type: "string", default: "reports" },
-      "output-name": { type: "string", default: "index" },
-      "output-name-timestamp": { type: "boolean", default: false },
-      "sort-test-cases": { type: "string", default: "none" },
-      include: { type: "string" },
-      exclude: { type: "string" },
-      "include-tags": { type: "string" },
-      "exclude-tags": { type: "string" },
-      "synthesize-stories": { type: "boolean", default: true },
-      "no-synthesize-stories": { type: "boolean", default: false },
-      "html-title": { type: "string", default: "Test Results" },
-      "html-no-syntax-highlighting": { type: "boolean", default: false },
-      "html-no-mermaid": { type: "boolean", default: false },
-      "html-stale-after-days": { type: "string" },
-      stdin: { type: "boolean", default: false },
-      "json-summary": { type: "boolean", default: false },
-      "minify": { type: "boolean", default: false },
-      "list-format": { type: "string", default: "text" },
-      "check-format": { type: "string", default: "text" },
-      "explainers-dir": { type: "string" },
-      "no-fail": { type: "boolean", default: false },
-      "max-skipped": { type: "string" },
-      "require-tags": { type: "string" },
-      "require-tickets": { type: "string" },
-      "require-scenarios": { type: "string" },
-      "no-regressions": { type: "boolean", default: false },
-      "no-ratchet": { type: "boolean", default: false },
-      "goal-format": { type: "string", default: "text" },
-      "triage-format": { type: "string", default: "text" },
-      "emit-canonical": { type: "string" },
-      "slack-webhook": { type: "string" },
-      "teams-webhook": { type: "string" },
-      notify: { type: "string", default: "on-failure" },
-      "report-url": { type: "string" },
-      "max-failed-tests": { type: "string" },
-      "history-file": { type: "string" },
-      "max-history-runs": { type: "string" },
-      "webhook-url": { type: "string", multiple: true },
-      "webhook-header": { type: "string", multiple: true },
-      "webhook-method": { type: "string" },
-      "webhook-hmac-secret": { type: "string" },
-      "webhook-hmac-header": { type: "string" },
-      "webhook-hmac-timestamp": { type: "boolean", default: false },
-      "asset-mode": { type: "string", default: "none" },
-      "allow-missing-assets": { type: "boolean", default: false },
-      "pr-summary": { type: "boolean", default: false },
-      "pr-summary-file": { type: "string" },
-      "fail-on-regression": { type: "boolean", default: false },
-      "fail-on-added-failures": { type: "boolean", default: false },
-      "fail-on-removal": { type: "boolean", default: false },
-      "fail-on-new": { type: "boolean", default: false },
-      "partial": { type: "boolean", default: false },
-      "max-regressions": { type: "string" },
-      "release-policy": { type: "string" },
-      "changed-files": { type: "string" },
-      "base-ref": { type: "string" },
-      "head-ref": { type: "string" },
-      "fail-on": { type: "string" },
-      "min-evidence": { type: "string" },
-      "code-diff": { type: "string" },
-      "patch": { type: "string" },
-      "strict-code-diff": { type: "boolean", default: false },
-      "config": { type: "string" },
-      help: { type: "boolean", default: false },
+      format: { type: 'string', default: 'html' },
+      preset: { type: 'string' },
+      open: { type: 'boolean', default: false },
+      baseline: { type: 'string' },
+      'baseline-dir': { type: 'string' },
+      'input-type': { type: 'string', default: 'raw' },
+      'output-dir': { type: 'string', default: 'reports' },
+      'output-name': { type: 'string', default: 'index' },
+      'output-name-timestamp': { type: 'boolean', default: false },
+      'sort-test-cases': { type: 'string', default: 'none' },
+      include: { type: 'string' },
+      exclude: { type: 'string' },
+      'include-tags': { type: 'string' },
+      'exclude-tags': { type: 'string' },
+      'synthesize-stories': { type: 'boolean', default: true },
+      'no-synthesize-stories': { type: 'boolean', default: false },
+      'html-title': { type: 'string', default: 'Test Results' },
+      'html-no-syntax-highlighting': { type: 'boolean', default: false },
+      'html-no-mermaid': { type: 'boolean', default: false },
+      'html-stale-after-days': { type: 'string' },
+      stdin: { type: 'boolean', default: false },
+      'json-summary': { type: 'boolean', default: false },
+      minify: { type: 'boolean', default: false },
+      'list-format': { type: 'string', default: 'text' },
+      'check-format': { type: 'string', default: 'text' },
+      'explainers-dir': { type: 'string' },
+      'no-fail': { type: 'boolean', default: false },
+      'max-skipped': { type: 'string' },
+      'require-tags': { type: 'string' },
+      'require-tickets': { type: 'string' },
+      'require-scenarios': { type: 'string' },
+      'no-regressions': { type: 'boolean', default: false },
+      'no-ratchet': { type: 'boolean', default: false },
+      'goal-format': { type: 'string', default: 'text' },
+      'triage-format': { type: 'string', default: 'text' },
+      'emit-canonical': { type: 'string' },
+      'slack-webhook': { type: 'string' },
+      'teams-webhook': { type: 'string' },
+      notify: { type: 'string', default: 'on-failure' },
+      'report-url': { type: 'string' },
+      'max-failed-tests': { type: 'string' },
+      'history-file': { type: 'string' },
+      'max-history-runs': { type: 'string' },
+      'webhook-url': { type: 'string', multiple: true },
+      'webhook-header': { type: 'string', multiple: true },
+      'webhook-method': { type: 'string' },
+      'webhook-hmac-secret': { type: 'string' },
+      'webhook-hmac-header': { type: 'string' },
+      'webhook-hmac-timestamp': { type: 'boolean', default: false },
+      'asset-mode': { type: 'string', default: 'none' },
+      'allow-missing-assets': { type: 'boolean', default: false },
+      'pr-summary': { type: 'boolean', default: false },
+      'pr-summary-file': { type: 'string' },
+      'fail-on-regression': { type: 'boolean', default: false },
+      'fail-on-added-failures': { type: 'boolean', default: false },
+      'fail-on-removal': { type: 'boolean', default: false },
+      'fail-on-new': { type: 'boolean', default: false },
+      partial: { type: 'boolean', default: false },
+      'max-regressions': { type: 'string' },
+      'release-policy': { type: 'string' },
+      'changed-files': { type: 'string' },
+      'base-ref': { type: 'string' },
+      'head-ref': { type: 'string' },
+      'fail-on': { type: 'string' },
+      'min-evidence': { type: 'string' },
+      'code-diff': { type: 'string' },
+      patch: { type: 'string' },
+      'strict-code-diff': { type: 'boolean', default: false },
+      config: { type: 'string' },
+      help: { type: 'boolean', default: false },
     },
     allowPositionals: true,
     strict: true,
@@ -701,10 +833,12 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
   // the user can see in their own command line always beats an environment one.
   // `userSetFormat` keeps the parser's "html" default out of preset unions —
   // only a format the user actually typed joins the preset's set.
-  const userSetFormat = args.slice(1).some((a) => a === "--format" || a.startsWith("--format="));
+  const userSetFormat = args
+    .slice(1)
+    .some((a) => a === '--format' || a.startsWith('--format='));
   const preset = expandPreset(
     values.preset as string | undefined,
-    (values.format as string).split(",").map((f) => f.trim()),
+    (values.format as string).split(',').map((f) => f.trim()),
     userSetFormat,
   );
   if (preset.error) {
@@ -714,41 +848,46 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
 
   const useStdin = values.stdin as boolean;
   const baselineValue = values.baseline as string | undefined;
-  const baselineMode = baselineValue === "auto" ? "auto" : "explicit";
-  const isCompareLike = subcommand === "compare" || subcommand === "gate-release";
+  const baselineMode = baselineValue === 'auto' ? 'auto' : 'explicit';
+  const isCompareLike =
+    subcommand === 'compare' || subcommand === 'gate-release';
   const inputFile = isCompareLike ? undefined : positionals[0];
-  const baselineFile =
-    isCompareLike
-      ? baselineMode === "auto"
-        ? baselineValue && baselineValue !== "auto"
-          ? baselineValue
-          : positionals.length > 1
-            ? positionals[0]
-            : undefined
-        : baselineValue && baselineValue !== "auto"
-          ? baselineValue
-          : positionals.length > 1
-            ? positionals[0]
-            : undefined
-      : undefined;
-  const currentFile =
-    isCompareLike
-      ? positionals.length > 1
-        ? positionals[1]
-        : positionals[0]
-      : undefined;
+  const baselineFile = isCompareLike
+    ? baselineMode === 'auto'
+      ? baselineValue && baselineValue !== 'auto'
+        ? baselineValue
+        : positionals.length > 1
+          ? positionals[0]
+          : undefined
+      : baselineValue && baselineValue !== 'auto'
+        ? baselineValue
+        : positionals.length > 1
+          ? positionals[0]
+          : undefined
+    : undefined;
+  const currentFile = isCompareLike
+    ? positionals.length > 1
+      ? positionals[1]
+      : positionals[0]
+    : undefined;
 
   if (isCompareLike) {
     if (useStdin) {
-      console.error(`Error: ${subcommand} does not support --stdin. Pass baseline and current files.`);
+      console.error(
+        `Error: ${subcommand} does not support --stdin. Pass baseline and current files.`,
+      );
       process.exit(EXIT_USAGE);
     }
     if (!currentFile) {
-      console.error(`Error: ${subcommand} requires <current-file>, and either <baseline-file> or --baseline auto.`);
+      console.error(
+        `Error: ${subcommand} requires <current-file>, and either <baseline-file> or --baseline auto.`,
+      );
       process.exit(EXIT_USAGE);
     }
-    if (baselineMode === "explicit" && !baselineFile) {
-      console.error(`Error: ${subcommand} requires <baseline-file> and <current-file>, or use --baseline auto.`);
+    if (baselineMode === 'explicit' && !baselineFile) {
+      console.error(
+        `Error: ${subcommand} requires <baseline-file> and <current-file>, or use --baseline auto.`,
+      );
       process.exit(EXIT_USAGE);
     }
   }
@@ -767,57 +906,99 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
       console.error(`Using ${found} (no input file given).`);
     } else {
       console.error(
-        "Error: No input file specified, and no run JSON found at " +
-          `${DEFAULT_RUN_FILES.join(" or ")}.\n` +
-          "  Pass a path, use --stdin, or run your tests first (non-JS adapters write\n" +
+        'Error: No input file specified, and no run JSON found at ' +
+          `${DEFAULT_RUN_FILES.join(' or ')}.\n` +
+          '  Pass a path, use --stdin, or run your tests first (non-JS adapters write\n' +
           `  ${DEFAULT_RUN_FILES[0]}; set rawRunPath in a JS reporter to write ${DEFAULT_RUN_FILES[1]}).`,
       );
       process.exit(EXIT_USAGE);
     }
   }
 
-  const inputType = values["input-type"] as string;
-  if (inputType !== "raw" && inputType !== "canonical" && inputType !== "ndjson") {
-    console.error(`Error: --input-type must be "raw", "canonical", or "ndjson", got "${inputType}".`);
+  const inputType = values['input-type'] as string;
+  if (
+    inputType !== 'raw' &&
+    inputType !== 'canonical' &&
+    inputType !== 'ndjson'
+  ) {
+    console.error(
+      `Error: --input-type must be "raw", "canonical", or "ndjson", got "${inputType}".`,
+    );
     process.exit(EXIT_USAGE);
   }
 
   // Load config early so custom formatter names can be validated alongside built-ins
-  const pluginConfig = await loadConfig(values["config"] as string | undefined);
-  const customFormatterNames = new Set(Object.keys(pluginConfig.formatters ?? {}));
+  const pluginConfig = await loadConfig(values['config'] as string | undefined);
+  const customFormatterNames = new Set(
+    Object.keys(pluginConfig.formatters ?? {}),
+  );
 
-  const builtInFormats = new Set(["agent-text", "astro-markdown", "behavior-manifest-json", "confluence", "html", "markdown", "release-manifest", "traceability-matrix", "traceability-csv", "junit", "cucumber-json", "cucumber-messages", "cucumber-html", "scenario-index-json", "story-report-json"]);
+  const builtInFormats = new Set([
+    'agent-text',
+    'astro-markdown',
+    'behavior-manifest-json',
+    'confluence',
+    'html',
+    'markdown',
+    'release-manifest',
+    'traceability-matrix',
+    'traceability-csv',
+    'junit',
+    'cucumber-json',
+    'cucumber-messages',
+    'cucumber-html',
+    'scenario-index-json',
+    'story-report-json',
+  ]);
   // The behavior changelog is a two-run diff, so it only exists for the
   // compare-like subcommands; `format` keeps rejecting it as unknown.
-  if (isCompareLike) builtInFormats.add("changelog");
+  if (isCompareLike) builtInFormats.add('changelog');
   const requestedFormats = preset.formats;
   // `astro` was the old name for the Starlight-Markdown format; it collided with the
   // executable-stories-astro live integration. Accept it as a deprecated alias here, at
   // the (untyped) CLI boundary, so everything downstream only ever sees "astro-markdown".
-  if (requestedFormats.includes("astro")) {
+  if (requestedFormats.includes('astro')) {
     console.warn(
       "⚠ The 'astro' format was renamed to 'astro-markdown' — it emits Starlight Markdown, not the\n" +
         "  executable-stories-astro live integration. '--format astro' still works but will be removed in a\n" +
         "  future major; use 'astro-markdown', or scaffold a live site with `init-astro` + `astro dev`.",
     );
   }
-  const allRequestedFormats = requestedFormats.map((f) => (f === "astro" ? "astro-markdown" : f));
-  const builtInRequested = allRequestedFormats.filter((f) => builtInFormats.has(f)) as OutputFormat[];
-  const customRequested = allRequestedFormats.filter((f) => customFormatterNames.has(f));
-  const unknownFormats = allRequestedFormats.filter((f) => !builtInFormats.has(f) && !customFormatterNames.has(f));
+  const allRequestedFormats = requestedFormats.map((f) =>
+    f === 'astro' ? 'astro-markdown' : f,
+  );
+  const builtInRequested = allRequestedFormats.filter((f) =>
+    builtInFormats.has(f),
+  ) as OutputFormat[];
+  const customRequested = allRequestedFormats.filter((f) =>
+    customFormatterNames.has(f),
+  );
+  const unknownFormats = allRequestedFormats.filter(
+    (f) => !builtInFormats.has(f) && !customFormatterNames.has(f),
+  );
 
   if (unknownFormats.length > 0) {
-    const knownCustom = customFormatterNames.size > 0 ? `, ${[...customFormatterNames].join(", ")}` : "";
-    console.error(`Error: Unknown format(s): ${unknownFormats.join(", ")}. Valid built-in: agent-text, astro-markdown, behavior-manifest-json, confluence, html, markdown, release-manifest, traceability-matrix, traceability-csv, junit, cucumber-json, cucumber-messages, cucumber-html, scenario-index-json, story-report-json${knownCustom}.`);
+    const knownCustom =
+      customFormatterNames.size > 0
+        ? `, ${[...customFormatterNames].join(', ')}`
+        : '';
+    console.error(
+      `Error: Unknown format(s): ${unknownFormats.join(', ')}. Valid built-in: agent-text, astro-markdown, behavior-manifest-json, confluence, html, markdown, release-manifest, traceability-matrix, traceability-csv, junit, cucumber-json, cucumber-messages, cucumber-html, scenario-index-json, story-report-json${knownCustom}.`,
+    );
     process.exit(EXIT_USAGE);
   }
 
   const formats = builtInRequested;
 
-  const noSynthesize = values["no-synthesize-stories"] as boolean;
+  const noSynthesize = values['no-synthesize-stories'] as boolean;
 
   const parseGlobs = (v: string | undefined): string[] =>
-    v ? v.split(",").map((s) => s.trim()).filter(Boolean) : [];
+    v
+      ? v
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : [];
 
   // A budget of 0 is meaningful ("nothing may be switched off"), so undefined
   // is the only "no budget" — never fall back to a truthiness check here.
@@ -825,7 +1006,9 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
     if (v === undefined) return undefined;
     const n = Number(v);
     if (!Number.isInteger(n) || n < 0) {
-      console.error(`Error: --max-skipped must be a non-negative integer, got "${v}".`);
+      console.error(
+        `Error: --max-skipped must be a non-negative integer, got "${v}".`,
+      );
       process.exit(EXIT_USAGE);
     }
     return n;
@@ -833,42 +1016,59 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
 
   // Validate --notify
   const notifyValue = values.notify as string;
-  const validNotifyConditions = new Set(["always", "on-failure", "never"]);
+  const validNotifyConditions = new Set(['always', 'on-failure', 'never']);
   if (!validNotifyConditions.has(notifyValue)) {
-    console.error(`Error: --notify must be "always", "on-failure", or "never", got "${notifyValue}".`);
+    console.error(
+      `Error: --notify must be "always", "on-failure", or "never", got "${notifyValue}".`,
+    );
     process.exit(EXIT_USAGE);
   }
 
   // Parse --max-failed-tests
-  const maxFailedTestsStr = values["max-failed-tests"] as string | undefined;
-  const maxFailedTests = maxFailedTestsStr ? parseInt(maxFailedTestsStr, 10) : 5;
+  const maxFailedTestsStr = values['max-failed-tests'] as string | undefined;
+  const maxFailedTests = maxFailedTestsStr
+    ? parseInt(maxFailedTestsStr, 10)
+    : 5;
   if (maxFailedTestsStr && (isNaN(maxFailedTests) || maxFailedTests < 0)) {
-    console.error(`Error: --max-failed-tests must be a non-negative integer, got "${maxFailedTestsStr}".`);
+    console.error(
+      `Error: --max-failed-tests must be a non-negative integer, got "${maxFailedTestsStr}".`,
+    );
     process.exit(EXIT_USAGE);
   }
 
   // Parse --html-stale-after-days
-  const htmlStaleAfterDaysStr = values["html-stale-after-days"] as string | undefined;
-  const htmlStaleAfterDays = htmlStaleAfterDaysStr ? parseInt(htmlStaleAfterDaysStr, 10) : 7;
-  if (htmlStaleAfterDaysStr && (isNaN(htmlStaleAfterDays) || htmlStaleAfterDays < 0)) {
-    console.error(`Error: --html-stale-after-days must be a non-negative integer, got "${htmlStaleAfterDaysStr}".`);
+  const htmlStaleAfterDaysStr = values['html-stale-after-days'] as
+    | string
+    | undefined;
+  const htmlStaleAfterDays = htmlStaleAfterDaysStr
+    ? parseInt(htmlStaleAfterDaysStr, 10)
+    : 7;
+  if (
+    htmlStaleAfterDaysStr &&
+    (isNaN(htmlStaleAfterDays) || htmlStaleAfterDays < 0)
+  ) {
+    console.error(
+      `Error: --html-stale-after-days must be a non-negative integer, got "${htmlStaleAfterDaysStr}".`,
+    );
     process.exit(EXIT_USAGE);
   }
 
   // Slack/Teams webhook: CLI flag (env fallback is handled inside sendNotifications)
-  const slackWebhook = values["slack-webhook"] as string | undefined;
-  const teamsWebhook = values["teams-webhook"] as string | undefined;
+  const slackWebhook = values['slack-webhook'] as string | undefined;
+  const teamsWebhook = values['teams-webhook'] as string | undefined;
 
   // Parse --webhook-url (repeatable)
-  const webhookUrls = (values["webhook-url"] as string[] | undefined) ?? [];
+  const webhookUrls = (values['webhook-url'] as string[] | undefined) ?? [];
 
   // Parse --webhook-header (repeatable) "Key: Value"
   const webhookHeaders: Record<string, string> = {};
-  const rawHeaders = (values["webhook-header"] as string[] | undefined) ?? [];
+  const rawHeaders = (values['webhook-header'] as string[] | undefined) ?? [];
   for (const h of rawHeaders) {
-    const colonIdx = h.indexOf(":");
+    const colonIdx = h.indexOf(':');
     if (colonIdx <= 0) {
-      console.error(`Warning: ignoring invalid --webhook-header "${h}" (expected "Key: Value")`);
+      console.error(
+        `Warning: ignoring invalid --webhook-header "${h}" (expected "Key: Value")`,
+      );
       continue;
     }
     const key = h.slice(0, colonIdx).trim();
@@ -881,139 +1081,185 @@ async function parseCliArgs(argv: string[]): Promise<{ args: CliArgs; pluginConf
   }
 
   // Parse --webhook-method
-  const webhookMethodRaw = values["webhook-method"] as string | undefined;
-  let webhookMethod: "POST" | "PUT" = "POST";
+  const webhookMethodRaw = values['webhook-method'] as string | undefined;
+  let webhookMethod: 'POST' | 'PUT' = 'POST';
   if (webhookMethodRaw) {
     const upper = webhookMethodRaw.toUpperCase();
-    if (upper !== "POST" && upper !== "PUT") {
-      console.error(`Error: --webhook-method must be "POST" or "PUT", got "${webhookMethodRaw}".`);
+    if (upper !== 'POST' && upper !== 'PUT') {
+      console.error(
+        `Error: --webhook-method must be "POST" or "PUT", got "${webhookMethodRaw}".`,
+      );
       process.exit(EXIT_USAGE);
     }
-    webhookMethod = upper as "POST" | "PUT";
+    webhookMethod = upper as 'POST' | 'PUT';
   }
 
   // Parse --max-history-runs
-  const maxHistoryRunsStr = values["max-history-runs"] as string | undefined;
-  const maxHistoryRuns = maxHistoryRunsStr ? parseInt(maxHistoryRunsStr, 10) : 10;
+  const maxHistoryRunsStr = values['max-history-runs'] as string | undefined;
+  const maxHistoryRuns = maxHistoryRunsStr
+    ? parseInt(maxHistoryRunsStr, 10)
+    : 10;
   if (maxHistoryRunsStr && (isNaN(maxHistoryRuns) || maxHistoryRuns < 1)) {
-    console.error(`Error: --max-history-runs must be a positive integer, got "${maxHistoryRunsStr}".`);
+    console.error(
+      `Error: --max-history-runs must be a positive integer, got "${maxHistoryRunsStr}".`,
+    );
     process.exit(EXIT_USAGE);
   }
 
-  const maxRegressionsStr = values["max-regressions"] as string | undefined;
+  const maxRegressionsStr = values['max-regressions'] as string | undefined;
   const maxRegressions =
-    maxRegressionsStr !== undefined ? parseInt(maxRegressionsStr, 10) : undefined;
+    maxRegressionsStr !== undefined
+      ? parseInt(maxRegressionsStr, 10)
+      : undefined;
   if (
     maxRegressionsStr !== undefined &&
     (isNaN(maxRegressions as number) || (maxRegressions as number) < 0)
   ) {
-    console.error(`Error: --max-regressions must be a non-negative integer, got "${maxRegressionsStr}".`);
+    console.error(
+      `Error: --max-regressions must be a non-negative integer, got "${maxRegressionsStr}".`,
+    );
     process.exit(EXIT_USAGE);
   }
 
-  const sortTestCasesRaw = values["sort-test-cases"] as string;
-  const validSortModes = new Set(["id", "source", "none"]);
+  const sortTestCasesRaw = values['sort-test-cases'] as string;
+  const validSortModes = new Set(['id', 'source', 'none']);
   if (!validSortModes.has(sortTestCasesRaw)) {
-    console.error(`Error: --sort-test-cases must be id, source, or none, got "${sortTestCasesRaw}".`);
+    console.error(
+      `Error: --sort-test-cases must be id, source, or none, got "${sortTestCasesRaw}".`,
+    );
     process.exit(EXIT_USAGE);
   }
 
-  const assetModeRaw = values["asset-mode"] as string;
-  const validAssetModes = new Set(["none", "copy"]);
+  const assetModeRaw = values['asset-mode'] as string;
+  const validAssetModes = new Set(['none', 'copy']);
   if (!validAssetModes.has(assetModeRaw)) {
-    console.error(`Error: --asset-mode must be "none" or "copy", got "${assetModeRaw}".`);
+    console.error(
+      `Error: --asset-mode must be "none" or "copy", got "${assetModeRaw}".`,
+    );
     process.exit(EXIT_USAGE);
   }
 
-  const failOnRaw = values["fail-on"] as string | undefined;
-  if (failOnRaw !== undefined && failOnRaw !== "uncovered" && failOnRaw !== "weak") {
-    console.error(`Error: --fail-on must be "uncovered" or "weak", got "${failOnRaw}".`);
+  const failOnRaw = values['fail-on'] as string | undefined;
+  if (
+    failOnRaw !== undefined &&
+    failOnRaw !== 'uncovered' &&
+    failOnRaw !== 'weak'
+  ) {
+    console.error(
+      `Error: --fail-on must be "uncovered" or "weak", got "${failOnRaw}".`,
+    );
     process.exit(EXIT_USAGE);
   }
-  const minEvidenceRaw = values["min-evidence"] as string | undefined;
-  const validMinEvidence = new Set(["weak", "moderate", "strong"]);
+  const minEvidenceRaw = values['min-evidence'] as string | undefined;
+  const validMinEvidence = new Set(['weak', 'moderate', 'strong']);
   if (minEvidenceRaw !== undefined && !validMinEvidence.has(minEvidenceRaw)) {
-    console.error(`Error: --min-evidence must be "weak", "moderate", or "strong", got "${minEvidenceRaw}".`);
+    console.error(
+      `Error: --min-evidence must be "weak", "moderate", or "strong", got "${minEvidenceRaw}".`,
+    );
     process.exit(EXIT_USAGE);
   }
 
-  const checkFormat = parseTextJsonFormat("--check-format", values["check-format"] as string);
-  const goalFormat = parseTextJsonFormat("--goal-format", values["goal-format"] as string);
-  const triageFormat = parseTextJsonFormat("--triage-format", values["triage-format"] as string);
+  const checkFormat = parseTextJsonFormat(
+    '--check-format',
+    values['check-format'] as string,
+  );
+  const goalFormat = parseTextJsonFormat(
+    '--goal-format',
+    values['goal-format'] as string,
+  );
+  const triageFormat = parseTextJsonFormat(
+    '--triage-format',
+    values['triage-format'] as string,
+  );
 
   const cliArgs: CliArgs = {
-    subcommand: subcommand as "format" | "watch" | "compare" | "gate-release" | "review" | "list" | "check" | "validate",
+    subcommand: subcommand as
+      | 'format'
+      | 'watch'
+      | 'compare'
+      | 'gate-release'
+      | 'review'
+      | 'list'
+      | 'check'
+      | 'validate',
     inputFile: resolvedInputFile,
     baselineFile,
     baselineArg: baselineValue,
     currentFile,
     baselineMode,
-    baselineDir: values["baseline-dir"] as string | undefined,
+    baselineDir: values['baseline-dir'] as string | undefined,
     stdin: useStdin,
     formats,
     open: values.open as boolean,
-    inputType: inputType as "raw" | "canonical" | "ndjson",
-    outputDir: values["output-dir"] as string,
-    outputName: values["output-name"] as string,
-    outputNameTimestamp: values["output-name-timestamp"] as boolean,
-    sortTestCases: sortTestCasesRaw as "id" | "source" | "none",
+    inputType: inputType as 'raw' | 'canonical' | 'ndjson',
+    outputDir: values['output-dir'] as string,
+    outputName: values['output-name'] as string,
+    outputNameTimestamp: values['output-name-timestamp'] as boolean,
+    sortTestCases: sortTestCasesRaw as 'id' | 'source' | 'none',
     include: parseGlobs(values.include as string | undefined),
     exclude: parseGlobs(values.exclude as string | undefined),
-    includeTags: parseGlobs(values["include-tags"] as string | undefined),
-    excludeTags: parseGlobs(values["exclude-tags"] as string | undefined),
+    includeTags: parseGlobs(values['include-tags'] as string | undefined),
+    excludeTags: parseGlobs(values['exclude-tags'] as string | undefined),
     synthesizeStories: !noSynthesize,
-    htmlTitle: values["html-title"] as string,
-    htmlNoSyntaxHighlighting: values["html-no-syntax-highlighting"] as boolean,
-    htmlNoMermaid: values["html-no-mermaid"] as boolean,
+    htmlTitle: values['html-title'] as string,
+    htmlNoSyntaxHighlighting: values['html-no-syntax-highlighting'] as boolean,
+    htmlNoMermaid: values['html-no-mermaid'] as boolean,
     htmlStaleAfterDays,
-    jsonSummary: values["json-summary"] as boolean,
-    minify: values["minify"] as boolean,
-    listFormat: (values["list-format"] as string) as "text" | "json" | "csv" | "markdown-table",
+    jsonSummary: values['json-summary'] as boolean,
+    minify: values['minify'] as boolean,
+    listFormat: values['list-format'] as string as
+      | 'text'
+      | 'json'
+      | 'csv'
+      | 'markdown-table',
     checkFormat,
-    explainersDir: values["explainers-dir"] as string | undefined,
-    noFail: values["no-fail"] as boolean,
-    maxSkipped: parseMaxSkipped(values["max-skipped"] as string | undefined),
-    requireTags: parseGlobs(values["require-tags"] as string | undefined),
-    requireTickets: parseGlobs(values["require-tickets"] as string | undefined),
-    requireScenarios: parseGlobs(values["require-scenarios"] as string | undefined),
-    noRegressions: values["no-regressions"] as boolean,
-    noRatchet: values["no-ratchet"] as boolean,
+    explainersDir: values['explainers-dir'] as string | undefined,
+    noFail: values['no-fail'] as boolean,
+    maxSkipped: parseMaxSkipped(values['max-skipped'] as string | undefined),
+    requireTags: parseGlobs(values['require-tags'] as string | undefined),
+    requireTickets: parseGlobs(values['require-tickets'] as string | undefined),
+    requireScenarios: parseGlobs(
+      values['require-scenarios'] as string | undefined,
+    ),
+    noRegressions: values['no-regressions'] as boolean,
+    noRatchet: values['no-ratchet'] as boolean,
     goalFormat,
     triageFormat,
-    emitCanonical: values["emit-canonical"] as string | undefined,
+    emitCanonical: values['emit-canonical'] as string | undefined,
     slackWebhook,
     teamsWebhook,
     notify: notifyValue as NotifyCondition,
-    reportUrl: values["report-url"] as string | undefined,
+    reportUrl: values['report-url'] as string | undefined,
     maxFailedTests,
-    historyFile: values["history-file"] as string | undefined,
+    historyFile: values['history-file'] as string | undefined,
     maxHistoryRuns,
     webhookUrls,
     webhookHeaders,
     webhookMethod,
-    webhookHmacSecret: values["webhook-hmac-secret"] as string | undefined,
-    webhookHmacHeader: (values["webhook-hmac-header"] as string | undefined) ?? "X-Signature",
-    webhookHmacTimestamp: values["webhook-hmac-timestamp"] as boolean,
-    assetMode: assetModeRaw as "none" | "copy",
-    allowMissingAssets: values["allow-missing-assets"] as boolean,
-    prSummary: values["pr-summary"] as boolean,
-    prSummaryFile: values["pr-summary-file"] as string | undefined,
-    failOnRegression: values["fail-on-regression"] as boolean,
-    failOnAddedFailures: values["fail-on-added-failures"] as boolean,
-    failOnRemoval: values["fail-on-removal"] as boolean,
-    failOnNew: values["fail-on-new"] as boolean,
-    partial: values["partial"] as boolean,
+    webhookHmacSecret: values['webhook-hmac-secret'] as string | undefined,
+    webhookHmacHeader:
+      (values['webhook-hmac-header'] as string | undefined) ?? 'X-Signature',
+    webhookHmacTimestamp: values['webhook-hmac-timestamp'] as boolean,
+    assetMode: assetModeRaw as 'none' | 'copy',
+    allowMissingAssets: values['allow-missing-assets'] as boolean,
+    prSummary: values['pr-summary'] as boolean,
+    prSummaryFile: values['pr-summary-file'] as string | undefined,
+    failOnRegression: values['fail-on-regression'] as boolean,
+    failOnAddedFailures: values['fail-on-added-failures'] as boolean,
+    failOnRemoval: values['fail-on-removal'] as boolean,
+    failOnNew: values['fail-on-new'] as boolean,
+    partial: values['partial'] as boolean,
     maxRegressions,
-    releasePolicy: values["release-policy"] as string | undefined,
-    changedFilesPath: values["changed-files"] as string | undefined,
-    baseRef: values["base-ref"] as string | undefined,
-    headRef: values["head-ref"] as string | undefined,
-    failOn: failOnRaw as "uncovered" | "weak" | undefined,
+    releasePolicy: values['release-policy'] as string | undefined,
+    changedFilesPath: values['changed-files'] as string | undefined,
+    baseRef: values['base-ref'] as string | undefined,
+    headRef: values['head-ref'] as string | undefined,
+    failOn: failOnRaw as 'uncovered' | 'weak' | undefined,
     minEvidence: minEvidenceRaw as EvidenceStrength | undefined,
-    codeDiffPath: values["code-diff"] as string | undefined,
-    patchPath: values["patch"] as string | undefined,
-    strictCodeDiff: values["strict-code-diff"] as boolean,
-    config: values["config"] as string | undefined,
+    codeDiffPath: values['code-diff'] as string | undefined,
+    patchPath: values['patch'] as string | undefined,
+    strictCodeDiff: values['strict-code-diff'] as boolean,
+    config: values['config'] as string | undefined,
   };
 
   return { args: cliArgs, pluginConfig, customRequested };
@@ -1032,7 +1278,102 @@ async function readInput(args: CliArgs): Promise<string> {
     console.error(`Error: File not found: ${filePath}`);
     process.exit(EXIT_USAGE);
   }
-  return fs.readFileSync(filePath, "utf8");
+  return fs.readFileSync(filePath, 'utf8');
+}
+
+/**
+ * Validate every per-file report in a directory, or undefined when the input is
+ * not one. Each is a canonical run, checked on its own so the caller learns
+ * which file is wrong rather than that "something" is.
+ */
+function validateReportsDirectory(args: CliArgs): number | undefined {
+  const input = args.inputFile;
+  if (!input || args.stdin) return undefined;
+  const resolved = path.resolve(input);
+  if (!fs.existsSync(resolved) || !fs.statSync(resolved).isDirectory())
+    return undefined;
+
+  const names = fs
+    .readdirSync(resolved)
+    .filter((n) => n.endsWith('.json'))
+    .sort();
+  if (names.length === 0) {
+    console.error(`Error: no per-file reports (*.json) in ${input}.`);
+    return EXIT_USAGE;
+  }
+
+  const problems: string[] = [];
+  for (const name of names) {
+    const filePath = path.join(resolved, name);
+    try {
+      const run = JSON.parse(
+        fs.readFileSync(filePath, 'utf8'),
+      ) as TestRunResult;
+      const result = validateCanonicalRun(run);
+      if (!result.valid) {
+        problems.push(`${name}: ${result.errors.join('; ')}`);
+      }
+    } catch (err) {
+      problems.push(
+        `${name}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+
+  if (problems.length > 0) {
+    console.error(`Invalid report(s) in ${input}:`);
+    for (const problem of problems) console.error(`  ${problem}`);
+    return EXIT_CANONICAL_VALIDATION;
+  }
+
+  console.log(`Valid: ${names.length} per-file report(s) in ${input}.`);
+  return EXIT_SUCCESS;
+}
+
+/**
+ * When the input names a directory, read it as a set of per-file reports and
+ * combine them. Returns undefined for a plain run file, which takes the
+ * ordinary path.
+ */
+function readAggregateInput(args: CliArgs): TestRunResult | undefined {
+  const input = args.inputFile;
+  if (!input || args.stdin) return undefined;
+  // `validate` answers "is this well formed", which a combined view cannot
+  // answer for its inputs: it checks each report on its own.
+  if (args.subcommand === 'validate') return undefined;
+  const resolved = path.resolve(input);
+  if (!fs.existsSync(resolved) || !fs.statSync(resolved).isDirectory())
+    return undefined;
+
+  const result = aggregateReports(
+    { dir: resolved.replace(/\\/g, '/') },
+    {
+      readFile: (p) => fs.readFileSync(p, 'utf8'),
+      listDir: (dir) => {
+        try {
+          return fs.readdirSync(dir);
+        } catch {
+          return undefined;
+        }
+      },
+      logger: console,
+    },
+  );
+
+  if (!result) {
+    console.error(
+      `Error: no per-file reports in ${input}. Point format at a run file, or at a directory your test run has written reports into.`,
+    );
+    process.exit(EXIT_USAGE);
+  }
+  return result.run;
+}
+
+/** Read either one run file or a directory of persistent per-source reports. */
+async function readRunInput(args: CliArgs): Promise<TestRunResult> {
+  const aggregated = readAggregateInput(args);
+  if (aggregated) return aggregated;
+  return normalizeRunFromText(await readInput(args), args).run;
 }
 
 function readFileInput(filePath: string): string {
@@ -1041,16 +1382,16 @@ function readFileInput(filePath: string): string {
     console.error(`Error: File not found: ${resolved}`);
     process.exit(EXIT_USAGE);
   }
-  return fs.readFileSync(resolved, "utf8");
+  return fs.readFileSync(resolved, 'utf8');
 }
 
 function readStdin(): Promise<string> {
   return new Promise((resolve, reject) => {
     const chunks: string[] = [];
-    process.stdin.setEncoding("utf8");
-    process.stdin.on("data", (chunk) => chunks.push(chunk as string));
-    process.stdin.on("end", () => resolve(chunks.join("")));
-    process.stdin.on("error", reject);
+    process.stdin.setEncoding('utf8');
+    process.stdin.on('data', (chunk) => chunks.push(chunk as string));
+    process.stdin.on('end', () => resolve(chunks.join('')));
+    process.stdin.on('error', reject);
   });
 }
 
@@ -1076,11 +1417,14 @@ function tryParseJson(text: string): unknown | undefined {
   }
 }
 
-function normalizeRunFromJsonData(data: unknown, args: CliArgs): {
+function normalizeRunFromJsonData(
+  data: unknown,
+  args: CliArgs,
+): {
   run: TestRunResult;
   droppedMissingStory: number;
 } {
-  if (args.inputType === "canonical") {
+  if (args.inputType === 'canonical') {
     try {
       assertValidRun(data as TestRunResult);
     } catch (err) {
@@ -1094,13 +1438,15 @@ function normalizeRunFromJsonData(data: unknown, args: CliArgs): {
 
   const obj = data as Record<string, unknown>;
   if (obj.schemaVersion !== 1) {
-    console.error(`Unsupported schemaVersion ${obj.schemaVersion}. Supported: 1.`);
+    console.error(
+      `Unsupported schemaVersion ${obj.schemaVersion}. Supported: 1.`,
+    );
     process.exit(EXIT_SCHEMA_VALIDATION);
   }
 
   const schemaResult = validateRawRun(data);
   if (!schemaResult.valid) {
-    console.error("Schema validation failed:");
+    console.error('Schema validation failed:');
     for (const err of schemaResult.errors) {
       console.error(`  ${err}`);
     }
@@ -1130,11 +1476,14 @@ function normalizeRunFromJsonData(data: unknown, args: CliArgs): {
   return { run: canonical, droppedMissingStory };
 }
 
-function normalizeRunFromText(text: string, args: CliArgs): {
+function normalizeRunFromText(
+  text: string,
+  args: CliArgs,
+): {
   run: TestRunResult;
   droppedMissingStory: number;
 } {
-  if (args.inputType === "ndjson") {
+  if (args.inputType === 'ndjson') {
     try {
       return { run: parseNdjson(text), droppedMissingStory: 0 };
     } catch (err) {
@@ -1163,11 +1512,11 @@ function warnLargeStateDocs(
 ): void {
   const check = (title: string, docs: DocEntry[] | undefined): void => {
     for (const doc of docs ?? []) {
-      if (doc.kind === "state") {
+      if (doc.kind === 'state') {
         const bytes = JSON.stringify(doc.value)?.length ?? 0;
         if (bytes > 100_000) {
           console.error(
-            `notice: scenario "${title}" state "${doc.label ?? "State"}" is ${Math.round(bytes / 1024)}KB — large snapshots slow reports`,
+            `notice: scenario "${title}" state "${doc.label ?? 'State'}" is ${Math.round(bytes / 1024)}KB — large snapshots slow reports`,
           );
         }
       }
@@ -1175,7 +1524,7 @@ function warnLargeStateDocs(
     }
   };
   for (const tc of testCases) {
-    const title = tc.story?.scenario ?? "unknown";
+    const title = tc.story?.scenario ?? 'unknown';
     check(title, tc.story?.docs);
     for (const step of tc.story?.steps ?? []) check(title, step.docs);
   }
@@ -1191,7 +1540,7 @@ function applySelection(run: TestRunResult, args: CliArgs): TestRunResult {
       excludeTags: args.excludeTags,
       sortTestCases: args.sortTestCases,
     },
-    { logger: console }
+    { logger: console },
   );
 
   return { ...run, testCases };
@@ -1199,9 +1548,9 @@ function applySelection(run: TestRunResult, args: CliArgs): TestRunResult {
 
 function tryNormalizeRunFromText(
   text: string,
-  args: CliArgs
+  args: CliArgs,
 ): TestRunResult | undefined {
-  if (args.inputType === "ndjson") {
+  if (args.inputType === 'ndjson') {
     try {
       return parseNdjson(text);
     } catch {
@@ -1212,7 +1561,7 @@ function tryNormalizeRunFromText(
   const data = tryParseJson(text);
   if (data === undefined) return undefined;
 
-  if (args.inputType === "canonical") {
+  if (args.inputType === 'canonical') {
     try {
       assertValidRun(data as TestRunResult);
       return data as TestRunResult;
@@ -1242,7 +1591,9 @@ function tryNormalizeRunFromText(
 }
 
 function listBaselineCandidates(currentFile: string, args: CliArgs): string[] {
-  const baselineDir = path.resolve(args.baselineDir ?? path.dirname(currentFile));
+  const baselineDir = path.resolve(
+    args.baselineDir ?? path.dirname(currentFile),
+  );
   const currentResolved = path.resolve(currentFile);
 
   if (!fs.existsSync(baselineDir)) {
@@ -1256,20 +1607,25 @@ function listBaselineCandidates(currentFile: string, args: CliArgs): string[] {
     .map((entry) => path.join(baselineDir, entry.name))
     .filter((candidate) => path.resolve(candidate) !== currentResolved)
     .filter((candidate) =>
-      args.inputType === "ndjson" ? candidate.endsWith(".ndjson") : candidate.endsWith(".json")
+      args.inputType === 'ndjson'
+        ? candidate.endsWith('.ndjson')
+        : candidate.endsWith('.json'),
     );
 }
 
 function resolveBaselineAuto(
   currentFile: string,
   currentRun: TestRunResult,
-  args: CliArgs
+  args: CliArgs,
 ): string {
   const candidates = listBaselineCandidates(currentFile, args);
   const comparable: Array<{ file: string; run: TestRunResult }> = [];
 
   for (const candidate of candidates) {
-    const run = tryNormalizeRunFromText(fs.readFileSync(candidate, "utf8"), args);
+    const run = tryNormalizeRunFromText(
+      fs.readFileSync(candidate, 'utf8'),
+      args,
+    );
     if (run) {
       comparable.push({ file: candidate, run });
     }
@@ -1277,14 +1633,14 @@ function resolveBaselineAuto(
 
   if (comparable.length === 0) {
     console.error(
-      `Error: no compatible baseline files found in ${path.resolve(args.baselineDir ?? path.dirname(currentFile))}.`
+      `Error: no compatible baseline files found in ${path.resolve(args.baselineDir ?? path.dirname(currentFile))}.`,
     );
     process.exit(EXIT_USAGE);
   }
 
   const picked = pickAutoBaseline(currentRun, comparable);
   if (!picked) {
-    console.error("Error: unable to choose an automatic baseline.");
+    console.error('Error: unable to choose an automatic baseline.');
     process.exit(EXIT_USAGE);
   }
   return picked.file;
@@ -1295,19 +1651,27 @@ function resolveBaselineAuto(
  * Returns undefined when no --baseline was given. Supports an explicit path or
  * "auto" (pick a prior run from the output directory).
  */
-function resolveBaselineRun(args: CliArgs, currentRun: TestRunResult): TestRunResult | undefined {
+function resolveBaselineRun(
+  args: CliArgs,
+  currentRun: TestRunResult,
+): TestRunResult | undefined {
   if (!args.baselineArg) return undefined;
   let baselineFile: string;
-  if (args.baselineArg === "auto") {
+  if (args.baselineArg === 'auto') {
     if (!args.inputFile) {
-      console.error("Error: --baseline auto requires a current input file (not --stdin).");
+      console.error(
+        'Error: --baseline auto requires a current input file (not --stdin).',
+      );
       process.exit(EXIT_USAGE);
     }
     baselineFile = resolveBaselineAuto(args.inputFile, currentRun, args);
   } else {
     baselineFile = args.baselineArg;
   }
-  return applySelection(normalizeRunFromText(readFileInput(baselineFile), args).run, args);
+  return applySelection(
+    normalizeRunFromText(readFileInput(baselineFile), args).run,
+    args,
+  );
 }
 
 /** Baseline scenario statuses by id, for the commands that only need regression deltas. */
@@ -1335,299 +1699,339 @@ interface CliContext {
 // Subcommands that own their own pipeline. `validate`, `format`, and a bare
 // invocation fall through to runFormatOrValidate, which shares the
 // input-read → canonicalize → generate flow.
-const SUBCOMMAND_HANDLERS: Record<string, (ctx: CliContext) => Promise<void>> = {
-  compare: runCompare,
-  "gate-release": runGateRelease,
-  review: runReview,
-  list: runList,
-  check: runCheck,
-  "check-explainers": runCheckExplainers,
-  goal: runGoal,
-  triage: runTriage,
-  watch: runWatch,
-};
+const SUBCOMMAND_HANDLERS: Record<string, (ctx: CliContext) => Promise<void>> =
+  {
+    compare: runCompare,
+    'gate-release': runGateRelease,
+    review: runReview,
+    list: runList,
+    check: runCheck,
+    'check-explainers': runCheckExplainers,
+    goal: runGoal,
+    triage: runTriage,
+    watch: runWatch,
+  };
 
 async function main() {
-  const { args, pluginConfig, customRequested } = await parseCliArgs(process.argv);
-  const ctx: CliContext = { args, pluginConfig, customRequested, startMs: Date.now() };
-  const handler = SUBCOMMAND_HANDLERS[args.subcommand ?? ""] ?? runFormatOrValidate;
+  const { args, pluginConfig, customRequested } = await parseCliArgs(
+    process.argv,
+  );
+  const ctx: CliContext = {
+    args,
+    pluginConfig,
+    customRequested,
+    startMs: Date.now(),
+  };
+  const handler =
+    SUBCOMMAND_HANDLERS[args.subcommand ?? ''] ?? runFormatOrValidate;
   await handler(ctx);
 }
 
 async function runCompare(ctx: CliContext): Promise<void> {
   const { args, startMs } = ctx;
-    const currentText = readFileInput(args.currentFile!);
-    const current = applySelection(normalizeRunFromText(currentText, args).run, args);
-    const baselineFile =
-      args.baselineMode === "auto"
-        ? resolveBaselineAuto(args.currentFile!, current, args)
-        : args.baselineFile!;
-    const baselineText = readFileInput(baselineFile);
-    const baseline = applySelection(normalizeRunFromText(baselineText, args).run, args);
+  const currentText = readFileInput(args.currentFile!);
+  const current = applySelection(
+    normalizeRunFromText(currentText, args).run,
+    args,
+  );
+  const baselineFile =
+    args.baselineMode === 'auto'
+      ? resolveBaselineAuto(args.currentFile!, current, args)
+      : args.baselineFile!;
+  const baselineText = readFileInput(baselineFile);
+  const baseline = applySelection(
+    normalizeRunFromText(baselineText, args).run,
+    args,
+  );
 
-    try {
-      const result = await generateCompareReports(baseline, current, baselineFile, args);
-      printCompareResult(result, args, startMs);
-      const gateFailures = evaluateCompareGate(result, args);
-      if (gateFailures.length > 0) {
-        for (const failure of gateFailures) {
-          console.error(`Compare gate failed: ${failure}`);
-        }
-        process.exit(EXIT_COMPARE_GATE);
+  try {
+    const result = await generateCompareReports(
+      baseline,
+      current,
+      baselineFile,
+      args,
+    );
+    printCompareResult(result, args, startMs);
+    const gateFailures = evaluateCompareGate(result, args);
+    if (gateFailures.length > 0) {
+      for (const failure of gateFailures) {
+        console.error(`Compare gate failed: ${failure}`);
       }
-      process.exit(EXIT_SUCCESS);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.error(`Comparison failed: ${msg}`);
-      process.exit(EXIT_GENERATION);
+      process.exit(EXIT_COMPARE_GATE);
     }
+    process.exit(EXIT_SUCCESS);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`Comparison failed: ${msg}`);
+    process.exit(EXIT_GENERATION);
   }
+}
 
 async function runGateRelease(ctx: CliContext): Promise<void> {
   const { args, startMs } = ctx;
-    // Gate-release enforces stricter defaults: --fail-on-regression and --fail-on-removal
-    const gatedArgs = {
-      ...args,
-      failOnRegression: true,
-      failOnRemoval: true,
-      // failOnNew is opt-in via --fail-on-new flag
-    };
+  // Gate-release enforces stricter defaults: --fail-on-regression and --fail-on-removal
+  const gatedArgs = {
+    ...args,
+    failOnRegression: true,
+    failOnRemoval: true,
+    // failOnNew is opt-in via --fail-on-new flag
+  };
 
-    // Load release policy if specified
-    let policy: ReleasePolicy | undefined;
-    if (args.releasePolicy) {
-      policy = loadReleasePolicy(args.releasePolicy);
-    }
-
-    const currentText = readFileInput(gatedArgs.currentFile!);
-    const current = applySelection(normalizeRunFromText(currentText, gatedArgs).run, gatedArgs);
-    const baselineFile =
-      gatedArgs.baselineMode === "auto"
-        ? resolveBaselineAuto(gatedArgs.currentFile!, current, gatedArgs)
-        : gatedArgs.baselineFile!;
-    const baselineText = readFileInput(baselineFile);
-    const baseline = applySelection(normalizeRunFromText(baselineText, gatedArgs).run, gatedArgs);
-
-    try {
-      const result = await generateCompareReports(baseline, current, baselineFile, gatedArgs);
-
-      // Apply release policy exceptions
-      const effectiveResult = policy
-        ? applyReleasePolicy(result, policy)
-        : result;
-
-      printCompareResult(effectiveResult, gatedArgs, startMs);
-      const gateFailures = evaluateCompareGate(effectiveResult, gatedArgs);
-      if (gateFailures.length > 0) {
-        for (const failure of gateFailures) {
-          console.error(`Release gate failed: ${failure}`);
-        }
-        if (policy) {
-          console.error(`Release policy: ${args.releasePolicy}`);
-          if (policy.allowedOmissions && policy.allowedOmissions.length > 0) {
-            console.error(`  Allowed omissions: ${policy.allowedOmissions.join(", ")}`);
-          }
-          if (policy.allowedRegressions && policy.allowedRegressions.length > 0) {
-            console.error(`  Allowed regressions: ${policy.allowedRegressions.join(", ")}`);
-          }
-        }
-        process.exit(EXIT_RELEASE_GATE);
-      }
-      console.error("Release gate passed: RC matches dev baseline.");
-      process.exit(EXIT_SUCCESS);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.error(`Release gate check failed: ${msg}`);
-      process.exit(EXIT_GENERATION);
-    }
+  // Load release policy if specified
+  let policy: ReleasePolicy | undefined;
+  if (args.releasePolicy) {
+    policy = loadReleasePolicy(args.releasePolicy);
   }
+
+  const currentText = readFileInput(gatedArgs.currentFile!);
+  const current = applySelection(
+    normalizeRunFromText(currentText, gatedArgs).run,
+    gatedArgs,
+  );
+  const baselineFile =
+    gatedArgs.baselineMode === 'auto'
+      ? resolveBaselineAuto(gatedArgs.currentFile!, current, gatedArgs)
+      : gatedArgs.baselineFile!;
+  const baselineText = readFileInput(baselineFile);
+  const baseline = applySelection(
+    normalizeRunFromText(baselineText, gatedArgs).run,
+    gatedArgs,
+  );
+
+  try {
+    const result = await generateCompareReports(
+      baseline,
+      current,
+      baselineFile,
+      gatedArgs,
+    );
+
+    // Apply release policy exceptions
+    const effectiveResult = policy
+      ? applyReleasePolicy(result, policy)
+      : result;
+
+    printCompareResult(effectiveResult, gatedArgs, startMs);
+    const gateFailures = evaluateCompareGate(effectiveResult, gatedArgs);
+    if (gateFailures.length > 0) {
+      for (const failure of gateFailures) {
+        console.error(`Release gate failed: ${failure}`);
+      }
+      if (policy) {
+        console.error(`Release policy: ${args.releasePolicy}`);
+        if (policy.allowedOmissions && policy.allowedOmissions.length > 0) {
+          console.error(
+            `  Allowed omissions: ${policy.allowedOmissions.join(', ')}`,
+          );
+        }
+        if (policy.allowedRegressions && policy.allowedRegressions.length > 0) {
+          console.error(
+            `  Allowed regressions: ${policy.allowedRegressions.join(', ')}`,
+          );
+        }
+      }
+      process.exit(EXIT_RELEASE_GATE);
+    }
+    console.error('Release gate passed: RC matches dev baseline.');
+    process.exit(EXIT_SUCCESS);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`Release gate check failed: ${msg}`);
+    process.exit(EXIT_GENERATION);
+  }
+}
 
 async function runReview(ctx: CliContext): Promise<void> {
   const { args } = ctx;
-    const text = await readInput(args);
-    const run = applySelection(normalizeRunFromText(text, args).run, args);
-    const context = loadReviewContext(args);
-    const review = buildReview(run, context);
+  const run = applySelection(await readRunInput(args), args);
+  const context = loadReviewContext(args);
+  const review = buildReview(run, context);
 
-    try {
-      const files = writeReviewReport(review, args);
-      for (const f of files) {
-        console.log(f);
-      }
-      const diffIssues = codeDiffDiagnostics(review);
-      for (const issue of diffIssues) {
-        console.error(`Code diff warning: ${issue}`);
-      }
-      const gateFailures = evaluateReviewGate(review, args);
-      if (args.strictCodeDiff) {
-        gateFailures.push(...diffIssues);
-      }
-      if (gateFailures.length > 0) {
-        for (const failure of gateFailures) {
-          console.error(`Review gate failed: ${failure}`);
-        }
-        process.exit(EXIT_REVIEW_GATE);
-      }
-      process.exit(EXIT_SUCCESS);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.error(`Review failed: ${msg}`);
-      process.exit(EXIT_GENERATION);
+  try {
+    const files = writeReviewReport(review, args);
+    for (const f of files) {
+      console.log(f);
     }
+    const diffIssues = codeDiffDiagnostics(review);
+    for (const issue of diffIssues) {
+      console.error(`Code diff warning: ${issue}`);
+    }
+    const gateFailures = evaluateReviewGate(review, args);
+    if (args.strictCodeDiff) {
+      gateFailures.push(...diffIssues);
+    }
+    if (gateFailures.length > 0) {
+      for (const failure of gateFailures) {
+        console.error(`Review gate failed: ${failure}`);
+      }
+      process.exit(EXIT_REVIEW_GATE);
+    }
+    process.exit(EXIT_SUCCESS);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`Review failed: ${msg}`);
+    process.exit(EXIT_GENERATION);
   }
+}
 
 async function runList(ctx: CliContext): Promise<void> {
   const { args } = ctx;
-    const text = await readInput(args);
-    const run = applySelection(normalizeRunFromText(text, args).run, args);
-    warnLargeStateDocs(run.testCases);
+  const run = applySelection(await readRunInput(args), args);
+  warnLargeStateDocs(run.testCases);
 
-    // --json-summary is a deprecated alias for --list-format json
-    const resolvedFormat = args.jsonSummary ? "json" : args.listFormat;
-    const validListFormats = new Set(["text", "json", "csv", "markdown-table"]);
-    if (!validListFormats.has(resolvedFormat)) {
-      console.error(`Error: Unknown list format "${resolvedFormat}". Valid: text, json, csv, markdown-table.`);
-      process.exit(EXIT_USAGE);
-    }
-    const output = listScenarios(
-      {
-        testCases: run.testCases,
-        format: resolvedFormat as "text" | "json" | "csv" | "markdown-table",
-        minify: args.minify,
-      },
-      {}
+  // --json-summary is a deprecated alias for --list-format json
+  const resolvedFormat = args.jsonSummary ? 'json' : args.listFormat;
+  const validListFormats = new Set(['text', 'json', 'csv', 'markdown-table']);
+  if (!validListFormats.has(resolvedFormat)) {
+    console.error(
+      `Error: Unknown list format "${resolvedFormat}". Valid: text, json, csv, markdown-table.`,
     );
-    console.log(output);
-    process.exit(EXIT_SUCCESS);
+    process.exit(EXIT_USAGE);
   }
+  const output = listScenarios(
+    {
+      testCases: run.testCases,
+      format: resolvedFormat as 'text' | 'json' | 'csv' | 'markdown-table',
+      minify: args.minify,
+    },
+    {},
+  );
+  console.log(output);
+  process.exit(EXIT_SUCCESS);
+}
 
-  // === check subcommand: context-efficient backpressure for coding agents ===
-  // Compress success (a count line), expand failure (GWT + failing step + error
-  // + covers). Exits non-zero when any scenario failed so the agent's loop pushes
-  // back before a human is involved. --no-fail forces exit 0 (report-only).
+// === check subcommand: context-efficient backpressure for coding agents ===
+// Compress success (a count line), expand failure (GWT + failing step + error
+// + covers). Exits non-zero when any scenario failed so the agent's loop pushes
+// back before a human is involved. --no-fail forces exit 0 (report-only).
 async function runCheck(ctx: CliContext): Promise<void> {
   const { args } = ctx;
-    const text = await readInput(args);
-    const run = applySelection(normalizeRunFromText(text, args).run, args);
+  const run = applySelection(await readRunInput(args), args);
 
-    const baseline = resolveBaselineStatusMap(args, run);
+  const baseline = resolveBaselineStatusMap(args, run);
 
-    const report = buildCheck(
-      { testCases: run.testCases, baseline, format: args.checkFormat },
-      {},
+  const report = buildCheck(
+    { testCases: run.testCases, baseline, format: args.checkFormat },
+    {},
+  );
+  console.log(renderCheck(report, args.checkFormat));
+
+  // Gojko Adzic calls this out in Specification by Example ch.11: a pack of
+  // switched-off specs needs a limit, or it becomes a get-out-of-jail card
+  // and the documentation quietly stops describing the system.
+  const overBudget =
+    args.maxSkipped !== undefined && report.turnedOff.length > args.maxSkipped;
+  if (overBudget) {
+    console.error(
+      `${report.turnedOff.length} scenarios are turned off; the budget is ${args.maxSkipped}. Fix them, delete them, or raise --max-skipped deliberately.`,
     );
-    console.log(renderCheck(report, args.checkFormat));
-
-    // Gojko Adzic calls this out in Specification by Example ch.11: a pack of
-    // switched-off specs needs a limit, or it becomes a get-out-of-jail card
-    // and the documentation quietly stops describing the system.
-    const overBudget =
-      args.maxSkipped !== undefined && report.turnedOff.length > args.maxSkipped;
-    if (overBudget) {
-      console.error(
-        `${report.turnedOff.length} scenarios are turned off; the budget is ${args.maxSkipped}. Fix them, delete them, or raise --max-skipped deliberately.`,
-      );
-    }
-
-    if ((report.summary.failed > 0 || overBudget) && !args.noFail) {
-      process.exit(EXIT_AGENT_GATE);
-    }
-    process.exit(EXIT_SUCCESS);
   }
 
-  // === check-explainers subcommand: explainer freshness audit ===
-  // Explainers (explain-change skill output) cite scenarios by id + content
-  // hash in frontmatter. This audits every explainer in a directory against
-  // the current run and exits 5 when any is stale or invalid, so CI surfaces
-  // "the docs describe behaviour that changed" the same way it surfaces a
-  // failing test. Report-only with --no-fail. Generation stays agent-side;
-  // this only audits.
+  if ((report.summary.failed > 0 || overBudget) && !args.noFail) {
+    process.exit(EXIT_AGENT_GATE);
+  }
+  process.exit(EXIT_SUCCESS);
+}
+
+// === check-explainers subcommand: explainer freshness audit ===
+// Explainers (explain-change skill output) cite scenarios by id + content
+// hash in frontmatter. This audits every explainer in a directory against
+// the current run and exits 5 when any is stale or invalid, so CI surfaces
+// "the docs describe behaviour that changed" the same way it surfaces a
+// failing test. Report-only with --no-fail. Generation stays agent-side;
+// this only audits.
 async function runCheckExplainers(ctx: CliContext): Promise<void> {
   const { args } = ctx;
-    if (!args.explainersDir) {
-      console.error("Error: check-explainers requires --explainers-dir <dir> (the folder of explainer markdown).");
-      process.exit(EXIT_USAGE);
-    }
-    if (!fs.existsSync(args.explainersDir) || !fs.statSync(args.explainersDir).isDirectory()) {
-      console.error(`Error: --explainers-dir "${args.explainersDir}" is not a directory.`);
-      process.exit(EXIT_USAGE);
-    }
-    const text = await readInput(args);
-    const run = applySelection(normalizeRunFromText(text, args).run, args);
-
-    const report = buildExplainersReport({ run, dir: args.explainersDir });
-    console.log(renderExplainersReport(report, args.checkFormat));
-
-    if (explainersGateFailed(report) && !args.noFail) {
-      process.exit(EXIT_AGENT_GATE);
-    }
-    process.exit(EXIT_SUCCESS);
+  if (!args.explainersDir) {
+    console.error(
+      'Error: check-explainers requires --explainers-dir <dir> (the folder of explainer markdown).',
+    );
+    process.exit(EXIT_USAGE);
   }
+  if (
+    !fs.existsSync(args.explainersDir) ||
+    !fs.statSync(args.explainersDir).isDirectory()
+  ) {
+    console.error(
+      `Error: --explainers-dir "${args.explainersDir}" is not a directory.`,
+    );
+    process.exit(EXIT_USAGE);
+  }
+  const run = applySelection(await readRunInput(args), args);
 
-  // === goal subcommand: behavioral definition-of-done for agent loops ===
-  // Met when the required scenarios/tags/tickets pass, nothing regressed (with
-  // --no-regressions), and nothing was removed or weakened vs baseline (ratchet,
-  // on when a baseline is given; disable with --no-ratchet). Exit 0 = met, 5 = not.
+  const report = buildExplainersReport({ run, dir: args.explainersDir });
+  console.log(renderExplainersReport(report, args.checkFormat));
+
+  if (explainersGateFailed(report) && !args.noFail) {
+    process.exit(EXIT_AGENT_GATE);
+  }
+  process.exit(EXIT_SUCCESS);
+}
+
+// === goal subcommand: behavioral definition-of-done for agent loops ===
+// Met when the required scenarios/tags/tickets pass, nothing regressed (with
+// --no-regressions), and nothing was removed or weakened vs baseline (ratchet,
+// on when a baseline is given; disable with --no-ratchet). Exit 0 = met, 5 = not.
 async function runGoal(ctx: CliContext): Promise<void> {
   const { args } = ctx;
-    const text = await readInput(args);
-    const run = applySelection(normalizeRunFromText(text, args).run, args);
-    const baseline = resolveBaselineRun(args, run);
+  const run = applySelection(await readRunInput(args), args);
+  const baseline = resolveBaselineRun(args, run);
 
-    const report = buildGoal(
-      {
-        run,
-        baseline,
-        requireTags: args.requireTags,
-        requireTickets: args.requireTickets,
-        requireScenarios: args.requireScenarios,
-        enforceNoRegressions: args.noRegressions,
-        enforceRatchet: !args.noRatchet,
-        format: args.goalFormat,
-      },
-      {},
-    );
-    console.log(renderGoal(report, args.goalFormat));
-    process.exit(report.met ? EXIT_SUCCESS : EXIT_AGENT_GATE);
-  }
+  const report = buildGoal(
+    {
+      run,
+      baseline,
+      requireTags: args.requireTags,
+      requireTickets: args.requireTickets,
+      requireScenarios: args.requireScenarios,
+      enforceNoRegressions: args.noRegressions,
+      enforceRatchet: !args.noRatchet,
+      format: args.goalFormat,
+    },
+    {},
+  );
+  console.log(renderGoal(report, args.goalFormat));
+  process.exit(report.met ? EXIT_SUCCESS : EXIT_AGENT_GATE);
+}
 
-  // === triage subcommand: discovery worklist for an agent loop ===
-  // Failing scenarios, regressions first, each with the code it covers. JSON for
-  // the loop to hand to sub-agents; text for humans. Always exits 0 (it reports).
+// === triage subcommand: discovery worklist for an agent loop ===
+// Failing scenarios, regressions first, each with the code it covers. JSON for
+// the loop to hand to sub-agents; text for humans. Always exits 0 (it reports).
 async function runTriage(ctx: CliContext): Promise<void> {
   const { args } = ctx;
-    const text = await readInput(args);
-    const run = applySelection(normalizeRunFromText(text, args).run, args);
-    const baseline = resolveBaselineStatusMap(args, run);
+  const run = applySelection(await readRunInput(args), args);
+  const baseline = resolveBaselineStatusMap(args, run);
 
-    const report = buildTriage(
-      { testCases: run.testCases, baseline, format: args.triageFormat },
-      {},
-    );
-    console.log(renderTriage(report, args.triageFormat));
-    process.exit(EXIT_SUCCESS);
-  }
+  const report = buildTriage(
+    { testCases: run.testCases, baseline, format: args.triageFormat },
+    {},
+  );
+  console.log(renderTriage(report, args.triageFormat));
+  process.exit(EXIT_SUCCESS);
+}
 
-  // === watch subcommand: keep agent artifacts fresh on every raw-run change ===
+// === watch subcommand: keep agent artifacts fresh on every raw-run change ===
 async function runWatch(ctx: CliContext): Promise<void> {
   const { args } = ctx;
-    if (!args.inputFile) {
-      console.error("Error: watch requires an input file (the raw-run JSON the framework writes).");
-      process.exit(EXIT_USAGE);
-    }
-    console.log(
-      `Watching ${args.inputFile} → regenerating [${args.formats.join(", ")}] into ${args.outputDir}/ (Ctrl+C to stop)`,
+  if (!args.inputFile) {
+    console.error(
+      'Error: watch requires an input file (the raw-run JSON the framework writes).',
     );
-    startWatch({
-      input: args.inputFile,
-      outputDir: args.outputDir,
-      outputName: args.outputName,
-      formats: args.formats,
-      inputType: args.inputType === "canonical" ? "canonical" : "raw",
-      synthesize: args.synthesizeStories,
-    });
-    return; // long-lived; do not exit
+    process.exit(EXIT_USAGE);
   }
+  console.log(
+    `Watching ${args.inputFile} → regenerating [${args.formats.join(', ')}] into ${args.outputDir}/ (Ctrl+C to stop)`,
+  );
+  startWatch({
+    input: args.inputFile,
+    outputDir: args.outputDir,
+    outputName: args.outputName,
+    formats: args.formats,
+    inputType: args.inputType === 'canonical' ? 'canonical' : 'raw',
+    synthesize: args.synthesizeStories,
+  });
+  return; // long-lived; do not exit
+}
 
 // The old `serve` subcommand (a custom HTTP server with a live "what changed"
 // strip) is replaced by `astro dev` via executable-stories-astro: run your
@@ -1636,26 +2040,70 @@ async function runWatch(ctx: CliContext): Promise<void> {
 async function runFormatOrValidate(ctx: CliContext): Promise<void> {
   const { args, pluginConfig, customRequested, startMs } = ctx;
 
+  // Validating a directory means validating each report in it. A combined view
+  // would hide exactly what the caller is asking about.
+  if (args.subcommand === 'validate') {
+    const dirResult = validateReportsDirectory(args);
+    if (dirResult !== undefined) process.exit(dirResult);
+  }
+
+  // A directory of per-file reports aggregates into one run. This is the whole
+  // of the combining step: no state, just a pure read of whatever reports are
+  // on disk, so the same directory always renders the same document.
+  const aggregated = readAggregateInput(args);
+  if (aggregated) {
+    try {
+      const run = applySelection(aggregated, args);
+      const history = runHistoryPipeline(run, args);
+      const result = await generateReports(run, args, history, 0, {
+        persist: false,
+      });
+      runCustomFormatters(
+        run,
+        customRequested,
+        pluginConfig.formatters ?? {},
+        args,
+      );
+      await dispatchNotifications(run, args);
+      printResult(result, args, startMs);
+      process.exit(EXIT_SUCCESS);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`Generation failed: ${msg}`);
+      process.exit(EXIT_GENERATION);
+    }
+  }
+
   // Read input
   const text = await readInput(args);
 
   // === NDJSON input pipeline ===
-  if (args.inputType === "ndjson") {
-    if (args.subcommand === "validate") {
+  if (args.inputType === 'ndjson') {
+    if (args.subcommand === 'validate') {
       // Validate each line is valid JSON with exactly one envelope field
-      const lines = text.trim().split("\n").filter(Boolean);
+      const lines = text.trim().split('\n').filter(Boolean);
       const validKeys = new Set([
-        "meta", "source", "gherkinDocument", "pickle",
-        "testRunStarted", "testCase", "testCaseStarted",
-        "testStepStarted", "testStepFinished", "testCaseFinished",
-        "testRunFinished", "attachment",
+        'meta',
+        'source',
+        'gherkinDocument',
+        'pickle',
+        'testRunStarted',
+        'testCase',
+        'testCaseStarted',
+        'testStepStarted',
+        'testStepFinished',
+        'testCaseFinished',
+        'testRunFinished',
+        'attachment',
       ]);
       for (let i = 0; i < lines.length; i++) {
         try {
           const obj = JSON.parse(lines[i]);
           const keys = Object.keys(obj);
           if (keys.length !== 1 || !validKeys.has(keys[0])) {
-            console.error(`Line ${i + 1}: invalid envelope (keys: ${keys.join(", ")})`);
+            console.error(
+              `Line ${i + 1}: invalid envelope (keys: ${keys.join(', ')})`,
+            );
             process.exit(EXIT_SCHEMA_VALIDATION);
           }
         } catch {
@@ -1681,7 +2129,7 @@ async function runFormatOrValidate(ctx: CliContext): Promise<void> {
     if (args.emitCanonical) {
       const outPath = path.resolve(args.emitCanonical);
       fs.mkdirSync(path.dirname(outPath), { recursive: true });
-      fs.writeFileSync(outPath, JSON.stringify(run, null, 2), "utf8");
+      fs.writeFileSync(outPath, JSON.stringify(run, null, 2), 'utf8');
     }
 
     try {
@@ -1689,7 +2137,12 @@ async function runFormatOrValidate(ctx: CliContext): Promise<void> {
       // includes the current run as its latest entry.
       const history = runHistoryPipeline(run, args);
       const result = await generateReports(run, args, history);
-      runCustomFormatters(run, customRequested, pluginConfig.formatters ?? {}, args);
+      runCustomFormatters(
+        run,
+        customRequested,
+        pluginConfig.formatters ?? {},
+        args,
+      );
       await dispatchNotifications(run, args);
       printResult(result, args, startMs);
       process.exit(EXIT_SUCCESS);
@@ -1702,13 +2155,13 @@ async function runFormatOrValidate(ctx: CliContext): Promise<void> {
 
   const data = parseJson(text);
 
-  if (args.subcommand === "validate") {
+  if (args.subcommand === 'validate') {
     // Validate-only mode
-    if (args.inputType === "canonical") {
+    if (args.inputType === 'canonical') {
       try {
         assertValidRun(data as TestRunResult);
         warnLargeStateDocs((data as TestRunResult).testCases);
-        console.log("Valid canonical TestRunResult.");
+        console.log('Valid canonical TestRunResult.');
         process.exit(EXIT_SUCCESS);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
@@ -1721,14 +2174,14 @@ async function runFormatOrValidate(ctx: CliContext): Promise<void> {
     const obj = data as Record<string, unknown>;
     if (obj.schemaVersion !== 1) {
       console.error(
-        `Unsupported schemaVersion ${obj.schemaVersion}. Supported: 1.`
+        `Unsupported schemaVersion ${obj.schemaVersion}. Supported: 1.`,
       );
       process.exit(EXIT_SCHEMA_VALIDATION);
     }
 
     const result = validateRawRun(data);
     if (!result.valid) {
-      console.error("Schema validation failed:");
+      console.error('Schema validation failed:');
       for (const err of result.errors) {
         console.error(`  ${err}`);
       }
@@ -1736,13 +2189,13 @@ async function runFormatOrValidate(ctx: CliContext): Promise<void> {
     }
 
     warnLargeStateDocs((data as RawRun).testCases);
-    console.log("Valid RawRun (schemaVersion 1).");
+    console.log('Valid RawRun (schemaVersion 1).');
     process.exit(EXIT_SUCCESS);
   }
 
   // === format subcommand ===
 
-  if (args.inputType === "canonical") {
+  if (args.inputType === 'canonical') {
     // Skip schema validation, go straight to canonical validation
     try {
       assertValidRun(data as TestRunResult);
@@ -1758,7 +2211,7 @@ async function runFormatOrValidate(ctx: CliContext): Promise<void> {
     if (args.emitCanonical) {
       const outPath = path.resolve(args.emitCanonical);
       fs.mkdirSync(path.dirname(outPath), { recursive: true });
-      fs.writeFileSync(outPath, JSON.stringify(run, null, 2), "utf8");
+      fs.writeFileSync(outPath, JSON.stringify(run, null, 2), 'utf8');
     }
 
     try {
@@ -1766,7 +2219,12 @@ async function runFormatOrValidate(ctx: CliContext): Promise<void> {
       // includes the current run as its latest entry.
       const history = runHistoryPipeline(run, args);
       const result = await generateReports(run, args, history);
-      runCustomFormatters(run, customRequested, pluginConfig.formatters ?? {}, args);
+      runCustomFormatters(
+        run,
+        customRequested,
+        pluginConfig.formatters ?? {},
+        args,
+      );
       await dispatchNotifications(run, args);
       printResult(result, args, startMs);
       process.exit(EXIT_SUCCESS);
@@ -1782,7 +2240,7 @@ async function runFormatOrValidate(ctx: CliContext): Promise<void> {
   const obj = data as Record<string, unknown>;
   if (obj.schemaVersion !== 1) {
     console.error(
-      `Unsupported schemaVersion ${obj.schemaVersion}. Supported: 1.`
+      `Unsupported schemaVersion ${obj.schemaVersion}. Supported: 1.`,
     );
     process.exit(EXIT_SCHEMA_VALIDATION);
   }
@@ -1790,7 +2248,7 @@ async function runFormatOrValidate(ctx: CliContext): Promise<void> {
   // 2. Ajv schema validation
   const schemaResult = validateRawRun(data);
   if (!schemaResult.valid) {
-    console.error("Schema validation failed:");
+    console.error('Schema validation failed:');
     for (const err of schemaResult.errors) {
       console.error(`  ${err}`);
     }
@@ -1806,13 +2264,11 @@ async function runFormatOrValidate(ctx: CliContext): Promise<void> {
   } else {
     // Count and warn about dropped test cases
     const before = raw.testCases.length;
-    const withStory = raw.testCases.filter(
-      (tc) => tc.story != null
-    ).length;
+    const withStory = raw.testCases.filter((tc) => tc.story != null).length;
     droppedMissingStory = before - withStory;
     if (droppedMissingStory > 0) {
       console.error(
-        `Dropped ${droppedMissingStory} test cases missing story (use --synthesize-stories to include)`
+        `Dropped ${droppedMissingStory} test cases missing story (use --synthesize-stories to include)`,
       );
     }
   }
@@ -1833,7 +2289,7 @@ async function runFormatOrValidate(ctx: CliContext): Promise<void> {
   if (args.emitCanonical) {
     const outPath = path.resolve(args.emitCanonical);
     fs.mkdirSync(path.dirname(outPath), { recursive: true });
-    fs.writeFileSync(outPath, JSON.stringify(canonical, null, 2), "utf8");
+    fs.writeFileSync(outPath, JSON.stringify(canonical, null, 2), 'utf8');
   }
 
   // 6. Generate reports
@@ -1841,8 +2297,18 @@ async function runFormatOrValidate(ctx: CliContext): Promise<void> {
     // Update history first so the HTML report's per-scenario timeline
     // includes the current run as its latest entry.
     const history = runHistoryPipeline(canonical, args);
-    const result = await generateReports(canonical, args, history, droppedMissingStory);
-    runCustomFormatters(canonical, customRequested, pluginConfig.formatters ?? {}, args);
+    const result = await generateReports(
+      canonical,
+      args,
+      history,
+      droppedMissingStory,
+    );
+    runCustomFormatters(
+      canonical,
+      customRequested,
+      pluginConfig.formatters ?? {},
+      args,
+    );
     await dispatchNotifications(canonical, args);
     printResult(result, args, startMs, droppedMissingStory);
     process.exit(EXIT_SUCCESS);
@@ -1861,25 +2327,27 @@ function runCustomFormatters(
   run: TestRunResult,
   customRequested: string[],
   formatters: Record<string, Formatter>,
-  args: CliArgs
+  args: CliArgs,
 ): void {
   if (customRequested.length === 0) return;
-  const outputDir = args.outputDir ?? ".";
+  const outputDir = args.outputDir ?? '.';
   for (const formatName of customRequested) {
     const formatter = formatters[formatName];
     try {
       const content = formatter.format(run);
       const ext = formatter.fileExtension ?? formatName;
-      const baseName = args.outputName ?? "report";
+      const baseName = args.outputName ?? 'report';
       const filename = args.outputNameTimestamp
         ? `${baseName}-${Math.floor(run.startedAtMs / 1000)}.${ext}`
         : `${baseName}.${ext}`;
       const filepath = path.join(outputDir, filename);
       fs.mkdirSync(outputDir, { recursive: true });
-      fs.writeFileSync(filepath, content, "utf8");
+      fs.writeFileSync(filepath, content, 'utf8');
       console.log(`Generated: ${filepath}`);
     } catch (err) {
-      console.error(`Error running custom formatter "${formatName}": ${err instanceof Error ? err.message : String(err)}`);
+      console.error(
+        `Error running custom formatter "${formatName}": ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   }
 }
@@ -1888,29 +2356,34 @@ function runCustomFormatters(
 // Notifications
 // ============================================================================
 
-async function dispatchNotifications(run: TestRunResult, args: CliArgs): Promise<void> {
+async function dispatchNotifications(
+  run: TestRunResult,
+  args: CliArgs,
+): Promise<void> {
   // Build generic webhook configs from CLI flags
-  const webhooks: GenericWebhookNotifierOptions[] = args.webhookUrls.map((url) => {
-    const opts: GenericWebhookNotifierOptions = { url };
-    if (Object.keys(args.webhookHeaders).length > 0) {
-      opts.headers = { ...args.webhookHeaders };
-    }
-    if (args.webhookMethod !== "POST") {
-      opts.method = args.webhookMethod;
-    }
-    if (args.webhookHmacSecret) {
-      const signer: WebhookSignerHmac = {
-        type: "hmac-sha256",
-        secret: args.webhookHmacSecret,
-        header: args.webhookHmacHeader,
-      };
-      if (args.webhookHmacTimestamp) {
-        signer.includeTimestamp = true;
+  const webhooks: GenericWebhookNotifierOptions[] = args.webhookUrls.map(
+    (url) => {
+      const opts: GenericWebhookNotifierOptions = { url };
+      if (Object.keys(args.webhookHeaders).length > 0) {
+        opts.headers = { ...args.webhookHeaders };
       }
-      opts.signer = signer;
-    }
-    return opts;
-  });
+      if (args.webhookMethod !== 'POST') {
+        opts.method = args.webhookMethod;
+      }
+      if (args.webhookHmacSecret) {
+        const signer: WebhookSignerHmac = {
+          type: 'hmac-sha256',
+          secret: args.webhookHmacSecret,
+          header: args.webhookHmacHeader,
+        };
+        if (args.webhookHmacTimestamp) {
+          signer.includeTimestamp = true;
+        }
+        opts.signer = signer;
+      }
+      return opts;
+    },
+  );
 
   await sendNotifications(
     {
@@ -1936,7 +2409,10 @@ async function dispatchNotifications(run: TestRunResult, args: CliArgs): Promise
 // History Pipeline
 // ============================================================================
 
-function runHistoryPipeline(run: TestRunResult, args: CliArgs): HistoryStore | undefined {
+function runHistoryPipeline(
+  run: TestRunResult,
+  args: CliArgs,
+): HistoryStore | undefined {
   if (!args.historyFile) return undefined;
 
   const historyPath = path.resolve(args.historyFile);
@@ -1947,7 +2423,7 @@ function runHistoryPipeline(run: TestRunResult, args: CliArgs): HistoryStore | u
     {
       readFile: (p: string) => {
         try {
-          return fs.readFileSync(p, "utf8");
+          return fs.readFileSync(p, 'utf8');
         } catch {
           return undefined;
         }
@@ -1968,7 +2444,10 @@ function runHistoryPipeline(run: TestRunResult, args: CliArgs): HistoryStore | u
   fs.mkdirSync(dir, { recursive: true });
   saveHistory(
     { filePath: historyPath, store: updated },
-    { writeFile: (p: string, content: string) => fs.writeFileSync(p, content, "utf8") },
+    {
+      writeFile: (p: string, content: string) =>
+        fs.writeFileSync(p, content, 'utf8'),
+    },
   );
 
   // Compute metrics (log summary for CLI users)
@@ -1980,7 +2459,9 @@ function runHistoryPipeline(run: TestRunResult, args: CliArgs): HistoryStore | u
     }
   }
   if (metricsCount > 0) {
-    console.error(`History updated: ${historyPath} (${Object.keys(updated.tests).length} tests tracked)`);
+    console.error(
+      `History updated: ${historyPath} (${Object.keys(updated.tests).length} tests tracked)`,
+    );
   }
 
   return updated;
@@ -1990,11 +2471,30 @@ function runHistoryPipeline(run: TestRunResult, args: CliArgs): HistoryStore | u
 // Report Generation
 // ============================================================================
 
+interface CliSummaryGroup {
+  files: string[];
+  counts: SummaryCounts;
+  /** Absent when the adapters represented here could not observe assertions. */
+  unasserted?: number;
+}
+
 interface CliResult {
   files: string[];
-  counts: { passed: number; failed: number; skipped: number; pending: number };
+  counts: SummaryCounts;
+  /** How many scenarios this run produced, before accumulated ones were folded in. */
+  ranCount: number;
+  /**
+   * Scenarios that passed without asserting anything.
+   *
+   * Absent when no adapter in the run could observe assertions, which is not
+   * the same as none having been found.
+   */
+  unasserted?: number;
   /** True when this run wrote the artifacts README, i.e. first contact with the output dir. */
   createdArtifactsReadme: boolean;
+  /** Present only when documentation and execution formats were generated together. */
+  documented?: CliSummaryGroup;
+  executed?: CliSummaryGroup;
 }
 
 interface CompareCliResult {
@@ -2010,7 +2510,8 @@ async function generateReports(
   run: TestRunResult,
   args: CliArgs,
   historyStore?: HistoryStore,
-  _droppedMissingStory = 0
+  _droppedMissingStory = 0,
+  generateOptions: { persist?: boolean } = {},
 ): Promise<CliResult> {
   const generator = new ReportGenerator({
     include: args.include,
@@ -2042,48 +2543,121 @@ async function generateReports(
       : {}),
   });
 
-  const resultMap = await generator.generate(run);
+  const resultMap = await generator.generate(run, generateOptions);
 
   // Collect all generated file paths
   const files: string[] = [];
-  for (const paths of resultMap.values()) {
+  const documentationFiles: string[] = [];
+  const executionFiles: string[] = [];
+  for (const [format, paths] of resultMap) {
     files.push(...paths);
+    (EXECUTION_ONLY_FORMATS.has(format)
+      ? executionFiles
+      : documentationFiles
+    ).push(...paths);
   }
 
   // Make the output folder self-documenting for newcomers (write-once; an
   // existing README.md, ours or the user's, is never touched).
   const createdArtifactsReadme = writeArtifactsReadme(args.outputDir);
 
-  // Count statuses
-  const counts = { passed: 0, failed: 0, skipped: 0, pending: 0 };
-  for (const tc of run.testCases) {
-    const status = tc.status as keyof typeof counts;
-    if (status in counts) {
-      counts[status]++;
+  // Count what was written. Documentation formats render the accumulated suite,
+  // execution formats render only what this build ran, so a run that produced
+  // nothing but JUnit must not report the suite's totals beside it.
+  const documented = generator.renderedRun ?? run;
+  const wroteDocumentation = args.formats.some(
+    (f) => !EXECUTION_ONLY_FORMATS.has(f),
+  );
+  const wroteExecution = args.formats.some((f) =>
+    EXECUTION_ONLY_FORMATS.has(f),
+  );
+  // For execution-only output, count what those formats were handed — the run
+  // after the same include/exclude they render through — not the raw input,
+  // which still holds scenarios that were filtered out and never written.
+  const rendered = wroteDocumentation
+    ? documented
+    : (generator.executedRun ?? run);
+  const countStatuses = (source: TestRunResult) => {
+    const result = { passed: 0, failed: 0, skipped: 0, pending: 0 };
+    for (const tc of source.testCases) {
+      const status = tc.status as keyof typeof result;
+      if (status in result) result[status]++;
     }
-  }
+    return result;
+  };
+  const counts = countStatuses(rendered);
 
-  return { files, counts, createdArtifactsReadme };
+  // How much of the report this run actually verified. Counting the run's own
+  // input would overstate it: output filters can drop this run's scenarios from
+  // the report entirely, leaving a report made of carried-over results that
+  // would otherwise read as freshly verified.
+  const renderedIds = new Set(rendered.testCases.map((tc) => tc.id));
+  const ranCount = run.testCases.filter((tc) => renderedIds.has(tc.id)).length;
+
+  const countUnasserted = (source: TestRunResult) => {
+    // Count only where an adapter could observe assertions at all, so a run
+    // made entirely of Go or Rust scenarios reports nothing rather than a
+    // fabricated zero.
+    const observable = source.testCases.some(
+      (tc) => assertionState(tc.story.steps) !== 'unobserved',
+    );
+    return observable
+      ? source.testCases.filter(
+          (tc) =>
+            tc.status === 'passed' &&
+            assertionState(tc.story.steps) === 'unasserted',
+        ).length
+      : undefined;
+  };
+  const unasserted = countUnasserted(rendered);
+
+  const mixed = wroteDocumentation && wroteExecution;
+  return {
+    files,
+    counts,
+    createdArtifactsReadme,
+    ranCount,
+    ...(unasserted === undefined ? {} : { unasserted }),
+    ...(mixed
+      ? {
+          documented: {
+            files: documentationFiles,
+            counts: countStatuses(documented),
+            unasserted: countUnasserted(documented),
+          },
+          executed: {
+            files: executionFiles,
+            counts: countStatuses(generator.executedRun ?? run),
+            unasserted: countUnasserted(generator.executedRun ?? run),
+          },
+        }
+      : {}),
+  };
 }
 
 async function generateCompareReports(
   baseline: TestRunResult,
   current: TestRunResult,
   baselineFile: string,
-  args: CliArgs
+  args: CliArgs,
 ): Promise<CompareCliResult> {
   // "changelog" is compare-only, so it never joins the OutputFormat union;
   // it reaches args.formats via the compare-aware CLI validation above.
   const requestedFormats = args.formats as string[];
   const unsupportedCompareFormats = requestedFormats.filter(
-    (format) => format !== "html" && format !== "markdown" && format !== "changelog"
+    (format) =>
+      format !== 'html' && format !== 'markdown' && format !== 'changelog',
   );
   if (unsupportedCompareFormats.length > 0) {
     throw new Error(
-      `compare supports only "html", "markdown", and "changelog" formats (unsupported: ${unsupportedCompareFormats.join(", ")})`
+      `compare supports only "html", "markdown", and "changelog" formats (unsupported: ${unsupportedCompareFormats.join(', ')})`,
     );
   }
-  const compareFormats = requestedFormats as ("html" | "markdown" | "changelog")[];
+  const compareFormats = requestedFormats as (
+    | 'html'
+    | 'markdown'
+    | 'changelog'
+  )[];
 
   const result = await generateRunComparison({
     baseline,
@@ -2100,11 +2674,14 @@ async function generateCompareReports(
     baselineFile,
     addedFailures: result.diff.scenarios.filter(
       (scenario) =>
-        scenario.kind === "added" && scenario.current?.status === "failed"
+        scenario.kind === 'added' && scenario.current?.status === 'failed',
     ).length,
     summary: result.diff.summary,
     scenarios: result.diff.scenarios,
-    prSummary: args.prSummary || args.prSummaryFile ? createPrCommentSummary(result.diff) : undefined,
+    prSummary:
+      args.prSummary || args.prSummaryFile
+        ? createPrCommentSummary(result.diff)
+        : undefined,
   };
 }
 
@@ -2120,46 +2697,52 @@ const STRENGTH_RANK: Record<EvidenceStrength, number> = {
 };
 
 /** Map a `git diff` status code to a change kind. */
-function mapStatus(status: string): ChangedFile["changeKind"] {
+function mapStatus(status: string): ChangedFile['changeKind'] {
   const letter = status.charAt(0).toUpperCase();
-  if (letter === "A") return "added";
-  if (letter === "D") return "deleted";
-  if (letter === "R") return "renamed";
-  if (letter === "C") return "added";
-  return "modified";
+  if (letter === 'A') return 'added';
+  if (letter === 'D') return 'deleted';
+  if (letter === 'R') return 'renamed';
+  if (letter === 'C') return 'added';
+  return 'modified';
 }
 
 /** Parse `git diff --name-status` text into changed files. */
 function parseNameStatus(text: string): ChangedFile[] {
   const files: ChangedFile[] = [];
-  for (const raw of text.split("\n")) {
+  for (const raw of text.split('\n')) {
     const line = raw.trim();
     if (!line) continue;
-    const cols = line.includes("\t") ? line.split("\t") : line.split(/\s+/);
+    const cols = line.includes('\t') ? line.split('\t') : line.split(/\s+/);
     const status = cols[0];
     if (!status) continue;
     // Renames/copies report old and new path; use the new (last) path.
-    const filePath = /^[RC]/i.test(status) && cols.length >= 3 ? cols[cols.length - 1] : cols[1];
+    const filePath =
+      /^[RC]/i.test(status) && cols.length >= 3
+        ? cols[cols.length - 1]
+        : cols[1];
     if (!filePath) continue;
     files.push({ path: filePath, changeKind: mapStatus(status) });
   }
   return files;
 }
 
-const VALID_CHANGE_KINDS = new Set(["added", "modified", "deleted", "renamed"]);
+const VALID_CHANGE_KINDS = new Set(['added', 'modified', 'deleted', 'renamed']);
 
 /** Coerce an arbitrary object into a ChangedFile (defaulting changeKind to "modified"). */
 function coerceChangedFile(value: unknown): ChangedFile | undefined {
-  if (typeof value !== "object" || value === null) return undefined;
+  if (typeof value !== 'object' || value === null) return undefined;
   const obj = value as Record<string, unknown>;
-  if (typeof obj.path !== "string") return undefined;
-  const kind = typeof obj.changeKind === "string" && VALID_CHANGE_KINDS.has(obj.changeKind)
-    ? (obj.changeKind as ChangedFile["changeKind"])
-    : "modified";
+  if (typeof obj.path !== 'string') return undefined;
+  const kind =
+    typeof obj.changeKind === 'string' && VALID_CHANGE_KINDS.has(obj.changeKind)
+      ? (obj.changeKind as ChangedFile['changeKind'])
+      : 'modified';
   const changedLines = Array.isArray(obj.changedLines)
-    ? obj.changedLines.filter((n): n is number => typeof n === "number")
+    ? obj.changedLines.filter((n): n is number => typeof n === 'number')
     : undefined;
-  return changedLines ? { path: obj.path, changeKind: kind, changedLines } : { path: obj.path, changeKind: kind };
+  return changedLines
+    ? { path: obj.path, changeKind: kind, changedLines }
+    : { path: obj.path, changeKind: kind };
 }
 
 /**
@@ -2176,14 +2759,18 @@ function loadReviewContext(args: CliArgs): ReviewContext {
     const text = readFileInput(args.changedFilesPath);
     const parsed = tryParseJson(text);
     if (Array.isArray(parsed)) {
-      changedFiles = parsed.map(coerceChangedFile).filter((f): f is ChangedFile => f !== undefined);
-    } else if (parsed && typeof parsed === "object") {
+      changedFiles = parsed
+        .map(coerceChangedFile)
+        .filter((f): f is ChangedFile => f !== undefined);
+    } else if (parsed && typeof parsed === 'object') {
       const obj = parsed as Record<string, unknown>;
       if (Array.isArray(obj.changedFiles)) {
-        changedFiles = obj.changedFiles.map(coerceChangedFile).filter((f): f is ChangedFile => f !== undefined);
+        changedFiles = obj.changedFiles
+          .map(coerceChangedFile)
+          .filter((f): f is ChangedFile => f !== undefined);
       }
-      if (typeof obj.baseRef === "string") baseRef = baseRef ?? obj.baseRef;
-      if (typeof obj.headRef === "string") headRef = headRef ?? obj.headRef;
+      if (typeof obj.baseRef === 'string') baseRef = baseRef ?? obj.baseRef;
+      if (typeof obj.headRef === 'string') headRef = headRef ?? obj.headRef;
     } else {
       changedFiles = parseNameStatus(text);
     }
@@ -2193,11 +2780,13 @@ function loadReviewContext(args: CliArgs): ReviewContext {
   if (args.codeDiffPath) {
     if (!args.patchPath) {
       console.error(
-        "Error: --code-diff requires --patch <file> (generate it with: git diff --histogram > changes.patch)."
+        'Error: --code-diff requires --patch <file> (generate it with: git diff --histogram > changes.patch).',
       );
       process.exit(EXIT_USAGE);
     }
-    const sidecar = JSON.parse(readFileInput(args.codeDiffPath)) as CodeDiffSidecar;
+    const sidecar = JSON.parse(
+      readFileInput(args.codeDiffPath),
+    ) as CodeDiffSidecar;
     const patch = readFileInput(args.patchPath);
     const { input, warnings } = assembleCodeDiff({ sidecar, patch });
     for (const warning of warnings) {
@@ -2212,25 +2801,28 @@ function loadReviewContext(args: CliArgs): ReviewContext {
 /** Render and write the review report (markdown + HTML, mirroring report mode). */
 function writeReviewReport(
   review: ReturnType<typeof buildReview>,
-  args: CliArgs
+  args: CliArgs,
 ): string[] {
-  const title = args.htmlTitle && args.htmlTitle !== "Test Results" ? args.htmlTitle : undefined;
+  const title =
+    args.htmlTitle && args.htmlTitle !== 'Test Results'
+      ? args.htmlTitle
+      : undefined;
   const titleOpt = title ? { title } : {};
 
   const markdown = new ReviewMarkdownFormatter(titleOpt).format(review);
   const html = new ReviewHtmlFormatter(titleOpt).format(review);
 
-  const outputDir = args.outputDir ?? "reports";
-  const baseName = args.outputName ?? "evidence-review";
+  const outputDir = args.outputDir ?? 'reports';
+  const baseName = args.outputName ?? 'evidence-review';
   const suffix = args.outputNameTimestamp
     ? `-${Math.floor(review.run.startedAtMs / 1000)}`
-    : "";
+    : '';
 
   fs.mkdirSync(outputDir, { recursive: true });
   const mdPath = path.join(outputDir, `${baseName}${suffix}.md`);
   const htmlPath = path.join(outputDir, `${baseName}${suffix}.html`);
-  fs.writeFileSync(mdPath, markdown, "utf8");
-  fs.writeFileSync(htmlPath, html, "utf8");
+  fs.writeFileSync(mdPath, markdown, 'utf8');
+  fs.writeFileSync(htmlPath, html, 'utf8');
 
   return [mdPath, htmlPath];
 }
@@ -2238,25 +2830,29 @@ function writeReviewReport(
 /** Evaluate the opt-in review gate. Returns failure messages (empty = pass). */
 function evaluateReviewGate(
   review: ReturnType<typeof buildReview>,
-  args: CliArgs
+  args: CliArgs,
 ): string[] {
   const failures: string[] = [];
   const { summary } = review;
 
-  if (args.failOn === "uncovered" && summary.uncovered > 0) {
-    failures.push(`${summary.uncovered} changed source file(s) have no evidence`);
-  }
-  if (args.failOn === "weak" && summary.uncovered + summary.weaklyCovered > 0) {
+  if (args.failOn === 'uncovered' && summary.uncovered > 0) {
     failures.push(
-      `${summary.uncovered + summary.weaklyCovered} changed source file(s) lack moderate+ evidence`
+      `${summary.uncovered} changed source file(s) have no evidence`,
+    );
+  }
+  if (args.failOn === 'weak' && summary.uncovered + summary.weaklyCovered > 0) {
+    failures.push(
+      `${summary.uncovered + summary.weaklyCovered} changed source file(s) lack moderate+ evidence`,
     );
   }
   if (args.minEvidence) {
     const threshold = STRENGTH_RANK[args.minEvidence];
-    const below = review.claims.filter((c) => STRENGTH_RANK[c.strength] < threshold);
+    const below = review.claims.filter(
+      (c) => STRENGTH_RANK[c.strength] < threshold,
+    );
     if (below.length > 0) {
       failures.push(
-        `${below.length} claim(s) below "${args.minEvidence}" evidence strength`
+        `${below.length} claim(s) below "${args.minEvidence}" evidence strength`,
       );
     }
   }
@@ -2268,7 +2864,7 @@ function printResult(
   result: CliResult,
   args: CliArgs,
   startMs: number,
-  droppedMissingStory = 0
+  droppedMissingStory = 0,
 ) {
   const durationMs = Date.now() - startMs;
 
@@ -2277,7 +2873,16 @@ function printResult(
       files: result.files,
       counts: result.counts,
       durationMs,
+      ...(result.documented ? { documented: result.documented } : {}),
+      ...(result.executed ? { executed: result.executed } : {}),
     };
+    // `counts` spans the whole documented report; with mixed documentation and
+    // execution-only formats that total belongs to the docs, not to the JUnit
+    // beside them. `ranCount` says how much of it this run actually executed.
+    summary.ranCount = result.ranCount;
+    if (result.unasserted !== undefined) {
+      summary.unasserted = result.unasserted;
+    }
     if (droppedMissingStory > 0) {
       summary.droppedMissingStory = droppedMissingStory;
     }
@@ -2289,7 +2894,36 @@ function printResult(
     // Confirmation line: `format` used to succeed in silence, so a run that
     // produced an empty or all-failing report looked identical to a healthy
     // one. stderr keeps piped stdout (the file list) clean.
-    console.error(summaryLine(result.counts, result.files, durationMs));
+    if (result.documented && result.executed) {
+      console.error(
+        `Documentation: ${summaryLine(
+          result.documented.counts,
+          result.documented.files,
+          durationMs,
+          {
+            ranCount: result.ranCount,
+            unasserted: result.documented.unasserted,
+          },
+        )}`,
+      );
+      console.error(
+        `Execution: ${summaryLine(
+          result.executed.counts,
+          result.executed.files,
+          durationMs,
+          {
+            unasserted: result.executed.unasserted,
+          },
+        )}`,
+      );
+    } else {
+      console.error(
+        summaryLine(result.counts, result.files, durationMs, {
+          ranCount: result.ranCount,
+          unasserted: result.unasserted,
+        }),
+      );
+    }
     // Discoverability: the living-docs Astro site is the first-class human
     // surface (stories, explainers with freshness banners, explorer), but it's
     // scaffolded once, not generated per run. Point at it only on first
@@ -2299,11 +2933,11 @@ function printResult(
     // stdout clean; --json-summary (agent pipelines) skips it entirely.
     if (
       result.createdArtifactsReadme &&
-      !isScaffoldedAstroSite(".") &&
-      !isScaffoldedAstroSite("./story-docs")
+      !isScaffoldedAstroSite('.') &&
+      !isScaffoldedAstroSite('./story-docs')
     ) {
       console.error(
-        "Tip: for a live docs site (stories, explainers, freshness): npx executable-stories init-astro --install",
+        'Tip: for a live docs site (stories, explainers, freshness): npx executable-stories init-astro --install',
       );
     }
   }
@@ -2318,14 +2952,14 @@ function printResult(
 function printCompareResult(
   result: CompareCliResult,
   args: CliArgs,
-  startMs: number
+  startMs: number,
 ) {
   const durationMs = Date.now() - startMs;
 
   if (result.prSummary && args.prSummaryFile) {
     const outputPath = path.resolve(args.prSummaryFile);
     fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-    fs.writeFileSync(outputPath, result.prSummary, "utf8");
+    fs.writeFileSync(outputPath, result.prSummary, 'utf8');
   }
 
   if (args.jsonSummary) {
@@ -2340,8 +2974,8 @@ function printCompareResult(
           durationMs,
         },
         null,
-        2
-      )
+        2,
+      ),
     );
     return;
   }
@@ -2352,11 +2986,11 @@ function printCompareResult(
   console.log(`baseline: ${result.baselineFile}`);
   if (result.summary.notRun > 0) {
     console.error(
-      `--partial: ${result.summary.notRun} baseline scenario(s) live in files this run did not cover and were left out of the diff.`
+      `--partial: ${result.summary.notRun} baseline scenario(s) live in files this run did not cover and were left out of the diff.`,
     );
   }
   if (result.prSummary && args.prSummary) {
-    console.log("");
+    console.log('');
     console.log(result.prSummary);
   }
 }
@@ -2374,10 +3008,14 @@ function loadReleasePolicy(policyPath: string): ReleasePolicy {
     process.exit(EXIT_USAGE);
   }
   try {
-    const raw = JSON.parse(fs.readFileSync(resolved, "utf8"));
+    const raw = JSON.parse(fs.readFileSync(resolved, 'utf8'));
     return {
-      allowedOmissions: Array.isArray(raw.allowedOmissions) ? raw.allowedOmissions : [],
-      allowedRegressions: Array.isArray(raw.allowedRegressions) ? raw.allowedRegressions : [],
+      allowedOmissions: Array.isArray(raw.allowedOmissions)
+        ? raw.allowedOmissions
+        : [],
+      allowedRegressions: Array.isArray(raw.allowedRegressions)
+        ? raw.allowedRegressions
+        : [],
       allowNewScenarios: Boolean(raw.allowNewScenarios),
     };
   } catch (err) {
@@ -2394,10 +3032,12 @@ function applyReleasePolicy(
   const allowedOmissionSet = new Set(policy.allowedOmissions ?? []);
   const allowedRegressionSet = new Set(policy.allowedRegressions ?? []);
   const adjustedOmissions = result.scenarios.filter(
-    (scenario) => scenario.kind === "removed" && !allowedOmissionSet.has(scenario.id),
+    (scenario) =>
+      scenario.kind === 'removed' && !allowedOmissionSet.has(scenario.id),
   ).length;
   const adjustedRegressions = result.scenarios.filter(
-    (scenario) => scenario.kind === "regressed" && !allowedRegressionSet.has(scenario.id),
+    (scenario) =>
+      scenario.kind === 'regressed' && !allowedRegressionSet.has(scenario.id),
   ).length;
 
   const adjustedSummary = {
@@ -2419,22 +3059,22 @@ function evaluateCompareGate(
   const failures: string[] = [];
   if (args.failOnRegression && result.summary.regressed > 0) {
     failures.push(
-      `regressions detected (${result.summary.regressed}) with --fail-on-regression`
+      `regressions detected (${result.summary.regressed}) with --fail-on-regression`,
     );
   }
   if (args.failOnAddedFailures && result.addedFailures > 0) {
     failures.push(
-      `new failing scenarios detected (${result.addedFailures}) with --fail-on-added-failures`
+      `new failing scenarios detected (${result.addedFailures}) with --fail-on-added-failures`,
     );
   }
   if (args.failOnRemoval && result.summary.removed > 0) {
     failures.push(
-      `removed scenarios detected (${result.summary.removed}) with --fail-on-removal`
+      `removed scenarios detected (${result.summary.removed}) with --fail-on-removal`,
     );
   }
   if (args.failOnNew && result.summary.added > 0) {
     failures.push(
-      `new scenarios detected (${result.summary.added}) with --fail-on-new`
+      `new scenarios detected (${result.summary.added}) with --fail-on-new`,
     );
   }
   if (
@@ -2442,7 +3082,7 @@ function evaluateCompareGate(
     result.summary.regressed > args.maxRegressions
   ) {
     failures.push(
-      `regressions ${result.summary.regressed} exceed --max-regressions ${args.maxRegressions}`
+      `regressions ${result.summary.regressed} exceed --max-regressions ${args.maxRegressions}`,
     );
   }
   return failures;
@@ -2452,15 +3092,15 @@ async function runPublishConfluence(rawArgs: string[]): Promise<void> {
   const { values, positionals } = parseArgs({
     args: rawArgs,
     options: {
-      "page-id": { type: "string" },
-      "space-id": { type: "string" },
-      "parent-id": { type: "string" },
-      title: { type: "string" },
-      "base-url": { type: "string" },
-      email: { type: "string" },
-      token: { type: "string" },
-      "dry-run": { type: "boolean", default: false },
-      help: { type: "boolean", default: false },
+      'page-id': { type: 'string' },
+      'space-id': { type: 'string' },
+      'parent-id': { type: 'string' },
+      title: { type: 'string' },
+      'base-url': { type: 'string' },
+      email: { type: 'string' },
+      token: { type: 'string' },
+      'dry-run': { type: 'boolean', default: false },
+      help: { type: 'boolean', default: false },
     },
     allowPositionals: true,
     strict: true,
@@ -2491,7 +3131,9 @@ Generate an API token at https://id.atlassian.com/manage-profile/security/api-to
 
   const inputFile = positionals[0];
   if (!inputFile) {
-    console.error("Error: missing ADF file argument. Run with --help for usage.");
+    console.error(
+      'Error: missing ADF file argument. Run with --help for usage.',
+    );
     process.exit(EXIT_USAGE);
   }
   if (!fs.existsSync(inputFile)) {
@@ -2500,42 +3142,42 @@ Generate an API token at https://id.atlassian.com/manage-profile/security/api-to
   }
 
   const baseUrl =
-    (values["base-url"] as string | undefined) ??
+    (values['base-url'] as string | undefined) ??
     process.env.CONFLUENCE_BASE_URL;
   const email =
     (values.email as string | undefined) ?? process.env.CONFLUENCE_EMAIL;
   const token =
     (values.token as string | undefined) ?? process.env.CONFLUENCE_TOKEN;
-  const pageId = values["page-id"] as string | undefined;
-  const spaceId = values["space-id"] as string | undefined;
-  const parentId = values["parent-id"] as string | undefined;
+  const pageId = values['page-id'] as string | undefined;
+  const spaceId = values['space-id'] as string | undefined;
+  const parentId = values['parent-id'] as string | undefined;
   const title = values.title as string | undefined;
-  const dryRun = values["dry-run"] as boolean;
+  const dryRun = values['dry-run'] as boolean;
 
   if (!baseUrl) {
     console.error(
-      "Error: --base-url or CONFLUENCE_BASE_URL is required (e.g. https://acme.atlassian.net/wiki)",
+      'Error: --base-url or CONFLUENCE_BASE_URL is required (e.g. https://acme.atlassian.net/wiki)',
     );
     process.exit(EXIT_USAGE);
   }
   if (!pageId && !spaceId) {
     console.error(
-      "Error: specify either --page-id (to update) or --space-id (to create)",
+      'Error: specify either --page-id (to update) or --space-id (to create)',
     );
     process.exit(EXIT_USAGE);
   }
   if (!pageId && !title) {
-    console.error("Error: --title is required when creating a new page");
+    console.error('Error: --title is required when creating a new page');
     process.exit(EXIT_USAGE);
   }
 
-  const adf = fs.readFileSync(path.resolve(inputFile), "utf8");
+  const adf = fs.readFileSync(path.resolve(inputFile), 'utf8');
 
   if (dryRun) {
     console.log(
       JSON.stringify(
         {
-          action: pageId ? "update" : "create",
+          action: pageId ? 'update' : 'create',
           baseUrl,
           pageId,
           spaceId,
@@ -2552,7 +3194,7 @@ Generate an API token at https://id.atlassian.com/manage-profile/security/api-to
 
   if (!email || !token) {
     console.error(
-      "Error: --email/CONFLUENCE_EMAIL and --token/CONFLUENCE_TOKEN are required unless --dry-run is set",
+      'Error: --email/CONFLUENCE_EMAIL and --token/CONFLUENCE_TOKEN are required unless --dry-run is set',
     );
     process.exit(EXIT_USAGE);
   }
@@ -2563,7 +3205,7 @@ Generate an API token at https://id.atlassian.com/manage-profile/security/api-to
       { auth: { email, token } },
     );
     console.log(
-      `${result.action === "created" ? "Created" : "Updated"} "${result.title}" (v${result.version}) → ${result.url}`,
+      `${result.action === 'created' ? 'Created' : 'Updated'} "${result.title}" (v${result.version}) → ${result.url}`,
     );
     process.exit(EXIT_SUCCESS);
   } catch (err) {
@@ -2576,13 +3218,13 @@ async function runPublishJira(rawArgs: string[]): Promise<void> {
   const { values, positionals } = parseArgs({
     args: rawArgs,
     options: {
-      issue: { type: "string" },
-      mode: { type: "string", default: "comment" },
-      "base-url": { type: "string" },
-      email: { type: "string" },
-      token: { type: "string" },
-      "dry-run": { type: "boolean", default: false },
-      help: { type: "boolean", default: false },
+      issue: { type: 'string' },
+      mode: { type: 'string', default: 'comment' },
+      'base-url': { type: 'string' },
+      email: { type: 'string' },
+      token: { type: 'string' },
+      'dry-run': { type: 'boolean', default: false },
+      help: { type: 'boolean', default: false },
     },
     allowPositionals: true,
     strict: true,
@@ -2611,7 +3253,9 @@ Generate an API token at https://id.atlassian.com/manage-profile/security/api-to
 
   const inputFile = positionals[0];
   if (!inputFile) {
-    console.error("Error: missing ADF file argument. Run with --help for usage.");
+    console.error(
+      'Error: missing ADF file argument. Run with --help for usage.',
+    );
     process.exit(EXIT_USAGE);
   }
   if (!fs.existsSync(inputFile)) {
@@ -2620,24 +3264,24 @@ Generate an API token at https://id.atlassian.com/manage-profile/security/api-to
   }
 
   const baseUrl =
-    (values["base-url"] as string | undefined) ?? process.env.JIRA_BASE_URL;
+    (values['base-url'] as string | undefined) ?? process.env.JIRA_BASE_URL;
   const email = (values.email as string | undefined) ?? process.env.JIRA_EMAIL;
   const token = (values.token as string | undefined) ?? process.env.JIRA_TOKEN;
   const issueKey = values.issue as string | undefined;
   const modeRaw = values.mode as string;
-  const dryRun = values["dry-run"] as boolean;
+  const dryRun = values['dry-run'] as boolean;
 
   if (!baseUrl) {
     console.error(
-      "Error: --base-url or JIRA_BASE_URL is required (e.g. https://acme.atlassian.net)",
+      'Error: --base-url or JIRA_BASE_URL is required (e.g. https://acme.atlassian.net)',
     );
     process.exit(EXIT_USAGE);
   }
   if (!issueKey) {
-    console.error("Error: --issue <KEY> is required (e.g. --issue PROJ-123)");
+    console.error('Error: --issue <KEY> is required (e.g. --issue PROJ-123)');
     process.exit(EXIT_USAGE);
   }
-  if (modeRaw !== "comment" && modeRaw !== "description") {
+  if (modeRaw !== 'comment' && modeRaw !== 'description') {
     console.error(
       `Error: --mode must be "comment" or "description" (got "${modeRaw}")`,
     );
@@ -2645,13 +3289,14 @@ Generate an API token at https://id.atlassian.com/manage-profile/security/api-to
   }
   const mode = modeRaw as JiraPublishMode;
 
-  const adf = fs.readFileSync(path.resolve(inputFile), "utf8");
+  const adf = fs.readFileSync(path.resolve(inputFile), 'utf8');
 
   if (dryRun) {
     console.log(
       JSON.stringify(
         {
-          action: mode === "description" ? "description-updated" : "comment-added",
+          action:
+            mode === 'description' ? 'description-updated' : 'comment-added',
           baseUrl,
           issueKey,
           mode,
@@ -2666,7 +3311,7 @@ Generate an API token at https://id.atlassian.com/manage-profile/security/api-to
 
   if (!email || !token) {
     console.error(
-      "Error: --email/JIRA_EMAIL and --token/JIRA_TOKEN are required unless --dry-run is set",
+      'Error: --email/JIRA_EMAIL and --token/JIRA_TOKEN are required unless --dry-run is set',
     );
     process.exit(EXIT_USAGE);
   }
@@ -2676,7 +3321,7 @@ Generate an API token at https://id.atlassian.com/manage-profile/security/api-to
       { adf, issueKey, baseUrl, mode },
       { auth: { email, token } },
     );
-    if (result.action === "comment-added") {
+    if (result.action === 'comment-added') {
       console.log(
         `Added comment to ${result.issueKey} (comment ${result.commentId}) → ${result.url}`,
       );
@@ -2695,21 +3340,21 @@ function runNew(rawArgs: string[]): number {
   const { values, positionals } = parseArgs({
     args: rawArgs,
     options: {
-      dir: { type: "string" },
-      force: { type: "boolean", default: false },
-      "scenario-id": { type: "string" },
+      dir: { type: 'string' },
+      force: { type: 'boolean', default: false },
+      'scenario-id': { type: 'string' },
     },
     allowPositionals: true,
     strict: true,
   });
 
   const template = positionals[0];
-  const name = positionals.slice(1).join(" ");
+  const name = positionals.slice(1).join(' ');
   if (!template) {
     console.error(
       `Usage: executable-stories new <template> "<name>" [--dir <docs-dir>] [--scenario-id <id>] [--force]`,
     );
-    console.error(`Templates: ${TEMPLATES.join(", ")}`);
+    console.error(`Templates: ${TEMPLATES.join(', ')}`);
     return EXIT_USAGE;
   }
 
@@ -2717,14 +3362,16 @@ function runNew(rawArgs: string[]): number {
     const result = scaffoldDoc({
       template,
       name,
-      scenarioId: values["scenario-id"] as string | undefined,
+      scenarioId: values['scenario-id'] as string | undefined,
       baseDir: values.dir as string | undefined,
       force: values.force as boolean,
     });
     console.log(`Created ${result.template}: ${result.path}`);
     console.log(`  Title: ${result.title}`);
-    console.log("");
-    console.log("Next: fill in the content and link verifying stories in `verifiedBy`.");
+    console.log('');
+    console.log(
+      'Next: fill in the content and link verifying stories in `verifiedBy`.',
+    );
     return EXIT_SUCCESS;
   } catch (err) {
     console.error(`Error: ${(err as Error).message}`);
@@ -2737,10 +3384,10 @@ async function runCheckLinks(rawArgs: string[]): Promise<number> {
   const { values, positionals } = parseArgs({
     args: rawArgs,
     options: {
-      external: { type: "boolean", default: false },
-      json: { type: "boolean", default: false },
-      "site-root": { type: "string" },
-      assets: { type: "string", multiple: true },
+      external: { type: 'boolean', default: false },
+      json: { type: 'boolean', default: false },
+      'site-root': { type: 'string' },
+      assets: { type: 'string', multiple: true },
     },
     allowPositionals: true,
     strict: true,
@@ -2749,12 +3396,16 @@ async function runCheckLinks(rawArgs: string[]): Promise<number> {
   try {
     const assets = values.assets as string[] | undefined;
     const report = await checkLinks({
-      target: positionals[0] ?? ".",
+      target: positionals[0] ?? '.',
       checkExternal: values.external as boolean,
-      ...(values["site-root"] ? { siteRoot: values["site-root"] as string } : {}),
+      ...(values['site-root']
+        ? { siteRoot: values['site-root'] as string }
+        : {}),
       ...(assets && assets.length > 0 ? { assetRoots: assets } : {}),
     });
-    console.log(values.json ? JSON.stringify(report, null, 2) : formatLinkReport(report));
+    console.log(
+      values.json ? JSON.stringify(report, null, 2) : formatLinkReport(report),
+    );
     return report.brokenCount > 0 ? EXIT_GENERATION : EXIT_SUCCESS;
   } catch (err) {
     console.error(`Error: ${(err as Error).message}`);
@@ -2767,9 +3418,9 @@ async function runImportOpenApi(rawArgs: string[]): Promise<number> {
   const { values, positionals } = parseArgs({
     args: rawArgs,
     options: {
-      "output-dir": { type: "string" },
-      run: { type: "string" },
-      force: { type: "boolean", default: false },
+      'output-dir': { type: 'string' },
+      run: { type: 'string' },
+      force: { type: 'boolean', default: false },
     },
     allowPositionals: true,
     strict: true,
@@ -2777,21 +3428,29 @@ async function runImportOpenApi(rawArgs: string[]): Promise<number> {
 
   const spec = positionals[0];
   if (!spec) {
-    console.error(`Usage: executable-stories import-openapi <spec.json|yaml> [--output-dir <dir>] [--run <story-report.json>] [--force]`);
+    console.error(
+      `Usage: executable-stories import-openapi <spec.json|yaml> [--output-dir <dir>] [--run <story-report.json>] [--force]`,
+    );
     return EXIT_USAGE;
   }
 
   try {
     const result = await importOpenApi({
       specPath: spec,
-      outputDir: values["output-dir"] as string | undefined,
+      outputDir: values['output-dir'] as string | undefined,
       runFile: values.run as string | undefined,
       force: values.force as boolean,
     });
-    console.log(`Generated ${result.pageCount} API page(s) at ${result.outputDir}`);
-    console.log(`  Covered endpoints: ${result.coveredCount} / ${result.endpointCount}`);
+    console.log(
+      `Generated ${result.pageCount} API page(s) at ${result.outputDir}`,
+    );
+    console.log(
+      `  Covered endpoints: ${result.coveredCount} / ${result.endpointCount}`,
+    );
     if (result.uncoveredCount > 0) {
-      console.log(`  ⚠ ${result.uncoveredCount} endpoint(s) have no verifying story`);
+      console.log(
+        `  ⚠ ${result.uncoveredCount} endpoint(s) have no verifying story`,
+      );
     }
     return EXIT_SUCCESS;
   } catch (err) {
@@ -2802,22 +3461,29 @@ async function runImportOpenApi(rawArgs: string[]): Promise<number> {
 
 async function runDeploy(rawArgs: string[]): Promise<number> {
   const mode = rawArgs[0];
-  if (!mode || !["record", "status", "diff"].includes(mode)) {
-    console.error("Usage: executable-stories deploy <record|status|diff> [options]");
-    console.error("  deploy record <file> --env <env> [--tag <tag>] [--ledger <path>]");
-    console.error("  deploy status [--ledger <path>] [--json]");
-    console.error("  deploy diff <env-a> <env-b> [--ledger <path>] [--json]");
+  if (!mode || !['record', 'status', 'diff'].includes(mode)) {
+    console.error(
+      'Usage: executable-stories deploy <record|status|diff> [options]',
+    );
+    console.error(
+      '  deploy record <file> --env <env> [--tag <tag>] [--ledger <path>]',
+    );
+    console.error('  deploy status [--ledger <path>] [--json]');
+    console.error('  deploy diff <env-a> <env-b> [--ledger <path>] [--json]');
     return EXIT_USAGE;
   }
 
   const { values, positionals } = parseArgs({
     args: rawArgs.slice(1),
     options: {
-      env: { type: "string" },
-      tag: { type: "string" },
-      ledger: { type: "string", default: ".executable-stories/deployments.json" },
-      json: { type: "boolean", default: false },
-      help: { type: "boolean", default: false },
+      env: { type: 'string' },
+      tag: { type: 'string' },
+      ledger: {
+        type: 'string',
+        default: '.executable-stories/deployments.json',
+      },
+      json: { type: 'boolean', default: false },
+      help: { type: 'boolean', default: false },
     },
     allowPositionals: true,
     strict: true,
@@ -2841,22 +3507,22 @@ OPTIONS
 
   const ledgerPath = values.ledger as string;
 
-  if (mode === "record") {
+  if (mode === 'record') {
     const inputFile = positionals[0];
     if (!inputFile) {
-      console.error("Error: deploy record requires an input file.");
+      console.error('Error: deploy record requires an input file.');
       return EXIT_USAGE;
     }
     const env = values.env as string | undefined;
     if (!env) {
-      console.error("Error: deploy record requires --env <environment>.");
+      console.error('Error: deploy record requires --env <environment>.');
       return EXIT_USAGE;
     }
 
     const text = readFileInput(inputFile);
     const { run } = normalizeRunFromText(text, {
       ...createDefaultCliArgs(),
-      inputType: "raw",
+      inputType: 'raw',
       inputFile,
     });
     const applied = applySelection(run, createDefaultCliArgs());
@@ -2882,12 +3548,12 @@ OPTIONS
     return EXIT_SUCCESS;
   }
 
-  if (mode === "status") {
+  if (mode === 'status') {
     const status = getDeploymentStatus(ledgerPath);
     const envs = Object.keys(status.environments);
 
     if (envs.length === 0) {
-      console.error("No deployments recorded yet.");
+      console.error('No deployments recorded yet.');
       return EXIT_SUCCESS;
     }
 
@@ -2900,15 +3566,23 @@ OPTIONS
         const e = env.latest;
         console.log(`${envName}:`);
         console.log(`  Deployed: ${e.timestamp}`);
-        console.log(`  SHA: ${e.sha ?? "unknown"}`);
-        console.log(`  Tag: ${e.tag ?? "none"}`);
-        console.log(`  Scenarios: ${e.summary.total} (${e.summary.passed} passed, ${e.summary.failed} failed, ${e.summary.skipped} skipped, ${e.summary.pending} pending)`);
+        console.log(`  SHA: ${e.sha ?? 'unknown'}`);
+        console.log(`  Tag: ${e.tag ?? 'none'}`);
+        console.log(
+          `  Scenarios: ${e.summary.total} (${e.summary.passed} passed, ${e.summary.failed} failed, ${e.summary.skipped} skipped, ${e.summary.pending} pending)`,
+        );
         if (env.previousDeployment) {
           const prev = env.previousDeployment;
-          const added = e.scenarioIds.filter((id) => !new Set(prev.scenarioIds).has(id)).length;
-          const removed = prev.scenarioIds.filter((id) => !new Set(e.scenarioIds).has(id)).length;
+          const added = e.scenarioIds.filter(
+            (id) => !new Set(prev.scenarioIds).has(id),
+          ).length;
+          const removed = prev.scenarioIds.filter(
+            (id) => !new Set(e.scenarioIds).has(id),
+          ).length;
           if (added > 0 || removed > 0) {
-            console.log(`  Drift from previous: +${added} added, -${removed} removed`);
+            console.log(
+              `  Drift from previous: +${added} added, -${removed} removed`,
+            );
           }
         }
         console.log();
@@ -2918,11 +3592,11 @@ OPTIONS
     return EXIT_SUCCESS;
   }
 
-  if (mode === "diff") {
+  if (mode === 'diff') {
     const envA = positionals[0];
     const envB = positionals[1];
     if (!envA || !envB) {
-      console.error("Error: deploy diff requires two environment names.");
+      console.error('Error: deploy diff requires two environment names.');
       return EXIT_USAGE;
     }
 
@@ -2933,8 +3607,12 @@ OPTIONS
         console.log(JSON.stringify(drift, null, 2));
       } else {
         console.log(`Environment drift: ${envA} ↔ ${envB}`);
-        console.log(`  ${envA}: ${drift.aEntry.summary.total} scenarios (${drift.aEntry.timestamp})`);
-        console.log(`  ${envB}: ${drift.bEntry.summary.total} scenarios (${drift.bEntry.timestamp})`);
+        console.log(
+          `  ${envA}: ${drift.aEntry.summary.total} scenarios (${drift.aEntry.timestamp})`,
+        );
+        console.log(
+          `  ${envB}: ${drift.bEntry.summary.total} scenarios (${drift.bEntry.timestamp})`,
+        );
         console.log(`  In both: ${drift.inBoth.length}`);
         console.log(`  Only in ${envA}: ${drift.onlyInA.length}`);
         console.log(`  Only in ${envB}: ${drift.onlyInB.length}`);
@@ -2959,7 +3637,7 @@ OPTIONS
           }
         }
         if (drift.statusChanged.length > 0) {
-          console.log("\n  Status changed:");
+          console.log('\n  Status changed:');
           for (const item of drift.statusChanged.slice(0, 20)) {
             console.log(`    - ${item.id}: ${item.statusA} -> ${item.statusB}`);
           }
@@ -2980,28 +3658,28 @@ OPTIONS
 
 function createDefaultCliArgs(): CliArgs {
   return {
-    subcommand: "format",
+    subcommand: 'format',
     stdin: false,
     formats: [],
     open: false,
-    inputType: "raw",
-    outputDir: "reports",
-    outputName: "index",
+    inputType: 'raw',
+    outputDir: 'reports',
+    outputName: 'index',
     outputNameTimestamp: false,
-    sortTestCases: "none",
+    sortTestCases: 'none',
     include: [],
     exclude: [],
     includeTags: [],
     excludeTags: [],
     synthesizeStories: true,
-    htmlTitle: "Test Results",
+    htmlTitle: 'Test Results',
     htmlNoSyntaxHighlighting: false,
     htmlNoMermaid: false,
     htmlStaleAfterDays: 7,
     jsonSummary: false,
     minify: false,
-    listFormat: "text",
-    checkFormat: "text",
+    listFormat: 'text',
+    checkFormat: 'text',
     noFail: false,
     maxSkipped: undefined,
     requireTags: [],
@@ -3009,17 +3687,17 @@ function createDefaultCliArgs(): CliArgs {
     requireScenarios: [],
     noRegressions: false,
     noRatchet: false,
-    goalFormat: "text",
-    triageFormat: "text",
-    notify: "never",
+    goalFormat: 'text',
+    triageFormat: 'text',
+    notify: 'never',
     maxFailedTests: 5,
     maxHistoryRuns: 10,
     webhookUrls: [],
     webhookHeaders: {},
-    webhookMethod: "POST",
-    webhookHmacHeader: "X-Signature",
+    webhookMethod: 'POST',
+    webhookHmacHeader: 'X-Signature',
     webhookHmacTimestamp: false,
-    assetMode: "none",
+    assetMode: 'none',
     allowMissingAssets: false,
     prSummary: false,
     failOnRegression: false,
@@ -3028,7 +3706,7 @@ function createDefaultCliArgs(): CliArgs {
     failOnNew: false,
     partial: false,
     strictCodeDiff: false,
-    baselineMode: "explicit",
+    baselineMode: 'explicit',
   };
 }
 

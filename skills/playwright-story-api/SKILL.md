@@ -4,6 +4,10 @@ description: >
   Use when writing BDD story tests in Playwright with
   executable-stories-playwright: story.init(testInfo), async steps with
   fixtures, or doc entries.
+metadata:
+  type: core
+  library: executable-stories-playwright
+  library_version: "8.9.0"
 ---
 
 # executable-stories-playwright — Story API
@@ -167,6 +171,11 @@ await story.expect("the response is successful", async () => {
   expect(response.status()).toBe(200);
 });
 ```
+
+Playwright's live assertion counter is observed automatically. Assertions after a
+marker belong to that marker until the next step or test end; `story.expect` measures
+its own callback. A passing observable Then/And/But claim with zero assertions is marked
+in Markdown and HTML and grades `none`. An absent count means unobservable, not zero.
 
 ### Suite headings from test.describe
 

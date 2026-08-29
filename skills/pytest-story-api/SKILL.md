@@ -4,12 +4,13 @@ description: >
   Use when writing BDD story tests in Python with executable-stories-pytest:
   the module-singleton story API (story.init, given/when/then/and_/assert_),
   wrapped steps, or automatic JSON output via pytest plugin hooks.
-type: core
-library: executable-stories-pytest
-library_version: "0.1.0"
-sources:
-  - "jagreehal/executable-stories:packages/executable-stories-pytest/src/executable_stories/_story_api.py"
-  - "jagreehal/executable-stories:packages/executable-stories-pytest/src/executable_stories/_plugin.py"
+metadata:
+  type: core
+  library: executable-stories-pytest
+  library_version: "0.1.0"
+  sources:
+    - "jagreehal/executable-stories:packages/executable-stories-pytest/src/executable_stories/_story_api.py"
+    - "jagreehal/executable-stories:packages/executable-stories-pytest/src/executable_stories/_plugin.py"
 ---
 
 # executable-stories-pytest — Story API
@@ -152,6 +153,11 @@ def test_fetches_user_profile():
 ```
 
 `fn` and `expect` wrap a callable with automatic timing. Exceptions propagate after duration is recorded. Both return the callable's result.
+
+pytest exposes no assertion counter. `story.expect` therefore declares one assertion for
+that claim step. A plain `story.then()` followed by Python `assert` remains unobserved,
+not zero. The plugin detects `-k` and `-m` as `runScope: "filtered"`; an invocation
+without either reports `"full"`.
 
 ### Init options
 

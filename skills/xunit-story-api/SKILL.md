@@ -4,11 +4,12 @@ description: >
   Use when writing BDD story tests in xUnit (C#) with ExecutableStories.Xunit:
   the static Story.Init/Given/When/Then/And/But API, wrapped steps, or the
   [assembly: StoryRecording] attribute that records them.
-type: core
-library: ExecutableStories.Xunit
-library_version: "0.1.0"
-sources:
-  - "jagreehal/executable-stories:packages/executable-stories-xunit/ExecutableStories.Xunit/Story.cs"
+metadata:
+  type: core
+  library: ExecutableStories.Xunit
+  library_version: "0.1.0"
+  sources:
+    - "jagreehal/executable-stories:packages/executable-stories-xunit/ExecutableStories.Xunit/Story.cs"
 ---
 
 # ExecutableStories.Xunit — Story API
@@ -180,6 +181,11 @@ Story.Expect("the profile contains the correct name", () =>
 ```
 
 `Fn` and `Expect` wrap a delegate with automatic timing. Both have `Action` (void) and `Func<T>` (returns value) overloads.
+
+xUnit exposes no assertion counter. `Story.Expect` therefore declares one assertion for
+that claim step. A plain `Story.Then()` followed by `Assert.*` remains unobserved, not
+zero. Because `dotnet test --filter` is hidden from the adapter, set
+`EXECUTABLE_STORIES_FILTERED=1` for narrowed runs (`=0` declares a complete run).
 
 ### Manual step timing
 

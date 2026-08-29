@@ -37,7 +37,7 @@ when one person holds the answers and has ten minutes.
 Read the artifacts, not the source, and read them first:
 
 ```bash
-executable-stories list reports/raw-run.json --list-format json
+executable-stories list reports/by-file --list-format json
 ```
 
 You are looking for three things, and each one removes questions from the frontier:

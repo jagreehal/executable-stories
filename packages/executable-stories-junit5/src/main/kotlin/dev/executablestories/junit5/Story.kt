@@ -500,6 +500,11 @@ class Story private constructor() {
             ctx.addStep(keyword, text)
             val step = ctx.currentStep!!
             step.wrapped = true
+            // Wrapping a claim is the only signal JUnit 5 can give that the
+            // step checked something: the body ran to completion. Setup steps
+            // arrange, so only a claim counts — tested against the keyword as
+            // written, since auto-And rewrites a repeated Then before storage.
+            if (keyword == "Then") step.assertions = 1
 
             val start = System.nanoTime()
             try {
@@ -519,6 +524,11 @@ class Story private constructor() {
             ctx.addStep(keyword, text)
             val step = ctx.currentStep!!
             step.wrapped = true
+            // Wrapping a claim is the only signal JUnit 5 can give that the
+            // step checked something: the body ran to completion. Setup steps
+            // arrange, so only a claim counts — tested against the keyword as
+            // written, since auto-And rewrites a repeated Then before storage.
+            if (keyword == "Then") step.assertions = 1
 
             val start = System.nanoTime()
             try {

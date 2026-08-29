@@ -6,6 +6,8 @@
  */
 
 import { diffStateValues, summarizeStateChanges } from "executable-stories-core";
+import { summarizeAccumulation } from "executable-stories-core/utils/accumulation";
+import { assertionState, assertiveSteps } from "executable-stories-core/utils/assertive-steps";
 import type { StoryStep, DocEntry } from "executable-stories-core/types/story";
 import type { FeatureDeclaration, TestRunResult, TestCaseResult, TestStatus } from "executable-stories-core/types/test-result";
 import type { MarkdownRenderers } from "../types/options";
@@ -294,6 +296,18 @@ export class MarkdownFormatter {
       rows.push(["Git SHA", shortSha]);
     }
 
+    // Say so when this is a composite. Without it the only explanation for a
+    // scenario that did not just run lives in state the reader cannot see.
+    const accumulated = summarizeAccumulation(run.testCases);
+    if (accumulated) {
+      const oldest = new Date(accumulated.oldestRunAtMs).toISOString();
+      const newest = new Date(accumulated.newestRunAtMs).toISOString();
+      rows.push([
+        "Source",
+        `accumulated from ${accumulated.runs} runs (${oldest} to ${newest})`,
+      ]);
+    }
+
     if (rows.length > 0) {
       lines.push("| Key | Value |");
       lines.push("| --- | --- |");
@@ -513,8 +527,19 @@ export class MarkdownFormatter {
     }
 
     // Steps
+    // A scenario whose claim checked nothing is flagged in the prose, on the
+    // steps that make the claim. Judged per scenario rather than per step: a
+    // marker credits its trailing assertion to one step, so a scenario that
+    // declares two claims and checks once would otherwise flag the first for
+    // nothing. Same rule the grade and the CLI summary use, so the report tells
+    // one story.
+    const unasserted = new Set(
+      assertionState(tc.story.steps) === "unasserted"
+        ? assertiveSteps(tc.story.steps)
+        : []
+    );
     for (const step of tc.story.steps) {
-      this.renderStep(lines, step);
+      this.renderStep(lines, step, unasserted.has(step));
     }
 
     // Error
@@ -547,7 +572,7 @@ export class MarkdownFormatter {
   /**
    * Render a step.
    */
-  private renderStep(lines: string[], step: StoryStep): void {
+  private renderStep(lines: string[], step: StoryStep, unasserted = false): void {
     // Check for custom step renderer
     if (this.options.customRenderers?.renderStep) {
       const custom = this.options.customRenderers.renderStep(step);
@@ -573,6 +598,9 @@ export class MarkdownFormatter {
     } else if (step.mode === "fails") {
       modeIndicator = " _(expected to fail)_";
     }
+    // Reads as part of the sentence rather than a badge: the claim itself has
+    // to look unbacked, or the reader takes it at face value.
+    if (unasserted) modeIndicator += " _(no assertion)_";
 
     if (this.options.stepStyle === "gherkin") {
       lines.push(`**${step.keyword}** ${step.text}${modeIndicator}`);

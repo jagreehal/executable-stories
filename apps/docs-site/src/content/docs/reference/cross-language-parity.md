@@ -15,6 +15,10 @@ Go, Ruby, Rust, Python, JVM, and .NET adapters must reach parity with the JavaSc
 | **Planned scenarios** | A scenario that is specified but not built yet reaches the report as status `todo` | `it.todo` (Vitest, Jest), `test.fixme` (Playwright), bodyless `it` (Cypress) | Explicit call: `Planned` / `planned`, since `skip` / `@Disabled` / `#[ignore]` mean "do not run this now" |
 | **Artifact outputs** | RawRun JSON → StoryReport v1 via formatters CLI | Reporter `rawRunPath` + formatters | RawRun default `.executable-stories/raw-run.json`; format with `executable-stories format` |
 | **`$schema` pointer** | Optional `$schema` in RawRun so editors validate the file as it is written | Not emitted by the JS/TS reporters | Emitted by **all six** non-JS adapters (Go, Ruby, Rust, pytest, JUnit 5, xUnit) |
+| **Executed-file inventory** | A run reports `coveredSourceFiles`, every file it executed, so deleting a file's last scenario retires it instead of leaving it in the docs for good | Vitest, Jest, Playwright | **Not yet emitted.** A file emptied of scenarios keeps them until the file itself is deleted |
+| **Incomplete collection** | A run reports `incompleteSourceFiles` so a file whose collection broke is never treated as authoritative | Vitest, Jest, Playwright | **Not yet emitted.** A broken run there is treated by its `runScope`, so prefer leaving scope unset where collection failures are possible |
+| **Run scope** | A run reports `runScope` — `"full"`, `"filtered"`, or absent — so consumers know whether it may retire a scenario it no longer reports. Only `"full"` retires; absent keeps and warns | Vitest/Jest (`testNamePattern`), Playwright (`grep`/`grepInvert`); Cypress declares it | Go (`-run`), Ruby (Minitest plugin options), pytest (`-k`/`-m`), Rust (test binary args) detect it; JUnit 5 and xUnit declare it via `EXECUTABLE_STORIES_FILTERED` |
+| **Assertions per step** | Claim steps carry an assertion count when the host can observe one; absent means unknown and zero means observed none | Vitest, Jest, and Playwright observe the framework counter; Cypress declares one through `story.expect` | Ruby/Minitest observes its assertion counter; Go `s.Expect`, Rust `expect_step`, pytest `story.expect`, JUnit 5 `Story.expect`, and xUnit `Story.Expect` declare one |
 | **Agent workflow** | StoryReport JSON + `list --list-format json` index | [Agent artifact contract](/guides/agent-artifact-contract/) | Same formatter pipeline for all languages |
 | **Verification** | Per-language verify script + formatter acceptance tests | Example apps + `pnpm quality` | `verify:go`, `verify:pytest`, `verify:rust`, `verify:junit5`, `verify:xunit`, `verify:ruby` |
 
@@ -32,6 +36,9 @@ Status values used in release review:
 | Reporter integration | In-process Node reporters | Write RawRun at end of test run | Host runtime differs |
 | ESLint plugins | Per-framework plugins | None (Ruby/Go use native linters) | Host tooling |
 | Cypress `doc.story` override | Cypress-only title override | N/A | Cypress-specific legacy path |
+| Executed-file inventory | Emitted by Vitest, Jest and Playwright | Not emitted by any non-JS adapter | Each host enumerates executed files differently, and the consequence of omitting it is bounded and visible: a file whose last scenario was deleted keeps that scenario until the file is removed from the working tree |
+| Detecting run scope | Detected from the runner in Vitest, Jest, Playwright | Detected in Go, Ruby, pytest, Rust; **declared** in JUnit 5 and xUnit | The JUnit Platform keeps discovery filters from execution listeners, and `dotnet test --filter` is applied by the host before the adapter runs. Cypress diverges the same way on the JS side: narrowing by title needs `@cypress/grep`, which the reporter cannot observe. Playwright reports `filtered` for a sharded run too, since a shard holds only some of each file's tests. An adapter that cannot tell reports no scope, which keeps data rather than retiring it. |
+| Counting assertions | Vitest, Jest, and Playwright observe live framework counters | Ruby/Minitest also observes; Go, Rust, pytest, JUnit 5, and xUnit declare assertion-bearing claim wrappers | Hosts without an assertion counter cannot distinguish an ordinary marker followed by a native assertion from an unchecked marker. Their wrappers declare one assertion; omitted counts remain unknown rather than becoming zero. |
 
 ## Verification commands
 
@@ -72,7 +79,7 @@ Agents consume the same artifacts regardless of source language:
 
 ```bash
 executable-stories format .executable-stories/raw-run.json --format story-report-json --output-dir reports --output-name index
-executable-stories list .executable-stories/raw-run.json --list-format json > reports/scenario-index.json
+executable-stories list reports/by-file --list-format json > reports/scenario-index.json
 ```
 
 Optional MCP: [MCP server guide](/guides/mcp-server/).

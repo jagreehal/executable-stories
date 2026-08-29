@@ -92,13 +92,19 @@ It carries source files, tags, doc coverage, and debugger warnings. Then read th
 for the scenarios that need a human eye:
 
 ```bash
-executable-stories list reports/raw-run.json --list-format json
+executable-stories list reports/by-file --list-format json
 ```
+
+For an exact machine count, run `format --json-summary` and read `unasserted`. It is
+present only when at least one adapter could observe or declare assertion counts; absent
+means unknown. Evidence Review also grades an observably assertion-free passing claim
+`none`, which is stronger evidence than inferring from prose structure alone.
 
 Look for these, in rough order of how often they turn out to be real:
 
 | Pattern | Why it fails as proof |
 | --- | --- |
+| `unasserted` claim | The host observed claim steps but none asserted anything |
 | No `then` step | Nothing was claimed, so nothing was verified |
 | Planned scenarios | Honest, but they are a promise, not coverage. Count them separately |
 | `known-issue` tagged | Documents a limitation. Do not count it as covering the behaviour |

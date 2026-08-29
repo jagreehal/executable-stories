@@ -17,6 +17,10 @@ type RawRun struct {
 	PackageVersion string         `json:"packageVersion,omitempty"`
 	GitSha         string         `json:"gitSha,omitempty"`
 	CI             *RawCIInfo     `json:"ci,omitempty"`
+	// RunScope is how much of each source file this run covered: "full" when
+	// the -run flag was inspected and narrowed nothing, "filtered" when it did.
+	// Only "full" lets a consumer retire a scenario it no longer reports.
+	RunScope       string         `json:"runScope,omitempty"`
 	Meta           map[string]any `json:"meta,omitempty"`
 }
 
@@ -79,6 +83,10 @@ type StoryStep struct {
 	Wrapped    bool       `json:"wrapped,omitempty"`
 	Docs       []DocEntry `json:"docs,omitempty"`
 	DurationMs *float64   `json:"durationMs,omitempty"`
+	// Assertions attributable to this step. Go has no assertion counter, so
+	// this is set only when the author wraps a claim in Expect/Fn("Then", ...).
+	// A nil pointer means unobserved, which is not the same as zero.
+	Assertions *int `json:"assertions,omitempty"`
 }
 
 // DocEntry is a discriminated union via the "kind" field.

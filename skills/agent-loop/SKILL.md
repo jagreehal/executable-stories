@@ -12,12 +12,12 @@ code, a diff against the last run.
 executable-stories gives a loop four instruments, and they are deliberately separate
 because they answer different questions:
 
-| Command | Question | Exit behaviour |
-| --- | --- | --- |
-| `triage` | What work is there? | Always 0 — reports, never gates |
-| `check` | Did what I just did work? | 5 while anything fails |
-| `goal` | Am I finished? | 0 met, 5 not yet |
-| `compare` | What did I change about the system's behaviour? | Gates only if asked |
+| Command   | Question                                        | Exit behaviour                  |
+| --------- | ----------------------------------------------- | ------------------------------- |
+| `triage`  | What work is there?                             | Always 0 — reports, never gates |
+| `check`   | Did what I just did work?                       | 5 while anything fails          |
+| `goal`    | Am I finished?                                  | 0 met, 5 not yet                |
+| `compare` | What did I change about the system's behaviour? | Gates only if asked             |
 
 ## Agent guardrails
 
@@ -40,7 +40,8 @@ pnpm test
 executable-stories format reports/raw-run.json --preset agent --output-dir reports --output-name index
 ```
 
-The `agent` preset writes the four things a machine reads:
+Formatting updates `reports/by-file/` first, so these documentation artifacts are a
+whole-suite snapshot. The `agent` preset writes the four things a machine reads:
 
 - `story-report-json` — the canonical StoryReport v1 contract
 - `scenario-index-json` — the discovery index, with a content `hash` per scenario
@@ -119,6 +120,38 @@ reads a current index instead of one from forty minutes ago.
 `get_scenario_index`, `get_behavior_manifest`, plus `run_scenario` for a focused re-run.
 Prefer these over shelling out when they are available: they load the report once and
 project from it, rather than re-parsing per question.
+
+## Re-running part of the suite
+
+A loop iteration usually reruns one file or one scenario, not the suite. The catalog
+still covers everything: each test source file owns a report under `<outputDir>/by-file/`,
+so a focused rerun rewrites one report and leaves the rest standing. Any combined view is
+built from that directory:
+
+```bash
+executable-stories format reports/by-file --format story-report-json --output-dir reports
+```
+
+Two consequences for the loop:
+
+**Check `lastRunAtMs` before trusting a green.** A scenario can be passing in the
+report and not have run since you changed the code under it. It carries the run that
+produced it (`lastRunAtMs`, `lastRunGitSha`); compare before you rely on it, and rerun
+if in doubt. `goal`, `triage`, and `check` accept either one run file or the persistent
+per-file directory. Use `raw-run.json` for the current iteration's backpressure; pass
+`reports/by-file/` when the decision genuinely needs the accumulated suite. They never
+switch scopes implicitly.
+
+**Say so when you narrow a run by name.** A run that reports `runScope: "full"` is
+authoritative about its files, so a scenario it does not mention is retired. Shelling out
+to `vitest -t` or `jest -t` is safe — those adapters read their own filter — and so is the
+MCP `run_scenario` tool. Driving Cypress, JUnit 5 or xUnit through a filter means
+declaring it (`EXECUTABLE_STORIES_FILTERED=1`, or the Cypress reporter option). Undeclared,
+the run reports no scope at all, which keeps the file's other scenarios and warns: you get
+a stale report rather than a missing one.
+
+Run the full suite before the loop's final verdict. Accumulated state is for the inner
+iterations; the last word should come from one complete run.
 
 ## Wiring the stopping condition into a repeating loop
 

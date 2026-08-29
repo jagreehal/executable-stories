@@ -15,6 +15,7 @@
  * path on the LoaderContext watcher and re-populating the store on change
  * triggers Astro content-layer invalidation -> Vite HMR.
  */
+import fs from "node:fs";
 import path from "node:path";
 
 import { type ReportScenario } from "executable-stories-core";
@@ -195,6 +196,11 @@ export function buildStoryEntries(
  * `readRaw` supplies the file read (the loader logs unreadable sources; the
  * audit stays silent). `readableSources` distinguishes "no run JSON exists
  * yet" (0) from "runs exist but are empty" — an empty run is still evidence.
+ *
+ * A source may name a directory as well as a file. The formatter accumulates
+ * runs as one JSON per source file, so pointing at that directory shows the
+ * whole suite rather than only the files the last test run happened to touch.
+ * The directory counts as one source: it is one suite, split across files.
  */
 export function loadAllStoryEntries(
   options: ExecutableStoriesConfig,
@@ -204,12 +210,55 @@ export function loadAllStoryEntries(
   const slugSeen = new Map<string, number>();
   let readableSources = 0;
   for (const src of resolveSources(options)) {
-    const raw = readRaw(path.resolve(src.source), src);
-    if (raw == null) continue;
-    readableSources++;
-    entries.push(...buildStoryEntries(raw, options, src, slugSeen));
+    let read = 0;
+    const resolvedPath = path.resolve(src.source);
+    const files = expandSource(resolvedPath);
+    // A directory holds the per-file reports a test run writes, which are
+    // canonical. Reading those as raw puts canonical statuses through raw
+    // normalisation, where "passed" is not a known raw status and every passing
+    // scenario silently becomes "skipped".
+    const effective: ResolvedSource = {
+      ...src,
+      inputType: src.inputType ?? (isDirectory(resolvedPath) ? "canonical" : "raw"),
+    };
+    for (const abs of files) {
+      const raw = readRaw(abs, effective);
+      if (raw == null) continue;
+      read++;
+      entries.push(...buildStoryEntries(raw, options, effective, slugSeen));
+    }
+    if (read > 0) readableSources++;
   }
   return { entries, readableSources };
+}
+
+/**
+ * The run files one source resolves to: the path itself, or every `.json` in it
+ * when it names a directory. Sorted so entry order does not depend on the order
+ * the filesystem happens to hand back.
+ */
+function isDirectory(absPath: string): boolean {
+  try {
+    return fs.statSync(absPath).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+export function expandSource(absPath: string): string[] {
+  let entries: string[];
+  try {
+    if (!fs.statSync(absPath).isDirectory()) return [absPath];
+    entries = fs.readdirSync(absPath);
+  } catch {
+    // Missing or unreadable: hand back the path so the caller reports it the
+    // same way it always has.
+    return [absPath];
+  }
+  return entries
+    .filter((name) => name.endsWith(".json"))
+    .sort()
+    .map((name) => path.join(absPath, name));
 }
 
 export function storiesLoader(options: ExecutableStoriesConfig): StoriesLoader {

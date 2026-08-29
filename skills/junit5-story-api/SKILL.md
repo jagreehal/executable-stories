@@ -4,11 +4,12 @@ description: >
   Use when writing BDD story tests in JUnit 5 (Kotlin/Java) with
   executable-stories-junit5: the static Story.init/given/when/then/and/but
   API, wrapped steps, or automatic JSON output via TestExecutionListener.
-type: core
-library: executable-stories-junit5
-library_version: "0.1.0"
-sources:
-  - "jagreehal/executable-stories:packages/executable-stories-junit5/src/main/kotlin/dev/executablestories/junit5/Story.kt"
+metadata:
+  type: core
+  library: executable-stories-junit5
+  library_version: "0.1.0"
+  sources:
+    - "jagreehal/executable-stories:packages/executable-stories-junit5/src/main/kotlin/dev/executablestories/junit5/Story.kt"
 ---
 
 # executable-stories-junit5 — Story API
@@ -154,6 +155,11 @@ Story.expect("the profile contains the correct name") {
 ```
 
 `fn` and `expect` wrap a callable as a step with automatic timing. Both have `Runnable` (void) and `Supplier<T>` (returns value) overloads.
+
+JUnit 5 exposes no assertion counter. `Story.expect` therefore declares one assertion
+for that claim step. A plain `Story.then()` followed by `assertEquals` remains
+unobserved, not zero. Maven Surefire's `-Dtest=...` is detected; for other discovery
+filters set `EXECUTABLE_STORIES_FILTERED=1` (`=0` declares a complete run).
 
 ### Manual step timing
 

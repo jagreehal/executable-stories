@@ -123,7 +123,7 @@ Because the map is tags and todos, re-cutting is an edit to tags, not a redraw.
 
 ```bash
 executable-stories format reports/raw-run.json --format story-report-json --output-dir reports --output-name index
-executable-stories list reports/raw-run.json --list-format json
+executable-stories list reports/by-file --list-format json
 ```
 
 Group by `capability:` for the columns and by `journey:` for the backbone. Planned

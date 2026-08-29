@@ -3,7 +3,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-import { regenerateArtifacts, startWatch } from "../src/watch";
+import { regenerateArtifacts, regenerateRun, startWatch } from "../src/watch";
 
 describe("regenerateArtifacts", () => {
   it("generates agent artifacts from a raw-run file, carrying covers", async () => {
@@ -64,5 +64,58 @@ describe("startWatch", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe("regenerateRun", () => {
+  it("returns the run it actually rendered, not just the file it was handed", async () => {
+    // Callers use this run to diff against and to report on. After a filtered
+    // run it must describe the report on disk, which covers the whole suite,
+    // rather than the fraction this invocation read in.
+    const outDir = fs.mkdtempSync(path.join(os.tmpdir(), "es-watch-run-"));
+    const inputDir = fs.mkdtempSync(path.join(os.tmpdir(), "es-watch-in-"));
+
+    const runFile = (name: string, sourceFile: string, scenario: string) => {
+      const file = path.join(inputDir, name);
+      fs.writeFileSync(
+        file,
+        JSON.stringify({
+          schemaVersion: 1,
+          projectRoot: "/repo",
+          startedAtMs: 1,
+          finishedAtMs: 2,
+          testCases: [
+            {
+              title: scenario,
+              sourceFile,
+              sourceLine: 1,
+              status: "pass",
+              story: { scenario, steps: [{ keyword: "given", text: "a" }] },
+            },
+          ],
+        }),
+      );
+      return file;
+    };
+
+    const options = {
+      outputDir: outDir,
+      outputName: "index",
+      formats: ["markdown" as const],
+    };
+
+    await regenerateRun({
+      ...options,
+      input: runFile("alpha.json", "src/alpha.test.ts", "alpha behaves"),
+    });
+    const { run } = await regenerateRun({
+      ...options,
+      input: runFile("beta.json", "src/beta.test.ts", "beta behaves"),
+    });
+
+    expect(run.testCases.map((tc) => tc.story.scenario).sort()).toEqual([
+      "alpha behaves",
+      "beta behaves",
+    ]);
   });
 });

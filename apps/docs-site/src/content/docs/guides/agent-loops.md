@@ -89,13 +89,13 @@ Scaffold the site once, then run two processes — your tests in watch mode and 
 
 ```bash
 executable-stories init-astro            # one-time: scaffolds a thin Astro docs site
-# terminal 1 — your runner in watch mode (rewrites reports/raw-run.json)
+# terminal 1 — your runner in watch mode (updates reports/by-file through the reporter)
 pnpm test --watch
 # terminal 2 — the docs site
 cd story-docs && pnpm dev                 # astro dev
 ```
 
-The site reads `reports/raw-run.json` through a content loader that **watches the file**: every time the loop rewrites the raw-run, the `/stories` pages and Scenario Explorer hot-reload in place (~sub-second, no manual refresh). Nothing is written to disk — the tests stay the source of truth. It tolerates the file not existing yet: start the dev server first and it picks up the loop's first run.
+Configure the site with `source: '../reports/by-file'`. The content loader watches that directory: when a focused run updates one source report, `/stories` and Scenario Explorer hot-reload without dropping untouched scenarios. The generated reports are cacheable state; the tests remain the source of truth. The loader tolerates the directory not existing yet.
 
 The reload is the easy part. What the site adds is the **trajectory** — the shipped `Trajectory` component pins a baseline when the dev server starts, then shows what changed _since you started the loop_, drawn from the same run history as `compare`:
 

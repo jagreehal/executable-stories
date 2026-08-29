@@ -47,6 +47,12 @@ const results = await generator.generate(run);
 // results: Map<"html" | "markdown", string[]>  (file paths written)
 ```
 
+`generate(run)` updates canonical state under `reports/by-file/`, one report per
+test source, then renders. Documentation formats use that accumulated suite. JUnit,
+Cucumber, and `release-manifest` are execution evidence and contain only `run`. Use
+`generate(run, { persist: false })` to render an already-assembled snapshot without
+changing persistent state.
+
 ## Quick Start — CLI
 
 ```bash
@@ -58,6 +64,10 @@ executable-stories format run.json --format html --format markdown
 
 # Validate a run file against the schema
 executable-stories validate run.json
+
+# Inspect or reset persistent per-source state
+executable-stories runs status
+executable-stories runs reset
 
 # Backpressure summary for coding agents: compress passing, expand failing
 executable-stories check .executable-stories/raw-run.json

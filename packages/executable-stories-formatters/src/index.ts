@@ -305,6 +305,8 @@ export {
 // The old `serve` HTTP server is replaced by `astro dev` (executable-stories-astro).
 // Its valuable part — the session trajectory primitive — now lives in core.
 export { advanceState, initialRunState, type RunState } from "executable-stories-core";
+export { aggregateReports, type AggregateDeps, type AggregateResult } from "./aggregate-reports";
+export { runsStatus, runsReset, type RunsStatusReport, type RunsResetResult } from "./runs-lifecycle";
 
 export {
   diffStoryReports,

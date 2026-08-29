@@ -5,13 +5,14 @@ description: >
   test suite, converting test blocks to story tests, or adding story.init()
   and top-level step imports without a full rewrite. Progressive enhancement
   of .story.test.ts files.
-type: lifecycle
-library: executable-stories-jest
-library_version: "8.4.7"
-requires:
-  - jest-story-api
-sources:
-  - "jagreehal/executable-stories:apps/docs-site/src/content/docs/guides/converting-jest.md"
+metadata:
+  type: lifecycle
+  library: executable-stories-jest
+  library_version: "8.7.0"
+  requires:
+    - jest-story-api
+  sources:
+    - "jagreehal/executable-stories:apps/docs-site/src/content/docs/guides/converting-jest.md"
 ---
 
 This skill builds on jest-story-api. Read jest-story-api first.

@@ -376,6 +376,14 @@ func (s *S) EndTimer(token int) {
 func (s *S) Fn(keyword, text string, body func()) *S {
 	s.addStep(keyword, text)
 	s.currentStep.Wrapped = true
+	// Wrapping a claim is the only signal Go can give that the step checked
+	// something: the body ran to completion. Setup steps arrange, so only a
+	// claim counts — tested against the keyword as written, since auto-And
+	// rewrites a repeated Then before the step is stored.
+	if keyword == "Then" {
+		one := 1
+		s.currentStep.Assertions = &one
+	}
 
 	start := time.Now()
 	defer func() {

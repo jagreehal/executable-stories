@@ -30,6 +30,7 @@ import { createRequire } from 'node:module';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { test, expect } from '@playwright/test';
 import type { TestInfo, PlaywrightTestArgs, PlaywrightTestOptions, Page } from '@playwright/test';
 import { tryGetActiveOtelContext, resolveTraceUrl } from 'executable-stories-core/utils/otel-detect';
 import { buildHtmlDocEntry } from 'executable-stories-core/utils/doc-builders';
@@ -100,6 +101,70 @@ interface StoryContext {
   fixtures?: Record<string, unknown>;
   /** Trace-link URL template, captured at init for later use by attachSpans. */
   traceUrlTemplate?: string;
+  /**
+   * Marker step awaiting its assertion count.
+   *
+   * A marker states the claim and the assertion follows it, so the count is
+   * only known once the next step starts or the test ends.
+   */
+  pendingStep: StoryStep | null;
+  /** Assertion counter reading taken when {@link pendingStep} was created. */
+  pendingFrom?: number;
+}
+
+/**
+ * Playwright's live per-test assertion counter, or undefined when unreadable.
+ *
+ * Undefined is not zero: it means we could not observe, and the report must not
+ * report an unobserved step as one that asserted nothing.
+ */
+function readAssertionCount(): number | undefined {
+  try {
+    const state = (expect as unknown as {
+      getState?: () => { assertionCalls?: number };
+    }).getState?.();
+    return typeof state?.assertionCalls === 'number' ? state.assertionCalls : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Record how many assertions ran between `before` and now. */
+function recordAssertions(step: StoryStep, before: number | undefined): void {
+  if (before === undefined) return;
+  const after = readAssertionCount();
+  if (after === undefined || after < before) return;
+  step.assertions = after - before;
+}
+
+/**
+ * Close off the marker step waiting on a count.
+ *
+ * Registered as a `test.afterEach` below so the last marker in a test still
+ * collects the assertions written after it, before the reporter reads the
+ * annotation in onTestEnd.
+ */
+function flushPendingAssertions(): void {
+  const ctx = activeContext;
+  if (!ctx) return;
+  const step = ctx.pendingStep;
+  const before = ctx.pendingFrom;
+  ctx.pendingStep = null;
+  ctx.pendingFrom = undefined;
+  if (!step) return;
+  recordAssertions(step, before);
+  syncAnnotationToTest();
+}
+
+try {
+  // Registering from this module keeps the hook and the context together; a
+  // spec importing the story API is enough to install it.
+  test.afterEach(() => {
+    flushPendingAssertions();
+  });
+} catch {
+  // Imported outside a Playwright test file (tooling, the reporter): there is
+  // no suite to register against and nothing to flush.
 }
 
 // ============================================================================
@@ -469,8 +534,15 @@ function createStepMarker(keyword: StepKeyword) {
       ...(isCallback ? { wrapped: true } : {}),
     };
 
+    // Close the previous marker before this step's own assertions begin.
+    flushPendingAssertions();
+
     ctx.meta.steps.push(step);
     ctx.currentStep = step;
+    if (!isCallback) {
+      ctx.pendingStep = step;
+      ctx.pendingFrom = readAssertionCount();
+    }
     syncAnnotationToTest();
 
     // Handle DocEntry[] children: attach as step docs and deduplicate from story-level
@@ -498,6 +570,7 @@ function createStepMarker(keyword: StepKeyword) {
     const body = docsOrBody as (fixtures?: PlaywrightFixtures, stepInfo?: TestStepInfo) => T;
     const label = `${step.keyword}: ${text}`;
     const start = performance.now();
+    const assertionsBefore = readAssertionCount();
 
     // ── Async or stepInfo-aware callbacks: route through runStep() for Playwright-native integrations ──
     // Integrations: screencast chapters (v1.59), test.step/TestStepInfo (v1.51),
@@ -513,8 +586,8 @@ function createStepMarker(keyword: StepKeyword) {
         fixtures,
       );
       return result.then(
-        (val: T) => { step.durationMs = performance.now() - start; syncAnnotationToTest(); return val; },
-        (err: unknown) => { step.durationMs = performance.now() - start; syncAnnotationToTest(); throw err; },
+        (val: T) => { step.durationMs = performance.now() - start; recordAssertions(step, assertionsBefore); syncAnnotationToTest(); return val; },
+        (err: unknown) => { step.durationMs = performance.now() - start; recordAssertions(step, assertionsBefore); syncAnnotationToTest(); throw err; },
       ) as T;
     }
 
@@ -523,8 +596,8 @@ function createStepMarker(keyword: StepKeyword) {
       const result = ctx.fixtures !== undefined ? body(ctx.fixtures as PlaywrightFixtures) : body();
       if (result instanceof Promise) {
         return result.then(
-          (val) => { step.durationMs = performance.now() - start; syncAnnotationToTest(); return val; },
-          (err) => { step.durationMs = performance.now() - start; syncAnnotationToTest(); throw err; },
+          (val) => { step.durationMs = performance.now() - start; recordAssertions(step, assertionsBefore); syncAnnotationToTest(); return val; },
+          (err) => { step.durationMs = performance.now() - start; recordAssertions(step, assertionsBefore); syncAnnotationToTest(); throw err; },
         ) as T;
       }
       step.durationMs = performance.now() - start;
@@ -647,6 +720,7 @@ function init(
     timerCounter: 0,
     fixtures: fixtures as Record<string, unknown> | undefined,
     traceUrlTemplate,
+    pendingStep: null,
   };
   activeTestInfo = testInfo;
 }
