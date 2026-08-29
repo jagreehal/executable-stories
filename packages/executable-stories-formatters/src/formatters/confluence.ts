@@ -9,6 +9,7 @@
 
 import type { StoryStep, DocEntry } from "executable-stories-core/types/story";
 import type { TestRunResult, TestCaseResult, TestStatus } from "executable-stories-core/types/test-result";
+import { bySourcePosition, earliestSourceLine } from "./source-order";
 
 /** Options for ConfluenceFormatter */
 export interface ConfluenceFormatterOptions {
@@ -460,9 +461,7 @@ export class ConfluenceFormatter {
       );
     }
     if (this.options.sortScenarios === "source") {
-      return [...cases].sort(
-        (a, b) => (a.story.sourceOrder ?? 0) - (b.story.sourceOrder ?? 0),
-      );
+      return [...cases].sort(bySourcePosition);
     }
     return cases;
   }
@@ -475,9 +474,7 @@ export class ConfluenceFormatter {
     }
     if (this.options.sortScenarios === "source") {
       return entries.sort(([, a], [, b]) => {
-        const minA = Math.min(...a.map((s) => s.story.sourceOrder ?? Infinity));
-        const minB = Math.min(...b.map((s) => s.story.sourceOrder ?? Infinity));
-        return minA - minB;
+        return earliestSourceLine(a) - earliestSourceLine(b);
       });
     }
     return entries;
