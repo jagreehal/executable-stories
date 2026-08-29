@@ -11,6 +11,7 @@ import { assertionState, assertiveSteps } from "executable-stories-core/utils/as
 import type { StoryStep, DocEntry } from "executable-stories-core/types/story";
 import type { FeatureDeclaration, TestRunResult, TestCaseResult, TestStatus } from "executable-stories-core/types/test-result";
 import type { MarkdownRenderers } from "../types/options";
+import { bySourcePosition, earliestSourceLine } from "./source-order";
 
 /**
  * True for a local filesystem path (`/foo`, `\foo`, `C:\foo`) rather than a
@@ -839,9 +840,7 @@ export class MarkdownFormatter {
       );
     }
     if (this.options.sortScenarios === "source") {
-      return [...testCases].sort(
-        (a, b) => (a.story.sourceOrder ?? 0) - (b.story.sourceOrder ?? 0)
-      );
+      return [...testCases].sort(bySourcePosition);
     }
     return testCases;
   }
@@ -857,9 +856,7 @@ export class MarkdownFormatter {
     }
     if (this.options.sortScenarios === "source") {
       return entries.sort(([, a], [, b]) => {
-        const minA = Math.min(...a.map((s) => s.story.sourceOrder ?? Infinity));
-        const minB = Math.min(...b.map((s) => s.story.sourceOrder ?? Infinity));
-        return minA - minB;
+        return earliestSourceLine(a) - earliestSourceLine(b);
       });
     }
     return entries;
