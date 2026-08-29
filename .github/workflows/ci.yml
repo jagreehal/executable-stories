@@ -66,6 +66,11 @@ jobs:
   dependabot-auto-merge:
     needs: build-and-test
     runs-on: ubuntu-latest
+    # The workflow-level grant is contents: read, which cannot merge. Raise it
+    # for this job alone rather than for the whole file.
+    permissions:
+      contents: write
+      pull-requests: write
     if: github.actor == 'dependabot[bot]' && github.event_name == 'pull_request'
     steps:
       - name: Dependabot metadata

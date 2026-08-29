@@ -11,7 +11,11 @@ permissions:
 
 jobs:
   changeset:
-    if: github.head_ref != 'changeset-release/main'
+    # Dependabot does not write changesets, so this gate failed on every bump
+    # that touched a workspace package.json. Its updates here are devDependencies
+    # that change nothing we publish; a runtime bump rides along with the next
+    # release rather than triggering one of its own.
+    if: github.head_ref != 'changeset-release/main' && github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
