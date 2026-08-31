@@ -26,45 +26,51 @@
  * ```
  */
 
-import { createRequire } from 'node:module';
 import * as fs from 'node:fs';
+import { createRequire } from 'node:module';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { test, expect } from '@playwright/test';
-import type { TestInfo, PlaywrightTestArgs, PlaywrightTestOptions, Page } from '@playwright/test';
-import { tryGetActiveOtelContext, resolveTraceUrl } from 'executable-stories-core/utils/otel-detect';
-import { buildHtmlDocEntry } from 'executable-stories-core/utils/doc-builders';
+import { expect, test } from '@playwright/test';
 import type {
-  StepKeyword,
-  StoryMeta,
-  StoryStep,
+  Page,
+  PlaywrightTestArgs,
+  PlaywrightTestOptions,
+  TestInfo,
+} from '@playwright/test';
+import { buildHtmlDocEntry } from 'executable-stories-core/utils/doc-builders';
+import {
+  resolveTraceUrl,
+  tryGetActiveOtelContext,
+} from 'executable-stories-core/utils/otel-detect';
+import { isAsyncFunction, runStep } from './step-runner';
+import type { TestStepInfo } from './step-runner';
+import type {
+  AttachmentOptions,
+  CodeOptions,
+  ConsoleOptions,
+  CustomOptions,
   DocEntry,
   FeatureInput,
-  NormalizedTicket,
-  TicketInput,
-} from './types';
-import type {
-  StoryDocs,
-  StoryOptions,
-  AttachmentOptions,
-  ScopedAttachment,
-  KvOptions,
-  JsonOptions,
-  StateOptions,
-  CodeOptions,
-  TableOptions,
-  LinkOptions,
-  SectionOptions,
-  MermaidOptions,
-  ScreenshotOptions,
-  VideoOptions,
   HtmlOptions,
-  CustomOptions,
-  ConsoleOptions,
+  JsonOptions,
+  KvOptions,
+  LinkOptions,
+  MermaidOptions,
+  NormalizedTicket,
   ObservePageErrorsOptions,
+  ScopedAttachment,
+  ScreenshotOptions,
+  SectionOptions,
+  StateOptions,
+  StepKeyword,
+  StoryDocs,
+  StoryMeta,
+  StoryOptions,
+  StoryStep,
+  TableOptions,
+  TicketInput,
+  VideoOptions,
 } from './types';
-import { runStep, isAsyncFunction } from './step-runner';
-import type { TestStepInfo } from './step-runner';
 
 // Re-export types for consumers
 export type {
@@ -82,7 +88,9 @@ export type {
 // ============================================================================
 
 /** Fixture type for step callbacks: Playwright test args + options; custom extend() fixtures as unknown. */
-type PlaywrightFixtures = PlaywrightTestArgs & PlaywrightTestOptions & Record<string, unknown>;
+type PlaywrightFixtures = PlaywrightTestArgs &
+  PlaywrightTestOptions &
+  Record<string, unknown>;
 
 interface TimerEntry {
   start: number;
@@ -120,10 +128,30 @@ interface StoryContext {
  */
 function readAssertionCount(): number | undefined {
   try {
-    const state = (expect as unknown as {
-      getState?: () => { assertionCalls?: number };
-    }).getState?.();
-    return typeof state?.assertionCalls === 'number' ? state.assertionCalls : undefined;
+    // Playwright <= 1.61 kept a live counter on expect's state.
+    const state = (
+      expect as unknown as {
+        getState?: () => { assertionCalls?: number };
+      }
+    ).getState?.();
+    if (typeof state?.assertionCalls === 'number') return state.assertionCalls;
+
+    // 1.62 removed it. Every assertion is still recorded as a step with
+    // category 'expect', so the running total is the number of those.
+    // This reads a Playwright internal (`_stepMap`), the same bargain the
+    // removed counter was. If it goes too, the count degrades to undefined —
+    // "unobserved", never a false zero — and the reporter simply omits it.
+    const stepMap = (
+      test.info() as unknown as {
+        _stepMap?: Map<unknown, { category?: string }>;
+      }
+    )._stepMap;
+    if (!stepMap) return undefined;
+    let assertions = 0;
+    for (const step of stepMap.values()) {
+      if (step.category === 'expect') assertions += 1;
+    }
+    return assertions;
   } catch {
     return undefined;
   }
@@ -289,7 +317,9 @@ function convertStoryDocsToEntries(docs: StoryDocs): DocEntry[] {
       );
     }
     if (!docs.screenshot.path) {
-      throw new Error('story docs screenshot requires a `path` (or use story.screenshot({ page }) instead).');
+      throw new Error(
+        'story docs screenshot requires a `path` (or use story.screenshot({ page }) instead).',
+      );
     }
     entries.push({
       kind: 'screenshot',
@@ -409,7 +439,8 @@ function inlineScreenshotIfPossible(filePath: string): string {
 }
 
 function warnScreenshotUnavailable(filePath: string, cause?: unknown): void {
-  const causeMessage = cause instanceof Error ? cause.message : cause ? String(cause) : undefined;
+  const causeMessage =
+    cause instanceof Error ? cause.message : cause ? String(cause) : undefined;
   console.warn(
     `[executable-stories-playwright] story.screenshot(): could not read "${filePath}" — ` +
       'the report will show a "Screenshot unavailable" placeholder instead of the image. ' +
@@ -465,7 +496,8 @@ function attachDoc(entry: DocEntry, children?: DocEntry[]): DocEntry {
   if (children && children.length > 0) {
     entry.children = children;
     const childSet = new Set<DocEntry>(children);
-    const filterDocs = (docs: DocEntry[]) => docs.filter((d) => !childSet.has(d));
+    const filterDocs = (docs: DocEntry[]) =>
+      docs.filter((d) => !childSet.has(d));
     // Remove children from ALL containers (story-level + every step)
     ctx.meta.docs = filterDocs(ctx.meta.docs ?? []);
     for (const step of ctx.meta.steps) {
@@ -508,9 +540,15 @@ function extractSuitePath(testInfo: TestInfo): string[] | undefined {
 function createStepMarker(keyword: StepKeyword) {
   function stepMarker(text: string, docs?: StoryDocs): void;
   function stepMarker(text: string, children: DocEntry[]): void;
-  function stepMarker<T>(text: string, body: (fixtures: PlaywrightFixtures, step?: TestStepInfo) => T): T;
+  function stepMarker<T>(
+    text: string,
+    body: (fixtures: PlaywrightFixtures, step?: TestStepInfo) => T,
+  ): T;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  function stepMarker<T>(text: string, docsOrBody?: StoryDocs | DocEntry[] | ((...args: any[]) => T)): T | void {
+  function stepMarker<T>(
+    text: string,
+    docsOrBody?: StoryDocs | DocEntry[] | ((...args: any[]) => T),
+  ): T | void {
     const ctx = getContext();
     const isCallback = typeof docsOrBody === 'function';
     const isChildrenArray = Array.isArray(docsOrBody);
@@ -567,7 +605,10 @@ function createStepMarker(keyword: StepKeyword) {
     if (!isCallback) return;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const body = docsOrBody as (fixtures?: PlaywrightFixtures, stepInfo?: TestStepInfo) => T;
+    const body = docsOrBody as (
+      fixtures?: PlaywrightFixtures,
+      stepInfo?: TestStepInfo,
+    ) => T;
     const label = `${step.keyword}: ${text}`;
     const start = performance.now();
     const assertionsBefore = readAssertionCount();
@@ -577,27 +618,56 @@ function createStepMarker(keyword: StepKeyword) {
     // tracing.group (v1.49). Activated when fixtures are available AND either:
     //   1. callback is an async function, OR
     //   2. callback expects TestStepInfo (arity >= 2)
-    if (ctx.fixtures !== undefined && (isAsyncFunction(body) || body.length >= 2)) {
+    if (
+      ctx.fixtures !== undefined &&
+      (isAsyncFunction(body) || body.length >= 2)
+    ) {
       const fixtures = ctx.fixtures as Record<string, unknown>;
       const result = runStep(
         label,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        body as unknown as (fixtures: Record<string, unknown>, step?: TestStepInfo) => Promise<any>,
+        body as unknown as (
+          fixtures: Record<string, unknown>,
+          step?: TestStepInfo,
+        ) => Promise<any>,
         fixtures,
       );
       return result.then(
-        (val: T) => { step.durationMs = performance.now() - start; recordAssertions(step, assertionsBefore); syncAnnotationToTest(); return val; },
-        (err: unknown) => { step.durationMs = performance.now() - start; recordAssertions(step, assertionsBefore); syncAnnotationToTest(); throw err; },
+        (val: T) => {
+          step.durationMs = performance.now() - start;
+          recordAssertions(step, assertionsBefore);
+          syncAnnotationToTest();
+          return val;
+        },
+        (err: unknown) => {
+          step.durationMs = performance.now() - start;
+          recordAssertions(step, assertionsBefore);
+          syncAnnotationToTest();
+          throw err;
+        },
       ) as T;
     }
 
     // ── Sync callbacks or no-fixture context: existing behaviour ─────────────
     try {
-      const result = ctx.fixtures !== undefined ? body(ctx.fixtures as PlaywrightFixtures) : body();
+      const result =
+        ctx.fixtures !== undefined
+          ? body(ctx.fixtures as PlaywrightFixtures)
+          : body();
       if (result instanceof Promise) {
         return result.then(
-          (val) => { step.durationMs = performance.now() - start; recordAssertions(step, assertionsBefore); syncAnnotationToTest(); return val; },
-          (err) => { step.durationMs = performance.now() - start; recordAssertions(step, assertionsBefore); syncAnnotationToTest(); throw err; },
+          (val) => {
+            step.durationMs = performance.now() - start;
+            recordAssertions(step, assertionsBefore);
+            syncAnnotationToTest();
+            return val;
+          },
+          (err) => {
+            step.durationMs = performance.now() - start;
+            recordAssertions(step, assertionsBefore);
+            syncAnnotationToTest();
+            throw err;
+          },
         ) as T;
       }
       step.durationMs = performance.now() - start;
@@ -674,20 +744,31 @@ function init(
     // Story -> OTel: enrich active span with story attributes
     try {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      const reqUrl = import.meta.url
-        ?? (typeof __filename !== 'undefined' ? `file://${__filename}` : undefined);
+      const reqUrl =
+        import.meta.url ??
+        (typeof __filename !== 'undefined'
+          ? `file://${__filename}`
+          : undefined);
       const req = createRequire(reqUrl!);
       const api = req('@opentelemetry/api');
       const span = api.trace?.getActiveSpan?.();
       if (span) {
         span.setAttribute('story.scenario', testInfo.title);
-        if (options?.tags?.length) span.setAttribute('story.tags', options.tags);
+        if (options?.tags?.length)
+          span.setAttribute('story.tags', options.tags);
         if (options?.ticket) {
-          const tickets = Array.isArray(options.ticket) ? options.ticket : [options.ticket];
-          span.setAttribute('story.tickets', tickets.map((t) => typeof t === 'string' ? t : t.id));
+          const tickets = Array.isArray(options.ticket)
+            ? options.ticket
+            : [options.ticket];
+          span.setAttribute(
+            'story.tickets',
+            tickets.map((t) => (typeof t === 'string' ? t : t.id)),
+          );
         }
       }
-    } catch { /* OTel not available */ }
+    } catch {
+      /* OTel not available */
+    }
   }
 
   testInfo.annotations.push({
@@ -696,7 +777,8 @@ function init(
   });
 
   const declaredFeature =
-    declaredFeatures.get(fileKey(testInfo.file)) ?? declaredFeatures.get(UNRESOLVED_FILE);
+    declaredFeatures.get(fileKey(testInfo.file)) ??
+    declaredFeatures.get(UNRESOLVED_FILE);
   if (declaredFeature) {
     testInfo.annotations.push({
       type: 'story-feature',
@@ -766,7 +848,12 @@ function applyTraceToMeta(
   });
   const url = resolveTraceUrl(template, traceId);
   if (url) {
-    meta.docs.push({ kind: 'link', label: 'View Trace', url, phase: 'runtime' });
+    meta.docs.push({
+      kind: 'link',
+      label: 'View Trace',
+      url,
+      phase: 'runtime',
+    });
   }
 }
 
@@ -778,9 +865,17 @@ function applyTraceToMeta(
  * Wrap a function as a step with timing and error capture.
  * Records the step with `wrapped: true` and `durationMs`.
  */
-function fn<T>(keyword: StepKeyword, text: string, body: (fixtures: PlaywrightFixtures) => T): T;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function fn<T>(keyword: StepKeyword, text: string, body: (...args: any[]) => T): T {
+function fn<T>(
+  keyword: StepKeyword,
+  text: string,
+  body: (fixtures: PlaywrightFixtures) => T,
+): T;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function fn<T>(
+  keyword: StepKeyword,
+  text: string,
+  body: (...args: any[]) => T,
+): T {
   const ctx = getContext();
   const resolvedKeyword: StepKeyword =
     (keyword === 'Given' || keyword === 'When' || keyword === 'Then') &&
@@ -800,7 +895,10 @@ function fn<T>(keyword: StepKeyword, text: string, body: (...args: any[]) => T):
 
   const start = performance.now();
   try {
-    const result = ctx.fixtures !== undefined ? body(ctx.fixtures as PlaywrightFixtures) : body();
+    const result =
+      ctx.fixtures !== undefined
+        ? body(ctx.fixtures as PlaywrightFixtures)
+        : body();
     if (result instanceof Promise) {
       return result.then(
         (val) => {
@@ -849,7 +947,12 @@ function playwrightAttach(options: AttachmentOptions): void {
   syncAnnotationToTest();
 
   if (activeTestInfo) {
-    const attachOptions: { name: string; contentType: string; path?: string; body?: string | Buffer } = {
+    const attachOptions: {
+      name: string;
+      contentType: string;
+      path?: string;
+      body?: string | Buffer;
+    } = {
       name: options.name,
       contentType: options.mediaType,
     };
@@ -873,29 +976,57 @@ function playwrightAttach(options: AttachmentOptions): void {
  *    exists on disk (e.g. one taken earlier for another purpose). The caller
  *    is responsible for making sure something wrote a file to `path` first.
  */
-function screenshotImpl(options: ScreenshotOptions & { page: Page }, children?: DocEntry[]): Promise<DocEntry>;
+function screenshotImpl(
+  options: ScreenshotOptions & { page: Page },
+  children?: DocEntry[],
+): Promise<DocEntry>;
 function screenshotImpl(
   options: ScreenshotOptions & { path: string; page?: undefined },
   children?: DocEntry[],
 ): DocEntry;
-function screenshotImpl(options: ScreenshotOptions, children?: DocEntry[]): DocEntry | Promise<DocEntry> {
+function screenshotImpl(
+  options: ScreenshotOptions,
+  children?: DocEntry[],
+): DocEntry | Promise<DocEntry> {
   if (options.page) {
     return options.page
-      .screenshot(options.path ? { path: options.path, fullPage: options.fullPage ?? true } : { fullPage: options.fullPage ?? true })
+      .screenshot(
+        options.path
+          ? { path: options.path, fullPage: options.fullPage ?? true }
+          : { fullPage: options.fullPage ?? true },
+      )
       .then((buffer) => {
         const dataUri = `data:image/png;base64,${buffer.toString('base64')}`;
-        return attachDoc({ kind: 'screenshot', path: dataUri, alt: options.alt, phase: 'runtime' }, children);
+        return attachDoc(
+          {
+            kind: 'screenshot',
+            path: dataUri,
+            alt: options.alt,
+            phase: 'runtime',
+          },
+          children,
+        );
       });
   }
   if (!options.path) {
-    throw new Error('story.screenshot() requires either `path` (an existing file) or `page` (to capture one).');
+    throw new Error(
+      'story.screenshot() requires either `path` (an existing file) or `page` (to capture one).',
+    );
   }
   // Inline file bytes as a `data:` URI so the screenshot survives Playwright's
   // per-test outputDir cleanup (passing tests have their `test-results/<test>/`
   // directory deleted before the formatter runs). Falls back to the original
   // path for remote URLs or unreadable files.
   const resolvedPath = inlineScreenshotIfPossible(options.path);
-  return attachDoc({ kind: 'screenshot', path: resolvedPath, alt: options.alt, phase: 'runtime' }, children);
+  return attachDoc(
+    {
+      kind: 'screenshot',
+      path: resolvedPath,
+      alt: options.alt,
+      phase: 'runtime',
+    },
+    children,
+  );
 }
 
 // ============================================================================
@@ -936,12 +1067,29 @@ export const story = {
   },
 
   kv(options: KvOptions, children?: DocEntry[]): DocEntry {
-    return attachDoc({ kind: 'kv', label: options.label, value: options.value, phase: 'runtime' }, children);
+    return attachDoc(
+      {
+        kind: 'kv',
+        label: options.label,
+        value: options.value,
+        phase: 'runtime',
+      },
+      children,
+    );
   },
 
   json(options: JsonOptions, children?: DocEntry[]): DocEntry {
     const content = JSON.stringify(options.value, null, 2);
-    return attachDoc({ kind: 'code', label: options.label, content, lang: 'json', phase: 'runtime' }, children);
+    return attachDoc(
+      {
+        kind: 'code',
+        label: options.label,
+        content,
+        lang: 'json',
+        phase: 'runtime',
+      },
+      children,
+    );
   },
 
   /**
@@ -959,27 +1107,77 @@ export const story = {
    */
   state(options: StateOptions, children?: DocEntry[]): DocEntry {
     warnIfStateLarge(options.label, options.value);
-    return attachDoc({ kind: 'state', label: options.label, value: options.value, phase: 'runtime' }, children);
+    return attachDoc(
+      {
+        kind: 'state',
+        label: options.label,
+        value: options.value,
+        phase: 'runtime',
+      },
+      children,
+    );
   },
 
   code(options: CodeOptions, children?: DocEntry[]): DocEntry {
-    return attachDoc({ kind: 'code', label: options.label, content: options.content, lang: options.lang, phase: 'runtime' }, children);
+    return attachDoc(
+      {
+        kind: 'code',
+        label: options.label,
+        content: options.content,
+        lang: options.lang,
+        phase: 'runtime',
+      },
+      children,
+    );
   },
 
   table(options: TableOptions, children?: DocEntry[]): DocEntry {
-    return attachDoc({ kind: 'table', label: options.label, columns: options.columns, rows: options.rows, phase: 'runtime' }, children);
+    return attachDoc(
+      {
+        kind: 'table',
+        label: options.label,
+        columns: options.columns,
+        rows: options.rows,
+        phase: 'runtime',
+      },
+      children,
+    );
   },
 
   link(options: LinkOptions, children?: DocEntry[]): DocEntry {
-    return attachDoc({ kind: 'link', label: options.label, url: options.url, phase: 'runtime' }, children);
+    return attachDoc(
+      {
+        kind: 'link',
+        label: options.label,
+        url: options.url,
+        phase: 'runtime',
+      },
+      children,
+    );
   },
 
   section(options: SectionOptions, children?: DocEntry[]): DocEntry {
-    return attachDoc({ kind: 'section', title: options.title, markdown: options.markdown, phase: 'runtime' }, children);
+    return attachDoc(
+      {
+        kind: 'section',
+        title: options.title,
+        markdown: options.markdown,
+        phase: 'runtime',
+      },
+      children,
+    );
   },
 
   mermaid(options: MermaidOptions, children?: DocEntry[]): DocEntry {
-    return attachDoc({ kind: 'mermaid', code: options.code, title: options.title, phase: 'runtime' }, children);
+    return attachDoc(
+      {
+        kind: 'mermaid',
+        code: options.code,
+        title: options.title,
+        phase: 'runtime',
+      },
+      children,
+    );
   },
 
   screenshot: screenshotImpl,
@@ -992,7 +1190,13 @@ export const story = {
     // recording instead.
     warnIfAbsoluteVideoPathMissing(options.path);
     return attachDoc(
-      { kind: 'video', path: options.path, caption: options.caption, poster: options.poster, phase: 'runtime' },
+      {
+        kind: 'video',
+        path: options.path,
+        caption: options.caption,
+        poster: options.poster,
+        phase: 'runtime',
+      },
       children,
     );
   },
@@ -1012,7 +1216,15 @@ export const story = {
   },
 
   custom(options: CustomOptions, children?: DocEntry[]): DocEntry {
-    return attachDoc({ kind: 'custom', type: options.type, data: options.data, phase: 'runtime' }, children);
+    return attachDoc(
+      {
+        kind: 'custom',
+        type: options.type,
+        data: options.data,
+        phase: 'runtime',
+      },
+      children,
+    );
   },
 
   // ── Feature: Console capture (v1.56) ────────────────────────────────────
@@ -1069,7 +1281,10 @@ export const story = {
    * This is intentionally snapshot-based so tests can call it at critical points
    * (after submit, after navigation) and keep evidence near relevant steps.
    */
-  observePageErrors(options: ObservePageErrorsOptions, children?: DocEntry[]): DocEntry {
+  observePageErrors(
+    options: ObservePageErrorsOptions,
+    children?: DocEntry[],
+  ): DocEntry {
     const p = options.page as {
       consoleMessages?: () => Array<{ type(): string; text(): string }>;
       pageErrors?: () => Error[];
@@ -1080,14 +1295,16 @@ export const story = {
     if (typeof p?.pageErrors === 'function') {
       for (const err of p.pageErrors()) {
         const msg = err?.message ?? String(err);
-        if (!ignore.some((rx) => rx.test(msg))) lines.push(`[pageerror] ${msg}`);
+        if (!ignore.some((rx) => rx.test(msg)))
+          lines.push(`[pageerror] ${msg}`);
       }
     }
     if (typeof p?.consoleMessages === 'function') {
       for (const msg of p.consoleMessages()) {
         if (msg.type() !== 'error') continue;
         const text = msg.text();
-        if (!ignore.some((rx) => rx.test(text))) lines.push(`[console.error] ${text}`);
+        if (!ignore.some((rx) => rx.test(text)))
+          lines.push(`[console.error] ${text}`);
       }
     }
 
@@ -1095,7 +1312,8 @@ export const story = {
       {
         kind: 'code',
         label: options.label ?? 'Browser Runtime Errors',
-        content: lines.length > 0 ? lines.join('\n') : '(no runtime errors observed)',
+        content:
+          lines.length > 0 ? lines.join('\n') : '(no runtime errors observed)',
         lang: 'log',
         phase: 'runtime',
       },
@@ -1146,7 +1364,8 @@ export const story = {
       : undefined;
     ctx.activeTimers.set(token, {
       start: performance.now(),
-      stepIndex: stepIndex !== undefined && stepIndex >= 0 ? stepIndex : undefined,
+      stepIndex:
+        stepIndex !== undefined && stepIndex >= 0 ? stepIndex : undefined,
       stepId: ctx.currentStep?.id,
       consumed: false,
     });
@@ -1230,8 +1449,9 @@ function callerFile(): string | undefined {
     .split('\n')
     .slice(1)
     .map((line) => {
-      const match = /\(((?:file:\/\/)?[^()]+?):\d+:\d+\)/.exec(line)
-        ?? /at ((?:file:\/\/)?[^()\s]+?):\d+:\d+/.exec(line);
+      const match =
+        /\(((?:file:\/\/)?[^()]+?):\d+:\d+\)/.exec(line) ??
+        /at ((?:file:\/\/)?[^()\s]+?):\d+:\d+/.exec(line);
       const file = match?.[1];
       // node: builtins are not files and must not be normalized into one.
       return file && !file.startsWith('node:') ? fileKey(file) : undefined;

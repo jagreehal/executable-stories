@@ -14,15 +14,15 @@
     "type-check": "node -e \"const fs=require('fs');const {execSync}=require('child_process');const p=require('path').resolve(process.cwd(),'../../packages/executable-stories-cypress/package.json');if(!fs.existsSync(p)){console.log('Skipping type-check: executable-stories-cypress not in workspace');process.exit(0);}execSync('pnpm --filter executable-stories-cypress run build && tsc --noEmit',{stdio:'inherit'});\""
   },
   "devDependencies": {
-    "@eslint/js": "^9.39.2",
-    "@types/node": "^25.9.2",
-    "cypress": "^15.14.2",
-    "eslint": "^9.39.2",
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.2.0",
+    "cypress": "^15.21.0",
+    "eslint": "^10.9.0",
     "eslint-config-executable-stories": "workspace:*",
     "eslint-config-prettier": "^10.1.8",
     "executable-stories-cypress": "workspace:*",
     "executable-stories-formatters": "workspace:*",
-    "typescript": "^5.9.3",
-    "typescript-eslint": "^8.54.0"
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.67.0"
   }
 }

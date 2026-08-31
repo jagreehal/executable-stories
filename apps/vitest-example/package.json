@@ -18,15 +18,15 @@
   "type": "module",
   "devDependencies": {
     "executable-stories-formatters": "workspace:*",
-    "@eslint/js": "^9.39.2",
-    "@types/node": "^25.9.2",
-    "eslint": "^9.39.2",
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.2.0",
+    "eslint": "^10.9.0",
     "eslint-config-executable-stories": "workspace:*",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-executable-stories-vitest": "workspace:*",
-    "typescript": "^5.9.3",
-    "typescript-eslint": "^8.54.0",
-    "vitest": "^4.0.18",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.67.0",
+    "vitest": "^4.1.11",
     "executable-stories-vitest": "workspace:*"
   }
 }

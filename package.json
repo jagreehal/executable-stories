@@ -25,18 +25,19 @@
     "verify:ruby": "./scripts/verify-ruby.sh"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.31.0",
+    "@changesets/cli": "^3.0.1",
     "@eslint/js": "^10.0.1",
     "@ianvs/prettier-plugin-sort-imports": "^4.7.1",
-    "@typescript-eslint/eslint-plugin": "^8.60.1",
-    "@typescript-eslint/parser": "^8.60.1",
-    "eslint": "^10.4.1",
+    "@typescript-eslint/eslint-plugin": "^8.67.0",
+    "@typescript-eslint/parser": "^8.67.0",
+    "eslint": "^10.9.0",
     "eslint-config-executable-stories": "workspace:*",
     "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-unicorn": "^64.0.0",
-    "prettier": "^3.8.3",
-    "turbo": "^2.9.16",
-    "typescript-eslint": "^8.60.1"
+    "eslint-plugin-unicorn": "^73.0.0",
+    "prettier": "^3.9.6",
+    "turbo": "^2.10.11",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.67.0"
   },
   "engines": {
     "node": ">=22",

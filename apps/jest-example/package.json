@@ -13,19 +13,19 @@
     "type-check": "node -e \"const fs=require('fs');const {execSync}=require('child_process');const p=require('path').resolve(process.cwd(),'../../packages/executable-stories-jest/package.json');if(!fs.existsSync(p)){console.log('Skipping type-check: executable-stories-jest not in workspace');process.exit(0);}execSync('pnpm --filter executable-stories-jest run build && tsc --noEmit',{stdio:'inherit'});\""
   },
   "devDependencies": {
-    "@eslint/js": "^9.39.2",
-    "@jest/globals": "^30.2.0",
+    "@eslint/js": "^10.0.1",
+    "@jest/globals": "^30.4.1",
     "@types/jest": "^30.0.0",
-    "@types/node": "^25.9.2",
-    "eslint": "^9.39.2",
+    "@types/node": "^26.2.0",
+    "eslint": "^10.9.0",
     "eslint-config-executable-stories": "workspace:*",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-executable-stories-jest": "workspace:*",
     "executable-stories-formatters": "workspace:*",
     "executable-stories-jest": "workspace:*",
-    "jest": "^30.2.0",
-    "ts-jest": "^29.4.6",
-    "typescript": "^5.9.3",
-    "typescript-eslint": "^8.54.0"
+    "jest": "^30.4.2",
+    "ts-jest": "^29.4.12",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.67.0"
   }
 }

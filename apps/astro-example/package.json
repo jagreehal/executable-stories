@@ -12,18 +12,18 @@
     "test:e2e:update": "playwright test --update-snapshots"
   },
   "devDependencies": {
-    "@axe-core/playwright": "^4.10.2",
-    "@playwright/test": "^1.59.1",
+    "@axe-core/playwright": "^4.13.0",
+    "@playwright/test": "^1.62.1",
     "executable-stories-formatters": "workspace:*",
     "executable-stories-playwright": "workspace:*"
   },
   "dependencies": {
-    "@astrojs/react": "^4.4.2",
-    "@astrojs/starlight": "^0.41.0",
-    "astro": "^7.0.0",
+    "@astrojs/react": "^6.0.4",
+    "@astrojs/starlight": "^0.41.7",
+    "astro": "^7.2.4",
     "executable-stories-astro": "workspace:*",
     "executable-stories-react": "workspace:*",
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
   }
 }
