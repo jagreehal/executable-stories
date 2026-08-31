@@ -23,7 +23,7 @@
     "astro-mermaid": "^2.1.0",
     "mermaid": "^11.12.2",
     "sharp": "^0.34.5",
-    "tailwindcss": "^4.1.18"
+    "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
     "executable-stories-formatters": "workspace:*",
