@@ -91,6 +91,12 @@ Scenarios declare which product code they exercise via a `covers` option (globs,
 
 Returns exit code, stdout, stderr, and the resolved command.
 
+### The same tools in a browser
+
+This server serves an agent with a filesystem. Someone reading a published HTML report has a different one: the agent in their browser. The interactive report registers `list_scenarios`, `get_failing_scenarios`, `get_feature_summary` and `get_scenario` as WebMCP tools under the same names and payload shapes, answered from the run embedded in the page, plus a `filter_scenarios` tool that drives the view.
+
+Two of the query tools above have no browser equivalent — `get_scenario_index` and `get_behavior_manifest` compute content hashes with `node:crypto` — and neither does `run_scenario`, since a static page has nothing to run tests on. Use this server for those. See [Asking the report questions](/guides/understanding-the-report/#asking-the-report-questions-webmcp).
+
 ## HTTP transport (optional)
 
 For non-MCP clients or local debugging, the same read-only catalog and `run_scenario` are available over HTTP. This is a programmatic API — the `executable-stories-mcp` binary itself only speaks stdio.

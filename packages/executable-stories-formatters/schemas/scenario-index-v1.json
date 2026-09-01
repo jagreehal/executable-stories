@@ -71,6 +71,10 @@
             "message": { "type": "string" },
             "stack": { "type": "string" }
           }
+        },
+        "assertionState": {
+          "enum": ["asserted", "unasserted", "unobserved"],
+          "description": "Whether the scenario's claim was checked. Always emitted since 1.x, optional in the schema so pre-assertion v1 artifacts stay valid."
         }
       }
     },
@@ -86,7 +90,11 @@
         "status": { "$ref": "#/$defs/status" },
         "durationMs": { "type": "number" },
         "errorMessage": { "type": "string" },
-        "docKinds": { "type": "array", "items": { "type": "string" } }
+        "docKinds": { "type": "array", "items": { "type": "string" } },
+        "assertions": {
+          "type": "number",
+          "description": "Assertions the framework observed in this step. Absent means the adapter has no counter to read; 0 means it counted none."
+        }
       }
     }
   }

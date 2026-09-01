@@ -145,9 +145,14 @@ export function renderReportToHtml(
   const parsed = unwrapReport(report);
   const rawReport: StoryReport | undefined = parsed.ok ? parsed.data : undefined;
   const interactive = islandScript.length > 0 && rawReport !== undefined;
-  const dataScript = interactive
-    ? `<script type="application/json" id="${DATA_ID}">${escapeJsonForScript(JSON.stringify(rawReport))}</script>`
-    : "";
+  // Emitted whenever there is a report to emit, not only when the island will
+  // hydrate. The JSON is already serialised, so it costs nothing, and it is the
+  // difference between a JS-less report an agent can parse and one where the
+  // only machine-readable copy of the run has been thrown away.
+  const dataScript =
+    rawReport !== undefined
+      ? `<script type="application/json" id="${DATA_ID}">${escapeJsonForScript(JSON.stringify(rawReport))}</script>`
+      : "";
   const historyScript =
     interactive && scenarioHistory && Object.keys(scenarioHistory).length > 0
       ? `<script type="application/json" id="${HISTORY_ID}">${escapeJsonForScript(JSON.stringify(scenarioHistory))}</script>`

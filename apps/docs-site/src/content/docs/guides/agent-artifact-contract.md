@@ -156,6 +156,52 @@ reports/index.story-report.json
 
 Pass `reportPath` to use another file. See [MCP server](/guides/mcp-server/).
 
+## WebMCP (in the reader's browser)
+
+Everything above assumes an agent with a filesystem. Someone reading a published
+report has a different agent: the one in their browser, pointed at a shared URL
+or a self-contained `report.html`. The interactive HTML report registers WebMCP
+tools on `document.modelContext` for exactly that reader.
+
+Read tools, answering from the run already embedded in the page:
+
+- `list_scenarios` (optional `statuses` / `tags` / `sourceFiles` filters)
+- `get_scenario`
+- `get_failing_scenarios`
+- `get_feature_summary`
+
+Names and payload shapes mirror the MCP tools above — both go through the shared
+projections in `executable-stories-core/report-queries` — with one licensed
+difference: the browser payload has no `hash` field, because scenario content
+hashes come from `node:crypto`.
+
+View tool:
+
+- `filter_scenarios` — sets the report's `search`, `status` and `tags`. Omitted
+  fields are left alone; an empty string, `"all"`, or an empty array clears one.
+  The reader gets a dismissible strip saying an agent filtered the report, with
+  a "Show all" reset.
+
+Every payload carries the run's `runId`, commit, branch and `ageDays`, so an
+answer about a stale report cannot read as current. Each scenario also carries
+`assertionState` (`asserted` / `unasserted` / `unobserved`) and per-step
+`assertions` counts, so a passing scenario that checked nothing cannot be read
+as proof.
+
+Not available here, by construction: `get_scenario_index` and
+`get_behavior_manifest` (node-only content hashing) and `run_scenario` (a static
+page has no backend). Use the MCP server for those.
+
+Two constraints worth knowing:
+
+- **Interactive mode only.** The tools ship with the report's hydration island,
+  so a report rendered without it registers nothing. The embedded run JSON at
+  `#es-report-data` is emitted either way, so a JS-less report is still
+  parseable.
+- **Progressive.** WebMCP is behind a flag or origin trial in Chrome and Edge
+  and absent everywhere else. Without `document.modelContext` nothing registers,
+  nothing is logged, and the report behaves exactly as it did before.
+
 ## Live index (watch)
 
 Keep the agent artifacts fresh while you work. `executable-stories watch` regenerates the requested formats whenever the framework rewrites its raw-run file:

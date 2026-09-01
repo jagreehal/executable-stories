@@ -4,10 +4,19 @@ import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 
 // Canonicalization, the StoryReport projection, and their input/output types
 // live in executable-stories-core — import them from where they actually live.
-import type { RawRun, StoryReport } from "executable-stories-core";
-import { canonicalizeRun, toStoryReport } from "executable-stories-core";
 import type {
-  ReportFeature,
+  FeatureSummaryItem,
+  RawRun,
+  ScenarioLookup,
+  StoryReport,
+} from "executable-stories-core";
+import {
+  canonicalizeRun,
+  getFeatureSummary,
+  getScenario,
+  toStoryReport,
+} from "executable-stories-core";
+import type {
   ReportScenario,
   ReportSummary,
   BehaviorManifest,
@@ -42,22 +51,12 @@ import {
 // consumers get the same shape without a parallel definition to maintain.
 export type { ScenarioIndexItem, ScenarioIndexFilters };
 
-export interface FeatureSummaryItem {
-  id: string;
-  title: string;
-  sourceFile: string;
-  total: number;
-  passed: number;
-  failed: number;
-  skipped: number;
-  pending: number;
-  durationMs: number;
-}
-
-export interface ScenarioLookup {
-  feature: ReportFeature;
-  scenario: ReportScenario;
-}
+// Scenario lookup and feature summaries are pure StoryReport projections, and
+// the HTML report's in-browser WebMCP tools answer the same two questions. They
+// live in core so the two transports cannot drift; re-exported here because
+// they are part of this package's published surface.
+export { getScenario, getFeatureSummary };
+export type { FeatureSummaryItem, ScenarioLookup };
 
 export function loadStoryReport(reportPath: string): StoryReport {
   const absolutePath = path.resolve(reportPath);
@@ -83,30 +82,6 @@ export function getScenariosForPaths(report: StoryReport, paths: string[]): Scen
 
 export function getBehaviorDiff(baseline: StoryReport, current: StoryReport): BehaviorDiff {
   return diffStoryReports(baseline, current);
-}
-
-export function getScenario(report: StoryReport, idOrTitle: string): ScenarioLookup | undefined {
-  for (const feature of report.features) {
-    const scenario = feature.scenarios.find(
-      (candidate) => candidate.id === idOrTitle || candidate.title === idOrTitle,
-    );
-    if (scenario) return { feature, scenario };
-  }
-  return undefined;
-}
-
-export function getFeatureSummary(report: StoryReport): FeatureSummaryItem[] {
-  return report.features.map((feature) => ({
-    id: feature.id,
-    title: feature.title,
-    sourceFile: feature.sourceFile,
-    total: feature.summary.total,
-    passed: feature.summary.passed,
-    failed: feature.summary.failed,
-    skipped: feature.summary.skipped,
-    pending: feature.summary.pending,
-    durationMs: feature.summary.durationMs,
-  }));
 }
 
 export function resolveReportPath(reportPath?: string): string {

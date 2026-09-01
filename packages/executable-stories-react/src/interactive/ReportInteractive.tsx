@@ -2,6 +2,7 @@
 
 import type { StoryReport } from 'executable-stories-core';
 import { Monitor, Moon, Sun } from 'lucide-react';
+import { useTools } from 'webmcpable/react';
 import {
   useCallback,
   useDeferredValue,
@@ -36,6 +37,7 @@ import {
   listFailures,
   type StatusFilter,
 } from './filter';
+import { ReportAgentFilterNotice } from './ReportAgentFilterNotice';
 import { ReportFailureBanner } from './ReportFailureBanner';
 import { ReportFilters } from './ReportFilters';
 import { ReportFreshness } from './ReportFreshness';
@@ -58,6 +60,7 @@ import { useDeepLinkScroll } from './use-deep-link-scroll';
 import { useKeyboardShortcuts } from './use-keyboard-shortcuts';
 import { useTheme, type ThemePref } from './use-theme';
 import { useUrlState } from './use-url-state';
+import { reportTools, type AppliedFilter } from './webmcp-tools';
 
 export interface ReportInteractiveProps {
   /** A StoryReport, or a Result-wrapped one (e.g., from parseStoryReport). */
@@ -312,6 +315,32 @@ function ReportInteractiveView({
     [collapse, collapseAll],
   );
 
+  // WebMCP: hand a browser agent the same four reads the MCP server exposes,
+  // plus one tool that drives this view. A no-op in every browser without
+  // `document.modelContext`, which is all of them outside flagged Chrome/Edge.
+  const [agentFilter, setAgentFilter] = useState<AppliedFilter | null>(null);
+  useTools(
+    reportTools({
+      report,
+      view: urlState,
+      setView: setUrlState,
+      onAgentFilter: setAgentFilter,
+    }),
+  );
+  // The notice belongs to the filter it announced. The moment the view no
+  // longer matches — the reader typed, cleared a tag, hit reset — it is stale,
+  // so it stops rendering without anything having to clear it.
+  const showAgentFilter =
+    agentFilter !== null &&
+    agentFilter.search === query &&
+    agentFilter.status === statusFilter &&
+    agentFilter.tags.length === activeTags.length &&
+    agentFilter.tags.every((tag) => activeTags.includes(tag));
+  const clearFilters = useCallback(
+    () => setUrlState({ query: '', status: 'all', tags: [] }),
+    [setUrlState],
+  );
+
   const focusSearch = useCallback(() => {
     searchRef.current?.focus();
   }, []);
@@ -465,6 +494,13 @@ function ReportInteractiveView({
                     </div>
                   </div>
                 </header>
+                {showAgentFilter ? (
+                  <ReportAgentFilterNotice
+                    applied={agentFilter}
+                    onReset={clearFilters}
+                    onDismiss={() => setAgentFilter(null)}
+                  />
+                ) : null}
                 <ReportFailureBanner failures={failures} />
                 {hasContent ? (
                   showToc ? (

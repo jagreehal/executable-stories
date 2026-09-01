@@ -1,6 +1,6 @@
 ---
 title: Skill catalogue
-description: All 52 shipped skills by group, what each one covers, and when your agent should load it.
+description: All 53 shipped skills by group, what each one covers, and when your agent should load it.
 ---
 
 Every skill lives at `skills/<name>/SKILL.md` in the [repository](https://github.com/jagreehal/executable-stories/tree/main/skills). See [Agent skills](/ai-skills/) for installation.
@@ -100,6 +100,7 @@ Gating, auditing, and reporting what a run proves.
 | `coverage-audit`          | Answering "is it covered?" by requirement, by code, and by evidence strength     |
 | `release-notes`           | Writing notes from the behavioural diff, including what quietly disappeared      |
 | `test-management-bridge`  | TestRail or Xray runs alongside the suite and has to stay a mirror, not a source |
+| `report-webmcp`           | A non-developer needs to ask a published report questions from their browser    |
 
 ## Understanding
 
