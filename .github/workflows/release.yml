@@ -61,6 +61,9 @@ jobs:
         uses: changesets/action@3841a0683d3cfa6dae0f9bb335290003010fe3f0 # v1.9.0
         with:
           publish: pnpm release
+          # Also rewrites SKILL.md library_version, which changeset version
+          # alone leaves stale and CI then fails on.
+          version: pnpm version-packages
           commit: "chore: release packages"
           title: "chore: release packages"
         env:

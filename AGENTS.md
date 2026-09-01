@@ -113,6 +113,7 @@ All framework adapters expose the same API surface:
 - ESM throughout (`"type": "module"` in all package.json)
 - Packages export via tsup with both ESM and CJS builds
 - `@types/node` should be `^25.9.2` across all workspace packages
+- Skill frontmatter `library_version:` is generated, not hand-edited. `pnpm version-packages` runs `changeset version` then `node scripts/sync-skill-versions.mjs`, which rewrites every `skills/*/SKILL.md` from the package manifest it names. `packages/executable-stories-init/tests/skill-sync.story.test.ts` fails when the two disagree. Non-JS packages release through `non-js-release.yml`, which does not call the script, so run it by hand after bumping a Python, Rust, Ruby, JVM, or .NET manifest.
 
 ## ESLint plugins
 
