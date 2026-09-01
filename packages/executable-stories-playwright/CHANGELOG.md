@@ -1,5 +1,26 @@
 # executable-stories-playwright
 
+## 8.10.1
+
+### Patch Changes
+
+- 96b5a37: Keep counting assertions on Playwright 1.62
+
+  Playwright 1.62 removed `expect.getState().assertionCalls`, the live counter
+  the per-step assertion count was read from. Nothing failed loudly — the count
+  simply became unobservable, and every report quietly stopped showing how many
+  assertions stood behind a claim.
+
+  The reader now falls back to counting the `expect`-category steps Playwright
+  still records on the test, and keeps using the old counter where it exists, so
+  the behaviour is identical on 1.59 through 1.62. When neither is readable the
+  count stays `undefined` — unobserved, never a false zero.
+
+- Updated dependencies [5754182]
+- Updated dependencies [96b5a37]
+  - executable-stories-formatters@1.14.0
+  - executable-stories-core@0.22.0
+
 ## 8.10.0
 
 ### Minor Changes
