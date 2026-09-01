@@ -18,10 +18,21 @@ minimumReleaseAgeExclude:
   - vite
   - '@vitejs/*'
   - satteri # Astro 7's Rust markdown compiler
+  - sharp # astro@7.2.9's image dependency; same ecosystem as the entries above
+  - '@img/*' # sharp's per-platform native binaries
   - '@bruits/*' # satteri's per-platform native binaries
   - '@napi-rs/*' # napi bindings for Astro 7's Rust compiler
   - '@tybys/*' # wasm runtime helpers under @napi-rs/wasm-runtime
 
+# First-party, published from the same npm account as this repo's own packages
+# (jagreehal/webmcpable). It is only outside the workspace because it ships
+# independently; the quarantine exists for third-party code we do not control.
+# Remove this line once a release clears the 7-day window on its own.
+  - webmcpable
+
 overrides:
+  # starlight 0.41.10 still pins satteri 0.9.2 while astro 7.2.9 is on 0.10.5;
+  # two copies give tsc two unrelated MdastVisitorContext types.
+  satteri: '0.10.5'
   '@types/estree': '1.0.9'
   'vite': '^8.0.0'

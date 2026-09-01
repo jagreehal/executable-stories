@@ -6,7 +6,7 @@ description: >
 metadata:
   type: core
   library: executable-stories-jest
-  library_version: "8.7.0"
+  library_version: "8.8.0"
   sources:
     - "jagreehal/executable-stories:packages/executable-stories-jest/src/index.ts"
     - "jagreehal/executable-stories:packages/executable-stories-jest/src/story-api.ts"
@@ -84,7 +84,9 @@ it("processes payment", () => {
 
 ### State snapshots (story.state)
 
-`story.state({ label?, value })` captures what the world looks like at the current step as a JSON-serializable snapshot. Steps carrying state docs (or screenshots) become storyboard frames: a label's first appearance shows the full snapshot, consecutive snapshots with the same label render as a diff (`items[0].qty: 1 → 2`), and multiple labels appear as side-by-side lanes.
+`story.state({ label?, value })` captures what the world looks like at the current step as a JSON-serializable snapshot. Steps carrying state docs (or screenshots) become storyboard frames: a label's first appearance shows the full snapshot, consecutive snapshots with the same label render as a diff (`items[0].qty: 1 → 2`), and multiple labels appear as side-by-side lanes. Labels are scoped to the scenario: snapshots in different scenarios never diff against each other.
+
+Reach for it wherever you would otherwise *assert* a difference. Run the same operation for two actors or two inputs, snapshot under one label after each, and the report states the delta itself — `+ tools[2]: "update_case"` — instead of leaving a reader to compare two blocks of JSON.
 
 ```typescript
 given("an empty basket");
@@ -135,7 +137,7 @@ await story.expect("the profile contains the correct name", () => {
 Jest's live assertion counter is observed automatically. Assertions after a marker
 belong to that marker until the next step or test end; `story.expect` measures its own
 callback. A passing observable Then/And/But claim with zero assertions is marked in
-Markdown and HTML and grades `none`. An absent count means unobservable, not zero.
+Markdown and HTML and grades `none`. Grades are defined in spec-evidence-review/SKILL.md. An absent count means unobservable, not zero.
 
 ### Inline docs via second argument
 

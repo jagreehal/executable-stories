@@ -86,7 +86,8 @@
         "ci-gates",
         "coverage-audit",
         "release-notes",
-        "test-management-bridge"
+        "test-management-bridge",
+        "report-webmcp"
       ]
     },
     {

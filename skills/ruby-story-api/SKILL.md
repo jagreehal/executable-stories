@@ -112,7 +112,7 @@ story.expect("the result is correct") { assert_equal 8, result }
 
 Minitest's live assertion counter is observed automatically. Assertions after a marker
 are attributed to the current step, and `story.expect` measures its block. A passing
-observable claim with zero assertions is marked in the reports and grades `none`.
+observable claim with zero assertions is marked in the reports and grades `none`. Grades are defined in spec-evidence-review/SKILL.md.
 
 Minitest `-n` and RSpec example filters report `runScope: "filtered"`; unfiltered runs
 report `"full"`, so persistent per-source state retires missing scenarios only when safe.
@@ -134,7 +134,9 @@ story.screenshot("/screenshots/result.png", alt: "Final result")
 story.custom("metrics", { latency_ms: 42 })
 ```
 
-`story.state(value, label: nil)` captures what the world looks like at the current step. Steps carrying state docs (or screenshots) become storyboard frames: a label's first appearance shows the full snapshot, consecutive snapshots with the same label render as a diff, and multiple labels appear as side-by-side lanes. Capture the business-relevant projection, not the ORM entity.
+`story.state(value, label: nil)` captures what the world looks like at the current step. Steps carrying state docs (or screenshots) become storyboard frames: a label's first appearance shows the full snapshot, consecutive snapshots with the same label render as a diff, and multiple labels appear as side-by-side lanes. Labels are scoped to the scenario: snapshots in different scenarios never diff against each other.
+
+Reach for it wherever you would otherwise *assert* a difference. Run the same operation for two actors or two inputs, snapshot under one label after each, and the report states the delta itself instead of leaving a reader to compare two blocks of JSON. Capture the business-relevant projection, not the ORM entity.
 
 ### Embedded HTML
 

@@ -120,7 +120,9 @@ fn processes_payment() {
 
 ### State snapshots (state)
 
-`s.state(label: Option<&str>, value: serde_json::Value)` captures what the world looks like at the current step. Steps carrying state docs (or screenshots) become storyboard frames: a label's first appearance shows the full snapshot, consecutive snapshots with the same label render as a diff (`total: 0 → 45`), and multiple labels appear as side-by-side lanes; `None` gives an anonymous lane.
+`s.state(label: Option<&str>, value: serde_json::Value)` captures what the world looks like at the current step. Steps carrying state docs (or screenshots) become storyboard frames: a label's first appearance shows the full snapshot, consecutive snapshots with the same label render as a diff (`total: 0 → 45`), and multiple labels appear as side-by-side lanes; `None` gives an anonymous lane. Labels are scoped to the scenario: snapshots in different scenarios never diff against each other.
+
+Reach for it wherever you would otherwise *assert* a difference. Run the same operation for two actors or two inputs, snapshot under one label after each, and the report states the delta itself instead of leaving a reader to compare two blocks of JSON.
 
 ```rust
 s.given("an empty basket");

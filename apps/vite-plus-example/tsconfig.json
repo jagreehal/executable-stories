@@ -3,7 +3,6 @@
     "target": "ES2022",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "baseUrl": ".",
     "paths": {
       "executable-stories-vitest": [
         "../../packages/executable-stories-vitest/dist/index.d.ts",

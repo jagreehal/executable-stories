@@ -6,6 +6,7 @@ function item(id: string, covers: string[]): ScenarioIndexItem {
   return {
     id,
     title: id,
+    hash: "0".repeat(16),
     status: "passed",
     feature: "F",
     sourceFile: "t.test.ts",
@@ -15,6 +16,7 @@ function item(id: string, covers: string[]): ScenarioIndexItem {
     durationMs: 0,
     steps: [],
     docKinds: [],
+    assertionState: "unobserved",
   };
 }
 

@@ -42,11 +42,11 @@
     "executable-stories-core": "workspace:*",
     "executable-stories-formatters": "workspace:*",
     "fast-glob": "^3.3.3",
-    "picomatch": "^4.0.4"
+    "picomatch": "^4.0.5"
   },
   "devDependencies": {
     "@opentelemetry/api": "^1.9.1",
-    "@types/node": "^25.9.2",
+    "@types/node": "^26.2.0",
     "@types/picomatch": "^4.0.3",
     "eslint-config-executable-stories": "workspace:*",
     "tsup": "^8.5.1",

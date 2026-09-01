@@ -267,7 +267,9 @@ Set `ES_CHROMIUM_SINGLE_PROCESS=1`. Both configs then launch Chromium with `--si
 ES_CHROMIUM_SINGLE_PROCESS=1 pnpm quality
 ```
 
-That clears `formatters-e2e` entirely. In `playwright-example` two tests still fail, because a single-process browser cannot open a context that needs its own process: `screenshot-in-report` ("Video is recorded and linked in report") and `storyboard` ("Browse the catalog on mobile"), for video recording and mobile device emulation respectively. Plain contexts are fine. Read those two as an environment limit, not a regression, and confirm them outside the sandbox before believing any failure there.
+**This no longer clears `formatters-e2e`.** Under Playwright 1.62 a single-process Chromium dies partway through the suite (SIGTRAP), and which tests fail moves between runs — `--workers=1` does not settle it. Measured on 2026-08-31: `diff-report.story.spec.ts` alone fails 2 of 5 this way, with nothing else in the run. Every test passes on a normal multi-process browser. So `ES_CHROMIUM_SINGLE_PROCESS=1` now buys a browser that launches rather than a suite that passes, and a red `formatters-e2e` under it is evidence of nothing. Run that suite outside the sandbox before believing any failure in it.
+
+In `playwright-example` two tests still fail under single-process for a different and stable reason: a single-process browser cannot open a context that needs its own process — `screenshot-in-report` ("Video is recorded and linked in report") and `storyboard` ("Browse the catalog on mobile"), for video recording and mobile device emulation. Plain contexts are fine.
 
 CI leaves the variable unset, so it runs a normal multi-process Chromium.
 
@@ -329,6 +331,7 @@ When working in these areas, load the linked skill file into context for accurat
 | Auditing coverage by requirement, code, and evidence         | `skills/coverage-audit/SKILL.md`                                                               |
 | Bridging TestRail or Xray to the suite                       | `skills/test-management-bridge/SKILL.md`                                                       |
 | Routing one run to stakeholder, design, and support views    | `skills/audience-views/SKILL.md`                                                               |
+| Publishing a report a non-developer's browser agent can query | `skills/report-webmcp/SKILL.md`                                                                |
 | Writing release notes from the behavioural diff              | `skills/release-notes/SKILL.md`                                                                |
 | Building a docs site that cannot go stale                    | `skills/living-docs-site/SKILL.md`                                                             |
 | Grilling a vague request into scenarios, one round at a time | `skills/spec-grilling/SKILL.md`                                                                |

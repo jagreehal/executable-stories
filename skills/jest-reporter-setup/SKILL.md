@@ -7,7 +7,7 @@ description: >
 metadata:
   type: core
   library: executable-stories-jest
-  library_version: "8.7.0"
+  library_version: "8.8.0"
   sources:
     - "jagreehal/executable-stories:packages/executable-stories-jest/src/reporter.ts"
 ---
@@ -34,7 +34,7 @@ export default {
 };
 ```
 
-Both the `setup` file and the `reporter` entry are required. Peer dependency: `executable-stories-formatters` must be installed.
+Both the `setup` file and the `reporter` entry are required. `executable-stories-formatters` ships as a dependency of this package, so there is nothing extra to install.
 
 Full option surface (all formatter fields, output modes) and worker-file mechanics: [REFERENCE.md](REFERENCE.md).
 
@@ -43,6 +43,19 @@ Documentation formats render that accumulated suite; JUnit, Cucumber, and releas
 manifests describe only the current execution. Jest detects `testNamePattern`
 automatically. Full runs may retire missing scenarios, filtered runs merge, and files
 whose collection failed preserve their earlier scenarios with a warning.
+
+Those per-file reports are generated state, not artefacts to commit. Each carries a
+`runId` and per-step durations, so committing them leaves a dirty tree after every run,
+and a release gate like `git diff --exit-code` then fails forever while looking like
+someone forgot to commit generated docs. Ignore the directory instead:
+
+```gitignore
+**/<outputDir>/by-file/
+```
+
+The `**/` matters. A bare `docs/by-file/` is anchored to the file it sits in, so in a
+monorepo it will not match `packages/anything/docs/by-file/`. Add the same line to
+`.prettierignore`, or your formatter's equivalent, if it walks your docs directory.
 
 ## Common Mistakes
 

@@ -46,6 +46,11 @@ export * from "./journeys.js";
 // which browser bundles use to avoid pulling the Node-only helpers).
 export * from "./explainer.js";
 
+// Agent queries over a StoryReport, shared by the MCP server and the WebMCP
+// tools the HTML report registers in the browser. Browser bundles import the
+// ./report-queries subpath directly; this barrel is Node-only.
+export * from "./report-queries.js";
+
 // Pure doc/render helpers
 export * from "./utils/scenario-markdown.js";
 export * from "./utils/doc-builders.js";

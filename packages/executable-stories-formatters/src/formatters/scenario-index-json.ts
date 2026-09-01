@@ -1,5 +1,6 @@
 import { toStoryReport } from "executable-stories-core/converters/story-report";
 import { scenarioContentHash } from "executable-stories-core/explainer";
+import { assertionState } from "executable-stories-core/utils/assertive-steps";
 import type { ReportFeature, ReportScenario, ReportStep, StoryReport, TestStatus } from "executable-stories-core/types/story-report";
 import type { TestRunResult } from "executable-stories-core/types/test-result";
 
@@ -11,6 +12,20 @@ export interface ScenarioIndex {
   scenarios: ScenarioIndexItem[];
 }
 
+/**
+ * One scenario as this formatter emits it.
+ *
+ * This is an OUTPUT type: it describes what `toScenarioIndex` produces, which
+ * is why `hash` and `assertionState` are required here while
+ * `scenario-index-v1.json` marks both optional. The schema is deliberately the
+ * laxer of the two so artifacts written before either field existed still
+ * validate; every artifact written since carries them.
+ *
+ * The consequence, and it is intended: parsing an arbitrary v1 file and casting
+ * it to this type is not sound for those two fields. Validate against the
+ * schema and treat them as optional if you are reading files you did not just
+ * write.
+ */
 export interface ScenarioIndexItem {
   id: string;
   title: string;
@@ -31,6 +46,12 @@ export interface ScenarioIndexItem {
   steps: ScenarioIndexStep[];
   docKinds: string[];
   error?: { message: string; stack?: string };
+  /**
+   * Whether the scenario's claim was checked: `asserted`, `unasserted`, or
+   * `unobserved` where the adapter cannot count. A passing scenario that is
+   * `unasserted` ran and proved nothing.
+   */
+  assertionState: "asserted" | "unasserted" | "unobserved";
 }
 
 export interface ScenarioIndexStep {
@@ -42,6 +63,11 @@ export interface ScenarioIndexStep {
   durationMs: number;
   errorMessage?: string;
   docKinds: string[];
+  /**
+   * Assertions the framework observed. Absent means the adapter has no counter;
+   * `0` means it counted none. Never defaulted — the difference is the point.
+   */
+  assertions?: number;
 }
 
 export interface ScenarioIndexFilters {
@@ -121,8 +147,10 @@ function toScenarioIndexItem(
       durationMs: step.durationMs,
       errorMessage: step.errorMessage,
       docKinds: step.docEntries.map((entry) => entry.kind),
+      assertions: step.assertions,
     })),
     docKinds: scenario.docEntries.map((entry) => entry.kind),
+    assertionState: assertionState(scenario.steps),
     error: scenario.errorMessage
       ? { message: scenario.errorMessage, stack: scenario.errorStack }
       : undefined,

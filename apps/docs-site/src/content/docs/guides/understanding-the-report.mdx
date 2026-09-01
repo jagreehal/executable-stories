@@ -172,6 +172,34 @@ The threshold is `--html-stale-after-days` (7 by default); `0` turns the signal 
 
 Read it as: a green scenario with a stale badge passed **the last time it ran**, which may be several commits before the code it covers changed.
 
+## Asking the report questions (WebMCP)
+
+The report you hand a product owner is a page, and their agent lives in a browser. The interactive report registers WebMCP tools on `document.modelContext`, so that agent can ask about the run instead of reading the screen a pixel at a time.
+
+Four reads, answered from the run already embedded in the page — no server, no filesystem, no MCP client:
+
+- `list_scenarios` — optionally filtered by status, tag, or source file
+- `get_failing_scenarios` — what broke, with the failing step and its message
+- `get_feature_summary` — counts per feature, for "how are we doing"
+- `get_scenario` — one scenario by id or exact title
+
+And one that changes what the reader is looking at:
+
+- `filter_scenarios` — sets the report's search text, status and tag filters, exactly as if someone had typed and clicked. Omitted fields are left alone; an empty string, `"all"`, or an empty array clears one.
+
+When an agent filters the report, a strip appears above the scenario list saying so, with a **Show all** reset. There is no confirmation prompt — filtering a read-only report is not worth a dialogue — but the reader is never left wondering why the page moved. Touch any filter yourself and the strip goes.
+
+Every answer carries the run it came from: id, commit, branch, and its age in days. A report is a snapshot, and this is what stops an agent relaying a three-week-old failure as today's news.
+
+Each scenario also carries `assertionState` — `asserted`, `unasserted`, or `unobserved` — alongside per-step `assertions` counts. A scenario that is `passed` and `unasserted` ran and checked nothing, so an agent has no excuse for reporting it as proof. `unobserved` means the adapter has no assertion counter and is not the same claim.
+
+Two limits worth knowing:
+
+- **Interactive reports only.** The tools ship with the report's hydration island. The embedded run JSON is written either way, so a report rendered without the island is still machine-readable at `#es-report-data`.
+- **Progressive.** WebMCP is behind a flag or origin trial in Chrome and Edge, and absent everywhere else. Without `document.modelContext` nothing registers, nothing is logged, and the report behaves exactly as it always has.
+
+The four read tools mirror the [MCP server](/guides/mcp-server/)'s names and payloads, so an agent learns one vocabulary whichever way it arrives. See the [agent artifact contract](/guides/agent-artifact-contract/#webmcp-in-the-readers-browser) for the differences that a browser forces.
+
 ## Enabling or hiding elements
 
 Reporter options (under `markdown` in framework reporter config) control what’s included:

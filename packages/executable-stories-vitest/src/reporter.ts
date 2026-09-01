@@ -257,6 +257,10 @@ function toRelativePosix(absolutePath: string, projectRoot: string): string {
  * Supports output routing (aggregated/colocated) and multiple output formats.
  *
  * Implements StoryReporterProtocol for type-safe duck-typing across vitest forks.
+ *
+ * Prefer {@link createStoryReporter} in `vitest.config.ts`: it returns this same
+ * reporter already typed as StoryReporterProtocol, so the config needs no cast.
+ * Construct the class directly only when you need to subclass or wrap it.
  */
 export default class StoryReporter implements StoryReporterProtocol {
   private options: StoryReporterOptions;

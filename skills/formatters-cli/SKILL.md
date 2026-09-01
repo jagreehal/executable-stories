@@ -240,6 +240,18 @@ The summary names how much of it the run in hand produced:
 
 `runs status` lists the reports with ages; `runs reset` deletes them.
 
+Ignore the directory. Each report carries a `runId` and per-step durations, so committing
+them leaves a dirty tree after every run, and a release gate like `git diff --exit-code`
+then fails forever while reading as though someone forgot to commit generated docs:
+
+```gitignore
+**/<outputDir>/by-file/
+```
+
+The `**/` matters: a bare `docs/by-file/` is anchored where it sits and will not match
+`packages/anything/docs/by-file/` in a monorepo. This applies to every language — the
+directory is written by `format`, not by any adapter.
+
 A run reports `runScope`. `"full"` means the adapter determined no name filter applied, so
 it replaces the file's report and retires anything missing, naming it in a warning.
 `"filtered"` updates only the scenarios it names. Absent means the adapter could not tell,

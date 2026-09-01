@@ -8,14 +8,15 @@
   "scripts": {
     "test": "playwright test",
     "test:ui": "playwright test --ui",
-    "screenshots": "playwright test --config screenshots-gen/playwright.config.ts"
+    "screenshots": "playwright test --config screenshots-gen/playwright.config.ts",
+    "test:webmcp:native": "playwright test --config playwright-webmcp-native.config.ts"
   },
   "devDependencies": {
-    "@playwright/test": "^1.59.1",
-    "@types/node": "^25.9.2",
+    "@playwright/test": "^1.62.1",
+    "@types/node": "^26.2.0",
     "executable-stories-formatters": "workspace:*",
     "executable-stories-playwright": "workspace:*",
     "executable-stories-react": "workspace:*",
-    "typescript": "~5.9.3"
+    "typescript": "~6.0.3"
   }
 }

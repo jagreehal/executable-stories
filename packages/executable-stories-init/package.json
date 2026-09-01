@@ -13,18 +13,18 @@
     "README.md"
   ],
   "dependencies": {
-    "@clack/prompts": "^1.5.1",
+    "@clack/prompts": "^1.7.0",
     "commander": "^15.0.0",
     "fast-glob": "^3.3.3",
     "picocolors": "^1.1.1"
   },
   "devDependencies": {
-    "@types/node": "^25.9.2",
+    "@types/node": "^26.2.0",
     "eslint-config-executable-stories": "workspace:*",
     "executable-stories-vitest": "workspace:*",
     "tsup": "^8.5.1",
     "typescript": "~6.0.3",
-    "vitest": "^4.1.8"
+    "vitest": "^4.1.11"
   },
   "scripts": {
     "build": "tsup",

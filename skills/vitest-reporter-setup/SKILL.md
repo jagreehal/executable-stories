@@ -7,7 +7,7 @@ description: >
 metadata:
   type: core
   library: executable-stories-vitest
-  library_version: "8.7.0"
+  library_version: "8.8.0"
   sources:
     - "jagreehal/executable-stories:packages/executable-stories-vitest/src/reporter.ts"
     - "jagreehal/executable-stories:apps/docs-site/src/content/docs/vitest/vitest-config.md"
@@ -38,7 +38,7 @@ export default defineConfig({
 
 Use the `createStoryReporter()` factory: it returns a correctly typed reporter, so you avoid the `new StoryReporter(...) as unknown as Reporter` cast.
 
-Peer dependency: `executable-stories-formatters` must be installed.
+`executable-stories-formatters` ships as a dependency of this package, so there is nothing extra to install.
 
 Output-mode variants (colocated/aggregated), format-specific options, pattern-based rules, and raw-run output: [REFERENCE.md](REFERENCE.md).
 
@@ -47,6 +47,19 @@ Documentation formats render that accumulated suite; JUnit, Cucumber, and releas
 manifests describe only the current execution. Vitest detects `testNamePattern`
 automatically. Full runs may retire missing scenarios, filtered runs merge, and files
 whose collection was incomplete preserve their earlier scenarios with a warning.
+
+Those per-file reports are generated state, not artefacts to commit. Each carries a
+`runId` and per-step durations, so committing them leaves a dirty tree after every run,
+and a release gate like `git diff --exit-code` then fails forever while looking like
+someone forgot to commit generated docs. Ignore the directory instead:
+
+```gitignore
+**/<outputDir>/by-file/
+```
+
+The `**/` matters. A bare `docs/by-file/` is anchored to the file it sits in, so in a
+monorepo it will not match `packages/anything/docs/by-file/`. Add the same line to
+`.prettierignore`, or your formatter's equivalent, if it walks your docs directory.
 
 ## Common Mistakes
 
