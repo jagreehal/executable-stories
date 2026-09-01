@@ -7,7 +7,7 @@ description: >
 metadata:
   type: core
   library: executable-stories-playwright
-  library_version: "8.9.0"
+  library_version: "8.10.0"
   sources:
     - "jagreehal/executable-stories:packages/executable-stories-playwright/src/reporter.ts"
 ---
@@ -42,6 +42,19 @@ Documentation formats render that accumulated suite; JUnit, Cucumber, and releas
 manifests describe only the current execution. Playwright detects `grep`, `grepInvert`,
 and sharding automatically. Full runs may retire missing scenarios, filtered runs merge,
 and incompletely collected files preserve their earlier scenarios with a warning.
+
+Those per-file reports are generated state, not artefacts to commit. Each carries a
+`runId` and per-step durations, so committing them leaves a dirty tree after every run,
+and a release gate like `git diff --exit-code` then fails forever while looking like
+someone forgot to commit generated docs. Ignore the directory instead:
+
+```gitignore
+**/<outputDir>/by-file/
+```
+
+The `**/` matters. A bare `docs/by-file/` is anchored to the file it sits in, so in a
+monorepo it will not match `packages/anything/docs/by-file/`. Add the same line to
+`.prettierignore`, or your formatter's equivalent, if it walks your docs directory.
 
 ## Core Patterns
 

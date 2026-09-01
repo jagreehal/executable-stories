@@ -8,7 +8,7 @@ description: >
 metadata:
   type: core
   library: executable-stories-cypress
-  library_version: "8.7.0"
+  library_version: "8.8.0"
   sources:
     - "jagreehal/executable-stories:packages/executable-stories-cypress/src/reporter.ts"
 ---
@@ -64,6 +64,19 @@ release manifests describe only the current execution. Cypress cannot detect
 `@cypress/grep`: pass `runScope: "filtered"` for a narrowed run, or `"full"` only when
 the run covered every scenario in its specs. Leaving it absent preserves earlier
 scenarios and warns rather than deleting on a guess.
+
+Those per-file reports are generated state, not artefacts to commit. Each carries a
+`runId` and per-step durations, so committing them leaves a dirty tree after every run,
+and a release gate like `git diff --exit-code` then fails forever while looking like
+someone forgot to commit generated docs. Ignore the directory instead:
+
+```gitignore
+**/<outputDir>/by-file/
+```
+
+The `**/` matters. A bare `docs/by-file/` is anchored to the file it sits in, so in a
+monorepo it will not match `packages/anything/docs/by-file/`. Add the same line to
+`.prettierignore`, or your formatter's equivalent, if it walks your docs directory.
 
 CI-pipeline variant of the Module API (guarding on `result.status`): [REFERENCE.md](REFERENCE.md).
 

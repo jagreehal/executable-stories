@@ -112,7 +112,7 @@ story.expect("the result is correct") { assert_equal 8, result }
 
 Minitest's live assertion counter is observed automatically. Assertions after a marker
 are attributed to the current step, and `story.expect` measures its block. A passing
-observable claim with zero assertions is marked in the reports and grades `none`.
+observable claim with zero assertions is marked in the reports and grades `none`. Grades are defined in spec-evidence-review/SKILL.md.
 
 Minitest `-n` and RSpec example filters report `runScope: "filtered"`; unfiltered runs
 report `"full"`, so persistent per-source state retires missing scenarios only when safe.
