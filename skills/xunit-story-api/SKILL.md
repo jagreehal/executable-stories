@@ -122,7 +122,9 @@ public void Processes_payment()
 
 ### State snapshots (State)
 
-`Story.State(value, label)` captures what the world looks like at the current step as a JSON-serializable snapshot (label optional). Steps carrying state docs (or screenshots) become storyboard frames: a label's first appearance shows the full snapshot, consecutive snapshots with the same label render as a diff (`total: 0 → 45`), and multiple labels appear as side-by-side lanes.
+`Story.State(value, label)` captures what the world looks like at the current step as a JSON-serializable snapshot (label optional). Steps carrying state docs (or screenshots) become storyboard frames: a label's first appearance shows the full snapshot, consecutive snapshots with the same label render as a diff (`total: 0 → 45`), and multiple labels appear as side-by-side lanes. Labels are scoped to the scenario: snapshots in different scenarios never diff against each other.
+
+Reach for it wherever you would otherwise *assert* a difference. Run the same operation for two actors or two inputs, snapshot under one label after each, and the report states the delta itself instead of leaving a reader to compare two blocks of JSON.
 
 ```csharp
 Story.Given("an empty basket");

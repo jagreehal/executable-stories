@@ -57,6 +57,42 @@ describe('SKILL.md ↔ template parity', () => {
 const SKILLS_DIR = join(HERE, '../../../skills');
 const PACKAGES_DIR = join(HERE, '../../../packages');
 
+
+/**
+ * Where each language keeps the number it actually publishes. The JS packages
+ * answer from package.json; the rest each have their own manifest, and reading
+ * one line out of it beats leaving five skills unchecked.
+ *
+ * Go is absent on purpose: a Go module's version is a git tag, so there is no
+ * file to disagree with.
+ */
+const VERSION_SOURCES: Array<{ file: string; pattern: RegExp }> = [
+  { file: 'package.json', pattern: /"version"\s*:\s*"([^"]+)"/ },
+  { file: 'pyproject.toml', pattern: /^version\s*=\s*"([^"]+)"/m },
+  { file: 'Cargo.toml', pattern: /^version\s*=\s*"([^"]+)"/m },
+  { file: 'executable_stories.gemspec', pattern: /spec\.version\s*=\s*"([^"]+)"/ },
+  { file: 'build.gradle.kts', pattern: /^version\s*=\s*"([^"]+)"/m },
+];
+
+async function publishedVersion(library: string): Promise<string | undefined> {
+  // A skill names the published artifact, which for .NET is the NuGet id rather
+  // than the directory holding it.
+  const dir = library.startsWith('ExecutableStories.')
+    ? join(PACKAGES_DIR, `executable-stories-${library.split('.')[1]!.toLowerCase()}`)
+    : join(PACKAGES_DIR, library);
+  for (const { file, pattern } of VERSION_SOURCES) {
+    const manifest = join(dir, file);
+    if (!existsSync(manifest)) continue;
+    const match = pattern.exec(await readFile(manifest, 'utf8'));
+    if (match?.[1]) return match[1];
+  }
+  const csproj = join(dir, library, `${library}.csproj`);
+  if (existsSync(csproj)) {
+    return /<Version>([^<]+)<\/Version>/.exec(await readFile(csproj, 'utf8'))?.[1];
+  }
+  return undefined;
+}
+
 type SkillVersion = { skill: string; library: string; declared: string; actual: string };
 
 async function declaredSkillVersions(): Promise<SkillVersion[]> {
@@ -73,11 +109,8 @@ async function declaredSkillVersions(): Promise<SkillVersion[]> {
     const library = /^ {2}library: (.+)$/m.exec(md)?.[1]?.trim();
     const declared = /^ {2}library_version: ['"]?([^'"\n]+)['"]?$/m.exec(md)?.[1]?.trim();
     if (!library || !declared) continue;
-    // Only packages this repo publishes from package.json can be checked here;
-    // the Ruby, Go, Rust, Python and .NET adapters carry versions elsewhere.
-    const manifest = join(PACKAGES_DIR, library, 'package.json');
-    if (!existsSync(manifest)) continue;
-    const actual = JSON.parse(await readFile(manifest, 'utf8')).version as string;
+    const actual = await publishedVersion(library);
+    if (actual === undefined) continue;
     found.push({ skill: entry.name, library, declared, actual });
   }
   return found;
@@ -94,7 +127,23 @@ describe('SKILL.md ↔ package version parity', () => {
       columns: ['Skill', 'Library', 'Declared', 'Actual'],
       rows: versions.map((v) => [v.skill, v.library, v.declared, v.actual]),
     });
-    expect(versions.length).toBeGreaterThan(0);
+    // A broken extractor would drop a package back to unchecked while the test
+    // still passed, which is the same silent failure this exists to catch. Name
+    // the languages that must be in the table.
+    const checked = new Set(versions.map((v) => v.skill));
+    expect(
+      [
+        'vitest-story-api',
+        'jest-story-api',
+        'playwright-story-api',
+        'cypress-story-api',
+        'pytest-story-api',
+        'ruby-story-api',
+        'rust-story-api',
+        'junit5-story-api',
+        'xunit-story-api',
+      ].filter((skill) => !checked.has(skill)),
+    ).toEqual([]);
 
     story.when('each declared version is compared with that package.json');
     const stale = versions.filter((v) => v.declared !== v.actual);

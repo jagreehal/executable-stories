@@ -245,6 +245,8 @@ A report whose test file no longer exists on disk is removed outright: the file 
 
 ### Housekeeping
 
-`reports/by-file/` is ordinary output. Delete a file and its scenarios leave the combined view; delete the directory and the next full test run writes it again (`executable-stories runs reset` does the same). Whether it belongs in git is the same question as for any generated report, and most projects ignore the whole `reports/` folder.
+`reports/by-file/` is ordinary output. Delete a file and its scenarios leave the combined view; delete the directory and the next full test run writes it again (`executable-stories runs reset` does the same).
+
+Do not commit it. Each report carries a `runId` and per-step durations, so every run leaves a dirty tree, and a release gate like `git diff --exit-code` then fails forever while reading as though someone forgot to commit generated docs. Ignore it with `**/<outputDir>/by-file/` — the `**/` matters, since a bare `docs/by-file/` is anchored where it sits and will not match `packages/anything/docs/by-file/` in a monorepo. Most projects ignore the whole `reports/` folder, which covers this; a project that renders docs into a committed directory needs the line.
 
 In CI it starts empty, which is why CI should run the full suite: that is the one place a complete run is worth insisting on.
