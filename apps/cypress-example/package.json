@@ -11,7 +11,7 @@
     "test:report": "pnpm test && pnpm report:agents",
     "test:open": "cypress open",
     "lint": "eslint .",
-    "type-check": "node -e \"const fs=require('fs');const {execSync}=require('child_process');const p=require('path').resolve(process.cwd(),'../../packages/executable-stories-cypress/package.json');if(!fs.existsSync(p)){console.log('Skipping type-check: executable-stories-cypress not in workspace');process.exit(0);}execSync('pnpm --filter executable-stories-cypress run build && tsc --noEmit',{stdio:'inherit'});\""
+    "type-check": "node -e \"const fs=require('fs');const {execSync}=require('child_process');const path=require('path');const pkg=path.resolve(process.cwd(),'../../packages/executable-stories-cypress');if(!fs.existsSync(path.join(pkg,'package.json'))){console.log('Skipping type-check: executable-stories-cypress not in workspace');process.exit(0);}if(!fs.existsSync(path.join(pkg,'dist/index.d.ts')))execSync('pnpm --filter executable-stories-cypress run build',{stdio:'inherit'});execSync('tsc --noEmit',{stdio:'inherit'});\""
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

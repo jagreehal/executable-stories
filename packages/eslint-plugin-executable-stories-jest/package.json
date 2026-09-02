@@ -21,7 +21,7 @@
   ],
   "scripts": {
     "build": "tsup",
-    "type-check": "node -e \"const fs=require('fs');const {execSync}=require('child_process');const p=require('path').resolve(process.cwd(),'../executable-stories-jest/package.json');if(!fs.existsSync(p)){console.log('Skipping type-check: executable-stories-jest not in workspace');process.exit(0);}execSync('pnpm --filter executable-stories-jest run build && tsc --noEmit',{stdio:'inherit'});\"",
+    "type-check": "node -e \"const fs=require('fs');const {execSync}=require('child_process');const p=require('path').resolve(process.cwd(),'../executable-stories-jest/package.json');if(!fs.existsSync(p)){console.log('Skipping type-check: executable-stories-jest not in workspace');process.exit(0);}execSync('tsc --noEmit',{stdio:'inherit'});\"",
     "test": "vitest run",
     "test:watch": "vitest watch",
     "lint": "eslint .",
