@@ -221,3 +221,50 @@ describe("buildCheck", () => {
     expect(renderCheck(report, "text")).toContain("All scenarios green.");
   });
 });
+
+describe("buildCheck --max-duration", () => {
+  beforeEach(() => {
+    stubs.setFakerSeed(42);
+  });
+
+  const timed = () => [
+    stubs.testCaseResult({ id: "quick", status: "passed", durationMs: 400 }),
+    stubs.testCaseResult({ id: "slow", status: "passed", durationMs: 41_000 }),
+  ];
+
+  it("names the scenarios over the budget, longest first", () => {
+    const report = buildCheck(
+      { testCases: timed(), format: "text", maxDurationMs: 30_000 },
+      {},
+    );
+    expect(report.overBudget.map((s) => s.id)).toEqual(["slow"]);
+    expect(report.overBudget[0]!.durationMs).toBe(41_000);
+  });
+
+  it("names the slow scenario on a red run too, not only a green one", () => {
+    const report = buildCheck(
+      {
+        testCases: [...timed(), stubs.testCaseResult({ id: "broke", status: "failed" })],
+        format: "text",
+        maxDurationMs: 30_000,
+      },
+      {},
+    );
+    expect(renderCheck(report, "text")).toContain("over the 30.00 s budget");
+  });
+
+  it("reports nothing over budget when no budget was set", () => {
+    const report = buildCheck({ testCases: timed(), format: "text" }, {});
+    expect(report.overBudget).toEqual([]);
+  });
+
+  it("tells the reader the budget it broke, not just that it is slow", () => {
+    const report = buildCheck(
+      { testCases: timed(), format: "text", maxDurationMs: 30_000 },
+      {},
+    );
+    const text = renderCheck(report, "text");
+    expect(text).toContain("over the 30.00 s budget");
+    expect(text).toContain("41.00 s");
+  });
+});

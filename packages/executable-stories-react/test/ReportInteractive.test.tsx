@@ -6,6 +6,7 @@ import { mixedReport, passingReport, minimalReport } from "./fixtures/sample-rep
 beforeEach(() => {
   // Scroll into view isn't implemented in jsdom; stub silently.
   Element.prototype.scrollIntoView = function () {};
+  localStorage.clear();
 });
 
 describe("<ReportInteractive>", () => {
@@ -32,10 +33,57 @@ describe("<ReportInteractive>", () => {
     expect(screen.getByText("No scenarios match the search.")).toBeInTheDocument();
   });
 
-  it("renders a sticky failure banner when failures exist", () => {
+  it("renders a failure banner when failures exist", () => {
     render(<ReportInteractive report={mixedReport} />);
     expect(screen.getByLabelText("Failure summary")).toBeInTheDocument();
     expect(screen.getByLabelText("View first failure")).toBeInTheDocument();
+  });
+
+  it("hands the whole failing set to the clipboard as one prompt", async () => {
+    const written: string[] = [];
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText: (t: string) => (written.push(t), Promise.resolve()) },
+    });
+    render(<ReportInteractive report={mixedReport} />);
+    fireEvent.click(screen.getByLabelText("Copy failures for an agent"));
+    await screen.findByText("Failures copied");
+    expect(written).toHaveLength(1);
+    expect(written[0]).toContain("Delete");
+    expect(written[0]).toContain("Expected list to be empty after deletion");
+  });
+
+  it("greets a returning reader with what broke since THEIR last visit", async () => {
+    localStorage.setItem(
+      "es-last-visit",
+      JSON.stringify({
+        runId: "run-earlier",
+        atMs: Date.now() - 3 * 24 * 60 * 60 * 1000,
+        statuses: { "feature-todos--add": "passed", "feature-todos--delete": "passed" },
+      }),
+    );
+    render(<ReportInteractive report={mixedReport} />);
+    const strip = await screen.findByTestId("es-since-last-visit");
+    expect(strip).toHaveTextContent("3 days ago");
+    expect(strip).toHaveTextContent("Delete");
+  });
+
+  it("says nothing to a first-time reader", () => {
+    render(<ReportInteractive report={mixedReport} />);
+    expect(screen.queryByTestId("es-since-last-visit")).toBeNull();
+  });
+
+  it("records the visit, so the next visit compares against this run", async () => {
+    render(<ReportInteractive report={mixedReport} />);
+    await screen.findByLabelText("Failure summary");
+    const stored = JSON.parse(localStorage.getItem("es-last-visit")!);
+    expect(stored.runId).toBe("run-3");
+    expect(stored.statuses["feature-todos--delete"]).toBe("failed");
+  });
+
+  it("offers no copy button when the run is green", () => {
+    render(<ReportInteractive report={passingReport} />);
+    expect(screen.queryByLabelText("Copy failures for an agent")).toBeNull();
   });
 
   it("does not render a failure banner when all pass", () => {

@@ -40,7 +40,10 @@ export function DocHtml({ entry }: { entry: ReportDocHtml }) {
         loading="lazy"
         title={title}
         className="block w-full border-0"
-        style={{ height }}
+        // Embedded HTML is authored standalone, so it assumes a light page. An
+        // iframe with no background inherits the host's dark canvas (via the
+        // report's `color-scheme`), leaving that authored dark text unreadable.
+        style={{ height, colorScheme: "light", background: "#fff" }}
       />
     </figure>
   );

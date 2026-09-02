@@ -59,6 +59,7 @@ executable-stories triage reports/raw-run.json --baseline auto --triage-format j
 ```
 
 Each entry carries the failing scenario, the code it covers, the error, and its tickets.
+Add `--by-owner` in a repo with a `CODEOWNERS` to fan the queue out per owning team.
 That is enough to route the item to a sub-agent without any of them reading the suite.
 Failures with no `covers` are flagged; treat that flag as work, because an unroutable
 failure will be handed to a sub-agent with no idea where to look.

@@ -93,6 +93,38 @@ export interface FeatureSummaryItem {
   durationMs: number;
 }
 
+export interface SlowScenario {
+  id: string;
+  title: string;
+  sourceFile: string;
+  durationMs: number;
+}
+
+/**
+ * The slowest scenarios in a run, longest first. Every scenario carries a
+ * duration and nothing reads it, so the forty-second scenario stays invisible
+ * until CI takes twenty minutes and nobody knows which one to blame.
+ *
+ * Scenarios with no measured time (pending, skipped before they ran) rank
+ * nothing and are left out.
+ */
+export function slowestScenarios(report: StoryReport, limit: number): SlowScenario[] {
+  const all: SlowScenario[] = [];
+  for (const feature of report.features) {
+    for (const scenario of feature.scenarios) {
+      if (scenario.durationMs > 0) {
+        all.push({
+          id: scenario.id,
+          title: scenario.title,
+          sourceFile: feature.sourceFile,
+          durationMs: scenario.durationMs,
+        });
+      }
+    }
+  }
+  return all.sort((a, b) => b.durationMs - a.durationMs).slice(0, limit);
+}
+
 export interface ScenarioLookup {
   feature: ReportFeature;
   scenario: ReportScenario;

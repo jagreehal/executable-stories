@@ -18,7 +18,7 @@ export const WithCaption: Story = {
     entry: {
       kind: "video",
       phase: "static",
-      path: "https://example.com/videos/search-demo.webm",
+      path: "videos/search-demo.webm",
       caption: "Typing a query and selecting a result",
     },
   },
@@ -33,8 +33,8 @@ export const WithPoster: Story = {
     entry: {
       kind: "video",
       phase: "static",
-      path: "videos/checkout-flow.webm",
-      poster: "screenshots/checkout-poster.png",
+      path: "videos/search-demo.webm",
+      poster: "screenshots/search-result.png",
       caption: "Completing checkout end to end",
     },
   },

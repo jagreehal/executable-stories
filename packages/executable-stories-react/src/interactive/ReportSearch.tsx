@@ -26,7 +26,7 @@ export const ReportSearch = forwardRef<HTMLInputElement, ReportSearchProps>(
       onChange,
       matchedCount,
       totalCount,
-      placeholder = "Search scenarios or tags…",
+      placeholder = "Search scenarios, tags, tickets, errors…",
       className,
     } = props;
     const inputId = useId();

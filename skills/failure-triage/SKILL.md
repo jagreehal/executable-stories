@@ -40,6 +40,17 @@ code it covers, the error, and its tickets. Failures with no `covers` are flagge
 is itself a finding — an unroutable failure means nobody can be sent to fix it without
 reading the test.
 
+When the repo has a `CODEOWNERS`, add `--by-owner` to split the same worklist the way the
+repo already divides responsibility:
+
+```bash
+executable-stories triage reports/raw-run.json --baseline auto --by-owner
+```
+
+Each failure routes by the code it covers — where the fix lands — and falls back to its
+test file when a scenario declares no `covers`. Unclaimed failures group under `Unowned`,
+last, because they need a decision about who takes them before anyone can start.
+
 `triage` always exits 0. It reports work, it does not gate. For the gating view, use
 `check`, which expands each failing scenario into its steps and exits 5:
 

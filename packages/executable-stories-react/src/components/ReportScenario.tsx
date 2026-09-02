@@ -75,9 +75,16 @@ export function ReportScenario({ scenario, hideTitle = false }: ReportScenarioPr
       className="gap-0 py-0"
     >
       <CardHeader className="px-4 py-3">
-        <div className={cn("flex items-start gap-4", hideTitle ? "justify-end" : "justify-between")}>
+        <div
+          className={cn(
+            // Wraps rather than squeezing: on a phone the status/duration group
+            // is ~160px, which leaves a title column a few characters wide.
+            "flex flex-wrap items-start gap-x-4 gap-y-1",
+            hideTitle ? "justify-end" : "justify-between",
+          )}
+        >
           {hideTitle ? null : (
-            <h3 id={titleId} className="flex items-center gap-2 text-sm font-medium text-foreground">
+            <h3 id={titleId} className="flex min-w-0 flex-1 basis-48 items-center gap-2 text-sm font-medium text-foreground">
               {collapsible ? (
                 <button
                   type="button"
@@ -144,7 +151,7 @@ export function ReportScenario({ scenario, hideTitle = false }: ReportScenarioPr
             {(scenario.tickets ?? []).map((ticket) => (
               <li key={`ticket-${ticket.id}`}>
                 {ticket.url ? (
-                  <a href={ticket.url} target="_blank" rel="noreferrer noopener">
+                  <a href={ticket.url} target="_blank" rel="noreferrer noopener" className="inline-flex min-h-6 items-center">
                     <Badge variant="outline">{ticket.id}</Badge>
                   </a>
                 ) : (

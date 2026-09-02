@@ -33,6 +33,7 @@ import {
 } from './collapse-context';
 import {
   allTags,
+  failedScenarios,
   filterReport,
   listFailures,
   type StatusFilter,
@@ -43,10 +44,12 @@ import { ReportFilters } from './ReportFilters';
 import { ReportFreshness } from './ReportFreshness';
 import { ReportLastRunDelta } from './ReportLastRunDelta';
 import { ReportSearch } from './ReportSearch';
+import { ReportSinceLastVisit } from './ReportSinceLastVisit';
 import { ReportShortcutsHelp } from './ReportShortcutsHelp';
 import { ReportToc } from './ReportToc';
 import { ReportTocDrawer } from './ReportTocDrawer';
 import {
+  failuresToPrompt,
   ScenarioActionsProvider,
   scenarioPermalink,
   scenarioToMarkdown,
@@ -265,6 +268,10 @@ function ReportInteractiveView({
     }),
     [copy],
   );
+  const copyAllFailures = useCallback(
+    () => copy(failuresToPrompt(failedScenarios(filtered)), 'Failures copied'),
+    [copy, filtered],
+  );
   const failureIndexRef = useRef(0);
 
   const allCollapsibleIds = useMemo(
@@ -446,6 +453,7 @@ function ReportInteractiveView({
                     history={scenarioHistory}
                     report={report}
                   />
+                  <ReportSinceLastVisit report={report} />
 
                   {/* Filters first (what's shown: status, then tags)… */}
                   <ReportFilters
@@ -501,7 +509,7 @@ function ReportInteractiveView({
                     onDismiss={() => setAgentFilter(null)}
                   />
                 ) : null}
-                <ReportFailureBanner failures={failures} />
+                <ReportFailureBanner failures={failures} onCopyAll={copyAllFailures} />
                 {hasContent ? (
                   showToc ? (
                     <div className="flex gap-6">

@@ -196,10 +196,8 @@
    (@media print). The control itself is the shadcn Input in ReportSearch.tsx. */
 
 .es-failure-banner {
-  position: sticky;
-  top: 0;
-  z-index: 10;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--es-space-3);
   padding: var(--es-space-3) var(--es-space-4);

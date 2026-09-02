@@ -6,9 +6,11 @@ import { scrollToScenarioId } from "../lib/scroll";
 
 export interface ReportFailureBannerProps {
   failures: readonly FailureRef[];
+  /** Copies every failure as one agent prompt. Omitted on a static render. */
+  onCopyAll?: () => void;
 }
 
-export function ReportFailureBanner({ failures }: ReportFailureBannerProps) {
+export function ReportFailureBanner({ failures, onCopyAll }: ReportFailureBannerProps) {
   const first = failures[0];
 
   const jumpToFirst = useCallback(() => {
@@ -39,6 +41,16 @@ export function ReportFailureBanner({ failures }: ReportFailureBannerProps) {
       >
         View first failure ↓
       </button>
+      {onCopyAll ? (
+        <button
+          type="button"
+          className="es-failure-banner-jump"
+          onClick={onCopyAll}
+          aria-label="Copy failures for an agent"
+        >
+          Copy {failures.length} failure{failures.length === 1 ? "" : "s"} for an agent
+        </button>
+      ) : null}
     </div>
   );
 }

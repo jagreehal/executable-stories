@@ -35,11 +35,21 @@ export function allTags(report: StoryReport): string[] {
   return [...seen];
 }
 
-function queryMatches(scenario: ReportScenario, q: string): boolean {
+/**
+ * What people paste into the search box rarely comes from the report itself: a
+ * ticket id from the tracker, a string out of a stack trace, a path from a PR
+ * diff. So the query matches those too, not just the title/tags/steps.
+ */
+function queryMatches(scenario: ReportScenario, q: string, sourceFile?: string): boolean {
   if (q === "") return true;
   if (scenario.title.toLowerCase().includes(q)) return true;
+  if (sourceFile?.toLowerCase().includes(q)) return true;
+  if (scenario.errorMessage?.toLowerCase().includes(q)) return true;
   for (const tag of scenario.tags) {
     if (tag.toLowerCase().includes(q)) return true;
+  }
+  for (const ticket of scenario.tickets ?? []) {
+    if (ticket.id.toLowerCase().includes(q)) return true;
   }
   for (const step of scenario.steps) {
     if (step.text.toLowerCase().includes(q)) return true;
@@ -52,10 +62,11 @@ function scenarioMatches(
   q: string,
   status: StatusFilter,
   tags: string[],
+  sourceFile?: string,
 ): boolean {
   if (status !== "all" && scenario.status !== status) return false;
   if (tags.length > 0 && !tags.some((t) => scenario.tags.includes(t))) return false;
-  return queryMatches(scenario, q);
+  return queryMatches(scenario, q, sourceFile);
 }
 
 function summarizeScenarios(scenarios: ReportScenario[]) {
@@ -92,7 +103,9 @@ export function filterReport(report: StoryReport, criteria: string | FilterCrite
     topDuration = 0;
 
   for (const feature of report.features) {
-    const matched = feature.scenarios.filter((s) => scenarioMatches(s, q, status, tags));
+    const matched = feature.scenarios.filter((s) =>
+      scenarioMatches(s, q, status, tags, feature.sourceFile),
+    );
     if (matched.length === 0) continue;
     const summary = summarizeScenarios(matched);
     features.push({ ...feature, summary, scenarios: matched });
@@ -123,6 +136,11 @@ export interface FailureRef {
   scenarioId: string;
   scenarioTitle: string;
   errorMessage?: string;
+}
+
+/** The failing scenarios themselves — for handing the whole red set to an agent. */
+export function failedScenarios(report: StoryReport): ReportScenario[] {
+  return report.features.flatMap((f) => f.scenarios.filter((s) => s.status === "failed"));
 }
 
 export function listFailures(report: StoryReport): FailureRef[] {

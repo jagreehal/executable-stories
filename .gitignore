@@ -16,6 +16,7 @@ playwright/.cache/
 .playwright/
 screenshots/
 !apps/docs-site/public/screenshots/
+!packages/executable-stories-react/.storybook/public/screenshots/
 cypress/videos/
 cypress/screenshots/
 .cypress/

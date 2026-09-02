@@ -55,3 +55,15 @@ export const NoFailures: Story = {
     await expect(canvas.queryByLabelText("Failure summary")).toBeNull();
   },
 };
+
+// With a copy handler the banner also offers the whole red set as one prompt —
+// the handoff a triage session actually starts with.
+export const CopyAllFailures: Story = {
+  args: { failures, onCopyAll: () => {} },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(
+      canvas.getByRole("button", { name: "Copy failures for an agent" }),
+    ).toBeVisible();
+  },
+};
