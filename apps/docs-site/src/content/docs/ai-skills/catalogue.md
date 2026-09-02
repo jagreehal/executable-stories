@@ -1,6 +1,6 @@
 ---
 title: Skill catalogue
-description: All 53 shipped skills by group, what each one covers, and when your agent should load it.
+description: All 55 shipped skills by group, what each one covers, and when your agent should load it.
 ---
 
 Every skill lives at `skills/<name>/SKILL.md` in the [repository](https://github.com/jagreehal/executable-stories/tree/main/skills). See [Agent skills](/ai-skills/) for installation.
@@ -116,11 +116,15 @@ All three refuse to assert behaviour without a scenario behind it. They write "n
 
 ## Workflow receipts
 
-| Skill                    | Load it when                                                              |
-| ------------------------ | ------------------------------------------------------------------------- |
-| `linear-evidence-review` | Stamping a Linear issue with an evidence receipt that points at the report |
+| Skill                    | Load it when                                                                   |
+| ------------------------ | ------------------------------------------------------------------------------ |
+| `tracker-to-scenarios`   | Work arrives as a Jira, GitHub, or Linear ticket and has to become scenarios    |
+| `tracker-receipts`       | A tracker and the suite have drifted, or a ticket should carry proof it passes  |
+| `linear-evidence-review` | Stamping a Linear issue with an evidence receipt that points at the report      |
 
-The receipt links back to the report. Your tracker never becomes the source of truth.
+Both directions run over MCP, so the tracker can be Jira, GitHub Issues, Linear, or
+anything else with a server. The receipt links back to the report. Your tracker never
+becomes the source of truth.
 
 ## ESLint
 

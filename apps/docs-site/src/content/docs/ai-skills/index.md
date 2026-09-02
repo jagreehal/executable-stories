@@ -1,11 +1,11 @@
 ---
 title: Agent skills
-description: The 53 skills shipped with executable-stories, what each one covers, and how to install them into Claude Code, Cursor, or any agent that reads project files.
+description: The 55 skills shipped with executable-stories, what each one covers, and how to install them into Claude Code, Cursor, or any agent that reads project files.
 ---
 
 A skill is a markdown file that tells your coding agent how to do one job in this codebase. Your agent reads it when the job comes up and follows it instead of guessing.
 
-This repo ships 53 of them. They cover writing story tests in ten languages, wiring reporters, running the CLI, converting an existing suite, shaping specifications, driving the daily build loop, gating a release, and explaining the system to whoever has to read it. Browse them in the [catalogue](/ai-skills/catalogue/) or on [GitHub](https://github.com/jagreehal/executable-stories/tree/main/skills).
+This repo ships 55 of them. They cover writing story tests in ten languages, wiring reporters, running the CLI, converting an existing suite, shaping specifications, driving the daily build loop, gating a release, and explaining the system to whoever has to read it. Browse them in the [catalogue](/ai-skills/catalogue/) or on [GitHub](https://github.com/jagreehal/executable-stories/tree/main/skills).
 
 ## Why they exist
 
@@ -46,7 +46,7 @@ This repo does exactly that in its own [AGENTS.md](https://github.com/jagreehal/
 
 ### Which ones to start with
 
-Install the few that match your stack rather than all 53:
+Install the few that match your stack rather than all 55:
 
 | You are                          | Install                                     |
 | -------------------------------- | ------------------------------------------- |

@@ -12,7 +12,7 @@ This is not the CI write-back path. Do not promise headless receipt-on-merge her
 - The executable-stories report is the source of truth.
 - Linear issues are provenance and workflow records.
 - This skill uses Linear MCP only; do not add executable-stories product code.
-- Do not create Confluence/Jira variants yet. Learn the Linear receipt workflow first.
+- This is the Linear-specific path. For Jira, GitHub Issues, or any other tracker with an MCP server, use `tracker-receipts`, which generalises this workflow.
 - Do not rename tests after tickets. Behaviour/domain file names preserve review correlation, e.g. `src/checkout/regional-routing.story.test.ts` can correlate to `src/checkout/regional-routing.ts`; `LIN-123.test.ts` cannot.
 
 ## Prerequisites
