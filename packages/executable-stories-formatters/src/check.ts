@@ -14,12 +14,15 @@
 
 import type { TestCaseResult, TestStatus } from "executable-stories-core/types/test-result";
 import type { StepKeyword } from "executable-stories-core/types/story";
+import { formatDuration } from "executable-stories-core/utils/duration";
 import { failingScenarioMessage } from "./scenario-failure";
 
 export interface CheckArgs {
   testCases: TestCaseResult[];
   /** Baseline scenario statuses keyed by scenario id, for regressed/fixed deltas. */
   baseline?: Map<string, TestStatus>;
+  /** Per-scenario time budget. Scenarios above it are named (see {@link CheckSlow}). */
+  maxDurationMs?: number;
   format: "text" | "json";
 }
 
@@ -63,6 +66,18 @@ export interface CheckTurnedOff {
   tickets: string[];
 }
 
+/**
+ * A scenario that took longer than the budget. A slow suite is usually two or
+ * three scenarios, and nobody knows which until something names them.
+ */
+export interface CheckSlow {
+  id: string;
+  scenario: string;
+  /** `sourceFile:sourceLine` */
+  location: string;
+  durationMs: number;
+}
+
 export interface CheckReport {
   summary: {
     total: number;
@@ -74,6 +89,10 @@ export interface CheckReport {
   failures: CheckFailure[];
   /** Scenarios switched off — named, not just counted (see {@link CheckTurnedOff}). */
   turnedOff: CheckTurnedOff[];
+  /** Scenarios over `--max-duration`, longest first. Empty without a budget. */
+  overBudget: CheckSlow[];
+  /** The budget those scenarios broke, for the message that names it. */
+  maxDurationMs?: number;
   /** Count of scenarios that went passed → failed vs. the baseline. */
   regressed: number;
   /** Count of scenarios that went failed → passed vs. the baseline. */
@@ -93,7 +112,7 @@ const ICON_WARN = "⚠"; // ⚠
  * Pure: no IO. Callers render it as text or JSON and decide the exit code.
  */
 export function buildCheck(args: CheckArgs, _deps: CheckDeps = {}): CheckReport {
-  const { testCases, baseline } = args;
+  const { testCases, baseline, maxDurationMs } = args;
 
   const summary = {
     total: testCases.length,
@@ -137,10 +156,25 @@ export function buildCheck(args: CheckArgs, _deps: CheckDeps = {}): CheckReport 
     }))
     .sort((a, b) => a.location.localeCompare(b.location));
 
+  const overBudget: CheckSlow[] =
+    maxDurationMs === undefined
+      ? []
+      : testCases
+          .filter((tc) => tc.durationMs > maxDurationMs)
+          .map((tc) => ({
+            id: tc.id,
+            scenario: tc.story.scenario,
+            location: `${tc.sourceFile}:${tc.sourceLine}`,
+            durationMs: tc.durationMs,
+          }))
+          .sort((a, b) => b.durationMs - a.durationMs);
+
   return {
     summary,
     failures,
     turnedOff,
+    overBudget,
+    ...(maxDurationMs === undefined ? {} : { maxDurationMs }),
     regressed,
     fixed,
     comparedToBaseline: baseline !== undefined,
@@ -206,6 +240,7 @@ function renderCheckText(report: CheckReport): string {
         : "All running scenarios green.",
     );
     lines.push(...turnedOffLines(report.turnedOff));
+    lines.push(...overBudgetLines(report));
     return lines.join("\n").trimEnd();
   }
 
@@ -234,6 +269,7 @@ function renderCheckText(report: CheckReport): string {
 
   lines.push(...turnedOffLines(report.turnedOff));
   if (report.turnedOff.length > 0) lines.push("");
+  lines.push(...overBudgetLines(report));
 
   // Retained signal: what changed since the baseline.
   if (report.comparedToBaseline) {
@@ -257,6 +293,18 @@ function renderCheckText(report: CheckReport): string {
  * still reads green. A ticket next to each one is what makes the list
  * reviewable; missing tickets are called out rather than left blank.
  */
+function overBudgetLines(report: CheckReport): string[] {
+  if (report.overBudget.length === 0 || report.maxDurationMs === undefined) return [];
+  const budget = formatDuration(report.maxDurationMs);
+  const lines = [
+    `${ICON_WARN} ${report.overBudget.length} scenario${report.overBudget.length === 1 ? " is" : "s are"} over the ${budget} budget:`,
+  ];
+  for (const s of report.overBudget) {
+    lines.push(`  ${formatDuration(s.durationMs)}  ${s.scenario}  (${s.location})`);
+  }
+  return lines;
+}
+
 function turnedOffLines(turnedOff: CheckTurnedOff[]): string[] {
   if (turnedOff.length === 0) return [];
   const lines = ["", `${ICON_WARN} ${turnedOff.length} turned off (not validated):`];

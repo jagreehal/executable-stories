@@ -33,7 +33,7 @@ const fakeLoad: MermaidLoader = async () =>
     },
     async render(_id: string, code: string) {
       return {
-        svg: `<svg role="img" aria-label="diagram" width="120" height="40"><text x="4" y="20">${code.slice(0, 20)}</text></svg>`,
+        svg: `<svg role="img" aria-label="diagram" width="120" height="40"><text x="4" y="20" fill="currentColor">${code.slice(0, 20)}</text></svg>`,
       };
     },
   }) as unknown as MermaidApi;

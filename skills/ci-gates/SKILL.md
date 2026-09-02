@@ -47,6 +47,9 @@ executable-stories format reports/raw-run.json --preset ci --output-dir reports 
 # blocks: any scenario failing
 executable-stories check reports/raw-run.json --baseline auto
 
+# blocks: a scenario over the time budget (add once the suite has a shape worth holding)
+executable-stories check reports/raw-run.json --max-duration 30000
+
 # blocks: a scenario that used to pass now fails, or one disappeared
 executable-stories compare baseline/raw-run.json reports/raw-run.json \
   --fail-on-regression --fail-on-removal --pr-summary-file pr-summary.md

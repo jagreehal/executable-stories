@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { buildTriage, renderTriage } from "../src/triage";
+import { parseCodeowners } from "../src/codeowners";
 import { stubs } from "./stubs";
 import type { TestStatus } from "../src/index";
 
@@ -69,5 +70,69 @@ describe("buildTriage", () => {
     const report = buildTriage({ testCases: tcs, format: "text" });
     expect(report.items).toEqual([]);
     expect(renderTriage(report, "text")).toBe("Nothing to triage. No failing scenarios.");
+  });
+});
+
+describe("buildTriage --by-owner", () => {
+  beforeEach(() => stubs.setFakerSeed(11));
+
+  const owners = parseCodeowners(`
+/src/checkout/  @acme/payments
+/src/search/    @acme/search
+`);
+
+  const failing = [
+    stubs.testCaseResult({
+      id: "cart",
+      status: "failed",
+      sourceFile: "tests/checkout.story.test.ts",
+      sourceLine: 4,
+      story: stubs.storyMeta({ scenario: "Cart totals", steps: [], covers: ["src/checkout/cart.ts"] }),
+      stepResults: [],
+    }),
+    stubs.testCaseResult({
+      id: "rank",
+      status: "failed",
+      sourceFile: "src/search/rank.story.test.ts",
+      sourceLine: 7,
+      story: stubs.storyMeta({ scenario: "Ranking", steps: [], covers: [] }),
+      stepResults: [],
+    }),
+    stubs.testCaseResult({
+      id: "orphan",
+      status: "failed",
+      sourceFile: "tests/misc.story.test.ts",
+      sourceLine: 2,
+      story: stubs.storyMeta({ scenario: "Nobody's", steps: [], covers: ["src/misc/thing.ts"] }),
+      stepResults: [],
+    }),
+  ];
+
+  it("routes a failure by the code it covers, which is where the fix lands", () => {
+    const report = buildTriage({ testCases: failing, format: "text", codeowners: owners });
+    expect(report.items.find((i) => i.id === "cart")!.owners).toEqual(["@acme/payments"]);
+  });
+
+  it("falls back to the test file when a scenario declares no covers", () => {
+    const report = buildTriage({ testCases: failing, format: "text", codeowners: owners });
+    expect(report.items.find((i) => i.id === "rank")!.owners).toEqual(["@acme/search"]);
+  });
+
+  it("leaves an unclaimed failure unowned rather than guessing a team", () => {
+    const report = buildTriage({ testCases: failing, format: "text", codeowners: owners });
+    expect(report.items.find((i) => i.id === "orphan")!.owners).toEqual([]);
+  });
+
+  it("assigns no owners at all when the repo has no CODEOWNERS", () => {
+    const report = buildTriage({ testCases: failing, format: "text" });
+    expect(report.items.every((i) => i.owners.length === 0)).toBe(true);
+  });
+
+  it("groups the text worklist under each owner, unowned work last", () => {
+    const report = buildTriage({ testCases: failing, format: "text", codeowners: owners });
+    const text = renderTriage(report, "text", { byOwner: true });
+    expect(text).toContain("@acme/payments (1)");
+    expect(text).toContain("@acme/search (1)");
+    expect(text.indexOf("Unowned (1)")).toBeGreaterThan(text.indexOf("@acme/payments (1)"));
   });
 });

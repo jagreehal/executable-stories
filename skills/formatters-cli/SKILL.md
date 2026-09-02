@@ -175,6 +175,7 @@ Compress success, expand failure. Passing scenarios collapse to a count; each fa
 executable-stories check .executable-stories/raw-run.json --baseline reports/previous.json
 # --check-format json  → structured report
 # --no-fail            → report only (always exit 0)
+# --max-duration <ms>  → name every scenario over the time budget, exit 5
 # exits 5 when any scenario failed, so an agent loop reacts before a human
 ```
 
@@ -184,7 +185,11 @@ Failing scenarios, regressions first, each with the code it `covers`, the error,
 
 ```bash
 executable-stories triage .executable-stories/raw-run.json --baseline reports/last-green.json --triage-format json
+# --by-owner → group the worklist by CODEOWNERS, unowned work last
 ```
+
+`--by-owner` routes each failure by the product code it `covers`, falling back to the test
+file when a scenario declares none. It reads `CODEOWNERS` from `./`, `.github/`, or `docs/`.
 
 ### goal — behavioral definition-of-done (loop stopping condition)
 

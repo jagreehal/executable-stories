@@ -97,6 +97,7 @@ import { selectTestCases } from './select-test-cases';
 import { summaryLine, type SummaryCounts } from './summary-line';
 import { runSyncCommand } from './sync/run';
 import { buildTriage, renderTriage } from './triage';
+import { parseCodeowners, type CodeownersRule } from './codeowners';
 import type { RunDiffSummary, ScenarioDiff } from './types/compare';
 import type { Formatter } from './types/formatter.js';
 import type { OutputFormat } from './types/options';
@@ -151,10 +152,10 @@ USAGE
   executable-stories gate-release <dev-run.json> <rc-run.json> [options]
   executable-stories review <file|directory> --changed-files <path> [options]
   executable-stories list <file|directory> [options]
-  executable-stories check <file|directory> [--baseline <path|auto>] [--check-format text|json] [--max-skipped <n>] [--no-fail]
+  executable-stories check <file|directory> [--baseline <path|auto>] [--check-format text|json] [--max-skipped <n>] [--max-duration <ms>] [--no-fail]
   executable-stories check-explainers <file|directory> --explainers-dir <dir> [--check-format text|json] [--no-fail]
   executable-stories goal <file|directory> [--require-tags <csv>] [--require-tickets <csv>] [--require-scenarios <csv>] [--baseline <path|auto>] [--no-regressions] [--goal-format text|json]
-  executable-stories triage <file|directory> [--baseline <path|auto>] [--triage-format text|json]
+  executable-stories triage <file|directory> [--baseline <path|auto>] [--triage-format text|json] [--by-owner]
   executable-stories validate <file>
   executable-stories validate --stdin
   executable-stories dev [directory]
@@ -242,6 +243,8 @@ ${presetHelpLines()
   --json-summary                Deprecated alias for --list-format json
   --check-format <format>       check / check-explainers output format: text (default) or json
   --max-skipped <n>             (check) Exit 5 when more than n scenarios are turned off
+  --max-duration <ms>           (check) Exit 5 when a scenario runs longer than ms
+  --by-owner                    (triage) Group the worklist by CODEOWNERS owner
   --explainers-dir <dir>        (check-explainers) Directory of explainer markdown to audit
   --no-fail                     (check) Report only — always exit 0 even when scenarios failed
   --require-tags <csv>          (goal) Every scenario carrying any of these tags must pass
@@ -294,6 +297,8 @@ CHECK
   it.todo scenarios are planned, not switched off, and stay out of that list.
   --max-skipped <n> puts a budget on that list and exits 5 when it is exceeded,
   so switching a spec off is a decision someone makes rather than a habit.
+  --max-duration <ms> does the same for time: scenarios above the budget are
+  named with their duration and location, and the run exits 5.
 
 GOAL
   goal is the behavioral stopping condition for an agent loop (the /goal pattern).
@@ -439,6 +444,8 @@ interface CliArgs {
   noFail: boolean;
   /** (check) Fail when more than N scenarios are switched off. Unset = no budget. */
   maxSkipped?: number;
+  /** (check) Fail when a scenario runs longer than this many ms. Unset = no budget. */
+  maxDurationMs?: number;
   requireTags: string[];
   requireTickets: string[];
   requireScenarios: string[];
@@ -446,6 +453,8 @@ interface CliArgs {
   noRatchet: boolean;
   goalFormat: 'text' | 'json';
   triageFormat: 'text' | 'json';
+  /** (triage) Group the worklist by CODEOWNERS owner. */
+  byOwner: boolean;
   emitCanonical?: string;
   slackWebhook?: string;
   teamsWebhook?: string;
@@ -775,6 +784,8 @@ async function parseCliArgs(
       'explainers-dir': { type: 'string' },
       'no-fail': { type: 'boolean', default: false },
       'max-skipped': { type: 'string' },
+      'max-duration': { type: 'string' },
+      'by-owner': { type: 'boolean' },
       'require-tags': { type: 'string' },
       'require-tickets': { type: 'string' },
       'require-scenarios': { type: 'string' },
@@ -1002,6 +1013,18 @@ async function parseCliArgs(
 
   // A budget of 0 is meaningful ("nothing may be switched off"), so undefined
   // is the only "no budget" — never fall back to a truthiness check here.
+  const parseMaxDuration = (v: string | undefined): number | undefined => {
+    if (v === undefined) return undefined;
+    const n = Number(v);
+    if (!Number.isFinite(n) || n <= 0) {
+      console.error(
+        `Error: --max-duration must be a positive number of milliseconds, got "${v}".`,
+      );
+      process.exit(EXIT_USAGE);
+    }
+    return n;
+  };
+
   const parseMaxSkipped = (v: string | undefined): number | undefined => {
     if (v === undefined) return undefined;
     const n = Number(v);
@@ -1216,6 +1239,7 @@ async function parseCliArgs(
     explainersDir: values['explainers-dir'] as string | undefined,
     noFail: values['no-fail'] as boolean,
     maxSkipped: parseMaxSkipped(values['max-skipped'] as string | undefined),
+    maxDurationMs: parseMaxDuration(values['max-duration'] as string | undefined),
     requireTags: parseGlobs(values['require-tags'] as string | undefined),
     requireTickets: parseGlobs(values['require-tickets'] as string | undefined),
     requireScenarios: parseGlobs(
@@ -1225,6 +1249,7 @@ async function parseCliArgs(
     noRatchet: values['no-ratchet'] as boolean,
     goalFormat,
     triageFormat,
+    byOwner: values['by-owner'] === true,
     emitCanonical: values['emit-canonical'] as string | undefined,
     slackWebhook,
     teamsWebhook,
@@ -1911,7 +1936,12 @@ async function runCheck(ctx: CliContext): Promise<void> {
   const baseline = resolveBaselineStatusMap(args, run);
 
   const report = buildCheck(
-    { testCases: run.testCases, baseline, format: args.checkFormat },
+    {
+      testCases: run.testCases,
+      baseline,
+      format: args.checkFormat,
+      ...(args.maxDurationMs === undefined ? {} : { maxDurationMs: args.maxDurationMs }),
+    },
     {},
   );
   console.log(renderCheck(report, args.checkFormat));
@@ -1927,7 +1957,11 @@ async function runCheck(ctx: CliContext): Promise<void> {
     );
   }
 
-  if ((report.summary.failed > 0 || overBudget) && !args.noFail) {
+  // Time is a budget like any other: a scenario that quietly grew to 40s costs
+  // every run after it, and nothing else in the pipeline ever names it.
+  const overTime = report.overBudget.length > 0;
+
+  if ((report.summary.failed > 0 || overBudget || overTime) && !args.noFail) {
     process.exit(EXIT_AGENT_GATE);
   }
   process.exit(EXIT_SUCCESS);
@@ -1997,16 +2031,39 @@ async function runGoal(ctx: CliContext): Promise<void> {
 // === triage subcommand: discovery worklist for an agent loop ===
 // Failing scenarios, regressions first, each with the code it covers. JSON for
 // the loop to hand to sub-agents; text for humans. Always exits 0 (it reports).
+/**
+ * CODEOWNERS from the three locations GitHub looks in, in the same order.
+ * Missing file: every item is unowned, which the worklist says plainly rather
+ * than failing the command.
+ */
+function readCodeowners(): CodeownersRule[] | undefined {
+  for (const candidate of ['CODEOWNERS', '.github/CODEOWNERS', 'docs/CODEOWNERS']) {
+    if (fs.existsSync(candidate)) {
+      return parseCodeowners(fs.readFileSync(candidate, 'utf8'));
+    }
+  }
+  console.error(
+    'No CODEOWNERS file found (looked in ./, .github/, docs/). Every item will be unowned.',
+  );
+  return undefined;
+}
+
 async function runTriage(ctx: CliContext): Promise<void> {
   const { args } = ctx;
   const run = applySelection(await readRunInput(args), args);
   const baseline = resolveBaselineStatusMap(args, run);
 
+  const codeowners = args.byOwner ? readCodeowners() : undefined;
   const report = buildTriage(
-    { testCases: run.testCases, baseline, format: args.triageFormat },
+    {
+      testCases: run.testCases,
+      baseline,
+      format: args.triageFormat,
+      ...(codeowners ? { codeowners } : {}),
+    },
     {},
   );
-  console.log(renderTriage(report, args.triageFormat));
+  console.log(renderTriage(report, args.triageFormat, { byOwner: args.byOwner }));
   process.exit(EXIT_SUCCESS);
 }
 
@@ -3682,6 +3739,7 @@ function createDefaultCliArgs(): CliArgs {
     checkFormat: 'text',
     noFail: false,
     maxSkipped: undefined,
+    maxDurationMs: undefined,
     requireTags: [],
     requireTickets: [],
     requireScenarios: [],
@@ -3689,6 +3747,7 @@ function createDefaultCliArgs(): CliArgs {
     noRatchet: false,
     goalFormat: 'text',
     triageFormat: 'text',
+    byOwner: false,
     notify: 'never',
     maxFailedTests: 5,
     maxHistoryRuns: 10,

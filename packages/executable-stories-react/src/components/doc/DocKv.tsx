@@ -15,7 +15,7 @@ export function DocKv({ entry }: { entry: ReportDocKv }) {
   return (
     <dl className="my-2 flex flex-wrap items-baseline gap-x-2 text-sm">
       <dt className="font-semibold text-muted-foreground">{entry.label}</dt>
-      <dd className="font-mono text-foreground">{formatValue(entry.value)}</dd>
+      <dd className="min-w-0 break-words font-mono text-foreground">{formatValue(entry.value)}</dd>
     </dl>
   );
 }

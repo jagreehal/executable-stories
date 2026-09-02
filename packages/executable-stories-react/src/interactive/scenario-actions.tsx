@@ -59,6 +59,30 @@ export function scenarioToPrompt(scenario: ReportScenario): string {
   return lines.join("\n");
 }
 
+/**
+ * Every failure in the run as ONE prompt. A red run is rarely one broken thing,
+ * and copying scenarios one at a time loses the shape of the breakage — the
+ * agent that sees all three at once can spot the shared cause.
+ */
+export function failuresToPrompt(scenarios: readonly ReportScenario[]): string {
+  if (scenarios.length === 0) return "";
+  const noun = scenarios.length === 1 ? "test scenario is" : "test scenarios are";
+  const lines: string[] = [
+    `${scenarios.length} ${noun} failing. Investigate the likely cause (they may share one) and propose a fix.`,
+  ];
+  scenarios.forEach((scenario, i) => {
+    lines.push("", `${i + 1}. ${scenario.title}`, "Steps:");
+    for (const step of scenario.steps) {
+      const mark = step.status === "failed" ? " ⟵ failed here" : "";
+      lines.push(`  ${step.keyword} ${step.text}${mark}`);
+    }
+    if (scenario.errorMessage) {
+      lines.push("Error:", scenario.errorMessage.trim());
+    }
+  });
+  return lines.join("\n");
+}
+
 /** Absolute permalink to a scenario in the current document. */
 export function scenarioPermalink(scenario: ReportScenario): string {
   if (typeof location === "undefined") return `#${scenario.id}`;

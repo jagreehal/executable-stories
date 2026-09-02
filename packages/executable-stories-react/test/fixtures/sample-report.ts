@@ -137,6 +137,7 @@ export const mixedReport: StoryReport = {
           status: "skipped",
           durationMs: 1000,
           tags: ["wip"],
+          tickets: [{ id: "SHOP-77" }],
           retry: 0,
           retries: 0,
           docEntries: [],

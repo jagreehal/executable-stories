@@ -31,9 +31,15 @@ const preview: Preview = {
   decorators: [
     (Story, context) => {
       const mode = (context.globals.colorMode as string) || "light";
+      // Own `data-theme` on <html>, the same element the report's own
+      // light/system/dark toggle writes. A wrapper element carrying it would
+      // shadow that toggle for everything inside the story.
+      React.useLayoutEffect(() => {
+        localStorage.setItem("es-theme", mode);
+        document.documentElement.setAttribute("data-theme", mode);
+      }, [mode]);
       return (
         <div
-          data-theme={mode}
           className="es-report-island font-sans text-foreground"
           style={{ background: "var(--background)", minHeight: "100vh", padding: "1.5rem" }}
         >

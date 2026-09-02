@@ -1,4 +1,5 @@
 import { formatDuration } from "executable-stories-core/utils/duration";
+import { slowestScenarios } from "executable-stories-core/report-queries";
 import { useReport } from "../hooks/useReport";
 import { ciDisplayName, commitUrl, prUrl } from "../lib/provenance";
 
@@ -69,7 +70,12 @@ export function ReportMeta() {
     });
   }
 
-  if (items.length === 0) return null;
+  // A "slowest" list needs a field to rank: below a handful of timed scenarios
+  // it just repeats the run in a different order.
+  const slowest = slowestScenarios(report, 5);
+  const showSlowest = slowest.length >= 3;
+
+  if (items.length === 0 && !showSlowest) return null;
 
   return (
     // Run metadata is useful but secondary to "what failed" — tuck it into a
@@ -88,6 +94,23 @@ export function ReportMeta() {
           </div>
         ))}
       </dl>
+      {showSlowest ? (
+        <div className="border-t border-border px-4 py-3">
+          <div className="mb-1.5 font-medium text-muted-foreground">Slowest scenarios</div>
+          <ol className="flex flex-col gap-1" aria-label="Slowest scenarios">
+            {slowest.map((s) => (
+              <li key={s.id} className="flex items-baseline justify-between gap-4">
+                <a href={`#${s.id}`} className="min-w-0 text-primary underline underline-offset-2">
+                  {s.title}
+                </a>
+                <span className="shrink-0 font-mono tabular-nums text-muted-foreground">
+                  {formatDuration(s.durationMs)}
+                </span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      ) : null}
     </details>
   );
 }

@@ -5,6 +5,7 @@ import {
   getScenario,
   listScenarioSummaries,
   runProvenance,
+  slowestScenarios,
 } from "./report-queries.js";
 import type {
   ReportFeature,
@@ -368,5 +369,43 @@ describe("runProvenance", () => {
       "finishedAtMs",
       "ageDays",
     ]);
+  });
+});
+
+describe("slowestScenarios", () => {
+  const timed = report({
+    features: [
+      feature({
+        scenarios: [
+          scenario({ id: "quick", title: "Quick", durationMs: 40 }),
+          scenario({ id: "slow", title: "Slow", durationMs: 9_000 }),
+          scenario({ id: "middling", title: "Middling", durationMs: 500 }),
+        ],
+      }),
+      feature({
+        id: "f2",
+        sourceFile: "src/search.story.test.ts",
+        scenarios: [scenario({ id: "slowest", title: "Slowest", durationMs: 12_000 })],
+      }),
+    ],
+  });
+
+  it("ranks scenarios by duration across every feature", () => {
+    expect(slowestScenarios(timed, 3).map((s) => s.id)).toEqual(["slowest", "slow", "middling"]);
+  });
+
+  it("carries the source file, so a slow scenario can be found and fixed", () => {
+    expect(slowestScenarios(timed, 1)[0]!.sourceFile).toBe("src/search.story.test.ts");
+  });
+
+  it("returns everything when the report is shorter than the limit", () => {
+    expect(slowestScenarios(timed, 99)).toHaveLength(4);
+  });
+
+  it("skips scenarios that never ran, which have no duration to rank", () => {
+    const pendingOnly = report({
+      features: [feature({ scenarios: [scenario({ id: "todo", status: "pending", durationMs: 0 })] })],
+    });
+    expect(slowestScenarios(pendingOnly, 5)).toEqual([]);
   });
 });

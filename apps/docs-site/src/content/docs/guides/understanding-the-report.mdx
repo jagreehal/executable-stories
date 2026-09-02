@@ -162,6 +162,42 @@ When the CLI runs with `--history-file` (or the reporter is configured with `his
 
 All of this is presentation-layer data derived from the history store; the StoryReport JSON contract is unchanged. See [Run history](../reference/formatters-api/#format) in the CLI reference.
 
+## Since your last visit
+
+The "since last run" strip above answers what the last run changed. Someone opening a
+report they last read a week ago is usually asking something else: what changed since
+**they** were here.
+
+The interactive report remembers the scenario statuses each reader last saw and opens with
+one line — "Since your last visit (4 days ago): 2 started failing" — with each scenario
+deep-linked. It stays quiet for a first-time reader, for someone re-opening a run they have
+already seen, and for a new run that changed nothing they had seen.
+
+That memory is per-browser: it lives in `localStorage`, never in the report file and never
+on a server, so a report shared with ten people gives each of them their own delta and
+carries none of it between them.
+
+## Finding a scenario, and handing off a failure
+
+The search box matches more than titles. A reader arrives with something from somewhere
+else — a ticket id from the tracker, a string out of a stack trace, a path from a pull
+request — so the query also matches scenario tags, step text, ticket ids, the failing
+scenario's error message, and the source file of the feature.
+
+On a red run the failure banner offers **Copy N failures for an agent**: every failing
+scenario's steps, the failing step marked, and its error verbatim, numbered, in one paste.
+A red run is rarely one broken thing, and an agent handed all of them at once can see the
+shared cause that copying them one at a time hides.
+
+## Which scenarios cost the most time
+
+Every scenario records how long it ran, and **Run details** lists the five slowest, each
+deep-linked and timed. A suite that has quietly grown to twenty minutes usually owes it to
+two or three scenarios, and nothing else in a pipeline names them.
+
+In CI, `executable-stories check --max-duration <ms>` turns that into a budget: scenarios
+over it are named with their duration and location, and the run exits 5.
+
 ## How fresh is each scenario
 
 A combined report covers your whole suite, whatever fraction of it you last ran: each test file owns a report and the combined view is built from all of them (see [Output modes](/guides/output-modes/#running-part-of-the-suite)). So a freshly-rendered report can hold a scenario that has not run in a fortnight.
