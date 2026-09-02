@@ -1,6 +1,6 @@
 {
   "name": "executable-stories-cypress",
-  "version": "8.8.1",
+  "version": "8.8.2",
   "license": "Apache-2.0",
   "description": "BDD-style executable stories for Cypress with documentation generation",
   "type": "module",
