@@ -323,6 +323,7 @@ When working in these areas, load the linked skill file into context for accurat
 | Posting Evidence Review receipts to Linear via MCP           | `skills/linear-evidence-review/SKILL.md`                                                       |
 | Turning a Jira/GitHub/Linear ticket into scenarios via MCP    | `skills/tracker-to-scenarios/SKILL.md`                                                         |
 | Reconciling a tracker with the suite and stamping receipts    | `skills/tracker-receipts/SKILL.md`                                                             |
+| Filing tickets for what a run found that the board is missing | `skills/scenarios-to-tickets/SKILL.md`                                                         |
 | Authoring technical/coding lessons as executable story tests | `skills/executable-lessons/SKILL.md`                                                           |
 | Explaining a code change as living documentation (with quiz) | `skills/explain-change/SKILL.md`                                                               |
 | Explaining a whole system or feature area for onboarding     | `skills/explain-system/SKILL.md`                                                               |

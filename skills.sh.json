@@ -104,6 +104,7 @@
       "description": "Skills for carrying work between an issue tracker and the suite over MCP: tickets into scenarios, and proof-of-behaviour receipts back, without making the tracker the source of truth.",
       "skills": [
         "tracker-to-scenarios",
+        "scenarios-to-tickets",
         "tracker-receipts",
         "linear-evidence-review"
       ]

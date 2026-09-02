@@ -146,6 +146,8 @@ the pipeline; for Confluence and Jira pages specifically, `publish-confluence` a
 ## Relationship to neighbouring skills
 
 - `tracker-to-scenarios` is the inbound half: ticket → planned scenarios.
+- `scenarios-to-tickets` files the tickets a run says are missing, and writes their ids
+  onto the scenarios so receipts can find them.
 - `linear-evidence-review` is the Linear-specific version of this workflow, kept for the
   Evidence Review receipt shape it already proved.
 - `coverage-audit` answers "is it covered?" by requirement, code, and evidence strength —

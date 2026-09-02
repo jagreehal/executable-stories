@@ -162,5 +162,6 @@ whole bridge.
 - `spec-plan-to-stories` owns the planned-scenario form for every adapter.
 - `story-tdd` takes a planned scenario and drives it red-to-green.
 - `tracker-receipts` closes the loop: proves the ticket from a run and stamps it.
+- `scenarios-to-tickets` is the reverse trip: a run finds work the board is missing.
 - `linear-evidence-review` is the Linear-specific receipt path that came first.
 - `test-management-bridge` is the adjacent problem: TestRail or Xray mirroring the suite.
