@@ -7,7 +7,7 @@ description: >
 metadata:
   type: core
   library: executable-stories-vitest
-  library_version: "8.8.1"
+  library_version: "8.8.2"
   sources:
     - "jagreehal/executable-stories:packages/executable-stories-vitest/src/reporter.ts"
     - "jagreehal/executable-stories:apps/docs-site/src/content/docs/vitest/vitest-config.md"
