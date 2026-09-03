@@ -24,6 +24,15 @@ export default defineConfig({
     globals: false,
     environment: "node",
     include: ["test/**/*.test.ts"],
+    // These are unit tests, but several render a real HTML report through the
+    // React SSR renderer: the first one in each worker pays the renderer's
+    // module init on top of its own work, and the slowest here run ~1.2s on an
+    // idle machine. Vitest's 5s default leaves no room for a loaded CI runner
+    // sharing cores across 100+ files, which showed up as a single test timing
+    // out on an otherwise green merge. The headroom costs nothing when tests
+    // pass and only delays a genuinely hung one.
+    testTimeout: 20_000,
+    hookTimeout: 20_000,
     reporters: [
       "default",
       new StoryReporter({
