@@ -1,6 +1,6 @@
 ---
 title: Skill catalogue
-description: All 56 shipped skills by group, what each one covers, and when your agent should load it.
+description: All 57 shipped skills by group, what each one covers, and when your agent should load it.
 ---
 
 Every skill lives at `skills/<name>/SKILL.md` in the [repository](https://github.com/jagreehal/executable-stories/tree/main/skills). See [Agent skills](/ai-skills/) for installation.
@@ -45,6 +45,7 @@ Getting from an existing codebase to a working setup.
 | `jest-converting-tests`        | The same for Jest                                                    |
 | `playwright-converting-tests`  | The same for Playwright                                              |
 | `cypress-converting-tests`     | The same for Cypress                                                 |
+| `cucumber-converting-tests`    | Migrating a CucumberJS suite: feature files, step definitions, World |
 
 Conversion skills work file by file, so your suite keeps running through the migration.
 

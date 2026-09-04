@@ -13,6 +13,7 @@ import type { Framework, ResolvedFlags, Plan } from './types';
 import { resolveTargets } from './targets';
 import { formatCliError } from './errors';
 import { resolveFrameworks } from './flags';
+import { planCucumberMigration } from './cucumber-plan';
 
 async function confirmPlan(plan: Plan): Promise<boolean> {
   const lines = [
@@ -46,6 +47,7 @@ program
   .option('--cypress', 'set up Cypress')
   .option('--both', 'set up both Vitest and Playwright')
   .option('--all', 'set up Vitest, Playwright, Jest, and Cypress')
+  .option('--from-cucumber', 'convert every .feature file into a Vitest story test (implies --vitest)')
   .option('--ts', 'write tsconfig.json if missing')
   .option('--no-ts', 'do not write tsconfig.json')
   .option('-y, --yes', 'accept all defaults, non-interactive')
@@ -70,8 +72,13 @@ program
         cypress?: boolean;
       });
 
+      // The converter emits Vitest story tests, so a migration needs the Vitest
+      // adapter and reporter in place whether or not the user asked for them.
+      const fromCucumber = Boolean(opts.fromCucumber);
+      if (fromCucumber && !frameworks.includes('vitest')) frameworks.unshift('vitest');
+
       if (frameworks.length === 0 && cliOpts.json) {
-        console.error(formatCliError('--json requires at least one framework flag (--vitest, --playwright, --jest, --cypress, --both, --all)', true));
+        console.error(formatCliError('--json requires at least one framework flag (--vitest, --playwright, --jest, --cypress, --both, --all, --from-cucumber)', true));
         process.exit(2);
       }
 
@@ -91,6 +98,9 @@ program
       };
 
       const plan = await resolvePlan({ facts, flags }, deps);
+      if (fromCucumber) {
+        plan.ops.push(...(await planCucumberMigration({ targets }, deps)));
+      }
 
       if (cliOpts.interactive && !opts.dryRun) {
         const ok = await confirmPlan(plan);

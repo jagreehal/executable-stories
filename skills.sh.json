@@ -37,7 +37,8 @@
         "vitest-converting-tests",
         "jest-converting-tests",
         "playwright-converting-tests",
-        "cypress-converting-tests"
+        "cypress-converting-tests",
+        "cucumber-converting-tests"
       ]
     },
     {
