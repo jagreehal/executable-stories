@@ -32,7 +32,7 @@ We aim for a **seamless native experience** in each framework. You keep your exi
 
 **What we guarantee:** Native describe/it, standard modifiers on the test, and the same story API as Jest/Playwright. The only intentional difference is the required **`task`** argument for `story.init(task)`.
 
-### Wallaby and Vitest 4
+### Wallaby
 
 Wallaby's automatic config extraction can fail when custom reporter instances are in the config. Use a separate config file for Wallaby without the reporter:
 

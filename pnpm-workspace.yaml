@@ -2,33 +2,27 @@ packages:
   - 'packages/*'
   - 'apps/*'
 
-# Keep the 7-day supply-chain quarantine in force, but exempt the Astro 7 +
-# Vite 8 ecosystem so this branch can adopt it ahead of the global window
-# (astro@7 released 2026-06-22; window lifts ~2026-06-29). Scoped via an
-# allowlist instead of a blanket `minimumReleaseAge: 0` so every other
-# dependency still gets the quarantine. TEMPORARY — once astro@7 clears the
-# quarantine on its own (~2026-06-29), delete the whole block to restore the
-# unmodified global default.
+# A dependency version must be at least 7 days old before it can be installed,
+# so a compromised release has a window to be caught and unpublished before it
+# reaches this workspace. Exemptions below are deliberate and each says why;
+# prefer an entry here over lowering the global value.
 minimumReleaseAge: 10080 # 7 days, in minutes
 minimumReleaseAgeExclude:
-  - astro
-  - '@astrojs/*'
-  - astro-mermaid
-  - astro-expressive-code
-  - vite
-  - '@vitejs/*'
-  - satteri # Astro 7's Rust markdown compiler
-  - sharp # astro@7.2.9's image dependency; same ecosystem as the entries above
-  - '@img/*' # sharp's per-platform native binaries
-  - '@bruits/*' # satteri's per-platform native binaries
-  - '@napi-rs/*' # napi bindings for Astro 7's Rust compiler
-  - '@tybys/*' # wasm runtime helpers under @napi-rs/wasm-runtime
 
 # First-party, published from the same npm account as this repo's own packages
 # (jagreehal/webmcpable). It is only outside the workspace because it ships
 # independently; the quarantine exists for third-party code we do not control.
 # Remove this line once a release clears the 7-day window on its own.
   - webmcpable
+
+# TEMPORARY — vitest@5.0.0 released 2026-09-03 13:24; the 7-day window lifts
+# ~2026-09-10. Excluded so feat/vitest-v5 can verify the adapter against v5
+# ahead of the global window. Delete this block once v5 clears the quarantine
+# on its own.
+  - vitest
+  - '@vitest/*'
+  - vite-node
+  - tinybench # transitive: vitest@5's bench provider
 
 overrides:
   # starlight 0.41.10 still pins satteri 0.9.2 while astro 7.2.9 is on 0.10.5;

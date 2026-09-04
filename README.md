@@ -28,7 +28,7 @@ If a test is skipped, failed, or todo, the docs reflect that.
 | Package                                                                   | Ecosystem                    | Install / Usage                          |
 | ------------------------------------------------------------------------- | ---------------------------- | ---------------------------------------- |
 | [executable-stories-jest](./packages/executable-stories-jest)             | Jest 30+                     | `npm i -D executable-stories-jest`       |
-| [executable-stories-vitest](./packages/executable-stories-vitest)         | Vitest 4+                    | `npm i -D executable-stories-vitest`     |
+| [executable-stories-vitest](./packages/executable-stories-vitest)         | Vitest 4 or 5                | `npm i -D executable-stories-vitest`     |
 | [executable-stories-playwright](./packages/executable-stories-playwright) | Playwright 1.58+             | `npm i -D executable-stories-playwright` |
 | [executable-stories-cypress](./packages/executable-stories-cypress)       | Cypress 13+                  | `npm i -D executable-stories-cypress`    |
 | [executable-stories-ruby](./packages/executable-stories-ruby)             | Ruby / Minitest              | Ruby gem/package in repo                 |

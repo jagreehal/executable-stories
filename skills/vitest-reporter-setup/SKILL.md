@@ -15,6 +15,11 @@ metadata:
 
 # executable-stories-vitest — Reporter Setup
 
+Works with Vitest 4 and Vitest 5, from the declared floor of 4.1.5 upward; both
+are covered by CI. The reporter reads the same runner contract on each, so the
+setup below is identical. On Vitest 5, Node >= 22.12 and Vite >= 6.4 are
+required by Vitest itself.
+
 ## Setup
 
 ```typescript
