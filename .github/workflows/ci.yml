@@ -63,8 +63,67 @@ jobs:
         env:
           CI: true
 
+  # The Vitest adapter declares `vitest: ">=4.1.5"`. The job above only ever
+  # exercises whatever the dev dependency happens to pin, so the rest of that
+  # range is an untested promise. This runs the adapter against both ends of
+  # it. Versions are pinned exactly rather than floated (`4`, `^4.1.5`) so a
+  # freshly published 4.x cannot fail the job on the workspace's 7-day
+  # supply-chain quarantine.
+  peer-range:
+    name: vitest ${{ matrix.vitest }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        vitest:
+          - "4.1.5" # the declared floor
+          - "4.1.11" # newest 4.x, the version the rest of the workspace uses
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install pnpm
+        run: corepack prepare pnpm@10.28.1 --activate
+
+      - name: Cache pnpm dependencies
+        uses: actions/cache@v5
+        with:
+          path: ~/.pnpm-store
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # The adapter imports executable-stories-core and -formatters through
+      # their exports maps, which point at dist/*. Those have to exist before
+      # its vitest.config.ts can load the reporter.
+      - name: Build packages
+        run: pnpm build
+
+      - name: Downgrade vitest to ${{ matrix.vitest }}
+        run: pnpm --filter executable-stories-vitest add -D vitest@${{ matrix.vitest }}
+        env:
+          CI: true
+
+      - name: Type-check against vitest ${{ matrix.vitest }} types
+        run: pnpm --filter executable-stories-vitest type-check
+
+      - name: Test against vitest ${{ matrix.vitest }}
+        run: pnpm --filter executable-stories-vitest test
+        env:
+          CI: true
+
   dependabot-auto-merge:
-    needs: build-and-test
+    needs: [build-and-test, peer-range]
     runs-on: ubuntu-latest
     # The workflow-level grant is contents: read, which cannot merge. Raise it
     # for this job alone rather than for the whole file.

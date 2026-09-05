@@ -227,6 +227,10 @@ export default defineConfig({
               slug: 'guides/setup-decision-tree',
             },
             {
+              label: 'Converting a CucumberJS suite',
+              slug: 'guides/converting-cucumber',
+            },
+            {
               label: 'Converting existing Vitest tests',
               slug: 'guides/converting-vitest',
             },

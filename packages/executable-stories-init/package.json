@@ -14,6 +14,8 @@
   ],
   "dependencies": {
     "@clack/prompts": "^1.7.0",
+    "@cucumber/gherkin": "^42.0.0",
+    "@cucumber/messages": "^34.2.0",
     "commander": "^15.0.0",
     "fast-glob": "^3.3.3",
     "picocolors": "^1.1.1"

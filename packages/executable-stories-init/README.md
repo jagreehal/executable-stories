@@ -42,6 +42,7 @@ Anything already present is left alone (or skipped with a reason). Use `--force`
 | `--playwright` | Set up Playwright. |
 | `--jest` | Set up Jest. |
 | `--cypress` | Set up Cypress. |
+| `--from-cucumber` | Convert every `.feature` file into a Vitest story test beside it. Implies `--vitest`. |
 | `--both` | Set up both Vitest and Playwright. |
 | `--all` | Set up Vitest, Playwright, Jest, and Cypress. |
 | `--target <pkg...>` | Workspace package(s) to set up. Use `root` for the repo root. Repeatable. |
@@ -53,6 +54,28 @@ Anything already present is left alone (or skipped with a reason). Use `--force`
 | `--json` | Machine-readable output. Implies `--yes`. Requires at least one framework flag (`--vitest`, `--playwright`, `--jest`, `--cypress`, `--both`, or `--all`). |
 
 `--both` and `--all` are additive with explicit framework flags. Example: `--both --jest` sets up Vitest, Playwright, and Jest.
+
+## Migrating from CucumberJS
+
+`--from-cucumber` sets up Vitest and then converts each `.feature` file it finds
+into a `.story.test.ts` next to it, keeping the Gherkin text as `story.given` /
+`when` / `then` markers, a Background as a function each scenario calls, tags on
+`story.init`, data tables as `story.table`, and one test per `Examples` row.
+
+```bash
+npx executable-stories-init@latest --from-cucumber --dry-run
+npx executable-stories-init@latest --from-cucumber --yes
+```
+
+Step definitions are not ported: the runner reaches them through a regex and a
+shared World, so there is no reliable one-to-one mapping from a line of Gherkin
+to the lines that ran for it. Each
+converted scenario ends in a `unported()` call that throws, leaving the suite red
+until you fill in the code. The failing count is the migration burndown.
+
+The [Converting a CucumberJS suite](https://github.com/jagreehal/executable-stories/blob/main/apps/docs-site/src/content/docs/guides/converting-cucumber.md)
+guide covers the porting, and the `cucumber-converting-tests` skill packages it
+for a coding agent.
 
 ## Examples
 

@@ -3,6 +3,11 @@ title: Vitest reporter options
 description: Every option for StoryReporter in vitest.config
 ---
 
+Supports Vitest 4 and Vitest 5, from the declared floor of 4.1.5 upward. The
+reporter reads the same runner contract on both, so the options below apply
+unchanged. On Vitest 5, Node >= 22.12 and Vite >= 6.4 are required by Vitest
+itself.
+
 Use the **`/reporter`** subpath in your config so Vitest is not loaded in the config context:
 
 ```typescript
