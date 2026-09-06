@@ -7,7 +7,7 @@ description: >
 metadata:
   type: core
   library: executable-stories-jest
-  library_version: "8.8.2"
+  library_version: "8.8.3"
   sources:
     - "jagreehal/executable-stories:packages/executable-stories-jest/src/reporter.ts"
 ---
