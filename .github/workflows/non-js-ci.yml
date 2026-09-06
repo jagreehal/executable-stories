@@ -66,6 +66,9 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -e ".[dev]"
+      - run: ruff format --check .
+      - run: ruff check --no-fix .
+      - run: mypy src tests
       - run: python -m pytest tests/ -q
 
   ruby:

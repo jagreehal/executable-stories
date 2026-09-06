@@ -219,9 +219,7 @@ def test_real_story():
         # The planned test itself passes; only its recorded status differs.
         result.assert_outcomes(passed=2)
 
-        raw_run = json.loads(
-            (pytester.path / ".executable-stories" / "raw-run.json").read_text()
-        )
+        raw_run = json.loads((pytester.path / ".executable-stories" / "raw-run.json").read_text())
         by_status = {tc["status"]: tc for tc in raw_run["testCases"]}
 
         assert set(by_status) == {"todo", "pass"}
@@ -249,9 +247,7 @@ def test_ordinary_story():
         result = pytester.runpytest_subprocess(*_DISABLE_PLUGINS)
         result.assert_outcomes(passed=1, failed=1)
 
-        raw_run = json.loads(
-            (pytester.path / ".executable-stories" / "raw-run.json").read_text()
-        )
+        raw_run = json.loads((pytester.path / ".executable-stories" / "raw-run.json").read_text())
         statuses = {tc["title"]: tc["status"] for tc in raw_run["testCases"]}
         # Reporting this as "planned" would hide a broken test behind a plan.
         assert statuses["test_declared_then_broke"] == "fail"
@@ -274,8 +270,6 @@ def test_ordinary_story():
         result = pytester.runpytest_subprocess(*_DISABLE_PLUGINS)
         result.assert_outcomes(passed=2)
 
-        raw_run = json.loads(
-            (pytester.path / ".executable-stories" / "raw-run.json").read_text()
-        )
+        raw_run = json.loads((pytester.path / ".executable-stories" / "raw-run.json").read_text())
         statuses = sorted(tc["status"] for tc in raw_run["testCases"])
         assert statuses == ["pass", "todo"]

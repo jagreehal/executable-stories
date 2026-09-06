@@ -21,7 +21,9 @@ from executable_stories import story
 
 ## Default output
 
-After pytest finishes, the plugin writes `.executable-stories/raw-run.json`. Pass that file to `executable-stories-formatters` to render a report.
+After pytest finishes, the plugin writes `.executable-stories/raw-run.json` under pytest's root directory. Pass that file to `executable-stories-formatters` to render a report.
+
+Set `EXECUTABLE_STORIES_OUTPUT` to move it. A relative path is resolved against the project root, so the file lands in the same place however pytest was invoked; an absolute path is used as given. `EXECUTABLE_STORIES_QUIET` silences the `next:` hint the plugin prints to stderr.
 
 ## Generate a report
 
