@@ -8,7 +8,7 @@ description: >
 metadata:
   type: lifecycle
   library: executable-stories-cypress
-  library_version: "8.8.2"
+  library_version: "8.8.3"
   requires:
     - cypress-story-api
   sources:
