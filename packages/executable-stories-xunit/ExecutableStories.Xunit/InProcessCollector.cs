@@ -8,6 +8,8 @@ namespace ExecutableStories.Xunit
     /// </summary>
     internal static class InProcessCollector
     {
+        private const int GitTimeoutMs = 5000;
+
         private static readonly List<RawTestCase> _list = [];
         private static readonly SortedSet<string> _covered = [];
         private static long _startedAtMs;
@@ -225,20 +227,45 @@ namespace ExecutableStories.Xunit
                     RedirectStandardError = true,
                     UseShellExecute = false,
                 });
-                if (git == null)
-                {
-                    return null;
-                }
-
-                var output = git.StandardOutput.ReadToEnd().Trim();
-                _ = git.WaitForExit(5000);
-                return git.ExitCode == 0 && output.Length > 0 ? output : null;
+                return git == null ? null : ReadCommandOutput(git, GitTimeoutMs);
             }
             catch
             {
                 // No git on PATH, or not a repository. The field is optional.
                 return null;
             }
+        }
+
+        /// <summary>
+        /// What <paramref name="process"/> wrote to stdout, or null if it failed
+        /// or outran <paramref name="timeoutMs"/>.
+        /// </summary>
+        /// <remarks>
+        /// The wait comes first: reading to the end before it hands the timeout
+        /// to the process rather than the other way round. Reading afterwards is
+        /// safe for output this small, which the pipe buffers long before anyone
+        /// asks.
+        /// </remarks>
+        internal static string? ReadCommandOutput(Process process, int timeoutMs)
+        {
+            // Nothing reads stderr otherwise, and an unread pipe that fills is a
+            // process that never exits.
+            process.ErrorDataReceived += (_, _) => { };
+            process.BeginErrorReadLine();
+
+            if (!process.WaitForExit(timeoutMs))
+            {
+                process.Kill(entireProcessTree: true);
+                return null;
+            }
+
+            if (process.ExitCode != 0)
+            {
+                return null;
+            }
+
+            var output = process.StandardOutput.ReadToEnd().Trim();
+            return output.Length > 0 ? output : null;
         }
 
         /// <summary>

@@ -387,6 +387,21 @@ class Story private constructor() {
         }
 
         /**
+         * Attach a video recording, played inline in the HTML report.
+         */
+        @JvmStatic
+        @JvmOverloads
+        fun video(
+            path: String,
+            caption: String? = null,
+            poster: String? = null,
+        ): DocEntry {
+            val entry = DocEntry.video(path, caption, poster)
+            requireContext().addDoc(entry)
+            return entry
+        }
+
+        /**
          * Attach an embedded-HTML doc entry. Exactly one of [path], [url], or
          * [content] must be non-null.
          */

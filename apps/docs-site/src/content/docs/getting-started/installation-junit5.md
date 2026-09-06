@@ -30,7 +30,7 @@ testImplementation 'io.github.jagreehal:executable-stories-junit5:0.1.0'
 </dependency>
 ```
 
-Requires Java 21 or later and JUnit 5.11 or later.
+Requires Java 21 or later and JUnit 5.12 or later.
 
 ## Framework setup
 
@@ -40,7 +40,12 @@ The listener writes `.executable-stories/raw-run.json` after all tests have fini
 
 ## Default output
 
-The raw run JSON file is written relative to the working directory. When running from Gradle or Maven, that is the project root.
+The raw run JSON file is written relative to the working directory. When running from
+Gradle or Maven, that is the project directory. `EXECUTABLE_STORIES_OUTPUT` sets the path
+outright.
+
+The file is renamed into place, so a watch task reading it while a run finishes always sees
+a whole document.
 
 ## Generate a report
 

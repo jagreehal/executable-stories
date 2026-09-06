@@ -326,19 +326,40 @@ fn test_checkout() {
 |---|---|
 | Artifact | `io.github.jagreehal:executable-stories-junit5` |
 | Install | Add to `testImplementation` dependencies in Gradle or Maven |
-| Min version | JVM 17, JUnit Platform 1.10 |
+| Min version | Java 21, JUnit Platform 1.12 |
 
 ### Story initialization
 
 ```kotlin
-import io.github.jagreehal.executablestories.Story
+import dev.executablestories.junit5.Story
 
 class LoginTest {
+    companion object {
+        // What this class's scenarios are for, ahead of the examples. The JVM
+        // reports no source path, so the declaring class is the key the report
+        // groups by.
+        @JvmStatic
+        @BeforeAll
+        fun feature() = Story.feature(
+            title = "Employees can get back into their account",
+            kind = "ability",
+            narrative = "A locked-out employee raises a ticket, so the sign-in path pays for itself.",
+        )
+    }
+
     @Test
     fun `user can log in with valid credentials`() {
         Story.init("User can log in with valid credentials", "auth", "smoke")
         Story.ticket("AUTH-42")
+        Story.covers("src/main/kotlin/auth/SignIn.kt")
         // ...
+    }
+
+    // Specified but not built yet: reaches the report as planned, under this
+    // class, without disabling the test.
+    @Test
+    fun `account locks after five failed attempts`() {
+        Story.planned("Account locks after five failed attempts")
     }
 }
 ```
@@ -354,14 +375,15 @@ class LoginTest {
 | `Story.but(text)` | But |
 | `Story.arrange(text)` | Given (AAA alias) |
 | `Story.act(text)` | When (AAA alias) |
-| `Story.assert(text)` | Then (AAA alias) |
+| `Story.assertThat(text)` | Then (AAA alias) |
 | `Story.setup(text)` | Given (alias) |
 | `Story.context(text)` | Given (alias) |
 | `Story.execute(text)` | When (alias) |
 | `Story.action(text)` | When (alias) |
 | `Story.verify(text)` | Then (alias) |
 
-Note: `when` requires backtick quoting in Kotlin because it is a reserved keyword.
+Note: `when` requires backtick quoting in Kotlin because it is a reserved keyword, and
+the `assert` alias is spelled `assertThat` for the same reason.
 
 ### Doc entry methods
 
@@ -378,6 +400,8 @@ Note: `when` requires backtick quoting in Kotlin because it is a reserved keywor
 | `Story.section(title, markdown)` | Titled markdown section |
 | `Story.mermaid(code, title?)` | Mermaid diagram |
 | `Story.screenshot(path, alt?)` | Screenshot reference |
+| `Story.video(path, caption?, poster?)` | Video played inline in the report |
+| `Story.html(path=/url=/content=, title?, height?)` | HTML in a sandboxed iframe |
 | `Story.custom(type, data)` | Custom entry |
 
 All doc methods return a `DocEntry` value that is appended to the current scenario.
@@ -386,20 +410,38 @@ All doc methods return a `DocEntry` value that is appended to the current scenar
 
 ```kotlin
 Story.attach("response.json", "application/json", "/tmp/response.json")
-Story.attachInline("body", "text/plain", "response body".toByteArray())
-Story.attachSpans(traceId, spanIds)  // OTel trace links
+Story.attachInline("body", "text/plain", "response body", "IDENTITY")
+Story.attachSpans(spans)  // OTel spans, for the trace waterfall
 
-Story.startTimer("db-query")
+// startTimer returns a token; endTimer stops the step it was opened against.
+val token = Story.startTimer()
 // ... operation ...
-Story.endTimer("db-query")
+Story.endTimer(token)
 
-Story.fn("step description") { doSomething() }
-Story.expect("assertion description", got, expected)
+// fn takes the keyword as its first argument and times the body.
+val total = Story.fn("When", "the order is priced") { price(order) }
+Story.expect("the total is 80") { assertEquals(80, total) }
 ```
 
 ### JSON output mechanism
 
-Output is written automatically by `StoryTestExecutionListener`, which is registered via the JUnit Platform `ServiceLoader` mechanism. Add the listener JAR to your test classpath and it fires on suite completion. Output path defaults to `executable-stories-output.json` and can be overridden with `ES_OUTPUT_FILE`.
+Output is written automatically by `StoryTestExecutionListener`, which is registered via
+the JUnit Platform `ServiceLoader` mechanism. Add the dependency and it fires on suite
+completion, writing `.executable-stories/raw-run.json` relative to the working directory —
+the project directory under both Gradle and Maven. `EXECUTABLE_STORIES_OUTPUT` overrides
+the path, and `EXECUTABLE_STORIES_QUIET` silences the `next:` hint the listener prints to
+stderr. The file is renamed into place, so a watch task reading it while a run finishes
+always sees a whole document.
+
+The run also reports `coveredSourceFiles`, every test class that executed, so a class
+emptied of scenarios is distinguishable from one this run never reached, and
+`incompleteSourceFiles` for any container that did not succeed or was skipped — the JUnit Platform reports
+an enclosing class as successful even when a `@TestFactory` inside it failed, and a broken
+factory otherwise looks exactly like a class whose scenarios were deleted. A skipped test marks its
+class the same way, so switching one off keeps what it last documented. Acting on the
+inventory needs a scope declaration too: the listener detects Maven Surefire's `-Dtest=...`, and for
+other launcher filters `EXECUTABLE_STORIES_FILTERED=1` marks a narrowed run, `=0` one that
+covered every scenario in its classes.
 
 ### Complete example
 
