@@ -1,3 +1,31 @@
+// Package es writes BDD-style stories from ordinary Go tests, and emits them
+// as the raw run JSON that the executable-stories CLI turns into reports.
+//
+// A story is attached to a test with [Init] and described with the step
+// methods. The test itself is unchanged — the steps narrate what it already
+// does, and the story is recorded whether the test passes or fails:
+//
+//	func TestMain(m *testing.M) { es.RunAndReport(m) }
+//
+//	func TestAddition(t *testing.T) {
+//		s := es.Init(t, "adds two numbers", es.WithTags("math"))
+//
+//		s.Given("two numbers 2 and 3")
+//		a, b := 2, 3
+//
+//		s.When("I add them")
+//		got := a + b
+//
+//		s.Then("the result is 5")
+//		s.Check(got == 5, "expected 5, got %d", got)
+//	}
+//
+// The TestMain is required: without [RunAndReport] the suite runs, collects
+// every story and writes nothing. Init says so on stderr when it is missing.
+//
+// A story belongs to the test goroutine that created it. Two goroutines
+// sharing one story is a data race; give each test its own, which is what
+// [Init] does anyway.
 package es
 
 import (
@@ -7,6 +35,7 @@ import (
 	"reflect"
 	"runtime"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
@@ -30,7 +59,6 @@ type timerEntry struct {
 	start     time.Time
 	stepIndex *int
 	stepID    string
-	consumed  bool
 }
 
 // S represents a story attached to a single test.
@@ -54,6 +82,19 @@ type S struct {
 	activeTimers     map[int]*timerEntry
 	timerCounter     int
 	otelSpans        []any
+	ctx              context.Context
+	assertions       int
+	// pendingIdx is the marker step awaiting its assertion count, held as an
+	// index because appending a step reallocates the slice and any pointer
+	// into it goes stale. -1 means none is open.
+	pendingIdx  int
+	pendingFrom int
+}
+
+// elapsedMs is milliseconds with sub-millisecond resolution. Truncating to
+// whole milliseconds reports every fast step as 0.
+func elapsedMs(start time.Time) float64 {
+	return float64(time.Since(start).Microseconds()) / 1000
 }
 
 // WithTags adds tags to the story.
@@ -99,6 +140,17 @@ func WithMeta(meta map[string]any) Option {
 	}
 }
 
+// WithContext hands the story the context carrying the active OTel span, so
+// the trace ID reaches the report and the story's tags reach the span.
+//
+// Required for the bridge: Go keeps the active span in the context, and the
+// story has no other way to reach the one the test is running under.
+func WithContext(ctx context.Context) Option {
+	return func(s *S) {
+		s.ctx = ctx
+	}
+}
+
 // WithTraceUrlTemplate sets the URL template for OTel trace links.
 // Uses {traceId} as placeholder. Also settable via OTEL_TRACE_URL_TEMPLATE env var.
 func WithTraceUrlTemplate(template string) Option {
@@ -114,22 +166,21 @@ func resolveTraceUrl(template, traceId string) string {
 	return strings.ReplaceAll(template, "{traceId}", traceId)
 }
 
-func bridgeOtel(s *S) {
-	span := otelTrace.SpanFromContext(context.Background())
-	sc := span.SpanContext()
-	if !sc.TraceID().IsValid() {
+// applyTrace records a trace on the story: structured meta for machines, a
+// trace ID and a link for readers.
+func (s *S) applyTrace(traceId, spanId string) {
+	if traceId == "" {
 		return
 	}
-	traceId := sc.TraceID().String()
-	spanId := sc.SpanID().String()
-
-	// OTel -> Story: capture traceId in structured meta
 	if s.meta == nil {
 		s.meta = make(map[string]any)
 	}
-	s.meta["otel"] = map[string]any{"traceId": traceId, "spanId": spanId}
+	otel := map[string]any{"traceId": traceId}
+	if spanId != "" {
+		otel["spanId"] = spanId
+	}
+	s.meta["otel"] = otel
 
-	// OTel -> Story: inject human-readable doc entries
 	s.docs = append(s.docs, kvEntry("Trace ID", traceId))
 
 	template := s.traceUrlTemplate
@@ -139,6 +190,19 @@ func bridgeOtel(s *S) {
 	if url := resolveTraceUrl(template, traceId); url != "" {
 		s.docs = append(s.docs, linkEntry("View Trace", url))
 	}
+}
+
+func bridgeOtel(s *S) {
+	if s.ctx == nil {
+		return
+	}
+	span := otelTrace.SpanFromContext(s.ctx)
+	sc := span.SpanContext()
+	if !sc.TraceID().IsValid() {
+		return
+	}
+
+	s.applyTrace(sc.TraceID().String(), sc.SpanID().String())
 
 	// Story -> OTel: enrich active span with story attributes
 	span.SetAttributes(attribute.String("story.scenario", s.scenario))
@@ -154,11 +218,32 @@ func bridgeOtel(s *S) {
 	}
 }
 
+// warnedOnce keeps the missing-TestMain warning to one line per suite. Atomic
+// because Init is called from every test goroutine, parallel ones included: a
+// plain bool here is a data race the -race detector reports against this
+// library rather than against the suite that tripped it.
+var warnedOnce atomic.Bool
+
+// warnIfNotReporting says so when the suite has no TestMain, which is the one
+// mistake that produces a full run and no report at all.
+//
+// `reporting` needs no atomic: RunAndReport sets it before m.Run starts any
+// test, so every read here happens after that write.
+func warnIfNotReporting() {
+	if reporting || !warnedOnce.CompareAndSwap(false, true) {
+		return
+	}
+	warn("[executable-stories] no report will be written: add\n" +
+		"  func TestMain(m *testing.M) { es.RunAndReport(m) }\n" +
+		"to this package.\n")
+}
+
 // Init creates a new story for the given test.
 // It records the start time, assigns a source order, and registers a cleanup
 // function to capture the test result and record the test case to the global collector.
 func Init(t TestingT, scenario string, opts ...Option) *S {
 	t.Helper()
+	warnIfNotReporting()
 
 	s := &S{
 		scenario:     scenario,
@@ -168,6 +253,7 @@ func Init(t TestingT, scenario string, opts ...Option) *S {
 		sourceFile:   callerFile(),
 		seenPrimary:  make(map[string]bool),
 		activeTimers: make(map[int]*timerEntry),
+		pendingIdx:   -1,
 	}
 
 	for _, opt := range opts {
@@ -177,8 +263,12 @@ func Init(t TestingT, scenario string, opts ...Option) *S {
 	// OTel bridge: detect active span, flow data bidirectionally
 	bridgeOtel(s)
 
+	// Registered before any cleanup the test adds, so LIFO ordering runs it
+	// last and the final marker's assertions are all in.
 	t.Cleanup(func() {
-		duration := float64(time.Since(s.startTime).Milliseconds())
+		s.closePending()
+
+		duration := elapsedMs(s.startTime)
 
 		status := "pass"
 		if t.Failed() {
@@ -190,6 +280,7 @@ func Init(t TestingT, scenario string, opts ...Option) *S {
 		order := s.sourceOrder
 		story := &StoryMeta{
 			Scenario:    s.scenario,
+			SuitePath:   suitePath(t.Name()),
 			Steps:       s.steps,
 			Tags:        s.tags,
 			Tickets:     s.tickets,
@@ -233,6 +324,7 @@ func Init(t TestingT, scenario string, opts ...Option) *S {
 // put every quarantined test in your plan.
 func Planned(t TestingT, scenario string, opts ...Option) {
 	t.Helper()
+	warnIfNotReporting()
 
 	s := &S{
 		scenario:    scenario,
@@ -241,6 +333,7 @@ func Planned(t TestingT, scenario string, opts ...Option) {
 		sourceOrder: nextOrder(),
 		sourceFile:  callerFile(),
 		seenPrimary: make(map[string]bool),
+		pendingIdx:  -1,
 	}
 	for _, opt := range opts {
 		opt(s)
@@ -263,6 +356,7 @@ func Planned(t TestingT, scenario string, opts ...Option) {
 			TitlePath: strings.Split(t.Name(), "/"),
 			Story: &StoryMeta{
 				Scenario:    scenario,
+				SuitePath:   suitePath(t.Name()),
 				Steps:       []StoryStep{},
 				Tags:        s.tags,
 				Tickets:     s.tickets,
@@ -277,10 +371,23 @@ func Planned(t TestingT, scenario string, opts ...Option) {
 	})
 }
 
+// suitePath is the enclosing test names for a subtest, which is everything
+// before the last segment of Go's "Parent/child" test name. A top-level test
+// has none.
+func suitePath(name string) []string {
+	parts := strings.Split(name, "/")
+	if len(parts) < 2 {
+		return nil
+	}
+	return parts[:len(parts)-1]
+}
+
 // addStep creates a new step and sets it as the current step.
 // If a primary keyword (Given/When/Then) repeats consecutively, it is
 // auto-converted to "And" while the tracker keeps the original keyword.
-func (s *S) addStep(keyword, text string) *S {
+// Docs passed here move onto the step, leaving wherever they were attached
+// first, so a doc built inline reads as belonging to the step it describes.
+func (s *S) addStep(keyword, text string, docs ...DocEntry) *S {
 	effective := keyword
 	switch keyword {
 	case "Given", "When", "Then":
@@ -299,33 +406,66 @@ func (s *S) addStep(keyword, text string) *S {
 	s.stepCounter++
 	s.steps = append(s.steps, step)
 	s.currentStep = &s.steps[len(s.steps)-1]
+	if len(docs) > 0 {
+		s.dropDocs(docs)
+		s.currentStep.Docs = append(s.currentStep.Docs, docs...)
+	}
+
+	// Close the previous marker before this step's own assertions begin.
+	s.closePending()
+	s.pendingIdx = len(s.steps) - 1
+	s.pendingFrom = s.assertions
 	return s
 }
 
 // Given adds a "Given" step to the story.
-func (s *S) Given(text string) *S {
-	return s.addStep("Given", text)
+func (s *S) Given(text string, docs ...DocEntry) *S {
+	return s.addStep("Given", text, docs...)
 }
 
 // When adds a "When" step to the story.
-func (s *S) When(text string) *S {
-	return s.addStep("When", text)
+func (s *S) When(text string, docs ...DocEntry) *S {
+	return s.addStep("When", text, docs...)
 }
 
 // Then adds a "Then" step to the story.
-func (s *S) Then(text string) *S {
-	return s.addStep("Then", text)
+func (s *S) Then(text string, docs ...DocEntry) *S {
+	return s.addStep("Then", text, docs...)
 }
 
 // And adds an "And" step to the story.
-func (s *S) And(text string) *S {
-	return s.addStep("And", text)
+func (s *S) And(text string, docs ...DocEntry) *S {
+	return s.addStep("And", text, docs...)
 }
 
 // But adds a "But" step to the story.
-func (s *S) But(text string) *S {
-	return s.addStep("But", text)
+func (s *S) But(text string, docs ...DocEntry) *S {
+	return s.addStep("But", text, docs...)
 }
+
+// Arrange is Given under the arrange/act/assert name.
+func (s *S) Arrange(text string, docs ...DocEntry) *S { return s.addStep("Given", text, docs...) }
+
+// Act is When under the arrange/act/assert name.
+func (s *S) Act(text string, docs ...DocEntry) *S { return s.addStep("When", text, docs...) }
+
+// Assert is Then under the arrange/act/assert name.
+func (s *S) Assert(text string, docs ...DocEntry) *S { return s.addStep("Then", text, docs...) }
+
+// Setup is Given.
+func (s *S) Setup(text string, docs ...DocEntry) *S { return s.addStep("Given", text, docs...) }
+
+// Context is Given.
+func (s *S) Context(text string, docs ...DocEntry) *S { return s.addStep("Given", text, docs...) }
+
+// Execute is When.
+func (s *S) Execute(text string, docs ...DocEntry) *S { return s.addStep("When", text, docs...) }
+
+// Action is When.
+func (s *S) Action(text string, docs ...DocEntry) *S { return s.addStep("When", text, docs...) }
+
+// Verify is Then.
+func (s *S) Verify(text string, docs ...DocEntry) *S { return s.addStep("Then", text, docs...) }
 
 // StartTimer begins a high-resolution timer tied to the current step.
 // Returns a token to pass to EndTimer.
@@ -350,22 +490,24 @@ func (s *S) StartTimer() int {
 // Double-end is a no-op.
 func (s *S) EndTimer(token int) {
 	entry, ok := s.activeTimers[token]
-	if !ok || entry.consumed {
+	if !ok {
 		return
 	}
-	entry.consumed = true
-	durationMs := float64(time.Since(entry.start).Milliseconds())
+	delete(s.activeTimers, token)
+	durationMs := elapsedMs(entry.start)
 
-	// Try to find the step by index first, then by ID
-	if entry.stepIndex != nil && *entry.stepIndex < len(s.steps) {
-		s.steps[*entry.stepIndex].DurationMs = &durationMs
-	} else if entry.stepID != "" {
+	// By ID first: it names the step the timer started on even if the story
+	// added steps in between. The index is the fallback for a step with none.
+	if entry.stepID != "" {
 		for i := range s.steps {
 			if s.steps[i].ID == entry.stepID {
 				s.steps[i].DurationMs = &durationMs
-				break
+				return
 			}
 		}
+	}
+	if entry.stepIndex != nil && *entry.stepIndex < len(s.steps) {
+		s.steps[*entry.stepIndex].DurationMs = &durationMs
 	}
 }
 
@@ -375,20 +517,32 @@ func (s *S) EndTimer(token int) {
 // If the body panics, duration is still recorded and the panic propagates.
 func (s *S) Fn(keyword, text string, body func()) *S {
 	s.addStep(keyword, text)
-	s.currentStep.Wrapped = true
-	// Wrapping a claim is the only signal Go can give that the step checked
-	// something: the body ran to completion. Setup steps arrange, so only a
-	// claim counts — tested against the keyword as written, since auto-And
-	// rewrites a repeated Then before the step is stored.
-	if keyword == "Then" {
-		one := 1
-		s.currentStep.Assertions = &one
-	}
+	// By index, not through currentStep: a body that adds its own steps moves
+	// currentStep, and the deferred write would land the duration on whichever
+	// step the body finished on.
+	idx := len(s.steps) - 1
+	s.steps[idx].Wrapped = true
+	// A wrapped step measures its own body, so it does not wait on a later
+	// marker to close it.
+	s.pendingIdx = -1
+	isClaim := keyword == "Then"
+	before := s.assertions
 
 	start := time.Now()
 	defer func() {
-		d := float64(time.Since(start).Milliseconds())
-		s.currentStep.DurationMs = &d
+		d := elapsedMs(start)
+		s.steps[idx].DurationMs = &d
+		if n := s.assertions - before; n > 0 {
+			s.steps[idx].Assertions = &n
+		} else if isClaim {
+			// Nothing counted, but wrapping a claim is itself the signal Go
+			// can give that the step checked something: the body ran to
+			// completion. Setup steps arrange, so only a claim counts —
+			// tested against the keyword as written, since auto-And rewrites
+			// a repeated Then before the step is stored.
+			one := 1
+			s.steps[idx].Assertions = &one
+		}
 	}()
 
 	body()
@@ -400,27 +554,76 @@ func (s *S) Expect(text string, body func()) *S {
 	return s.Fn("Then", text, body)
 }
 
+// errorReporter is the failure half of *testing.T. Asserted separately rather
+// than added to TestingT, so an existing implementation of that interface
+// keeps compiling.
+type errorReporter interface {
+	Errorf(format string, args ...any)
+}
+
+// Check counts one assertion on the open step and reports a failed condition
+// through TestingT.Errorf. It returns cond so callers can stop after a check.
+// A failed condition panics when a custom TestingT has no Errorf method.
+func (s *S) Check(cond bool, format string, args ...any) bool {
+	if s.t != nil {
+		s.t.Helper()
+	}
+	s.assertions++
+	if !cond {
+		r, ok := s.t.(errorReporter)
+		if !ok {
+			panic(fmt.Sprintf(
+				"executable-stories: Check failed but %T cannot report it (no Errorf method): "+
+					"%s", s.t, fmt.Sprintf(format, args...)))
+		}
+		r.Errorf(format, args...)
+	}
+	return cond
+}
+
+// closePending attributes the assertions that ran since a marker was declared
+// to that marker. A marker states the claim and the checks follow it, so the
+// count is only final once the next step starts or the test ends.
+func (s *S) closePending() {
+	idx := s.pendingIdx
+	s.pendingIdx = -1
+	if idx < 0 || idx >= len(s.steps) {
+		return
+	}
+	if n := s.assertions - s.pendingFrom; n > 0 {
+		s.steps[idx].Assertions = &n
+	}
+}
+
 // addDoc appends a DocEntry to the current step if one exists,
 // otherwise it appends to the story-level docs.
-func (s *S) addDoc(entry DocEntry) {
-	if children, ok := entry["children"].([]DocEntry); ok && len(children) > 0 {
-		childPtrs := make(map[uintptr]struct{}, len(children))
-		for _, child := range children {
-			childPtrs[reflect.ValueOf(child).Pointer()] = struct{}{}
-		}
-		filterDocs := func(docs []DocEntry) []DocEntry {
-			filtered := docs[:0]
-			for _, doc := range docs {
-				if _, exists := childPtrs[reflect.ValueOf(doc).Pointer()]; !exists {
-					filtered = append(filtered, doc)
-				}
+// dropDocs removes the given entries from wherever they were first attached,
+// so an entry built inline and then handed to a step or a parent does not
+// appear twice in the report.
+func (s *S) dropDocs(moved []DocEntry) {
+	movedPtrs := make(map[uintptr]struct{}, len(moved))
+	for _, doc := range moved {
+		movedPtrs[reflect.ValueOf(doc).Pointer()] = struct{}{}
+	}
+	filterDocs := func(docs []DocEntry) []DocEntry {
+		filtered := docs[:0]
+		for _, doc := range docs {
+			if _, exists := movedPtrs[reflect.ValueOf(doc).Pointer()]; !exists {
+				filtered = append(filtered, doc)
 			}
-			return filtered
 		}
-		s.docs = filterDocs(s.docs)
-		for i := range s.steps {
-			s.steps[i].Docs = filterDocs(s.steps[i].Docs)
-		}
+		return filtered
+	}
+	s.docs = filterDocs(s.docs)
+	for i := range s.steps {
+		s.steps[i].Docs = filterDocs(s.steps[i].Docs)
+	}
+}
+
+func (s *S) addDoc(entry DocEntry) {
+	sanitizeEntry(entry)
+	if children, ok := entry["children"].([]DocEntry); ok && len(children) > 0 {
+		s.dropDocs(children)
 	}
 	if s.currentStep != nil {
 		s.currentStep.Docs = append(s.currentStep.Docs, entry)
@@ -546,6 +749,13 @@ func (s *S) Screenshot(path string, altAndChildren ...any) DocEntry {
 	return entry
 }
 
+// Video attaches a video doc entry and returns it.
+func (s *S) Video(path string, opts VideoOptions, children ...DocEntry) DocEntry {
+	entry := videoEntry(path, opts, children...)
+	s.addDoc(entry)
+	return entry
+}
+
 // Html attaches an embedded-HTML doc entry and returns it. Exactly one of
 // opts.Path, opts.URL, or opts.Content must be set.
 func (s *S) Html(opts HtmlOptions, children ...DocEntry) DocEntry {
@@ -561,14 +771,39 @@ func (s *S) Custom(typeName string, data any, children ...DocEntry) DocEntry {
 	return entry
 }
 
-// Attach adds a file or inline attachment to the current step or test case level.
-func (s *S) Attach(name, mediaType string, path string) *S {
-	a := RawAttachment{
-		Name:      name,
-		MediaType: mediaType,
+// AttachmentOptions describes one attachment. Set Path for a file on disk or
+// Body for inline content; the rest are optional.
+type AttachmentOptions struct {
+	Name      string
+	MediaType string
+	Path      string
+	Body      string
+	// Encoding is "BASE64" or "IDENTITY" for an inline Body.
+	Encoding string
+	Charset  string
+	// FileName is the name to save the attachment under, when it differs.
+	FileName string
+}
+
+// optString is a pointer to v, or nil when v is empty.
+func optString(v string) *string {
+	if v == "" {
+		return nil
 	}
-	if path != "" {
-		a.Path = &path
+	return &v
+}
+
+// AttachOptions adds an attachment scoped to the current step, or to the test
+// case when no step is open.
+func (s *S) AttachOptions(opts AttachmentOptions) *S {
+	a := RawAttachment{
+		Name:      opts.Name,
+		MediaType: opts.MediaType,
+		Path:      optString(opts.Path),
+		Body:      optString(opts.Body),
+		Encoding:  optString(opts.Encoding),
+		Charset:   optString(opts.Charset),
+		FileName:  optString(opts.FileName),
 	}
 	if s.currentStep != nil {
 		idx := len(s.steps) - 1
@@ -577,29 +812,40 @@ func (s *S) Attach(name, mediaType string, path string) *S {
 	}
 	s.attachments = append(s.attachments, a)
 	return s
+}
+
+// Attach adds a file attachment to the current step or test case level.
+func (s *S) Attach(name, mediaType string, path string) *S {
+	return s.AttachOptions(AttachmentOptions{Name: name, MediaType: mediaType, Path: path})
 }
 
 // AttachInline adds inline content as an attachment.
 func (s *S) AttachInline(name, mediaType, body, encoding string) *S {
-	a := RawAttachment{
-		Name:      name,
-		MediaType: mediaType,
-		Body:      &body,
-		Encoding:  &encoding,
-	}
-	if s.currentStep != nil {
-		idx := len(s.steps) - 1
-		a.StepIndex = &idx
-		a.StepID = &s.currentStep.ID
-	}
-	s.attachments = append(s.attachments, a)
+	return s.AttachOptions(AttachmentOptions{
+		Name: name, MediaType: mediaType, Body: body, Encoding: encoding,
+	})
+}
+
+// TraceRef identifies a trace the test created itself.
+type TraceRef struct {
+	TraceID string
+	SpanID  string
+}
+
+// AttachSpans adds OTel spans to the story for trace waterfall rendering in
+// HTML reports. Accepts any slice of span-like objects (structurally
+// compatible with autotel's SerializedSpan). Repeated calls accumulate.
+func (s *S) AttachSpans(spans []any) *S {
+	s.otelSpans = append(s.otelSpans, spans...)
 	return s
 }
 
-// AttachSpans attaches OTel spans to the story for trace waterfall rendering in HTML reports.
-// Accepts any slice of span-like objects (structurally compatible with autotel's SerializedSpan).
-func (s *S) AttachSpans(spans []any) *S {
-	s.otelSpans = spans
+// AttachSpansWithTrace adds spans and wires the trace link for a trace the
+// test created after Init ran — its own root span, say, which the init-time
+// bridge could not have seen because it did not exist yet.
+func (s *S) AttachSpansWithTrace(spans []any, ref TraceRef) *S {
+	s.AttachSpans(spans)
+	s.applyTrace(ref.TraceID, ref.SpanID)
 	return s
 }
 

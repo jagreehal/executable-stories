@@ -63,6 +63,11 @@ export function mountReportIsland(): void {
     mermaid: mount.getAttribute("data-es-mermaid") !== "false",
   });
 
+  // The command the dialog hands over is stamped by the CLI, so it names the
+  // report directory this report was actually written to.
+  const share = mount.getAttribute("data-es-share") === "true";
+  const shareCommand = mount.getAttribute("data-es-share-cmd") ?? undefined;
+
   // Staleness threshold set by the CLI (--html-stale-after-days); 0 disables,
   // absent attribute means the default (7).
   const staleDaysAttr = mount.getAttribute("data-es-stale-days");
@@ -76,6 +81,8 @@ export function mountReportIsland(): void {
       renderers,
       staleAfterDays,
       scenarioHistory: readScenarioHistory(),
+      share,
+      shareCommand,
     }),
   );
 }

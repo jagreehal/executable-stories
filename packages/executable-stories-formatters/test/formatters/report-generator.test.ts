@@ -24,6 +24,7 @@ describe("ReportGenerator", () => {
         outputDir: tempDir,
         outputName: "report",
         output: { mode: "aggregated" },
+        html: { share: true },
       });
 
       const run = canonicalizeRun(createRawRun());
@@ -38,6 +39,7 @@ describe("ReportGenerator", () => {
       expect(html).toContain("es-report-island");
       // The interactive island JSON payload is embedded for client takeover.
       expect(html).toContain('id="es-report-data"');
+      expect(html).toContain(`share ${htmlPaths![0]}`);
     } finally {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }

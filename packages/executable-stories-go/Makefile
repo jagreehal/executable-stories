@@ -12,11 +12,11 @@ quality: format lint security test ## Run all quality checks
 # Testing
 test: ## Run tests
 	@echo "Running tests..."
-	@go test -v ./...
+	@go test -race -v ./...
 
 coverage: ## Run tests with coverage report
 	@echo "Running tests with coverage..."
-	@go test -coverprofile=coverage.out ./...
+	@go test -race -coverprofile=coverage.out ./...
 	@go tool cover -html=coverage.out -o coverage.html
 	@echo "Coverage report generated: coverage.html"
 
@@ -35,10 +35,10 @@ tidy: ## Tidy go.mod
 	@echo "Tidying go.mod..."
 	@go mod tidy
 
-# Security scanning (G301/G306 excluded: report dir/file perms intentional for CI/consumers)
+# Security scanning (G301/G302/G306 excluded: report dir/file perms intentional for CI/consumers)
 security: ## Run security scanner
 	@echo "Running security scanner..."
-	@gosec -exclude=G301,G306 ./...
+	@gosec -exclude=G301,G302,G306 ./...
 
 # Build (verify package compiles)
 build: ## Build / verify package compiles

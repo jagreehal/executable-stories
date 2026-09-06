@@ -46,6 +46,7 @@ const confluenceAdfJson = new ConfluenceFormatter().format(canonical);
 --html-title "Test Report"
 --html-no-syntax-highlighting
 --html-no-mermaid
+--html-share                 # show the Share button (hidden by default)
 --html-stale-after-days 7    # stale warning threshold in days; 0 disables
 
 # Run history (interactive HTML: per-scenario timeline, Flaky badges,

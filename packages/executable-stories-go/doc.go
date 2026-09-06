@@ -3,7 +3,13 @@ package es
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 )
+
+// warn reports a non-fatal problem. A package variable so tests can observe it.
+var warn = func(format string, args ...any) {
+	fmt.Fprintf(os.Stderr, format, args...)
+}
 
 // applyChildren attaches children to a DocEntry if any are provided.
 func applyChildren(entry DocEntry, children []DocEntry) DocEntry {
@@ -216,6 +222,7 @@ func HtmlEntry(opts HtmlOptions, children ...DocEntry) DocEntry {
 // stateEntry creates a DocEntry of kind "state". An empty label is omitted
 // (anonymous state lane); diffing is done by the TS core at render time.
 func stateEntry(label string, value any, children ...DocEntry) DocEntry {
+	warnIfLargeState(label, value)
 	entry := DocEntry{
 		"kind":  "state",
 		"value": value,
@@ -227,9 +234,56 @@ func stateEntry(label string, value any, children ...DocEntry) DocEntry {
 	return applyChildren(entry, children)
 }
 
+// stateWarnBytes is where a snapshot stops being a storyboard frame and starts
+// being a data dump. Matches the vitest adapter.
+const stateWarnBytes = 100_000
+
+// warnIfLargeState says so when a snapshot is big enough to bloat the report.
+// Non-fatal, and silent on a value json cannot size.
+func warnIfLargeState(label string, value any) {
+	b, err := json.Marshal(value)
+	if err != nil || len(b) <= stateWarnBytes {
+		return
+	}
+	if label == "" {
+		label = "state"
+	}
+	warn("[executable-stories] state %q is %dKB — consider capturing a projection of the entity instead of the whole thing\n",
+		label, len(b)/1024)
+}
+
 // StateEntry creates a DocEntry of kind "state" without pushing it to a story.
 func StateEntry(label string, value any, children ...DocEntry) DocEntry {
 	return stateEntry(label, value, children...)
+}
+
+// VideoOptions are the optional parts of a video doc entry.
+type VideoOptions struct {
+	// Caption is shown beneath the player.
+	Caption string
+	// Poster is the still shown before playback starts.
+	Poster string
+}
+
+// videoEntry creates a DocEntry of kind "video".
+func videoEntry(path string, opts VideoOptions, children ...DocEntry) DocEntry {
+	entry := DocEntry{
+		"kind":  "video",
+		"path":  path,
+		"phase": "runtime",
+	}
+	if opts.Caption != "" {
+		entry["caption"] = opts.Caption
+	}
+	if opts.Poster != "" {
+		entry["poster"] = opts.Poster
+	}
+	return applyChildren(entry, children)
+}
+
+// VideoEntry creates a DocEntry of kind "video" without pushing it to a story.
+func VideoEntry(path string, opts VideoOptions, children ...DocEntry) DocEntry {
+	return videoEntry(path, opts, children...)
 }
 
 // customEntry creates a DocEntry of kind "custom".
@@ -251,9 +305,37 @@ func CustomEntry(typeName string, data any, children ...DocEntry) DocEntry {
 func jsonEntry(label string, value any, children ...DocEntry) DocEntry {
 	b, err := json.MarshalIndent(value, "", "  ")
 	if err != nil {
+		warn("[executable-stories] json %q could not be serialized (%v); recorded as text\n", label, err)
 		b = []byte(fmt.Sprintf("%v", value))
 	}
 	return codeEntry(label, string(b), "json", children...)
+}
+
+// valueKeys are the doc-entry fields that carry a caller's own value, and so
+// are the fields that can hold something json cannot write.
+var valueKeys = []string{"value", "data"}
+
+// sanitizeEntry keeps one unserializable value from costing the whole report.
+// The run is marshalled as a single document, so a channel in one kv entry
+// used to fail the write and lose every scenario in the suite.
+func sanitizeEntry(entry DocEntry) {
+	if _, err := json.Marshal(entry); err == nil {
+		return
+	}
+	for _, key := range valueKeys {
+		value, ok := entry[key]
+		if !ok {
+			continue
+		}
+		_, err := json.Marshal(value)
+		if err == nil {
+			continue
+		}
+		warn("[executable-stories] %v %q could not be serialized (%v); recorded as text\n",
+			entry["kind"], entry["label"], err)
+		// The type is the useful half: it names what could not be written.
+		entry[key] = fmt.Sprintf("%v (%T)", value, value)
+	}
 }
 
 // JSONEntry creates a code DocEntry with lang=json without pushing it to a story.
