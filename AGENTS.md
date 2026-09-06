@@ -93,7 +93,7 @@ Test code (story.given/when/then/json/mermaid/...)
 - `syntaxHighlighting`: highlight.js for code blocks
 - `mermaidEnabled`: Mermaid.js for live diagram rendering
 
-Use `--html-no-syntax-highlighting` and `--html-no-mermaid` to disable. (Markdown in `section` doc entries is always parsed by the React renderer; there is no toggle.)
+Use `--html-no-syntax-highlighting` and `--html-no-mermaid` to disable; the Share button is hidden unless `--html-share` is passed. (Markdown in `section` doc entries is always parsed by the React renderer; there is no toggle.)
 
 ### Story API
 

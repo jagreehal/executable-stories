@@ -168,10 +168,48 @@ func TestFetchesUserProfile(t *testing.T) {
 
 `Fn` and `Expect` wrap a closure as a step with automatic timing. Panics propagate after duration is recorded.
 
-Go exposes no assertion counter. `Expect` therefore declares one assertion for that
-claim step. A plain `Then` followed by `t.Error` or `t.Errorf` remains unobserved, not
-zero. `RunAndReport` detects `go test -run`: narrowed invocations report
+### Counting assertions with `Check`
+
+Go exposes no assertion counter, so nothing can observe a hand-written
+`if got != want { t.Error(...) }`. `Check` is what puts the evidence in the
+report: it records one assertion against the open step, fails the test when the
+condition is false, and returns the condition so a caller can bail out.
+
+```go
+s.Then("the basket totals 4200")
+s.Check(basket.Total == 4200, "expected 4200, got %d", basket.Total)
+
+s.And("the basket holds two items")
+if !s.Check(len(basket.Items) == 2, "expected 2 items, got %d", len(basket.Items)) {
+    return // nothing below this reads without the items
+}
+```
+
+Assertions belong to the step that was open when they ran, the way Vitest
+attributes its live counter. `Expect` still declares one assertion for a wrapped
+claim that counted none, so an existing suite keeps its evidence.
+
+A plain `Then` followed by `t.Error` remains **unobserved**, which is not the
+same as zero: absent means nothing could be counted, and a scenario whose claim
+steps all assert nothing grades `none` in Evidence Review.
+
+`Check` needs a `TestingT` with `Errorf` — `*testing.T` has one. A custom
+`TestingT` without it panics on a failed check rather than passing quietly.
+
+`RunAndReport` detects `go test -run`: narrowed invocations report
 `runScope: "filtered"`, while a plain invocation reports `"full"`.
+
+### Step aliases and inline docs
+
+Every step method takes doc entries inline, and moves them onto that step:
+
+```go
+s.Then("the response is rejected", es.JSONEntry("body", body))
+```
+
+Arrange/act/assert names are available too: `Arrange`, `Act`, `Assert`,
+`Setup`, `Context`, `Execute`, `Action`, `Verify` — the same steps as
+`Given`/`When`/`Then` under the names the rest of the adapters use.
 
 ### Init options
 
@@ -181,8 +219,14 @@ s := es.Init(t, "My scenario",
     es.WithTicket("AUTH-42"),
     es.WithMeta(map[string]any{"priority": "high"}),
     es.WithTraceUrlTemplate("https://jaeger.example.com/trace/{traceId}"),
+    es.WithContext(ctx), // carries the active OTel span, so the trace reaches the report
 )
 ```
+
+`WithContext` is required for the OTel bridge: Go keeps the active span in the
+context, and the story has no other way to reach the one the test runs under.
+For a trace the test creates after `Init` — its own root span — use
+`s.AttachSpansWithTrace(spans, es.TraceRef{TraceID: id, SpanID: spanID})`.
 
 ### Manual step timing
 

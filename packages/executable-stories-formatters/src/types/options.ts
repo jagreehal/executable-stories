@@ -135,6 +135,10 @@ export interface FormatterOptions {
     mermaidEnabled?: boolean;
     /** Days before the report shows a stale warning. 0 disables. Default: 7 */
     staleAfterDays?: number;
+    /** Show the Share button in the interactive report header. Default: false. */
+    share?: boolean;
+    /** Command the share dialog shows. Default: `npx executable-stories share <output-dir>`. */
+    shareCommand?: string;
   };
 
   /**
@@ -324,6 +328,8 @@ export interface ResolvedFormatterOptions {
     syntaxHighlighting: boolean;
     mermaidEnabled: boolean;
     staleAfterDays: number;
+    share: boolean;
+    shareCommand: string | undefined;
   };
   historyStore: HistoryStore | undefined;
   junit: {

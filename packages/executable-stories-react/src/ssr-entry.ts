@@ -57,6 +57,10 @@ export interface RenderReportToHtmlOptions {
    * static (non-island) output.
    */
   scenarioHistory?: ScenarioHistoryMap;
+  /** Show the Share button in the interactive header (default false). `--html-share` turns it on. */
+  share?: boolean;
+  /** Command the share dialog hands over, e.g. `npx executable-stories share reports/`. */
+  shareCommand?: string;
 }
 
 const ROOT_ID = "es-report-root";
@@ -130,6 +134,8 @@ export function renderReportToHtml(
     islandScript = "",
     staleAfterDays = 7,
     scenarioHistory,
+    share = false,
+    shareCommand = "",
   } = options;
 
   const markup = renderToStaticMarkup(
@@ -164,8 +170,11 @@ export function renderReportToHtml(
   // module (cdn.body) would race the client takeover and is dropped. The hljs
   // stylesheet (cdn.head) is still required to colour the React-owned tokens.
   const cdnBody = interactive ? "" : cdn.body;
+  const shareAttrs = share
+    ? ` data-es-share="true"${shareCommand ? ` data-es-share-cmd="${escapeHtml(shareCommand)}"` : ""}`
+    : "";
   const islandConfigAttrs = interactive
-    ? ` data-es-syntax="${syntaxHighlighting ? "true" : "false"}" data-es-mermaid="${mermaid ? "true" : "false"}" data-es-stale-days="${Number.isFinite(staleAfterDays) && staleAfterDays >= 0 ? staleAfterDays : 7}"`
+    ? ` data-es-syntax="${syntaxHighlighting ? "true" : "false"}" data-es-mermaid="${mermaid ? "true" : "false"}" data-es-stale-days="${Number.isFinite(staleAfterDays) && staleAfterDays >= 0 ? staleAfterDays : 7}"${shareAttrs}`
     : "";
   const rootAttrs = interactive
     ? ` id="${ROOT_ID}" data-title="${escapeHtml(title)}"${islandConfigAttrs}`

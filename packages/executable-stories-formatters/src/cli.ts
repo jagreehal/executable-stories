@@ -80,6 +80,7 @@ import { expandPreset, presetHelpLines } from './presets';
 import { publishConfluencePage } from './publishers/confluence';
 import { publishJiraIssue, type JiraPublishMode } from './publishers/jira';
 import { runPush } from './push';
+import { runShare } from './share';
 import { buildReview, codeDiffDiagnostics } from './review/build-review';
 import {
   assembleCodeDiff,
@@ -163,6 +164,7 @@ USAGE
   executable-stories new <template> "<name>" [options]
   executable-stories check-links <dir> [options]
   executable-stories push <run.json|results.xml|allure-results/> [--format <fmt>] [--gate] [--force]
+  executable-stories share <reports-dir|report.json> [--emails <a@b,c@d>] [--expires-days <n>]
   executable-stories coverage <testrail|xray> <run.json> [options]
   executable-stories sync <testrail|xray> <run.json> [--apply] [options]
   executable-stories import-openapi <spec> [options]
@@ -191,6 +193,7 @@ SUBCOMMANDS
   new                Scaffold a docs page from a template (adr, runbook, decision-log, incident, scenario-note)
   check-links        Scan docs for broken internal/external links (CI-friendly exit code)
   push               Send a run to a cloud ingest endpoint: StoryReport, raw run, JUnit XML, Playwright JSON or allure-results
+  share              Publish a report (with its screenshots and video) and print a link to it
   coverage           Compare your stories against a test-management system (read-only)
   sync               Push cases, executions, and evidence to TestRail or Xray (dry run by default)
   import-openapi     Generate API doc pages from an OpenAPI spec, linked to verifying stories
@@ -234,6 +237,7 @@ ${presetHelpLines()
   --html-title <title>          HTML report title (default: Test Results)
   --html-no-syntax-highlighting Disable syntax highlighting in HTML (enabled by default)
   --html-no-mermaid             Disable mermaid diagrams in HTML (enabled by default)
+  --html-share                  Show the Share button in the HTML report (hidden by default)
   --html-stale-after-days <n>   Days before the HTML report shows a stale warning; 0 disables (default: 7)
   --asset-mode <mode>         Asset bundling: "none" (default) or "copy"
   --allow-missing-assets      Warn on missing assets instead of failing
@@ -433,6 +437,7 @@ interface CliArgs {
   htmlTitle: string;
   htmlNoSyntaxHighlighting: boolean;
   htmlNoMermaid: boolean;
+  htmlShare: boolean;
   htmlStaleAfterDays: number;
   jsonSummary: boolean;
   /** Emit compact JSON for agent-facing artifacts (story-report, scenario-index, behavior-manifest, list --json). */
@@ -545,6 +550,7 @@ async function parseCliArgs(
     subcommand !== 'new' &&
     subcommand !== 'check-links' &&
     subcommand !== 'push' &&
+    subcommand !== 'share' &&
     subcommand !== 'import-openapi' &&
     subcommand !== 'publish-confluence' &&
     subcommand !== 'publish-jira' &&
@@ -566,7 +572,7 @@ async function parseCliArgs(
       process.exit(EXIT_USAGE);
     }
     console.error(
-      `Unknown subcommand: "${subcommand}". Use "format", "watch", "compare", "gate-release", "deploy", "review", "list", "check", "check-explainers", "goal", "triage", "validate", "doctor", "completion", "dev", "init-astro", "new", "check-links", "push", "sync", "coverage", "import-openapi", "publish-confluence", or "publish-jira".`,
+      `Unknown subcommand: "${subcommand}". Use "format", "watch", "compare", "gate-release", "deploy", "review", "list", "check", "check-explainers", "goal", "triage", "validate", "doctor", "completion", "dev", "init-astro", "new", "check-links", "push", "share", "sync", "coverage", "import-openapi", "publish-confluence", or "publish-jira".`,
     );
     process.exit(EXIT_USAGE);
   }
@@ -745,6 +751,7 @@ async function parseCliArgs(
   if (subcommand === 'check-links')
     process.exit(await runCheckLinks(args.slice(1)));
   if (subcommand === 'push') process.exit(await runPush(args.slice(1)));
+  if (subcommand === 'share') process.exit(await runShare(args.slice(1)));
   if (subcommand === 'sync')
     process.exit(await runSyncCommand('sync', args.slice(1)));
   if (subcommand === 'coverage')
@@ -775,6 +782,7 @@ async function parseCliArgs(
       'html-title': { type: 'string', default: 'Test Results' },
       'html-no-syntax-highlighting': { type: 'boolean', default: false },
       'html-no-mermaid': { type: 'boolean', default: false },
+      'html-share': { type: 'boolean', default: false },
       'html-stale-after-days': { type: 'string' },
       stdin: { type: 'boolean', default: false },
       'json-summary': { type: 'boolean', default: false },
@@ -1227,6 +1235,7 @@ async function parseCliArgs(
     htmlTitle: values['html-title'] as string,
     htmlNoSyntaxHighlighting: values['html-no-syntax-highlighting'] as boolean,
     htmlNoMermaid: values['html-no-mermaid'] as boolean,
+    htmlShare: values['html-share'] as boolean,
     htmlStaleAfterDays,
     jsonSummary: values['json-summary'] as boolean,
     minify: values['minify'] as boolean,
@@ -2584,6 +2593,7 @@ async function generateReports(
       title: args.htmlTitle,
       syntaxHighlighting: !args.htmlNoSyntaxHighlighting,
       mermaidEnabled: !args.htmlNoMermaid,
+      share: args.htmlShare,
       staleAfterDays: args.htmlStaleAfterDays,
     },
     historyStore,
@@ -3732,6 +3742,7 @@ function createDefaultCliArgs(): CliArgs {
     htmlTitle: 'Test Results',
     htmlNoSyntaxHighlighting: false,
     htmlNoMermaid: false,
+    htmlShare: false,
     htmlStaleAfterDays: 7,
     jsonSummary: false,
     minify: false,

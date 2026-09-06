@@ -54,6 +54,17 @@ executable-stories format --preset ci --format html
 # Open the HTML report when it's written (no-op with a warning if no html format)
 executable-stories format --format html --open
 
+# Publish a report and its screenshots/videos, and print a link to it.
+# Key from EXECUTABLE_STORIES_API_KEY, or --key. Takes a reports directory or a
+# single report.html / report.json.
+executable-stories share reports/
+
+# Restrict it to named people behind a sign-in (default: anyone with the link)
+executable-stories share reports/ --emails alex@example.com,sam@example.com
+
+# Put a Share button in the HTML report, which hands the reader this command
+executable-stories format reports/raw-run.json --format html --html-share
+
 # Diagnose the run JSON (location, parse, schema version vs CLI, contents).
 # Use this FIRST when a non-JS adapter's output won't format: it names the
 # cross-language version-drift case instead of failing deep in validation.

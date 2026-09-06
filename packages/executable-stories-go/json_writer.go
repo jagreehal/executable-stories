@@ -24,6 +24,11 @@ func printNextStep(outputPath string) {
 
 // writeRawRun marshals the RawRun to JSON and writes it to the given file path.
 // Parent directories are created automatically.
+//
+// The write goes to a temp file in the same directory and is renamed into
+// place, so a reader watching the path sees either the previous report or the
+// new one, never a half-written document. A failed run leaves the last good
+// report where it was.
 func writeRawRun(run RawRun, outputPath string) error {
 	dir := filepath.Dir(outputPath)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
@@ -35,5 +40,23 @@ func writeRawRun(run RawRun, outputPath string) error {
 		return err
 	}
 
-	return os.WriteFile(outputPath, data, 0o644)
+	tmp, err := os.CreateTemp(dir, ".raw-run-*.json")
+	if err != nil {
+		return err
+	}
+	// Removing a name that rename already consumed fails harmlessly; this is
+	// only here to clear the temp file on the paths that do not get that far.
+	defer func() { _ = os.Remove(tmp.Name()) }()
+
+	if _, err := tmp.Write(data); err != nil {
+		_ = tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	if err := os.Chmod(tmp.Name(), 0o644); err != nil {
+		return err
+	}
+	return os.Rename(tmp.Name(), outputPath)
 }

@@ -51,6 +51,10 @@ export * from "./explainer.js";
 // ./report-queries subpath directly; this barrel is Node-only.
 export * from "./report-queries.js";
 
+// Local files a report points at (screenshots, video, html fragments): what to
+// upload when a report leaves the machine, and how to re-point it on arrival.
+export * from "./report-assets.js";
+
 // Pure doc/render helpers
 export * from "./utils/scenario-markdown.js";
 export * from "./utils/doc-builders.js";

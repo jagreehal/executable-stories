@@ -44,6 +44,7 @@ import { ReportFilters } from './ReportFilters';
 import { ReportFreshness } from './ReportFreshness';
 import { ReportLastRunDelta } from './ReportLastRunDelta';
 import { ReportSearch } from './ReportSearch';
+import { ReportShare } from './ReportShare';
 import { ReportSinceLastVisit } from './ReportSinceLastVisit';
 import { ReportShortcutsHelp } from './ReportShortcutsHelp';
 import { ReportToc } from './ReportToc';
@@ -99,6 +100,10 @@ export interface ReportInteractiveProps {
    * When present, scenario cards show a run-over-run timeline strip.
    */
   scenarioHistory?: ScenarioHistoryMap;
+  /** Show the Share button in the header (default false). `--html-share` turns it on. */
+  share?: boolean;
+  /** Command the share dialog hands over. Default: `npx executable-stories share reports/`. */
+  shareCommand?: string;
 }
 
 export function ReportInteractive(props: ReportInteractiveProps) {
@@ -174,6 +179,8 @@ function ReportInteractiveView({
   hideToc = false,
   staleAfterDays = 7,
   scenarioHistory,
+  share = false,
+  shareCommand,
 }: ReportInteractiveViewProps) {
   // Search, status, tags and detail live in the URL fragment, so a filtered
   // view survives a refresh and can be pasted to someone else.
@@ -435,6 +442,9 @@ function ReportInteractiveView({
                         matchedCount={matchedScenarios}
                         totalCount={totalScenarios}
                       />
+                      {share ? (
+                        <ReportShare command={shareCommand} onCopy={copy} />
+                      ) : null}
                       <ThemeSegment pref={themePref} onPref={setThemePref} />
                     </div>
                   </div>

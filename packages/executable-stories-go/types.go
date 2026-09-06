@@ -7,21 +7,21 @@ const SchemaURL = "https://executable-stories.dev/schemas/raw-run.schema.json"
 
 // RawRun is the top-level output matching the executable-stories JSON schema.
 type RawRun struct {
-	Schema         string         `json:"$schema,omitempty"`
-	SchemaVersion  int            `json:"schemaVersion"`
-	TestCases      []RawTestCase  `json:"testCases"`
-	Features       []RawFeature   `json:"features,omitempty"`
-	ProjectRoot    string         `json:"projectRoot"`
-	StartedAtMs    *float64       `json:"startedAtMs,omitempty"`
-	FinishedAtMs   *float64       `json:"finishedAtMs,omitempty"`
-	PackageVersion string         `json:"packageVersion,omitempty"`
-	GitSha         string         `json:"gitSha,omitempty"`
-	CI             *RawCIInfo     `json:"ci,omitempty"`
+	Schema         string        `json:"$schema,omitempty"`
+	SchemaVersion  int           `json:"schemaVersion"`
+	TestCases      []RawTestCase `json:"testCases"`
+	Features       []RawFeature  `json:"features,omitempty"`
+	ProjectRoot    string        `json:"projectRoot"`
+	StartedAtMs    *float64      `json:"startedAtMs,omitempty"`
+	FinishedAtMs   *float64      `json:"finishedAtMs,omitempty"`
+	PackageVersion string        `json:"packageVersion,omitempty"`
+	GitSha         string        `json:"gitSha,omitempty"`
+	CI             *RawCIInfo    `json:"ci,omitempty"`
 	// RunScope is how much of each source file this run covered: "full" when
 	// the -run flag was inspected and narrowed nothing, "filtered" when it did.
 	// Only "full" lets a consumer retire a scenario it no longer reports.
-	RunScope       string         `json:"runScope,omitempty"`
-	Meta           map[string]any `json:"meta,omitempty"`
+	RunScope string         `json:"runScope,omitempty"`
+	Meta     map[string]any `json:"meta,omitempty"`
 }
 
 // RawFeature is what a package's scenarios are for, declared with Feature.

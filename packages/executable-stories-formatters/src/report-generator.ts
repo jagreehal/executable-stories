@@ -125,6 +125,12 @@ export function joinNameAndExt(name: string, ext: string): string {
   return ext.startsWith(stutter) ? `${name}.${ext.slice(stutter.length)}` : `${name}${ext}`;
 }
 
+function quoteShellArgument(value: string): string {
+  return /^[a-zA-Z0-9_./:-]+$/.test(value)
+    ? value
+    : "'" + value.replaceAll("'", "'\"'\"'") + "'";
+}
+
 /** Known test file extensions to strip for colocated naming */
 const TEST_EXTENSIONS = [
   ".test.ts", ".test.tsx", ".spec.ts", ".spec.tsx",
@@ -430,6 +436,8 @@ export class ReportGenerator {
         syntaxHighlighting: options.html?.syntaxHighlighting ?? true,
         mermaidEnabled: options.html?.mermaidEnabled ?? true,
         staleAfterDays: options.html?.staleAfterDays ?? 7,
+        share: options.html?.share ?? false,
+        shareCommand: options.html?.shareCommand,
       },
       historyStore: options.historyStore,
       junit: {
@@ -697,7 +705,7 @@ export class ReportGenerator {
       const ext = FORMAT_EXTENSIONS[format];
       const effectiveName = this.options.outputName + (outputNameSuffix ?? "");
       const outputPath = toPosix(path.join(this.options.outputDir, joinNameAndExt(effectiveName, ext)));
-      const content = await this.formatContent(run, format);
+      const content = await this.formatContent(run, format, outputPath);
       const dir = path.dirname(outputPath);
       await fsPromises.mkdir(dir, { recursive: true });
       await this.deps.writeFile(outputPath, content);
@@ -714,7 +722,7 @@ export class ReportGenerator {
       };
 
       // Format content
-      const content = await this.formatContent(groupRun, format);
+      const content = await this.formatContent(groupRun, format, outputPath);
 
       // Ensure directory exists
       const dir = path.dirname(outputPath);
@@ -731,7 +739,7 @@ export class ReportGenerator {
   /**
    * Format content for a specific format.
    */
-  private formatContent(run: TestRunResult, format: OutputFormat): string | Promise<string> {
+  private formatContent(run: TestRunResult, format: OutputFormat, outputPath: string): string | Promise<string> {
     switch (format) {
       case "cucumber-json": {
         const formatter = new CucumberJsonFormatter({
@@ -745,7 +753,7 @@ export class ReportGenerator {
         // report renderer). Lazy import keeps React + executable-stories-react
         // out of the eager import graph (and the Bun single binary) unless the
         // html format is requested.
-        return this.formatHtmlReact(run);
+        return this.formatHtmlReact(run, outputPath);
       }
 
       case "cucumber-html": {
@@ -879,7 +887,7 @@ export class ReportGenerator {
    * uses, so the two outputs cannot drift. Imported lazily so React stays out
    * of the eager bundle unless this format is requested.
    */
-  private async formatHtmlReact(run: TestRunResult): Promise<string> {
+  private async formatHtmlReact(run: TestRunResult, outputPath: string): Promise<string> {
     // Lazy on purpose (see above): a static import would pull React into every
     // bundle that touches this module, HTML output requested or not.
     // eslint-disable-next-line no-restricted-syntax
@@ -911,10 +919,13 @@ export class ReportGenerator {
       title: this.options.html.title,
       css: readReactReportCss(),
       theme: "light",
-      // Honour the --html-no-syntax-highlighting / --html-no-mermaid flags.
       syntaxHighlighting: this.options.html.syntaxHighlighting,
       mermaid: this.options.html.mermaidEnabled,
       staleAfterDays: this.options.html.staleAfterDays,
+      share: this.options.html.share,
+      shareCommand:
+        this.options.html.shareCommand ??
+        `npx --package executable-stories-formatters executable-stories share ${quoteShellArgument(outputPath)}`,
       scenarioHistory,
       islandScript: readReactIslandScript(),
     });

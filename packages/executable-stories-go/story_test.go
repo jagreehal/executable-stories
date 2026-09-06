@@ -1,10 +1,13 @@
 package es
 
 import (
+	"context"
 	"encoding/json"
 	"strings"
 	"testing"
 	"time"
+
+	otelTrace "go.opentelemetry.io/otel/trace"
 )
 
 // mockT implements TestingT for unit testing.
@@ -1143,5 +1146,80 @@ func TestPlannedReportsASkippedTestAsSkipped(t *testing.T) {
 	}
 	if cases[0].Status != "skip" {
 		t.Errorf("expected status=skip, got %q", cases[0].Status)
+	}
+}
+
+// TestFnDurationLandsOnItsOwnStep guards the wrapped-step timing: a body that
+// adds steps of its own used to hand its duration to the step it finished on.
+func TestFnDurationLandsOnItsOwnStep(t *testing.T) {
+	reset()
+
+	s := Init(&mockT{name: "TestFnNesting"}, "nested steps")
+	s.Fn("When", "outer", func() {
+		time.Sleep(2 * time.Millisecond)
+		s.Given("a step added inside the body")
+	})
+
+	if s.steps[0].Text != "outer" || s.steps[0].DurationMs == nil {
+		t.Fatalf("expected the wrapped step to carry the duration, got %+v", s.steps[0])
+	}
+	if s.steps[1].DurationMs != nil {
+		t.Fatalf("expected the inner step to be untimed, got %v", *s.steps[1].DurationMs)
+	}
+}
+
+// TestSubMillisecondStepIsTimed guards against truncating fast steps to zero.
+func TestSubMillisecondStepIsTimed(t *testing.T) {
+	reset()
+
+	s := Init(&mockT{name: "TestFast"}, "fast step")
+	s.Fn("When", "fast", func() { time.Sleep(300 * time.Microsecond) })
+
+	if d := s.steps[0].DurationMs; d == nil || *d <= 0 {
+		t.Fatalf("expected a non-zero sub-millisecond duration, got %v", d)
+	}
+}
+
+// TestOtelBridgeNeedsAContext records that the bridge is inert without one:
+// Go carries the active span in the context, so a story handed none has no
+// span to read.
+func TestOtelBridgeNeedsAContext(t *testing.T) {
+	reset()
+
+	s := Init(&mockT{name: "TestNoCtx"}, "no context")
+	if s.meta != nil {
+		t.Fatalf("expected no otel meta without a context, got %v", s.meta)
+	}
+}
+
+// TestOtelBridgeCapturesTheTrace proves the bridge fires when the story is
+// handed the context carrying the span.
+func TestOtelBridgeCapturesTheTrace(t *testing.T) {
+	reset()
+
+	traceID, _ := otelTrace.TraceIDFromHex("0102030405060708090a0b0c0d0e0f10")
+	spanID, _ := otelTrace.SpanIDFromHex("0102030405060708")
+	ctx := otelTrace.ContextWithSpanContext(context.Background(), otelTrace.NewSpanContext(otelTrace.SpanContextConfig{
+		TraceID: traceID,
+		SpanID:  spanID,
+	}))
+
+	s := Init(&mockT{name: "TestTraced"}, "a traced scenario",
+		WithContext(ctx),
+		WithTraceUrlTemplate("https://tempo.example/trace/{traceId}"))
+
+	otel, ok := s.meta["otel"].(map[string]any)
+	if !ok || otel["traceId"] != traceID.String() {
+		t.Fatalf("expected the trace id in meta, got %v", s.meta)
+	}
+
+	var linked string
+	for _, d := range s.docs {
+		if d["kind"] == "link" {
+			linked, _ = d["url"].(string)
+		}
+	}
+	if linked != "https://tempo.example/trace/"+traceID.String() {
+		t.Fatalf("expected a resolved trace link, got %q", linked)
 	}
 }

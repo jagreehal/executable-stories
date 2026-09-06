@@ -7,11 +7,12 @@ import (
 )
 
 var (
-	mu        sync.Mutex
-	collected []RawTestCase
-	features  []RawFeature
-	startTime time.Time
-	orderSeq  int
+	mu         sync.Mutex
+	collected  []RawTestCase
+	features   []RawFeature
+	startTime  time.Time
+	finishTime time.Time
+	orderSeq   int
 )
 
 // record adds a completed test case to the global collection.
@@ -67,8 +68,10 @@ func reset() {
 	mu.Lock()
 	defer mu.Unlock()
 	collected = nil
+	features = nil
 	orderSeq = 0
 	startTime = time.Time{}
+	finishTime = time.Time{}
 }
 
 // detectCI detects the CI environment from environment variables.

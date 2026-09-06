@@ -176,6 +176,10 @@ export default defineConfig({
               slug: 'guides/publishing-to-atlassian',
             },
             {
+              label: 'Sharing reports',
+              slug: 'guides/sharing-reports',
+            },
+            {
               label: 'TestRail & Xray sync',
               slug: 'guides/test-management-sync',
             },
