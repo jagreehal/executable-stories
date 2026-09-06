@@ -229,6 +229,26 @@ class TestDocMethods:
         assert meta is not None
         assert "alt" not in meta["docs"][0]
 
+    def test_video_doc(self, fresh_story: Story):
+        fresh_story.init("Test")
+        fresh_story.video("run.webm", caption="Checkout run", poster="run.jpg")
+        meta = fresh_story._get_meta()
+        assert meta is not None
+        assert meta["docs"][0] == {
+            "kind": "video",
+            "path": "run.webm",
+            "caption": "Checkout run",
+            "poster": "run.jpg",
+            "phase": "runtime",
+        }
+
+    def test_video_doc_path_only(self, fresh_story: Story):
+        fresh_story.init("Test")
+        fresh_story.video("run.webm")
+        meta = fresh_story._get_meta()
+        assert meta is not None
+        assert meta["docs"][0] == {"kind": "video", "path": "run.webm", "phase": "runtime"}
+
     def test_state_doc(self, fresh_story: Story):
         fresh_story.init("Test")
         fresh_story.state({"items": 2, "total": 9.98}, label="Basket")
@@ -570,7 +590,7 @@ class TestDocChildren:
         fresh_story.init("Test")
         fresh_story.given("a step")
         child = fresh_story.note("child note")
-        parent = fresh_story.kv("parent", "val", children=[child])
+        fresh_story.kv("parent", "val", children=[child])
         meta = fresh_story._get_meta()
         assert meta is not None
         step_docs = meta["steps"][0]["docs"]

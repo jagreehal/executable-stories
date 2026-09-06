@@ -26,7 +26,7 @@ Example app using [executable-stories-pytest](../../packages/executable-stories-
 
    If you have conflicting pytest plugins (e.g. logfire), run with `-p no:logfire -p no:langsmith_plugin -p no:anyio`.
 
-3. **Check output** — After tests, `apps/pytest-example/.executable-stories/raw-run.json` should exist and contain run/testCases with story titles and steps.
+3. **Check output** — After tests, `apps/pytest-example/.executable-stories/raw-run.json` should exist and contain run/testCases with story titles and steps, plus `coveredSourceFiles` listing the test files the run reached. Source paths are relative to the project root.
 
 4. **Optional: generate reports** (from repo root; requires Node/pnpm):
 

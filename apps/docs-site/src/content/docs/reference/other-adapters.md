@@ -119,12 +119,17 @@ func TestCheckout(t *testing.T) {
 |---|---|
 | Package | `executable-stories-pytest` |
 | Install | `pip install executable-stories-pytest` |
-| Min version | Python 3.10, pytest 7 |
+| Min version | Python 3.12, pytest 8 |
+| Import | `from executable_stories import story` |
+
+The distribution is named `executable-stories-pytest`; the module it installs is
+`executable_stories`. Installing it registers the plugin, so there is nothing to
+add to `conftest.py` or `pyproject.toml`.
 
 ### Story initialization
 
 ```python
-from executable_stories_pytest import story
+from executable_stories import story
 
 def test_login():
     story.init(
@@ -172,31 +177,77 @@ Note: `and_` and `assert_` use a trailing underscore to avoid clashing with Pyth
 | `story.section(title, markdown)` | Titled markdown section |
 | `story.mermaid(code, title=None)` | Mermaid diagram |
 | `story.screenshot(path, alt=None)` | Screenshot reference |
+| `story.video(path, caption=None, poster=None)` | Video, played inline in HTML reports |
+| `story.html(path=…\|url=…\|content=…, title=None, height=None)` | HTML in a sandboxed iframe |
 | `story.custom(type, data)` | Custom entry |
+
+Every doc method also takes `children=[...]` to nest entries under one heading.
+
+### Feature declarations and planned scenarios
+
+```python
+story.feature(
+    "Anyone can do arithmetic without reaching for a calculator app",
+    kind="ability",
+    narrative="People doing quick sums lose their place when they switch apps.",
+    glossary=[{"term": "operand", "definition": "One of the two numbers."}],
+)
+
+
+def test_calculator_rejects_non_numeric_input():
+    story.planned("Calculator rejects non-numeric input")
+```
+
+`story.feature(...)` runs at import time and heads every scenario in the file.
+`story.planned(...)` records behaviour that is specified but not built: it
+reaches the report as status `todo` and stops being planned the moment someone
+writes it as a real `story.init` scenario.
 
 ### Attachments and timing
 
 ```python
 story.attach("response.json", "application/json", path="/tmp/response.json")
-story.attach("body", "text/plain", body=b"response body")  # inline
-story.attach_spans(trace_id, span_ids)  # OTel trace links
+story.attach("body", "text/plain", body="response body")  # inline
+story.attach_spans([{"name": "GET /orders", "traceId": trace_id, "spanId": span_id}])
 
-story.start_timer("db-query")
+story.given("the database is queried")
+token = story.start_timer()
 # ... operation ...
-story.end_timer("db-query")
+story.end_timer(token)
 
-story.fn("step description", lambda: do_something())
-story.expect("assertion description", got, expected)
+profile = story.fn("When", "the profile is fetched", lambda: fetch_profile("u-1"))
+story.expect("the profile carries the right name", lambda: check(profile))
 ```
+
+`start_timer()` returns a token tied to the step that was current when it was
+called, so timing survives steps recorded in between.
 
 ### JSON output mechanism
 
-The pytest plugin writes output automatically via `pytest_sessionfinish`. No explicit call needed. Output path defaults to `executable-stories-output.json` and can be overridden with `ES_OUTPUT_FILE`. Output is written under CI (`CI=true`) or `ES_FORCE_OUTPUT=true`.
+The plugin writes `.executable-stories/raw-run.json` under pytest's root
+directory when the session finishes — no call, and no CI-only gating. Set
+`EXECUTABLE_STORIES_OUTPUT` to move it; a relative path is resolved against the
+project root, an absolute one is used as given. The file is renamed into place,
+so a reader never sees a half-written run. `EXECUTABLE_STORIES_QUIET` silences
+the `next:` hint the plugin prints to stderr.
+
+Each run also reports what it reached, so the accumulated report stays honest as
+tests come and go:
+
+| Field | Meaning |
+|---|---|
+| `coveredSourceFiles` | Every file the run executed a test in, whether or not it produced a story, so deleting a file's last scenario retires it |
+| `incompleteSourceFiles` | Files the run cannot speak for — a skipped test, a broken fixture or teardown, a module that failed to import, a test that failed before `story.init` — so their scenarios are kept |
+| `runScope` | `"filtered"` for `-k`, `-m`, `--deselect`, `--last-failed`, a `file.py::test` node id, or a run that ended early — `-x`, `--maxfail`, Ctrl-C, an internal or usage error; otherwise `"full"` |
+| `gitSha` | The commit the run describes, from CI's environment or `git rev-parse HEAD` |
+
+Source paths are relative to the project root, which is what keys the stored
+per-file reports under `reports/by-file/`.
 
 ### Complete example
 
 ```python
-from executable_stories_pytest import story
+from executable_stories import story
 
 def test_checkout():
     story.init("Guest can complete checkout", tags=["checkout", "e2e"], ticket="SHOP-99")

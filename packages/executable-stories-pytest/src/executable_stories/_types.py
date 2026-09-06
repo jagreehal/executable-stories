@@ -83,6 +83,23 @@ class ScreenshotDoc(TypedDict):
     children: NotRequired[list["DocEntry"]]
 
 
+class VideoDoc(TypedDict):
+    kind: str  # "video"
+    path: str
+    phase: str
+    caption: NotRequired[str]
+    poster: NotRequired[str]
+    children: NotRequired[list["DocEntry"]]
+
+
+class StateDoc(TypedDict):
+    kind: str  # "state"
+    value: Any
+    phase: str
+    label: NotRequired[str]
+    children: NotRequired[list["DocEntry"]]
+
+
 class HtmlDoc(TypedDict):
     kind: str  # "html"
     phase: str
@@ -103,7 +120,21 @@ class CustomDoc(TypedDict):
 
 
 # Union of all doc entry types
-DocEntry = NoteDoc | TagDoc | KvDoc | CodeDoc | TableDoc | LinkDoc | SectionDoc | MermaidDoc | ScreenshotDoc | HtmlDoc | CustomDoc
+DocEntry = (
+    NoteDoc
+    | TagDoc
+    | KvDoc
+    | CodeDoc
+    | TableDoc
+    | LinkDoc
+    | SectionDoc
+    | MermaidDoc
+    | ScreenshotDoc
+    | VideoDoc
+    | StateDoc
+    | HtmlDoc
+    | CustomDoc
+)
 
 
 # ── Ticket ────────────────────────────────────────────────────────
@@ -223,3 +254,10 @@ class RawRun(TypedDict):
     # How much of each source file this run covered: "full" (no name filter was
     # applied), "filtered" (one was), or absent when it cannot be determined.
     runScope: NotRequired[str]
+    # Every file this run executed a test in, whether or not it produced a
+    # story, so a file emptied of scenarios is distinguishable from one that
+    # never ran.
+    coveredSourceFiles: NotRequired[list[str]]
+    # Files this run cannot speak for, so a consumer keeps what they last
+    # documented rather than treating the run as authoritative.
+    incompleteSourceFiles: NotRequired[list[str]]

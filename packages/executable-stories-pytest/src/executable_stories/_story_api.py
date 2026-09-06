@@ -18,11 +18,15 @@ import json
 import os
 import threading
 import time
-from typing import Any, Callable, TypeVar
+from collections.abc import Sequence
+from typing import Any, Callable, TypeVar, Union
 
 from executable_stories._collector import _collector
 
 _T = TypeVar("_T")
+
+#: A ticket id, a ticket object, or a list mixing the two.
+TicketArg = Union[str, dict[str, Any], Sequence[Union[str, dict[str, Any]]], None]
 
 
 class _StoryContext:
@@ -90,20 +94,19 @@ class Story:
         return getattr(self._local, "ctx", None)
 
     @staticmethod
-    def _normalize_tickets(ticket: Any) -> list[dict[str, Any]] | None:
+    def _normalize_tickets(ticket: TicketArg) -> list[dict[str, Any]] | None:
         """Normalize ticket input to list of ``{"id": ...}`` dicts."""
         if ticket is None:
             return None
-        if not isinstance(ticket, list):
-            ticket = [ticket]
-        return [{"id": t} if isinstance(t, str) else t for t in ticket]
+        tickets = [ticket] if isinstance(ticket, (str, dict)) else ticket
+        return [{"id": t} if isinstance(t, str) else dict(t) for t in tickets]
 
     def init(
         self,
         scenario: str,
         *,
         tags: list[str] | None = None,
-        ticket: str | list[str] | dict | list[dict | str] | None = None,
+        ticket: TicketArg = None,
         covers: list[str] | None = None,
         meta: dict[str, Any] | None = None,
         trace_url_template: str | None = None,
@@ -186,9 +189,7 @@ class Story:
         if tags:
             declared["tags"] = tags
         if glossary:
-            declared["glossary"] = [
-                {"term": t["term"], "definition": t["definition"]} for t in glossary
-            ]
+            declared["glossary"] = [{"term": t["term"], "definition": t["definition"]} for t in glossary]
 
         _collector.record_feature(declared)
 
@@ -197,7 +198,7 @@ class Story:
         scenario: str,
         *,
         tags: list[str] | None = None,
-        ticket: str | list[str] | dict | list[dict | str] | None = None,
+        ticket: TicketArg = None,
         covers: list[str] | None = None,
         meta: dict[str, Any] | None = None,
     ) -> None:
@@ -487,7 +488,8 @@ class Story:
         last = ctx.steps[-1]
         if "docs" not in last:
             last["docs"] = []
-        return last["docs"]
+        docs: list[dict[str, Any]] = last["docs"]
+        return docs
 
     def _story_docs(self) -> list[dict[str, Any]]:
         """Return the story-level docs list."""
@@ -552,7 +554,9 @@ class Story:
         self._attach_doc(entry)
         return entry
 
-    def code(self, label: str, content: str, *, lang: str | None = None, children: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    def code(
+        self, label: str, content: str, *, lang: str | None = None, children: list[dict[str, Any]] | None = None
+    ) -> dict[str, Any]:
         """Add a code block."""
         entry: dict[str, Any] = {
             "kind": "code",
@@ -568,7 +572,9 @@ class Story:
         self._attach_doc(entry)
         return entry
 
-    def table(self, label: str, columns: list[str], rows: list[list[str]], *, children: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    def table(
+        self, label: str, columns: list[str], rows: list[list[str]], *, children: list[dict[str, Any]] | None = None
+    ) -> dict[str, Any]:
         """Add a table."""
         entry: dict[str, Any] = {
             "kind": "table",
@@ -606,7 +612,9 @@ class Story:
         self._attach_doc(entry)
         return entry
 
-    def mermaid(self, code: str, *, title: str | None = None, children: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    def mermaid(
+        self, code: str, *, title: str | None = None, children: list[dict[str, Any]] | None = None
+    ) -> dict[str, Any]:
         """Add a Mermaid diagram."""
         entry: dict[str, Any] = {"kind": "mermaid", "code": code, "phase": "runtime"}
         if title is not None:
@@ -617,7 +625,9 @@ class Story:
         self._attach_doc(entry)
         return entry
 
-    def screenshot(self, path: str, *, alt: str | None = None, children: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    def screenshot(
+        self, path: str, *, alt: str | None = None, children: list[dict[str, Any]] | None = None
+    ) -> dict[str, Any]:
         """Add a screenshot reference."""
         entry: dict[str, Any] = {"kind": "screenshot", "path": path, "phase": "runtime"}
         if alt is not None:
@@ -628,7 +638,29 @@ class Story:
         self._attach_doc(entry)
         return entry
 
-    def state(self, value: Any, *, label: str | None = None, children: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    def video(
+        self,
+        path: str,
+        *,
+        caption: str | None = None,
+        poster: str | None = None,
+        children: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
+        """Add a video reference, played inline in HTML reports."""
+        entry: dict[str, Any] = {"kind": "video", "path": path, "phase": "runtime"}
+        if caption is not None:
+            entry["caption"] = caption
+        if poster is not None:
+            entry["poster"] = poster
+        if children:
+            entry["children"] = children
+            self._dedup_children(children)
+        self._attach_doc(entry)
+        return entry
+
+    def state(
+        self, value: Any, *, label: str | None = None, children: list[dict[str, Any]] | None = None
+    ) -> dict[str, Any]:
         """Add a state snapshot (storyboard frame). Value must be JSON-serializable."""
         entry: dict[str, Any] = {"kind": "state", "value": value, "phase": "runtime"}
         if label is not None:

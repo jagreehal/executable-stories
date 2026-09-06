@@ -1,6 +1,10 @@
 {
   "schemaVersion": 1,
   "projectRoot": "/home/ci/myapp",
+  "coveredSourceFiles": [
+    "tests/auth/test_login.py",
+    "tests/cart/test_checkout.py"
+  ],
   "startedAtMs": 1706745600000,
   "finishedAtMs": 1706745614000,
   "meta": {

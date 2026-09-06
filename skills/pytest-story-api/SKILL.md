@@ -37,7 +37,9 @@ def test_applies_discount_code():
     assert len(cart.discounts) == 1
 ```
 
-File naming: `test_*_story.py`. Output is automatic via the pytest plugin — `.executable-stories/raw-run.json` is written after all tests. Override with `EXECUTABLE_STORIES_OUTPUT` env var. The run JSON's first key is a `$schema` pointer, so editors validate it as it is written; the plugin also prints a `next:` hint to stderr (silence with `EXECUTABLE_STORIES_QUIET`). Render it with `executable-stories format` (path optional — defaults to `.executable-stories/raw-run.json`) or diagnose it with `executable-stories doctor`.
+File naming: `test_*_story.py`. Output is automatic via the pytest plugin — `.executable-stories/raw-run.json` is written under pytest's root directory after all tests. Override with `EXECUTABLE_STORIES_OUTPUT`: a relative path resolves against the project root, an absolute one is used as given. The run JSON's first key is a `$schema` pointer, so editors validate it as it is written; the plugin also prints a `next:` hint to stderr (silence with `EXECUTABLE_STORIES_QUIET`). Render it with `executable-stories format` (path optional — defaults to `.executable-stories/raw-run.json`) or diagnose it with `executable-stories doctor`.
+
+The run also reports what it reached, which is what lets a report stay honest as tests come and go: `coveredSourceFiles` (every file a test ran in, so deleting a file's last scenario retires it), `incompleteSourceFiles` (a skipped test, a broken fixture or teardown, a failed import, or a failure before `story.init` — those files keep what they last documented), `runScope`, `gitSha` and `packageVersion`. Source paths are relative to the project root, so a report keeps its identity across machines and CI.
 
 Note: `and_` has a trailing underscore because `and` is a Python keyword.
 
@@ -66,6 +68,41 @@ AAA pattern: `story.arrange()` (Given), `story.act()` (When), `story.assert_()` 
 Additional: `story.setup()`, `story.context()` (Given), `story.execute()`, `story.action()` (When), `story.verify()` (Then).
 
 Note: The Then alias is `assert_()` because `assert` is a Python keyword.
+
+### Feature declarations
+
+One declaration per file, at module level. It heads every scenario in that file and runs at import time.
+
+```python
+from executable_stories import story
+
+story.feature(
+    "Anyone can do arithmetic without reaching for a calculator app",
+    kind="ability",  # "feature" by default
+    narrative="People doing quick sums lose their place when they switch apps.",
+    glossary=[{"term": "operand", "definition": "One of the two numbers."}],
+)
+```
+
+### Planned scenarios
+
+Behaviour that is specified but not built. It reaches the report as status `todo`, renders as **Planned**, and stops being planned the moment someone writes it as a real `story.init` scenario.
+
+```python
+def test_calculator_rejects_non_numeric_input():
+    story.planned("Calculator rejects non-numeric input", tags=["input"])
+```
+
+`@pytest.mark.skip` means "do not run this now", which is a different claim, so it is never mapped onto a plan. A skipped test instead marks its file incomplete, and the scenario it recorded on its last run is kept.
+
+### Screenshots and video
+
+```python
+story.screenshot("artifacts/checkout.png", alt="Checkout page after submit")
+story.video("artifacts/run.webm", caption="Full checkout run", poster="artifacts/run.jpg")
+```
+
+Steps carrying a screenshot become storyboard frames alongside `story.state`. Video is played inline in HTML reports; `poster` is the still shown before playback.
 
 ### Doc entries attached to steps
 
@@ -158,8 +195,9 @@ def test_fetches_user_profile():
 
 pytest exposes no assertion counter. `story.expect` therefore declares one assertion for
 that claim step. A plain `story.then()` followed by Python `assert` remains unobserved,
-not zero. The plugin detects `-k` and `-m` as `runScope: "filtered"`; an invocation
-without either reports `"full"`.
+not zero. The plugin reports `runScope: "filtered"` for `-k`, `-m`, `--deselect`,
+`--last-failed`, a `file.py::test` node id, or a run that ended early (`-x`, `--maxfail`,
+Ctrl-C, an internal or usage error); anything else reports `"full"`.
 
 ### Init options
 
