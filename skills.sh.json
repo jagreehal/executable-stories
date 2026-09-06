@@ -95,6 +95,8 @@
       "title": "Understanding",
       "description": "Skills for keeping humans in the loop: explainers and lessons generated from executed behaviour.",
       "skills": [
+        "show-me",
+        "demo-video",
         "explain-change",
         "explain-system",
         "executable-lessons"

@@ -139,6 +139,22 @@ impl DocEntry {
         DocEntry(map)
     }
 
+    /// A video, played inline in HTML reports. `poster` is the still shown
+    /// before playback.
+    #[must_use]
+    pub fn video(path: &str, caption: Option<&str>, poster: Option<&str>) -> Self {
+        let mut map = Self::base();
+        map.insert("kind".to_string(), serde_json::Value::String("video".to_string()));
+        map.insert("path".to_string(), serde_json::Value::String(path.to_string()));
+        if let Some(c) = caption {
+            map.insert("caption".to_string(), serde_json::Value::String(c.to_string()));
+        }
+        if let Some(p) = poster {
+            map.insert("poster".to_string(), serde_json::Value::String(p.to_string()));
+        }
+        DocEntry(map)
+    }
+
     /// Embedded HTML rendered inside an always-sandboxed iframe.
     ///
     /// # Panics
@@ -148,10 +164,7 @@ impl DocEntry {
         let count = u8::from(opts.path.is_some())
             + u8::from(opts.url.is_some())
             + u8::from(opts.content.is_some());
-        assert!(
-            count == 1,
-            "DocEntry::html requires exactly one of path, url, or content"
-        );
+        assert!(count == 1, "DocEntry::html requires exactly one of path, url, or content");
         let mut map = Self::base();
         map.insert("kind".to_string(), serde_json::Value::String("html".to_string()));
         if let Some(p) = opts.path {
@@ -203,12 +216,13 @@ impl DocEntry {
     #[must_use]
     pub fn with_children(mut self, children: Vec<DocEntry>) -> Self {
         if !children.is_empty() {
+            // An entry is already a JSON object, so hand it over as one rather
+            // than serializing it back through a fallible conversion.
             let child_values: Vec<serde_json::Value> = children
                 .into_iter()
-                .map(|c| serde_json::to_value(c).unwrap())
+                .map(|c| serde_json::Value::Object(c.0.into_iter().collect()))
                 .collect();
-            self.0
-                .insert("children".to_string(), serde_json::Value::Array(child_values));
+            self.0.insert("children".to_string(), serde_json::Value::Array(child_values));
         }
         self
     }
@@ -327,6 +341,29 @@ mod tests {
     }
 
     #[test]
+    fn video_has_path_caption_and_poster() {
+        let json = serde_json::to_value(DocEntry::video(
+            "artifacts/run.webm",
+            Some("Full checkout run"),
+            Some("artifacts/run.jpg"),
+        ))
+        .unwrap();
+        assert_eq!(json["kind"], "video");
+        assert_eq!(json["path"], "artifacts/run.webm");
+        assert_eq!(json["caption"], "Full checkout run");
+        assert_eq!(json["poster"], "artifacts/run.jpg");
+        assert_eq!(json["phase"], "runtime");
+    }
+
+    #[test]
+    fn video_omits_what_was_not_given() {
+        let json = serde_json::to_value(DocEntry::video("run.webm", None, None)).unwrap();
+        assert_eq!(json["path"], "run.webm");
+        assert!(json.get("caption").is_none());
+        assert!(json.get("poster").is_none());
+    }
+
+    #[test]
     fn html_serializes_correctly() {
         let entry = DocEntry::html(HtmlOptions {
             path: Some("./coverage/index.html"),
@@ -358,10 +395,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "exactly one")]
     fn html_panics_without_a_source() {
-        let _ = DocEntry::html(HtmlOptions {
-            title: Some("x"),
-            ..Default::default()
-        });
+        let _ = DocEntry::html(HtmlOptions { title: Some("x"), ..Default::default() });
     }
 
     #[test]

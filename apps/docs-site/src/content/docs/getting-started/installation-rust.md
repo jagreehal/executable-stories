@@ -9,7 +9,7 @@ description: Install executable-stories and configure your Rust test suite to wr
 cargo add executable-stories
 ```
 
-Requires Rust edition 2021 and version 1.75 or later.
+Requires Rust 1.85 or later, edition 2024.
 
 If you want OpenTelemetry tracing support, enable the optional `otel` feature:
 
@@ -26,13 +26,16 @@ use executable_stories::Story;
 ```
 
 There is no reporter to register. The first `Story` installs a process-exit hook
-that writes `.executable-stories/raw-run.json` relative to the working
-directory, so run tests from the crate root. Set `EXECUTABLE_STORIES_OUTPUT` to
-write elsewhere, or call `write_results()` yourself to choose the moment.
+that writes `.executable-stories/raw-run.json` under the project root. Set
+`EXECUTABLE_STORIES_OUTPUT` to write elsewhere — a relative path resolves against
+the project root, an absolute one is used as given — or call `write_results()`
+yourself to choose the moment. The file is renamed into place, so a reader never
+sees a half-written run.
 
 Cargo compiles every file under `tests/` into a separate binary, and each one
-writes that same default path. Keep story tests in one file, or give each binary
-its own `EXECUTABLE_STORIES_OUTPUT` and format the runs separately.
+writes that same default path — as do doctests, which `rustdoc` runs as processes
+of its own. Keep story tests in one file, or give each binary its own
+`EXECUTABLE_STORIES_OUTPUT` and format the runs separately.
 
 ## How a scenario gets its status
 

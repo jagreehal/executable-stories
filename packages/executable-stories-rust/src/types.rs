@@ -28,6 +28,13 @@ pub struct RawRun {
     pub finished_at_ms: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ci: Option<RawCIInfo>,
+    /// The commit this run describes, so a report states which code it
+    /// documents. Read from CI's environment first, `git rev-parse` otherwise.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub git_sha: Option<String>,
+    /// Version of this adapter, so a report states what produced it.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub package_version: Option<String>,
     /// How much of each source file this run covered: `"full"` when the test
     /// binary's arguments were inspected and narrowed nothing, `"filtered"`
     /// when they did. Only `"full"` lets a consumer retire a scenario it no

@@ -269,7 +269,7 @@ def test_checkout():
 |---|---|
 | Crate | `executable-stories` |
 | Install | Add `executable-stories = "*"` to `[dev-dependencies]` |
-| Min version | Rust 1.70, Rust edition 2021 |
+| Min version | Rust 1.85, edition 2024 |
 
 ### Story initialization
 
@@ -279,12 +279,15 @@ use executable_stories::Story;
 #[test]
 fn test_login() {
     let mut s = Story::new("User can log in with valid credentials")
-        .with_tags(vec!["auth", "smoke"])
-        .with_tickets(vec!["AUTH-42"])
-        .with_ticket_url("https://jira.example.com/AUTH-42");
+        .with_tags(&["auth", "smoke"])
+        .with_tickets(&["AUTH-42"])
+        .with_ticket_url("AUTH-42", "https://jira.example.com/AUTH-42");
     // ...
 }
 ```
+
+A `Story` records itself when it is dropped, so there is nothing to call at the
+end of a test. A test that panics still records what it had reached.
 
 ### Step methods
 
@@ -297,7 +300,7 @@ fn test_login() {
 | `s.but(text)` | But |
 | `s.arrange(text)` | Given (AAA alias) |
 | `s.act(text)` | When (AAA alias) |
-| `s.assert(text)` | Then (AAA alias) |
+| `s.assert_that(text)` | Then (AAA alias) |
 | `s.setup(text)` | Given (alias) |
 | `s.context(text)` | Given (alias) |
 | `s.execute(text)` | When (alias) |
@@ -321,33 +324,80 @@ All step methods take `&mut self` and return `&mut Self` for chaining.
 | `s.section(title, markdown)` | Titled markdown section |
 | `s.mermaid(code, title)` | Mermaid diagram |
 | `s.screenshot(path, alt)` | Screenshot reference |
+| `s.video(path, caption, poster)` | Video, played inline in HTML reports (`caption`/`poster` are `Option<&str>`) |
+| `s.html(HtmlOptions { .. })` | HTML in a sandboxed iframe |
 | `s.custom(type, data)` | Custom entry |
+
+Doc entries also nest: `StepDoc::note("…")` and friends build an entry you can
+pass as a child through `DocEntry::with_children`.
+
+### Feature declarations and planned scenarios
+
+```rust
+use executable_stories::{Feature, Story, declare_feature};
+
+declare_feature!(
+    Feature::new("Anyone can do arithmetic without reaching for a calculator app")
+        .ability()
+        .narrative("People doing quick sums lose their place when they switch apps.")
+        .term("operand", "One of the two numbers an operation is applied to.")
+);
+
+#[test]
+fn test_calculator_rejects_non_numeric_input() {
+    Story::planned("Calculator rejects non-numeric input");
+}
+```
+
+Rust runs nothing before a test binary's tests, so `declare_feature!` generates a
+`#[test]` of its own. Put it at module scope, once per file. `Story::planned`
+records behaviour that is specified but not built: it reaches the report as
+status `todo` and stops being planned once someone writes it as a real `Story`.
 
 ### Attachments and timing
 
 ```rust
 s.attach("response.json", "application/json", "/tmp/response.json");
-s.attach_inline("body", "text/plain", b"response body");
-s.attach_spans(trace_id, span_ids);  // OTel trace links
+s.attach_inline("body", "text/plain", b"response body", None);
+s.attach_spans(vec![serde_json::json!({ "name": "GET /orders", "traceId": trace_id })]);
 
-s.start_timer("db-query");
+s.given("the database is queried");
+let token = s.start_timer();
 // ... operation ...
-s.end_timer("db-query");
+s.end_timer(token);
 
-s.fn_step("step description", || do_something());
-s.expect_step("assertion description", got, expected);
+let profile = s.fn_step("When", "the profile is fetched", || fetch_profile("u-1"));
+s.expect_step("the profile carries the right name", || assert_eq!(profile.name, "Alice"));
 ```
+
+`start_timer()` returns a token tied to the step that was current when it was
+called, so timing survives steps recorded in between. `fn_step` and `expect_step`
+wrap the work a step describes: they time it, re-panic if it panicked, and return
+its value. Rust has no assertion counter, so `expect_step` declares one — a bare
+marker followed by `assert!` stays unobserved, which is not the same as zero.
 
 ### JSON output mechanism
 
 The first `Story` registers a process-exit hook, so the run JSON is written with
-no setup. It lands at `.executable-stories/raw-run.json`; set
-`EXECUTABLE_STORIES_OUTPUT` to change that. Call `write_results()` directly only
-to control when the file appears.
+no setup. It lands at `.executable-stories/raw-run.json` under the project root;
+set `EXECUTABLE_STORIES_OUTPUT` to change that — a relative path resolves against
+the project root, an absolute one is used as given. The file is renamed into
+place, so a reader never sees a half-written run. Call `write_results()` directly
+only to control when the file appears.
 
 Cargo builds each file under `tests/` as its own binary, and every binary writes
-the same default path. Keep story tests in one file, or give each binary its own
-output path.
+the same default path — as do doctests, which `rustdoc` runs as processes of its
+own. Keep story tests in one file, or give each binary its own output path and
+format the runs separately.
+
+Each run also records what produced it:
+
+| Field | Meaning |
+|---|---|
+| `startedAtMs` / `finishedAtMs` | When the binary ran, which is what stamps a scenario's freshness in the report |
+| `gitSha` | The commit the run describes, from CI's environment or `git rev-parse HEAD` |
+| `packageVersion` | The adapter version that wrote the run |
+| `runScope` | `"filtered"` when the test binary's arguments narrowed the run — a positional filter, `--skip`, or `--ignored`; otherwise `"full"` |
 
 ### Complete example
 
