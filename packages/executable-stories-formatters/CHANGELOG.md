@@ -1,5 +1,124 @@
 # executable-stories-formatters
 
+## 1.16.1
+
+### Patch Changes
+
+- c535490: JUnit 5: the run says which classes it reached, and which it can speak for
+
+  Runs report `coveredSourceFiles`, every test class the listener saw execute, so a
+  `full`-scope run can retire a scenario its class no longer names. A successfully
+  executed container counts as reached, so a `@TestFactory` that produced no tests
+  still names its class, and a run whose classes told no story at all is still
+  written — those are the runs the inventory is for.
+
+  Anything that failed or was skipped goes to `incompleteSourceFiles`, so a class
+  keeps what it last documented until a run can account for it in full. That covers a
+  `@TestFactory` or a `@Disabled` test inside an otherwise successful class, which the
+  JUnit Platform reports as successful either way.
+
+  Runs carry `gitSha` too, from CI first and `git rev-parse` otherwise, so a report
+  states the commit it describes. The lookup is bounded by its timeout, and the xUnit
+  adapter resolves its own the same way. `.executable-stories/raw-run.json` is renamed
+  into place, so a watch task reading it while a run finishes sees a whole document.
+  `Story.video(path, caption?, poster?)` completes the doc-entry surface against the
+  raw-run schema.
+
+  The JUnit 5 reference and the `junit5-story-api` skill cover feature declarations,
+  planned scenarios, video, embedded HTML, and the signatures for `Story.attachInline`,
+  `Story.attachSpans`, `startTimer`/`endTimer`, `Story.fn` and `Story.expect`, under the
+  `dev.executablestories.junit5` package. Prerequisites read Java 21 and JUnit Platform
+  1.12, and the example is described as the Gradle project it is. `verify:junit5`
+  asserts the covered-class inventory and a plan's source key.
+
+- 9e8e515: pytest: reports keyed to the project, and a run that says what it reached
+
+  Source paths in the run are relative to pytest's root directory, so the report a
+  file owns under `reports/by-file/` keeps its identity across machines and CI. A
+  test is keyed to the file it was collected from, so an inherited test method
+  belongs to the subclass that ran it.
+
+  Runs report `coveredSourceFiles`, every file a test ran in, so a `full`-scope run
+  can retire a scenario its file no longer names — and a run whose files told no
+  story at all is written, because that is the run the inventory is for. Files the
+  run cannot speak for go to `incompleteSourceFiles`: a skipped test, a broken
+  fixture or teardown, a module that failed to import, or a test that failed before
+  `story.init`. Each keeps what it last documented until a run can account for it
+  in full.
+
+  `runScope` recognises every way pytest narrows a run: `-k`, `-m`, `--deselect`,
+  `--last-failed`, a `file.py::test` node id, and a run that ended early through
+  `-x`, `--maxfail`, Ctrl-C, or an internal or usage error. Runs carry `gitSha` —
+  from CI first, `git rev-parse` otherwise, bounded by its timeout — and
+  `packageVersion`, so a report states the commit it describes and what produced
+  it. A relative `EXECUTABLE_STORIES_OUTPUT` resolves against the project root, and
+  the run file is renamed into place, so a watch task reading it while a run
+  finishes sees a whole document. `story.video(path, caption=None, poster=None)`
+  completes the doc-entry surface against the raw-run schema.
+
+  The pytest reference and the `pytest-story-api` skill cover feature declarations,
+  planned scenarios, screenshots and video, embedded HTML, the run-inventory
+  fields, and the signatures for `attach_spans`, `start_timer`/`end_timer`,
+  `story.fn` and `story.expect`, under the `executable_stories` import name.
+  Prerequisites read Python 3.12 and pytest 8. `verify:pytest` asserts the
+  covered-file inventory, its project-relative paths and the commit sha, and the
+  package's ruff and mypy gates run in CI.
+
+- 7b063d6: Rust: a run that says when it ran and what produced it
+
+  Runs carry `startedAtMs` and `finishedAtMs`, which is what stamps a scenario's
+  freshness in the report, alongside `gitSha` — from CI first, `git rev-parse`
+  otherwise, bounded by its timeout — and `packageVersion`, so a report states the
+  commit it describes and what produced it. `runScope` reads `--ignored` as a
+  narrowed run, since it runs only the tests an ordinary run leaves out.
+
+  A relative `EXECUTABLE_STORIES_OUTPUT` resolves against the project root. Each
+  run goes to a scratch file of its own and is renamed over the destination, so a
+  watch task reading it mid-run sees a whole document and concurrent writers stay
+  out of each other's way. `StepDoc::video(path, caption, poster)` completes the
+  doc-entry surface against the raw-run schema.
+
+  The Rust reference and the `rust-story-api` skill cover feature declarations,
+  planned scenarios, video, embedded HTML, the provenance fields, and the
+  signatures for `with_ticket_url`, `attach_inline`, `attach_spans`,
+  `start_timer`/`end_timer`, `fn_step`, `expect_step` and `assert_that`, against
+  Rust 1.85 and edition 2024. `verify:rust` asserts each file's declaration and
+  the run's provenance, and rustfmt, clippy and a build on the declared minimum
+  toolchain run in CI.
+
+  Two new skills: `show-me` answers a question with the smallest view that makes
+  the point, reaching for the run before drawing anything; `demo-video` builds a
+  narrated walkthrough from a run's storyboard frames.
+
+- c24e579: xUnit: the run file lands in your project, and the report carries more of the run
+
+  `dotnet test` runs the test host out of `bin/<config>/<tfm>`. The xUnit adapter
+  now resolves the project directory from the test assembly, so
+  `.executable-stories/raw-run.json` sits beside your test project and `projectRoot`
+  names the directory the report's relative paths are meant to resolve against. A
+  relative `EXECUTABLE_STORIES_OUTPUT` anchors to the same place, and
+  `EXECUTABLE_STORIES_PROJECT_ROOT` sets it outright for a layout that puts build
+  output elsewhere. The file is renamed into place, so a watch task reading it while
+  a run finishes always sees a whole document.
+
+  Runs now report `coveredSourceFiles`, every test class the recording attribute
+  saw, so a class emptied of scenarios is distinguishable from one the run never
+  reached and a `full`-scope run can retire what it no longer names. That holds for
+  a run whose classes told no story at all, which is the case the inventory exists
+  for. Runs also carry `gitSha`, resolved from CI first and `git rev-parse`
+  otherwise, so a report states the commit it describes.
+
+  `Story.Planned` keys a plan to its own class — through xUnit's test context, so it
+  holds when the plan is declared after an `await` — and it groups with that class's
+  scenarios and its feature declaration. `Story.Video(path, caption?, poster?)`
+  completes the doc-entry surface against the raw-run schema.
+
+  The xUnit reference and the `xunit-story-api` skill now cover feature
+  declarations, planned scenarios, video, and the real signatures for attachments,
+  timing, `Story.Fn` and `Story.Expect`; prerequisites read .NET 10 and xUnit v3
+  throughout. `verify:xunit` exercises the default output path and asserts the
+  covered-class inventory and a plan's source key.
+
 ## 1.16.0
 
 ### Minor Changes
