@@ -9,7 +9,7 @@ description: Install ExecutableStories.Xunit and configure your C# test suite to
 dotnet add package ExecutableStories.Xunit
 ```
 
-Requires .NET 8.0 or later and C# 12 or later.
+Requires the .NET 10 SDK and xUnit v3.
 
 ## Test class setup
 
@@ -60,7 +60,20 @@ Without the attribute nothing is recorded, since no test flushes its own story.
 
 ## Default output
 
-The raw run JSON is written to `.executable-stories/raw-run.json` when the test process exits. The file is written relative to the working directory, which is typically the test project root.
+The raw run JSON is written to `.executable-stories/raw-run.json` when the test
+process exits, under your test project directory.
+
+`dotnet test` runs the test host out of `bin/<config>/<tfm>`, so the working
+directory is build output rather than the project. The adapter walks up from the
+test assembly to the project file instead, which is why the report lands where
+you would look for it. `EXECUTABLE_STORIES_OUTPUT` sets the file path — a
+relative one resolves against that same project directory, not the working
+directory, so it cannot land back under `bin/`. `EXECUTABLE_STORIES_PROJECT_ROOT`
+sets the directory both resolve against, for a layout that puts build output
+somewhere else.
+
+The file is written to a temporary name and renamed into place, so a watch task
+reading it while a run finishes always sees a complete document.
 
 ## Generate a report
 

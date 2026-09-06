@@ -217,6 +217,34 @@ namespace ExecutableStories.Xunit
         }
 
         /// <summary>
+        /// Video recording of the scenario, played inline in the HTML report.
+        /// </summary>
+        /// <param name="path">Path to the video file.</param>
+        /// <param name="caption">Caption shown beneath the player.</param>
+        /// <param name="poster">Still image shown before playback starts.</param>
+        /// <param name="children">Nested entries grouped under this one.</param>
+        public static DocEntry Video(string path, string? caption = null, string? poster = null, DocEntry[]? children = null)
+        {
+            var entry = new DocEntry();
+            entry.Set("kind", "video");
+            entry.Set("path", path);
+            if (caption != null)
+            {
+                entry.Set("caption", caption);
+            }
+            if (poster != null)
+            {
+                entry.Set("poster", poster);
+            }
+            entry.Set("phase", "runtime");
+            if (children is { Length: > 0 })
+            {
+                entry.Set("children", children);
+            }
+            return entry;
+        }
+
+        /// <summary>
         /// Embedded HTML rendered inside an always-sandboxed iframe. Exactly one of
         /// <paramref name="path"/>, <paramref name="url"/>, or <paramref name="content"/>
         /// must be set, or an <see cref="ArgumentException"/> is thrown.

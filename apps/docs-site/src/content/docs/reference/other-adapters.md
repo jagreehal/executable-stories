@@ -429,22 +429,35 @@ class CheckoutTest {
 |---|---|
 | Package | `ExecutableStories.Xunit` |
 | Install | `dotnet add package ExecutableStories.Xunit` |
-| Min version | .NET 8, xUnit 2.x |
+| Min version | .NET 10, xUnit v3 |
 
 ### Story initialization
 
 ```csharp
 using ExecutableStories.Xunit;
 
-public class LoginTests : IDisposable
+public class LoginTests
 {
+    // What this class's scenarios are for, ahead of the examples. .NET reports
+    // no source path, so the declaring class is the key the report groups by.
+    static LoginTests() => Story.Feature(
+        "Employees can get back into their account",
+        kind: "ability",
+        narrative: "A locked-out employee raises a ticket, so the sign-in path pays for itself.");
+
+    [Fact]
     public void TestLogin()
     {
         Story.Init("User can log in with valid credentials", "auth", "smoke");
         Story.Ticket("AUTH-42");
+        Story.Covers("src/Auth/SignIn.cs");
         // ...
     }
 
+    // Specified but not built yet: reaches the report as planned, under this
+    // class, without skipping the test.
+    [Fact]
+    public void TestLockout() => Story.Planned("Account locks after five failed attempts");
 }
 ```
 
@@ -483,31 +496,49 @@ public class LoginTests : IDisposable
 | `Story.Section(title, markdown)` | Titled markdown section |
 | `Story.Mermaid(code, title?)` | Mermaid diagram |
 | `Story.Screenshot(path, alt?)` | Screenshot reference |
+| `Story.Video(path, caption?, poster?)` | Video played inline in the report |
+| `Story.Html(path:/url:/content:, title?, height?)` | HTML in a sandboxed iframe |
 | `Story.Custom(type, data)` | Custom entry |
 
 ### Attachments and timing
 
 ```csharp
 Story.Attach("response.json", "application/json", "/tmp/response.json");
-Story.AttachInline("body", "text/plain", Encoding.UTF8.GetBytes("response body"));
-Story.AttachSpans(traceId, spanIds);  // OTel trace links
+Story.AttachInline("body", "text/plain", "response body");
+Story.AttachSpans(spans);  // OTel spans, for the trace waterfall
 
-Story.StartTimer("db-query");
+// StartTimer returns a token; EndTimer stops the step it was opened against.
+var token = Story.StartTimer();
 // ... operation ...
-Story.EndTimer("db-query");
+Story.EndTimer(token);
 
-Story.Fn("step description", () => DoSomething());
-Story.Expect("assertion description", got, expected);
+// Fn takes the keyword as its first argument and times the delegate.
+var total = Story.Fn("When", "the order is priced", () => Price(order));
+Story.Expect("the total is 80", () => Assert.Equal(80, total));
 ```
 
 ### JSON output mechanism
 
-Output is written automatically on process exit via a registered shutdown hook. Output path defaults to `executable-stories-output.json` and can be overridden with `ES_OUTPUT_FILE`. Output is written under CI (`CI=true`) or `ES_FORCE_OUTPUT=true`.
+Output is written automatically on process exit. It lands in
+`.executable-stories/raw-run.json` under the test project directory — found by
+walking up from the test assembly, because `dotnet test` runs the host out of
+`bin/<config>/<tfm>` and the working directory would otherwise bury the file
+there. `EXECUTABLE_STORIES_OUTPUT` overrides the path — a relative one resolves
+against that same project directory, so it cannot land back under `bin/` — and
+`EXECUTABLE_STORIES_PROJECT_ROOT` overrides the directory both resolve against.
+Every run is written; `EXECUTABLE_STORIES_QUIET` silences the `next:` hint the
+collector prints to stderr.
+
+The run also reports `coveredSourceFiles`, every test class that executed, so a
+class emptied of scenarios is distinguishable from one this run never reached.
+Acting on that needs a scope declaration too: `dotnet test --filter` is applied
+before the adapter sees anything, so set `EXECUTABLE_STORIES_FILTERED=1` for a
+narrowed run, or `=0` for one that covered every scenario in its classes.
 
 ### Complete example
 
 ```csharp
-public class CheckoutTests : IDisposable
+public class CheckoutTests
 {
     [Fact]
     public void GuestCanCompleteCheckout()

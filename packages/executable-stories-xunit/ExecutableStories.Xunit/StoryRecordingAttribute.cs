@@ -30,6 +30,11 @@ namespace ExecutableStories.Xunit
         /// <inheritdoc />
         public override void After(MethodInfo methodUnderTest, IXunitTest test)
         {
+            var sourceKey = SourceKey(test);
+
+            // Every test that ran, not only the ones that told a story.
+            InProcessCollector.MarkCovered(sourceKey);
+
             TestResultState? state = TestContext.Current.TestState;
             var status = state?.Result switch
             {
@@ -40,7 +45,7 @@ namespace ExecutableStories.Xunit
                 _ => "pass",
             };
 
-            Story.RecordAndClear(status, ErrorFrom(state), SuitePath(test), SourceKey(test));
+            Story.RecordAndClear(status, ErrorFrom(state), Story.SuitePathFor(sourceKey), sourceKey);
         }
 
         private static RawTestError? ErrorFrom(TestResultState? state)
@@ -70,20 +75,6 @@ namespace ExecutableStories.Xunit
         private static string? SourceKey(IXunitTest test)
         {
             return test.TestCase.TestMethod?.TestClass.TestClassName;
-        }
-
-        private static IReadOnlyList<string>? SuitePath(IXunitTest test)
-        {
-            var className = test.TestCase.TestMethod?.TestClass.TestClassName;
-            if (string.IsNullOrEmpty(className))
-            {
-                return null;
-            }
-
-            // The class name arrives fully qualified. Report headings read better
-            // with just the class, the way a describe block reads in Vitest.
-            var lastDot = className.LastIndexOf('.');
-            return [lastDot < 0 ? className : className[(lastDot + 1)..]];
         }
     }
 }
