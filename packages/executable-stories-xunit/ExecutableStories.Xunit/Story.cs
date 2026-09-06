@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using Xunit;
 
 namespace ExecutableStories.Xunit
 {
@@ -107,11 +109,49 @@ namespace ExecutableStories.Xunit
                 Type? declaring = trace.GetFrame(i)?.GetMethod()?.DeclaringType;
                 if (declaring != null && declaring != typeof(Story))
                 {
-                    return declaring.FullName;
+                    return AuthoredType(declaring).FullName;
                 }
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// The type someone wrote, given a type the compiler may have generated.
+        /// </summary>
+        /// <remarks>
+        /// An async method body and a lambda each compile to a nested type of
+        /// their own, so a frame inside one names <c>Checkout+&lt;Plan&gt;d__0</c>
+        /// rather than <c>Checkout</c> — a key matching neither the class's
+        /// feature declaration nor its covered-class entry. The class is the
+        /// enclosing type, however many levels up.
+        /// </remarks>
+        internal static Type AuthoredType(Type type)
+        {
+            Type authored = type;
+            while (authored.DeclaringType != null
+                && authored.IsDefined(typeof(CompilerGeneratedAttribute), inherit: false))
+            {
+                authored = authored.DeclaringType;
+            }
+
+            return authored;
+        }
+
+        /// <summary>
+        /// The test class xUnit is currently running, or null outside a test.
+        /// </summary>
+        private static string? CurrentTestClassName()
+        {
+            try
+            {
+                return TestContext.Current.Test?.TestCase.TestMethod?.TestClass.TestClassName;
+            }
+            catch
+            {
+                // No ambient test context: a hand-driven setup, or another host.
+                return null;
+            }
         }
 
         /// <summary>
@@ -168,7 +208,13 @@ namespace ExecutableStories.Xunit
         public static void Planned(string scenario, params string[] tags)
         {
             Holder().Context = new StoryContext(scenario, tags);
-            RecordAndClear("todo");
+
+            // Recording here leaves the recording hook nothing to attribute, so
+            // the class comes from xUnit directly — the same answer that hook
+            // gives every other scenario, so the plan groups with them. The
+            // stack is the fallback outside a test context.
+            var key = CurrentTestClassName() ?? DeclaringClassName();
+            RecordAndClear("todo", null, SuitePathFor(key), key);
         }
 
         // ========================================================================
@@ -457,6 +503,17 @@ namespace ExecutableStories.Xunit
         }
 
         /// <summary>
+        /// Add a video recording, played inline in the HTML report.
+        /// </summary>
+        public static DocEntry Video(string path, string? caption = null, string? poster = null, DocEntry[]? children = null)
+        {
+            StoryContext ctx = RequireContext();
+            var entry = DocEntry.Video(path, caption, poster, children);
+            ctx.AddDoc(entry);
+            return entry;
+        }
+
+        /// <summary>
         /// Embed HTML in an always-sandboxed iframe. Exactly one of
         /// <paramref name="path"/>, <paramref name="url"/>, or <paramref name="content"/> must be set.
         /// </summary>
@@ -718,6 +775,24 @@ namespace ExecutableStories.Xunit
         public static void WithTraceUrlTemplate(string template)
         {
             RequireContext().TraceUrlTemplate = template;
+        }
+
+        /// <summary>
+        /// Suite heading for a fully qualified class name, or null when there is none.
+        /// </summary>
+        /// <remarks>
+        /// The class name arrives fully qualified. Report headings read better
+        /// with just the class, the way a describe block reads in Vitest.
+        /// </remarks>
+        internal static IReadOnlyList<string>? SuitePathFor(string? className)
+        {
+            if (string.IsNullOrEmpty(className))
+            {
+                return null;
+            }
+
+            var lastDot = className.LastIndexOf('.');
+            return [lastDot < 0 ? className : className[(lastDot + 1)..]];
         }
 
         internal static StoryContext? GetContext()

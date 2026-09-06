@@ -60,14 +60,60 @@ the test class as its suite. The attribute also works on one class or one
 method. `Story.RecordAndClear(...)` stays available for hand-rolled setups.
 
 Recorded cases are held in process and written to
-`.executable-stories/raw-run.json` on exit; `EXECUTABLE_STORIES_OUTPUT`
-overrides the path. The run JSON opens with a `$schema` pointer so editors
+`.executable-stories/raw-run.json` on exit, under the test project directory —
+found by walking up from the test assembly, since `dotnet test` sets the working
+directory to `bin/<config>/<tfm>` and the report would otherwise be buried there.
+`EXECUTABLE_STORIES_OUTPUT` overrides the path — a relative one resolves against
+that same project directory, so it cannot land back under `bin/` — and
+`EXECUTABLE_STORIES_PROJECT_ROOT` the directory both resolve against. The file is
+renamed into place, so a watch task reading it mid-run always sees a complete
+document. The run JSON opens with a `$schema` pointer so editors
 validate it as it is written, and the collector prints a `next:` hint to stderr
 (silence it with `EXECUTABLE_STORIES_QUIET`). Render with
 `executable-stories format` (the path argument is optional) or inspect with
 `executable-stories doctor`.
 
 ## Core Patterns
+
+### Declaring what a class's scenarios are for
+
+Scenarios say what the system does. A declaration says why the feature exists and
+who it serves, so a reader meets the intent before the examples. .NET reports no
+source path, so the declaring class is the key the report groups by — call it once
+per test class from a static constructor.
+
+```csharp
+public class CheckoutTests
+{
+    static CheckoutTests() => Story.Feature(
+        "Shoppers can check out without an account",
+        kind: "ability",   // "feature" (default), "ability", or "business-need"
+        narrative: "Forcing a signup before payment is where carts get abandoned.",
+        glossary: new Dictionary<string, string>
+        {
+            ["basket"] = "The items a shopper has chosen but not yet paid for.",
+        });
+}
+```
+
+### Scenarios you have specified but not built
+
+`Story.Planned` records the scenario immediately with status `todo`; it appears in
+the report as planned, under the class that declared it, and stops being planned
+once someone writes it as a real story with `Story.Init`.
+
+```csharp
+[Fact]
+public void Checkout_is_blocked_for_a_suspended_account()
+{
+    Story.Planned("Checkout is blocked for a suspended account");
+}
+```
+
+`Skip = "..."` means "do not run this now", which is a different claim from "we
+have not built this yet", so this does not skip the test. The record is written as
+the call returns, so keep it the only statement in the test: an assertion failure
+afterwards cannot revise a record already written.
 
 ### Step markers with Auto-And conversion
 
@@ -135,6 +181,16 @@ Story.State(new { items = new[] { "hoodie" }, total = 45 }, "Basket");
 ```
 
 Capture the business-relevant projection, not the ORM entity.
+
+### Screenshots and video
+
+```csharp
+Story.Screenshot("artifacts/checkout.png", "The confirmation page");
+Story.Video("artifacts/checkout.webm", caption: "Checkout", poster: "artifacts/checkout.png");
+```
+
+Both are rendered inline in the HTML report; paths resolve against the project
+directory the run reports.
 
 ### Embedded HTML
 

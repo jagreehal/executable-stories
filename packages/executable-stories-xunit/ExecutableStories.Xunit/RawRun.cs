@@ -31,6 +31,16 @@ namespace ExecutableStories.Xunit
         public List<RawFeature>? Features { get; set; }
 
         /// <summary>
+        /// Test classes this run executed, whether or not they produced a
+        /// scenario. Test cases only name the classes that produced something,
+        /// so without this a class emptied of scenarios is indistinguishable
+        /// from one that did not run.
+        /// </summary>
+        [JsonPropertyName("coveredSourceFiles")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public List<string>? CoveredSourceFiles { get; set; }
+
+        /// <summary>
         /// How much of each source file this run covered: <c>"full"</c> when no
         /// name filter was applied, <c>"filtered"</c> when one was, or null when
         /// that cannot be determined. Only <c>"full"</c> lets a consumer retire

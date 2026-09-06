@@ -1,11 +1,15 @@
 {
   "schemaVersion": 1,
   "projectRoot": "/home/ci/myapp",
+  "coveredSourceFiles": [
+    "tests/MyApp.Tests/Auth/LoginTests.cs",
+    "tests/MyApp.Tests/Cart/CheckoutTests.cs"
+  ],
   "startedAtMs": 1706745600000,
   "finishedAtMs": 1706745615000,
   "meta": {
     "framework": "xunit",
-    "dotnetVersion": "8.0.2"
+    "dotnetVersion": "10.0.100"
   },
   "testCases": [
     {

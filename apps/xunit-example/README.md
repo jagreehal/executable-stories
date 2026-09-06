@@ -4,7 +4,7 @@ Example app using [ExecutableStories.Xunit](../../packages/executable-stories-xu
 
 ## Prerequisites
 
-- .NET 8.0 SDK
+- .NET 10 SDK
 
 ## Verification
 
@@ -18,7 +18,7 @@ Example app using [ExecutableStories.Xunit](../../packages/executable-stories-xu
 
    The package is used via a project reference. `AssemblyInfo.cs` carries `[assembly: StoryRecording]`, so every test records itself and results are written to `.executable-stories/raw-run.json` on process exit.
 
-2. **Check output** — After tests, `apps/xunit-example/.executable-stories/raw-run.json` should exist (the verify script sets `EXECUTABLE_STORIES_OUTPUT` so the file is written there).
+2. **Check output** — After tests, `apps/xunit-example/.executable-stories/raw-run.json` should exist. Nothing has to be configured for it: the adapter resolves the project directory from the test assembly rather than trusting the working directory, which `dotnet test` sets to `bin/<config>/<tfm>`.
 
 3. **Optional: generate reports** (from repo root; requires Node/pnpm):
 
@@ -27,4 +27,4 @@ Example app using [ExecutableStories.Xunit](../../packages/executable-stories-xu
    node packages/executable-stories-formatters/dist/cli.js format apps/xunit-example/.executable-stories/raw-run.json --output-dir apps/xunit-example/reports --format markdown,html
    ```
 
-You can also run the full verification script from the repo root when .NET 8 is available: `pnpm run verify:xunit` or `./scripts/verify-xunit.sh`.
+You can also run the full verification script from the repo root when the .NET 10 SDK is available: `pnpm run verify:xunit` or `./scripts/verify-xunit.sh`.
