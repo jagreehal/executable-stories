@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
@@ -72,6 +73,49 @@ namespace ExecutableStories.Xunit.Tests
         public void AnOrdinaryClassIsLeftAlone()
         {
             Assert.Equal(typeof(AdapterOutputTests), Story.AuthoredType(typeof(AdapterOutputTests)));
+        }
+
+        // Reading the process to the end first hands the timeout to the process
+        // rather than the other way round, so a hung command holds up the whole
+        // run.
+        [Fact]
+        public void ACommandThatOutrunsItsTimeoutIsGivenUpOn()
+        {
+            using Process process = Start("sleep", "30");
+            var clock = Stopwatch.StartNew();
+
+            var output = InProcessCollector.ReadCommandOutput(process, 1000);
+
+            Assert.Null(output);
+            Assert.True(clock.Elapsed < TimeSpan.FromSeconds(10), $"waited {clock.Elapsed}");
+            // Kill only asks; a sleep still running after this was never killed.
+            Assert.True(process.WaitForExit(5000), "the timed-out process was left running");
+        }
+
+        [Fact]
+        public void ACommandThatFailsReportsNothing()
+        {
+            using Process process = Start("sh", "-c \"echo out; exit 3\"");
+
+            Assert.Null(InProcessCollector.ReadCommandOutput(process, 5000));
+        }
+
+        [Fact]
+        public void ACommandThatSucceedsReportsItsOutput()
+        {
+            using Process process = Start("sh", "-c \"echo deadbeef\"");
+
+            Assert.Equal("deadbeef", InProcessCollector.ReadCommandOutput(process, 5000));
+        }
+
+        private static Process Start(string fileName, string arguments)
+        {
+            return Process.Start(new ProcessStartInfo(fileName, arguments)
+            {
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+            })!;
         }
 
         /// <summary>

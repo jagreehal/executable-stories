@@ -1,6 +1,10 @@
 {
   "schemaVersion": 1,
   "projectRoot": "/home/ci/myapp",
+  "coveredSourceFiles": [
+    "src/test/java/com/acme/auth/LoginTest.java",
+    "src/test/java/com/acme/cart/CheckoutTest.java"
+  ],
   "startedAtMs": 1706745600000,
   "finishedAtMs": 1706745618000,
   "meta": {

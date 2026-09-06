@@ -204,6 +204,26 @@ class DocEntry {
             }
 
         /**
+         * Video recording of the scenario, played inline in the HTML report.
+         */
+        @JvmStatic
+        @JvmOverloads
+        fun video(
+            path: String,
+            caption: String? = null,
+            poster: String? = null,
+            children: List<DocEntry>? = null,
+        ): DocEntry =
+            DocEntry().apply {
+                set("kind", "video")
+                set("path", path)
+                if (caption != null) set("caption", caption)
+                if (poster != null) set("poster", poster)
+                set("phase", "runtime")
+                if (!children.isNullOrEmpty()) set("children", children)
+            }
+
+        /**
          * Embedded HTML rendered inside an always-sandboxed iframe.
          *
          * Exactly one of [path], [url], or [content] must be non-null, or an

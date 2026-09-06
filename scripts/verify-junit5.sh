@@ -21,3 +21,17 @@ echo "[verify-junit5] Running junit5-example tests..."
 cd "$ROOT/apps/junit5-example" && ./gradlew test
 
 validate_raw_run "$RAW_RUN" "verify-junit5"
+
+# The executed-class inventory the shared validator cannot see: without it a
+# class emptied of scenarios keeps them for good.
+node -e '
+  const run = require(process.argv[1]);
+  const covered = run.coveredSourceFiles ?? [];
+  if (covered.length === 0) throw new Error("no coveredSourceFiles in the run");
+  const planned = run.testCases.filter((tc) => tc.status === "todo");
+  const orphan = planned.find((tc) => !tc.sourceFile);
+  if (orphan) throw new Error(`planned scenario has no sourceFile: ${orphan.title}`);
+' "$RAW_RUN"
+echo "[verify-junit5] ✓ covered classes reported, plans keyed to their class"
+
+echo "[verify-junit5] OK: adapter-specific checks passed"

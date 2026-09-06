@@ -53,25 +53,36 @@ class CalculatorTest {
 
 - BDD steps: `given`, `when`, `then`, `and`, `but`
 - Aliases: `arrange`, `act`, `assertThat`, `setup`, `context`, `execute`, `action`, `verify`
-- Rich docs via `Story.*` and `DocEntry.*`
+- Feature declarations: `Story.feature(title, kind, narrative, tags, glossary)` from a `@BeforeAll` says what a class's scenarios are for, ahead of the examples
+- Planned scenarios: `Story.planned("...")` reaches the report as planned, under its own class, without disabling the test
+- Rich docs via `Story.*` and `DocEntry.*`: `note`, `tag`, `kv`, `json`, `state`, `code`, `table`, `link`, `section`, `mermaid`, `screenshot`, `video`, `html`, `custom`
 - State snapshots: `Story.state(value, label?)` records a JSON snapshot of the world at the current step (e.g. `Story.state(mapOf("items" to 2), "Basket")`); consecutive snapshots with the same label are diffed at render time
 - Step timing: `Story.startTimer()` / `Story.endTimer(token)`
 - Trace links: `Story.withTraceUrlTemplate(...)` or `OTEL_TRACE_URL_TEMPLATE`
 
 ## Output
 
-Raw run JSON is written to:
+Raw run JSON is written to `.executable-stories/raw-run.json`, relative to the working
+directory — the project directory under both Gradle and Maven. `EXECUTABLE_STORIES_OUTPUT`
+overrides the path.
 
-- `.executable-stories/raw-run.json`
+The file is renamed into place, so a watch task reading it while a run finishes always sees
+a whole document.
 
 Render reports with `executable-stories-formatters`.
 
 ## CLI handoff
 
-The listener detects Maven Surefire's `-Dtest=...` selector. For other launcher filters,
-set `EXECUTABLE_STORIES_FILTERED=1`; set it to `0` only when the invocation covered every
-scenario in its source files. With neither signal, scope is unknown and formatting keeps
-earlier scenarios rather than deleting on a guess.
+The run reports `coveredSourceFiles`, every test class that executed, so a class emptied of
+scenarios is distinguishable from one this run never reached, and `incompleteSourceFiles`
+for any container that did not succeed or was skipped. A skipped test marks its class the same way,
+so switching one off keeps what it last documented rather than deleting it. The second matters because the JUnit Platform
+reports an enclosing class as successful even when a `@TestFactory` inside it failed, and a
+broken factory otherwise looks exactly like a class whose scenarios were deleted. Acting on that also needs a
+scope declaration: the listener detects Maven Surefire's `-Dtest=...` selector, and for
+other launcher filters set `EXECUTABLE_STORIES_FILTERED=1`; set it to `0` only when the
+invocation covered every scenario in its classes. With neither signal, scope is unknown and
+formatting keeps earlier scenarios rather than deleting on a guess.
 
 JUnit 5 exposes no assertion counter. Use `Story.expect("claim") { ... }` to declare
 assertion evidence. A plain `Story.then()` followed by `assertEquals` remains unobserved,

@@ -44,9 +44,49 @@ class CartCheckoutTest {
 
 Note: `when` is a Kotlin keyword, so it must be escaped with backticks: `` Story.`when`("...") ``.
 
-Output is automatic via JUnit 5's `TestExecutionListener` SPI — `.executable-stories/raw-run.json` is written after all tests complete. Override with `EXECUTABLE_STORIES_OUTPUT` env var. The run JSON's first key is a `$schema` pointer, so editors validate it as it is written; the listener also prints a `next:` hint to stderr (silence with `EXECUTABLE_STORIES_QUIET`). Render it with `executable-stories format` (path optional — defaults to `.executable-stories/raw-run.json`) or diagnose it with `executable-stories doctor`.
+Output is automatic via JUnit 5's `TestExecutionListener` SPI — `.executable-stories/raw-run.json` is written after all tests complete, relative to the working directory, which is the project directory under both Gradle and Maven. Override with the `EXECUTABLE_STORIES_OUTPUT` env var. The file is renamed into place, so a watch task reading it mid-run always sees a whole document. The run JSON's first key is a `$schema` pointer, so editors validate it as it is written; the listener also prints a `next:` hint to stderr (silence with `EXECUTABLE_STORIES_QUIET`). Render it with `executable-stories format` (path optional — defaults to `.executable-stories/raw-run.json`) or diagnose it with `executable-stories doctor`.
 
 ## Core Patterns
+
+### Declaring what a class's scenarios are for
+
+Scenarios say what the system does. A declaration says why the feature exists and
+who it serves, so a reader meets the intent before the examples. The JVM reports
+no source path, so the declaring class is the key the report groups by — declare
+it once per test class from `@BeforeAll`.
+
+```kotlin
+class CheckoutTest {
+    companion object {
+        @JvmStatic
+        @BeforeAll
+        fun feature() = Story.feature(
+            title = "Shoppers can check out without an account",
+            kind = "ability",   // "feature" (default), "ability", or "business-need"
+            narrative = "Forcing a signup before payment is where carts get abandoned.",
+            glossary = mapOf("basket" to "The items a shopper has chosen but not yet paid for."),
+        )
+    }
+}
+```
+
+### Scenarios you have specified but not built
+
+`Story.planned` marks the scenario as `todo`; it appears in the report as planned,
+under the class that declared it, and stops being planned once someone writes it
+as a real story with `Story.init`.
+
+```kotlin
+@Test
+fun `checkout is blocked for a suspended account`() {
+    Story.planned("Checkout is blocked for a suspended account")
+}
+```
+
+`@Disabled` means "do not run this now", which is a different claim from "we have
+not built this yet", so this does not disable the test. The plan only counts when
+the test itself came out clean: code after the declaration can still fail, and
+reporting that as planned would hide a broken test behind a plan.
 
 ### Step markers with Auto-And conversion
 
@@ -111,6 +151,16 @@ Story.state(mapOf("items" to listOf("hoodie"), "total" to 45), label = "Basket")
 
 Capture the business-relevant projection, not the ORM entity.
 
+### Screenshots and video
+
+```kotlin
+Story.screenshot("artifacts/checkout.png", "The confirmation page")
+Story.video("artifacts/checkout.webm", caption = "Checkout", poster = "artifacts/checkout.png")
+```
+
+Both render inline in the HTML report; paths resolve against the project directory
+the run reports.
+
 ### Embedded HTML
 
 Embed generated HTML (charts, single-file reports, skill/agent output) in an
@@ -161,7 +211,7 @@ Story.expect("the profile contains the correct name") {
 JUnit 5 exposes no assertion counter. `Story.expect` therefore declares one assertion
 for that claim step. A plain `Story.then()` followed by `assertEquals` remains
 unobserved, not zero. Maven Surefire's `-Dtest=...` is detected; for other discovery
-filters set `EXECUTABLE_STORIES_FILTERED=1` (`=0` declares a complete run).
+filters set `EXECUTABLE_STORIES_FILTERED=1` (`=0` declares a complete run). The run also reports `coveredSourceFiles`, every test class that executed, so a class emptied of scenarios is distinguishable from one the run never reached, and `incompleteSourceFiles` for any container that did not succeed or was skipped, so a `@TestFactory` that failed or is disabled never lets a full-scope run retire what its class used to report. A `@Disabled` test marks its class the same way, so switching one off keeps what it last documented rather than deleting it.
 
 ### Manual step timing
 
