@@ -57,15 +57,23 @@ unwinds records `fail`. Everything else records `pass`. The one exception is a
 `#[test]` returning `Result`, which fails by returning `Err` without panicking:
 pass the fallible call through `s.record_result(...)`, or call `s.fail()`.
 
-**Output.** The hook writes `.executable-stories/raw-run.json` after the last
-test in the binary finishes. Override the path with `EXECUTABLE_STORIES_OUTPUT`,
-or call `write_results()` yourself to choose the moment. Rust builds each file
-under `tests/` as its own binary writing the same path, so keep story tests in
-one file unless you give each binary its own output path. The run JSON opens
-with a `$schema` pointer so editors validate it as it is written, and the
-adapter prints a `next:` hint to stderr (silence it with
+**Output.** The hook writes `.executable-stories/raw-run.json` under the project
+root after the last test in the binary finishes. Override the path with
+`EXECUTABLE_STORIES_OUTPUT` — a relative path resolves against the project root,
+an absolute one is used as given — or call `write_results()` yourself to choose
+the moment. The file is renamed into place, so a reader never sees a half-written
+run. Rust builds each file under `tests/` as its own binary writing the same
+path, so keep story tests in one file unless you give each binary its own output
+path. The run JSON opens with a `$schema` pointer so editors validate it as it is
+written, and the adapter prints a `next:` hint to stderr (silence it with
 `EXECUTABLE_STORIES_QUIET`). Render with `executable-stories format` (the path
 argument is optional) or inspect with `executable-stories doctor`.
+
+**Provenance.** Each run carries `startedAtMs`/`finishedAtMs` (which stamp a
+scenario's freshness in the report), `gitSha` (from CI's environment, else
+`git rev-parse HEAD`), `packageVersion`, and `runScope` — `"filtered"` when the
+test binary's arguments narrowed the run with a positional filter, `--skip`, or
+`--ignored`.
 
 ## Core Patterns
 

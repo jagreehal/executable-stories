@@ -57,7 +57,10 @@ fn parses_a_price() -> Result<(), std::num::ParseIntError> {
 ## Features
 
 - BDD steps and aliases on `Story`
-- Rich docs through `DocEntry`
+- Feature declarations: `declare_feature!` at module scope heads every scenario in the file
+- Planned scenarios: `Story::planned("…")` records behaviour that is specified but not built
+- Rich docs through `DocEntry`: `note`, `tag`, `kv`, `json_doc`, `code`, `table`, `link`,
+  `section`, `mermaid`, `screenshot`, `video`, `html`, `state`, `custom`
 - Timing helpers (`start_timer` / `end_timer`)
 - Optional OTel trace integration (`otel` feature) with trace URL templates
 - Raw run writer API for formatter compatibility
@@ -78,17 +81,30 @@ story.state(Some("Basket"), serde_json::json!({"items": [{"sku": "A1", "qty": 2}
 
 ## Output
 
-The adapter inspects libtest arguments: positional name filters and `--skip` report
-`runScope: "filtered"`; ordinary runner flags leave the run `"full"`. Formatting the raw
-run updates one canonical report per source under `reports/by-file/`.
+The first `Story` registers a process-exit hook, so `.executable-stories/raw-run.json`
+lands under the project root after the last test in the binary finishes. Nothing to wire
+up. Call `write_results()` directly to control when the file is written, and set
+`EXECUTABLE_STORIES_OUTPUT` to change the path: a relative path resolves against the
+project root, an absolute one is used as given. The file is renamed into place, so a
+reader never sees a half-written run.
+
+Cargo compiles every file under `tests/` into its own binary, and each one writes the same
+path — as do doctests, which `rustdoc` runs as processes of its own. Keep story tests in a
+single file, or give each binary its own `EXECUTABLE_STORIES_OUTPUT`. Formatting the raw run
+updates one canonical report per source under `reports/by-file/`.
+
+Each run also records what produced it:
+
+- `startedAtMs` / `finishedAtMs` — when the binary ran, which is what stamps a scenario's
+  freshness in the report
+- `gitSha` — the commit the run describes, from CI's environment or `git rev-parse HEAD`
+- `packageVersion` — the adapter version that wrote the run
+- `runScope` — `"filtered"` when the test binary's arguments narrowed the run with a
+  positional name filter, `--skip`, or `--ignored`; otherwise `"full"`
 
 Rust exposes no assertion counter. Use `story.expect_step("claim", || { ... })` to
 declare assertion evidence. A plain `story.then()` followed by `assert!` remains
 unobserved rather than being treated as zero.
-
-The first `Story` registers a process-exit hook, so `.executable-stories/raw-run.json` lands after the last test in the binary finishes. Nothing to wire up. Call `write_results()` directly if you want to control when the file is written, and set `EXECUTABLE_STORIES_OUTPUT` to change the path.
-
-Rust compiles every file under `tests/` into its own binary, and each one writes the same path. Keep story tests in a single file, or give each binary its own `EXECUTABLE_STORIES_OUTPUT`.
 
 Then feed the raw-run JSON to `executable-stories-formatters` for report generation:
 

@@ -3,6 +3,8 @@
   "projectRoot": "/home/ci/myapp",
   "startedAtMs": 1706745600000,
   "finishedAtMs": 1706745607000,
+  "gitSha": "9f2c1ab4d7e35608bc19a4f0d2e8b7c3a5619d84",
+  "packageVersion": "0.1.0",
   "meta": {
     "framework": "rust",
     "rustVersion": "1.76.0"

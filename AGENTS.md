@@ -326,6 +326,8 @@ When working in these areas, load the linked skill file into context for accurat
 | Reconciling a tracker with the suite and stamping receipts    | `skills/tracker-receipts/SKILL.md`                                                             |
 | Filing tickets for what a run found that the board is missing | `skills/scenarios-to-tickets/SKILL.md`                                                         |
 | Authoring technical/coding lessons as executable story tests | `skills/executable-lessons/SKILL.md`                                                           |
+| Showing the current topic visually, from the run where possible | `skills/show-me/SKILL.md`                                                                       |
+| Building a narrated demo video from a run's storyboard frames | `skills/demo-video/SKILL.md`                                                                    |
 | Explaining a code change as living documentation (with quiz) | `skills/explain-change/SKILL.md`                                                               |
 | Explaining a whole system or feature area for onboarding     | `skills/explain-system/SKILL.md`                                                               |
 | Test-driving a behaviour with a story test as the red step   | `skills/story-tdd/SKILL.md`                                                                    |

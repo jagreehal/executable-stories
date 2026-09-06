@@ -57,6 +57,8 @@ fn test_raw_run_serialization() {
         started_at_ms: None,
         finished_at_ms: None,
         ci: None,
+        git_sha: None,
+        package_version: None,
         run_scope: None,
     };
 
@@ -98,6 +100,8 @@ fn test_camel_case_field_names() {
         started_at_ms: Some(1000.0),
         finished_at_ms: Some(2000.0),
         ci: None,
+        git_sha: None,
+        package_version: None,
         run_scope: None,
     };
 
@@ -197,6 +201,8 @@ fn test_json_write_roundtrip() {
         started_at_ms: None,
         finished_at_ms: None,
         ci: None,
+        git_sha: None,
+        package_version: None,
         run_scope: None,
     };
 

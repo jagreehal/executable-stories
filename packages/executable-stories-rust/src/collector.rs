@@ -1,4 +1,6 @@
+use std::path::{Path, PathBuf};
 use std::sync::{Mutex, Once};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use crate::json_writer;
 use crate::types::{RawCIInfo, RawRun, RawTestCase};
@@ -6,8 +8,18 @@ use crate::types::{RawCIInfo, RawRun, RawTestCase};
 static COLLECTED: Mutex<Vec<RawTestCase>> = Mutex::new(Vec::new());
 static FEATURES: Mutex<Vec<crate::types::RawFeature>> = Mutex::new(Vec::new());
 static ORDER_SEQ: Mutex<u32> = Mutex::new(0);
+/// When this test binary first recorded anything. Reports stamp their freshness
+/// from the run's timestamps, so a run without them cannot say how old it is.
+static STARTED_AT_MS: Mutex<Option<f64>> = Mutex::new(None);
 
 static EXIT_HOOK: Once = Once::new();
+
+/// How long to wait for `git rev-parse` before giving up on the commit sha.
+const GIT_TIMEOUT: Duration = Duration::from_secs(5);
+
+fn epoch_ms() -> f64 {
+    SystemTime::now().duration_since(UNIX_EPOCH).map_or(0.0, |d| d.as_secs_f64() * 1000.0)
+}
 
 extern "C" fn write_results_at_exit() {
     // Unwinding across an FFI boundary is undefined behaviour, so swallow any
@@ -22,6 +34,7 @@ extern "C" fn write_results_at_exit() {
 /// `Story` keeps the boilerplate out of the consuming crate.
 pub(crate) fn ensure_exit_hook() {
     EXIT_HOOK.call_once(|| {
+        *STARTED_AT_MS.lock().unwrap() = Some(epoch_ms());
         // SAFETY: `atexit` takes an `extern "C" fn()`. The handler touches only
         // process-wide statics, which outlive every atexit callback, and cannot
         // unwind past the boundary.
@@ -136,7 +149,9 @@ const VALUE_TAKING_FLAGS: &[&str] =
 fn is_name_filtered(args: &[String]) -> bool {
     let mut rest = args.iter().skip(1); // argv[0] is the binary
     while let Some(arg) = rest.next() {
-        if arg == "--skip" {
+        // `--skip` narrows the run, and `--ignored` runs only the tests an
+        // ordinary run leaves out, so neither is a file's complete set.
+        if arg == "--skip" || arg == "--ignored" {
             return true;
         }
         if VALUE_TAKING_FLAGS.contains(&arg.as_str()) {
@@ -151,6 +166,68 @@ fn is_name_filtered(args: &[String]) -> bool {
     false
 }
 
+/// Where the run file lands.
+///
+/// A relative `EXECUTABLE_STORIES_OUTPUT` is resolved against the project root
+/// rather than the working directory, so the file lands where the docs say it
+/// does however the test binary was started. An absolute one passes through.
+fn resolve_output_path(project_root: &str) -> PathBuf {
+    let declared = std::env::var("EXECUTABLE_STORIES_OUTPUT")
+        .unwrap_or_else(|_| ".executable-stories/raw-run.json".to_string());
+    Path::new(project_root).join(declared)
+}
+
+/// The commit this run describes.
+///
+/// CI exports it, and asking Git is the fallback. The call is bounded: this
+/// runs as the process exits, and a Git that hangs would hold that up.
+fn git_sha(project_root: &str) -> Option<String> {
+    for key in ["GITHUB_SHA", "GIT_COMMIT", "CI_COMMIT_SHA"] {
+        if let Ok(value) = std::env::var(key) {
+            if !value.is_empty() {
+                return Some(value);
+            }
+        }
+    }
+
+    let mut child = std::process::Command::new("git")
+        .args(["rev-parse", "HEAD"])
+        .current_dir(project_root)
+        .stdout(std::process::Stdio::piped())
+        // Nothing reads stderr, and Git writes to it whenever this is not a
+        // repository.
+        .stderr(std::process::Stdio::null())
+        .stdin(std::process::Stdio::null())
+        .spawn()
+        .ok()?;
+
+    let deadline = std::time::Instant::now() + GIT_TIMEOUT;
+    loop {
+        match child.try_wait() {
+            Ok(Some(status)) => {
+                if !status.success() {
+                    return None;
+                }
+                break;
+            }
+            Ok(None) => {
+                if std::time::Instant::now() >= deadline {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    return None;
+                }
+                std::thread::sleep(Duration::from_millis(10));
+            }
+            Err(_) => return None,
+        }
+    }
+
+    let mut output = String::new();
+    std::io::Read::read_to_string(child.stdout.as_mut()?, &mut output).ok()?;
+    let sha = output.trim().to_string();
+    if sha.is_empty() { None } else { Some(sha) }
+}
+
 /// # Panics
 ///
 /// Panics if writing the JSON file fails (e.g. permission or I/O error).
@@ -161,28 +238,27 @@ pub fn write_results() {
         return;
     }
 
-    let output = std::env::var("EXECUTABLE_STORIES_OUTPUT")
-        .unwrap_or_else(|_| ".executable-stories/raw-run.json".to_string());
-
     let cwd = std::env::current_dir().map(|p| p.to_string_lossy().to_string()).unwrap_or_default();
+    let output = resolve_output_path(&cwd);
 
     let run = RawRun {
         schema_version: 1,
         test_cases: cases,
         features: get_features(),
-        project_root: cwd,
-        started_at_ms: None,
-        finished_at_ms: None,
+        project_root: cwd.clone(),
+        started_at_ms: *STARTED_AT_MS.lock().unwrap(),
+        finished_at_ms: Some(epoch_ms()),
         ci: detect_ci(),
-        run_scope: Some(
-            if is_name_filtered(&std::env::args().collect::<Vec<_>>()) {
-                "filtered".to_string()
-            } else {
-                "full".to_string()
-            },
-        ),
+        git_sha: git_sha(&cwd),
+        package_version: Some(env!("CARGO_PKG_VERSION").to_string()),
+        run_scope: Some(if is_name_filtered(&std::env::args().collect::<Vec<_>>()) {
+            "filtered".to_string()
+        } else {
+            "full".to_string()
+        }),
     };
 
+    let output = output.to_string_lossy().to_string();
     json_writer::write_raw_run(&run, &output).expect("Failed to write raw run JSON");
     print_next_step(&output);
 }
@@ -207,6 +283,41 @@ pub fn reset() {
     COLLECTED.lock().unwrap().clear();
     FEATURES.lock().unwrap().clear();
     *ORDER_SEQ.lock().unwrap() = 0;
+}
+
+#[cfg(test)]
+mod output_path_tests {
+    use super::resolve_output_path;
+
+    #[test]
+    fn a_relative_override_lands_under_the_project_root() {
+        temp_env("reports/raw-run.json", || {
+            assert_eq!(
+                resolve_output_path("/projects/app"),
+                std::path::Path::new("/projects/app/reports/raw-run.json")
+            );
+        });
+    }
+
+    #[test]
+    fn an_absolute_override_is_used_as_given() {
+        temp_env("/elsewhere/raw-run.json", || {
+            assert_eq!(
+                resolve_output_path("/projects/app"),
+                std::path::Path::new("/elsewhere/raw-run.json")
+            );
+        });
+    }
+
+    /// The variable is process-wide, so these two run under one lock.
+    fn temp_env(value: &str, body: impl FnOnce()) {
+        static LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+        let _guard = LOCK.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        // SAFETY: no other thread reads this variable while the lock is held.
+        unsafe { std::env::set_var("EXECUTABLE_STORIES_OUTPUT", value) };
+        body();
+        unsafe { std::env::remove_var("EXECUTABLE_STORIES_OUTPUT") };
+    }
 }
 
 #[cfg(test)]
@@ -236,6 +347,16 @@ mod name_filter_tests {
     #[test]
     fn libtest_flags_alone_are_not_a_filter() {
         assert!(!is_name_filtered(&args(&["bin", "--nocapture", "--exact"])));
+    }
+
+    #[test]
+    fn ignored_only_marks_the_run_filtered() {
+        assert!(is_name_filtered(&args(&["bin", "--ignored"])));
+    }
+
+    #[test]
+    fn including_ignored_tests_is_not_a_filter() {
+        assert!(!is_name_filtered(&args(&["bin", "--include-ignored"])));
     }
 
     #[test]

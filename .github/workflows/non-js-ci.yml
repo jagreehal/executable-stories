@@ -101,8 +101,14 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: packages/executable-stories-rust
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets --all-features -- -D warnings
       - run: cargo test --all-features
       - run: cargo package --allow-dirty
+      # Stable compiles language features the declared minimum does not, so the
+      # minimum is the only toolchain that can tell whether it still builds.
+      - uses: dtolnay/rust-toolchain@1.85.0
+      - run: cargo +1.85.0 check --all-targets --all-features
 
   xunit:
     name: xUnit

@@ -81,10 +81,8 @@ impl Feature {
     /// Define a term the scenarios use.
     #[must_use]
     pub fn term(mut self, term: &str, definition: &str) -> Self {
-        self.glossary.push(GlossaryTerm {
-            term: term.to_string(),
-            definition: definition.to_string(),
-        });
+        self.glossary
+            .push(GlossaryTerm { term: term.to_string(), definition: definition.to_string() });
         self
     }
 

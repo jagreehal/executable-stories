@@ -52,6 +52,10 @@ impl StepDoc {
         StepDoc(DocEntry::screenshot(path, alt))
     }
     #[must_use]
+    pub fn video(path: &str, caption: Option<&str>, poster: Option<&str>) -> Self {
+        StepDoc(DocEntry::video(path, caption, poster))
+    }
+    #[must_use]
     pub fn html(opts: crate::doc_entry::HtmlOptions) -> Self {
         StepDoc(DocEntry::html(opts))
     }
@@ -158,7 +162,12 @@ impl Story {
     /// Set tickets on the story (consumes and returns self for chaining at creation).
     #[must_use]
     pub fn with_tickets(mut self, tickets: &[&str]) -> Self {
-        self.tickets = Some(tickets.iter().map(|t| crate::types::Ticket { id: (*t).to_string(), url: None }).collect());
+        self.tickets = Some(
+            tickets
+                .iter()
+                .map(|t| crate::types::Ticket { id: (*t).to_string(), url: None })
+                .collect(),
+        );
         self
     }
 
@@ -570,7 +579,7 @@ impl Story {
         self
     }
 
-    /// Attach OTel spans for trace waterfall rendering in HTML reports.
+    /// Attach `OTel` spans for trace waterfall rendering in HTML reports.
     pub fn attach_spans(&mut self, spans: Vec<serde_json::Value>) -> &mut Self {
         self.otel_spans = Some(spans);
         self
@@ -782,9 +791,9 @@ mod tests {
         let tc = recorded
             .iter()
             .find(|tc| {
-                tc.story
-                    .as_ref()
-                    .is_some_and(|s| s.scenario == "planned: checkout is blocked for a suspended account")
+                tc.story.as_ref().is_some_and(|s| {
+                    s.scenario == "planned: checkout is blocked for a suspended account"
+                })
             })
             .expect("planned scenario was not recorded");
 
