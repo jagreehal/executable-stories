@@ -5,6 +5,7 @@
  * compatible with cucumber-js v11.x output.
  */
 
+import { assertNever } from "executable-stories-core/utils/assert-never";
 import type { StoryStep, DocEntry } from "executable-stories-core/types/story";
 import type {
   TestRunResult,
@@ -509,8 +510,29 @@ export class CucumberJsonFormatter {
         };
 
       case "screenshot":
-        // Screenshots are handled as embeddings, not arguments
-        return null;
+        // A `data:` screenshot is embedded by buildScreenshotEmbeddings. One
+        // that names a file cannot be, and returning null for it dropped the
+        // artifact from the report entirely, so it degrades to a link the way
+        // html does.
+        if (doc.path.startsWith("data:")) return null;
+        return {
+          doc_string: {
+            content: `[${doc.alt ?? "Screenshot"}](${doc.path})`,
+            content_type: "text/markdown",
+            line: 0,
+          },
+        };
+
+      case "video":
+        // Never embedded: a clip is too large for a base64 payload in a JSON
+        // report, so the reference is the whole value.
+        return {
+          doc_string: {
+            content: `[${doc.caption ?? "Video"}](${doc.path})`,
+            content_type: "text/markdown",
+            line: 0,
+          },
+        };
 
       case "state":
         // State snapshots embed as JSON doc strings, label included.
@@ -535,9 +557,8 @@ export class CucumberJsonFormatter {
           };
         }
         return null;
-
-      default:
-        return null;
     }
+
+    return assertNever(doc, "Cucumber JSON: unhandled doc kind");
   }
 }

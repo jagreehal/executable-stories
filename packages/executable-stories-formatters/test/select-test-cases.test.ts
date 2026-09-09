@@ -46,4 +46,50 @@ describe("selectTestCases", () => {
     expect(selected.map((tc) => tc.id)).toEqual(["a", "b"]);
     expect(logger.warn).toHaveBeenCalled();
   });
+  it("names every selector that matched nothing, so a moved path stops filtering silently", () => {
+    const logger = { warn: vi.fn() };
+    selectTestCases(
+      {
+        testCases: [
+          stubs.testCaseResult({
+            id: "a",
+            sourceFile: "src/auth/login.story.test.ts",
+            story: stubs.storyMeta({ scenario: "Login works", tags: ["auth"] }),
+            tags: ["auth"],
+          }),
+        ],
+        exclude: ["legacy/**"],
+        excludeTags: ["flaky"],
+      },
+      { logger }
+    );
+
+    const warned = logger.warn.mock.calls.map((call) => String(call[0])).join("\n");
+    expect(warned).toContain("legacy/**");
+    expect(warned).toContain("flaky");
+    expect(warned).toContain("--exclude");
+    expect(warned).toContain("--exclude-tags");
+  });
+
+  it("stays quiet when every selector matched something", () => {
+    const logger = { warn: vi.fn() };
+    selectTestCases(
+      {
+        testCases: [
+          stubs.testCaseResult({
+            id: "a",
+            sourceFile: "src/auth/login.story.test.ts",
+            story: stubs.storyMeta({ scenario: "Login works", tags: ["auth"] }),
+            tags: ["auth"],
+          }),
+        ],
+        include: ["src/auth/**"],
+        includeTags: ["auth"],
+      },
+      { logger }
+    );
+
+    const warned = logger.warn.mock.calls.map((call) => String(call[0])).join("\n");
+    expect(warned).not.toContain("matched no test case");
+  });
 });

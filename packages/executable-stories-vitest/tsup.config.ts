@@ -4,6 +4,7 @@ export default defineConfig({
   entry: {
     index: "src/index.ts",
     reporter: "src/reporter.ts",
+    otel: "src/otel.ts",
   },
   format: ["cjs", "esm"],
   dts: true,

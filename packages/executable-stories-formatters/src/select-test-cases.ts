@@ -120,6 +120,33 @@ function sortTestCases(
   });
 }
 
+/**
+ * A selector that matches nothing filters nothing, and says so to no one: the
+ * run looks filtered, the report is the whole suite, and the usual cause is a
+ * path that moved or a tag that was renamed since the flag was written. Name
+ * every such selector once, so a stale filter is visible instead of silent.
+ */
+function warnUnmatchedSelectors(
+  testCases: TestCaseResult[],
+  selectors: { flag: string; values: string[]; matches: (value: string, tc: TestCaseResult) => boolean }[],
+  logger: Logger
+): void {
+  const unmatched: string[] = [];
+  for (const { flag, values, matches } of selectors) {
+    for (const value of values) {
+      if (!testCases.some((tc) => matches(value, tc))) {
+        unmatched.push(`${flag} "${value}"`);
+      }
+    }
+  }
+  if (unmatched.length === 0) return;
+
+  logger.warn(
+    `${unmatched.length} selector(s) matched no test case and filtered nothing: ${unmatched.join(", ")}. ` +
+      `The path or tag each names may have moved or been renamed.`
+  );
+}
+
 export function selectTestCases(
   args: SelectTestCasesArgs,
   deps: SelectTestCasesDeps
@@ -129,6 +156,20 @@ export function selectTestCases(
   const includeTags = args.includeTags ?? [];
   const excludeTags = args.excludeTags ?? [];
   const sortMode = args.sortTestCases ?? "none";
+
+  const byGlob = (pattern: string, tc: TestCaseResult) =>
+    matchesPattern(pattern, tc.sourceFile.replace(/\\/g, "/"));
+  const byTag = (tag: string, tc: TestCaseResult) => tc.tags.includes(tag);
+  warnUnmatchedSelectors(
+    args.testCases,
+    [
+      { flag: "--include", values: include, matches: byGlob },
+      { flag: "--exclude", values: exclude, matches: byGlob },
+      { flag: "--include-tags", values: includeTags, matches: byTag },
+      { flag: "--exclude-tags", values: excludeTags, matches: byTag },
+    ],
+    deps.logger
+  );
 
   let selected = filterTestCasesByGlobs(
     args.testCases,

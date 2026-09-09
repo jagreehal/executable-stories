@@ -117,6 +117,7 @@ Attach rich documentation to the **current step** (or story-level if called befo
 | `story.video(options)`      | Video reference.                                  | `story.video({ path: "run.webm", caption: "Full run" });`                   |
 | `story.html(options)`       | Embed self-contained HTML in a sandboxed iframe (one of `path` / `url` / `content`). | `story.html({ content: chartHtml, title: "Chart" });`           |
 | `story.custom(options)`     | Custom entry (use `customRenderers` in reporter). | `story.custom({ type: "myType", data });`                                   |
+| `story.attachSpans(spans, ids?)` | OTel spans for the trace waterfall and `--format span-graph`. Collected for you when Vitest's OpenTelemetry support is on — see [Vitest config](/reference/vitest-config#opentelemetry-spans). | `story.attachSpans(finishedSpans);` |
 
 **Example:**
 

@@ -30,6 +30,7 @@ import { expect, onTestFinished } from 'vitest';
 import { createRequire } from 'node:module';
 import { tryGetActiveOtelContext, resolveTraceUrl } from 'executable-stories-core/utils/otel-detect';
 import { buildHtmlDocEntry } from 'executable-stories-core/utils/doc-builders';
+import { takeCollectedSpans } from './otel';
 import type {
   DocEntry,
   FeatureInput,
@@ -497,6 +498,17 @@ function init(task: TaskLike, options?: StoryOptions): void {
   try {
     onTestFinished(() => {
       flushPendingAssertions(ctx);
+      // Spans Vitest's OpenTelemetry instrumentation produced during this test,
+      // claimed by the trace id init() captured. Written through `ctx.taskMeta`,
+      // the object `story.attachSpans` writes to and the reporter reads. Empty
+      // unless the collector is installed, and never overwrites spans a test
+      // attached itself.
+      const traceId = (ctx.meta.meta as { otel?: { traceId?: string } } | undefined)
+        ?.otel?.traceId;
+      if (traceId && ctx.taskMeta && !ctx.taskMeta.otelSpans) {
+        const collected = takeCollectedSpans(traceId);
+        if (collected.length > 0) ctx.taskMeta.otelSpans = collected;
+      }
       task.meta.story = ctx.meta;
     });
   } catch {

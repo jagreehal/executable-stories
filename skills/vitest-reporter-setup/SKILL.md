@@ -20,6 +20,66 @@ are covered by CI. The reporter reads the same runner contract on each, so the
 setup below is identical. On Vitest 5, Node >= 22.12 and Vite >= 6.4 are
 required by Vitest itself.
 
+## Spans, automatically (OpenTelemetry)
+
+The architecture graph and the trace waterfall both need OTel spans on a
+scenario. `story.attachSpans()` takes them by hand. Vitest's own OpenTelemetry
+support removes that step: it wraps every test in a span, so `story.init()`
+already captures the trace id, and a collector in the SDK claims the spans that
+ended during the test.
+
+```js
+// otel.js — the SDK module Vitest loads
+import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
+import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto';
+import { NodeSDK } from '@opentelemetry/sdk-node';
+import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
+import { storySpanCollector } from 'executable-stories-vitest/otel';
+
+const sdk = new NodeSDK({
+  serviceName: 'my-app',
+  // `spanProcessors` and `traceExporter` are alternatives, not additions:
+  // NodeSDK only builds a processor from `traceExporter` when no
+  // `spanProcessors` is given, so passing both silently exports nothing. Keep
+  // your exporter by listing it here as a processor of its own.
+  spanProcessors: [
+    storySpanCollector(),
+    new BatchSpanProcessor(new OTLPTraceExporter()),
+  ],
+  instrumentations: [getNodeAutoInstrumentations()],
+});
+sdk.start();
+export default sdk;
+```
+
+```ts
+// vitest.config.ts
+export default defineConfig({
+  test: {
+    experimental: { openTelemetry: { enabled: true, sdkPath: './otel.js' } },
+  },
+});
+```
+
+Tests change in no way. Auto-instrumentation supplies `peer.service`,
+`db.system` and `messaging.destination.name`, which is what lets
+`--format span-graph` name components properly instead of falling back to a
+span-name prefix.
+
+Three things worth knowing:
+
+- **Spans that end after the test does are dropped.** The drain runs in the
+  story's `onTestFinished`, so work still in flight when the test returns is not
+  attached. Await it, or attach those spans yourself.
+- **A trace is capped** at 500 spans. Auto-instrumentation on a loop of queries
+  produces hundreds of near-identical leaf spans, and the head describes the
+  architecture.
+- **`story.attachSpans()` still wins.** A test that attaches its own spans is
+  never overwritten.
+
+Vitest's OpenTelemetry support is experimental, and it adds startup cost per
+test unless isolation is off.
+
 ## Setup
 
 ```typescript

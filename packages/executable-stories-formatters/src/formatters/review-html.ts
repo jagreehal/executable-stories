@@ -19,6 +19,7 @@ import type { DiffHunk, FileDiff } from "../types/diff";
 import type { DocEntry, StoryStep } from "executable-stories-core/types/story";
 import type { TestCaseResult } from "executable-stories-core/types/test-result";
 import { REPORT_THEME_CSS } from "./report-theme-css";
+import { REPORT_FAVICON_LINK } from "executable-stories-core/utils/report-favicon";
 
 export interface ReviewHtmlOptions {
   title?: string;
@@ -433,6 +434,7 @@ export class ReviewHtmlFormatter {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    ${REPORT_FAVICON_LINK}
     <title>${escapeHtml(this.title)}</title>
     <style>
       ${REPORT_THEME_CSS}

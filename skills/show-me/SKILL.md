@@ -126,6 +126,25 @@ sequenceDiagram
 - The whole block when most of it is new, when omitted context would hide ownership or
   order, or when the reader needs a copyable target shape.
 
+## For system shape, check for spans before you draw
+
+When the question is about the shape of the system (what calls what, what a change
+touches, where a failure sits), do not hand-draw a Mermaid diagram until you have
+checked whether the run can draw it for you:
+
+```bash
+executable-stories format reports/raw-run.json --format span-graph \
+  --output-dir reports --output-name index
+```
+
+If the run carries OTel spans this writes the architecture it actually exercised,
+with the scenarios behind every component. That picture needs no "AI-authored, not
+verified by a run" marker, because nothing on it was inferred. A hand-drawn one
+always does.
+
+The command writes no file when the run has no spans. That is your answer: draw it
+yourself, mark it as drawn from reading code, and say that the shape is unverified.
+
 ## Promote it when it will be asked again
 
 A sketch that answers a question once belongs in the conversation. A sketch that answers a
@@ -166,6 +185,34 @@ Then render and open:
 ```bash
 executable-stories format reports/raw-run.json --format html --output-dir reports --open
 ```
+
+## Put it in the pull request
+
+A picture in the terminal is gone by review time. When the change is going to a pull
+request, the evidence goes with it:
+
+```bash
+executable-stories format reports/raw-run.json --format markdown \
+  --output-dir reports --output-name index --attach-images
+```
+
+`--attach-images` keeps the run's screenshot and video paths as ordinary markdown
+references and prints the command that makes them resolve:
+
+```bash
+gh pr comment 42 --body-file reports/index.md \
+  --attach 'reports/assets/checkout-receipt.png'
+```
+
+GitHub CLI 2.99 and later uploads each attached file and rewrites the reference to it
+in the body it posts, so nothing needs an image host, an orphan branch, or a
+`contents: write` token. `gh pr create --body-file ... --attach ...` puts the same
+thing in the description, which is where a reviewer looks first. Check `gh --version`
+before writing a body around it; on an older gh, publish the report and link to it
+instead.
+
+Attach what a reviewer needs and leave the rest in `reports/`. A body with two
+pictures reads better than one with six.
 
 ## HTML is the last resort
 

@@ -162,6 +162,8 @@ You can limit which test cases appear in reports using **include** and **exclude
 
 Patterns use the same glob semantics as output rules (`*` and `**`). Paths are normalized to forward slashes. This works with any framework that sets `sourceFile` on raw test cases (Jest, Vitest, Playwright, xUnit, etc.).
 
+A selector that matches nothing is named in a warning. A filter whose path moved otherwise filters nothing, silently, and the report looks filtered when it is the whole suite. The same holds for `--include-tags` and `--exclude-tags`.
+
 Programmatic API:
 
 ```ts
@@ -172,6 +174,40 @@ const generator = new ReportGenerator({
   outputDir: "reports",
 });
 ```
+
+### Evidence in a pull request (`--attach-images`)
+
+A screenshot or clip captured by a run lives on the machine that ran it, so Markdown posted to a pull request carries an "unavailable" line rather than a dead image. `--attach-images` keeps the local paths as real references and prints the command that makes them resolve:
+
+```bash
+executable-stories format reports/raw-run.json --format markdown \
+  --output-dir reports --output-name index --attach-images
+
+# printed by the command above
+gh pr comment 42 --body-file reports/index.md \
+  --attach 'reports/assets/checkout-receipt.png'
+```
+
+GitHub CLI 2.99 and later uploads each attached file and rewrites the reference to it in the body it posts, so nothing needs an image host, an orphan branch, or a `contents: write` token. `gh pr create --attach` puts the same thing in the description. Without `--attach-images` the behaviour is unchanged: a local path is never written as a reference that would arrive broken.
+
+### Architecture the run exercised (`--format span-graph`)
+
+Every other way to draw a system's shape infers it, from the folder tree, the import graph, or a model reading a diff, and produces a picture nobody can check. This one is derived from the OTel spans a run emitted:
+
+```bash
+executable-stories format reports/raw-run.json --format span-graph \
+  --output-dir reports --output-name index
+
+# colour the components the change is really about
+executable-stories format reports/raw-run.json --format span-graph \
+  --output-dir reports --output-name index --baseline last-release/raw-run.json
+```
+
+A component appears because a span named it while a scenario ran; an arrow is there because one span was the parent of another across a component boundary. Both carry the scenario ids that put them there, so "what does this change touch" is answered from the run rather than guessed. Components are laned by the OTel convention that named them (`http.route` → edge, `peer.service` → service, `messaging.destination.name` → queue, `db.system` → data), and the output is Mermaid, which every report format and GitHub already render.
+
+`--baseline` marks a component every touching scenario is new to as added, and the two components the diff moved most of as changed. The cap is the point: without it a hub that sits on most scenarios is coloured on every run.
+
+It draws instrumented, exercised paths only. A component no scenario reaches does not appear, which is the same shape as coverage and worth reading as such. **A run with no spans writes no file**, so adding the format to a preset costs nothing until something is instrumented.
 
 ## Living docs site (Confluence replacement)
 

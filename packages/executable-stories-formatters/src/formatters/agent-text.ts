@@ -77,7 +77,11 @@ function ownDocLines(entry: ReportDocEntry, pad: string): string[] {
     case "note":
       return [indent(entry.text, pad)];
     case "tag":
-      return []; // already on the scenario's tag line
+      // `story.tag()` writes a doc entry and nothing else: it never reaches
+      // `scenario.tags`, so returning [] here lost a step-level tag from the
+      // one format agents read. A scenario-level tag repeating its own tag
+      // line is the cheaper mistake.
+      return [`${pad}tag ${entry.names.join(", ")}`];
     case "kv":
       return [`${pad}${entry.label}: ${compact(entry.value)}`];
     case "code":

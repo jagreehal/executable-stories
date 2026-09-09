@@ -20,6 +20,7 @@ import { StoryReportJsonFormatter } from "./formatters/story-report-json";
 import { ScenarioIndexJsonFormatter } from "./formatters/scenario-index-json";
 import { BehaviorManifestJsonFormatter } from "./formatters/behavior-manifest-json";
 import { AgentTextFormatter } from "./formatters/agent-text";
+import { SpanGraphFormatter } from "./formatters/span-graph";
 import { JUnitFormatter } from "./formatters/junit-xml";
 import { MarkdownFormatter } from "./formatters/markdown";
 import { ReleaseManifestFormatter } from "./formatters/release-manifest";
@@ -95,8 +96,16 @@ export interface GenerateCompareResult {
 }
 
 /** Extension map for output formats */
+/**
+ * Formats whose empty output means "nothing to report", not "an empty report".
+ * Every other format writes its file even when the run is empty, and changing
+ * that would silently stop producing artifacts CI expects to find.
+ */
+const SKIP_WHEN_EMPTY: ReadonlySet<string> = new Set(["span-graph"]);
+
 const FORMAT_EXTENSIONS: Record<OutputFormat, string> = {
   "agent-text": ".agent.txt",
+  "span-graph": ".span-graph.md",
   "astro-markdown": ".md",
   "behavior-manifest-json": ".behavior-manifest.json",
   markdown: ".md",
@@ -461,6 +470,11 @@ export class ReportGenerator {
         traceUrlTemplate: options.markdown?.traceUrlTemplate,
         includeSourceLinks: options.markdown?.includeSourceLinks ?? true,
         customRenderers: options.markdown?.customRenderers,
+        attachImages: options.markdown?.attachImages ?? false,
+      },
+      spanGraph: {
+        ...(options.spanGraph?.title === undefined ? {} : { title: options.spanGraph.title }),
+        ...(options.spanGraph?.delta === undefined ? {} : { delta: options.spanGraph.delta }),
       },
       confluence: {
         title: options.confluence?.title ?? "User Stories",
@@ -706,6 +720,7 @@ export class ReportGenerator {
       const effectiveName = this.options.outputName + (outputNameSuffix ?? "");
       const outputPath = toPosix(path.join(this.options.outputDir, joinNameAndExt(effectiveName, ext)));
       const content = await this.formatContent(run, format, outputPath);
+      if (content === "" && SKIP_WHEN_EMPTY.has(format)) return [];
       const dir = path.dirname(outputPath);
       await fsPromises.mkdir(dir, { recursive: true });
       await this.deps.writeFile(outputPath, content);
@@ -723,6 +738,10 @@ export class ReportGenerator {
 
       // Format content
       const content = await this.formatContent(groupRun, format, outputPath);
+      // A format that has nothing to say writes nothing: span-graph on an
+      // uninstrumented suite would otherwise leave a page saying "no diagram"
+      // in every report forever.
+      if (content === "" && SKIP_WHEN_EMPTY.has(format)) continue;
 
       // Ensure directory exists
       const dir = path.dirname(outputPath);
@@ -831,6 +850,7 @@ export class ReportGenerator {
           traceUrlTemplate: this.options.markdown.traceUrlTemplate,
           includeSourceLinks: this.options.markdown.includeSourceLinks,
           customRenderers: this.options.markdown.customRenderers,
+          attachImages: this.options.markdown.attachImages,
         });
         return formatter.format(run);
       }
@@ -873,6 +893,11 @@ export class ReportGenerator {
 
       case "agent-text": {
         const formatter = new AgentTextFormatter();
+        return formatter.format(run);
+      }
+
+      case "span-graph": {
+        const formatter = new SpanGraphFormatter(this.options.spanGraph);
         return formatter.format(run);
       }
 

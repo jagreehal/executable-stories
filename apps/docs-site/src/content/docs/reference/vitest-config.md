@@ -97,6 +97,46 @@ Top-level `FormatterOptions` also support:
 | `enableGithubActionsSummary` | `boolean` | `true`  | When `GITHUB_ACTIONS`, append report to job summary. |
 | `rawRunPath`                 | `string`  | —       | Write the raw run JSON to disk for later CLI use.    |
 
+## OpenTelemetry spans
+
+Spans put a trace waterfall on a scenario and let `--format span-graph` draw the
+architecture the run exercised. With Vitest's own OpenTelemetry support enabled,
+they are collected automatically: `storySpanCollector()` is a SpanProcessor
+exported from `executable-stories-vitest/otel` that keeps the spans ending
+during a test, and the story claims them at test end. Tests are written
+unchanged.
+
+```js
+// otel.js — the SDK module Vitest loads
+import { NodeSDK } from '@opentelemetry/sdk-node';
+import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
+import { storySpanCollector } from 'executable-stories-vitest/otel';
+
+const sdk = new NodeSDK({
+  // Alongside your own exporter's processor, not instead of it: NodeSDK builds
+  // a processor from `traceExporter` only when `spanProcessors` is absent.
+  spanProcessors: [storySpanCollector(), new BatchSpanProcessor(exporter)],
+});
+sdk.start();
+export default sdk;
+```
+
+```typescript
+// vitest.config.ts
+export default defineConfig({
+  test: {
+    experimental: { openTelemetry: { enabled: true, sdkPath: './otel.js' } },
+  },
+});
+```
+
+Auto-instrumentation supplies `peer.service`, `db.system` and
+`messaging.destination.name`, the attributes `span-graph` names components from.
+A trace keeps its first 500 spans, spans ending after the test returns are not
+attached, and an explicit `story.attachSpans()` takes precedence. A trace that
+collected nothing leaves no key behind, so a suite with no OpenTelemetry setup
+is untouched.
+
 ## Examples
 
 ### Aggregated markdown

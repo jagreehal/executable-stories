@@ -5,6 +5,7 @@
  * for CI system integration.
  */
 
+import { assertNever } from "executable-stories-core/utils/assert-never";
 import type { DocEntry, StoryStep } from "executable-stories-core/types/story";
 import type { TestRunResult, TestCaseResult } from "executable-stories-core/types/test-result";
 
@@ -273,7 +274,13 @@ export class JUnitFormatter {
       }
 
       case "screenshot":
-        return `${indent}Screenshot: ${entry.alt ?? entry.path}`;
+        // Both halves: the alt is what a reader wants, the path is what they
+        // open. Dropping the path when an alt exists left the artifact
+        // unreachable from the one output CI actually parses.
+        return `${indent}Screenshot: ${entry.alt ? `${entry.alt} (${entry.path})` : entry.path}`;
+
+      case "video":
+        return `${indent}Video: ${entry.caption ? `${entry.caption} (${entry.path})` : entry.path}`;
 
       case "state":
         return `${indent}State${entry.label ? ` (${entry.label})` : ""}: ${JSON.stringify(entry.value) ?? "null"}`;
@@ -290,10 +297,9 @@ export class JUnitFormatter {
         }
         return lines.join("\n");
       }
-
-      default:
-        return "";
     }
+
+    return assertNever(entry, "JUnit XML: unhandled doc kind");
   }
 }
 

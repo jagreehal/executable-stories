@@ -42,6 +42,10 @@ export * from "./state-diff.js";
 // Journey derivation (journey:<id>[:<n>] tags → ordered multi-scenario walkthroughs)
 export * from "./journeys.js";
 
+// Architecture derived from the spans a run emitted (components, edges, lanes,
+// blast radius) rendered as Mermaid. Empty unless the run carries OTel spans.
+export * from "./span-graph.js";
+
 // Explainer freshness contract (also available via the ./explainer subpath,
 // which browser bundles use to avoid pulling the Node-only helpers).
 export * from "./explainer.js";
@@ -63,3 +67,4 @@ export * from "./utils/duration.js";
 export * from "./utils/url.js";
 export * from "./utils/humanize.js";
 export * from "./utils/assertive-steps.js";
+export * from "./utils/assert-never.js";

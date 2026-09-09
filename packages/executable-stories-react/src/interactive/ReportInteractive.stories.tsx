@@ -34,6 +34,41 @@ export const Default: Story = {
   },
 };
 
+/**
+ * The run-level architecture section renders here too. `Report` composes its
+ * header separately, so it asserts the same thing: the pair is the guard
+ * against one path quietly losing the section.
+ */
+export const ShowsSpanGraph: Story = {
+  args: { report: kitchenSinkReport() },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(
+      canvas.getByRole('heading', { name: 'Architecture, as it ran' }),
+    ).toBeVisible();
+  },
+};
+
+/**
+ * `hideHeader` drops the duplicate title block for a page that renders its own
+ * `<h1>` — the Astro/Starlight docs site. It must not take the architecture
+ * section with it: that is content, not a title, and the docs site is the
+ * surface it matters most on.
+ */
+export const SpanGraphSurvivesHiddenHeader: Story = {
+  args: { report: kitchenSinkReport(), hideHeader: true },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(
+      canvas.getByRole('heading', { name: 'Architecture, as it ran' }),
+    ).toBeVisible();
+    // The title block itself is gone, which is what hideHeader is for.
+    await expect(
+      canvas.queryByRole('heading', { name: 'Story Report', level: 1 }),
+    ).toBeNull();
+  },
+};
+
 // Typing in the search narrows the report tree — non-matching scenarios drop out.
 export const FiltersOnSearch: Story = {
   args: { report: kitchenSinkReport() },

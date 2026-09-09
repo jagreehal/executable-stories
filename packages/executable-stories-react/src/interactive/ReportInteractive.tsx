@@ -15,6 +15,7 @@ import { ReportEmpty } from '../components/ReportEmpty';
 import { ReportFeatureList } from '../components/ReportFeatureList';
 import { ReportMeta } from '../components/ReportMeta';
 import { ReportErrorShell } from '../components/ReportShell';
+import { ReportSpanGraph } from '../components/ReportSpanGraph';
 import { ReportSummary } from '../components/ReportSummary';
 import { Switch } from '../components/ui/switch';
 import { ToggleGroup, ToggleGroupItem } from '../components/ui/toggle-group';
@@ -454,6 +455,14 @@ function ReportInteractiveView({
                       <ReportMeta />
                     </>
                   )}
+                  {/* Outside `hideHeader`, deliberately. That flag drops the
+                      duplicate title block for a page that renders its own
+                      <h1> (the Astro/Starlight docs site); the architecture is
+                      content, and the docs site is the surface it matters most
+                      on. Shows the whole run rather than the filtered view: a
+                      search narrows which scenarios you read, not which
+                      components the run exercised. */}
+                  <ReportSpanGraph />
                   <ReportFreshness
                     lastRunMs={reportLastRunMs(report)}
                     ciUrl={report.ci?.url}
