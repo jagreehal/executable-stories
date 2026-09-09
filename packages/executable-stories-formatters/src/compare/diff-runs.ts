@@ -7,7 +7,7 @@ import type {
 } from "../types/compare";
 import { toScenarioSnapshot } from "../types/compare";
 import {
-  behaviourFingerprint,
+  behaviourFingerprint, pairByFingerprint,
   behaviourSimilarity,
   type BehaviourIdentityInput,
 } from "executable-stories-core/converters/acl/ids";
@@ -145,26 +145,18 @@ function matchIdentities(
   const remainingRemoved = new Set(removed);
   const remainingAdded = new Set(added);
 
-  // Pass 1 — exact content fingerprint, one-to-one only.
-  const removedByFp = new Map<string, TestCaseResult[]>();
-  const addedByFp = new Map<string, TestCaseResult[]>();
-  for (const tc of remainingRemoved) {
-    const fp = behaviourFingerprint(identityInput(tc));
-    if (fp === "") continue;
-    (removedByFp.get(fp) ?? removedByFp.set(fp, []).get(fp)!).push(tc);
-  }
-  for (const tc of remainingAdded) {
-    const fp = behaviourFingerprint(identityInput(tc));
-    if (fp === "") continue;
-    (addedByFp.get(fp) ?? addedByFp.set(fp, []).get(fp)!).push(tc);
-  }
-  for (const [fp, removedGroup] of removedByFp) {
-    const addedGroup = addedByFp.get(fp);
-    if (removedGroup.length === 1 && addedGroup && addedGroup.length === 1) {
-      pairs.push({ before: removedGroup[0], after: addedGroup[0], confidence: 1, matchedBy: "fingerprint" });
-      remainingRemoved.delete(removedGroup[0]);
-      remainingAdded.delete(addedGroup[0]);
-    }
+  // Pass 1 — exact content fingerprint. `pairByFingerprint` carries the rules
+  // (the empty fingerprint never matches, and an ambiguous group is declined
+  // rather than guessed) so every consumer of behaviourFingerprint agrees on
+  // what counts as a rename.
+  for (const { removed: before, added: after } of pairByFingerprint(
+    [...remainingRemoved],
+    [...remainingAdded],
+    (tc) => behaviourFingerprint(identityInput(tc)),
+  )) {
+    pairs.push({ before, after, confidence: 1, matchedBy: "fingerprint" });
+    remainingRemoved.delete(before);
+    remainingAdded.delete(after);
   }
 
   // Pass 2 — guarded fuzzy: a unique best match above threshold.

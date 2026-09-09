@@ -28,6 +28,11 @@
       "types": "./dist/reporter.d.ts",
       "import": "./dist/reporter.js",
       "require": "./dist/reporter.cjs"
+    },
+    "./otel": {
+      "types": "./dist/otel.d.ts",
+      "import": "./dist/otel.js",
+      "require": "./dist/otel.cjs"
     }
   },
   "files": [
@@ -46,6 +51,7 @@
   },
   "devDependencies": {
     "@opentelemetry/api": "^1.9.1",
+    "@opentelemetry/sdk-trace-base": "^2.10.0",
     "@types/node": "^26.2.0",
     "@types/picomatch": "^4.0.3",
     "eslint-config-executable-stories": "workspace:*",

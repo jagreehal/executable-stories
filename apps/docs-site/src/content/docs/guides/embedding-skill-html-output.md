@@ -71,10 +71,14 @@ When you author HTML for embedding, lean on CDN libraries and inline DOM scripts
 
 ## Full-page artifacts
 
-Architecture reviews and lessons are full-page documents. The default 400px iframe crops them, so:
+Architecture reviews and lessons are full-page documents, and the frame sizes itself to them.
 
-- Set a generous `height` (`800` to `1000`) to show meaningful content inline. `height` takes a pixel number or a CSS string such as `'90vh'`. Width fills the container.
+- **`content` embeds auto-size.** The report inlines a small measuring script into the `srcdoc`, and the frame grows to the artifact once it has rendered. `height` is the placeholder shown until then (default `400px`), so set it near the expected size to avoid a visible jump. It takes a pixel number or a CSS string such as `'90vh'`; width fills the container.
+- **`url` and `path` embeds keep their declared height.** The frame is sandboxed without `allow-same-origin`, so it has an opaque origin and the report cannot measure a page it does not own. Only that page's author can post its height out.
+- A frame stops growing at 5000px and scrolls beyond it. Embedded HTML is untrusted, and a height it reports is input at a trust boundary.
 - Every embed's chrome bar carries a ↗ **open-in-new-tab** button that shows the artifact full size. For `content` embeds the report builds a blob URL on demand, so it stays self-contained.
+
+No dependency and no network request: the measuring script is a string in the report, which keeps the single-file report single-file.
 
 ## End-to-end: a skill writes, a story embeds
 

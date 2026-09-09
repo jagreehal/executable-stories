@@ -48,6 +48,13 @@ export const KitchenSink: Story = {
     await expect(canvas.getAllByRole("alert")[0]).toHaveTextContent(/received \{ id/);
     // A ticket badge renders.
     await expect(canvas.getByText("SHOP-101")).toBeVisible();
+    // The kitchen sink's scenarios carry OTel spans, so the run-level
+    // architecture section renders above the features. ReportInteractive
+    // composes its own header, so it asserts this separately — if the two
+    // paths ever diverge, one of the two stories fails.
+    await expect(
+      canvas.getByRole("heading", { name: "Architecture, as it ran" }),
+    ).toBeVisible();
   },
 };
 

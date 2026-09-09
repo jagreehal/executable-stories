@@ -108,6 +108,9 @@ import type {
   ReviewContext,
 } from './types/review';
 import { validateRawRun } from './validation/schema-validator';
+import { spanGraphDeltaFromRuns } from 'executable-stories-core/span-graph';
+import { behaviourFingerprint } from 'executable-stories-core/converters/acl/ids';
+import { buildGhAttachCommand } from './attach-images';
 
 // ============================================================================
 // Exit Codes
@@ -202,11 +205,13 @@ SUBCOMMANDS
   deploy             Record deployments, show environment status, detect drift
 
 OPTIONS
-  --format <formats>            Comma-separated formats: html, markdown, release-manifest, traceability-matrix, traceability-csv, junit, cucumber-json, cucumber-messages, cucumber-html, astro-markdown, confluence, story-report-json, scenario-index-json, behavior-manifest-json, agent-text, or custom names from config (default: html)
+  --format <formats>            Comma-separated formats: html, markdown, release-manifest, traceability-matrix, traceability-csv, junit, cucumber-json, cucumber-messages, cucumber-html, astro-markdown, confluence, story-report-json, scenario-index-json, behavior-manifest-json, agent-text, span-graph, or custom names from config (default: html)
                                   astro-markdown    Starlight-flavored Markdown (single aggregated page; for a live site use "init-astro" + "astro dev")
                                   confluence        Atlassian Document Format (ADF) JSON for Confluence / Jira
                                   behavior-manifest-json Agent-readable behavior manifest and debugger warnings
                                   agent-text        Full run as flat token-lean plain text for pasting into an LLM
+                                  span-graph        Architecture the run exercised, from its OTel spans, as mermaid.
+                                                    Writes nothing when the run carries no spans
                                   html              Standalone interactive HTML report, rendered via executable-stories-react (same component tree as the Astro site)
                                   cucumber-html     Official Cucumber HTML report
                                   markdown          Markdown documentation
@@ -237,6 +242,8 @@ ${presetHelpLines()
   --html-title <title>          HTML report title (default: Test Results)
   --html-no-syntax-highlighting Disable syntax highlighting in HTML (enabled by default)
   --html-no-mermaid             Disable mermaid diagrams in HTML (enabled by default)
+  --attach-images               Markdown keeps local screenshot/video paths and prints the
+                                'gh pr comment --attach' command that uploads them (gh 2.99+)
   --html-share                  Show the Share button in the HTML report (hidden by default)
   --html-stale-after-days <n>   Days before the HTML report shows a stale warning; 0 disables (default: 7)
   --asset-mode <mode>         Asset bundling: "none" (default) or "copy"
@@ -439,6 +446,8 @@ interface CliArgs {
   htmlNoMermaid: boolean;
   htmlShare: boolean;
   htmlStaleAfterDays: number;
+  /** Markdown keeps local screenshot/video paths, for `gh ... --attach`. */
+  attachImages: boolean;
   jsonSummary: boolean;
   /** Emit compact JSON for agent-facing artifacts (story-report, scenario-index, behavior-manifest, list --json). */
   minify: boolean;
@@ -783,6 +792,7 @@ async function parseCliArgs(
       'html-no-syntax-highlighting': { type: 'boolean', default: false },
       'html-no-mermaid': { type: 'boolean', default: false },
       'html-share': { type: 'boolean', default: false },
+      'attach-images': { type: 'boolean', default: false },
       'html-stale-after-days': { type: 'string' },
       stdin: { type: 'boolean', default: false },
       'json-summary': { type: 'boolean', default: false },
@@ -954,6 +964,7 @@ async function parseCliArgs(
 
   const builtInFormats = new Set([
     'agent-text',
+    'span-graph',
     'astro-markdown',
     'behavior-manifest-json',
     'confluence',
@@ -1002,7 +1013,7 @@ async function parseCliArgs(
         ? `, ${[...customFormatterNames].join(', ')}`
         : '';
     console.error(
-      `Error: Unknown format(s): ${unknownFormats.join(', ')}. Valid built-in: agent-text, astro-markdown, behavior-manifest-json, confluence, html, markdown, release-manifest, traceability-matrix, traceability-csv, junit, cucumber-json, cucumber-messages, cucumber-html, scenario-index-json, story-report-json${knownCustom}.`,
+      `Error: Unknown format(s): ${unknownFormats.join(', ')}. Valid built-in: agent-text, astro-markdown, behavior-manifest-json, confluence, html, markdown, release-manifest, traceability-matrix, traceability-csv, junit, cucumber-json, cucumber-messages, cucumber-html, scenario-index-json, span-graph, story-report-json${knownCustom}.`,
     );
     process.exit(EXIT_USAGE);
   }
@@ -1237,6 +1248,7 @@ async function parseCliArgs(
     htmlNoMermaid: values['html-no-mermaid'] as boolean,
     htmlShare: values['html-share'] as boolean,
     htmlStaleAfterDays,
+    attachImages: values['attach-images'] as boolean,
     jsonSummary: values['json-summary'] as boolean,
     minify: values['minify'] as boolean,
     listFormat: values['list-format'] as string as
@@ -1685,6 +1697,30 @@ function resolveBaselineAuto(
  * Returns undefined when no --baseline was given. Supports an explicit path or
  * "auto" (pick a prior run from the output directory).
  */
+/**
+ * The span graph's delta, from the run --baseline names. Scenario identity is
+ * the canonical id and content is the behaviour fingerprint, so a scenario that
+ * was only retitled reads as changed rather than as removed-and-added.
+ */
+function spanGraphDelta(
+  args: CliArgs,
+  currentRun: TestRunResult,
+): { added: string[]; changed: string[] } | undefined {
+  const baseline = resolveBaselineRun(args, currentRun);
+  if (!baseline) return undefined;
+  const shape = (run: TestRunResult) =>
+    run.testCases.map((tc) => ({
+      id: tc.id,
+      fingerprint: behaviourFingerprint({
+        scenario: tc.story.scenario,
+        sourceFile: tc.sourceFile,
+        steps: tc.story.steps,
+        ...(tc.story.covers ? { covers: tc.story.covers } : {}),
+      }),
+    }));
+  return spanGraphDeltaFromRuns(shape(baseline), shape(currentRun));
+}
+
 function resolveBaselineRun(
   args: CliArgs,
   currentRun: TestRunResult,
@@ -2558,6 +2594,10 @@ interface CliResult {
   unasserted?: number;
   /** True when this run wrote the artifacts README, i.e. first contact with the output dir. */
   createdArtifactsReadme: boolean;
+  /** True when the run carries OTel spans but no span graph was asked for. */
+  spansUnused: boolean;
+  /** `gh pr comment --attach ...`, when --attach-images was passed and the run captured evidence. */
+  ghAttachCommand?: string;
   /** Present only when documentation and execution formats were generated together. */
   documented?: CliSummaryGroup;
   executed?: CliSummaryGroup;
@@ -2596,6 +2636,13 @@ async function generateReports(
       share: args.htmlShare,
       staleAfterDays: args.htmlStaleAfterDays,
     },
+    ...(args.attachImages ? { markdown: { attachImages: true } } : {}),
+    // --baseline colours the span graph by what the behavioural diff moved.
+    // Reuses the flag check/goal/triage/compare already take, so there is no
+    // second way to name a baseline.
+    ...(args.formats.includes('span-graph') && args.baselineArg
+      ? { spanGraph: { delta: spanGraphDelta(args, run) } }
+      : {}),
     historyStore,
     assetMode: args.assetMode,
     allowMissingAssets: args.allowMissingAssets,
@@ -2679,10 +2726,28 @@ async function generateReports(
   const unasserted = countUnasserted(rendered);
 
   const mixed = wroteDocumentation && wroteExecution;
+  const markdownFile = files.find((f) => f.endsWith('.md'));
+
   return {
     files,
     counts,
     createdArtifactsReadme,
+    // A run that traced itself can draw the architecture it exercised, and
+    // nobody discovers a format they have never seen named.
+    spansUnused:
+      !args.formats.includes('span-graph') &&
+      documented.testCases.some((tc) => (tc.story.otelSpans?.length ?? 0) > 0),
+    // Only when markdown was actually written: --attach-images beside
+    // --format html has no body to post, and a command naming a file that
+    // does not exist is worse than no command.
+    ...(args.attachImages && markdownFile
+      ? {
+          ghAttachCommand: buildGhAttachCommand({
+            run: documented,
+            bodyFile: markdownFile,
+          }),
+        }
+      : {}),
     ranCount,
     ...(unasserted === undefined ? {} : { unasserted }),
     ...(mixed
@@ -2998,6 +3063,19 @@ function printResult(
     // written) — a nudge on every run would be permanent noise for anyone
     // who scaffolded to a custom path or runs in CI. stderr keeps piped
     // stdout clean; --json-summary (agent pipelines) skips it entirely.
+    // --attach-images left local paths in the markdown, which only resolve
+    // once gh has uploaded the files. Print the command that does it rather
+    // than leaving the caller to work out the flag order.
+    if (result.ghAttachCommand) {
+      console.error('\nPost it with the evidence attached (GitHub CLI 2.99+):\n');
+      console.error(result.ghAttachCommand);
+      console.error('');
+    }
+    if (result.spansUnused) {
+      console.error(
+        'Tip: this run carries OTel spans, so it can draw the architecture it exercised: --format span-graph',
+      );
+    }
     if (
       result.createdArtifactsReadme &&
       !isScaffoldedAstroSite('.') &&
@@ -3742,6 +3820,7 @@ function createDefaultCliArgs(): CliArgs {
     htmlTitle: 'Test Results',
     htmlNoSyntaxHighlighting: false,
     htmlNoMermaid: false,
+    attachImages: false,
     htmlShare: false,
     htmlStaleAfterDays: 7,
     jsonSummary: false,

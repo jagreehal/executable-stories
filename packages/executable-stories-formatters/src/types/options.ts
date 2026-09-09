@@ -7,7 +7,7 @@
 export type { CanonicalizeOptions } from "executable-stories-core/types/canonicalize";
 
 /** Output format for report generation */
-export type OutputFormat = "agent-text" | "astro-markdown" | "behavior-manifest-json" | "confluence" | "cucumber-json" | "cucumber-messages" | "cucumber-html" | "html" | "junit" | "markdown" | "release-manifest" | "scenario-index-json" | "story-report-json" | "traceability-matrix" | "traceability-csv";
+export type OutputFormat = "agent-text" | "astro-markdown" | "behavior-manifest-json" | "confluence" | "cucumber-json" | "cucumber-messages" | "cucumber-html" | "html" | "junit" | "markdown" | "release-manifest" | "scenario-index-json" | "span-graph" | "story-report-json" | "traceability-matrix" | "traceability-csv";
 
 /**
  * Format names accepted as INPUT. Adds `"astro"` as a deprecated alias for
@@ -175,6 +175,9 @@ export interface FormatterOptions {
   /** Astro/Starlight specific options */
   astro?: AstroFormatterOptions;
 
+  /** Span-graph specific options */
+  spanGraph?: SpanGraphFormatterOptions;
+
   /** Confluence/ADF specific options */
   confluence?: ConfluenceFormatterOptionsType;
 
@@ -216,6 +219,13 @@ export interface FormatterOptions {
 }
 
 /** Markdown formatter options (extended for feature parity) */
+export interface SpanGraphFormatterOptions {
+  /** Heading for the page. Default: "Architecture, as it ran" */
+  title?: string;
+  /** Scenario ids from a behavioural diff, which colour the changed components. */
+  delta?: { added: string[]; changed: string[] };
+}
+
 export interface MarkdownFormatterOptions {
   /** Report title. Default: "User Stories" */
   title?: string;
@@ -249,6 +259,8 @@ export interface MarkdownFormatterOptions {
   includeSourceLinks?: boolean;
   /** Custom renderers for doc entries */
   customRenderers?: MarkdownRenderers;
+  /** Keep local screenshot/video paths, for markdown posted with `gh ... --attach`. Default: false */
+  attachImages?: boolean;
   /** Emit a stable per-scenario anchor for deep-linking. Returns the id, or undefined to skip. */
   scenarioAnchor?: (tc: TestCaseResult) => string | undefined;
   /** Render a badge line under a scenario heading (e.g. a what's-changed marker). Undefined to skip. */
@@ -353,7 +365,9 @@ export interface ResolvedFormatterOptions {
     traceUrlTemplate?: string;
     includeSourceLinks: boolean;
     customRenderers?: MarkdownRenderers;
+    attachImages: boolean;
   };
+  spanGraph: SpanGraphFormatterOptions;
   confluence: {
     title: string;
     includeStatusIcons: boolean;

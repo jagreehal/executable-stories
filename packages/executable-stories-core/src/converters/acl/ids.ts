@@ -4,6 +4,10 @@
 
 import { createHash } from "node:crypto";
 
+// Re-exported so it stays beside `behaviourFingerprint`, whose "" contract it
+// honours. It lives in its own module because this one is Node-only.
+export { pairByFingerprint } from "./pair-by-fingerprint.js";
+
 /**
  * Generate a deterministic test case ID from source file and scenario name.
  *

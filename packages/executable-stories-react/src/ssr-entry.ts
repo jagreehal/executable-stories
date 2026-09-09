@@ -18,6 +18,7 @@ import type { Result } from "./result";
 import { unwrapReport } from "./result";
 import { Report } from "./components/Report";
 import type { ScenarioHistoryMap, ScenarioRunEvent } from "./lib/run-history";
+import { REPORT_FAVICON_LINK } from "executable-stories-core/utils/report-favicon";
 
 export type { ScenarioHistoryMap, ScenarioRunEvent };
 
@@ -186,6 +187,7 @@ export function renderReportToHtml(
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="color-scheme" content="light dark">
+${REPORT_FAVICON_LINK}
 <title>${escapeHtml(title)}</title>
 ${cdn.head}
 ${headExtra}

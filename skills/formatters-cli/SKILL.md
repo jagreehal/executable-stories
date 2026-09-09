@@ -70,6 +70,20 @@ executable-stories format reports/raw-run.json --format html --html-share
 # cross-language version-drift case instead of failing deep in validation.
 executable-stories doctor
 
+# Markdown for a pull request, with the run's screenshots and clips attached.
+# Local paths stay as real references (rather than "unavailable"), and the CLI
+# prints the `gh pr comment ... --attach` line that uploads them and rewrites
+# those references. Needs GitHub CLI 2.99+; nothing else hosts the images.
+executable-stories format reports/raw-run.json --format markdown \
+  --output-dir reports --output-name index --attach-images
+
+# The architecture the run exercised, from its OTel spans, as mermaid.
+# Nodes and edges carry the scenarios that put them there, so blast radius is
+# measured rather than inferred. --baseline colours what the diff moved.
+# Writes nothing when the run carries no spans.
+executable-stories format reports/raw-run.json --format span-graph \
+  --output-dir reports --output-name index --baseline last-release/raw-run.json
+
 # Read from stdin
 cat raw-run.json | executable-stories format --stdin --format markdown
 

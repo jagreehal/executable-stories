@@ -7,6 +7,7 @@
 
 import { diffStateValues, summarizeStateChanges } from "executable-stories-core";
 import { summarizeAccumulation } from "executable-stories-core/utils/accumulation";
+import { assertNever } from "executable-stories-core/utils/assert-never";
 import { assertionState, assertiveSteps } from "executable-stories-core/utils/assertive-steps";
 import type { StoryStep, DocEntry } from "executable-stories-core/types/story";
 import type { FeatureDeclaration, TestRunResult, TestCaseResult, TestStatus } from "executable-stories-core/types/test-result";
@@ -63,6 +64,14 @@ export interface MarkdownOptions {
   /** Custom renderers for doc entries */
   customRenderers?: MarkdownRenderers;
   /**
+   * Write a local screenshot/video path as an ordinary markdown reference
+   * instead of the "unavailable" line. Only for markdown handed to
+   * `gh pr comment|create|edit --attach <path>` (GitHub CLI 2.99+), which
+   * uploads the file and rewrites the reference. Anywhere else the reference
+   * is dead, which is why this is off by default. Default: false
+   */
+  attachImages?: boolean;
+  /**
    * Emit a stable in-page anchor before each scenario heading, so external tools
    * can deep-link to a scenario by fragment. Given a test case, return the anchor
    * id (without `#`), or undefined to skip. Off by default — only the living-docs
@@ -101,6 +110,7 @@ type ResolvedMarkdownOptions = {
   traceUrlTemplate?: string;
   includeSourceLinks: boolean;
   customRenderers?: MarkdownRenderers;
+  attachImages: boolean;
   scenarioAnchor?: (tc: TestCaseResult) => string | undefined;
   scenarioBadge?: (tc: TestCaseResult) => string | undefined;
   scenarioNoteLink?: (tc: TestCaseResult) => string | undefined;
@@ -139,6 +149,7 @@ export class MarkdownFormatter {
       traceUrlTemplate: options.traceUrlTemplate,
       includeSourceLinks: options.includeSourceLinks ?? true,
       customRenderers: options.customRenderers,
+      attachImages: options.attachImages ?? false,
       scenarioAnchor: options.scenarioAnchor,
       scenarioBadge: options.scenarioBadge,
       scenarioNoteLink: options.scenarioNoteLink,
@@ -701,7 +712,7 @@ export class MarkdownFormatter {
       case "screenshot":
         // Only `data:`/`http(s):` sources, or a relative path a bundler is
         // meant to resolve, render as an embedded image.
-        if (isLocalFsPath(entry.path)) {
+        if (isLocalFsPath(entry.path) && !this.options.attachImages) {
           lines.push(`${indent}*Screenshot unavailable${entry.alt ? ` — ${entry.alt}` : ""} (\`${entry.path}\` was not readable when the report was generated)*`);
         } else {
           lines.push(`${indent}![${entry.alt ?? "Screenshot"}](${entry.path})`);
@@ -718,7 +729,14 @@ export class MarkdownFormatter {
         // Markdown reaches an audience without that bundling step in between
         // (e.g. posted straight to a GitHub PR comment).
         if (isLocalFsPath(entry.path)) {
-          lines.push(`${indent}*Video unavailable${entry.caption ? ` — ${entry.caption}` : ""} (\`${entry.path}\` was not readable when the report was generated)*`);
+          if (!this.options.attachImages) {
+            lines.push(`${indent}*Video unavailable${entry.caption ? ` — ${entry.caption}` : ""} (\`${entry.path}\` was not readable when the report was generated)*`);
+            break;
+          }
+          // gh rewrites markdown image syntax, and GitHub plays an uploaded
+          // clip from that same reference, so `<video>` is not the shape to
+          // write here.
+          lines.push(`${indent}![${entry.caption ?? "Video"}](${entry.path})`);
           break;
         }
         const poster = entry.poster ? ` poster="${entry.poster}"` : "";
@@ -801,6 +819,9 @@ export class MarkdownFormatter {
         lines.push(`${indent}\`\`\``);
         lines.push(`${indent}`);
         break;
+
+      default:
+        assertNever(entry, "Markdown: unhandled doc kind");
     }
 
     // Render children with increased indentation

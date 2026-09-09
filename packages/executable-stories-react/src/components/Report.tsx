@@ -6,6 +6,7 @@ import { ReportRoot } from "../context/ReportRoot";
 import { ReportFeatureList } from "./ReportFeatureList";
 import { ReportEmpty } from "./ReportEmpty";
 import { ReportTitleBlock, ReportErrorShell } from "./ReportShell";
+import { ReportSpanGraph } from "./ReportSpanGraph";
 import { cn } from "../lib/utils";
 
 export interface ReportProps {
@@ -37,6 +38,11 @@ export function Report(props: ReportProps) {
         <header className="es-report-header">
           <ReportTitleBlock title={title} />
         </header>
+        {/* Run-level, so it sits above the features rather than inside one.
+            Renders nothing unless the run carried spans. Mirrored in
+            ReportInteractive — the two headers are composed separately, and
+            Report.stories/ReportInteractive.stories both assert it. */}
+        <ReportSpanGraph />
         {hasContent ? <ReportFeatureList /> : <ReportEmpty />}
       </main>
     </ReportRoot>

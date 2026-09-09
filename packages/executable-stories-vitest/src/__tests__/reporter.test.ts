@@ -1335,6 +1335,63 @@ describe('StoryReporter', () => {
       expect(testCases[0].story.otelSpans).toHaveLength(1);
       expect(testCases[0].story.otelSpans?.[0]?.name).toBe('valid-span');
     });
+
+    it('carries a collected span into the run with the fields the graph needs', () => {
+      // The collector writes the same shape story.attachSpans does, so the
+      // reporter needs no new path — this is the end of the chain, asserting
+      // parent, attributes and status survive as far as the run.
+      const reporter = new StoryReporter({});
+      const storyMeta: StoryMeta = {
+        scenario: 'checkout traces itself',
+        steps: [{ keyword: 'Given', text: 'a step', docs: [] }],
+        sourceOrder: 0,
+      };
+
+      const mockModule: MockTestModule = {
+        moduleId: 'checkout.story.test.ts',
+        children: {
+          allTests: () => [
+            {
+              meta: () => ({
+                story: storyMeta,
+                otelSpans: [
+                  {
+                    spanId: 'root',
+                    name: 'POST /checkout',
+                    status: 'ok',
+                    attributes: { 'service.name': 'storefront', 'http.route': '/checkout' },
+                  },
+                  {
+                    spanId: 'child',
+                    parentSpanId: 'root',
+                    name: 'payments.charge',
+                    status: 'error',
+                    statusMessage: 'card declined',
+                    attributes: { 'peer.service': 'payments' },
+                  },
+                ],
+              }),
+              result: () => ({ state: 'passed' }),
+            },
+          ],
+        },
+      };
+
+      const testCases = (
+        reporter as unknown as {
+          collectTestCases: (
+            modules: ReadonlyArray<MockTestModule>,
+            root: string,
+          ) => Array<{ story: StoryMeta }>;
+        }
+      ).collectTestCases([mockModule], process.cwd());
+
+      const spans = testCases[0].story.otelSpans;
+      expect(spans).toHaveLength(2);
+      expect(spans?.[1]?.parentSpanId).toBe('root');
+      expect(spans?.[1]?.status).toBe('error');
+      expect(spans?.[1]?.attributes).toEqual({ 'peer.service': 'payments' });
+    });
   });
 });
 

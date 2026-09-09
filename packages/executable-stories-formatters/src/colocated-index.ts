@@ -13,6 +13,7 @@
 import path from "node:path";
 
 import type { TestRunResult } from "executable-stories-core/types/test-result";
+import { REPORT_FAVICON_LINK } from "executable-stories-core/utils/report-favicon";
 
 function escapeHtml(value: string): string {
   return value
@@ -106,6 +107,7 @@ export function renderColocatedIndex(entries: ColocatedIndexEntry[], title = "Te
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+${REPORT_FAVICON_LINK}
 <title>${escapeHtml(title)}</title>
 <style>
   :root { color-scheme: light dark; --fg: #1c1e21; --muted: #6b7280; --border: #d9dbe0; --bg: #fff;

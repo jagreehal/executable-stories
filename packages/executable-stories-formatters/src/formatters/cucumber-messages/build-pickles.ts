@@ -4,6 +4,7 @@
  * Each TestCaseResult becomes one Pickle (the compiled, runnable scenario).
  */
 
+import { assertNever } from "executable-stories-core/utils/assert-never";
 import type { TestCaseResult } from "executable-stories-core/types/test-result";
 import type { DocEntry, StepKeyword, StoryStep } from "executable-stories-core/types/story";
 import type {
@@ -127,9 +128,15 @@ function docEntryToPickleDocString(doc: DocEntry): PickleDocString | undefined {
       };
     case "tag":
       return { mediaType: "text/plain", content: doc.names.map((n) => `@${n}`).join(" ") };
-    default:
+    // See build-gherkin-document.ts: these carry no textual body.
+    case "table":
+    case "screenshot":
+    case "video":
+    case "html":
       return undefined;
   }
+
+  return assertNever(doc, "Pickle: unhandled doc kind");
 }
 
 function buildPickleTable(

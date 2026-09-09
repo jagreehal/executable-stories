@@ -71,6 +71,16 @@ executable-stories deploy record reports/raw-run.json --env production --tag v2.
 executable-stories deploy diff staging production
 ```
 
+## Write each line as a change
+
+How to write the heading and body of a single line, and the words that never
+belong in one: [CHANGE-LINES.md](../spec-shared/CHANGE-LINES.md). It is the
+difference between "Batch sending improvements" and "Postmark now gets 500 emails
+per call", and the reason a reader gets the release from the headings alone.
+
+The one test to keep in mind while drafting: **if a heading could have been true
+before this release, it is not a change heading.**
+
 ## Write for three readers
 
 The same diff produces three documents. Do not try to write one that serves all three.

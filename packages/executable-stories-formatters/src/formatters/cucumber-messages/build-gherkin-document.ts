@@ -2,6 +2,7 @@
  * Build a GherkinDocument envelope from synthesized feature data.
  */
 
+import { assertNever } from "executable-stories-core/utils/assert-never";
 import type { TestCaseResult } from "executable-stories-core/types/test-result";
 import type { DocEntry, StepKeyword, StoryStep } from "executable-stories-core/types/story";
 import type {
@@ -212,10 +213,18 @@ function docEntryToDocString(doc: DocEntry, line: number): DocString | undefined
         content: doc.names.map((n) => `@${n}`).join(" "),
         delimiter: '"""',
       };
-    // screenshot and other kinds are not converted to doc strings
-    default:
+    // Deliberately not doc strings: a table becomes a DataTable, and an image,
+    // clip or html fragment has no textual body a Gherkin doc string could
+    // carry. Listed rather than left to a `default` so doc kind fourteen is a
+    // decision someone makes.
+    case "table":
+    case "screenshot":
+    case "video":
+    case "html":
       return undefined;
   }
+
+  return assertNever(doc, "Gherkin document: unhandled doc kind");
 }
 
 function buildDataTable(

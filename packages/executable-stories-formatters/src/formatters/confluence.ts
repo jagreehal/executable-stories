@@ -7,6 +7,7 @@
  * with higher fidelity than converting markdown → ADF.
  */
 
+import { assertNever } from "executable-stories-core/utils/assert-never";
 import type { StoryStep, DocEntry } from "executable-stories-core/types/story";
 import type { TestRunResult, TestCaseResult, TestStatus } from "executable-stories-core/types/test-result";
 import { bySourcePosition, earliestSourceLine } from "./source-order";
@@ -441,6 +442,9 @@ export class ConfluenceFormatter {
         content.push(paragraph([text(`[${entry.type}]`, strong())]));
         content.push(codeBlock(JSON.stringify(entry.data ?? null, null, 2), "json"));
         break;
+
+      default:
+        assertNever(entry, "Confluence ADF: unhandled doc kind");
     }
 
     if (Array.isArray(entry.children) && entry.children.length > 0) {

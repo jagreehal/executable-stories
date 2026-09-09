@@ -11,6 +11,7 @@
  * fn(args, deps) throughout.
  */
 
+import { assertNever } from "executable-stories-core/utils/assert-never";
 import { behaviourFingerprint, behaviourSimilarity } from "executable-stories-core/converters/acl/ids";
 import type { TestCaseResult, TestRunResult, Attachment } from "executable-stories-core/types/test-result";
 import type { DocEntry } from "executable-stories-core/types/story";
@@ -228,6 +229,9 @@ export function renderDocs(docs: readonly DocEntry[] | undefined, depth = 0): st
       case "tag":
         // Tags reach the case through their own field, not the description.
         break;
+
+      default:
+        assertNever(doc, "Sync description: unhandled doc kind");
     }
 
     const children = renderDocs(doc.children, depth + 1);
