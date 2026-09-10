@@ -46,6 +46,7 @@ import {
 } from './explainers';
 import { ReviewHtmlFormatter } from './formatters/review-html';
 import { ReviewMarkdownFormatter } from './formatters/review-markdown';
+import { buildReviewJson } from './formatters/review-json';
 import { buildGoal, renderGoal } from './goal';
 import {
   loadHistory,
@@ -285,6 +286,10 @@ ${presetHelpLines()
   --code-diff <path>            (review) Code Diff annotation sidecar (JSON: {title, annotations: [{file, match, text, label?, scenarioIds?}]})
   --patch <path>                (review) Unified patch for --code-diff; generate with "git diff --histogram"
   --strict-code-diff            (review) Gate: exit non-zero on orphaned/ambiguous anchors or unverified scenario references (default: off)
+
+  review writes three files: <output-name>.md and .html for people, and
+  <output-name>.review.json — the machine contract CI surfaces render (ranked
+  findings, evidence bands, per-claim strength). See the ReviewJson type.
   --emit-canonical <path>       Write canonical JSON to given path
   --help                        Show this help message
 
@@ -2930,7 +2935,12 @@ function loadReviewContext(args: CliArgs): ReviewContext {
   return { changedFiles, baseRef, headRef, codeDiffs };
 }
 
-/** Render and write the review report (markdown + HTML, mirroring report mode). */
+/**
+ * Render and write the review report: markdown and HTML for a person, JSON for
+ * a CI surface. The JSON is not opt-in — the GitHub Action needs it to build a
+ * PR comment, and a flag would only mean the action's comment silently degrades
+ * whenever someone forgets to pass it.
+ */
 function writeReviewReport(
   review: ReturnType<typeof buildReview>,
   args: CliArgs,
@@ -2953,10 +2963,16 @@ function writeReviewReport(
   fs.mkdirSync(outputDir, { recursive: true });
   const mdPath = path.join(outputDir, `${baseName}${suffix}.md`);
   const htmlPath = path.join(outputDir, `${baseName}${suffix}.html`);
+  const jsonPath = path.join(outputDir, `${baseName}${suffix}.review.json`);
   fs.writeFileSync(mdPath, markdown, 'utf8');
   fs.writeFileSync(htmlPath, html, 'utf8');
+  fs.writeFileSync(
+    jsonPath,
+    `${JSON.stringify(buildReviewJson(review), null, 2)}\n`,
+    'utf8',
+  );
 
-  return [mdPath, htmlPath];
+  return [mdPath, htmlPath, jsonPath];
 }
 
 /** Evaluate the opt-in review gate. Returns failure messages (empty = pass). */

@@ -136,6 +136,11 @@ run_review() {
 
   mkdir -p "$REPORT_DIR"
 
+  # Same rule as ingest: the comment builder reads this path in review mode, and
+  # a formatter pinned to a version that predates it would leave whatever was
+  # there before to be rendered as this run's review.
+  rm -f "${REPORT_DIR}/${OUTPUT_NAME}.review.json"
+
   # Build optional gate flags
   local GATE_ARGS=()
   [[ -n "${FAIL_ON:-}" ]] && GATE_ARGS+=(--fail-on "$FAIL_ON")
@@ -155,7 +160,7 @@ run_review() {
   set -e
 
   if [[ "$CODE" -eq 5 ]]; then
-    echo "gate-failed=true" >> "$GITHUB_OUTPUT"
+    echo "gate-failed=true" >> "${GITHUB_OUTPUT:-/dev/null}"
     echo "::warning::Evidence Review gate failed; report generated, gate enforced after comment."
   elif [[ "$CODE" -ne 0 ]]; then
     echo "::error::review failed with exit code ${CODE}"
@@ -225,13 +230,13 @@ run_gate_release() {
   echo "::endgroup::"
 
   if [[ $EXIT_CODE -eq 6 ]]; then
-    echo "gate-failed=true" >> "$GITHUB_OUTPUT"
+    echo "gate-failed=true" >> "${GITHUB_OUTPUT:-/dev/null}"
     echo "::error::Release gate failed. RC does not match dev baseline."
   elif [[ $EXIT_CODE -ne 0 ]]; then
     echo "::error::gate-release command failed with exit code ${EXIT_CODE}"
     exit $EXIT_CODE
   else
-    echo "gate-failed=false" >> "$GITHUB_OUTPUT"
+    echo "gate-failed=false" >> "${GITHUB_OUTPUT:-/dev/null}"
     echo "::notice::Release gate passed. RC matches dev baseline."
   fi
 }
@@ -265,7 +270,7 @@ run_deploy() {
   echo "::endgroup::"
 
   echo "::notice::Deployment to ${ENV} recorded in ${LEDGER}"
-  echo "deploy-ledger-path=${LEDGER}" >> "$GITHUB_OUTPUT"
+  echo "deploy-ledger-path=${LEDGER}" >> "${GITHUB_OUTPUT:-/dev/null}"
   echo "::notice::Persist ${LEDGER} as an artifact, cache, or committed file if later jobs should compare environments."
 
   # Also show current status
@@ -334,7 +339,7 @@ run_publish() {
     exit 1
   fi
   echo "::notice::Publishing ${SOURCE} to the runs branch..."
-  echo "publish-source=${SOURCE}" >> "$GITHUB_OUTPUT"
+  echo "publish-source=${SOURCE}" >> "${GITHUB_OUTPUT:-/dev/null}"
 }
 
 # ---------------------------------------------------------------------------
@@ -372,7 +377,22 @@ run_ingest() {
   # and PR metadata from the Actions environment, writes the run URL and the
   # recommended scope to the job summary, and appends ingest-run-id to
   # GITHUB_OUTPUT. Duplicating any of that here is how the two drift apart.
-  local PUSH_ARGS=(push "$STORY_REPORT" --url "$INGEST_URL")
+  # The gate verdict is written as a ReviewJson so the comment step renders the
+  # org's blocking reasons the same way it renders a local Evidence Review.
+  # Without it those reasons only ever reached the job log, and the paid path
+  # had worse PR feedback than the free one.
+  local REVIEW_OUT="${REPORT_DIR}/${OUTPUT_NAME}.review.json"
+  # Cleared whether or not a gate runs. The comment builder reads this path in
+  # ingest mode, so anything left here by an earlier `review` invocation — or
+  # committed into the repo — would be presented as this run's policy verdict.
+  # A stale verdict is worse than no verdict.
+  rm -f "$REVIEW_OUT"
+
+  # --review-json is passed with or without a gate. It carries the cloud run URL
+  # and this run's outcome counts, which is what the PR comment needs in the
+  # default configuration; without it the comment has no run to link to and
+  # falls back to advertising an HTML artifact ingest mode never uploads.
+  local PUSH_ARGS=(push "$STORY_REPORT" --url "$INGEST_URL" --review-json "$REVIEW_OUT")
   [[ "${INGEST_GATE:-}" == "true" ]] && PUSH_ARGS+=(--gate)
 
   # Capture the exit code explicitly: the gate reports its verdict with a
@@ -384,8 +404,11 @@ run_ingest() {
 
   case "$STATUS" in
     0) echo "::notice::Run ingested to ${INGEST_URL}" ;;
-    5) echo "::error::Release gate blocked this commit — see the job summary for the reasons."
-       exit 1 ;;
+    # Recorded, not raised: the comment step runs next and is how a developer
+    # finds out *why* they were blocked. "Enforce ingest gate" fails the job
+    # afterwards, mirroring review and gate-release.
+    5) echo "gate-failed=true" >> "${GITHUB_OUTPUT:-/dev/null}"
+       echo "::warning::Release policy blocked this commit; the gate is enforced after the PR comment." ;;
     4) echo "::error::The formatter binary rejected these options. formatter-version is pinned to '${FORMATTER_VERSION}', which predates them — use 'latest' or a newer version."
        exit 1 ;;
     *) echo "::error::Ingest failed — check api-key, ingest-url, and that the cloud instance is reachable."

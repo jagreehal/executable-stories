@@ -27,6 +27,7 @@ function makeDeps(overrides: Partial<PushDeps> = {}) {
     readFile: vi.fn().mockReturnValue(JSON.stringify(STORY_REPORT)),
     listDir: vi.fn().mockReturnValue(undefined),
     appendFile: vi.fn(),
+    writeFile: vi.fn(),
     fetchFn: fetchFn as unknown as typeof fetch,
     git: vi.fn((args: string[]) => {
       if (args[0] === "config") return "git@github.com:acme/api.git";
@@ -78,6 +79,14 @@ function makeActionsDeps(overrides: Partial<PushDeps> = {}) {
 }
 
 /** Everything the run wrote to one Actions file, as one string. */
+/** The single value written to `filePath`, parsed. */
+function wroteJson(deps: PushDeps, filePath: string): Record<string, unknown> | undefined {
+  const call = (deps.writeFile as unknown as { mock: { calls: [string, string][] } }).mock.calls
+    .filter(([target]) => target === filePath)
+    .at(-1);
+  return call ? (JSON.parse(call[1]) as Record<string, unknown>) : undefined;
+}
+
 function written(deps: PushDeps, filePath: string): string {
   return (deps.appendFile as unknown as { mock: { calls: [string, string][] } }).mock.calls
     .filter(([target]) => target === filePath)
@@ -219,6 +228,127 @@ describe("runPush", () => {
     expect(deps.error).toHaveBeenCalledWith(expect.stringContaining("BLOCKED"));
     expect(deps.error).toHaveBeenCalledWith(expect.stringContaining("2 cases failed"));
     expect(deps.log).toHaveBeenCalledWith(expect.stringContaining("1 case blocked."));
+  });
+
+  it("--review-json renders the org's blocking reasons as review findings", async () => {
+    // The paid path must not get a worse PR comment than the free one: the
+    // cloud's verdict goes through the same contract the Action already
+    // renders, rather than a second shape nothing knows how to display.
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ runId: "run-42", url: "https://app.test/runs/run-42" }),
+          { status: 201 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            status: "blocked",
+            blocking: ["2 cases failed on the latest execution."],
+            warnings: ["1 case blocked."],
+          }),
+          { status: 200 },
+        ),
+      );
+    const { deps } = makeDeps({ fetchFn: fetchFn as unknown as typeof fetch });
+
+    expect(
+      await runPush(
+        ["run.json", "--key", "es_test", "--gate", "--review-json", "/tmp/gate.json"],
+        deps,
+      ),
+    ).toBe(5);
+
+    const review = wroteJson(deps, "/tmp/gate.json") as {
+      version: number;
+      reportUrl?: string;
+      findings: { kind: string; severity: string; detail: string; file?: string }[];
+    };
+    expect(review.version).toBe(1);
+    expect(review.reportUrl).toBe("https://app.test/runs/run-42");
+    expect(review.findings).toHaveLength(2);
+
+    const [blocker, warning] = review.findings;
+    expect(blocker!.severity).toBe("blocker");
+    expect(blocker!.kind).toBe("policy");
+    expect(blocker!.detail).toBe("2 cases failed on the latest execution.");
+    // A policy verdict is about the commit, so it anchors to no file — pinning
+    // it to one would put a real annotation on innocent code.
+    expect(blocker!.file).toBeUndefined();
+    expect(warning!.severity).toBe("minor");
+  });
+
+  it("--review-json records a clear verdict, so a pass is not silence", async () => {
+    const { deps } = makeDeps({
+      fetchFn: vi
+        .fn()
+        .mockResolvedValueOnce(new Response(JSON.stringify({ runId: "r" }), { status: 201 }))
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify({ status: "clear", blocking: [] }), { status: 200 }),
+        ) as unknown as typeof fetch,
+    });
+
+    expect(
+      await runPush(
+        ["run.json", "--key", "es_test", "--gate", "--review-json", "/tmp/gate.json"],
+        deps,
+      ),
+    ).toBe(0);
+    expect(wroteJson(deps, "/tmp/gate.json")).toMatchObject({
+      version: 1,
+      findings: [],
+      gate: "clear",
+    });
+  });
+
+  it("--review-json distinguishes \"no release to gate on\" from \"clear\"", async () => {
+    // Nothing was checked. Rendering that as clear tells a reader the policy
+    // passed when in fact it never ran — a false assurance, and the reason the
+    // status is carried rather than collapsed into an empty finding list.
+    const { deps } = makeDeps({
+      fetchFn: vi
+        .fn()
+        .mockResolvedValueOnce(new Response(JSON.stringify({ runId: "r" }), { status: 201 }))
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify({ status: "no-release", blocking: [] }), { status: 200 }),
+        ) as unknown as typeof fetch,
+    });
+
+    expect(
+      await runPush(
+        ["run.json", "--key", "es_test", "--gate", "--review-json", "/tmp/gate.json"],
+        deps,
+      ),
+    ).toBe(0);
+    expect(wroteJson(deps, "/tmp/gate.json")).toMatchObject({ gate: "not-evaluated" });
+  });
+
+  it("--review-json is written without --gate, so a default push still links its run", async () => {
+    // ingest-gate is off by default. Without this the comment has no cloud URL
+    // and falls back to advertising an HTML artifact ingest never uploads.
+    const { deps } = makeDeps({
+      fetchFn: vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ runId: "r", url: "https://app.test/runs/r" }), {
+          status: 201,
+        }),
+      ) as unknown as typeof fetch,
+    });
+
+    expect(
+      await runPush(["run.json", "--key", "es_test", "--review-json", "/tmp/push.json"], deps),
+    ).toBe(0);
+
+    const review = wroteJson(deps, "/tmp/push.json") as {
+      reportUrl?: string;
+      gate?: string;
+      run: Record<string, number>;
+    };
+    expect(review.reportUrl).toBe("https://app.test/runs/r");
+    expect(review.gate).toBeUndefined();
+    // Straight from the StoryReport's own summary, not recounted here.
+    expect(review.run).toEqual({ total: 0, passed: 0, failed: 0, skipped: 0, pending: 0 });
   });
 
   it("--gate passes a clear gate and does not fail on a commit with no release", async () => {

@@ -17,6 +17,8 @@ import { canonicalizeRun } from "executable-stories-core/converters/acl/canonica
 import { toStoryReport } from "executable-stories-core/converters/story-report";
 import { synthesizeStories } from "executable-stories-core/converters/synthesize";
 
+import type { ReviewJson } from "./types/review";
+
 const EXIT_SUCCESS = 0;
 const EXIT_PUSH_FAILED = 1;
 const EXIT_USAGE = 4;
@@ -44,6 +46,12 @@ Options:
                      cloud can recommend a test scope for the change.
   --format <fmt>     auto (default), story, junit, playwright or allure.
                      Only needed when detection guesses wrong.
+  --review-json <path>
+                     Write what a CI surface renders — the cloud run URL, this
+                     run's outcome counts, and, when --gate is used, the org's
+                     verdict and its blocking reasons — as a StoryReport
+                     ReviewJson. Written on every successful push, not only when
+                     a gate runs, so the PR comment can link the run either way.
   --gate             After pushing, ask the cloud whether this commit is safe
                      to release and exit 5 if it is blocked. The policy lives
                      in your organization's settings, not in a file here.
@@ -65,6 +73,7 @@ export interface PushDeps {
   /** Entry names in a directory, or undefined when the path is not one. */
   listDir: (dirPath: string) => string[] | undefined;
   appendFile: (filePath: string, text: string) => void;
+  writeFile: (filePath: string, text: string) => void;
   fetchFn: typeof fetch;
   /** Run a git command, returning trimmed stdout or undefined on failure. */
   git: (args: string[]) => string | undefined;
@@ -85,6 +94,7 @@ function defaultDeps(): PushDeps {
       }
     },
     appendFile: (filePath, text) => fs.appendFileSync(filePath, text),
+    writeFile: (filePath, text) => fs.writeFileSync(filePath, text, "utf8"),
     fetchFn: fetch,
     git: (args) => {
       try {
@@ -280,6 +290,38 @@ function summaryWriter(deps: PushDeps): (markdown: string) => void {
   };
 }
 
+/** Scenario outcomes for this push, for a CI surface to headline. */
+interface RunCounts {
+  total: number;
+  passed: number;
+  failed: number;
+  skipped: number;
+  pending: number;
+}
+
+const NO_COUNTS: RunCounts = { total: 0, passed: 0, failed: 0, skipped: 0, pending: 0 };
+
+/**
+ * Outcome counts from the StoryReport being pushed.
+ *
+ * A foreign format is converted server-side, so this CLI never sees its
+ * scenarios — zeroes there mean "not known here", and the surface renders no
+ * counts rather than claiming an empty run.
+ */
+function runCounts(report: unknown): RunCounts {
+  const summary = (report as { summary?: Record<string, unknown> } | undefined)?.summary;
+  if (!summary) return NO_COUNTS;
+  const read = (key: string) =>
+    typeof summary[key] === "number" ? (summary[key] as number) : 0;
+  return {
+    total: read("total"),
+    passed: read("passed"),
+    failed: read("failed"),
+    skipped: read("skipped"),
+    pending: read("pending"),
+  };
+}
+
 /** A pipe in a cell would end it early and shear the rest of the row off. */
 function cell(text: string): string {
   return text.replaceAll("|", "\\|");
@@ -305,6 +347,7 @@ export async function runPush(
         base: { type: "string" },
         format: { type: "string" },
         gate: { type: "boolean" },
+        "review-json": { type: "string" },
         force: { type: "boolean" },
         help: { type: "boolean", short: "h" },
       },
@@ -420,10 +463,15 @@ export async function runPush(
 
   const forced = parsed.values.force === true;
 
-  // Every exit path that can reach the gate needs the same five values; a
-  // closure keeps them from drifting apart across the three call sites.
-  const gateArgs = () => ({
+  // Every exit path that can reach the gate needs the same values; a closure
+  // keeps them from drifting apart across the four call sites. Only the success
+  // path knows the run URL — a gate reached through a failure never had a run to
+  // link to, so it passes nothing rather than a page that does not exist.
+  const gateArgs = (runUrl?: string, counts: RunCounts = NO_COUNTS) => ({
     wanted: parsed.values.gate === true,
+    reviewJson: parsed.values["review-json"] as string | undefined,
+    runUrl,
+    counts,
     forced,
     baseUrl,
     key,
@@ -512,6 +560,19 @@ export async function runPush(
     // Non-JSON success body: still a success, just nothing to report back.
   }
 
+  const counts = runCounts(report);
+
+  // Written here, before any gate is considered: with --gate off (the default)
+  // this is the only chance to tell a CI surface where the run landed, and
+  // without it the comment advertises an HTML artifact that ingest never
+  // uploads. The gate, if one runs, rewrites this file with its verdict.
+  writeReviewJson(
+    parsed.values["review-json"] as string | undefined,
+    undefined,
+    { repo, gitSha, runUrl: result.url, counts },
+    deps,
+  );
+
   const runId = String(result.runId ?? "");
   deps.log(runId ? `Pushed run ${runId} (${repo}${branch ? `@${branch}` : ""})` : "Pushed run.");
   if (result.url) deps.log(result.url);
@@ -543,7 +604,7 @@ export async function runPush(
     }
   }
 
-  return await gateIfRequested(gateArgs(), deps);
+  return await gateIfRequested(gateArgs(result.url, counts), deps);
 }
 
 interface PushResponse {
@@ -574,6 +635,9 @@ async function gateIfRequested(
     repo: string;
     gitSha: string | undefined;
     onActions: boolean;
+    reviewJson: string | undefined;
+    runUrl: string | undefined;
+    counts: RunCounts;
   },
   deps: PushDeps,
 ): Promise<number> {
@@ -588,6 +652,114 @@ async function gateIfRequested(
   return args.forced && code !== EXIT_GATE_BLOCKED ? EXIT_SUCCESS : code;
 }
 
+/**
+ * Project a gate verdict into the {@link ReviewJson} contract.
+ *
+ * The org's blocking reasons are findings about this change, so they render
+ * through the same surface as a local Evidence Review — same severities, same
+ * "how this was verified", same agent prompt. A second shape would mean the
+ * paid path getting a worse PR comment than the free one, which is exactly
+ * backwards.
+ *
+ * No `file`: the verdict is about the commit, and pinning it to a source line
+ * would put a real annotation on innocent code.
+ */
+function gateReviewJson(
+  gate: GateResponse | undefined,
+  context: {
+    repo: string;
+    gitSha: string | undefined;
+    runUrl: string | undefined;
+    counts: RunCounts;
+  },
+): string {
+  const where = context.gitSha
+    ? `${context.repo}@${context.gitSha.slice(0, 12)}`
+    : context.repo;
+  const evidence = [`organisation release policy, evaluated for ${where}`];
+
+  const findings = gate === undefined ? [] : [
+    ...(gate.blocking ?? []).map((reason) => ({
+      kind: "policy" as const,
+      severity: "blocker" as const,
+      title: "Release policy not satisfied",
+      detail: reason,
+      evidence,
+      remedy:
+        // Named without naming the product: this text reaches a PR comment on
+        // every gated push, and the cloud is not launched yet.
+        "Satisfy the policy this names, or record a decision against the release.",
+    })),
+    ...(gate.warnings ?? []).map((reason) => ({
+      kind: "policy" as const,
+      severity: "minor" as const,
+      title: "Release policy warning",
+      detail: reason,
+      evidence,
+      remedy: "Not blocking this release. Worth clearing before the next one.",
+    })),
+  ];
+
+  // A gate that was never asked for has no verdict; one that found no release
+  // reached no verdict. Neither is "clear", and the field says which is which.
+  const gateStatus =
+    gate === undefined
+      ? undefined
+      : gate.status === "no-release"
+        ? ("not-evaluated" as const)
+        : gate.status === "blocked"
+          ? ("blocked" as const)
+          : ("clear" as const);
+
+  // Typed, so a new member of ReviewAudience or EvidenceStrength — or a new
+  // required field on ReviewSummary — breaks this build rather than silently
+  // emitting a file that no longer satisfies the contract the Action renders.
+  const review: ReviewJson = {
+    version: 1,
+    ...(context.gitSha ? { headRef: context.gitSha } : {}),
+    summary: {
+      totalClaims: 0,
+      byAudience: { stakeholder: 0, engineer: 0 },
+      byStrength: { none: 0, weak: 0, moderate: 0, strong: 0 },
+      changedSourceFiles: 0,
+      uncovered: 0,
+      weaklyCovered: 0,
+      covered: 0,
+    },
+    // Taken from the StoryReport this command just pushed, so a comment written
+    // with no gate still says what the run actually did rather than nothing.
+    run: context.counts,
+    findings,
+    changedFiles: [],
+    claims: [],
+    ...(context.runUrl ? { reportUrl: context.runUrl } : {}),
+    ...(gateStatus ? { gate: gateStatus } : {}),
+  };
+  return `${JSON.stringify(review, null, 2)}\n`;
+}
+
+/** Write the CI surface's view of this push, when one was asked for. */
+function writeReviewJson(
+  target: string | undefined,
+  gate: GateResponse | undefined,
+  context: {
+    repo: string;
+    gitSha: string | undefined;
+    runUrl: string | undefined;
+    counts: RunCounts;
+  },
+  deps: PushDeps,
+): void {
+  if (!target) return;
+  try {
+    deps.writeFile(target, gateReviewJson(gate, context));
+  } catch (err) {
+    deps.error(
+      `Could not write --review-json to ${target}: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+}
+
 /** Ask the cloud whether this commit is safe to release. */
 async function runGate(
   {
@@ -596,10 +768,26 @@ async function runGate(
     repo,
     gitSha,
     onActions,
-  }: { baseUrl: string; key: string; repo: string; gitSha: string; onActions: boolean },
+    reviewJson,
+    runUrl,
+    counts,
+  }: {
+    baseUrl: string;
+    key: string;
+    repo: string;
+    gitSha: string;
+    onActions: boolean;
+    reviewJson: string | undefined;
+    runUrl: string | undefined;
+    counts: RunCounts;
+  },
   deps: PushDeps,
 ): Promise<number> {
   const summary = summaryWriter(deps);
+  // Written on every verdict this function reaches, so a CI surface never has
+  // to distinguish "the gate said nothing" from "the gate was never asked".
+  const writeGateJson = (gate: GateResponse) =>
+    writeReviewJson(reviewJson, gate, { repo, gitSha, runUrl, counts }, deps);
   const query = `repo=${encodeURIComponent(repo)}&sha=${encodeURIComponent(gitSha)}`;
   let response: Response;
   try {
@@ -640,6 +828,7 @@ async function runGate(
   if (gate.status === "no-release") {
     deps.log(`\nNo release recorded for ${commit} — nothing to gate on.`);
     summary("\n**Release gate: no release recorded for this commit**");
+    writeGateJson(gate);
     return EXIT_SUCCESS;
   }
   if (gate.status === "blocked") {
@@ -652,9 +841,11 @@ async function runGate(
       // reviewer sees it without opening the job log.
       if (onActions) deps.error(`::error::Release gate: ${reason}`);
     }
+    writeGateJson(gate);
     return EXIT_GATE_BLOCKED;
   }
   deps.log(`\nRelease gate: clear for ${commit}`);
   summary("\n**Release gate: clear**");
+  writeGateJson(gate);
   return EXIT_SUCCESS;
 }
