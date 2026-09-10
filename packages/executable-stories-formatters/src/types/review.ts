@@ -200,3 +200,111 @@ export interface ReviewResult {
   /** Code Diff evidence groups (empty when the context supplied none). */
   codeDiffs: CodeDiffEvidence[];
 }
+
+/**
+ * What a CI surface renders. `review` writes one of these alongside the
+ * markdown and HTML so the GitHub Action (or a bot, or an agent) builds its PR
+ * comment from structured data instead of re-parsing the markdown it just
+ * generated.
+ *
+ * Deliberately a projection of {@link ReviewResult}, not the whole thing: the
+ * full model carries every canonical test case and parsed patch, which is
+ * megabytes a PR comment has no use for. Consumers needing that read the run
+ * JSON. Fields are added, never repurposed; `version` moves only on a break.
+ */
+export interface ReviewJson {
+  version: 1;
+  baseRef?: string;
+  headRef?: string;
+  summary: ReviewSummary;
+  /** Outcome counts for the run behind the review. */
+  run: {
+    total: number;
+    passed: number;
+    failed: number;
+    skipped: number;
+    pending: number;
+  };
+  /** Everything wrong with this change, worst first. */
+  findings: ReviewFinding[];
+  changedFiles: ChangedFileReview[];
+  claims: ReviewJsonClaim[];
+  /**
+   * Where this review can be read in full — a cloud run page, when one exists.
+   * A CI surface links to it instead of, or alongside, the workflow artifact.
+   */
+  reportUrl?: string;
+  /**
+   * Whether a gate reached a verdict on this change, and which.
+   *
+   * Absent when none was asked for. `not-evaluated` is deliberately distinct
+   * from `clear`: no release recorded for a commit means nothing was checked,
+   * and rendering that as "clear" is a false assurance — the reader concludes
+   * the policy passed when in fact it never ran.
+   */
+  gate?: "clear" | "blocked" | "not-evaluated";
+}
+
+/** A claim, minus the canonical test case and narrative the wire contract omits. */
+export type ReviewJsonClaim = Pick<
+  ReviewClaim,
+  | "id"
+  | "scenario"
+  | "sourceFile"
+  | "sourceLine"
+  | "status"
+  | "audience"
+  | "changeType"
+  | "strength"
+  | "strengthReasons"
+  | "coversFiles"
+>;
+
+/**
+ * What kind of problem a finding reports.
+ * - `failed`: a scenario is red, so its claim is not proven.
+ * - `unasserted`: a scenario is green but asserted nothing, so it proves
+ *   nothing either — the more dangerous of the two, because it reads as proof.
+ * - `skipped`: a scenario did not run, so its claim is unproven. Not a failure,
+ *   and deliberately the mildest kind — otherwise every `it.skip` blocks a merge.
+ * - `uncovered`: a changed source file has no claim behind it at all.
+ * - `weak`: a changed source file's only claims are weakly evidenced.
+ * - `policy`: an organisation release policy this commit does not satisfy.
+ *   Decided by a control plane rather than by this run, so it is the one kind
+ *   with no file to anchor to.
+ */
+export type ReviewFindingKind =
+  | "failed"
+  | "unasserted"
+  | "skipped"
+  | "uncovered"
+  | "weak"
+  | "policy";
+
+/** How much a finding should hold up a merge. */
+export type ReviewSeverity = "blocker" | "major" | "minor";
+
+/** One reviewable problem, shaped for a PR comment or an inline annotation. */
+export interface ReviewFinding {
+  kind: ReviewFindingKind;
+  severity: ReviewSeverity;
+  /** Headline, one line, no trailing punctuation. */
+  title: string;
+  /**
+   * Repo-relative file this anchors to. Absent when the finding is about the
+   * change as a whole rather than a place in it — a policy verdict has no line
+   * to sit on, and inventing one would put a real annotation on innocent code.
+   */
+  file?: string;
+  /** 1-based line, when the finding has one. */
+  line?: number;
+  /** One sentence naming what is wrong. */
+  detail: string;
+  /**
+   * The observations behind the finding — CodeRabbit's "how this was verified".
+   * A finding a reader cannot check is an assertion, not a review.
+   */
+  evidence: string[];
+  /** What to do about it. Also feeds the copy-pasteable agent prompt. */
+  remedy: string;
+}

@@ -15,6 +15,7 @@ import {
 } from "../src/review/conventions";
 import { ReviewMarkdownFormatter } from "../src/formatters/review-markdown";
 import { ReviewHtmlFormatter } from "../src/formatters/review-html";
+import { buildReviewJson, reviewFindings } from "../src/formatters/review-json";
 import type { Attachment } from "executable-stories-core/types/test-result";
 import type { ChangedFile } from "../src/types/review";
 import { stubs, totalsPatch } from "./stubs";
@@ -688,5 +689,125 @@ describe("code diff end-to-end gate", () => {
     expect(annotation.scenarios[0].resolved).toBe(true);
     const htmlV2 = new ReviewHtmlFormatter().format(reviewV2);
     expect(htmlV2).toContain("Orphaned annotation");
+  });
+});
+
+describe("reviewFindings", () => {
+  /** A run holding both ways a claim can fail to prove anything: red, and green-but-empty. */
+  function unprovenRun() {
+    return stubs.testRunResult({
+      testCases: [
+        stubs.testCaseResult({
+          id: "checkout",
+          status: "failed",
+          sourceFile: "src/cart/checkout.e2e.test.ts",
+          sourceLine: 12,
+          errorMessage: "expected 30 to be 25\n    at checkout.e2e.test.ts:14",
+          story: stubs.storyMeta({
+            scenario: "Checkout blocks a suspended user",
+            steps: [
+              { keyword: "Given", text: "the account is suspended" },
+              { keyword: "Then", text: "checkout is refused" },
+            ],
+          }),
+          stepResults: [
+            { index: 0, status: "passed", durationMs: 1 },
+            { index: 1, status: "failed", durationMs: 1 },
+          ],
+        }),
+        stubs.testCaseResult({
+          id: "totals",
+          status: "passed",
+          sourceFile: "src/cart/totals.test.ts",
+          sourceLine: 8,
+          story: stubs.storyMeta({
+            scenario: "Totals sum line items",
+            steps: [
+              { keyword: "When", text: "the cart is totalled" },
+              { keyword: "Then", text: "the total is correct", assertions: 0 },
+            ],
+          }),
+        }),
+      ],
+    });
+  }
+
+  it("ranks a red scenario above everything else and names the step that failed", () => {
+    const findings = reviewFindings(buildReview(unprovenRun(), { changedFiles }));
+
+    expect(findings[0]!.severity).toBe("blocker");
+    expect(findings[0]!.kind).toBe("failed");
+    expect(findings[0]!.file).toBe("src/cart/checkout.e2e.test.ts");
+    expect(findings[0]!.line).toBe(12);
+    expect(findings[0]!.evidence).toContain("failed at: Then checkout is refused");
+    expect(findings[0]!.evidence).toContain("expected 30 to be 25");
+  });
+
+  it("treats a green scenario that asserted nothing as major, not minor", () => {
+    const findings = reviewFindings(buildReview(unprovenRun(), { changedFiles }));
+    const unasserted = findings.find((f) => f.kind === "unasserted")!;
+
+    expect(unasserted.severity).toBe("major");
+    expect(unasserted.title).toContain("Totals sum line items");
+    expect(unasserted.evidence).toContain("the scenario passed without asserting anything");
+  });
+
+  it("reports uncovered changed files above weakly evidenced ones", () => {
+    const findings = reviewFindings(buildReview(unprovenRun(), { changedFiles }));
+    const kinds = findings.map((f) => f.kind);
+
+    expect(kinds.indexOf("uncovered")).toBeLessThan(kinds.indexOf("weak"));
+    expect(findings.find((f) => f.kind === "uncovered")!.severity).toBe("major");
+    expect(findings.find((f) => f.kind === "uncovered")!.file).toBe("src/cart/discount.ts");
+    expect(findings.find((f) => f.kind === "weak")!.severity).toBe("minor");
+  });
+
+  it("reports a skipped scenario as unproven, not as a failure", () => {
+    const run = stubs.testRunResult({
+      testCases: [
+        stubs.testCaseResult({
+          id: "checkout",
+          status: "skipped",
+          sourceFile: "src/cart/checkout.e2e.test.ts",
+          story: stubs.storyMeta({ scenario: "Checkout blocks a suspended user" }),
+        }),
+      ],
+    });
+    const findings = reviewFindings(buildReview(run, { changedFiles: [] }));
+
+    // Every `it.skip` in the suite would otherwise block the merge.
+    expect(findings).toHaveLength(1);
+    expect(findings[0]!.kind).toBe("skipped");
+    expect(findings[0]!.severity).toBe("minor");
+    expect(findings[0]!.title).toContain("Claim not exercised");
+  });
+
+  it("finds nothing to report when every changed file is strongly covered", () => {
+    const review = buildReview(bandedRun(), {
+      changedFiles: [{ path: "src/cart/checkout.ts", changeKind: "modified" }],
+    });
+    expect(reviewFindings(review)).toEqual([]);
+  });
+});
+
+describe("buildReviewJson", () => {
+  it("carries the run's outcome counts, so a CI surface never recounts them", () => {
+    const json = buildReviewJson(buildReview(bandedRun(), { changedFiles }));
+
+    expect(json.version).toBe(1);
+    expect(json.run).toEqual({ total: 2, passed: 2, failed: 0, skipped: 0, pending: 0 });
+    expect(json.summary.uncovered).toBe(1);
+  });
+
+  it("projects claims without the canonical test case", () => {
+    const json = buildReviewJson(buildReview(bandedRun(), { changedFiles }));
+    const claim = json.claims.find((c) => c.id === "checkout")!;
+
+    expect(claim.strength).toBe("strong");
+    expect(claim.strengthReasons.length).toBeGreaterThan(0);
+    expect(claim).not.toHaveProperty("testCase");
+    expect(JSON.stringify(json).length).toBeLessThan(
+      JSON.stringify(buildReview(bandedRun(), { changedFiles })).length
+    );
   });
 });

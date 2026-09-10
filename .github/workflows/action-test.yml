@@ -53,6 +53,21 @@ jobs:
           path: packages/executable-stories-formatters/executable-stories
           retention-days: 1
 
+  comment-builder:
+    name: "unit: PR comment, job summary, annotations, assets"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - name: Test the comment builder and the asset collector
+        run: |
+          node --test \
+            packages/executable-stories-action/test/asset-refs.test.mjs \
+            packages/executable-stories-action/test/build-comment.test.mjs \
+            packages/executable-stories-action/test/collect-assets.test.mjs
+
   raw-json:
     name: "report: format raw run JSON with the built binary"
     needs: build-binary
@@ -79,6 +94,58 @@ jobs:
           test -f reports/test-results.md   || { echo "missing reports/test-results.md"; exit 1; }
           echo "Action produced HTML + Markdown from raw-run.json"
 
+  review:
+    name: "review: evidence review produces findings the comment can render"
+    needs: build-binary
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v7
+        with:
+          name: action-test-binary
+          path: bin
+      - name: Stage a run and a diff
+        run: |
+          mkdir -p .executable-stories
+          cp packages/executable-stories-action/test/fixtures/raw-run/raw-run.json .executable-stories/raw-run.json
+          # JSON, not "git diff --name-status" text: that format is tab-separated,
+          # and a shell quoting slip turns the tab into a literal backslash-t that
+          # the parser silently drops, leaving a green job that asserted nothing.
+          cat > changed-files.json <<'JSON'
+          [
+            { "path": "src/cart/checkout.ts", "changeKind": "modified" },
+            { "path": "src/cart/discount.ts", "changeKind": "added" }
+          ]
+          JSON
+      - name: Run action (review)
+        uses: ./packages/executable-stories-action
+        with:
+          mode: review
+          report-dir: reports
+          output-name: test-results
+          changed-files: changed-files.json
+          formatter-binary: bin/executable-stories
+      - name: Assert the machine contract the PR comment renders from
+        run: |
+          test -f reports/test-results.review.json || { echo "missing reports/test-results.review.json"; exit 1; }
+          node -e '
+            const r = require("./reports/test-results.review.json");
+            if (r.version !== 1) throw new Error("unexpected contract version: " + r.version);
+            if (!Array.isArray(r.findings) || r.findings.length === 0) {
+              throw new Error("expected findings for two uncovered files");
+            }
+            const uncovered = r.findings.filter((f) => f.kind === "uncovered");
+            if (uncovered.length !== 2) {
+              throw new Error("expected 2 uncovered findings, got " + uncovered.length);
+            }
+            for (const f of r.findings) {
+              for (const field of ["severity", "title", "file", "detail", "remedy"]) {
+                if (!f[field]) throw new Error("finding missing " + field);
+              }
+            }
+            console.log("Review contract holds: " + r.findings.length + " finding(s)");
+          '
+
   pre-generated:
     name: "report: pass through pre-generated reports"
     runs-on: ubuntu-latest
@@ -91,6 +158,50 @@ jobs:
         with:
           report-dir: reports
           output-name: test-results
+
+  stale-state:
+    name: "report: a second invocation ignores the first's leftovers"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Stage a report referencing a bundled screenshot
+        run: |
+          mkdir -p reports/assets
+          printf 'iVBORw0KGgo=' | base64 -d > reports/assets/dashboard.png
+          cat > reports/test-results.md <<'MD'
+          # User Stories
+
+          ![Dashboard](assets/dashboard.png)
+          MD
+          cp packages/executable-stories-action/test/fixtures/reports/test-results.html reports/test-results.html
+      # What an earlier invocation of the action leaves in RUNNER_TEMP when it
+      # hosted its own suite's media. Both suites reference `assets/…` by
+      # convention, so the paths collide and the swap would be silent.
+      - name: Leave a previous invocation's asset URLs and comment behind
+        run: |
+          echo '{"assets/dashboard.png":"https://raw.example/PREVIOUS-SUITE.png"}' \
+            > "$RUNNER_TEMP/executable-stories-asset-urls.json"
+          echo 'PREVIOUS SUITE COMMENT' > "$RUNNER_TEMP/executable-stories-comment.md"
+      - name: Run action (host-images off, so it hosts nothing of its own)
+        uses: ./packages/executable-stories-action
+        with:
+          report-dir: reports
+          output-name: test-results
+      - name: Assert nothing from the previous invocation survived
+        run: |
+          body="$RUNNER_TEMP/executable-stories-comment.md"
+          if grep -q 'PREVIOUS-SUITE.png' "$body"; then
+            echo "::error::This report is showing the previous invocation's screenshot"
+            exit 1
+          fi
+          if grep -q 'PREVIOUS SUITE COMMENT' "$body"; then
+            echo "::error::The previous invocation's comment body was not replaced"
+            exit 1
+          fi
+          # Not hosted, so it must be labelled rather than left as a dead path.
+          grep -q '📎 Dashboard (see HTML report)' "$body" \
+            || { echo "::error::expected the screenshot to be labelled"; cat "$body"; exit 1; }
+          echo "Second invocation is independent of the first"
 
   publish-run-missing:
     name: "publish-run: fail when no run JSON exists"

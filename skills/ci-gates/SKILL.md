@@ -80,6 +80,14 @@ executable-stories check-links story-docs/src/content/docs
 `ChangedFile[]`. Start it at `--fail-on uncovered` (no evidence at all) before tightening
 to `weak`.
 
+Alongside the markdown and HTML, `review` writes `<output-name>.review.json`: ranked
+findings (`failed` / `unasserted` / `skipped` / `uncovered` / `weak`, each with a
+severity, the file it anchors to, how it was verified, and a remedy), the evidence bands,
+and per-claim strength. Render CI surfaces from that, never by parsing the markdown — the
+GitHub Action builds its whole PR comment, its annotations and its job summary from this
+one file. `push --review-json <path>` writes the same contract for a pushed run, adding
+`policy` findings when `--gate` is used.
+
 ### Sharded or filtered pipelines
 
 ```bash
