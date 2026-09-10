@@ -1,0 +1,175 @@
+---
+title: Login works
+description: Story with tags
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+Tag a scenario at init so readers can filter the report by `smoke` or `auth`.
+
+## The test
+
+<Tabs syncKey="framework">
+
+<TabItem label="Vitest" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-vitest';
+import { it } from 'vitest';
+
+it("Login works", ({ task }) => {
+  story.init(task, { tags: ["smoke", "auth"] });
+  story.given("the user is on the login page");
+  story.when("the user logs in with valid credentials");
+  story.then("the user should be logged in");
+});
+```
+
+</TabItem>
+
+<TabItem label="Jest" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-jest';
+
+it("Login works", () => {
+  story.init({ tags: ["smoke", "auth"] });
+  story.given("the user is on the login page");
+  story.when("the user logs in with valid credentials");
+  story.then("the user should be logged in");
+});
+```
+
+</TabItem>
+
+<TabItem label="Playwright" icon="seti:typescript">
+
+```typescript
+import { test } from '@playwright/test';
+import { story } from 'executable-stories-playwright';
+
+test("Login works", async ({}, testInfo) => {
+  story.init(testInfo, { tags: ["smoke", "auth"] });
+  story.given("the user is on the login page");
+  story.when("the user logs in with valid credentials");
+  story.then("the user should be logged in");
+});
+```
+
+</TabItem>
+
+<TabItem label="Cypress" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-cypress';
+
+it("Login works", () => {
+  story.init({ tags: ["smoke", "auth"] });
+  story.given("the user is on the login page");
+  story.when("the user logs in with valid credentials");
+  story.then("the user should be logged in");
+});
+```
+
+</TabItem>
+
+<TabItem label="Go" icon="seti:go">
+
+```go
+import (
+    "testing"
+    es "github.com/jagreehal/executable-stories/packages/executable-stories-go"
+)
+
+func TestLoginWorks(t *testing.T) {
+    s := es.Init(t, "Login works", es.WithTags("smoke", "auth"))
+    s.Given("the user is on the login page")
+    s.When("the user logs in with valid credentials")
+    s.Then("the user should be logged in")
+}
+```
+
+</TabItem>
+
+<TabItem label="Python" icon="seti:python">
+
+```python
+from executable_stories import story
+
+def test_login_works():
+    story.init("Login works", tags=["smoke", "auth"])
+    story.given("the user is on the login page")
+    story.when("the user logs in with valid credentials")
+    story.then("the user should be logged in")
+```
+
+</TabItem>
+
+<TabItem label="Rust" icon="seti:rust">
+
+```rust
+use executable_stories::Story;
+
+#[test]
+fn test_login_works() {
+    let mut s = Story::new("Login works").with_tags(&["smoke", "auth"]);
+    s.given("the user is on the login page");
+    s.when("the user logs in with valid credentials");
+    s.then("the user should be logged in");
+}
+```
+
+</TabItem>
+
+<TabItem label="Kotlin" icon="seti:kotlin">
+
+```kotlin
+import dev.executablestories.junit5.Story
+import org.junit.jupiter.api.Test
+
+class LoginTest {
+    @Test
+    fun `login works`() {
+        Story.init("Login works", "smoke", "auth")
+        Story.given("the user is on the login page")
+        Story.`when`("the user logs in with valid credentials")
+        Story.then("the user should be logged in")
+    }
+}
+```
+
+</TabItem>
+
+<TabItem label="C#" icon="seti:c-sharp">
+
+```csharp
+using ExecutableStories.Xunit;
+using Xunit;
+
+public class LoginTests : IDisposable
+{
+    [Fact]
+    public void LoginWorks()
+    {
+        Story.Init("Login works", "smoke", "auth");
+        Story.Given("the user is on the login page");
+        Story.When("the user logs in with valid credentials");
+        Story.Then("the user should be logged in");
+    }
+}
+```
+
+</TabItem>
+
+</Tabs>
+
+## What the report renders
+
+```markdown
+### ✅ Login works
+Tags: `smoke`, `auth`
+
+- **Given** the user is on the login page
+- **When** the user logs in with valid credentials
+- **Then** the user should be logged in
+```

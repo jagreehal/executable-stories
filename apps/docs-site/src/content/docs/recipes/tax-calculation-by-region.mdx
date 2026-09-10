@@ -1,0 +1,120 @@
+---
+title: Tax calculation by region
+description: Scenario outline with multiple rows
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+An outline with a row per region and the rate you expect.
+
+## The test
+
+<Tabs syncKey="framework">
+
+<TabItem label="Vitest" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-vitest';
+import { it } from 'vitest';
+
+const taxExamples = [
+  { subtotal: "100.00", region: "CA", tax: "8.25", total: "108.25" },
+  { subtotal: "100.00", region: "NY", tax: "8.00", total: "108.00" },
+];
+for (const row of taxExamples) {
+  it(`Tax calculation by region: ${row.region}`, ({ task }) => {
+    story.init(task);
+    story.given(`the cart subtotal is ${row.subtotal}`);
+    story.given(`the shipping region is "${row.region}"`);
+    story.when("taxes are calculated");
+    story.then(`the tax should be ${row.tax}`);
+    story.then(`the total should be ${row.total}`);
+  });
+}
+```
+
+</TabItem>
+
+<TabItem label="Jest" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-jest';
+
+const taxExamples = [
+  { subtotal: "100.00", region: "CA", tax: "8.25", total: "108.25" },
+  { subtotal: "100.00", region: "NY", tax: "8.00", total: "108.00" },
+];
+for (const row of taxExamples) {
+  it(`Tax calculation by region: ${row.region}`, () => {
+    story.init();
+    story.given(`the cart subtotal is ${row.subtotal}`);
+    story.given(`the shipping region is "${row.region}"`);
+    story.when("taxes are calculated");
+    story.then(`the tax should be ${row.tax}`);
+    story.then(`the total should be ${row.total}`);
+  });
+}
+```
+
+</TabItem>
+
+<TabItem label="Playwright" icon="seti:typescript">
+
+```typescript
+import { test } from '@playwright/test';
+import { story } from 'executable-stories-playwright';
+
+const taxExamples = [
+  { subtotal: "100.00", region: "CA", tax: "8.25", total: "108.25" },
+  { subtotal: "100.00", region: "NY", tax: "8.00", total: "108.00" },
+];
+for (const row of taxExamples) {
+  test(`Tax calculation by region: ${row.region}`, async ({}, testInfo) => {
+    story.init(testInfo);
+    story.given(`the cart subtotal is ${row.subtotal}`);
+    story.given(`the shipping region is "${row.region}"`);
+    story.when("taxes are calculated");
+    story.then(`the tax should be ${row.tax}`);
+    story.then(`the total should be ${row.total}`);
+  });
+}
+```
+
+</TabItem>
+
+<TabItem label="Cypress" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-cypress';
+
+const taxExamples = [
+  { subtotal: "100.00", region: "CA", tax: "8.25", total: "108.25" },
+  { subtotal: "100.00", region: "NY", tax: "8.00", total: "108.00" },
+];
+for (const row of taxExamples) {
+  it(`Tax calculation by region: ${row.region}`, () => {
+    story.init();
+    story.given(`the cart subtotal is ${row.subtotal}`);
+    story.given(`the shipping region is "${row.region}"`);
+    story.when("taxes are calculated");
+    story.then(`the tax should be ${row.tax}`);
+    story.then(`the total should be ${row.total}`);
+  });
+}
+```
+
+</TabItem>
+
+</Tabs>
+
+## What the report renders
+
+```markdown
+### ✅ Tax calculation by region: CA
+
+- **Given** the cart subtotal is 100.00
+- **And** the shipping region is "CA"
+- **When** taxes are calculated
+- **Then** the tax should be 8.25
+- **And** the total should be 108.25
+```

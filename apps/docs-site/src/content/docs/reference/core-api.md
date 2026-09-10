@@ -3,7 +3,7 @@ title: Core types & constants
 description: Shared types and constants re-exported from framework packages
 ---
 
-Shared types and constants for story metadata are **re-exported from each framework package** (`executable-stories-jest`, `executable-stories-vitest`, `executable-stories-playwright`, `executable-stories-cypress`). The `executable-stories-formatters` package exports canonical and raw types (e.g. `RawRun`, `TestRunResult`) used for report generation. There is no separate `@executable-stories/core` package — import from your framework package or from formatters as needed.
+Shared types and constants for story metadata are **re-exported from each framework package** (`executable-stories-jest`, `executable-stories-vitest`, `executable-stories-playwright`, `executable-stories-cypress`). The `executable-stories-formatters` package exports canonical and raw types (e.g. `RawRun`, `TestRunResult`) used for report generation. There is no separate `@executable-stories/core` package, import from your framework package or from formatters as needed.
 
 ## Importing types
 
@@ -239,9 +239,9 @@ function processStep(step: StoryStep): void {
 
 ## Shared scenario → Markdown serializer
 
-The `executable-stories-core` package holds **`scenarioToMarkdown`** (and its helper `docEntryToMarkdown`) — the single implementation behind every plain-text projection of a scenario, so those surfaces cannot drift:
+The `executable-stories-core` package holds **`scenarioToMarkdown`** (and its helper `docEntryToMarkdown`), the single implementation behind every plain-text projection of a scenario, so those surfaces cannot drift:
 
-- the HTML report's per-scenario **"Copy as Markdown"** button (in `executable-stories-react`) uses `variant: "compact"` — an h2 heading with the status, the steps, and the failure fence, sized for pasting into a PR or issue;
-- the Astro site's **`<slug>.md` twin endpoints** (in `executable-stories-astro`) use the default full variant — an h1, caller-supplied metadata lines, per-step docs and errors, and every attached doc entry, i.e. a standalone document consumable by `curl` or an LLM without an HTML parser.
+- the HTML report's per-scenario **"Copy as Markdown"** button (in `executable-stories-react`) uses `variant: "compact"`: an h2 heading with the status, the steps, and the failure fence, sized for pasting into a PR or issue;
+- the Astro site's **`<slug>.md` twin endpoints** (in `executable-stories-astro`) use the default full variant: an h1, caller-supplied metadata lines, per-step docs and errors, and every attached doc entry, i.e. a standalone document consumable by `curl` or an LLM without an HTML parser.
 
 `executable-stories-core` is published, but you normally consume this behaviour through the React report and the Astro integration rather than importing it yourself. Its deep subpaths (`/types/*`, `/converters/*`, `/utils/*`) are internal and can change without a major bump.

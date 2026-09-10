@@ -1,0 +1,102 @@
+---
+title: Eligible customer gets discount
+description: Rule block, positive path
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+The positive path of a business rule, with the rule named in the scenario title.
+
+## The test
+
+<Tabs syncKey="framework">
+
+<TabItem label="Vitest" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-vitest';
+import { describe, it } from 'vitest';
+
+describe("Feature: Discounts", () => {
+  describe("Rule: Discounts apply only to eligible customers", () => {
+    it("Eligible customer gets discount", ({ task }) => {
+      story.init(task);
+      story.given("the customer is eligible for discounts");
+      story.when("the customer checks out");
+      story.then("a discount should be applied");
+    });
+  });
+});
+```
+
+</TabItem>
+
+<TabItem label="Jest" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-jest';
+
+describe("Feature: Discounts", () => {
+  describe("Rule: Discounts apply only to eligible customers", () => {
+    it("Eligible customer gets discount", () => {
+      story.init();
+      story.given("the customer is eligible for discounts");
+      story.when("the customer checks out");
+      story.then("a discount should be applied");
+    });
+  });
+});
+```
+
+</TabItem>
+
+<TabItem label="Playwright" icon="seti:typescript">
+
+```typescript
+import { test } from '@playwright/test';
+import { story } from 'executable-stories-playwright';
+
+test.describe("Feature: Discounts", () => {
+  test.describe("Rule: Discounts apply only to eligible customers", () => {
+    test("Eligible customer gets discount", async ({}, testInfo) => {
+      story.init(testInfo);
+      story.given("the customer is eligible for discounts");
+      story.when("the customer checks out");
+      story.then("a discount should be applied");
+    });
+  });
+});
+```
+
+</TabItem>
+
+<TabItem label="Cypress" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-cypress';
+
+describe("Feature: Discounts", () => {
+  describe("Rule: Discounts apply only to eligible customers", () => {
+    it("Eligible customer gets discount", () => {
+      story.init();
+      story.given("the customer is eligible for discounts");
+      story.when("the customer checks out");
+      story.then("a discount should be applied");
+    });
+  });
+});
+```
+
+</TabItem>
+
+</Tabs>
+
+## What the report renders
+
+```markdown
+### ✅ Eligible customer gets discount
+
+- **Given** the customer is eligible for discounts
+- **When** the customer checks out
+- **Then** a discount should be applied
+```

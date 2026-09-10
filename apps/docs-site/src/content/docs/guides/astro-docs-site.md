@@ -4,7 +4,7 @@ description: A live Starlight documentation site from your test results, driven 
 ---
 
 The `executable-stories-astro` integration turns your test output into a full
-[Starlight](https://starlight.astro.build/) site — generated scenarios and your
+[Starlight](https://starlight.astro.build/) site, generated scenarios and your
 hand-authored docs side by side, with sidebar navigation, status badges, Mermaid
 diagrams, and search. It is **live**: a content loader watches canonical
 per-source reports, so a focused test run hot-reloads the open page without
@@ -25,13 +25,13 @@ cd my-docs && pnpm install
 
 This scaffolds a thin, ready-to-run Starlight project. The docs framework itself
 ships in the `executable-stories-astro` package, so the scaffold is just ~8
-user-owned files — chiefly **one config file** you edit.
+user-owned files, chiefly **one config file** you edit.
 
 Then let the reporter populate `reports/by-file/` (see below), run your tests in
 watch mode in one terminal, and `astro dev` in another:
 
 ```bash
-pnpm dev   # http://localhost:4321 — /stories, /explorer, and your docs
+pnpm dev   # http://localhost:4321 -> /stories, /explorer, and your docs
 ```
 
 Editing a test re-runs it and the Stories pages update with no reload.
@@ -74,36 +74,36 @@ See the full reference in the [`executable-stories-astro` README](https://github
 
 ## What you get
 
-- **`/stories`** — an index of every scenario, categorised by `groupBy`, each
+- **`/stories`**: an index of every scenario, categorised by `groupBy`, each
   linking to a detail page with its Given/When/Then steps and docs. Styled out
   of the box; no CSS to wire.
-- **`/explorer`** — a searchable, filterable Scenario Explorer (by text, status,
+- **`/explorer`**: a searchable, filterable Scenario Explorer (by text, status,
   and tag). Filters live in the query string (`?tag=capability:checkout`,
   `?q=refund&status=failed`), so a filtered view is a link you can paste into a
-  ticket — see [linking in from a ticket](/guides/tagging-for-your-audience/)
+  ticket, see [linking in from a ticket](/guides/tagging-for-your-audience/)
   for why that link should carry a tag rather than a scenario's URL.
-- **`/journeys`** — ordered multi-scenario walkthroughs derived from
+- **`/journeys`**: ordered multi-scenario walkthroughs derived from
   `journey:<id>:<n>` tags, each rendered as full scenario cards (storyboards
   included) under one aggregate status. Embed one in MDX with
   `<StoryJourney id="..." />`.
-- **`/states`** — a thumbnail grid of the states the product verifiably
+- **`/states`**: a thumbnail grid of the states the product verifiably
   has, from `state:<name>` tags; `viewport:*` variants render side by side.
   Non-UI scenarios appear with data-card thumbnails from their `story.state()`
   snapshots.
-- **`/drift`** — with two or more sources, compares each scenario's status
+- **`/drift`**: with two or more sources, compares each scenario's status
   side by side and floats disagreements or missing scenarios first.
-- **Auto-built nav** — spread `storiesSidebar(config)` into your Starlight
+- **Auto-built nav**: spread `storiesSidebar(config)` into your Starlight
   `sidebar` and the Stories/Explorer links and your docs groups appear without
   hand-wiring. The nav stays fresh in dev: when a test run adds, renames, or
   removes scenarios, the integration triggers a dev-server restart so the
   sidebar rebuilds (status-only changes hot-reload without a restart).
-- **Live trajectory** — the shipped `<Trajectory />` component shows
+- **Live trajectory**: the shipped `<Trajectory />` component shows
   "passed N → M since you started" across a watch session.
-- **Agent endpoints** — `/llms.txt` indexes every scenario, and each story page
+- **Agent endpoints**: `/llms.txt` indexes every scenario, and each story page
   has a plain-Markdown twin at `/stories/<slug>.md`, so the deployed site is
   consumable by agents and `curl`, not just browsers. Disable with
   `agentEndpoints: false`.
-- **Design context** — `story.link()` entries pointing at Figma, Zeplin,
+- **Design context**: `story.link()` entries pointing at Figma, Zeplin,
   Sketch, or Abstract (or deliberately labelled `Design ...`) appear on story
   and journey pages. The same link remains in the scenario's normal docs.
 
@@ -165,8 +165,8 @@ without a restart.
 
 ## Persona views
 
-`views` mounts audience lenses over the same scenarios — `/for/product`,
-`/for/design`, `/for/support` — each a filtered, re-grouped index driven by
+`views` mounts audience lenses over the same scenarios: `/for/product`,
+`/for/design`, `/for/support`, each a filtered, re-grouped index driven by
 the tags your tests already carry:
 
 ```js
@@ -184,14 +184,14 @@ and per-persona recipes live in
 ## Embedding scenarios in your own pages
 
 Authored MDX pages can pull scenarios in as live evidence, rendered from the
-same collection as the story pages — so an embed can never drift from the
+same collection as the story pages, so an embed can never drift from the
 latest run:
 
 ```mdx
 import StoryScenario from 'executable-stories-astro/components/StoryScenario.astro';
 import StoryStatus from 'executable-stories-astro/components/StoryStatus.astro';
 
-We cap discounts at 30% — enforced end-to-end
+We cap discounts at 30%, enforced end-to-end
 (currently <StoryStatus id="checkout--caps-the-discount-at-30-percent" />):
 
 <StoryScenario id="checkout--caps-the-discount-at-30-percent" />
@@ -200,7 +200,7 @@ We cap discounts at 30% — enforced end-to-end
 `<StoryScenario/>` renders the full scenario card (steps, status, failure
 output, attached docs); `<StoryStatus/>` is an inline linked status pill. Both
 accept the stable scenario id (copy it from the Explorer), the URL slug, or the
-exact title, and render a visible callout when the id no longer matches — an
+exact title, and render a visible callout when the id no longer matches, an
 embed never silently disappears. This pairs with `<VerifiedBy/>` (frontmatter
 `verifiedBy:` refs → a live pass/fail badge) for page-level verification.
 
@@ -211,7 +211,7 @@ Hand-authored docs live under `src/content/docs`. The scaffold loads them with
 GitHub-style markdown work without edits:
 
 - **Auto-title** from each file's first `# H1` (so frontmatter-free files import
-  cleanly — the one field Starlight requires).
+  cleanly, the one field Starlight requires).
 - **Cross-link rewriting** so relative `./other.md` links resolve to routes
   instead of 404ing.
 
@@ -232,7 +232,7 @@ Point the config's `source` at `../reports/by-file`.
 
 ## Deploying
 
-The scaffolded site is a standard Astro project — build it and deploy `dist/`:
+The scaffolded site is a standard Astro project. Build it and deploy `dist/`:
 
 ```bash
 pnpm build

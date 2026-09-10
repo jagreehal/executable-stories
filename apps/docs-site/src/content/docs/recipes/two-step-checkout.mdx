@@ -1,0 +1,106 @@
+---
+title: Two step checkout
+description: Multiple When groups (phases)
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+Two When groups in one scenario, each with its own Then.
+
+## The test
+
+<Tabs syncKey="framework">
+
+<TabItem label="Vitest" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-vitest';
+import { it } from 'vitest';
+
+it("Two step checkout", ({ task }) => {
+  story.init(task);
+  story.given("the user has items in the cart");
+  story.when("the user enters shipping information");
+  story.when("the user selects a delivery option");
+  story.when("the user enters payment information");
+  story.when("the user confirms the order");
+  story.then("the order should be created");
+  story.then("a confirmation email should be sent");
+});
+```
+
+</TabItem>
+
+<TabItem label="Jest" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-jest';
+
+it("Two step checkout", () => {
+  story.init();
+  story.given("the user has items in the cart");
+  story.when("the user enters shipping information");
+  story.when("the user selects a delivery option");
+  story.when("the user enters payment information");
+  story.when("the user confirms the order");
+  story.then("the order should be created");
+  story.then("a confirmation email should be sent");
+});
+```
+
+</TabItem>
+
+<TabItem label="Playwright" icon="seti:typescript">
+
+```typescript
+import { test } from '@playwright/test';
+import { story } from 'executable-stories-playwright';
+
+test("Two step checkout", async ({}, testInfo) => {
+  story.init(testInfo);
+  story.given("the user has items in the cart");
+  story.when("the user enters shipping information");
+  story.when("the user selects a delivery option");
+  story.when("the user enters payment information");
+  story.when("the user confirms the order");
+  story.then("the order should be created");
+  story.then("a confirmation email should be sent");
+});
+```
+
+</TabItem>
+
+<TabItem label="Cypress" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-cypress';
+
+it("Two step checkout", () => {
+  story.init();
+  story.given("the user has items in the cart");
+  story.when("the user enters shipping information");
+  story.when("the user selects a delivery option");
+  story.when("the user enters payment information");
+  story.when("the user confirms the order");
+  story.then("the order should be created");
+  story.then("a confirmation email should be sent");
+});
+```
+
+</TabItem>
+
+</Tabs>
+
+## What the report renders
+
+```markdown
+### ✅ Two step checkout
+
+- **Given** the user has items in the cart
+- **When** the user enters shipping information
+- **And** the user selects a delivery option
+- **And** the user enters payment information
+- **And** the user confirms the order
+- **Then** the order should be created
+- **And** a confirmation email should be sent
+```

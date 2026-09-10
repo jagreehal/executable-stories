@@ -1,0 +1,213 @@
+---
+title: Guides
+description: Task-shaped walkthroughs, from writing your first scenario to gating a release on the evidence behind it.
+slug: guides
+---
+
+import { CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+Start with [Install](/getting-started/install/) and [your first story](/getting-started/first-story/). Everything below assumes you have a run producing reports.
+
+## Concepts
+
+Read these once and the rest of the docs stop being surprising.
+
+<CardGrid>
+  <LinkCard
+    title="Why not Cucumber?"
+    href="/guides/why-not-cucumber/"
+    description="What we dropped from Gherkin and why: no feature files, no step matching, no world object."
+  />
+  <LinkCard
+    title="Four layers, without a world object"
+    href="/guides/four-layer-model/"
+    description="Where to put setup, actions, and assertions when there is no shared mutable world."
+  />
+  <LinkCard
+    title="The specification layer"
+    href="/guides/the-specification-layer/"
+    description="Declaring a feature above your tests so the docs have a spine."
+  />
+  <LinkCard
+    title="Developer experience"
+    href="/guides/developer-experience/"
+    description="How the API sits inside each host framework, and where they deliberately differ."
+  />
+  <LinkCard
+    title="Understanding the report"
+    href="/guides/understanding-the-report/"
+    description="Status precedence, storyboards, state snapshots, and what an unasserted claim means."
+  />
+</CardGrid>
+
+## Writing stories
+
+<CardGrid>
+  <LinkCard
+    title="Formatting and metadata"
+    href="/guides/formatting-and-metadata/"
+    description="Every doc kind, plus tickets, tags, and the metadata that travels with a scenario."
+  />
+  <LinkCard
+    title="Tagging for your audience"
+    href="/guides/tagging-for-your-audience/"
+    description="A small tag vocabulary that splits one suite into product, design, support, and QA views."
+  />
+</CardGrid>
+
+## Adopting an existing suite
+
+You do not rewrite anything. You annotate the tests you already have.
+
+<CardGrid>
+  <LinkCard
+    title="Setup decision tree"
+    href="/guides/setup-decision-tree/"
+    description="Which package and which output mode, given what you already run."
+  />
+  <LinkCard
+    title="Converting Vitest tests"
+    href="/guides/converting-vitest/"
+    description="Add story markers to an existing Vitest suite."
+  />
+  <LinkCard
+    title="Converting Jest tests"
+    href="/guides/converting-jest/"
+    description="Add story markers to an existing Jest suite."
+  />
+  <LinkCard
+    title="Converting Playwright tests"
+    href="/guides/converting-playwright/"
+    description="Add story markers to an existing Playwright suite."
+  />
+  <LinkCard
+    title="Converting a CucumberJS suite"
+    href="/guides/converting-cucumber/"
+    description="Retire the feature files and step definitions, keep the scenarios."
+  />
+</CardGrid>
+
+## Output and reports
+
+<CardGrid>
+  <LinkCard
+    title="Output modes"
+    href="/guides/output-modes/"
+    description="Colocated, aggregated, and per-source state, plus what a filtered run may retire."
+  />
+  <LinkCard
+    title="Collating reports"
+    href="/guides/collating-reports/"
+    description="Combine many runs, or many repos, into one accumulated suite."
+  />
+  <LinkCard
+    title="Sharing reports"
+    href="/guides/sharing-reports/"
+    description="Hand a report to someone who will not clone the repo."
+  />
+  <LinkCard
+    title="CI and source links"
+    href="/guides/ci-and-source-links/"
+    description="Wire commit SHAs and permalinks so every scenario links to the code that proves it."
+  />
+</CardGrid>
+
+## Publishing living documentation
+
+<CardGrid>
+  <LinkCard
+    title="Astro docs site"
+    href="/guides/astro-docs-site/"
+    description="Scaffold a Starlight site whose scenario pages regenerate from every run."
+  />
+  <LinkCard
+    title="Add to an existing Astro site"
+    href="/guides/existing-astro-site/"
+    description="Mount story pages inside a docs site you already have."
+  />
+  <LinkCard
+    title="Multi-repo docs hub"
+    href="/guides/multi-repo-docs-hub/"
+    description="One site over several repos' runs, with drift between them made visible."
+  />
+  <LinkCard
+    title="Embed reports in React apps"
+    href="/guides/embed-in-react-apps/"
+    description="Drop the renderer into a Next.js, Remix, or Vite app."
+  />
+  <LinkCard
+    title="Product sites with CMS and demos"
+    href="/guides/product-sites-with-cms-and-demos/"
+    description="Turn a Playwright run into a customer-facing demo page."
+  />
+  <LinkCard
+    title="Embedding skill and agent HTML"
+    href="/guides/embedding-skill-html-output/"
+    description="Put an agent's generated HTML inside a scenario, sandboxed."
+  />
+</CardGrid>
+
+## CI gates and review
+
+<CardGrid>
+  <LinkCard
+    title="GitHub Action"
+    href="/guides/github-action/"
+    description="Surface a run as a PR comment, with a verdict and ranked findings."
+  />
+  <LinkCard
+    title="Release confidence"
+    href="/guides/release-confidence/"
+    description="The before-PR and release gates: compare and gate-release."
+  />
+  <LinkCard
+    title="Evidence Review and Code Diff"
+    href="/guides/evidence-review/"
+    description="Grade the proof behind a change, and annotate the patch with the scenarios that cover it."
+  />
+</CardGrid>
+
+## Integrations
+
+<CardGrid>
+  <LinkCard
+    title="Publishing to Confluence and Jira"
+    href="/guides/publishing-to-atlassian/"
+    description="Emit Atlassian Document Format and publish it without a lossy paste."
+  />
+  <LinkCard
+    title="TestRail and Xray sync"
+    href="/guides/test-management-sync/"
+    description="Bridge the suite to the test management tool your org already pays for."
+  />
+</CardGrid>
+
+## For coding agents
+
+<CardGrid>
+  <LinkCard
+    title="Agent artifact contract"
+    href="/guides/agent-artifact-contract/"
+    description="The StoryReport JSON, the scenario index, and the behavior manifest an agent reads instead of source."
+  />
+  <LinkCard
+    title="MCP server"
+    href="/guides/mcp-server/"
+    description="Read-only tools over the run, plus run_scenario for a focused rerun."
+  />
+  <LinkCard
+    title="Agent loops and backpressure"
+    href="/guides/agent-loops/"
+    description="check, triage, and goal: the three signals an autonomous loop runs on."
+  />
+</CardGrid>
+
+## When something breaks
+
+<CardGrid>
+  <LinkCard
+    title="Common issues"
+    href="/guides/common-issues/"
+    description="No report generated, init errors, and the framework-specific gotchas behind them."
+  />
+</CardGrid>

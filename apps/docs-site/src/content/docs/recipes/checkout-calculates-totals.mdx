@@ -1,0 +1,194 @@
+---
+title: Checkout calculates totals
+description: Single Given, single When, multiple Then
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+One Given, one When, three Then steps. Repeated Then renders as And.
+
+## The test
+
+<Tabs syncKey="framework">
+
+<TabItem label="Vitest" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-vitest';
+import { it } from 'vitest';
+
+it("Checkout calculates totals", ({ task }) => {
+  story.init(task);
+  story.given("the cart has 2 items");
+  story.when("the user proceeds to checkout");
+  story.then("the subtotal should be $40.00");
+  story.then("the tax should be $4.00");
+  story.then("the total should be $44.00");
+});
+```
+
+</TabItem>
+
+<TabItem label="Jest" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-jest';
+
+it("Checkout calculates totals", () => {
+  story.init();
+  story.given("the cart has 2 items");
+  story.when("the user proceeds to checkout");
+  story.then("the subtotal should be $40.00");
+  story.then("the tax should be $4.00");
+  story.then("the total should be $44.00");
+});
+```
+
+</TabItem>
+
+<TabItem label="Playwright" icon="seti:typescript">
+
+```typescript
+import { test } from '@playwright/test';
+import { story } from 'executable-stories-playwright';
+
+test("Checkout calculates totals", async ({}, testInfo) => {
+  story.init(testInfo);
+  story.given("the cart has 2 items");
+  story.when("the user proceeds to checkout");
+  story.then("the subtotal should be $40.00");
+  story.then("the tax should be $4.00");
+  story.then("the total should be $44.00");
+});
+```
+
+</TabItem>
+
+<TabItem label="Cypress" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-cypress';
+
+it("Checkout calculates totals", () => {
+  story.init();
+  story.given("the cart has 2 items");
+  story.when("the user proceeds to checkout");
+  story.then("the subtotal should be $40.00");
+  story.then("the tax should be $4.00");
+  story.then("the total should be $44.00");
+});
+```
+
+</TabItem>
+
+<TabItem label="Go" icon="seti:go">
+
+```go
+import (
+    "testing"
+    es "github.com/jagreehal/executable-stories/packages/executable-stories-go"
+)
+
+func TestCheckoutCalculatesTotals(t *testing.T) {
+    s := es.Init(t, "Checkout calculates totals")
+    s.Given("the cart has 2 items")
+    s.When("the user proceeds to checkout")
+    s.Then("the subtotal should be $40.00")
+    s.Then("the tax should be $4.00")
+    s.Then("the total should be $44.00")
+}
+```
+
+</TabItem>
+
+<TabItem label="Python" icon="seti:python">
+
+```python
+from executable_stories import story
+
+def test_checkout_calculates_totals():
+    story.init("Checkout calculates totals")
+    story.given("the cart has 2 items")
+    story.when("the user proceeds to checkout")
+    story.then("the subtotal should be $40.00")
+    story.then("the tax should be $4.00")
+    story.then("the total should be $44.00")
+```
+
+</TabItem>
+
+<TabItem label="Rust" icon="seti:rust">
+
+```rust
+use executable_stories::Story;
+
+#[test]
+fn test_checkout_calculates_totals() {
+    let mut s = Story::new("Checkout calculates totals");
+    s.given("the cart has 2 items");
+    s.when("the user proceeds to checkout");
+    s.then("the subtotal should be $40.00");
+    s.then("the tax should be $4.00");
+    s.then("the total should be $44.00");
+}
+```
+
+</TabItem>
+
+<TabItem label="Kotlin" icon="seti:kotlin">
+
+```kotlin
+import dev.executablestories.junit5.Story
+import org.junit.jupiter.api.Test
+
+class CheckoutTest {
+    @Test
+    fun `checkout calculates totals`() {
+        Story.init("Checkout calculates totals")
+        Story.given("the cart has 2 items")
+        Story.`when`("the user proceeds to checkout")
+        Story.then("the subtotal should be $40.00")
+        Story.then("the tax should be $4.00")
+        Story.then("the total should be $44.00")
+    }
+}
+```
+
+</TabItem>
+
+<TabItem label="C#" icon="seti:c-sharp">
+
+```csharp
+using ExecutableStories.Xunit;
+using Xunit;
+
+public class CheckoutTests : IDisposable
+{
+    [Fact]
+    public void CheckoutCalculatesTotals()
+    {
+        Story.Init("Checkout calculates totals");
+        Story.Given("the cart has 2 items");
+        Story.When("the user proceeds to checkout");
+        Story.Then("the subtotal should be $40.00");
+        Story.Then("the tax should be $4.00");
+        Story.Then("the total should be $44.00");
+    }
+}
+```
+
+</TabItem>
+
+</Tabs>
+
+## What the report renders
+
+```markdown
+### ✅ Checkout calculates totals
+
+- **Given** the cart has 2 items
+- **When** the user proceeds to checkout
+- **Then** the subtotal should be $40.00
+- **And** the tax should be $4.00
+- **And** the total should be $44.00
+```

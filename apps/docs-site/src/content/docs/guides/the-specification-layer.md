@@ -81,10 +81,10 @@ one feature belongs to that feature.
 The declaration has to run before the tests it describes, which means module
 scope in most languages.
 
-**Vitest, Jest, Playwright, Cypress** — at the top of the file, above the first
+**Vitest, Jest, Playwright, Cypress**: at the top of the file, above the first
 `describe`.
 
-**Go** — in `init()`, with the source file taken from the caller.
+**Go**: in `init()`, with the source file taken from the caller.
 
 ```go
 func init() {
@@ -96,7 +96,7 @@ func init() {
 }
 ```
 
-**Ruby** — at the top of the file, above the test class.
+**Ruby**: at the top of the file, above the test class.
 
 ```ruby
 ExecutableStories.feature(
@@ -106,7 +106,7 @@ ExecutableStories.feature(
 )
 ```
 
-**Python** — at module scope, above the first test.
+**Python**: at module scope, above the first test.
 
 ```python
 story.feature(
@@ -116,7 +116,7 @@ story.feature(
 )
 ```
 
-**Rust** — through `declare_feature!`, which wraps the call in a test of its own.
+**Rust**: through `declare_feature!`, which wraps the call in a test of its own.
 Rust runs nothing before a test binary's tests, so there is nowhere else to put
 it.
 
@@ -128,7 +128,7 @@ declare_feature!(
 );
 ```
 
-**JUnit 5** — from `@BeforeAll` in a companion object.
+**JUnit 5**: from `@BeforeAll` in a companion object.
 
 ```kotlin
 companion object {
@@ -144,7 +144,7 @@ companion object {
 }
 ```
 
-**xUnit** — from a static constructor.
+**xUnit**: from a static constructor.
 
 ```csharp
 static PasswordTests() => Story.Feature(

@@ -1,0 +1,128 @@
+---
+title: Update preferences
+description: DataTable as key-value pairs
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+A two-column table read as key and value.
+
+## The test
+
+<Tabs syncKey="framework">
+
+<TabItem label="Vitest" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-vitest';
+import { it } from 'vitest';
+
+it("Update preferences", ({ task }) => {
+  story.init(task);
+  story.given("the user has the following preferences");
+  story.table({
+    label: "Preferences",
+    columns: ["key", "value"],
+    rows: [
+      ["email_opt_in", "true"],
+      ["theme", "dark"],
+      ["timezone", "UTC"],
+    ],
+  });
+  story.when("the user saves preferences");
+  story.then("the preferences should be persisted");
+});
+```
+
+</TabItem>
+
+<TabItem label="Jest" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-jest';
+
+it("Update preferences", () => {
+  story.init();
+  story.given("the user has the following preferences");
+  story.table({
+    label: "Preferences",
+    columns: ["key", "value"],
+    rows: [
+      ["email_opt_in", "true"],
+      ["theme", "dark"],
+      ["timezone", "UTC"],
+    ],
+  });
+  story.when("the user saves preferences");
+  story.then("the preferences should be persisted");
+});
+```
+
+</TabItem>
+
+<TabItem label="Playwright" icon="seti:typescript">
+
+```typescript
+import { test } from '@playwright/test';
+import { story } from 'executable-stories-playwright';
+
+test("Update preferences", async ({}, testInfo) => {
+  story.init(testInfo);
+  story.given("the user has the following preferences");
+  story.table({
+    label: "Preferences",
+    columns: ["key", "value"],
+    rows: [
+      ["email_opt_in", "true"],
+      ["theme", "dark"],
+      ["timezone", "UTC"],
+    ],
+  });
+  story.when("the user saves preferences");
+  story.then("the preferences should be persisted");
+});
+```
+
+</TabItem>
+
+<TabItem label="Cypress" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-cypress';
+
+it("Update preferences", () => {
+  story.init();
+  story.given("the user has the following preferences");
+  story.table({
+    label: "Preferences",
+    columns: ["key", "value"],
+    rows: [
+      ["email_opt_in", "true"],
+      ["theme", "dark"],
+      ["timezone", "UTC"],
+    ],
+  });
+  story.when("the user saves preferences");
+  story.then("the preferences should be persisted");
+});
+```
+
+</TabItem>
+
+</Tabs>
+
+## What the report renders
+
+```markdown
+### ✅ Update preferences
+
+- **Given** the user has the following preferences
+    **Preferences**
+    | key | value |
+    | --- | --- |
+    | email_opt_in | true |
+    | theme | dark |
+    | timezone | UTC |
+- **When** the user saves preferences
+- **Then** the preferences should be persisted
+```

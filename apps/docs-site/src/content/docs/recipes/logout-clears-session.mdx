@@ -1,0 +1,96 @@
+---
+title: Logout clears session
+description: Repeated Then steps
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+Three Then steps in a row. The first renders as Then, the rest as And.
+
+## The test
+
+<Tabs syncKey="framework">
+
+<TabItem label="Vitest" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-vitest';
+import { it } from 'vitest';
+
+it("Logout clears session", ({ task }) => {
+  story.init(task);
+  story.given("the user is logged in");
+  story.when("the user logs out");
+  story.then("the session cookie should be cleared");
+  story.then("the auth token should be revoked");
+  story.then("the user should be redirected to the login page");
+});
+```
+
+</TabItem>
+
+<TabItem label="Jest" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-jest';
+
+it("Logout clears session", () => {
+  story.init();
+  story.given("the user is logged in");
+  story.when("the user logs out");
+  story.then("the session cookie should be cleared");
+  story.then("the auth token should be revoked");
+  story.then("the user should be redirected to the login page");
+});
+```
+
+</TabItem>
+
+<TabItem label="Playwright" icon="seti:typescript">
+
+```typescript
+import { test } from '@playwright/test';
+import { story } from 'executable-stories-playwright';
+
+test("Logout clears session", async ({}, testInfo) => {
+  story.init(testInfo);
+  story.given("the user is logged in");
+  story.when("the user logs out");
+  story.then("the session cookie should be cleared");
+  story.then("the auth token should be revoked");
+  story.then("the user should be redirected to the login page");
+});
+```
+
+</TabItem>
+
+<TabItem label="Cypress" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-cypress';
+
+it("Logout clears session", () => {
+  story.init();
+  story.given("the user is logged in");
+  story.when("the user logs out");
+  story.then("the session cookie should be cleared");
+  story.then("the auth token should be revoked");
+  story.then("the user should be redirected to the login page");
+});
+```
+
+</TabItem>
+
+</Tabs>
+
+## What the report renders
+
+```markdown
+### ✅ Logout clears session
+
+- **Given** the user is logged in
+- **When** the user logs out
+- **Then** the session cookie should be cleared
+- **And** the auth token should be revoked
+- **And** the user should be redirected to the login page
+```

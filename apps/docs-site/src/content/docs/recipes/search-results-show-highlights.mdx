@@ -1,0 +1,91 @@
+---
+title: Search results show highlights
+description: And after Then
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+`story.and()` after a Then, written explicitly rather than left to auto-conversion.
+
+## The test
+
+<Tabs syncKey="framework">
+
+<TabItem label="Vitest" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-vitest';
+import { it } from 'vitest';
+
+it("Search results show highlights", ({ task }) => {
+  story.init(task);
+  story.given('the search index contains "hello world"');
+  story.when('the user searches for "hello"');
+  story.then('results should include "hello world"');
+  story.and("the matching text should be highlighted");
+});
+```
+
+</TabItem>
+
+<TabItem label="Jest" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-jest';
+
+it("Search results show highlights", () => {
+  story.init();
+  story.given('the search index contains "hello world"');
+  story.when('the user searches for "hello"');
+  story.then('results should include "hello world"');
+  story.and("the matching text should be highlighted");
+});
+```
+
+</TabItem>
+
+<TabItem label="Playwright" icon="seti:typescript">
+
+```typescript
+import { test } from '@playwright/test';
+import { story } from 'executable-stories-playwright';
+
+test("Search results show highlights", async ({}, testInfo) => {
+  story.init(testInfo);
+  story.given('the search index contains "hello world"');
+  story.when('the user searches for "hello"');
+  story.then('results should include "hello world"');
+  story.and("the matching text should be highlighted");
+});
+```
+
+</TabItem>
+
+<TabItem label="Cypress" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-cypress';
+
+it("Search results show highlights", () => {
+  story.init();
+  story.given('the search index contains "hello world"');
+  story.when('the user searches for "hello"');
+  story.then('results should include "hello world"');
+  story.and("the matching text should be highlighted");
+});
+```
+
+</TabItem>
+
+</Tabs>
+
+## What the report renders
+
+```markdown
+### ✅ Search results show highlights
+
+- **Given** the search index contains "hello world"
+- **When** the user searches for "hello"
+- **Then** results should include "hello world"
+- **And** the matching text should be highlighted
+```

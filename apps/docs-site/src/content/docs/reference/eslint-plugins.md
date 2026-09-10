@@ -35,7 +35,7 @@ pnpm add -D eslint-plugin-executable-stories-playwright
 
 ## Usage (flat config)
 
-**Vitest** — spread the recommended config:
+**Vitest**: spread the recommended config.
 
 ```javascript
 import vitestExecutableStories from 'eslint-plugin-executable-stories-vitest';
@@ -62,7 +62,7 @@ export default [
 ];
 ```
 
-**Jest** — same pattern; spread `configs.recommended` or add the plugin. Jest now ships three rules:
+**Jest**: same pattern. Spread `configs.recommended` or add the plugin. Jest now ships three rules:
 
 ```javascript
 import jestExecutableStories from 'eslint-plugin-executable-stories-jest';
@@ -70,7 +70,7 @@ import jestExecutableStories from 'eslint-plugin-executable-stories-jest';
 export default [...jestExecutableStories.configs.recommended];
 ```
 
-**Playwright** — spread the recommended config to enable the three rules:
+**Playwright**: spread the recommended config to enable the three rules.
 
 ```javascript
 import playwrightExecutableStories from 'eslint-plugin-executable-stories-playwright';

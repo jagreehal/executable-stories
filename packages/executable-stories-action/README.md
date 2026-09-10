@@ -38,20 +38,7 @@ The action auto-detects your test output. No inputs are required for the default
 
 ## Prerequisites
 
-The action does **not** run your tests — it surfaces the output of an `executable-stories` reporter that has already run. You need one of these set up first:
-
-| Framework | Setup guide |
-|---|---|
-| Vitest | [Installation (Vitest)](https://executablestories.com/getting-started/installation-vitest/) |
-| Jest | [Installation (Jest)](https://executablestories.com/getting-started/installation-jest/) |
-| Playwright | [Installation (Playwright)](https://executablestories.com/getting-started/installation-playwright/) |
-| Cypress | [Installation (Cypress)](https://executablestories.com/getting-started/installation-cypress/) |
-| pytest | [Installation (pytest)](https://executablestories.com/getting-started/installation-pytest/) |
-| Go | [Installation (Go)](https://executablestories.com/getting-started/installation-go/) |
-| Rust | [Installation (Rust)](https://executablestories.com/getting-started/installation-rust/) |
-| Ruby (Minitest) | [Installation (Ruby)](https://executablestories.com/getting-started/installation-ruby/) |
-| JUnit 5 (Kotlin) | [Installation (JUnit 5)](https://executablestories.com/getting-started/installation-junit5/) |
-| xUnit (C#) | [Installation (xUnit)](https://executablestories.com/getting-started/installation-xunit/) |
+The action does **not** run your tests. It surfaces the output of an `executable-stories` reporter that has already run, so set up an adapter first: [Install](https://executablestories.com/getting-started/install/) covers Vitest, Jest, Playwright, Cypress, Go, Python, Ruby, Rust, Kotlin, and C#.
 
 If your test command does not produce **either** `reports/test-results.{html,md}` **or** `.executable-stories/raw-run.json`, the action has nothing to surface and will fail with a "no reports found" error. See [Troubleshooting](#troubleshooting).
 

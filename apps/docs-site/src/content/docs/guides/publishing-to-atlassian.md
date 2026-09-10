@@ -3,7 +3,7 @@ title: Publishing to Confluence & Jira
 description: Generate Atlassian Document Format (ADF) JSON and push it to Confluence pages or Jira issues
 ---
 
-Generate your story docs once, publish them anywhere in Atlassian. The `confluence` output format emits Atlassian Document Format (ADF) JSON, and the `publish-confluence` and `publish-jira` subcommands push it via the REST API — no copy-paste, no markdown quirks, no clipboard conversion.
+Generate your story docs once, publish them anywhere in Atlassian. The `confluence` output format emits Atlassian Document Format (ADF) JSON, and the `publish-confluence` and `publish-jira` subcommands push it via the REST API, no copy-paste, no markdown quirks, no clipboard conversion.
 
 This is useful when your team lives in Confluence for specs and Jira for tickets, and you want each feature's living documentation to land next to the work that produced it.
 
@@ -11,7 +11,7 @@ This page publishes documents. If you want test cases and executions in Jira ins
 
 ## Why ADF, not markdown
 
-Confluence accepts pasted markdown, but the conversion is lossy — code blocks lose their language, tables mangle, and nested lists flatten. ADF is Confluence's and Jira's native JSON document format, so round-tripping is exact. A doc generated from one test run looks the same whether it lands in a Confluence page, a Jira issue description, or a Jira comment.
+Confluence accepts pasted markdown, but the conversion is lossy: code blocks lose their language, tables mangle, and nested lists flatten. ADF is Confluence's and Jira's native JSON document format, so round-tripping is exact. A doc generated from one test run looks the same whether it lands in a Confluence page, a Jira issue description, or a Jira comment.
 
 ## Generate the ADF file
 
@@ -78,7 +78,7 @@ Supply `--space-id` and `--title` instead of `--page-id`:
 ```bash
 npx --package executable-stories-formatters executable-stories publish-confluence reports/index.adf.json \
   --space-id 98765 \
-  --title "Checkout — Living Documentation" \
+  --title "Checkout: Living Documentation" \
   --parent-id 11111 \
   --base-url https://acme.atlassian.net/wiki
 ```
@@ -89,7 +89,7 @@ npx --package executable-stories-formatters executable-stories publish-confluenc
 
 ### Add as a comment (default)
 
-The safest default — appends a comment with your latest run. Nothing existing gets overwritten:
+The safest default appends a comment with your latest run. Nothing existing gets overwritten:
 
 ```bash
 npx --package executable-stories-formatters executable-stories publish-jira reports/index.adf.json \
@@ -120,7 +120,7 @@ This **replaces** `fields.description` in full. Manually written context in the 
 
 ## Dry-run before wiring CI
 
-Both publishers accept `--dry-run` — it validates the ADF, parses credentials, and prints the request plan without sending anything:
+Both publishers accept `--dry-run`. It validates the ADF, parses credentials, and prints the request plan without sending anything:
 
 ```bash
 npx --package executable-stories-formatters executable-stories publish-jira reports/index.adf.json \
@@ -218,18 +218,18 @@ import {
 } from "executable-stories-formatters";
 
 const formatter = new ConfluenceFormatter({
-  title: "Checkout — Living Documentation",
+  title: "Checkout: Living Documentation",
   ticketUrlTemplate: "https://acme.atlassian.net/browse/{ticket}",
 });
 const adf = formatter.format(canonicalRun);
 
-// Confluence — update existing page
+// Confluence: update existing page
 await publishConfluencePage(
   { adf, pageId: "123456", baseUrl: "https://acme.atlassian.net/wiki" },
   { auth: { email: process.env.CONFLUENCE_EMAIL!, token: process.env.CONFLUENCE_TOKEN! } },
 );
 
-// Jira — comment on every ticket that was referenced in the run
+// Jira: comment on every ticket that was referenced in the run
 const tickets = new Set(
   canonicalRun.testCases.flatMap((tc) => tc.story.tickets?.map((t) => t.id) ?? []),
 );
@@ -241,7 +241,7 @@ for (const issueKey of tickets) {
 }
 ```
 
-Both functions accept a `fetch` dep for testing — use `msw`, `nock`, or a hand-rolled mock when writing your own publish scripts.
+Both functions accept a `fetch` dep for testing. Use `msw`, `nock`, or a hand-rolled mock when writing your own publish scripts.
 
 ## Reference
 

@@ -50,7 +50,7 @@ test.describe('Calculator', () => {
 });
 ```
 
-Note: Playwright's test callback is `async ({ page }, testInfo) => { ... }` — the second argument is `testInfo`. After running `playwright test`, the reporter writes Markdown with the scenario title and Given/When/Then.
+Note: Playwright's test callback is `async ({ page }, testInfo) => { ... }`, where the second argument is `testInfo`. After running `playwright test`, the reporter writes Markdown with the scenario title and Given/When/Then.
 
 ## Part 3: Minimal story (test name only)
 

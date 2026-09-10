@@ -1,0 +1,350 @@
+---
+title: Bulk user creation
+description: DataTable for Given setup and expected result
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+Attach a data table to the Given setup and to the expected result with `story.table()`.
+
+## The test
+
+<Tabs syncKey="framework">
+
+<TabItem label="Vitest" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-vitest';
+import { describe, it } from 'vitest';
+
+describe('Users', () => {
+  it('Bulk user creation', ({ task }) => {
+    story.init(task);
+    story.given('the following users exist');
+    story.table({
+      label: 'Users',
+      columns: ['email', 'role', 'status'],
+      rows: [
+        ['alice@example.com', 'admin', 'active'],
+        ['bob@example.com', 'user', 'active'],
+        ['eve@example.com', 'user', 'locked'],
+      ],
+    });
+    story.when('the admin opens the user list');
+    story.then('the user list should include');
+    story.table({
+      label: 'Expected',
+      columns: ['email', 'role', 'status'],
+      rows: [
+        ['alice@example.com', 'admin', 'active'],
+        ['bob@example.com', 'user', 'active'],
+        ['eve@example.com', 'user', 'locked'],
+      ],
+    });
+  });
+});
+```
+
+</TabItem>
+
+<TabItem label="Jest" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-jest';
+
+describe('Users', () => {
+  it('Bulk user creation', () => {
+    story.init();
+    story.given('the following users exist');
+    story.table({
+      label: 'Users',
+      columns: ['email', 'role', 'status'],
+      rows: [
+        ['alice@example.com', 'admin', 'active'],
+        ['bob@example.com', 'user', 'active'],
+        ['eve@example.com', 'user', 'locked'],
+      ],
+    });
+    story.when('the admin opens the user list');
+    story.then('the user list should include');
+    story.table({
+      label: 'Expected',
+      columns: ['email', 'role', 'status'],
+      rows: [
+        ['alice@example.com', 'admin', 'active'],
+        ['bob@example.com', 'user', 'active'],
+        ['eve@example.com', 'user', 'locked'],
+      ],
+    });
+  });
+});
+```
+
+</TabItem>
+
+<TabItem label="Playwright" icon="seti:typescript">
+
+```typescript
+import { test } from '@playwright/test';
+import { story } from 'executable-stories-playwright';
+
+test.describe('Users', () => {
+  test('Bulk user creation', async ({}, testInfo) => {
+    story.init(testInfo);
+    story.given('the following users exist');
+    story.table({
+      label: 'Users',
+      columns: ['email', 'role', 'status'],
+      rows: [
+        ['alice@example.com', 'admin', 'active'],
+        ['bob@example.com', 'user', 'active'],
+        ['eve@example.com', 'user', 'locked'],
+      ],
+    });
+    story.when('the admin opens the user list');
+    story.then('the user list should include');
+    story.table({
+      label: 'Expected',
+      columns: ['email', 'role', 'status'],
+      rows: [
+        ['alice@example.com', 'admin', 'active'],
+        ['bob@example.com', 'user', 'active'],
+        ['eve@example.com', 'user', 'locked'],
+      ],
+    });
+  });
+});
+```
+
+</TabItem>
+
+<TabItem label="Cypress" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-cypress';
+
+describe('Users', () => {
+  it('Bulk user creation', () => {
+    story.init();
+    story.given('the following users exist');
+    story.table({
+      label: 'Users',
+      columns: ['email', 'role', 'status'],
+      rows: [
+        ['alice@example.com', 'admin', 'active'],
+        ['bob@example.com', 'user', 'active'],
+        ['eve@example.com', 'user', 'locked'],
+      ],
+    });
+    story.when('the admin opens the user list');
+    story.then('the user list should include');
+    story.table({
+      label: 'Expected',
+      columns: ['email', 'role', 'status'],
+      rows: [
+        ['alice@example.com', 'admin', 'active'],
+        ['bob@example.com', 'user', 'active'],
+        ['eve@example.com', 'user', 'locked'],
+      ],
+    });
+  });
+});
+```
+
+</TabItem>
+
+<TabItem label="Go" icon="seti:go">
+
+```go
+import (
+    "testing"
+    es "github.com/jagreehal/executable-stories/packages/executable-stories-go"
+)
+
+func TestBulkUserCreation(t *testing.T) {
+    s := es.Init(t, "Bulk user creation")
+    s.Given("the following users exist")
+    s.Table("Users",
+        []string{"email", "role", "status"},
+        [][]string{
+            {"alice@example.com", "admin", "active"},
+            {"bob@example.com", "user", "active"},
+            {"eve@example.com", "user", "locked"},
+        },
+    )
+    s.When("the admin opens the user list")
+    s.Then("the user list should include")
+    s.Table("Expected",
+        []string{"email", "role", "status"},
+        [][]string{
+            {"alice@example.com", "admin", "active"},
+            {"bob@example.com", "user", "active"},
+            {"eve@example.com", "user", "locked"},
+        },
+    )
+}
+```
+
+</TabItem>
+
+<TabItem label="Python" icon="seti:python">
+
+```python
+from executable_stories import story
+
+def test_bulk_user_creation():
+    story.init("Bulk user creation")
+    story.given("the following users exist")
+    story.table(
+        label="Users",
+        columns=["email", "role", "status"],
+        rows=[
+            ["alice@example.com", "admin", "active"],
+            ["bob@example.com", "user", "active"],
+            ["eve@example.com", "user", "locked"],
+        ],
+    )
+    story.when("the admin opens the user list")
+    story.then("the user list should include")
+    story.table(
+        label="Expected",
+        columns=["email", "role", "status"],
+        rows=[
+            ["alice@example.com", "admin", "active"],
+            ["bob@example.com", "user", "active"],
+            ["eve@example.com", "user", "locked"],
+        ],
+    )
+```
+
+</TabItem>
+
+<TabItem label="Rust" icon="seti:rust">
+
+```rust
+use executable_stories::Story;
+
+#[test]
+fn test_bulk_user_creation() {
+    let mut s = Story::new("Bulk user creation");
+    s.given("the following users exist");
+    s.table("Users",
+        &["email", "role", "status"],
+        &[
+            &["alice@example.com", "admin", "active"],
+            &["bob@example.com", "user", "active"],
+            &["eve@example.com", "user", "locked"],
+        ],
+    );
+    s.when("the admin opens the user list");
+    s.then("the user list should include");
+    s.table("Expected",
+        &["email", "role", "status"],
+        &[
+            &["alice@example.com", "admin", "active"],
+            &["bob@example.com", "user", "active"],
+            &["eve@example.com", "user", "locked"],
+        ],
+    );
+}
+```
+
+</TabItem>
+
+<TabItem label="Kotlin" icon="seti:kotlin">
+
+```kotlin
+import dev.executablestories.junit5.Story
+import org.junit.jupiter.api.Test
+
+class UsersTest {
+    @Test
+    fun `bulk user creation`() {
+        Story.init("Bulk user creation")
+        Story.given("the following users exist")
+        Story.table("Users",
+            arrayOf("email", "role", "status"),
+            arrayOf(
+                arrayOf("alice@example.com", "admin", "active"),
+                arrayOf("bob@example.com", "user", "active"),
+                arrayOf("eve@example.com", "user", "locked"),
+            )
+        )
+        Story.`when`("the admin opens the user list")
+        Story.then("the user list should include")
+        Story.table("Expected",
+            arrayOf("email", "role", "status"),
+            arrayOf(
+                arrayOf("alice@example.com", "admin", "active"),
+                arrayOf("bob@example.com", "user", "active"),
+                arrayOf("eve@example.com", "user", "locked"),
+            )
+        )
+    }
+}
+```
+
+</TabItem>
+
+<TabItem label="C#" icon="seti:c-sharp">
+
+```csharp
+using ExecutableStories.Xunit;
+using Xunit;
+
+public class UsersTests : IDisposable
+{
+    [Fact]
+    public void BulkUserCreation()
+    {
+        Story.Init("Bulk user creation");
+        Story.Given("the following users exist");
+        Story.Table("Users",
+            new[] { "email", "role", "status" },
+            new[]
+            {
+                new[] { "alice@example.com", "admin", "active" },
+                new[] { "bob@example.com", "user", "active" },
+                new[] { "eve@example.com", "user", "locked" },
+            }
+        );
+        Story.When("the admin opens the user list");
+        Story.Then("the user list should include");
+        Story.Table("Expected",
+            new[] { "email", "role", "status" },
+            new[]
+            {
+                new[] { "alice@example.com", "admin", "active" },
+                new[] { "bob@example.com", "user", "active" },
+                new[] { "eve@example.com", "user", "locked" },
+            }
+        );
+    }
+}
+```
+
+</TabItem>
+
+</Tabs>
+
+## What the report renders
+
+```markdown
+### ✅ Bulk user creation
+
+- **Given** the following users exist
+  **Users**
+  | email             | role  | status |
+  | ----------------- | ----- | ------ |
+  | alice@example.com | admin | active |
+  | bob@example.com   | user  | active |
+  | eve@example.com   | user  | locked |
+- **When** the admin opens the user list
+- **Then** the user list should include
+  **Expected**
+  | email             | role  | status |
+  | ----------------- | ----- | ------ |
+  | alice@example.com | admin | active |
+  | bob@example.com   | user  | active |
+  | eve@example.com   | user  | locked |
+```

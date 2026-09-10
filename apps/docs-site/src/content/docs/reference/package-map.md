@@ -19,7 +19,7 @@ Use this page to pick the right package. Tests stay in your framework; packages 
 
 | Package | Framework | Notes |
 | --- | --- | --- |
-| [executable-stories-vitest](https://github.com/jagreehal/executable-stories/tree/main/packages/executable-stories-vitest) | Vitest | `story.init(task)` — no top-level `then` export |
+| [executable-stories-vitest](https://github.com/jagreehal/executable-stories/tree/main/packages/executable-stories-vitest) | Vitest | `story.init(task)`, with no top-level `then` export |
 | [executable-stories-jest](https://github.com/jagreehal/executable-stories/tree/main/packages/executable-stories-jest) | Jest | `story.init()` + optional top-level step helpers |
 | [executable-stories-playwright](https://github.com/jagreehal/executable-stories/tree/main/packages/executable-stories-playwright) | Playwright | Fixture-aware steps; reporter for E2E stories |
 | [executable-stories-cypress](https://github.com/jagreehal/executable-stories/tree/main/packages/executable-stories-cypress) | Cypress | Support file + plugin + reporter split |

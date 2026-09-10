@@ -3,7 +3,7 @@ title: Embed reports in React apps
 description: Drop executable-stories reports into Next.js, Astro, Vite, or any React host as living documentation
 ---
 
-Your tests already produce living documentation. The `executable-stories-react` package lets that documentation live where your team already works — your docs portal, internal dashboard, or product site — rather than as a standalone HTML file.
+Your tests already produce living documentation. The `executable-stories-react` package lets that documentation live where your team already works: your docs portal, internal dashboard, or product site, rather than as a standalone HTML file.
 
 This guide shows how to wire it up in the three host frameworks people most commonly ask about.
 
@@ -171,7 +171,7 @@ Override CSS variables anywhere above the report:
 }
 ```
 
-Dark mode adapts automatically to `prefers-color-scheme`. Force a scheme with `data-theme="dark"` (or `"light"`) on any ancestor — useful if your site already has a theme toggle.
+Dark mode adapts automatically to `prefers-color-scheme`. Force a scheme with `data-theme="dark"` (or `"light"`) on any ancestor, useful if your site already has a theme toggle.
 
 The complete token catalog is documented at [React renderer → Theming](/reference/react-renderer#theming). The same tokens are emitted by the standalone HTML formatter, so one stylesheet themes both surfaces.
 
@@ -201,7 +201,7 @@ For the three heavy built-ins (Mermaid, code highlighting, Markdown sections), o
 />
 ```
 
-The defaults are deliberately small (Mermaid renders source as `<pre>`; code as `<pre><code class="language-X">`). They're AI-readable, screen-reader friendly, and zero-JS — perfect for static export. Override only when you need richer client-side rendering.
+The defaults are deliberately small (Mermaid renders source as `<pre>`; code as `<pre><code class="language-X">`). They're AI-readable, screen-reader friendly, and zero-JS, which is what static export needs. Override only when you need richer client-side rendering.
 
 ## When to use this vs. the standalone HTML report
 
@@ -215,6 +215,6 @@ Both surfaces consume the same data model and share the same `--es-*` theme toke
 
 ## See also
 
-- [React renderer reference](/reference/react-renderer) — components, props, primitives, schema validation.
-- [Formatters API](/reference/formatters-api) — emit `story-report-json` from any framework adapter.
-- [Theming](/reference/themes) — the shared `--es-*` token catalog.
+- [React renderer reference](/reference/react-renderer): components, props, primitives, schema validation.
+- [Formatters API](/reference/formatters-api): emit `story-report-json` from any framework adapter.
+- [Theming](/reference/themes): the shared `--es-*` token catalog.

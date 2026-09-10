@@ -1,0 +1,154 @@
+---
+title: Import users and send welcome email
+description: DataTable + DocString (doc.table and doc.code)
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+One step carries a table, the next carries a code block.
+
+## The test
+
+<Tabs syncKey="framework">
+
+<TabItem label="Vitest" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-vitest';
+import { it } from 'vitest';
+
+it("Import users and send welcome email", ({ task }) => {
+  story.init(task);
+  story.given("the following users are to be imported");
+  story.table({
+    label: "Users",
+    columns: ["email", "name"],
+    rows: [
+      ["a@example.com", "Alice"],
+      ["b@example.com", "Bob"],
+    ],
+  });
+  story.and("the email template is");
+  story.code({
+    label: "Template",
+    content: `Welcome {{name}}!\nThanks for joining.`,
+  });
+  story.when("the import job runs");
+  story.then("the users should exist");
+  story.then("welcome emails should be sent");
+});
+```
+
+</TabItem>
+
+<TabItem label="Jest" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-jest';
+
+it("Import users and send welcome email", () => {
+  story.init();
+  story.given("the following users are to be imported");
+  story.table({
+    label: "Users",
+    columns: ["email", "name"],
+    rows: [
+      ["a@example.com", "Alice"],
+      ["b@example.com", "Bob"],
+    ],
+  });
+  story.and("the email template is");
+  story.code({
+    label: "Template",
+    content: `Welcome {{name}}!\nThanks for joining.`,
+  });
+  story.when("the import job runs");
+  story.then("the users should exist");
+  story.then("welcome emails should be sent");
+});
+```
+
+</TabItem>
+
+<TabItem label="Playwright" icon="seti:typescript">
+
+```typescript
+import { test } from '@playwright/test';
+import { story } from 'executable-stories-playwright';
+
+test("Import users and send welcome email", async ({}, testInfo) => {
+  story.init(testInfo);
+  story.given("the following users are to be imported");
+  story.table({
+    label: "Users",
+    columns: ["email", "name"],
+    rows: [
+      ["a@example.com", "Alice"],
+      ["b@example.com", "Bob"],
+    ],
+  });
+  story.and("the email template is");
+  story.code({
+    label: "Template",
+    content: `Welcome {{name}}!\nThanks for joining.`,
+  });
+  story.when("the import job runs");
+  story.then("the users should exist");
+  story.then("welcome emails should be sent");
+});
+```
+
+</TabItem>
+
+<TabItem label="Cypress" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-cypress';
+
+it("Import users and send welcome email", () => {
+  story.init();
+  story.given("the following users are to be imported");
+  story.table({
+    label: "Users",
+    columns: ["email", "name"],
+    rows: [
+      ["a@example.com", "Alice"],
+      ["b@example.com", "Bob"],
+    ],
+  });
+  story.and("the email template is");
+  story.code({
+    label: "Template",
+    content: `Welcome {{name}}!\nThanks for joining.`,
+  });
+  story.when("the import job runs");
+  story.then("the users should exist");
+  story.then("welcome emails should be sent");
+});
+```
+
+</TabItem>
+
+</Tabs>
+
+## What the report renders
+
+```markdown
+### ✅ Import users and send welcome email
+
+- **Given** the following users are to be imported
+    **Users**
+    | email | name |
+    | --- | --- |
+    | a@example.com | Alice |
+    | b@example.com | Bob |
+- **And** the email template is
+    **Template**
+    ```
+    Welcome {{name}}!
+    Thanks for joining.
+    ```
+- **When** the import job runs
+- **Then** the users should exist
+- **And** welcome emails should be sent
+```

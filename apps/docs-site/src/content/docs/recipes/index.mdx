@@ -1,0 +1,220 @@
+---
+title: Recipes
+description: Thirty-two worked scenarios, each with the test code for every supported framework and the report output it produces.
+slug: recipes
+---
+
+import { CardGrid, LinkCard, Aside } from '@astrojs/starlight/components';
+
+Every recipe shows one scenario twice: the test you write, and the documentation it generates. Pick your framework in the tab strip on any recipe and the rest of the site follows that choice.
+
+<Aside title="One output, nine adapters">
+The generated documentation is identical whichever adapter you use. Only the test code changes. Eight recipes are marked **all languages** below; the rest cover Vitest, Jest, Playwright, and Cypress.
+</Aside>
+
+## Step structure
+
+How Given, When, and Then read when you repeat them. A repeated keyword renders as **And** from the second occurrence onward.
+
+<CardGrid>
+  <LinkCard
+    title="User logs in successfully"
+    href="/recipes/user-logs-in-successfully/"
+    description="Three Given steps in a row. All languages."
+  />
+  <LinkCard
+    title="User updates profile details"
+    href="/recipes/user-updates-profile-details/"
+    description="One Given, several When steps, one Then."
+  />
+  <LinkCard
+    title="Checkout calculates totals"
+    href="/recipes/checkout-calculates-totals/"
+    description="One When, three Then steps. All languages."
+  />
+  <LinkCard
+    title="Password reset flow"
+    href="/recipes/password-reset-flow/"
+    description="A longer flow with several steps of each keyword."
+  />
+  <LinkCard
+    title="Logout clears session"
+    href="/recipes/logout-clears-session/"
+    description="Three consecutive Then steps."
+  />
+  <LinkCard
+    title="Two step checkout"
+    href="/recipes/two-step-checkout/"
+    description="Two When groups in one scenario, each with its own Then."
+  />
+</CardGrid>
+
+## Contrast and explicit keywords
+
+`story.and()` and `story.but()` never auto-convert, so use them when the wording matters more than the keyword arithmetic.
+
+<CardGrid>
+  <LinkCard
+    title="Login blocked for suspended user"
+    href="/recipes/login-blocked-suspended-user/"
+    description="But keeps negative intent visible. All languages."
+  />
+  <LinkCard
+    title="Payment declined"
+    href="/recipes/payment-declined/"
+    description="Then states what happened, But states what did not."
+  />
+  <LinkCard
+    title="Guest checkout allowed"
+    href="/recipes/guest-checkout-allowed/"
+    description="A note explaining why a step is worded as a negative."
+  />
+  <LinkCard
+    title="Search results show highlights"
+    href="/recipes/search-results-show-highlights/"
+    description="An explicit And after a Then."
+  />
+  <LinkCard
+    title="Report shows fields in order"
+    href="/recipes/report-shows-fields-in-order/"
+    description="An explicit And in the middle of a Then block."
+  />
+  <LinkCard
+    title="Document status changes"
+    href="/recipes/document-status-changes/"
+    description="Name both states so the transition reads without the code."
+  />
+</CardGrid>
+
+## Attaching data to a step
+
+Tables, JSON, and code blocks travel with the step they belong to, so a reader sees the payload rather than a description of it.
+
+<CardGrid>
+  <LinkCard
+    title="Bulk user creation"
+    href="/recipes/bulk-user-creation/"
+    description="story.table() on setup and on the expected result. All languages."
+  />
+  <LinkCard
+    title="Calculate shipping options"
+    href="/recipes/calculate-shipping-options/"
+    description="One table drives the input, three Then steps check it."
+  />
+  <LinkCard
+    title="Configure feature flags"
+    href="/recipes/configure-feature-flags/"
+    description="A wide table with more columns than a step could carry."
+  />
+  <LinkCard
+    title="Update preferences"
+    href="/recipes/update-preferences/"
+    description="A two-column table read as key and value."
+  />
+  <LinkCard
+    title="API accepts a JSON payload"
+    href="/recipes/api-accepts-json-payload/"
+    description="story.json() renders formatted JSON. All languages."
+  />
+  <LinkCard
+    title="Import XML invoice"
+    href="/recipes/import-xml-invoice/"
+    description="story.code() with an XML document. All languages."
+  />
+  <LinkCard
+    title="Render markdown"
+    href="/recipes/render-markdown/"
+    description="Markdown source shown as source, not parsed."
+  />
+  <LinkCard
+    title="Import users and send welcome email"
+    href="/recipes/import-users-welcome-email/"
+    description="A table on one step, a code block on the next."
+  />
+</CardGrid>
+
+## Scenario outlines
+
+Loop over your cases and register one scenario per row. No Examples table, no placeholder syntax, just the language you already write.
+
+<CardGrid>
+  <LinkCard
+    title="Login errors"
+    href="/recipes/login-errors/"
+    description="One scenario per error case, from an array."
+  />
+  <LinkCard
+    title="Many login attempts"
+    href="/recipes/many-login-attempts/"
+    description="One outline covering several different outcomes."
+  />
+  <LinkCard
+    title="Shipping eligibility"
+    href="/recipes/shipping-eligibility/"
+    description="One scenario per country, from a single table."
+  />
+  <LinkCard
+    title="Tax calculation by region"
+    href="/recipes/tax-calculation-by-region/"
+    description="A row per region and the rate you expect."
+  />
+  <LinkCard
+    title="Create users from table input"
+    href="/recipes/create-users-from-table/"
+    description="An outline where each row also attaches its table."
+  />
+  <LinkCard
+    title="Post JSON payload"
+    href="/recipes/post-json-payload/"
+    description="An outline where every case carries its own payload."
+  />
+</CardGrid>
+
+## Shared setup and business rules
+
+<CardGrid>
+  <LinkCard
+    title="Change email address"
+    href="/recipes/change-email-address/"
+    description="Shared Given setup, grouped as a background."
+  />
+  <LinkCard
+    title="Change password"
+    href="/recipes/change-password/"
+    description="The same background, a different When and Then."
+  />
+  <LinkCard
+    title="Eligible customer gets discount"
+    href="/recipes/eligible-customer-gets-discount/"
+    description="The positive path of a named rule."
+  />
+  <LinkCard
+    title="Ineligible customer does not get discount"
+    href="/recipes/ineligible-customer-no-discount/"
+    description="The negative path of the same rule."
+  />
+  <LinkCard
+    title="Create order"
+    href="/recipes/create-order/"
+    description="Background and tags together. All languages."
+  />
+  <LinkCard
+    title="Login works"
+    href="/recipes/login-works/"
+    description="Tags at init, so readers can filter the report. All languages."
+  />
+</CardGrid>
+
+## Where this code lives
+
+Each snippet is lifted from a suite that runs in CI, so none of it drifts:
+
+| Adapter | Source |
+| --- | --- |
+| Vitest | [`apps/vitest-example/src/replicate.story.test.ts`](https://github.com/jagreehal/executable-stories/tree/main/apps/vitest-example) |
+| Jest | [`apps/jest-example`](https://github.com/jagreehal/executable-stories/tree/main/apps/jest-example) |
+| Playwright | [`apps/playwright-example`](https://github.com/jagreehal/executable-stories/tree/main/apps/playwright-example) |
+| Cypress | [`apps/cypress-example`](https://github.com/jagreehal/executable-stories/tree/main/apps/cypress-example) |
+| Go, Python, Rust, Kotlin, C# | [`packages/executable-stories-*`](https://github.com/jagreehal/executable-stories/tree/main/packages) |
+
+For the full API behind these recipes, see the [story and doc API reference](/reference/vitest-story-api/).

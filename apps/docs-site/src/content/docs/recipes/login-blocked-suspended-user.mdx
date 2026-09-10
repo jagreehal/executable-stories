@@ -1,0 +1,202 @@
+---
+title: Login blocked for suspended user
+description: Use of But for negative intent
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+`story.but()` never auto-converts to And, so the contrast stays visible in the report.
+
+## The test
+
+<Tabs syncKey="framework">
+
+<TabItem label="Vitest" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-vitest';
+import { describe, it } from 'vitest';
+
+describe('Login', () => {
+  it('Login blocked for suspended user', ({ task }) => {
+    story.init(task);
+    story.given('the user account exists');
+    story.given('the account is suspended');
+    story.when('the user submits valid credentials');
+    story.then('the user should see an error message');
+    story.but('the user should not be logged in');
+  });
+});
+```
+
+</TabItem>
+
+<TabItem label="Jest" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-jest';
+
+describe('Login', () => {
+  it('Login blocked for suspended user', () => {
+    story.init();
+    story.given('the user account exists');
+    story.given('the account is suspended');
+    story.when('the user submits valid credentials');
+    story.then('the user should see an error message');
+    story.but('the user should not be logged in');
+  });
+});
+```
+
+</TabItem>
+
+<TabItem label="Playwright" icon="seti:typescript">
+
+```typescript
+import { test } from '@playwright/test';
+import { story } from 'executable-stories-playwright';
+
+test.describe('Login', () => {
+  test('Login blocked for suspended user', async ({}, testInfo) => {
+    story.init(testInfo);
+    story.given('the user account exists');
+    story.given('the account is suspended');
+    story.when('the user submits valid credentials');
+    story.then('the user should see an error message');
+    story.but('the user should not be logged in');
+  });
+});
+```
+
+</TabItem>
+
+<TabItem label="Cypress" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-cypress';
+
+describe('Login', () => {
+  it('Login blocked for suspended user', () => {
+    story.init();
+    story.given('the user account exists');
+    story.given('the account is suspended');
+    story.when('the user submits valid credentials');
+    story.then('the user should see an error message');
+    story.but('the user should not be logged in');
+  });
+});
+```
+
+</TabItem>
+
+<TabItem label="Go" icon="seti:go">
+
+```go
+import (
+    "testing"
+    es "github.com/jagreehal/executable-stories/packages/executable-stories-go"
+)
+
+func TestLoginBlockedSuspendedUser(t *testing.T) {
+    s := es.Init(t, "Login blocked for suspended user")
+    s.Given("the user account exists")
+    s.Given("the account is suspended")
+    s.When("the user submits valid credentials")
+    s.Then("the user should see an error message")
+    s.But("the user should not be logged in")
+}
+```
+
+</TabItem>
+
+<TabItem label="Python" icon="seti:python">
+
+```python
+from executable_stories import story
+
+def test_login_blocked_suspended_user():
+    story.init("Login blocked for suspended user")
+    story.given("the user account exists")
+    story.given("the account is suspended")
+    story.when("the user submits valid credentials")
+    story.then("the user should see an error message")
+    story.but("the user should not be logged in")
+```
+
+</TabItem>
+
+<TabItem label="Rust" icon="seti:rust">
+
+```rust
+use executable_stories::Story;
+
+#[test]
+fn test_login_blocked_suspended_user() {
+    let mut s = Story::new("Login blocked for suspended user");
+    s.given("the user account exists");
+    s.given("the account is suspended");
+    s.when("the user submits valid credentials");
+    s.then("the user should see an error message");
+    s.but("the user should not be logged in");
+}
+```
+
+</TabItem>
+
+<TabItem label="Kotlin" icon="seti:kotlin">
+
+```kotlin
+import dev.executablestories.junit5.Story
+import org.junit.jupiter.api.Test
+
+class LoginTest {
+    @Test
+    fun `login blocked for suspended user`() {
+        Story.init("Login blocked for suspended user")
+        Story.given("the user account exists")
+        Story.given("the account is suspended")
+        Story.`when`("the user submits valid credentials")
+        Story.then("the user should see an error message")
+        Story.but("the user should not be logged in")
+    }
+}
+```
+
+</TabItem>
+
+<TabItem label="C#" icon="seti:c-sharp">
+
+```csharp
+using ExecutableStories.Xunit;
+using Xunit;
+
+public class LoginTests : IDisposable
+{
+    [Fact]
+    public void LoginBlockedSuspendedUser()
+    {
+        Story.Init("Login blocked for suspended user");
+        Story.Given("the user account exists");
+        Story.Given("the account is suspended");
+        Story.When("the user submits valid credentials");
+        Story.Then("the user should see an error message");
+        Story.But("the user should not be logged in");
+    }
+}
+```
+
+</TabItem>
+
+</Tabs>
+
+## What the report renders
+
+```markdown
+### ✅ Login blocked for suspended user
+
+- **Given** the user account exists
+- **And** the account is suspended
+- **When** the user submits valid credentials
+- **Then** the user should see an error message
+- **But** the user should not be logged in
+```

@@ -31,7 +31,7 @@ After tests write RawRun JSON:
 executable-stories format reports/raw-run.json --format html,markdown --output-dir reports
 ```
 
-For a Starlight/Astro docs site from artifacts: `executable-stories-demo` or formatters `init-astro` — see [Astro docs site](/guides/astro-docs-site/).
+For a Starlight/Astro docs site from artifacts: `executable-stories-demo` or formatters `init-astro`. See [Astro docs site](/guides/astro-docs-site/).
 
 ### Enable coding agents (behavior catalog)
 
@@ -70,7 +70,7 @@ Jira appears in two unrelated workflows here. Pick by what you want to land in J
 
 1. Generate StoryReport JSON in CI (see above).
 2. Install `executable-stories-react`.
-3. Render the report in your app — see [Embed reports in React apps](/guides/embed-in-react-apps/).
+3. Render the report in your app: see [Embed reports in React apps](/guides/embed-in-react-apps/).
 
 ### Verify cross-language parity
 

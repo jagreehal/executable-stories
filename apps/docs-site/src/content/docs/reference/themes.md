@@ -1,9 +1,9 @@
 ---
 title: Theming
-description: The HTML report and React renderer share one set of CSS tokens — light and dark out of the box, fully re-themeable with a single override.
+description: The HTML report and React renderer share one set of CSS tokens, light and dark out of the box, fully re-themeable with a single override.
 ---
 
-The standalone HTML report and the React renderer (`executable-stories-react`) are the **same component tree**, themed through one set of CSS custom properties. There is nothing to pick between — light and dark work out of the box, and a single CSS override re-themes every surface.
+The standalone HTML report and the React renderer (`executable-stories-react`) are the **same component tree**, themed through one set of CSS custom properties. There is nothing to pick between, light and dark work out of the box, and a single CSS override re-themes every surface.
 
 ## Light and dark
 
@@ -11,7 +11,7 @@ The report ships light and dark palettes. It follows the system `prefers-color-s
 
 ## Re-theming with tokens
 
-Every colour, font, radius, and spacing value is a `--es-*` CSS custom property. Override any of them on `:root` (or any ancestor of the report) to re-theme — the same override styles the standalone HTML report, the React component, and the Astro docs site.
+Every colour, font, radius, and spacing value is a `--es-*` CSS custom property. Override any of them on `:root` (or any ancestor of the report) to re-theme. The same override styles the standalone HTML report, the React component, and the Astro docs site.
 
 ```css
 :root {

@@ -9,9 +9,9 @@ The [executable-stories-action](https://github.com/jagreehal/executable-stories-
 
 It also supports release workflows:
 
-- `report` — default PR report mode
-- `gate-release` — compare a release candidate against a dev baseline
-- `deploy` — record a deployment in the environment ledger
+- `report`: default PR report mode
+- `gate-release`: compare a release candidate against a dev baseline
+- `deploy`: record a deployment in the environment ledger
 
 Works with all supported frameworks. Zero configuration for the common case.
 
@@ -27,20 +27,7 @@ The action auto-detects your test output. No inputs are required for the default
 
 ## Prerequisites
 
-The action does **not** run your tests — it surfaces the output of an `executable-stories` reporter that has already run. You need one of these set up first:
-
-| Framework | Setup guide |
-|---|---|
-| Vitest | [Installation (Vitest)](/getting-started/installation-vitest/) |
-| Jest | [Installation (Jest)](/getting-started/installation-jest/) |
-| Playwright | [Installation (Playwright)](/getting-started/installation-playwright/) |
-| Cypress | [Installation (Cypress)](/getting-started/installation-cypress/) |
-| pytest | [Installation (pytest)](/getting-started/installation-pytest/) |
-| Go | [Installation (Go)](/getting-started/installation-go/) |
-| Rust | [Installation (Rust)](/getting-started/installation-rust/) |
-| Ruby (Minitest) | [Installation (Ruby)](/getting-started/installation-ruby/) |
-| JUnit 5 (Kotlin) | [Installation (JUnit 5)](/getting-started/installation-junit5/) |
-| xUnit (C#) | [Installation (xUnit)](/getting-started/installation-xunit/) |
+The action does **not** run your tests. It surfaces the output of an `executable-stories` reporter that has already run, so set up an adapter first: [Install](/getting-started/install/) covers Vitest, Jest, Playwright, Cypress, Go, Python, Ruby, Rust, Kotlin, and C#.
 
 If your test command does not produce **either** `reports/test-results.{html,md}` **or** `.executable-stories/raw-run.json`, the action has nothing to surface and will fail with a "no reports found" error. See [Troubleshooting](#troubleshooting).
 
@@ -48,8 +35,8 @@ If your test command does not produce **either** `reports/test-results.{html,md}
 
 The action checks for test output in two places, in order:
 
-1. **Pre-generated reports** — if `reports/test-results.html` and `reports/test-results.md` exist (the default output from JS/TS framework reporters), the action uses them directly.
-2. **Raw run JSON** — if `.executable-stories/raw-run.json` exists (the default output from non-JS adapters like pytest, Go, Rust, JUnit 5, xUnit), the action downloads the `executable-stories` CLI binary and generates the reports.
+1. **Pre-generated reports**: if `reports/test-results.html` and `reports/test-results.md` exist (the default output from JS/TS framework reporters), the action uses them directly.
+2. **Raw run JSON**: if `.executable-stories/raw-run.json` exists (the default output from non-JS adapters like pytest, Go, Rust, JUnit 5, xUnit), the action downloads the `executable-stories` CLI binary and generates the reports.
 
 In both cases the action then:
 
@@ -259,7 +246,7 @@ Without `if: always()`, the action only runs if the previous step succeeded. For
 
 ### Multiple reports per PR
 
-You can run the action more than once per workflow — for example, separate Vitest and Playwright suites that should each get their own PR comment. Use a unique `comment-title` for each invocation; the action looks for an existing comment matching `<!-- executable-stories: ${comment-title} -->`, so distinct titles produce distinct comments that update independently:
+You can run the action more than once per workflow, for example separate Vitest and Playwright suites that should each get their own PR comment. Use a unique `comment-title` for each invocation; the action looks for an existing comment matching `<!-- executable-stories: ${comment-title} -->`, so distinct titles produce distinct comments that update independently:
 
 ```yaml
       - run: pnpm test:unit
@@ -403,17 +390,17 @@ What this does:
 - The branch is created automatically on first use, with a small README explaining what it is. Old `pr-*/` directories are safe to delete at any time
 - If the upload fails (e.g. `contents: write` not granted, or a concurrent run races on the ref), the action falls back to labels and posts a warning. The comment still renders cleanly.
 
-Limits, each announced in a warning rather than failing the run — what fits is hosted, the rest stays in the HTML report:
+Limits, each announced in a warning rather than failing the run. What fits is hosted, and the rest stays in the HTML report:
 
 | Limit | Why |
 | --- | --- |
 | 10 MB per file | A PR comment is not the place for a full session recording. |
 | 50 files and 50 MB per run | Every asset costs one API call, and `GITHUB_TOKEN` gets roughly a thousand an hour per repo. A three-hundred-frame storyboard would otherwise spend the job's whole budget on screenshots and then fail the calls that post the comment. |
-| Nothing outside the workspace | Report content is not trusted input — on a fork PR the paths in it come from a contributor's code, and hosting is a publish. `![x](../../../etc/passwd)` is dropped rather than committed to a public branch. |
+| Nothing outside the workspace | Report content is not trusted input. On a fork PR the paths in it come from a contributor's code, and hosting is a publish. `![x](../../../etc/passwd)` is dropped rather than committed to a public branch. |
 
-**Videos become a link, never a player.** `<video>` is not in GitHub's comment HTML allowlist, so the tag renders as nothing at all — the one asset shape that fails silently. The action rewrites it to `▶️ Watch the recording` pointing at the hosted file, or to a `▶️ Video (see HTML report)` label when it is not hosted. A real inline player needs the media uploaded through `user-attachments`, which only `gh pr comment --attach` can do — not the API this action posts through.
+**Videos become a link, never a player.** `<video>` is not in GitHub's comment HTML allowlist, so the tag renders as nothing at all, the one asset shape that fails silently. The action rewrites it to `▶️ Watch the recording` pointing at the hosted file, or to a `▶️ Video (see HTML report)` label when it is not hosted. A real inline player needs the media uploaded through `user-attachments`, which only `gh pr comment --attach` can do, not the API this action posts through.
 
-> **Concurrency note.** The action commits using the GitHub Git Data API by referencing the branch's current tip as the parent. If two PR runs touch the same `images-branch` simultaneously, the second `updateRef` call will fail with a non-fast-forward error and the action will fall back to placeholders for that run. There's no retry yet — see [executable-stories-action#1](https://github.com/jagreehal/executable-stories-action/pull/1) for context. For most repos this is rare; if you regularly run many parallel PRs and need bullet-proof inline images, consider giving each workflow a different `images-branch`.
+> **Concurrency note.** The action commits using the GitHub Git Data API by referencing the branch's current tip as the parent. If two PR runs touch the same `images-branch` simultaneously, the second `updateRef` call will fail with a non-fast-forward error and the action will fall back to placeholders for that run. There's no retry yet, see [executable-stories-action#1](https://github.com/jagreehal/executable-stories-action/pull/1) for context. For most repos this is rare; if you regularly run many parallel PRs and need bullet-proof inline images, consider giving each workflow a different `images-branch`.
 
 ### Custom output paths
 
@@ -501,7 +488,7 @@ permissions:
   contents: write
 ```
 
-For PRs from forks, GitHub restricts the default `GITHUB_TOKEN` to read-only — see [FAQ](#faq) for workarounds.
+For PRs from forks, GitHub restricts the default `GITHUB_TOKEN` to read-only. See [FAQ](#faq) for workarounds.
 
 ## What you see in PRs
 
@@ -516,9 +503,9 @@ The comment answers "can I merge this?" before you expand anything:
 
 ### Findings (4)
 
-▸ ❌ Unproven claim: Checkout blocks a suspended user — src/cart/checkout.e2e.test.ts:12
-▸ 🔴 Changed with no evidence — src/cart/discount.ts
-▸ 🟡 Weak evidence only — src/cart/totals.ts
+▸ ❌ Unproven claim: Checkout blocks a suspended user (src/cart/checkout.e2e.test.ts:12)
+▸ 🔴 Changed with no evidence: src/cart/discount.ts
+▸ 🟡 Weak evidence only: src/cart/totals.ts
 
 ▸ 🤖 Prompt for AI agents
 ▸ 📖 Full report
@@ -529,7 +516,7 @@ Each invocation produces:
 - **A verdict line.** `Merge risk` is graded on the worst finding, not the count: one red
   scenario outranks ten weakly evidenced files, because a red scenario is a claim the change
   does not honour. Grades are High / Moderate / Low / Clear.
-- **A counts strip** — failed, unasserted, uncovered, weak, covered, and how many scenarios
+- **A counts strip**: failed, unasserted, uncovered, weak, covered, and how many scenarios
   passed. Zeroes are omitted.
 - **Ranked findings**, worst first, each collapsible and each carrying **How this was verified**
   so a reader can check the claim rather than take it. Four kinds:
@@ -539,7 +526,7 @@ Each invocation produces:
   | `failed` | Blocker | A scenario states a claim about the change and does not pass. |
   | `unasserted` | Major | A scenario passed without asserting anything, so it cannot fail and proves nothing. Worse than a missing test, because it reads as proof. |
   | `uncovered` | Major | A changed source file has no claim behind it at all. |
-  | `skipped` | Minor | A scenario did not run, so its claim is unproven. Deliberately the mildest kind — otherwise every `it.skip` blocks a merge. |
+  | `skipped` | Minor | A scenario did not run, so its claim is unproven. Deliberately the mildest kind, since otherwise every `it.skip` blocks a merge. |
   | `weak` | Minor | A changed file's only claims are weakly evidenced. |
   | `policy` | Blocker or Minor | An organisation release policy this commit does not satisfy. Decided by Executable Stories Cloud rather than by this run, so it is the one kind with no file to anchor to. |
 
@@ -549,8 +536,8 @@ Each invocation produces:
 - **A "Prompt for AI agents" block** you can paste straight into a coding agent. It opens by
   naming its own contents as untrusted data, because scenario titles and error messages are
   attacker-influenced in any repo that takes contributions.
-- **Inline annotations** on the changed files — blockers as errors, majors as warnings, minors
-  as notices — so findings show up in the Files changed tab.
+- **Inline annotations** on the changed files: blockers as errors, majors as warnings, minors
+  as notices, so findings show up in the Files changed tab.
 - **A job summary** carrying the same content, so runs with no PR still report.
 - The full Markdown story output, collapsed, and a link to the HTML artifact. The artifact
   carries the report's `assets/` directory alongside the HTML, so the screenshots and videos
@@ -558,7 +545,7 @@ Each invocation produces:
 - (Optional, with `host-images: branch`) Screenshots rendered inline in the comment, and
   videos as a link. See [Render screenshots inline](#render-screenshots-inline-in-pr-comments-opt-in).
 
-`mode: review` also writes `reports/<output-name>.review.json` — the machine contract behind
+`mode: review` also writes `reports/<output-name>.review.json`, the machine contract behind
 all of the above (ranked findings, evidence bands, per-claim strength). Read that rather than
 scraping the comment if you are building on top of it.
 
@@ -567,7 +554,7 @@ and an unchanged body is skipped entirely rather than re-posted.
 
 Each invocation is independent. A workflow may use this action more than once (see
 [Multiple reports per PR](#multiple-reports-per-pr)), and every file the action passes
-between its own steps is cleared at the start of each invocation — so a second suite can
+between its own steps is cleared at the start of each invocation, so a second suite can
 never render the first suite's screenshots, verdict, or comment body. Both suites
 conventionally reference `assets/…`, so without that the swap would be silent. Comments are matched by an HTML marker (`<!-- executable-stories: ${comment-title} -->`), so the same `comment-title` always updates the same comment, while different titles produce different comments (see [Multiple reports per PR](#multiple-reports-per-pr)).
 
@@ -577,19 +564,19 @@ conventionally reference `assets/…`, so without that the swap would be silent.
 
 The action's first step says it could not find pre-generated reports or a raw run JSON. Causes:
 
-- Your test command finished but did not write anything to `reports/test-results.{html,md}` or `.executable-stories/raw-run.json`. Check the reporter is wired up — see [Prerequisites](#prerequisites) for the per-framework setup guide.
+- Your test command finished but did not write anything to `reports/test-results.{html,md}` or `.executable-stories/raw-run.json`. Check the reporter is wired up: see [Prerequisites](#prerequisites) for the per-framework setup guide.
 - You configured a custom output path. Match it with `report-dir` / `output-name` (or `raw-run` for the JSON path).
 - The previous step (your test runner) errored before writing output, and you did not use `if: always()` on the action step.
 
 ### The PR comment never appears
 
 - Confirm the workflow has `permissions: pull-requests: write`.
-- Confirm the action ran on a `pull_request` event (not a `push` to a branch — the action only comments on PRs).
+- Confirm the action ran on a `pull_request` event (not a `push` to a branch: the action only comments on PRs).
 - For PRs from forks, the default `GITHUB_TOKEN` is read-only by design; the action will silently skip the comment step. See [FAQ](#faq).
 
 ### Screenshots show as 📎 labels, not images
 
-This is the default, and it applies to both an inlined `data:` URI and a relative `assets/…` path — a comment can fetch neither, so a label is shown instead of a broken image. Opt in to [host-images: branch](#render-screenshots-inline-in-pr-comments-opt-in) to render them inline. The media is in the HTML artifact either way.
+This is the default, and it applies to both an inlined `data:` URI and a relative `assets/…` path. A comment can fetch neither, so a label is shown instead of a broken image. Opt in to [host-images: branch](#render-screenshots-inline-in-pr-comments-opt-in) to render them inline. The media is in the HTML artifact either way.
 
 A video is labelled `▶️ Video (see HTML report)` rather than shown, even with hosting on: see [Render screenshots inline](#render-screenshots-inline-in-pr-comments-opt-in).
 
@@ -599,8 +586,8 @@ Four known causes. The first two fail the whole step; the last two skip one file
 
 1. **Missing `contents: write` permission.** Add it to the workflow permissions block.
 2. **Concurrent run race.** Two simultaneous workflows tried to push to the same `images-branch` and the second `updateRef` lost the race. There is no retry currently. Workaround: serialize PR runs with `concurrency: group: ${{ github.ref }}`, or use a per-workflow `images-branch`.
-3. **`Skipping '…' — N MB exceeds the 10 MB hosting limit.`** The file stays in the HTML report.
-4. **`Refusing to host '…' — it resolves outside the workspace.`** A reference escaped the checkout. This is deliberate: report content is not trusted input, and hosting publishes bytes to a branch.
+3. **`Skipping '…': N MB exceeds the 10 MB hosting limit.`** The file stays in the HTML report.
+4. **`Refusing to host '…': it resolves outside the workspace.`** A reference escaped the checkout. This is deliberate: report content is not trusted input, and hosting publishes bytes to a branch.
 
 ### `Schema validation failed` from the formatter binary
 
@@ -613,7 +600,7 @@ GitHub caps comments at ~65 KB. The action truncates at the last newline before 
 ## FAQ
 
 **Does this work on private repositories?**
-Yes. No external services are involved — the action runs entirely inside GitHub Actions and uses only the repo's own `GITHUB_TOKEN`.
+Yes. No external services are involved. The action runs entirely inside GitHub Actions and uses only the repo's own `GITHUB_TOKEN`.
 
 **Does this work for PRs from forks?**
 The default `GITHUB_TOKEN` for fork PRs is read-only, so neither the comment nor the orphan-branch commit can be written. Common workarounds: run the comment step under `pull_request_target` (be aware of the [security implications](https://securitylab.github.com/research/github-actions-preventing-pwn-requests/)), or use a workflow that gates on `github.event.pull_request.head.repo.full_name == github.repository`.
@@ -628,10 +615,10 @@ Not currently. The header is configurable via `comment-title`; the body is the m
 At minimum `pull-requests: write`. Add `contents: write` only if using `host-images: branch`. The action does not require any classic-PAT or app-token configuration.
 
 **Will the orphan `images-branch` grow without bound?**
-Yes — there is no automatic cleanup yet. Old `pr-*/` directories are safe to delete manually at any time (they are referenced by historical PR comments, but the comments degrade gracefully to broken-image icons). A cleanup recipe / retention input may land in a future release.
+Yes, there is no automatic cleanup yet. Old `pr-*/` directories are safe to delete manually at any time (they are referenced by historical PR comments, but the comments degrade gracefully to broken-image icons). A cleanup recipe / retention input may land in a future release.
 
 **Where do I report bugs or request features?**
-[github.com/jagreehal/executable-stories/issues](https://github.com/jagreehal/executable-stories/issues) — the action is developed in the monorepo.
+[github.com/jagreehal/executable-stories/issues](https://github.com/jagreehal/executable-stories/issues): the action is developed in the monorepo.
 
 ## Supported frameworks
 

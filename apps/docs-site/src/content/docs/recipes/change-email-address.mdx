@@ -1,0 +1,104 @@
+---
+title: Change email address
+description: Background for shared preconditions
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+Two scenarios share the same Given setup, so the report groups them under one background.
+
+## The test
+
+<Tabs syncKey="framework">
+
+<TabItem label="Vitest" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-vitest';
+import { describe, it } from 'vitest';
+
+describe("Feature: Account settings", () => {
+  it("Change email address", ({ task }) => {
+    story.init(task);
+    story.given("the user account exists");
+    story.given("the user is logged in");
+    story.when('the user updates their email to "new@example.com"');
+    story.then("a verification email should be sent");
+    story.then('the email status should be "pending verification"');
+  });
+});
+```
+
+</TabItem>
+
+<TabItem label="Jest" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-jest';
+
+describe("Feature: Account settings", () => {
+  it("Change email address", () => {
+    story.init();
+    story.given("the user account exists");
+    story.given("the user is logged in");
+    story.when('the user updates their email to "new@example.com"');
+    story.then("a verification email should be sent");
+    story.then('the email status should be "pending verification"');
+  });
+});
+```
+
+</TabItem>
+
+<TabItem label="Playwright" icon="seti:typescript">
+
+```typescript
+import { test } from '@playwright/test';
+import { story } from 'executable-stories-playwright';
+
+test.describe("Feature: Account settings", () => {
+  test("Change email address", async ({}, testInfo) => {
+    story.init(testInfo);
+    story.given("the user account exists");
+    story.given("the user is logged in");
+    story.when('the user updates their email to "new@example.com"');
+    story.then("a verification email should be sent");
+    story.then('the email status should be "pending verification"');
+  });
+});
+```
+
+</TabItem>
+
+<TabItem label="Cypress" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-cypress';
+
+describe("Feature: Account settings", () => {
+  it("Change email address", () => {
+    story.init();
+    story.given("the user account exists");
+    story.given("the user is logged in");
+    story.when('the user updates their email to "new@example.com"');
+    story.then("a verification email should be sent");
+    story.then('the email status should be "pending verification"');
+  });
+});
+```
+
+</TabItem>
+
+</Tabs>
+
+## What the report renders
+
+```markdown
+### ✅ Change email address
+
+- **Given** the user account exists
+- **And** the user is logged in
+- **When** the user updates their email to "new@example.com"
+- **Then** a verification email should be sent
+- **And** the email status should be "pending verification"
+```

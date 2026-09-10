@@ -1,0 +1,104 @@
+---
+title: Calculate shipping options
+description: DataTable for input, multiple Then
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+One table drives the input, and three Then steps check what came back.
+
+## The test
+
+<Tabs syncKey="framework">
+
+<TabItem label="Vitest" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-vitest';
+import { it } from 'vitest';
+
+it("Calculate shipping options", ({ task }) => {
+  story.init(task);
+  story.given("the user has entered the shipping address");
+  story.table({ label: "Address", columns: ["country", "state", "zip"], rows: [["US", "CA", "94107"]] });
+  story.when("shipping options are calculated");
+  story.then('the available options should include "Standard"');
+  story.then('the available options should include "Express"');
+  story.then("the estimated delivery date should be shown");
+});
+```
+
+</TabItem>
+
+<TabItem label="Jest" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-jest';
+
+it("Calculate shipping options", () => {
+  story.init();
+  story.given("the user has entered the shipping address");
+  story.table({ label: "Address", columns: ["country", "state", "zip"], rows: [["US", "CA", "94107"]] });
+  story.when("shipping options are calculated");
+  story.then('the available options should include "Standard"');
+  story.then('the available options should include "Express"');
+  story.then("the estimated delivery date should be shown");
+});
+```
+
+</TabItem>
+
+<TabItem label="Playwright" icon="seti:typescript">
+
+```typescript
+import { test } from '@playwright/test';
+import { story } from 'executable-stories-playwright';
+
+test("Calculate shipping options", async ({}, testInfo) => {
+  story.init(testInfo);
+  story.given("the user has entered the shipping address");
+  story.table({ label: "Address", columns: ["country", "state", "zip"], rows: [["US", "CA", "94107"]] });
+  story.when("shipping options are calculated");
+  story.then('the available options should include "Standard"');
+  story.then('the available options should include "Express"');
+  story.then("the estimated delivery date should be shown");
+});
+```
+
+</TabItem>
+
+<TabItem label="Cypress" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-cypress';
+
+it("Calculate shipping options", () => {
+  story.init();
+  story.given("the user has entered the shipping address");
+  story.table({ label: "Address", columns: ["country", "state", "zip"], rows: [["US", "CA", "94107"]] });
+  story.when("shipping options are calculated");
+  story.then('the available options should include "Standard"');
+  story.then('the available options should include "Express"');
+  story.then("the estimated delivery date should be shown");
+});
+```
+
+</TabItem>
+
+</Tabs>
+
+## What the report renders
+
+```markdown
+### ✅ Calculate shipping options
+
+- **Given** the user has entered the shipping address
+    **Address**
+    | country | state | zip |
+    | --- | --- | --- |
+    | US | CA | 94107 |
+- **When** shipping options are calculated
+- **Then** the available options should include "Standard"
+- **And** the available options should include "Express"
+- **And** the estimated delivery date should be shown
+```

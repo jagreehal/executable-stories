@@ -1,0 +1,203 @@
+---
+title: Create order
+description: Background and tags
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+Tags and a shared background on the same scenario.
+
+## The test
+
+<Tabs syncKey="framework">
+
+<TabItem label="Vitest" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-vitest';
+import { describe, it } from 'vitest';
+
+describe("Feature: Orders", () => {
+  it("Create order", ({ task }) => {
+    story.init(task, { tags: ["db", "smoke"] });
+    story.given("the database is seeded");
+    story.given("the API is running");
+    story.when("the client creates an order");
+    story.then("the response status should be 201");
+    story.then("the order should exist in the database");
+  });
+});
+```
+
+</TabItem>
+
+<TabItem label="Jest" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-jest';
+
+describe("Feature: Orders", () => {
+  it("Create order", () => {
+    story.init({ tags: ["db", "smoke"] });
+    story.given("the database is seeded");
+    story.given("the API is running");
+    story.when("the client creates an order");
+    story.then("the response status should be 201");
+    story.then("the order should exist in the database");
+  });
+});
+```
+
+</TabItem>
+
+<TabItem label="Playwright" icon="seti:typescript">
+
+```typescript
+import { test } from '@playwright/test';
+import { story } from 'executable-stories-playwright';
+
+test.describe("Feature: Orders", () => {
+  test("Create order", async ({}, testInfo) => {
+    story.init(testInfo, { tags: ["db", "smoke"] });
+    story.given("the database is seeded");
+    story.given("the API is running");
+    story.when("the client creates an order");
+    story.then("the response status should be 201");
+    story.then("the order should exist in the database");
+  });
+});
+```
+
+</TabItem>
+
+<TabItem label="Cypress" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-cypress';
+
+describe("Feature: Orders", () => {
+  it("Create order", () => {
+    story.init({ tags: ["db", "smoke"] });
+    story.given("the database is seeded");
+    story.given("the API is running");
+    story.when("the client creates an order");
+    story.then("the response status should be 201");
+    story.then("the order should exist in the database");
+  });
+});
+```
+
+</TabItem>
+
+<TabItem label="Go" icon="seti:go">
+
+```go
+import (
+    "testing"
+    es "github.com/jagreehal/executable-stories/packages/executable-stories-go"
+)
+
+func TestCreateOrder(t *testing.T) {
+    s := es.Init(t, "Create order", es.WithTags("db", "smoke"))
+    s.Given("the database is seeded")
+    s.Given("the API is running")
+    s.When("the client creates an order")
+    s.Then("the response status should be 201")
+    s.Then("the order should exist in the database")
+}
+```
+
+</TabItem>
+
+<TabItem label="Python" icon="seti:python">
+
+```python
+from executable_stories import story
+
+def test_create_order():
+    story.init("Create order", tags=["db", "smoke"])
+    story.given("the database is seeded")
+    story.given("the API is running")
+    story.when("the client creates an order")
+    story.then("the response status should be 201")
+    story.then("the order should exist in the database")
+```
+
+</TabItem>
+
+<TabItem label="Rust" icon="seti:rust">
+
+```rust
+use executable_stories::Story;
+
+#[test]
+fn test_create_order() {
+    let mut s = Story::new("Create order").with_tags(&["db", "smoke"]);
+    s.given("the database is seeded");
+    s.given("the API is running");
+    s.when("the client creates an order");
+    s.then("the response status should be 201");
+    s.then("the order should exist in the database");
+}
+```
+
+</TabItem>
+
+<TabItem label="Kotlin" icon="seti:kotlin">
+
+```kotlin
+import dev.executablestories.junit5.Story
+import org.junit.jupiter.api.Test
+
+class OrdersTest {
+    @Test
+    fun `create order`() {
+        Story.init("Create order", "db", "smoke")
+        Story.given("the database is seeded")
+        Story.given("the API is running")
+        Story.`when`("the client creates an order")
+        Story.then("the response status should be 201")
+        Story.then("the order should exist in the database")
+    }
+}
+```
+
+</TabItem>
+
+<TabItem label="C#" icon="seti:c-sharp">
+
+```csharp
+using ExecutableStories.Xunit;
+using Xunit;
+
+public class OrdersTests : IDisposable
+{
+    [Fact]
+    public void CreateOrder()
+    {
+        Story.Init("Create order", "db", "smoke");
+        Story.Given("the database is seeded");
+        Story.Given("the API is running");
+        Story.When("the client creates an order");
+        Story.Then("the response status should be 201");
+        Story.Then("the order should exist in the database");
+    }
+}
+```
+
+</TabItem>
+
+</Tabs>
+
+## What the report renders
+
+```markdown
+### ✅ Create order
+Tags: `db`, `smoke`
+
+- **Given** the database is seeded
+- **And** the API is running
+- **When** the client creates an order
+- **Then** the response status should be 201
+- **And** the order should exist in the database
+```

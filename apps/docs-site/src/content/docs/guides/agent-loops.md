@@ -14,7 +14,7 @@ These commands read the raw-run your framework already writes. They do not repla
 | Terminate | `goal` | a behavioral definition-of-done it cannot fake |
 | Remember | `traceability-matrix` | requirement coverage on disk that survives between runs |
 
-## `check` — the inner-loop signal
+## `check`: the inner-loop signal
 
 Run it after the tests on every change. Passing scenarios collapse to a count line. Each failing scenario expands to its Given/When/Then, the step that broke, the error, and the product code it `covers`.
 
@@ -39,7 +39,7 @@ executable-stories check .executable-stories/raw-run.json --baseline reports/pre
 
 `check` exits `5` when any scenario failed, so the agent's loop reacts before a human reads it. Pass `--no-fail` to report only, or `--check-format json` for structured input. A baseline adds the "N regressed / N fixed" deltas.
 
-## `triage` — the discovery worklist
+## `triage`: the discovery worklist
 
 The scheduled automation that opens the loop needs a queue of what to work on, not a full report. `triage` lists failing scenarios, regressions first, each carrying its `covers` paths so the loop knows which files to send a fixer at.
 
@@ -48,9 +48,9 @@ executable-stories triage .executable-stories/raw-run.json \
   --baseline reports/last-green.json --triage-format json
 ```
 
-Failures with no `covers` are flagged: the loop cannot route them to code, so they need a `covers` annotation or a human first. `triage` always exits `0` — it reports work, it does not gate.
+Failures with no `covers` are flagged: the loop cannot route them to code, so they need a `covers` annotation or a human first. `triage` always exits `0`. It reports work rather than gating.
 
-## `goal` — the definition-of-done
+## `goal`: the definition-of-done
 
 A `/goal`-style loop runs until a verifiable condition holds. `goal` expresses that condition in behavior. It is met when the required scenarios pass, nothing regressed (with `--no-regressions`), and no scenario was removed, disabled, or had steps deleted versus the baseline.
 
@@ -70,7 +70,7 @@ Exit `0` means met, `5` means not yet, so a loop runs until the verdict flips. D
 
 The **ratchet** matters for an unattended loop. An agent that can make "done" true by deleting the failing scenario will eventually try it. With a baseline, `goal` refuses a "done" that dropped, skipped, or shortened a scenario. Disable it with `--no-ratchet` if you need to.
 
-## `traceability-matrix` — the memory
+## `traceability-matrix`: the memory
 
 Tomorrow's run reads where today's stopped. The behavior artifacts on disk are that memory. The traceability matrix is the requirement-first view: each ticket, the scenarios that verify it, the code they cover, and whether they pass, plus any scenario linked to no requirement.
 
@@ -81,23 +81,23 @@ executable-stories format reports/raw-run.json \
 
 See the [Agent artifact contract](/guides/agent-artifact-contract/) for the StoryReport, scenario index, and behavior manifest an agent also reads.
 
-## Watch the loop — live docs on the Astro dev server
+## Watch the loop on the Astro dev server
 
-`check`, `triage`, and `goal` are what the loop reads to act. The live docs site is what _you_ read to watch. Kick off a multi-hour loop, leave one URL open, and see the behaviour catalogue change in realtime — no refreshing, no digging through logs.
+`check`, `triage`, and `goal` are what the loop reads to act. The live docs site is what _you_ read to watch. Kick off a multi-hour loop, leave one URL open, and see the behaviour catalogue change in realtime, no refreshing, no digging through logs.
 
-Scaffold the site once, then run two processes — your tests in watch mode and the Astro dev server:
+Scaffold the site once, then run two processes: your tests in watch mode, and the Astro dev server.
 
 ```bash
 executable-stories init-astro            # one-time: scaffolds a thin Astro docs site
-# terminal 1 — your runner in watch mode (updates reports/by-file through the reporter)
+# terminal 1: your runner in watch mode (updates reports/by-file through the reporter)
 pnpm test --watch
-# terminal 2 — the docs site
+# terminal 2: the docs site
 cd story-docs && pnpm dev                 # astro dev
 ```
 
 Configure the site with `source: '../reports/by-file'`. The content loader watches that directory: when a focused run updates one source report, `/stories` and Scenario Explorer hot-reload without dropping untouched scenarios. The generated reports are cacheable state; the tests remain the source of truth. The loader tolerates the directory not existing yet.
 
-The reload is the easy part. What the site adds is the **trajectory** — the shipped `Trajectory` component pins a baseline when the dev server starts, then shows what changed _since you started the loop_, drawn from the same run history as `compare`:
+The reload is the easy part. What the site adds is the **trajectory**. The shipped `Trajectory` component pins a baseline when the dev server starts, then shows what changed _since you started the loop_, drawn from the same run history as `compare`:
 
 ```text
 Since you started: +6 passing, 1 regressed
@@ -105,7 +105,7 @@ Since you started: +6 passing, 1 regressed
 
 That answers the question you actually have at 2am: is the loop making progress or thrashing?
 
-If you only want reloads and not the trajectory, you do not need the Astro site at all — point any static server at the output, e.g. `live-server reports/`; the framework reporters rewrite `reports/test-results.html` on every run.
+If you only want reloads and not the trajectory, you do not need the Astro site at all. Point any static server at the output, e.g. `live-server reports/`; the framework reporters rewrite `reports/test-results.html` on every run.
 
 ## Put it in the loop's instructions
 
@@ -135,7 +135,7 @@ A loop running unattended is also a loop making mistakes unattended. `goal` make
 
 ## Related
 
-- [Agent artifact contract](/guides/agent-artifact-contract/) — the StoryReport, scenario index, and behavior manifest.
-- [MCP server](/guides/mcp-server/) — `get_failing_scenarios`, `get_scenarios_for_paths`, `get_behavior_diff`, `run_scenario`.
-- [Release confidence](/guides/release-confidence/) — the before-PR and release gates (`compare`, `gate-release`).
-- Live docs — the Astro dev server for watching a loop in realtime (above).
+- [Agent artifact contract](/guides/agent-artifact-contract/): the StoryReport, scenario index, and behavior manifest.
+- [MCP server](/guides/mcp-server/): `get_failing_scenarios`, `get_scenarios_for_paths`, `get_behavior_diff`, `run_scenario`.
+- [Release confidence](/guides/release-confidence/): the before-PR and release gates (`compare`, `gate-release`).
+- Live docs: the Astro dev server for watching a loop in realtime (above).

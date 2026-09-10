@@ -76,7 +76,7 @@ object storage through one presigned upload each, so the bytes never pass
 through the application.
 
 Assets are stored under names relative to the report. A file that lives outside
-the report directory — a Playwright video in `test-results/`, say — is stored
+the report directory (a Playwright video in `test-results/`, say) is stored
 under `assets/<filename>`, not under its path on your machine. Your directory
 layout is not part of what you share.
 

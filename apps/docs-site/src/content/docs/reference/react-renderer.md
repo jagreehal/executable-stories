@@ -3,7 +3,7 @@ title: React renderer
 description: Render StoryReport JSON inside any React host app with executable-stories-react
 ---
 
-The **`executable-stories-react`** package renders [StoryReport](#the-storyreport-contract) JSON inside any React app — Next.js (App Router or Pages), Astro islands, Remix, Vite, plain SPA. Drop in `<Report report={data} />` for a static, semantic, AI-readable render. Drop in `<ReportInteractive>` for live search, failure jump, deep-link sync, and keyboard navigation.
+The **`executable-stories-react`** package renders [StoryReport](#the-storyreport-contract) JSON inside any React app: Next.js (App Router or Pages), Astro islands, Remix, Vite, or a plain SPA. Drop in `<Report report={data} />` for a static, semantic, AI-readable render. Drop in `<ReportInteractive>` for live search, failure jump, deep-link sync, and keyboard navigation.
 
 It's the same data your existing CLI already emits: test results become living documentation that lives inside your team's actual product, docs portal, or dashboard.
 
@@ -30,7 +30,7 @@ executable-stories format raw-run.json --format story-report-json
 # writes reports/index.story-report.json
 ```
 
-The schema is **pre-grouped** (features → scenarios → steps) with **pre-computed summaries** at every level. It's the canonical UI-facing shape — distinct from the internal `TestRunResult` formatters use. Schema version follows semver (`"1.0"` today; additive-only within `1.x`).
+The schema is **pre-grouped** (features → scenarios → steps) with **pre-computed summaries** at every level. It's the canonical UI-facing shape, distinct from the internal `TestRunResult` formatters use. Schema version follows semver (`"1.0"` today; additive-only within `1.x`).
 
 Each step may include `assertions`. An absent value means the adapter could not observe assertion activity; `0` means it observed or declared that none ran. When all observed claim steps (`Then` and its continuing `And`/`But` steps) total zero, the renderer labels them **No assertion**. It never treats an absent count as zero.
 
@@ -74,7 +74,7 @@ export function ClientReport({ json }: { json: unknown }) {
 
 ## Components
 
-### `<Report>` — static high-level
+### `<Report>`: static high-level
 
 ```tsx
 <Report
@@ -91,7 +91,7 @@ export function ClientReport({ json }: { json: unknown }) {
 | ----------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `report`          | `StoryReport \| Result<StoryReport>`   | Either a validated StoryReport or the `Result` returned by `parseStoryReport`. On `Result.ok=false`, renders `<ReportSchemaError>` automatically.                                          |
 | `customRenderers` | `Record<string, (entry) => ReactNode>` | Renderers keyed by `story.custom({ type })` strings. Unmatched types fall back to a JSON dump. The built-in narrative blocks (below) are registered by default and can be overridden here. |
-| `renderers`       | `{ mermaid?, code?, section? }`        | Override the three heavy built-ins. Other doc kinds (`note`, `kv`, `table`, etc.) are fixed — drop to primitives for full structural overrides.                                            |
+| `renderers`       | `{ mermaid?, code?, section? }`        | Override the three heavy built-ins. Other doc kinds (`note`, `kv`, `table`, etc.) are fixed; drop to primitives for full structural overrides.                                            |
 | `title`           | `string`                               | Optional override for the report's `<h1>`. Default: "Story Report".                                                                                                                        |
 | `dataTheme`       | `"light" \| "dark"`                    | Force a theme scope. Default: auto via `prefers-color-scheme`.                                                                                                                             |
 | `className`       | `string`                               | Extra class on the `<main>` landmark.                                                                                                                                                      |
@@ -145,7 +145,7 @@ story.custom({
 Both are exported (`FileTreeBlock`, `DataModelBlock`, `narrativeBlockRenderers`) and a
 `customRenderers` entry for the same type replaces them.
 
-### `<ReportInteractive>` — loaded with chrome
+### `<ReportInteractive>`: loaded with chrome
 
 Adds search, sticky failure banner with jump-to-first, keyboard navigation (`/`, `f`, `Shift+F`, `?`, `Esc`), deep-link auto-scroll, and a keyboard cheatsheet dialog. Takes the same props as `<Report>`.
 
@@ -217,10 +217,10 @@ Every primitive renders to fully semantic HTML on the server via `react-dom/serv
 - `<dl>` for KV docs, `<table>` for table docs, `<figure>` for screenshots/code/mermaid
 - `<pre data-mermaid>` and `<pre><code class="language-X">` for AI-readable source
 
-JavaScript is required only for the chrome in `<ReportInteractive>`. The content reads end-to-end without JS — works for AI agents, screen readers, RSS, print, and view-source.
+JavaScript is required only for the chrome in `<ReportInteractive>`. The content reads end-to-end without JS, which is what AI agents, screen readers, RSS, print, and view-source need.
 
 ## See also
 
-- [Formatters API → `story-report-json` format](/reference/formatters-api) — emit the JSON the React package consumes.
-- [Embed reports in React apps](/guides/embed-in-react-apps) — worked examples for Next.js, Astro, and Vite.
-- [Theming](/reference/themes) — the same `--es-*` tokens that style this component.
+- [Formatters API → `story-report-json` format](/reference/formatters-api): emit the JSON the React package consumes.
+- [Embed reports in React apps](/guides/embed-in-react-apps): worked examples for Next.js, Astro, and Vite.
+- [Theming](/reference/themes): the same `--es-*` tokens that style this component.

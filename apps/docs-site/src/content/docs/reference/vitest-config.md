@@ -107,7 +107,7 @@ during a test, and the story claims them at test end. Tests are written
 unchanged.
 
 ```js
-// otel.js — the SDK module Vitest loads
+// otel.js: the SDK module Vitest loads
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { storySpanCollector } from 'executable-stories-vitest/otel';

@@ -35,35 +35,30 @@ import PersonaCards from '../../components/PersonaCards.astro';
       <div class="hero-custom__stack-row">
         <span class="hero-custom__stack-label">Test frameworks</span>
         <div class="hero-custom__frameworks">
-          <a href="getting-started/installation-vitest/" class="hero-custom__fw-tag"><img src="/icons/Vite.js.svg" alt="" class="fw-icon" />Vitest</a>
-          <a href="getting-started/installation-jest/" class="hero-custom__fw-tag"><img src="/icons/Jest.svg" alt="" class="fw-icon" />Jest</a>
-          <a href="getting-started/installation-playwright/" class="hero-custom__fw-tag"><img src="/icons/Playwright.svg" alt="" class="fw-icon" />Playwright</a>
-          <a href="getting-started/installation-cypress/" class="hero-custom__fw-tag"><img src="/icons/Cypress.svg" alt="" class="fw-icon" />Cypress</a>
+          <a href="getting-started/install/?framework=Vitest" class="hero-custom__fw-tag"><img src="/icons/Vite.js.svg" alt="" class="fw-icon" />Vitest</a>
+          <a href="getting-started/install/?framework=Jest" class="hero-custom__fw-tag"><img src="/icons/Jest.svg" alt="" class="fw-icon" />Jest</a>
+          <a href="getting-started/install/?framework=Playwright" class="hero-custom__fw-tag"><img src="/icons/Playwright.svg" alt="" class="fw-icon" />Playwright</a>
+          <a href="getting-started/install/?framework=Cypress" class="hero-custom__fw-tag"><img src="/icons/Cypress.svg" alt="" class="fw-icon" />Cypress</a>
         </div>
       </div>
       <div class="hero-custom__stack-row">
         <span class="hero-custom__stack-label">Language adapters</span>
         <div class="hero-custom__frameworks">
-          <a href="getting-started/installation-go/" class="hero-custom__fw-tag"><img src="/icons/Go.svg" alt="" class="fw-icon" />Go</a>
-          <a href="getting-started/installation-pytest/" class="hero-custom__fw-tag"><img src="/icons/Python.svg" alt="" class="fw-icon" />Python</a>
-          <a href="getting-started/installation-ruby/" class="hero-custom__fw-tag"><img src="/icons/Ruby.svg" alt="" class="fw-icon" />Ruby</a>
-          <a href="getting-started/installation-rust/" class="hero-custom__fw-tag"><img src="/icons/Rust.svg" alt="" class="fw-icon" />Rust</a>
-          <a href="getting-started/installation-junit5/" class="hero-custom__fw-tag"><img src="/icons/Java.svg" alt="" class="fw-icon" />Kotlin</a>
-          <a href="getting-started/installation-xunit/" class="hero-custom__fw-tag"><img src="/icons/NET.svg" alt="" class="fw-icon" />C#</a>
+          <a href="getting-started/install/?framework=Go" class="hero-custom__fw-tag"><img src="/icons/Go.svg" alt="" class="fw-icon" />Go</a>
+          <a href="getting-started/install/?framework=Python" class="hero-custom__fw-tag"><img src="/icons/Python.svg" alt="" class="fw-icon" />Python</a>
+          <a href="getting-started/install/?framework=Ruby" class="hero-custom__fw-tag"><img src="/icons/Ruby.svg" alt="" class="fw-icon" />Ruby</a>
+          <a href="getting-started/install/?framework=Rust" class="hero-custom__fw-tag"><img src="/icons/Rust.svg" alt="" class="fw-icon" />Rust</a>
+          <a href="getting-started/install/?framework=Kotlin" class="hero-custom__fw-tag"><img src="/icons/Java.svg" alt="" class="fw-icon" />Kotlin</a>
+          <a href="getting-started/install/?framework=C%23" class="hero-custom__fw-tag"><img src="/icons/NET.svg" alt="" class="fw-icon" />C#</a>
         </div>
       </div>
     </div>
   </div>
   <div class="hero-custom__image">
-    <div class="hero-custom__browser">
-      <div class="hero-custom__browser-bar">
-        <span class="hero-custom__dot hero-custom__dot--red"></span>
-        <span class="hero-custom__dot hero-custom__dot--yellow"></span>
-        <span class="hero-custom__dot hero-custom__dot--green"></span>
-        <span class="hero-custom__browser-title">report.html</span>
-      </div>
+    <figure class="hero-custom__browser">
       <img src="/screenshots/hero-report.png" alt="Executable Stories HTML report showing passed scenarios with Given/When/Then steps, code blocks, and searchable tags" />
-    </div>
+      <figcaption>reports/index.html, from one <code>pnpm test</code></figcaption>
+    </figure>
   </div>
 </div>
 
@@ -72,7 +67,7 @@ import PersonaCards from '../../components/PersonaCards.astro';
 <div class="agent-section not-content">
   <div class="agent-section__text">
     <h2 class="agent-section__title">Behavior catalog for coding agents</h2>
-    <p class="agent-section__desc">Storybook indexes components. Executable Stories indexes <strong>behavior scenarios with execution truth</strong> — pass, fail, skip, steps, and docs from the last test run.</p>
+    <p class="agent-section__desc">Storybook indexes components. Executable Stories indexes <strong>behavior scenarios with execution truth</strong>: pass, fail, skip, steps, and docs from the last test run.</p>
     <ul class="agent-section__list">
       <li>Stable StoryReport v1 JSON contract</li>
       <li>Scenario index via <code>list --list-format json</code></li>
@@ -101,7 +96,7 @@ import PersonaCards from '../../components/PersonaCards.astro';
   afterLabel="Generated report"
   beforeImage="/screenshots/terminal-output.png"
   afterImage="/screenshots/report-output.png"
-  beforeAlt="Raw Vitest terminal output — dense, unstructured"
+  beforeAlt="Raw Vitest terminal output, dense, unstructured"
   afterAlt="Same test data rendered as a clean, searchable HTML report"
 />
 
@@ -384,7 +379,7 @@ gem install executable-stories-ruby
   </Tabs>
 
   <div class="cta__links">
-    <a href="getting-started/first-story-vitest/" class="hero-btn hero-btn--primary">Write your first story</a>
+    <a href="getting-started/first-story/" class="hero-btn hero-btn--primary">Write your first story</a>
     <a href="guides/why-not-cucumber/" class="hero-btn hero-btn--secondary">Why not Cucumber?</a>
   </div>
 </div>
@@ -397,7 +392,7 @@ gem install executable-stories-ruby
   /* ── Hero ── */
   .hero-custom {
     display: grid;
-    grid-template-columns: 1fr 1.2fr;
+    grid-template-columns: 1fr minmax(0, 1.2fr);
     gap: 3rem;
     align-items: center;
     padding: 5rem 0 3rem;
@@ -420,6 +415,10 @@ gem install executable-stories-ruby
   }
 
   .hero-custom__title {
+    /* gate 51: let a long word break rather than widen the page. break-word, not
+       anywhere, so the track keeps a sane min-content floor */
+    overflow-wrap: break-word;
+    min-width: 0;
     font-size: clamp(2.25rem, 5vw, 3.5rem);
     font-weight: 700;
     line-height: 1.06;
@@ -464,6 +463,7 @@ gem install executable-stories-ruby
 
   .hero-custom__actions {
     display: flex;
+    flex-wrap: wrap;
     gap: 0.75rem;
     margin-bottom: 2rem;
   }
@@ -628,38 +628,27 @@ gem install executable-stories-ruby
   }
 
 
-  /* Browser chrome wrapper */
+  /* Report screenshot */
   .hero-custom__browser {
+    margin: 0;
+    min-width: 0;
     border-radius: 0.75rem;
     border: 1px solid var(--sl-color-gray-4);
     overflow: hidden;
     box-shadow: 0 24px 64px rgba(27, 67, 50, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.05);
   }
 
-  .hero-custom__browser-bar {
-    display: flex;
-    align-items: center;
-    gap: 0.375rem;
-    padding: 0.625rem 0.875rem;
+  .hero-custom__browser figcaption {
+    padding: 0.5rem 0.875rem;
     background: var(--sl-color-gray-6);
-    border-bottom: 1px solid var(--sl-color-hairline);
-  }
-
-  .hero-custom__dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-  }
-
-  .hero-custom__dot--red { background: #ff5f57; }
-  .hero-custom__dot--yellow { background: #febc2e; }
-  .hero-custom__dot--green { background: #28c840; }
-
-  .hero-custom__browser-title {
-    margin-left: 0.5rem;
+    border-top: 1px solid var(--sl-color-hairline);
     font-size: 0.6875rem;
-    font-family: var(--sl-font-mono);
     color: var(--sl-color-gray-3);
+  }
+
+  .hero-custom__browser figcaption code {
+    font-family: var(--sl-font-mono);
+    font-size: inherit;
   }
 
   .hero-custom__browser img {
@@ -669,7 +658,7 @@ gem install executable-stories-ruby
   }
 
   @media (max-width: 768px) {
-    .hero-custom { grid-template-columns: 1fr; padding: 2.5rem 0; gap: 2rem; }
+    .hero-custom { grid-template-columns: minmax(0, 1fr); padding: 2.5rem 0; gap: 2rem; }
     .hero-custom__stack-row { flex-direction: column; align-items: flex-start; gap: 0.375rem; }
     .hero-custom__stack-label { text-align: left; min-width: unset; }
   }
@@ -719,7 +708,7 @@ gem install executable-stories-ruby
 
   .workflow__row {
     display: grid;
-    grid-template-columns: 200px 1fr;
+    grid-template-columns: 200px minmax(0, 1fr);
     gap: 1.5rem;
     align-items: start;
     border: 1px solid var(--sl-color-gray-4);
@@ -772,13 +761,13 @@ gem install executable-stories-ruby
   }
 
   @media (max-width: 768px) {
-    .workflow__row { grid-template-columns: 1fr; gap: 0.75rem; }
+    .workflow__row { grid-template-columns: minmax(0, 1fr); gap: 0.75rem; }
   }
 
   /* ── Feature bento (asymmetric zig-zag) ── */
   .feature-bento {
     display: grid;
-    grid-template-columns: 7fr 5fr;
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
     gap: 1rem;
     max-width: 1200px;
     margin: 0 auto;
@@ -846,14 +835,14 @@ gem install executable-stories-ruby
   }
 
   @media (max-width: 768px) {
-    .feature-bento { grid-template-columns: 1fr; }
+    .feature-bento { grid-template-columns: minmax(0, 1fr); }
     .feature-tile, .feature-tile--wide { grid-column: 1 !important; }
   }
 
   /* ── Diff Section ── */
   .diff-section {
     display: grid;
-    grid-template-columns: 1fr 1.4fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
     gap: 3rem;
     align-items: center;
     max-width: 1200px;
@@ -926,13 +915,13 @@ gem install executable-stories-ruby
   }
 
   @media (max-width: 768px) {
-    .diff-section { grid-template-columns: 1fr; gap: 1.5rem; }
+    .diff-section { grid-template-columns: minmax(0, 1fr); gap: 1.5rem; }
   }
 
   /* ── Themes (featured + supporting) ── */
   .theme-showcase {
     display: grid;
-    grid-template-columns: 1.2fr 1fr;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
     gap: 1.25rem;
     max-width: 1200px;
     margin: 0 auto;
@@ -941,7 +930,7 @@ gem install executable-stories-ruby
 
   .theme-supporting {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 1rem;
   }
 
@@ -977,7 +966,7 @@ gem install executable-stories-ruby
 
   .theme-card__images {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 1px;
     background: var(--sl-color-gray-4);
     aspect-ratio: 16 / 6;
@@ -1018,15 +1007,15 @@ gem install executable-stories-ruby
   }
 
   @media (max-width: 768px) {
-    .theme-showcase { grid-template-columns: 1fr; }
-    .theme-supporting { grid-template-columns: 1fr; }
+    .theme-showcase { grid-template-columns: minmax(0, 1fr); }
+    .theme-supporting { grid-template-columns: minmax(0, 1fr); }
     .theme-supporting .theme-card:last-child { grid-column: 1; }
   }
 
   /* ── Stack section ── */
   .stack-section {
     display: grid;
-    grid-template-columns: 1.5fr 1fr;
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
     gap: 2rem;
     align-items: start;
     max-width: 1200px;
@@ -1088,7 +1077,7 @@ gem install executable-stories-ruby
   }
 
   @media (max-width: 768px) {
-    .stack-section { grid-template-columns: 1fr; }
+    .stack-section { grid-template-columns: minmax(0, 1fr); }
   }
 
   /* ── CTA ── */

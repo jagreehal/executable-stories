@@ -1,0 +1,50 @@
+---
+title: Reference
+description: Every step marker, doc method, reporter option, CLI flag, and type, per adapter.
+slug: reference
+---
+
+import { CardGrid, LinkCard, Aside } from '@astrojs/starlight/components';
+
+<Aside title="Looking for how, not what?">
+The [guides](/guides/) are task-shaped. This section is the exhaustive surface: signatures, options, and flags.
+</Aside>
+
+## Story and doc API
+
+The same story structure and doc model in every adapter. Where a host framework forces a difference, the page says so.
+
+<CardGrid>
+  <LinkCard title="Vitest" href="/reference/vitest-story-api/" description="story.init(task), steps, doc methods, scenario options." />
+  <LinkCard title="Jest" href="/reference/jest-story-api/" description="story.init(), plus the top-level given/when/then exports." />
+  <LinkCard title="Playwright" href="/reference/playwright-story-api/" description="story.init(testInfo), fixture-aware steps, screenshots and video." />
+  <LinkCard title="Cypress" href="/reference/cypress-story-api/" description="story.init(), story.expect, and metadata over cy.task." />
+  <LinkCard title="Ruby" href="/reference/ruby-story-api/" description="Minitest and RSpec, with the story object returned from init." />
+  <LinkCard title="Go, Python, Rust, Kotlin, C#" href="/reference/other-adapters/" description="Language-native init, step methods, and raw run output per adapter." />
+</CardGrid>
+
+## Reporter options
+
+<CardGrid>
+  <LinkCard title="Vitest reporter" href="/reference/vitest-config/" description="StoryReporter options, output modes, and OpenTelemetry collection." />
+  <LinkCard title="Jest reporter" href="/reference/jest-config/" description="Reporter entry, setup file, and output options." />
+  <LinkCard title="Playwright reporter" href="/reference/playwright-config/" description="Reporter path and options in playwright.config.ts." />
+  <LinkCard title="Cypress reporter" href="/reference/cypress-config/" description="Plugin, support file, Mocha reporter, and the Module API." />
+</CardGrid>
+
+## CLI, packages, and types
+
+<CardGrid>
+  <LinkCard title="Formatters API and CLI" href="/reference/formatters-api/" description="Every format, subcommand, and flag on the executable-stories binary." />
+  <LinkCard title="Package map" href="/reference/package-map/" description="What each published package is for, and which framework it targets." />
+  <LinkCard title="Core types and constants" href="/reference/core-api/" description="StoryMeta, StepKeyword, DocEntry, and the shared serializers." />
+  <LinkCard title="Cross-language parity" href="/reference/cross-language-parity/" description="Which guarantees every adapter makes, and where a language cannot." />
+</CardGrid>
+
+## Rendering and tooling
+
+<CardGrid>
+  <LinkCard title="React renderer" href="/reference/react-renderer/" description="Components, props, and the StoryReport contract they consume." />
+  <LinkCard title="Theming" href="/reference/themes/" description="The --es-* token catalog shared by the HTML report and the React renderer." />
+  <LinkCard title="ESLint plugins" href="/reference/eslint-plugins/" description="Rules that catch a missing story.init or a step outside a test." />
+</CardGrid>

@@ -1,9 +1,9 @@
 ---
 title: Developer experience
-description: How executable-stories fits into each framework — entry point, mental model, and modifiers
+description: "How executable-stories fits into each framework: entry point, mental model, and modifiers"
 ---
 
-We aim for a **seamless native experience** in each framework. You keep your existing `describe` / `it` (or `test.describe` / `test`); we add **`story.init()`** and **`story.given`** / **`story.when`** / **`story.then`** so reporters can generate shareable output. Same lifecycle, same reporting hooks, no extra runner, and no world object.
+The API is native to each framework. You keep the `describe` and `it` you already have (or `test.describe` and `test`), and add **`story.init()`** plus **`story.given`**, **`story.when`**, and **`story.then`** so the reporter can generate shareable output. Same lifecycle, same reporting hooks, no extra runner, no world object.
 
 ## Conventions
 
