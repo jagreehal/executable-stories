@@ -1,5 +1,14 @@
 # executable-stories-formatters
 
+## 1.17.1
+
+### Patch Changes
+
+- 3b0cd47: `assetMode: "copy"` now bundles the `markdown` report's assets as well as `html`
+  and `astro-markdown`. Referenced screenshots and videos are copied to `assets/`
+  beside the markdown and the paths rewritten, so a committed markdown report
+  carries its own media.
+
 ## 1.17.0
 
 ### Minor Changes
