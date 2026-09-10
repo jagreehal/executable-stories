@@ -111,7 +111,8 @@ Environment variables are supported for credentials and base URL:
 
 Use `--asset-mode copy` to produce a portable report directory. All locally-referenced assets
 (Playwright videos, screenshots, attachment files) are copied into an `assets/` subdirectory
-and HTML paths are rewritten.
+and the paths are rewritten. This covers `html`, `markdown` and `astro-markdown`, so a report
+you commit keeps its media whatever format you generate.
 
 ```bash
 executable-stories format raw-run.json --format html --output-dir reports --asset-mode copy
@@ -141,7 +142,7 @@ report/
 | Flag | Description |
 |------|-------------|
 | `--asset-mode none` | Default. No asset bundling. |
-| `--asset-mode copy` | Copy local assets to `assets/`, rewrite paths. |
+| `--asset-mode copy` | Copy local assets to `assets/`, rewrite paths in `html`, `markdown` and `astro-markdown`. |
 | `--allow-missing-assets` | Warn on missing assets instead of failing. |
 
 ## Validation

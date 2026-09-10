@@ -24,7 +24,7 @@ evidence, and the report's optional Share button hands the reader this command.
 Point it at the directory you generated into. It looks for `index.html`, then
 `index.story-report.json`, then any `*.story-report.json`, then `raw-run.json`.
 The HTML report comes first because it is the copy the Share button was clicked
-on, and the copy `--asset-mode copy` rewrites to the bundled assets beside it;
+on, and one of the copies `--asset-mode copy` rewrites to the bundled assets;
 its embedded report JSON is what gets published. A directory holding only
 `--format html` output shares fine:
 

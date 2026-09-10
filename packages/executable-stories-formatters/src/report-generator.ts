@@ -607,28 +607,47 @@ export class ReportGenerator {
         }
       }
 
-      const astroPaths = results.get("astro-markdown");
-      if (astroPaths) {
-        for (const mdPath of astroPaths) {
-          const content = await fsPromises.readFile(mdPath, "utf8");
-          const mdDir = path.dirname(mdPath);
-          // assetsDir is resolved from CWD (same as outputDir), not relative to outputDir
-          const assetsDir = path.resolve(this.options.astro.assetsDir);
-          const result = copyMarkdownAssets({
-            markdown: content,
-            markdownDir: mdDir,
-            assetsDir,
-            assetsBaseUrl: this.options.astro.assetsBaseUrl,
-            allowMissing: this.options.allowMissingAssets,
-          });
-          if (result.copiedCount > 0 || result.missingCount > 0) {
-            await this.deps.writeFile(mdPath, result.markdown);
-          }
-        }
-      }
+      // Markdown renders the same media the html does, from paths pointing into
+      // the runner's output dir — which the next run wipes.
+      await this.bundleMarkdownAssets(results.get("markdown"), (markdownDir) => ({
+        assetsDir: path.join(markdownDir, "assets"),
+        assetsBaseUrl: "assets",
+      }));
+
+      await this.bundleMarkdownAssets(results.get("astro-markdown"), () => ({
+        // assetsDir is resolved from CWD (same as outputDir), not relative to outputDir
+        assetsDir: path.resolve(this.options.astro.assetsDir),
+        assetsBaseUrl: this.options.astro.assetsBaseUrl,
+      }));
     }
 
     return results;
+  }
+
+  /**
+   * Copy every local asset these markdown reports reference into an assets
+   * directory and rewrite the refs. The destination is computed per report
+   * because colocated output writes one per source file.
+   */
+  private async bundleMarkdownAssets(
+    markdownPaths: string[] | undefined,
+    target: (markdownDir: string) => { assetsDir: string; assetsBaseUrl: string },
+  ): Promise<void> {
+    if (!markdownPaths) return;
+
+    for (const markdownPath of markdownPaths) {
+      const markdown = await fsPromises.readFile(markdownPath, "utf8");
+      const markdownDir = path.dirname(markdownPath);
+      const result = copyMarkdownAssets({
+        markdown,
+        markdownDir,
+        allowMissing: this.options.allowMissingAssets,
+        ...target(markdownDir),
+      });
+      if (result.copiedCount > 0 || result.missingCount > 0) {
+        await this.deps.writeFile(markdownPath, result.markdown);
+      }
+    }
   }
 
   /**

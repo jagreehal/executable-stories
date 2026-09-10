@@ -205,7 +205,7 @@ export interface FormatterOptions {
     webhooks?: GenericWebhookNotifierOptions[];
   };
 
-  /** Asset bundling mode. "none" = no asset copying, "copy" = copy referenced assets next to HTML. Default: "none" */
+  /** Asset bundling mode. "none" = no asset copying, "copy" = copy referenced assets next to the report (html and markdown). Default: "none" */
   assetMode?: "none" | "copy";
 
   /** When true, warn on missing assets instead of throwing. Default: false */

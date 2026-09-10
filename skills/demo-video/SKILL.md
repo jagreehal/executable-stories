@@ -24,7 +24,7 @@ run that nothing verified, next to a real one that already has the frames.
 | Narration script | the step's `text` |
 | Screen recording | Playwright `story.init(testInfo, { featureVideo: true })` promotes the `.webm` with no per-test call (needs `video: "on"` in the Playwright config) |
 | Attaching the file | `story.video({ path, caption, poster })` |
-| Shipping the file | `--asset-mode copy` bundles referenced local media into `assets/` beside the report and rewrites the paths |
+| Shipping the file | `--asset-mode copy` bundles referenced local media into `assets/` beside the report and rewrites the paths (`html`, `markdown`, `astro-markdown`) |
 | Hosting | the user's, already: it is a folder. Or `executable-stories share` |
 
 So this skill is TTS plus ffmpeg. No uploader, no bucket, no CDN code.
