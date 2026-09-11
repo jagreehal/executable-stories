@@ -1,5 +1,13 @@
 # executable-stories-astro
 
+## 7.6.5
+
+### Patch Changes
+
+- Updated dependencies [cdcfb3c]
+  - executable-stories-core@0.26.0
+  - executable-stories-react@0.17.0
+
 ## 7.6.4
 
 ### Patch Changes
