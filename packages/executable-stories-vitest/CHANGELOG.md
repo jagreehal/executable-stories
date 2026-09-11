@@ -1,5 +1,13 @@
 # executable-stories-vitest
 
+## 8.9.3
+
+### Patch Changes
+
+- Updated dependencies [cdcfb3c]
+  - executable-stories-core@0.26.0
+  - executable-stories-formatters@1.19.0
+
 ## 8.9.2
 
 ### Patch Changes
