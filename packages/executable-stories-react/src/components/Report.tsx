@@ -22,10 +22,16 @@ export interface ReportProps {
   title?: string;
   /** Optional theme attribute scope. Use to force "light" or "dark". */
   dataTheme?: "light" | "dark";
+  /**
+   * Draw the "Architecture, as it ran" section above the features. Off by
+   * default — only an instrumented run has anything to draw, and the span
+   * picture is a specialist view. `--html-architecture` turns it on.
+   */
+  architecture?: boolean;
 }
 
 export function Report(props: ReportProps) {
-  const { report, customRenderers, renderers, className, title, dataTheme } = props;
+  const { report, customRenderers, renderers, className, title, dataTheme, architecture = false } = props;
   const result = unwrapReport(report);
   if (!result.ok) {
     return <ReportErrorShell error={result.error} className={className} title={title} dataTheme={dataTheme} />;
@@ -41,8 +47,8 @@ export function Report(props: ReportProps) {
         {/* Run-level, so it sits above the features rather than inside one.
             Renders nothing unless the run carried spans. Mirrored in
             ReportInteractive — the two headers are composed separately, and
-            Report.stories/ReportInteractive.stories both assert it. */}
-        <ReportSpanGraph />
+            both stories assert the section appears when asked for. */}
+        {architecture ? <ReportSpanGraph /> : null}
         {hasContent ? <ReportFeatureList /> : <ReportEmpty />}
       </main>
     </ReportRoot>

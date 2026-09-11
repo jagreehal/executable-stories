@@ -93,6 +93,9 @@ Use these when you have framework results and want a canonical run for **ReportG
 | `outputDir`            | `string`                     | `"reports"`         | Base directory for output files.                                                                                                                                                                                                                                                               |
 | `outputName`           | `string`                     | `"index"`           | Base filename (without extension) for aggregated output.                                                                                                                                                                                                                                       |
 | `output`               | `OutputConfig`               | see below           | Output routing (mode, colocated style, rules).                                                                                                                                                                                                                                                 |
+| `ticketUrlTemplate`    | `string`                     | —                   | Where tickets live, for every format that renders one. `{ticket}` is the id. Resolves ticket URLs in the StoryReport too, so the HTML report, the Astro pages and `story-report-json` link the same place. A per-format `ticketUrlTemplate` wins where set.                                      |
+| `permalinkBaseUrl`     | `string`                     | —                   | Base URL for source permalinks, for every format that renders one (markdown, confluence, astro-markdown). A per-format `permalinkBaseUrl` wins where set.                                                                                                                                        |
+| `traceUrlTemplate`     | `string`                     | —                   | URL template for trace links (`{traceId}`), for markdown and astro-markdown. A per-format `traceUrlTemplate` wins where set.                                                                                                                                                                     |
 | `cucumberJson`         | `{ pretty?: boolean }`       | `{ pretty: false }` | Cucumber JSON options.                                                                                                                                                                                                                                                                         |
 | `html`                 | `HtmlOptions`                | —                   | Title, darkMode, searchable, startCollapsed, embedScreenshots.                                                                                                                                                                                                                                 |
 | `junit`                | `JUnitOptions`               | —                   | suiteName, includeOutput.                                                                                                                                                                                                                                                                      |
@@ -305,6 +308,10 @@ The formatters package provides an **`executable-stories`** CLI for generating r
 - **`--html-no-syntax-highlighting`**: Disable syntax highlighting in HTML.
 - **`--html-no-mermaid`**: Disable Mermaid diagram rendering in HTML.
 - **`--html-share`**: Show the Share button in the HTML report (hidden by default), so an internal artifact carries no hosted-service prompt unless you ask for one. The `share` subcommand works either way.
+- **`--html-architecture`**: Draw the "Architecture, as it ran" section (the run's span graph, plus the table of scenarios covering each component) above the features in the HTML report. Off by default: only an instrumented run has anything to draw, and the span picture is a specialist view rather than something every reader wants at the top of every report. `--format span-graph` writes the same graph as its own file and is unaffected by this flag.
+- **`--ticket-url-template <url>`**: Where this project's tickets live, e.g. `https://jira.example.com/browse/{ticket}`. Applies wherever a ticket is rendered: the HTML report, markdown, confluence, astro-markdown, and the `story-report-json` contract. Without it a ticket id is plain text unless the adapter attached a URL to it.
+- **`--permalink-base-url <url>`**: Base URL for source permalinks in markdown, confluence and astro-markdown, e.g. `https://github.com/org/repo/blob/main`.
+- **`--trace-url-template <url>`**: URL template for trace links in markdown and astro-markdown; `{traceId}` is the trace id.
 - **`--html-stale-after-days <n>`**: Days before the interactive HTML report shows a "Last verified N days ago" stale warning (default: 7; `0` disables). Fresh reports show a quiet "Verified N ago" line instead.
 
 **CI detection:** When the CLI runs in a CI environment, it auto-detects the provider (GitHub Actions, GitLab, CircleCI, Azure DevOps, Buildkite, Jenkins, Travis) from environment variables and attaches branch, commit SHA, PR number, and build URL to the run. The HTML report shows this in a **CI** meta block. No flags required.
@@ -337,6 +344,10 @@ The formatters package provides an **`executable-stories`** CLI for generating r
 | `--html-no-syntax-highlighting` | boolean | `false`      | Disable syntax highlighting in HTML                                                                                                                                                                                                                                 |
 | `--html-no-mermaid`             | boolean | `false`      | Disable Mermaid diagram rendering in HTML                                                                                                                                                                                                                           |
 | `--html-share`                  | boolean | `false`      | Show the Share button in the HTML report (hidden by default)                                                                                                                                                                                                        |
+| `--ticket-url-template`         | string  | —            | Link ticket ids everywhere they render (`{ticket}` is the id)                                                                                                                                                                                                        |
+| `--permalink-base-url`          | string  | —            | Base URL for source permalinks in markdown/confluence/astro-markdown                                                                                                                                                                                                 |
+| `--trace-url-template`          | string  | —            | Link trace ids in markdown/astro-markdown (`{traceId}` is the id)                                                                                                                                                                                                    |
+| `--html-architecture`           | boolean | `false`      | Draw the span-derived architecture section in the HTML report (needs an instrumented run)                                                                                                                                                                            |
 | `--html-stale-after-days`       | number  | `7`          | Days before the HTML report warns it is stale (`0` disables)                                                                                                                                                                                                        |
 | `--asset-mode`                  | string  | `none`       | Asset bundling: `none` or `copy`. `copy` copies referenced local media into `assets/` beside the report and rewrites the paths in `html`, `markdown` and `astro-markdown`                                                                                                                                                                                                                                    |
 | `--allow-missing-assets`        | boolean | `false`      | Warn instead of fail on missing assets                                                                                                                                                                                                                              |
@@ -364,6 +375,42 @@ observe or declare assertion counts; absence means unknown, not zero. When docum
 and execution formats are requested together, `documented` and `executed` each carry
 their own `files`, `counts`, and optional `unasserted`, matching the two human summary
 lines.
+
+### Flag defaults in the config file
+
+Any flag in the table above can be given a default in
+`executable-stories.config.mjs` / `.js` / `.json`, keyed by its name without the
+dashes. Anything typed on the command line wins, so a CI step can still correct
+a project setting without editing the repo.
+
+```js
+// executable-stories.config.mjs
+export default {
+  defaults: {
+    'output-dir': 'docs',
+    'html-title': 'Checkout Stories',
+    'html-architecture': true,
+    'html-stale-after-days': 14,
+    'ticket-url-template': 'https://jira.example.com/browse/{ticket}',
+  },
+};
+```
+
+The same key works in `executable-stories.config.json`, which is how the non-JS
+adapters (Go, Ruby, Rust, pytest, JUnit 5, xUnit) configure the CLI — they reach
+the prebuilt binary rather than the library, so the file is their only way to set
+these. A number is accepted wherever a flag takes a string (`14` reads as `"14"`),
+and a repeatable flag such as `--webhook-url` takes a list.
+
+A key that is not a flag, or a value of the wrong type, is an error naming the
+key: a setting that silently does nothing is the expensive kind. `config` and
+`help` are refused — the first is already resolved by the time the file is read,
+the second is not a setting.
+
+`synthesize-stories` and `no-synthesize-stories` are one setting under two
+names, so set whichever reads better (`'synthesize-stories': false` and
+`'no-synthesize-stories': true` mean the same thing) and either is overridden by
+either flag on the command line. Setting both against each other is an error.
 
 ### `compare`
 

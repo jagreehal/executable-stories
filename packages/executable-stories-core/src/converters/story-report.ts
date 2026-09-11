@@ -288,6 +288,7 @@ function buildScenario(
   tc: TestCaseResult,
   featureId: string,
   scenarioRefs?: Map<string, ReportScenario>,
+  options?: StoryReportOptions,
 ): ReportScenario {
   const titleRaw = tc.story.scenario?.trim() || '(untitled scenario)';
   const id = `${featureId}--${reportSlug(titleRaw) || `case-${tc.id}`}`;
@@ -315,9 +316,14 @@ function buildScenario(
 
   const tickets = tc.story.tickets;
   if (tickets && tickets.length > 0) {
-    scenario.tickets = tickets.map((t) =>
-      t.url ? { id: t.id, url: t.url } : { id: t.id },
-    );
+    // A ticket the adapter gave a URL keeps it; the template fills in the rest,
+    // here rather than in one formatter so every surface that reads a
+    // StoryReport links a ticket to the same place.
+    const template = options?.ticketUrlTemplate;
+    scenario.tickets = tickets.map((t) => {
+      const url = t.url ?? (template ? template.replace('{ticket}', t.id) : undefined);
+      return url ? { id: t.id, url } : { id: t.id };
+    });
   }
 
   if (tc.story.covers && tc.story.covers.length > 0) {
@@ -358,6 +364,7 @@ function buildFeature(
   group: TestCaseResult[],
   scenarioRefs?: Map<string, ReportScenario>,
   declaration?: FeatureDeclaration,
+  options?: StoryReportOptions,
 ): ReportFeature {
   const id = `feature-${reportSlug(relSourceFile.replace(/\.[^.]+$/, '')) || 'untitled'}`;
   const title = declaration?.title ?? deriveFeatureTitle(group, relSourceFile);
@@ -365,7 +372,7 @@ function buildFeature(
   const scenarios: ReportScenario[] = [];
 
   for (const tc of group) {
-    const scenario = buildScenario(tc, id, scenarioRefs);
+    const scenario = buildScenario(tc, id, scenarioRefs, options);
     scenarios.push(scenario);
     addToSummary(summary, scenario.status, scenario.durationMs);
   }
@@ -419,10 +426,26 @@ export interface StoryReportIndex {
 }
 
 /**
+ * How the report is built, beyond the run itself.
+ *
+ * Deliberately thin: this converter translates, it does not present.
+ * `ticketUrlTemplate` earns its place because the id → URL rule is the
+ * project's rather than the adapter's, and every surface that reads a
+ * StoryReport needs the same answer.
+ */
+export interface StoryReportOptions {
+  /** URL template for tickets that carry no URL of their own. `{ticket}` is the id. */
+  ticketUrlTemplate?: string;
+}
+
+/**
  * Convert a canonical TestRunResult into a frozen-shape StoryReport for UI renderers.
  */
-export function toStoryReport(run: TestRunResult): StoryReport {
-  return toStoryReportWithIndex(run).report;
+export function toStoryReport(
+  run: TestRunResult,
+  options?: StoryReportOptions,
+): StoryReport {
+  return toStoryReportWithIndex(run, options).report;
 }
 
 /**
@@ -431,7 +454,10 @@ export function toStoryReport(run: TestRunResult): StoryReport {
  * scenarios. The index is built after the unique-id fixups, so it always holds
  * the final ids.
  */
-export function toStoryReportWithIndex(run: TestRunResult): {
+export function toStoryReportWithIndex(
+  run: TestRunResult,
+  options?: StoryReportOptions,
+): {
   report: StoryReport;
   index: StoryReportIndex;
 } {
@@ -456,7 +482,7 @@ export function toStoryReportWithIndex(run: TestRunResult): {
   const features: ReportFeature[] = [];
   for (const [rel, group] of groups) {
     features.push(
-      buildFeature(rel, group, scenarioRefs, declarations.get(rel)),
+      buildFeature(rel, group, scenarioRefs, declarations.get(rel), options),
     );
   }
 

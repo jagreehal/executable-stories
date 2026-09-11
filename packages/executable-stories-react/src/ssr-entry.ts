@@ -62,6 +62,8 @@ export interface RenderReportToHtmlOptions {
   share?: boolean;
   /** Command the share dialog hands over, e.g. `npx executable-stories share reports/`. */
   shareCommand?: string;
+  /** Draw the "Architecture, as it ran" span section (default false). `--html-architecture`. */
+  architecture?: boolean;
 }
 
 const ROOT_ID = "es-report-root";
@@ -76,7 +78,7 @@ function escapeJsonForScript(json: string): string {
 const HLJS_URL = "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/es/highlight.min.js";
 const HLJS_CSS_LIGHT = "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css";
 const HLJS_CSS_DARK = "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css";
-const MERMAID_URL = "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs";
+const MERMAID_URL = "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
 
 /** Build the CDN <head> styles + the bottom-of-body init module script. */
 function cdnAssets(syntaxHighlighting: boolean, mermaid: boolean): { head: string; body: string } {
@@ -137,10 +139,11 @@ export function renderReportToHtml(
     scenarioHistory,
     share = false,
     shareCommand = "",
+    architecture = false,
   } = options;
 
   const markup = renderToStaticMarkup(
-    createElement(Report, { report, title }),
+    createElement(Report, { report, title, architecture }),
   );
 
   const cdn = cdnAssets(syntaxHighlighting, mermaid);
@@ -171,11 +174,12 @@ export function renderReportToHtml(
   // module (cdn.body) would race the client takeover and is dropped. The hljs
   // stylesheet (cdn.head) is still required to colour the React-owned tokens.
   const cdnBody = interactive ? "" : cdn.body;
+  const architectureAttr = architecture ? ` data-es-architecture="true"` : "";
   const shareAttrs = share
     ? ` data-es-share="true"${shareCommand ? ` data-es-share-cmd="${escapeHtml(shareCommand)}"` : ""}`
     : "";
   const islandConfigAttrs = interactive
-    ? ` data-es-syntax="${syntaxHighlighting ? "true" : "false"}" data-es-mermaid="${mermaid ? "true" : "false"}" data-es-stale-days="${Number.isFinite(staleAfterDays) && staleAfterDays >= 0 ? staleAfterDays : 7}"${shareAttrs}`
+    ? ` data-es-syntax="${syntaxHighlighting ? "true" : "false"}" data-es-mermaid="${mermaid ? "true" : "false"}" data-es-stale-days="${Number.isFinite(staleAfterDays) && staleAfterDays >= 0 ? staleAfterDays : 7}"${shareAttrs}${architectureAttr}`
     : "";
   const rootAttrs = interactive
     ? ` id="${ROOT_ID}" data-title="${escapeHtml(title)}"${islandConfigAttrs}`

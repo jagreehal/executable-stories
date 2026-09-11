@@ -50,7 +50,10 @@ export function MermaidView({ entry, load }: { entry: ReportDocMermaid; load: Me
         mermaid.initialize({
           startOnLoad: false,
           securityLevel: "strict",
-          theme: prefersDark(ref.current) ? "dark" : "default",
+          // "neutral" in light: the same theme the static, no-JS render uses
+          // in ssr-entry, so a diagram keeps its colours when the island takes
+          // over.
+          theme: prefersDark(ref.current) ? "dark" : "neutral",
         });
         // mermaid.parse is the library's own syntax check. Running it first
         // turns a broken diagram into a message naming the problem, and keeps

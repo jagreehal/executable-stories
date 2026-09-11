@@ -84,6 +84,29 @@ executable-stories format reports/raw-run.json --format markdown \
 executable-stories format reports/raw-run.json --format span-graph \
   --output-dir reports --output-name index --baseline last-release/raw-run.json
 
+# The same architecture as a section inside the HTML report (opt-in: only an
+# instrumented run has anything to draw).
+executable-stories format reports/raw-run.json --format html --html-architecture
+
+# Link ticket ids wherever they render (HTML, markdown, confluence,
+# astro-markdown, story-report-json). Without it a ticket is plain text unless
+# the adapter attached a URL. --permalink-base-url does the same for source
+# links, --trace-url-template for trace ids.
+executable-stories format reports/raw-run.json --format html \
+  --ticket-url-template 'https://jira.example.com/browse/{ticket}'
+
+# Any flag above can be a project default in executable-stories.config.mjs
+# (or .json, which is how the non-JS adapters configure the CLI). The command
+# line still wins; an unknown key or a wrong type is an error naming the key.
+#   export default {
+#     defaults: {
+#       'output-dir': 'docs',
+#       'html-title': 'Checkout Stories',
+#       'html-architecture': true,
+#       'ticket-url-template': 'https://jira.example.com/browse/{ticket}',
+#     },
+#   };
+
 # Read from stdin
 cat raw-run.json | executable-stories format --stdin --format markdown
 

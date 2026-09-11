@@ -103,6 +103,12 @@ export interface ReportInteractiveProps {
   scenarioHistory?: ScenarioHistoryMap;
   /** Show the Share button in the header (default false). `--html-share` turns it on. */
   share?: boolean;
+  /**
+   * Draw the "Architecture, as it ran" section (default false). Only an
+   * instrumented suite has anything to draw, and the span picture is a
+   * specialist view. `--html-architecture` turns it on.
+   */
+  architecture?: boolean;
   /** Command the share dialog hands over. Default: `npx executable-stories share reports/`. */
   shareCommand?: string;
 }
@@ -181,6 +187,7 @@ function ReportInteractiveView({
   staleAfterDays = 7,
   scenarioHistory,
   share = false,
+  architecture = false,
   shareCommand,
 }: ReportInteractiveViewProps) {
   // Search, status, tags and detail live in the URL fragment, so a filtered
@@ -455,14 +462,14 @@ function ReportInteractiveView({
                       <ReportMeta />
                     </>
                   )}
-                  {/* Outside `hideHeader`, deliberately. That flag drops the
-                      duplicate title block for a page that renders its own
-                      <h1> (the Astro/Starlight docs site); the architecture is
-                      content, and the docs site is the surface it matters most
-                      on. Shows the whole run rather than the filtered view: a
-                      search narrows which scenarios you read, not which
+                  {/* Opt-in (`architecture`), and outside `hideHeader`
+                      deliberately: that flag drops the duplicate title block
+                      for a page that renders its own <h1> (the Astro/Starlight
+                      docs site), and the architecture is content rather than
+                      title. Shows the whole run rather than the filtered view:
+                      a search narrows which scenarios you read, not which
                       components the run exercised. */}
-                  <ReportSpanGraph />
+                  {architecture ? <ReportSpanGraph /> : null}
                   <ReportFreshness
                     lastRunMs={reportLastRunMs(report)}
                     ciUrl={report.ci?.url}

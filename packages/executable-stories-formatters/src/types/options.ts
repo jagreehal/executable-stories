@@ -96,6 +96,22 @@ export interface FormatterOptions {
   /** Output routing configuration */
   output?: OutputConfig;
 
+  /**
+   * Link templates that apply to every format that can render a link.
+   *
+   * One place to say "this is where our tickets live", rather than repeating
+   * it per format: markdown, confluence and astro-markdown take these as their
+   * default, and the StoryReport (HTML report, Astro pages, story-report-json)
+   * resolves ticket URLs from `ticketUrlTemplate`. A per-format option of the
+   * same name still wins where one is set.
+   */
+  /** Base URL for source permalinks. E.g., "https://github.com/user/repo/blob/main" */
+  permalinkBaseUrl?: string;
+  /** URL template for ticket links. `{ticket}` is the id. E.g., "https://jira.example.com/browse/{ticket}" */
+  ticketUrlTemplate?: string;
+  /** URL template for trace links. `{traceId}` is the trace id. */
+  traceUrlTemplate?: string;
+
   /** Cucumber JSON specific options */
   cucumberJson?: {
     /** Pretty-print JSON output. Default: false */
@@ -137,6 +153,13 @@ export interface FormatterOptions {
     staleAfterDays?: number;
     /** Show the Share button in the interactive report header. Default: false. */
     share?: boolean;
+    /**
+     * Draw the "Architecture, as it ran" section (the run's span graph) above
+     * the features. Default: false. Only an instrumented run has anything to
+     * draw, so it is opt-in rather than a section most reports would leave
+     * empty. `--html-architecture`.
+     */
+    architecture?: boolean;
     /** Command the share dialog shows. Default: `npx executable-stories share <output-dir>`. */
     shareCommand?: string;
   };
@@ -335,6 +358,9 @@ export interface ResolvedFormatterOptions {
     idSalt: string;
     meta?: { toolName?: string; toolVersion?: string };
   };
+  permalinkBaseUrl: string | undefined;
+  ticketUrlTemplate: string | undefined;
+  traceUrlTemplate: string | undefined;
   html: {
     title: string;
     syntaxHighlighting: boolean;
@@ -342,6 +368,7 @@ export interface ResolvedFormatterOptions {
     staleAfterDays: number;
     share: boolean;
     shareCommand: string | undefined;
+    architecture: boolean;
   };
   historyStore: HistoryStore | undefined;
   junit: {

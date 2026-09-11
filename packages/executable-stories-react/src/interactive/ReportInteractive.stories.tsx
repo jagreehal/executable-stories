@@ -40,12 +40,26 @@ export const Default: Story = {
  * against one path quietly losing the section.
  */
 export const ShowsSpanGraph: Story = {
-  args: { report: kitchenSinkReport() },
+  args: { report: kitchenSinkReport(), architecture: true },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(
       canvas.getByRole('heading', { name: 'Architecture, as it ran' }),
     ).toBeVisible();
+  },
+};
+
+/**
+ * And only when asked for: the same report without `architecture` draws no
+ * diagram.
+ */
+export const SpanGraphOffByDefault: Story = {
+  args: { report: kitchenSinkReport() },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(
+      canvas.queryByRole('heading', { name: 'Architecture, as it ran' }),
+    ).toBeNull();
   },
 };
 
@@ -56,7 +70,7 @@ export const ShowsSpanGraph: Story = {
  * surface it matters most on.
  */
 export const SpanGraphSurvivesHiddenHeader: Story = {
-  args: { report: kitchenSinkReport(), hideHeader: true },
+  args: { report: kitchenSinkReport(), hideHeader: true, architecture: true },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(

@@ -135,6 +135,9 @@ checked whether the run can draw it for you:
 ```bash
 executable-stories format reports/raw-run.json --format span-graph \
   --output-dir reports --output-name index
+
+# ...or as a section inside the HTML report
+executable-stories format reports/raw-run.json --format html --html-architecture
 ```
 
 If the run carries OTel spans this writes the architecture it actually exercised,

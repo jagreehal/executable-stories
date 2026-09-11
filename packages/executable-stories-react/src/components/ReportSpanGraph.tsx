@@ -82,7 +82,7 @@ export function ReportSpanGraph() {
 
       <DocMermaid entry={{ kind: "mermaid", phase: "static", code }} />
 
-      <table className="mt-2 w-full text-left text-sm">
+      <table className="mt-2 w-full border-collapse text-left text-sm">
         <caption className="sr-only">
           Each component and the scenarios that exercised it
         </caption>
@@ -114,7 +114,7 @@ export function ReportSpanGraph() {
                   {node.scenarioIds.map((id) => (
                     <li key={id}>
                       {/* The card sets id={scenario.id}, so this jumps to it. */}
-                      <a href={`#${id}`} className="text-xs underline underline-offset-2">
+                      <a href={`#${id}`} className="text-xs text-link underline underline-offset-2 hover:text-foreground">
                         {titleById.get(id) ?? id}
                       </a>
                     </li>

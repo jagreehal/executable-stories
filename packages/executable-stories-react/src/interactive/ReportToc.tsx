@@ -28,23 +28,61 @@ export function TocContent({ onNavigate }: { onNavigate?: () => void }) {
   );
 
   useEffect(() => {
-    if (typeof IntersectionObserver === "undefined") return;
+    if (typeof window === "undefined") return;
     const els = scenarioIds
       .map((id) => document.getElementById(id))
       .filter((el): el is HTMLElement => el !== null);
     if (els.length === 0) return;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-        if (visible[0]) setActiveId(visible[0].target.id);
-      },
-      { rootMargin: "-8% 0px -80% 0px" },
-    );
-    els.forEach((el) => observer.observe(el));
-    return () => observer.disconnect();
+    // Measured from every card on each scroll, not from IntersectionObserver
+    // entries. An observer callback only carries the elements whose visibility
+    // just CHANGED, so once the page is scrolled past the last card nothing
+    // changes again and the highlight stays stuck on whichever scenario
+    // crossed the band last — the reported bug: at the bottom of the report the
+    // sidebar named a card several screens up.
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      // The reading line: a fifth down the viewport. Active = the last card
+      // that has crossed it, or the first card when none has yet.
+      //
+      // At the very bottom of the document the line stops moving, so the last
+      // few cards can never cross it and the highlight sticks several screens
+      // above what fills the screen. There the whole viewport is the line: the
+      // last card that has started wins.
+      const atBottom =
+        window.scrollY + window.innerHeight >=
+        document.documentElement.scrollHeight - 2;
+      const line = atBottom ? window.innerHeight : window.innerHeight * 0.2;
+      let active = els[0]!;
+      let best = -Infinity;
+      let firstId: string | null = null;
+      let firstTop = Infinity;
+      for (const el of els) {
+        const top = el.getBoundingClientRect().top;
+        if (top <= line && top > best) {
+          best = top;
+          active = el;
+        }
+        if (top < firstTop) {
+          firstTop = top;
+          firstId = el.id;
+        }
+      }
+      setActiveId(best === -Infinity ? firstId : active.id);
+    };
+
+    const onScroll = () => {
+      if (frame === 0) frame = requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      if (frame !== 0) cancelAnimationFrame(frame);
+    };
   }, [scenarioIds]);
 
   if (report.features.length === 0) return null;

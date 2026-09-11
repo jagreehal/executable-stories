@@ -33,7 +33,11 @@ import { buildCheck, renderCheck } from './check';
 import { checkLinks, formatLinkReport } from './check-links';
 import { pickAutoBaseline } from './compare/auto-baseline';
 import { runCompletion } from './completion';
-import { loadConfig } from './config.js';
+import {
+  loadConfig,
+  resolveConfigDefaults,
+  resolveSynthesizeStories,
+} from './config.js';
 import {
   getDeploymentStatus,
   getEnvironmentDrift,
@@ -246,7 +250,14 @@ ${presetHelpLines()
   --attach-images               Markdown keeps local screenshot/video paths and prints the
                                 'gh pr comment --attach' command that uploads them (gh 2.99+)
   --html-share                  Show the Share button in the HTML report (hidden by default)
+  --html-architecture           Draw "Architecture, as it ran" from the run's OTel spans in the
+                                HTML report (hidden by default; needs an instrumented run)
   --html-stale-after-days <n>   Days before the HTML report shows a stale warning; 0 disables (default: 7)
+  --ticket-url-template <url>   Link ticket ids everywhere they are rendered. {ticket} is the id,
+                                e.g. https://jira.example.com/browse/{ticket}
+  --permalink-base-url <url>    Base URL for source permalinks in markdown/confluence/astro-markdown,
+                                e.g. https://github.com/org/repo/blob/main
+  --trace-url-template <url>    Link trace ids in markdown/astro-markdown. {traceId} is the id
   --asset-mode <mode>         Asset bundling: "none" (default) or "copy"
   --allow-missing-assets      Warn on missing assets instead of failing
   --stdin                       Read JSON from stdin instead of file
@@ -450,7 +461,13 @@ interface CliArgs {
   htmlNoSyntaxHighlighting: boolean;
   htmlNoMermaid: boolean;
   htmlShare: boolean;
+  /** Draw the span-derived architecture section in the HTML report. */
+  htmlArchitecture: boolean;
   htmlStaleAfterDays: number;
+  /** Link templates shared by every format that renders a link. */
+  ticketUrlTemplate?: string;
+  permalinkBaseUrl?: string;
+  traceUrlTemplate?: string;
   /** Markdown keeps local screenshot/video paths, for `gh ... --attach`. */
   attachImages: boolean;
   jsonSummary: boolean;
@@ -519,6 +536,94 @@ function parseTextJsonFormat(flag: string, value: string): 'text' | 'json' {
   }
   return value;
 }
+
+/**
+ * Every flag the `format`-family subcommands accept. Lifted out of the
+ * parseArgs call so the config file's `defaults` can be checked against the
+ * same table, and a key that is not a flag here reported as the typo it is.
+ */
+const CLI_OPTIONS = {
+  format: { type: 'string', default: 'html' },
+  preset: { type: 'string' },
+  open: { type: 'boolean', default: false },
+  baseline: { type: 'string' },
+  'baseline-dir': { type: 'string' },
+  'input-type': { type: 'string', default: 'raw' },
+  'output-dir': { type: 'string', default: 'reports' },
+  'output-name': { type: 'string', default: 'index' },
+  'output-name-timestamp': { type: 'boolean', default: false },
+  'sort-test-cases': { type: 'string', default: 'none' },
+  include: { type: 'string' },
+  exclude: { type: 'string' },
+  'include-tags': { type: 'string' },
+  'exclude-tags': { type: 'string' },
+  // No `default` on either: the resolver below needs "nobody said" to be
+  // distinguishable from "said false", and it owns the real default (on).
+  'synthesize-stories': { type: 'boolean' },
+  'no-synthesize-stories': { type: 'boolean' },
+  'html-title': { type: 'string', default: 'Test Results' },
+  'html-no-syntax-highlighting': { type: 'boolean', default: false },
+  'html-no-mermaid': { type: 'boolean', default: false },
+  'html-share': { type: 'boolean', default: false },
+  'html-architecture': { type: 'boolean', default: false },
+  'attach-images': { type: 'boolean', default: false },
+  'html-stale-after-days': { type: 'string' },
+  'ticket-url-template': { type: 'string' },
+  'permalink-base-url': { type: 'string' },
+  'trace-url-template': { type: 'string' },
+  stdin: { type: 'boolean', default: false },
+  'json-summary': { type: 'boolean', default: false },
+  minify: { type: 'boolean', default: false },
+  'list-format': { type: 'string', default: 'text' },
+  'check-format': { type: 'string', default: 'text' },
+  'explainers-dir': { type: 'string' },
+  'no-fail': { type: 'boolean', default: false },
+  'max-skipped': { type: 'string' },
+  'max-duration': { type: 'string' },
+  'by-owner': { type: 'boolean' },
+  'require-tags': { type: 'string' },
+  'require-tickets': { type: 'string' },
+  'require-scenarios': { type: 'string' },
+  'no-regressions': { type: 'boolean', default: false },
+  'no-ratchet': { type: 'boolean', default: false },
+  'goal-format': { type: 'string', default: 'text' },
+  'triage-format': { type: 'string', default: 'text' },
+  'emit-canonical': { type: 'string' },
+  'slack-webhook': { type: 'string' },
+  'teams-webhook': { type: 'string' },
+  notify: { type: 'string', default: 'on-failure' },
+  'report-url': { type: 'string' },
+  'max-failed-tests': { type: 'string' },
+  'history-file': { type: 'string' },
+  'max-history-runs': { type: 'string' },
+  'webhook-url': { type: 'string', multiple: true },
+  'webhook-header': { type: 'string', multiple: true },
+  'webhook-method': { type: 'string' },
+  'webhook-hmac-secret': { type: 'string' },
+  'webhook-hmac-header': { type: 'string' },
+  'webhook-hmac-timestamp': { type: 'boolean', default: false },
+  'asset-mode': { type: 'string', default: 'none' },
+  'allow-missing-assets': { type: 'boolean', default: false },
+  'pr-summary': { type: 'boolean', default: false },
+  'pr-summary-file': { type: 'string' },
+  'fail-on-regression': { type: 'boolean', default: false },
+  'fail-on-added-failures': { type: 'boolean', default: false },
+  'fail-on-removal': { type: 'boolean', default: false },
+  'fail-on-new': { type: 'boolean', default: false },
+  partial: { type: 'boolean', default: false },
+  'max-regressions': { type: 'string' },
+  'release-policy': { type: 'string' },
+  'changed-files': { type: 'string' },
+  'base-ref': { type: 'string' },
+  'head-ref': { type: 'string' },
+  'fail-on': { type: 'string' },
+  'min-evidence': { type: 'string' },
+  'code-diff': { type: 'string' },
+  patch: { type: 'string' },
+  'strict-code-diff': { type: 'boolean', default: false },
+  config: { type: 'string' },
+  help: { type: 'boolean', default: false },
+} as const satisfies Record<string, { type: 'string' | 'boolean'; multiple?: boolean; default?: unknown }>;
 
 async function parseCliArgs(
   argv: string[],
@@ -773,85 +878,12 @@ async function parseCliArgs(
   if (subcommand === 'import-openapi')
     process.exit(await runImportOpenApi(args.slice(1)));
 
-  // Parse remaining args with node:util parseArgs
-  const { values, positionals } = parseArgs({
+  // Parse remaining args with node:util parseArgs. `tokens` records which
+  // flags were actually typed, which is how a config default knows to yield.
+  const { values, positionals, tokens } = parseArgs({
     args: args.slice(1),
-    options: {
-      format: { type: 'string', default: 'html' },
-      preset: { type: 'string' },
-      open: { type: 'boolean', default: false },
-      baseline: { type: 'string' },
-      'baseline-dir': { type: 'string' },
-      'input-type': { type: 'string', default: 'raw' },
-      'output-dir': { type: 'string', default: 'reports' },
-      'output-name': { type: 'string', default: 'index' },
-      'output-name-timestamp': { type: 'boolean', default: false },
-      'sort-test-cases': { type: 'string', default: 'none' },
-      include: { type: 'string' },
-      exclude: { type: 'string' },
-      'include-tags': { type: 'string' },
-      'exclude-tags': { type: 'string' },
-      'synthesize-stories': { type: 'boolean', default: true },
-      'no-synthesize-stories': { type: 'boolean', default: false },
-      'html-title': { type: 'string', default: 'Test Results' },
-      'html-no-syntax-highlighting': { type: 'boolean', default: false },
-      'html-no-mermaid': { type: 'boolean', default: false },
-      'html-share': { type: 'boolean', default: false },
-      'attach-images': { type: 'boolean', default: false },
-      'html-stale-after-days': { type: 'string' },
-      stdin: { type: 'boolean', default: false },
-      'json-summary': { type: 'boolean', default: false },
-      minify: { type: 'boolean', default: false },
-      'list-format': { type: 'string', default: 'text' },
-      'check-format': { type: 'string', default: 'text' },
-      'explainers-dir': { type: 'string' },
-      'no-fail': { type: 'boolean', default: false },
-      'max-skipped': { type: 'string' },
-      'max-duration': { type: 'string' },
-      'by-owner': { type: 'boolean' },
-      'require-tags': { type: 'string' },
-      'require-tickets': { type: 'string' },
-      'require-scenarios': { type: 'string' },
-      'no-regressions': { type: 'boolean', default: false },
-      'no-ratchet': { type: 'boolean', default: false },
-      'goal-format': { type: 'string', default: 'text' },
-      'triage-format': { type: 'string', default: 'text' },
-      'emit-canonical': { type: 'string' },
-      'slack-webhook': { type: 'string' },
-      'teams-webhook': { type: 'string' },
-      notify: { type: 'string', default: 'on-failure' },
-      'report-url': { type: 'string' },
-      'max-failed-tests': { type: 'string' },
-      'history-file': { type: 'string' },
-      'max-history-runs': { type: 'string' },
-      'webhook-url': { type: 'string', multiple: true },
-      'webhook-header': { type: 'string', multiple: true },
-      'webhook-method': { type: 'string' },
-      'webhook-hmac-secret': { type: 'string' },
-      'webhook-hmac-header': { type: 'string' },
-      'webhook-hmac-timestamp': { type: 'boolean', default: false },
-      'asset-mode': { type: 'string', default: 'none' },
-      'allow-missing-assets': { type: 'boolean', default: false },
-      'pr-summary': { type: 'boolean', default: false },
-      'pr-summary-file': { type: 'string' },
-      'fail-on-regression': { type: 'boolean', default: false },
-      'fail-on-added-failures': { type: 'boolean', default: false },
-      'fail-on-removal': { type: 'boolean', default: false },
-      'fail-on-new': { type: 'boolean', default: false },
-      partial: { type: 'boolean', default: false },
-      'max-regressions': { type: 'string' },
-      'release-policy': { type: 'string' },
-      'changed-files': { type: 'string' },
-      'base-ref': { type: 'string' },
-      'head-ref': { type: 'string' },
-      'fail-on': { type: 'string' },
-      'min-evidence': { type: 'string' },
-      'code-diff': { type: 'string' },
-      patch: { type: 'string' },
-      'strict-code-diff': { type: 'boolean', default: false },
-      config: { type: 'string' },
-      help: { type: 'boolean', default: false },
-    },
+    options: CLI_OPTIONS,
+    tokens: true,
     allowPositionals: true,
     strict: true,
   });
@@ -861,15 +893,44 @@ async function parseCliArgs(
     process.exit(EXIT_SUCCESS);
   }
 
+  // Loaded before anything reads `values`: `defaults` stand in for flags the
+  // user did not type, so every check below sees the same values whether they
+  // came from the command line or the file.
+  const pluginConfig = await loadConfig(values['config'] as string | undefined);
+  // Order matters for a flag with two spellings (see resolveSynthesizeStories),
+  // so keep the sequence as well as the set.
+  const typedOrder = tokens.flatMap((t) => (t.kind === 'option' ? [t.name] : []));
+  const typedFlags = new Set(typedOrder);
+  const configured = resolveConfigDefaults({
+    defaults: pluginConfig.defaults,
+    options: CLI_OPTIONS,
+    typed: typedFlags,
+  });
+  Object.assign(values, configured.values);
+
+  // Two spellings of one setting, resolved together.
+  const synthesize = resolveSynthesizeStories({
+    typed: typedOrder,
+    positive: values['synthesize-stories'],
+    negative: values['no-synthesize-stories'],
+  });
+  const configErrors = [...configured.errors, ...synthesize.errors];
+  if (configErrors.length > 0) {
+    console.error(
+      `Error: invalid "defaults" in the config file:\n` +
+        configErrors.map((e) => `  - ${e}`).join('\n'),
+    );
+    process.exit(EXIT_USAGE);
+  }
+
   // `--preset` is alias expansion over the same format list. Resolved here,
   // BEFORE the input file, so a typo'd preset reports the typo rather than
   // whatever the working directory happens to be missing: an argument error
   // the user can see in their own command line always beats an environment one.
   // `userSetFormat` keeps the parser's "html" default out of preset unions —
   // only a format the user actually typed joins the preset's set.
-  const userSetFormat = args
-    .slice(1)
-    .some((a) => a === '--format' || a.startsWith('--format='));
+  const userSetFormat =
+    typedFlags.has('format') || configured.values['format'] !== undefined;
   const preset = expandPreset(
     values.preset as string | undefined,
     (values.format as string).split(',').map((f) => f.trim()),
@@ -961,8 +1022,6 @@ async function parseCliArgs(
     process.exit(EXIT_USAGE);
   }
 
-  // Load config early so custom formatter names can be validated alongside built-ins
-  const pluginConfig = await loadConfig(values['config'] as string | undefined);
   const customFormatterNames = new Set(
     Object.keys(pluginConfig.formatters ?? {}),
   );
@@ -1024,8 +1083,6 @@ async function parseCliArgs(
   }
 
   const formats = builtInRequested;
-
-  const noSynthesize = values['no-synthesize-stories'] as boolean;
 
   const parseGlobs = (v: string | undefined): string[] =>
     v
@@ -1247,12 +1304,16 @@ async function parseCliArgs(
     exclude: parseGlobs(values.exclude as string | undefined),
     includeTags: parseGlobs(values['include-tags'] as string | undefined),
     excludeTags: parseGlobs(values['exclude-tags'] as string | undefined),
-    synthesizeStories: !noSynthesize,
+    synthesizeStories: synthesize.value,
     htmlTitle: values['html-title'] as string,
     htmlNoSyntaxHighlighting: values['html-no-syntax-highlighting'] as boolean,
     htmlNoMermaid: values['html-no-mermaid'] as boolean,
     htmlShare: values['html-share'] as boolean,
+    htmlArchitecture: values['html-architecture'] as boolean,
     htmlStaleAfterDays,
+    ticketUrlTemplate: values['ticket-url-template'] as string | undefined,
+    permalinkBaseUrl: values['permalink-base-url'] as string | undefined,
+    traceUrlTemplate: values['trace-url-template'] as string | undefined,
     attachImages: values['attach-images'] as boolean,
     jsonSummary: values['json-summary'] as boolean,
     minify: values['minify'] as boolean,
@@ -2639,8 +2700,15 @@ async function generateReports(
       syntaxHighlighting: !args.htmlNoSyntaxHighlighting,
       mermaidEnabled: !args.htmlNoMermaid,
       share: args.htmlShare,
+      architecture: args.htmlArchitecture,
       staleAfterDays: args.htmlStaleAfterDays,
     },
+    // Top-level: markdown, confluence, astro-markdown and the StoryReport (the
+    // HTML report, the Astro pages, story-report-json) all read these, so the
+    // CLI says where tickets/sources/traces live exactly once.
+    ...(args.ticketUrlTemplate ? { ticketUrlTemplate: args.ticketUrlTemplate } : {}),
+    ...(args.permalinkBaseUrl ? { permalinkBaseUrl: args.permalinkBaseUrl } : {}),
+    ...(args.traceUrlTemplate ? { traceUrlTemplate: args.traceUrlTemplate } : {}),
     ...(args.attachImages ? { markdown: { attachImages: true } } : {}),
     // --baseline colours the span graph by what the behavioural diff moved.
     // Reuses the flag check/goal/triage/compare already take, so there is no
@@ -2741,6 +2809,7 @@ async function generateReports(
     // nobody discovers a format they have never seen named.
     spansUnused:
       !args.formats.includes('span-graph') &&
+      !args.htmlArchitecture &&
       documented.testCases.some((tc) => (tc.story.otelSpans?.length ?? 0) > 0),
     // Only when markdown was actually written: --attach-images beside
     // --format html has no body to post, and a command naming a file that
@@ -3089,7 +3158,7 @@ function printResult(
     }
     if (result.spansUnused) {
       console.error(
-        'Tip: this run carries OTel spans, so it can draw the architecture it exercised: --format span-graph',
+        'Tip: this run carries OTel spans, so it can draw the architecture it exercised: --format span-graph (a file), --html-architecture (a section in the HTML report)',
       );
     }
     if (
@@ -3838,6 +3907,7 @@ function createDefaultCliArgs(): CliArgs {
     htmlNoMermaid: false,
     attachImages: false,
     htmlShare: false,
+    htmlArchitecture: false,
     htmlStaleAfterDays: 7,
     jsonSummary: false,
     minify: false,
