@@ -225,7 +225,7 @@ called, so timing survives steps recorded in between.
 ### JSON output mechanism
 
 The plugin writes `.executable-stories/raw-run.json` under pytest's root
-directory when the session finishes — no call, and no CI-only gating. Set
+directory when the session finishes, no call, and no CI-only gating. Set
 `EXECUTABLE_STORIES_OUTPUT` to move it; a relative path is resolved against the
 project root, an absolute one is used as given. The file is renamed into place,
 so a reader never sees a half-written run. `EXECUTABLE_STORIES_QUIET` silences
@@ -237,8 +237,8 @@ tests come and go:
 | Field | Meaning |
 |---|---|
 | `coveredSourceFiles` | Every file the run executed a test in, whether or not it produced a story, so deleting a file's last scenario retires it |
-| `incompleteSourceFiles` | Files the run cannot speak for — a skipped test, a broken fixture or teardown, a module that failed to import, a test that failed before `story.init` — so their scenarios are kept |
-| `runScope` | `"filtered"` for `-k`, `-m`, `--deselect`, `--last-failed`, a `file.py::test` node id, or a run that ended early — `-x`, `--maxfail`, Ctrl-C, an internal or usage error; otherwise `"full"` |
+| `incompleteSourceFiles` | Files the run cannot speak for (a skipped test, a broken fixture or teardown, a module that failed to import, a test that failed before `story.init`), so their scenarios are kept |
+| `runScope` | `"filtered"` for `-k`, `-m`, `--deselect`, `--last-failed`, a `file.py::test` node id, or a run that ended early (`-x`, `--maxfail`, Ctrl-C, an internal or usage error); otherwise `"full"` |
 | `gitSha` | The commit the run describes, from CI's environment or `git rev-parse HEAD` |
 
 Source paths are relative to the project root, which is what keys the stored
@@ -373,20 +373,20 @@ s.expect_step("the profile carries the right name", || assert_eq!(profile.name, 
 `start_timer()` returns a token tied to the step that was current when it was
 called, so timing survives steps recorded in between. `fn_step` and `expect_step`
 wrap the work a step describes: they time it, re-panic if it panicked, and return
-its value. Rust has no assertion counter, so `expect_step` declares one — a bare
+its value. Rust has no assertion counter, so `expect_step` declares one. A bare
 marker followed by `assert!` stays unobserved, which is not the same as zero.
 
 ### JSON output mechanism
 
 The first `Story` registers a process-exit hook, so the run JSON is written with
 no setup. It lands at `.executable-stories/raw-run.json` under the project root;
-set `EXECUTABLE_STORIES_OUTPUT` to change that — a relative path resolves against
-the project root, an absolute one is used as given. The file is renamed into
+set `EXECUTABLE_STORIES_OUTPUT` to change that. A relative path resolves against
+the project root, and an absolute one is used as given. The file is renamed into
 place, so a reader never sees a half-written run. Call `write_results()` directly
 only to control when the file appears.
 
 Cargo builds each file under `tests/` as its own binary, and every binary writes
-the same default path — as do doctests, which `rustdoc` runs as processes of its
+the same default path, as do doctests, which `rustdoc` runs as processes of its
 own. Keep story tests in one file, or give each binary its own output path and
 format the runs separately.
 
@@ -397,7 +397,7 @@ Each run also records what produced it:
 | `startedAtMs` / `finishedAtMs` | When the binary ran, which is what stamps a scenario's freshness in the report |
 | `gitSha` | The commit the run describes, from CI's environment or `git rev-parse HEAD` |
 | `packageVersion` | The adapter version that wrote the run |
-| `runScope` | `"filtered"` when the test binary's arguments narrowed the run — a positional filter, `--skip`, or `--ignored`; otherwise `"full"` |
+| `runScope` | `"filtered"` when the test binary's arguments narrowed the run (a positional filter, `--skip`, or `--ignored`); otherwise `"full"` |
 
 ### Complete example
 
@@ -528,15 +528,15 @@ Story.expect("the total is 80") { assertEquals(80, total) }
 
 Output is written automatically by `StoryTestExecutionListener`, which is registered via
 the JUnit Platform `ServiceLoader` mechanism. Add the dependency and it fires on suite
-completion, writing `.executable-stories/raw-run.json` relative to the working directory —
-the project directory under both Gradle and Maven. `EXECUTABLE_STORIES_OUTPUT` overrides
+completion, writing `.executable-stories/raw-run.json` relative to the working directory,
+which is the project directory under both Gradle and Maven. `EXECUTABLE_STORIES_OUTPUT` overrides
 the path, and `EXECUTABLE_STORIES_QUIET` silences the `next:` hint the listener prints to
 stderr. The file is renamed into place, so a watch task reading it while a run finishes
 always sees a whole document.
 
 The run also reports `coveredSourceFiles`, every test class that executed, so a class
 emptied of scenarios is distinguishable from one this run never reached, and
-`incompleteSourceFiles` for any container that did not succeed or was skipped — the JUnit Platform reports
+`incompleteSourceFiles` for any container that did not succeed or was skipped. The JUnit Platform reports
 an enclosing class as successful even when a `@TestFactory` inside it failed, and a broken
 factory otherwise looks exactly like a class whose scenarios were deleted. A skipped test marks its
 class the same way, so switching one off keeps what it last documented. Acting on the
@@ -663,11 +663,11 @@ Story.Expect("the total is 80", () => Assert.Equal(80, total));
 ### JSON output mechanism
 
 Output is written automatically on process exit. It lands in
-`.executable-stories/raw-run.json` under the test project directory — found by
+`.executable-stories/raw-run.json` under the test project directory, found by
 walking up from the test assembly, because `dotnet test` runs the host out of
 `bin/<config>/<tfm>` and the working directory would otherwise bury the file
-there. `EXECUTABLE_STORIES_OUTPUT` overrides the path — a relative one resolves
-against that same project directory, so it cannot land back under `bin/` — and
+there. `EXECUTABLE_STORIES_OUTPUT` overrides the path; a relative one resolves
+against that same project directory, so it cannot land back under `bin/`.
 `EXECUTABLE_STORIES_PROJECT_ROOT` overrides the directory both resolve against.
 Every run is written; `EXECUTABLE_STORIES_QUIET` silences the `next:` hint the
 collector prints to stderr.

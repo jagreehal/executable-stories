@@ -1,0 +1,96 @@
+---
+title: Report shows fields in order
+description: And in middle of Then
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+`story.and()` in the middle of a Then block, where auto-And would have applied anyway.
+
+## The test
+
+<Tabs syncKey="framework">
+
+<TabItem label="Vitest" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-vitest';
+import { it } from 'vitest';
+
+it("Report shows fields in order", ({ task }) => {
+  story.init(task);
+  story.given('a report exists for account "A1"');
+  story.when("the user downloads the report");
+  story.then('the report header should be "Account Report"');
+  story.and('the first column should be "Date"');
+  story.and('the second column should be "Amount"');
+});
+```
+
+</TabItem>
+
+<TabItem label="Jest" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-jest';
+
+it("Report shows fields in order", () => {
+  story.init();
+  story.given('a report exists for account "A1"');
+  story.when("the user downloads the report");
+  story.then('the report header should be "Account Report"');
+  story.and('the first column should be "Date"');
+  story.and('the second column should be "Amount"');
+});
+```
+
+</TabItem>
+
+<TabItem label="Playwright" icon="seti:typescript">
+
+```typescript
+import { test } from '@playwright/test';
+import { story } from 'executable-stories-playwright';
+
+test("Report shows fields in order", async ({}, testInfo) => {
+  story.init(testInfo);
+  story.given('a report exists for account "A1"');
+  story.when("the user downloads the report");
+  story.then('the report header should be "Account Report"');
+  story.and('the first column should be "Date"');
+  story.and('the second column should be "Amount"');
+});
+```
+
+</TabItem>
+
+<TabItem label="Cypress" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-cypress';
+
+it("Report shows fields in order", () => {
+  story.init();
+  story.given('a report exists for account "A1"');
+  story.when("the user downloads the report");
+  story.then('the report header should be "Account Report"');
+  story.and('the first column should be "Date"');
+  story.and('the second column should be "Amount"');
+});
+```
+
+</TabItem>
+
+</Tabs>
+
+## What the report renders
+
+```markdown
+### ✅ Report shows fields in order
+
+- **Given** a report exists for account "A1"
+- **When** the user downloads the report
+- **Then** the report header should be "Account Report"
+- **And** the first column should be "Date"
+- **And** the second column should be "Amount"
+```

@@ -440,6 +440,11 @@ export class ReportGenerator {
         idSalt: options.cucumberMessages?.idSalt ?? "",
         meta: options.cucumberMessages?.meta,
       },
+      // Top-level link templates are the default for every format that renders a
+      // link; a per-format option of the same name still wins below.
+      permalinkBaseUrl: options.permalinkBaseUrl,
+      ticketUrlTemplate: options.ticketUrlTemplate,
+      traceUrlTemplate: options.traceUrlTemplate,
       html: {
         title: options.html?.title ?? "Test Results",
         syntaxHighlighting: options.html?.syntaxHighlighting ?? true,
@@ -447,6 +452,7 @@ export class ReportGenerator {
         staleAfterDays: options.html?.staleAfterDays ?? 7,
         share: options.html?.share ?? false,
         shareCommand: options.html?.shareCommand,
+        architecture: options.html?.architecture ?? false,
       },
       historyStore: options.historyStore,
       junit: {
@@ -465,9 +471,9 @@ export class ReportGenerator {
         suiteSeparator: options.markdown?.suiteSeparator ?? " - ",
         includeFrontMatter: options.markdown?.includeFrontMatter ?? false,
         includeSummaryTable: options.markdown?.includeSummaryTable ?? false,
-        permalinkBaseUrl: options.markdown?.permalinkBaseUrl,
-        ticketUrlTemplate: options.markdown?.ticketUrlTemplate,
-        traceUrlTemplate: options.markdown?.traceUrlTemplate,
+        permalinkBaseUrl: options.markdown?.permalinkBaseUrl ?? options.permalinkBaseUrl,
+        ticketUrlTemplate: options.markdown?.ticketUrlTemplate ?? options.ticketUrlTemplate,
+        traceUrlTemplate: options.markdown?.traceUrlTemplate ?? options.traceUrlTemplate,
         includeSourceLinks: options.markdown?.includeSourceLinks ?? true,
         customRenderers: options.markdown?.customRenderers,
         attachImages: options.markdown?.attachImages ?? false,
@@ -486,8 +492,8 @@ export class ReportGenerator {
         groupBy: options.confluence?.groupBy ?? "file",
         sortScenarios: options.confluence?.sortScenarios ?? "source",
         pretty: options.confluence?.pretty ?? true,
-        permalinkBaseUrl: options.confluence?.permalinkBaseUrl,
-        ticketUrlTemplate: options.confluence?.ticketUrlTemplate,
+        permalinkBaseUrl: options.confluence?.permalinkBaseUrl ?? options.permalinkBaseUrl,
+        ticketUrlTemplate: options.confluence?.ticketUrlTemplate ?? options.ticketUrlTemplate,
       },
       astro: {
         assetsDir: options.astro?.assetsDir ?? "public/stories/assets",
@@ -501,9 +507,9 @@ export class ReportGenerator {
           sortScenarios: options.astro?.markdown?.sortScenarios ?? "source",
           suiteSeparator: options.astro?.markdown?.suiteSeparator ?? " - ",
           includeSourceLinks: options.astro?.markdown?.includeSourceLinks ?? true,
-          permalinkBaseUrl: options.astro?.markdown?.permalinkBaseUrl,
-          ticketUrlTemplate: options.astro?.markdown?.ticketUrlTemplate,
-          traceUrlTemplate: options.astro?.markdown?.traceUrlTemplate,
+          permalinkBaseUrl: options.astro?.markdown?.permalinkBaseUrl ?? options.permalinkBaseUrl,
+          ticketUrlTemplate: options.astro?.markdown?.ticketUrlTemplate ?? options.ticketUrlTemplate,
+          traceUrlTemplate: options.astro?.markdown?.traceUrlTemplate ?? options.traceUrlTemplate,
           customRenderers: options.astro?.markdown?.customRenderers,
           scenarioAnchor: options.astro?.markdown?.scenarioAnchor,
           scenarioBadge: options.astro?.markdown?.scenarioBadge,
@@ -892,6 +898,7 @@ export class ReportGenerator {
       case "story-report-json": {
         const formatter = new StoryReportJsonFormatter({
           pretty: this.options.storyReportJson.pretty,
+          ticketUrlTemplate: this.options.ticketUrlTemplate,
         });
         return formatter.format(run);
       }
@@ -936,7 +943,9 @@ export class ReportGenerator {
     // bundle that touches this module, HTML output requested or not.
     // eslint-disable-next-line no-restricted-syntax
     const { renderReportToHtml } = await import("executable-stories-react/ssr");
-    const { report, index } = toStoryReportWithIndex(run);
+    const { report, index } = toStoryReportWithIndex(run, {
+      ticketUrlTemplate: this.options.ticketUrlTemplate,
+    });
 
     // Join the run-keyed history store onto report scenario ids so the
     // interactive report can render a per-scenario run timeline.
@@ -967,6 +976,7 @@ export class ReportGenerator {
       mermaid: this.options.html.mermaidEnabled,
       staleAfterDays: this.options.html.staleAfterDays,
       share: this.options.html.share,
+      architecture: this.options.html.architecture,
       shareCommand:
         this.options.html.shareCommand ??
         `npx --package executable-stories-formatters executable-stories share ${quoteShellArgument(outputPath)}`,

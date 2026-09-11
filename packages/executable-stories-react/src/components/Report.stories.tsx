@@ -37,7 +37,7 @@ export const FullReport: Story = {
  * features. The single most comprehensive render of the report component.
  */
 export const KitchenSink: Story = {
-  args: { report: kitchenSinkReport() },
+  args: { report: kitchenSinkReport(), architecture: true },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole("heading", { name: "Checkout", level: 2 })).toBeVisible();
@@ -48,13 +48,28 @@ export const KitchenSink: Story = {
     await expect(canvas.getAllByRole("alert")[0]).toHaveTextContent(/received \{ id/);
     // A ticket badge renders.
     await expect(canvas.getByText("SHOP-101")).toBeVisible();
-    // The kitchen sink's scenarios carry OTel spans, so the run-level
-    // architecture section renders above the features. ReportInteractive
-    // composes its own header, so it asserts this separately — if the two
-    // paths ever diverge, one of the two stories fails.
+    // Spans plus `architecture` put the section above the features.
+    // ReportInteractive composes its own header and asserts this separately, so
+    // if the two paths diverge one of the two stories fails.
     await expect(
       canvas.getByRole("heading", { name: "Architecture, as it ran" }),
     ).toBeVisible();
+  },
+};
+
+/**
+ * Off unless asked for. Same report as KitchenSink, spans and all — only the
+ * flag differs, so this holds the section to being opt-in.
+ */
+export const ArchitectureHiddenByDefault: Story = {
+  args: { report: kitchenSinkReport() },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(
+      canvas.queryByRole("heading", { name: "Architecture, as it ran" }),
+    ).toBeNull();
+    // The rest of the report is untouched.
+    await expect(canvas.getByRole("heading", { name: "Checkout", level: 2 })).toBeVisible();
   },
 };
 

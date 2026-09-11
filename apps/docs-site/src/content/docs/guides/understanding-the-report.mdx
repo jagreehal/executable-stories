@@ -24,11 +24,11 @@ The reporter turns story metadata and test results into Markdown and HTML. Each 
 
 Scenarios show a status icon based on step results, with this **precedence**:
 
-1. **❌** — Any step failed  
-2. **✅** — All steps passed  
-3. **📝** — All steps are todo (or fixme on Playwright)  
-4. **⏩** — All steps are skipped  
-5. **⚠️** — Mixed (e.g. some passed, some skipped)
+1. **❌**: Any step failed  
+2. **✅**: All steps passed  
+3. **📝**: All steps are todo (or fixme on Playwright)  
+4. **⏩**: All steps are skipped  
+5. **⚠️**: Mixed (e.g. some passed, some skipped)
 
 So a scenario is marked failed if any step failed, even if others passed or were skipped.
 
@@ -41,13 +41,13 @@ You can override with `scenarioHeadingLevel` / `storyHeadingLevel` in reporter o
 
 ## What appears in the report
 
-- **Scenario title** — The scenario heading normally comes from the test title used with `story.init(...)`. If you attach explicit story metadata in a framework-native pattern, that story title is what the report renders.
-- **Steps** — Each `story.given` / `story.when` / `story.then` (and `story.and`, `story.but`) as a bullet. Framework modifiers (skip/todo/fails etc.) are reflected in the step label (e.g. _(skipped)_, _(todo)_).
-- **Planned scenarios** — Behavior you have specified but not built yet appears as a **Planned** scenario. Every adapter can emit one: bodyless `it.todo("title")` (Vitest, Jest), `test.fixme("title")` (Playwright), bodyless `it("title")` (Cypress, via the Mocha reporter), and an explicit `Planned(...)` / `planned(...)` call in Go, Ruby, Rust, pytest, JUnit 5, and xUnit. For the four JS reporters the file must also contain real story tests, so a suite full of todos never leaks into your docs; the explicit calls in Go, Ruby, Rust, pytest, JUnit 5, and xUnit record on their own. Markdown renders the heading with _(planned)_; the HTML report shows a **Planned** badge instead of Pending.
-- **Tags and options** — If you pass `{ tags: [...], meta: {...} }` to `story.init(..., options)`, they can be included (see reporter options).
-- **Step documentation** — Notes, key-value pairs, code blocks, tables, and links added via `story.note`, `story.json`, `story.table`, etc. appear under the corresponding step.
-- **Source link** — If `permalinkBaseUrl` is set (or in GitHub Actions with the built-in fallback), each scenario can get a `Source: [file](url)` line.
-- **Storyboard** — When two or more steps carry a screenshot (e.g. Playwright `await story.screenshot({ page, alt })` after each step) or a [state snapshot](#state-snapshots-storyboards-for-data), the scenario opens with a horizontal filmstrip: one frame per step, captioned with the step keyword, each linking to the full detail under its step. Nothing to configure and nothing separately authored — the storyboard is derived from the step docs, so it appears in the HTML report and on Astro story pages alike. This is the view to show product owners: Given → When → Then as pictures, data, or both.
+- **Scenario title**: The scenario heading normally comes from the test title used with `story.init(...)`. If you attach explicit story metadata in a framework-native pattern, that story title is what the report renders.
+- **Steps**: Each `story.given` / `story.when` / `story.then` (and `story.and`, `story.but`) as a bullet. Framework modifiers (skip/todo/fails etc.) are reflected in the step label (e.g. _(skipped)_, _(todo)_).
+- **Planned scenarios**: Behavior you have specified but not built yet appears as a **Planned** scenario. Every adapter can emit one: bodyless `it.todo("title")` (Vitest, Jest), `test.fixme("title")` (Playwright), bodyless `it("title")` (Cypress, via the Mocha reporter), and an explicit `Planned(...)` / `planned(...)` call in Go, Ruby, Rust, pytest, JUnit 5, and xUnit. For the four JS reporters the file must also contain real story tests, so a suite full of todos never leaks into your docs; the explicit calls in Go, Ruby, Rust, pytest, JUnit 5, and xUnit record on their own. Markdown renders the heading with _(planned)_; the HTML report shows a **Planned** badge instead of Pending.
+- **Tags and options**: If you pass `{ tags: [...], meta: {...} }` to `story.init(..., options)`, they can be included (see reporter options).
+- **Step documentation**: Notes, key-value pairs, code blocks, tables, and links added via `story.note`, `story.json`, `story.table`, etc. appear under the corresponding step.
+- **Source link**: If `permalinkBaseUrl` is set (or in GitHub Actions with the built-in fallback), each scenario can get a `Source: [file](url)` line.
+- **Storyboard**: when two or more steps carry a screenshot (e.g. Playwright `await story.screenshot({ page, alt })` after each step) or a [state snapshot](#state-snapshots-storyboards-for-data), the scenario opens with a horizontal filmstrip: one frame per step, captioned with the step keyword, each linking to the full detail under its step. Nothing to configure and nothing separately authored. The storyboard is derived from the step docs, so it appears in the HTML report and on Astro story pages alike. This is the view to show product owners: Given → When → Then as pictures, data, or both.
 
 <ReportScreenshot
   src="/screenshots/feature-code.png"
@@ -87,7 +87,7 @@ When a scenario fails, the report leads with the error and the step that failed:
 
 Storyboards are not screenshot-only. `story.state({ label?, value })` captures
 what the world looks like at a step as a JSON-serializable snapshot, and any
-step carrying a state doc becomes a filmstrip frame — so API tests, domain
+step carrying a state doc becomes a filmstrip frame, so API tests, domain
 logic, and batch jobs get the same visual walkthrough UI code gets:
 
 ```ts
@@ -112,13 +112,13 @@ The report renders this diff-first:
 - **First appearance shows the snapshot.** The first `Basket` frame renders
   the full value (collapsed behind a summary in Markdown output).
 - **Repeats show the change.** Consecutive snapshots with the same label are
-  diffed at render time — the second frame reads `items[0].qty: added`,
-  `total: 0 → 45` — so the reader sees what the step did, not two blobs to
+  diffed at render time. The second frame reads `items[0].qty: added`,
+  `total: 0 → 45`, so the reader sees what the step did rather than two blobs to
   compare by eye. Diffs are derived, never stored, and never cross scenario
   boundaries.
 - **Labels are lanes.** Snapshot two entities (`Basket` and `Order`) and each
   label gets its own side-by-side lane in consistent order. A step can carry
-  a screenshot and a state — the screen next to the backend record it proves.
+  a screenshot and a state, putting the screen next to the backend record it proves.
 
 The same frames feed the stakeholder surfaces:
 
@@ -134,8 +134,8 @@ There is no size cap, but the JS adapters warn above ~100KB per snapshot.
 Capture the business-relevant projection, not the ORM entity: `{ status,
 total, items }` reads as documentation; forty persistence columns read as
 noise. Done well, this makes the generated site the document of record for
-how a feature behaves — the thing teams otherwise hand-maintain in Confluence
-or TestRail — for backend behaviour as much as UI flows.
+how a feature behaves, the thing teams otherwise hand-maintain in Confluence
+or TestRail, for backend behaviour as much as UI flows.
 
 ## Claims that asserted nothing
 
@@ -156,9 +156,9 @@ many passing scenarios asserted nothing, while Evidence Review grades those clai
 
 When the CLI runs with `--history-file` (or the reporter is configured with `history.filePath`), the interactive HTML report layers run-over-run context on top of the current results:
 
-- **Per-scenario timeline** — a dot per recent run on each scenario card (oldest → newest), with a tooltip summary like "8/10 runs passed · Passing for the last 5 runs".
-- **Flaky badge** — scenarios whose recent runs flip between pass and fail get a **Flaky** badge next to the timeline, so an unreliable scenario can't hide behind a green run.
-- **"Since last run" strip** — one line in the report header summarizing what changed against the previous run: newly failing scenarios (deep-linked), fixed scenarios, and first-seen scenarios. A quiet run says "no behavior changes" rather than nothing.
+- **Per-scenario timeline**: a dot per recent run on each scenario card (oldest → newest), with a tooltip summary like "8/10 runs passed · Passing for the last 5 runs".
+- **Flaky badge**: scenarios whose recent runs flip between pass and fail get a **Flaky** badge next to the timeline, so an unreliable scenario can't hide behind a green run.
+- **"Since last run" strip**: one line in the report header summarizing what changed against the previous run: newly failing scenarios (deep-linked), fixed scenarios, and first-seen scenarios. A quiet run says "no behavior changes" rather than nothing.
 
 All of this is presentation-layer data derived from the history store; the StoryReport JSON contract is unchanged. See [Run history](../reference/formatters-api/#format) in the CLI reference.
 
@@ -169,7 +169,7 @@ report they last read a week ago is usually asking something else: what changed 
 **they** were here.
 
 The interactive report remembers the scenario statuses each reader last saw and opens with
-one line — "Since your last visit (4 days ago): 2 started failing" — with each scenario
+one line, "Since your last visit (4 days ago): 2 started failing", with each scenario
 deep-linked. It stays quiet for a first-time reader, for someone re-opening a run they have
 already seen, and for a new run that changed nothing they had seen.
 
@@ -180,8 +180,8 @@ carries none of it between them.
 ## Finding a scenario, and handing off a failure
 
 The search box matches more than titles. A reader arrives with something from somewhere
-else — a ticket id from the tracker, a string out of a stack trace, a path from a pull
-request — so the query also matches scenario tags, step text, ticket ids, the failing
+else: a ticket id from the tracker, a string out of a stack trace, a path from a pull
+request. So the query also matches scenario tags, step text, ticket ids, the failing
 scenario's error message, and the source file of the feature.
 
 On a red run the failure banner offers **Copy N failures for an agent**: every failing
@@ -212,22 +212,22 @@ Read it as: a green scenario with a stale badge passed **the last time it ran**,
 
 The report you hand a product owner is a page, and their agent lives in a browser. The interactive report registers WebMCP tools on `document.modelContext`, so that agent can ask about the run instead of reading the screen a pixel at a time.
 
-Four reads, answered from the run already embedded in the page — no server, no filesystem, no MCP client:
+Four reads, answered from the run already embedded in the page. No server, no filesystem, no MCP client:
 
-- `list_scenarios` — optionally filtered by status, tag, or source file
-- `get_failing_scenarios` — what broke, with the failing step and its message
-- `get_feature_summary` — counts per feature, for "how are we doing"
-- `get_scenario` — one scenario by id or exact title
+- `list_scenarios`: optionally filtered by status, tag, or source file
+- `get_failing_scenarios`: what broke, with the failing step and its message
+- `get_feature_summary`: counts per feature, for "how are we doing"
+- `get_scenario`: one scenario by id or exact title
 
 And one that changes what the reader is looking at:
 
-- `filter_scenarios` — sets the report's search text, status and tag filters, exactly as if someone had typed and clicked. Omitted fields are left alone; an empty string, `"all"`, or an empty array clears one.
+- `filter_scenarios`: sets the report's search text, status and tag filters, exactly as if someone had typed and clicked. Omitted fields are left alone; an empty string, `"all"`, or an empty array clears one.
 
-When an agent filters the report, a strip appears above the scenario list saying so, with a **Show all** reset. There is no confirmation prompt — filtering a read-only report is not worth a dialogue — but the reader is never left wondering why the page moved. Touch any filter yourself and the strip goes.
+When an agent filters the report, a strip appears above the scenario list saying so, with a **Show all** reset. There is no confirmation prompt, because filtering a read-only report is not worth a dialogue, but the reader is never left wondering why the page moved. Touch any filter yourself and the strip goes.
 
 Every answer carries the run it came from: id, commit, branch, and its age in days. A report is a snapshot, and this is what stops an agent relaying a three-week-old failure as today's news.
 
-Each scenario also carries `assertionState` — `asserted`, `unasserted`, or `unobserved` — alongside per-step `assertions` counts. A scenario that is `passed` and `unasserted` ran and checked nothing, so an agent has no excuse for reporting it as proof. `unobserved` means the adapter has no assertion counter and is not the same claim.
+Each scenario also carries `assertionState` (`asserted`, `unasserted`, or `unobserved`) alongside per-step `assertions` counts. A scenario that is `passed` and `unasserted` ran and checked nothing, so an agent has no excuse for reporting it as proof. `unobserved` means the adapter has no assertion counter and is not the same claim.
 
 Two limits worth knowing:
 
@@ -240,8 +240,8 @@ The four read tools mirror the [MCP server](/guides/mcp-server/)'s names and pay
 
 Reporter options (under `markdown` in framework reporter config) control what’s included:
 
-- **Status icons:** `includeStatusIcons: true` (default) — show ✅❌⏩ etc. for scenario status.
-- **Errors in Markdown:** `includeErrors: true` (default) — include failure messages for failed scenarios.
+- **Status icons:** `includeStatusIcons: true` (default): show ✅❌⏩ etc. for scenario status.
+- **Errors in Markdown:** `includeErrors: true` (default): include failure messages for failed scenarios.
 - **Summary table:** `includeSummaryTable: true` to add a table with start time, duration, and counts.
 - **Metadata block:** `includeMetadata`, `metadata.date`, `metadata.packageVersion`, `metadata.gitSha`.
 - **Source links:** `includeSourceLinks: true` and `permalinkBaseUrl` (or rely on GitHub Actions fallback).

@@ -22,7 +22,7 @@ import { cn } from "../lib/utils";
 // CDN URLs mirror ssr-entry's cdnAssets so the standalone report stays
 // version-pinned and works offline-degraded (falls back to the readable source).
 const HLJS_ESM = "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/es/highlight.min.js";
-const MERMAID_ESM = "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs";
+const MERMAID_ESM = "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
 
 /**
  * Import a module from a CDN URL once, caching the promise. The URL is passed as

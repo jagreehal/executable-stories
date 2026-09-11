@@ -17,9 +17,9 @@ Executable Stories has three related artifacts. A framework's `raw-run.json` is 
 
 **Read `lastRunAtMs` before trusting a green.** A scenario can be passing in the report and not have run since a commit that changed the code under it. Compare it against `lastRunGitSha` and rerun anything you are about to rely on.
 
-**Say so when you narrow a run.** An agent shelling out to `vitest -t` or `jest -t` gets this for free — those adapters read their own filter. Driving Cypress, JUnit 5 or xUnit through a filter means declaring it (`EXECUTABLE_STORIES_FILTERED=1`, or the Cypress reporter option). Undeclared, the run reports no scope, which keeps the file's other scenarios and warns rather than retiring them: incomplete detection leaves stale data, never missing data. The MCP `run_scenario` tool handles this itself.
+**Say so when you narrow a run.** An agent shelling out to `vitest -t` or `jest -t` gets this for free, because those adapters read their own filter. Driving Cypress, JUnit 5 or xUnit through a filter means declaring it (`EXECUTABLE_STORIES_FILTERED=1`, or the Cypress reporter option). Undeclared, the run reports no scope, which keeps the file's other scenarios and warns rather than retiring them: incomplete detection leaves stale data, never missing data. The MCP `run_scenario` tool handles this itself.
 
-**Combine reports explicitly for a stable snapshot.** `executable-stories format reports/by-file --format story-report-json` reads every per-file report without updating or restamping them. Formatting one `raw-run.json` first updates the reports owned by that execution, then renders documentation formats from the accumulated state. Execution formats—JUnit, Cucumber, and the release manifest—always describe only that execution.
+**Combine reports explicitly for a stable snapshot.** `executable-stories format reports/by-file --format story-report-json` reads every per-file report without updating or restamping them. Formatting one `raw-run.json` first updates the reports owned by that execution, then renders documentation formats from the accumulated state. Execution formats (JUnit, Cucumber, and the release manifest) always describe only that execution.
 
 ## Canonical Artifact
 
@@ -80,7 +80,7 @@ executable-stories format reports/by-file \
   --output-name index
 ```
 
-Output: `reports/index.behavior-manifest.json` — source file rollups, tag index, doc coverage, debugger warnings (missing tags, missing source lines, etc.).
+Output: `reports/index.behavior-manifest.json`. It carries source file rollups, a tag index, doc coverage, and debugger warnings (missing tags, missing source lines, and so on).
 
 ## Chat Paste (`agent-text`)
 
@@ -136,17 +136,17 @@ Read-only tools:
 - `list_scenarios` (optional `statuses` / `tags` / `sourceFiles` filters)
 - `get_scenario`
 - `get_failing_scenarios`
-- `get_scenarios_for_paths` — code→scenario via declared `covers`
+- `get_scenarios_for_paths`: code→scenario via declared `covers`
 - `get_feature_summary`
 - `get_scenario_index`
 - `get_behavior_manifest`
-- `get_behavior_diff` — regressed / fixed / added / removed between two reports
-- `get_deployment_status` — latest recorded deployment per environment
-- `get_environment_drift` — scenarios only in one environment and status drift for shared scenarios
+- `get_behavior_diff`: regressed / fixed / added / removed between two reports
+- `get_deployment_status`: latest recorded deployment per environment
+- `get_environment_drift`: scenarios only in one environment and status drift for shared scenarios
 
 Execution tool:
 
-- `run_scenario` — runs one scenario through vitest, jest, playwright, or cypress
+- `run_scenario`: runs one scenario through vitest, jest, playwright, or cypress
 
 Each tool reads StoryReport v1 JSON. By default it uses:
 
@@ -170,14 +170,14 @@ Read tools, answering from the run already embedded in the page:
 - `get_failing_scenarios`
 - `get_feature_summary`
 
-Names and payload shapes mirror the MCP tools above — both go through the shared
-projections in `executable-stories-core/report-queries` — with one licensed
+Names and payload shapes mirror the MCP tools above. Both go through the shared
+projections in `executable-stories-core/report-queries`, with one licensed
 difference: the browser payload has no `hash` field, because scenario content
 hashes come from `node:crypto`.
 
 View tool:
 
-- `filter_scenarios` — sets the report's `search`, `status` and `tags`. Omitted
+- `filter_scenarios`: sets the report's `search`, `status` and `tags`. Omitted
   fields are left alone; an empty string, `"all"`, or an empty array clears one.
   The reader gets a dismissible strip saying an agent filtered the report, with
   a "Show all" reset.
@@ -213,7 +213,7 @@ executable-stories watch reports/raw-run.json \
   --output-name index
 ```
 
-Pair it with the host framework's own watch mode (`vitest --watch`, `jest --watch`, …): tests rerun on code change → raw-run is rewritten → the index regenerates automatically. It is language-agnostic — any adapter that emits a raw-run drives it. Change events are debounced and overlapping runs are coalesced. The same step is available programmatically via `startWatch` / `regenerateArtifacts` from `executable-stories-formatters`.
+Pair it with the host framework's own watch mode (`vitest --watch`, `jest --watch`, …): tests rerun on code change → raw-run is rewritten → the index regenerates automatically. It is language-agnostic, any adapter that emits a raw-run drives it. Change events are debounced and overlapping runs are coalesced. The same step is available programmatically via `startWatch` / `regenerateArtifacts` from `executable-stories-formatters`.
 
 ## CI Recipe
 

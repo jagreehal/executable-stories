@@ -1,0 +1,259 @@
+---
+title: API accepts a JSON payload
+description: DocString (JSON) with doc.json
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+Attach a JSON payload to a step with `story.json()`. The report renders it as formatted JSON, not a wall of escaped string.
+
+## The test
+
+<Tabs syncKey="framework">
+
+<TabItem label="Vitest" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-vitest';
+import { describe, it } from 'vitest';
+
+describe('API', () => {
+  it('API accepts a JSON payload', ({ task }) => {
+    story.init(task);
+    story.given('the client has the following JSON payload');
+    story.json({
+      label: 'Payload',
+      value: {
+        email: 'user@example.com',
+        password: 'secret',
+        rememberMe: true,
+      },
+    });
+    story.when('the client sends the request');
+    story.then('the response status should be 200');
+    story.then('the response body should include "token"');
+  });
+});
+```
+
+</TabItem>
+
+<TabItem label="Jest" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-jest';
+
+describe('API', () => {
+  it('API accepts a JSON payload', () => {
+    story.init();
+    story.given('the client has the following JSON payload');
+    story.json({
+      label: 'Payload',
+      value: {
+        email: 'user@example.com',
+        password: 'secret',
+        rememberMe: true,
+      },
+    });
+    story.when('the client sends the request');
+    story.then('the response status should be 200');
+    story.then('the response body should include "token"');
+  });
+});
+```
+
+</TabItem>
+
+<TabItem label="Playwright" icon="seti:typescript">
+
+```typescript
+import { test } from '@playwright/test';
+import { story } from 'executable-stories-playwright';
+
+test.describe('API', () => {
+  test('API accepts a JSON payload', async ({}, testInfo) => {
+    story.init(testInfo);
+    story.given('the client has the following JSON payload');
+    story.json({
+      label: 'Payload',
+      value: {
+        email: 'user@example.com',
+        password: 'secret',
+        rememberMe: true,
+      },
+    });
+    story.when('the client sends the request');
+    story.then('the response status should be 200');
+    story.then('the response body should include "token"');
+  });
+});
+```
+
+</TabItem>
+
+<TabItem label="Cypress" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-cypress';
+
+describe('API', () => {
+  it('API accepts a JSON payload', () => {
+    story.init();
+    story.given('the client has the following JSON payload');
+    story.json({
+      label: 'Payload',
+      value: {
+        email: 'user@example.com',
+        password: 'secret',
+        rememberMe: true,
+      },
+    });
+    story.when('the client sends the request');
+    story.then('the response status should be 200');
+    story.then('the response body should include "token"');
+  });
+});
+```
+
+</TabItem>
+
+<TabItem label="Go" icon="seti:go">
+
+```go
+import (
+    "testing"
+    es "github.com/jagreehal/executable-stories/packages/executable-stories-go"
+)
+
+func TestAPIAcceptsJSONPayload(t *testing.T) {
+    s := es.Init(t, "API accepts a JSON payload")
+    s.Given("the client has the following JSON payload")
+    s.JSON("Payload", map[string]interface{}{
+        "email":      "user@example.com",
+        "password":   "secret",
+        "rememberMe": true,
+    })
+    s.When("the client sends the request")
+    s.Then("the response status should be 200")
+    s.Then(`the response body should include "token"`)
+}
+```
+
+</TabItem>
+
+<TabItem label="Python" icon="seti:python">
+
+```python
+from executable_stories import story
+
+def test_api_accepts_json_payload():
+    story.init("API accepts a JSON payload")
+    story.given("the client has the following JSON payload")
+    story.json("Payload", {
+        "email": "user@example.com",
+        "password": "secret",
+        "rememberMe": True,
+    })
+    story.when("the client sends the request")
+    story.then("the response status should be 200")
+    story.then('the response body should include "token"')
+```
+
+</TabItem>
+
+<TabItem label="Rust" icon="seti:rust">
+
+```rust
+use executable_stories::Story;
+use serde_json::json;
+
+#[test]
+fn test_api_accepts_json_payload() {
+    let mut s = Story::new("API accepts a JSON payload");
+    s.given("the client has the following JSON payload");
+    s.json("Payload", &json!({
+        "email": "user@example.com",
+        "password": "secret",
+        "rememberMe": true
+    }));
+    s.when("the client sends the request");
+    s.then("the response status should be 200");
+    s.then("the response body should include \"token\"");
+}
+```
+
+</TabItem>
+
+<TabItem label="Kotlin" icon="seti:kotlin">
+
+```kotlin
+import dev.executablestories.junit5.Story
+import org.junit.jupiter.api.Test
+
+class ApiTest {
+    @Test
+    fun `api accepts a json payload`() {
+        Story.init("API accepts a JSON payload")
+        Story.given("the client has the following JSON payload")
+        Story.json("Payload", mapOf(
+            "email" to "user@example.com",
+            "password" to "secret",
+            "rememberMe" to true
+        ))
+        Story.`when`("the client sends the request")
+        Story.then("the response status should be 200")
+        Story.then("the response body should include \"token\"")
+    }
+}
+```
+
+</TabItem>
+
+<TabItem label="C#" icon="seti:c-sharp">
+
+```csharp
+using ExecutableStories.Xunit;
+using Xunit;
+
+public class ApiTests : IDisposable
+{
+    [Fact]
+    public void ApiAcceptsJsonPayload()
+    {
+        Story.Init("API accepts a JSON payload");
+        Story.Given("the client has the following JSON payload");
+        Story.Json("Payload", new
+        {
+            email = "user@example.com",
+            password = "secret",
+            rememberMe = true
+        });
+        Story.When("the client sends the request");
+        Story.Then("the response status should be 200");
+        Story.Then("the response body should include \"token\"");
+    }
+}
+```
+
+</TabItem>
+
+</Tabs>
+
+## What the report renders
+
+````markdown
+### ✅ API accepts a JSON payload
+
+- **Given** the client has the following JSON payload
+  **Payload**
+  ```json
+  {
+    "email": "user@example.com",
+    "password": "secret",
+    "rememberMe": true
+  }
+  ```
+- **When** the client sends the request
+- **Then** the response status should be 200
+- **And** the response body should include "token"
+````

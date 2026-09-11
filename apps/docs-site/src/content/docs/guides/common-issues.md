@@ -9,7 +9,7 @@ description: Troubleshooting missing reports, step errors, and framework-specifi
 
 1. **Reporter is configured**
    - **Jest:** `reporters` must include the Story reporter with options such as `formats`, `outputDir`, `outputName`, and `output: { mode: 'aggregated' }`. See [Jest reporter options](/reference/jest-config/). Also add `setupFilesAfterEnv: ['executable-stories-jest/setup']`.
-   - **Vitest:** `test.reporters` must include the Story reporter. Import from **`executable-stories-vitest/reporter`** (not the main package) so Vitest is not loaded in the config context — otherwise you can see "Vitest failed to access its internal state". See [Vitest reporter options](/reference/vitest-config/).
+   - **Vitest:** `test.reporters` must include the Story reporter. Import from **`executable-stories-vitest/reporter`** (not the main package) so Vitest is not loaded in the config context: otherwise you can see "Vitest failed to access its internal state". See [Vitest reporter options](/reference/vitest-config/).
    - **Playwright:** `reporter` must include the package path with options such as `formats`, `outputDir`, `outputName`, and `output: { mode: 'aggregated' }`. See [Playwright reporter options](/reference/playwright-config/).
 
 2. **At least one story test ran**  
@@ -79,7 +79,7 @@ Playwright uses **`.fail`** (expected failure), not `.fails`. We follow Playwrig
 Story structure is captured as the test runs (when you call `story.init` and the step markers). The reporter can still render scenarios when the test is skipped or todo if the framework exposes that.
 
 - Use the framework’s modifiers on the **test**: `it.skip("...", () => { ... })`, `it.todo("...", () => { ... })`, etc., so the scenario still appears in the report with the right status.
-- A **bodyless** `it.todo("title")` (no callback, so `story.init()` never runs) still appears — as a **Planned** scenario with just its title — as long as the file contains at least one story test (Jest and Vitest). Use it to record specified-but-unimplemented behavior in the living docs.
+- A **bodyless** `it.todo("title")` (no callback, so `story.init()` never runs) still appears, as a **Planned** scenario with just its title, as long as the file contains at least one story test (Jest and Vitest). Use it to record specified-but-unimplemented behavior in the living docs.
 - **Doc methods** (`story.note`, `story.kv`, etc.) are attached to the current step or story and appear in the report when that test runs. If the test is skipped, the scenario may show with no steps or minimal content depending on reporter behavior.
 
 If you see a scenario in the report with no steps or missing doc content, check that the test ran and that `story.init()` and step markers were actually executed.

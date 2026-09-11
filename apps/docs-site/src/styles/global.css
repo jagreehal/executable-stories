@@ -128,3 +128,37 @@ nav.sidebar a {
 nav.sidebar a:hover {
   background: var(--sl-color-accent-low);
 }
+
+/* ── Framework tab strip ──
+   Recipes and Getting Started offer nine adapters. Starlight's tablist scrolls
+   horizontally, which hides the tab a Python or C# reader came for. Wrap instead,
+   so every choice is visible at every width. */
+
+.tablist-wrapper {
+  overflow-x: visible;
+}
+
+.tablist-wrapper [role='tablist'] {
+  flex-wrap: wrap;
+}
+
+.tablist-wrapper [role='tablist'] > .tab > [role='tab'] {
+  padding-inline: 0.85rem;
+}
+
+@media (max-width: 50rem) {
+  .tablist-wrapper [role='tablist'] > .tab > [role='tab'] {
+    padding-inline: 0.6rem;
+    font-size: var(--sl-text-sm);
+  }
+}
+
+/* ── Inline code ──
+   A long identifier (`get_failing_scenarios`) is one unbreakable word. Without
+   this it sets the container's min-content width and scrolls the whole page
+   sideways on a phone. `anywhere` lets it break only when it cannot otherwise
+   fit, so normal-width code spans are untouched. */
+
+:not(pre) > code {
+  overflow-wrap: anywhere;
+}

@@ -66,6 +66,9 @@ export function mountReportIsland(): void {
   // The command the dialog hands over is stamped by the CLI, so it names the
   // report directory this report was actually written to.
   const share = mount.getAttribute("data-es-share") === "true";
+  // Off unless the CLI stamped it (--html-architecture), so the static markup
+  // and the island agree about whether the section is part of this report.
+  const architecture = mount.getAttribute("data-es-architecture") === "true";
   const shareCommand = mount.getAttribute("data-es-share-cmd") ?? undefined;
 
   // Staleness threshold set by the CLI (--html-stale-after-days); 0 disables,
@@ -83,6 +86,7 @@ export function mountReportIsland(): void {
       scenarioHistory: readScenarioHistory(),
       share,
       shareCommand,
+      architecture,
     }),
   );
 }

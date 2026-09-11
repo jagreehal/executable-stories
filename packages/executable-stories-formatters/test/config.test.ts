@@ -3,7 +3,11 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadConfig } from "../src/config.js";
+import {
+  loadConfig,
+  resolveConfigDefaults,
+  resolveSynthesizeStories,
+} from "../src/config.js";
 
 const fixturesDir = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -121,5 +125,124 @@ describe("loadConfig", () => {
       const config = await loadConfig();
       expect(config.formatters?.solo.name).toBe("solo");
     });
+  });
+});
+
+describe("resolveConfigDefaults", () => {
+  const OPTIONS = {
+    "html-title": { type: "string" as const },
+    "html-architecture": { type: "boolean" as const },
+    "html-stale-after-days": { type: "string" as const },
+    "webhook-url": { type: "string" as const, multiple: true },
+  };
+
+  const resolve = (
+    defaults: Record<string, unknown> | undefined,
+    typed: string[] = [],
+  ) => resolveConfigDefaults({ defaults, options: OPTIONS, typed: new Set(typed) });
+
+  it("stands in for a flag the user did not type", () => {
+    const { values, errors } = resolve({ "html-title": "Checkout", "html-architecture": true });
+    expect(errors).toEqual([]);
+    expect(values).toEqual({ "html-title": "Checkout", "html-architecture": true });
+  });
+
+  it("yields to the command line", () => {
+    // The whole point of the `typed` set: a config file is a default, not an
+    // override, or a CI step could not correct one without editing the repo.
+    const { values } = resolve({ "html-title": "Checkout" }, ["html-title"]);
+    expect(values).toEqual({});
+  });
+
+  it("takes a key written with its dashes, the way --help prints it", () => {
+    const { values, errors } = resolve({ "--html-title": "Checkout" });
+    expect(errors).toEqual([]);
+    expect(values).toEqual({ "html-title": "Checkout" });
+  });
+
+  it("reports a key that is not a flag instead of ignoring it", () => {
+    const { values, errors } = resolve({ "html-titel": "Checkout" });
+    expect(values).toEqual({});
+    expect(errors).toEqual(['"html-titel" in the config file\'s defaults is not a CLI option.']);
+  });
+
+  it("reports a value of the wrong type", () => {
+    const { errors } = resolve({ "html-architecture": "yes", "html-title": true });
+    expect(errors).toEqual([
+      '"html-architecture" expects true or false, got string.',
+      '"html-title" expects a string, got boolean.',
+    ]);
+  });
+
+  it("takes a number for a string flag, because that is what anyone writes in JSON", () => {
+    const { values, errors } = resolve({ "html-stale-after-days": 14 });
+    expect(errors).toEqual([]);
+    expect(values).toEqual({ "html-stale-after-days": "14" });
+  });
+
+  it("takes one value or a list for a repeatable flag", () => {
+    expect(resolve({ "webhook-url": "https://a" }).values).toEqual({ "webhook-url": ["https://a"] });
+    expect(resolve({ "webhook-url": ["https://a", "https://b"] }).values).toEqual({
+      "webhook-url": ["https://a", "https://b"],
+    });
+  });
+
+  it("refuses the two flags a config file cannot meaningfully set", () => {
+    // --config is already resolved by the time this file is read, and --help
+    // is not a setting.
+    const { errors } = resolve({ config: "other.js", help: true });
+    expect(errors).toEqual([
+      '"config" cannot be set in the config file\'s defaults.',
+      '"help" cannot be set in the config file\'s defaults.',
+    ]);
+  });
+
+  it("is a no-op for a config with no defaults", () => {
+    expect(resolve(undefined)).toEqual({ values: {}, errors: [] });
+  });
+});
+
+describe("resolveSynthesizeStories", () => {
+  const resolve = (
+    typed: string[],
+    positive?: unknown,
+    negative?: unknown,
+  ) => resolveSynthesizeStories({ typed, positive, negative });
+
+  it("is on when nobody says otherwise", () => {
+    expect(resolve([])).toEqual({ value: true, errors: [] });
+  });
+
+  it("takes the setting from the config file under either spelling", () => {
+    expect(resolve([], false).value).toBe(false);
+    expect(resolve([], true).value).toBe(true);
+    expect(resolve([], undefined, true).value).toBe(false);
+    expect(resolve([], undefined, false).value).toBe(true);
+  });
+
+  it("lets an explicit flag beat the config file, whichever way round", () => {
+    expect(resolve(["synthesize-stories"], undefined, true).value).toBe(true);
+    expect(resolve(["no-synthesize-stories"], true).value).toBe(false);
+  });
+
+  it("gives the last spelling on the command line the final word", () => {
+    // `es --no-synthesize-stories` in an alias, corrected at the prompt.
+    expect(resolve(["no-synthesize-stories", "synthesize-stories"]).value).toBe(true);
+    expect(resolve(["synthesize-stories", "no-synthesize-stories"]).value).toBe(false);
+  });
+
+  it("ignores other flags around it", () => {
+    expect(resolve(["format", "no-synthesize-stories", "output-dir"]).value).toBe(false);
+  });
+
+  it("refuses a config that sets both keys against each other", () => {
+    const { errors } = resolve([], true, true); // "synthesize" and "do not synthesize"
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain("contradict each other");
+  });
+
+  it("accepts both keys when they agree", () => {
+    expect(resolve([], true, false)).toEqual({ value: true, errors: [] });
+    expect(resolve([], false, true)).toEqual({ value: false, errors: [] });
   });
 });

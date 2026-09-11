@@ -1,6 +1,6 @@
 ---
 title: User Stories
-description: 3 scenarios — passed
+description: 3 scenarios passed
 sidebar:
   badge:
     text: Passed

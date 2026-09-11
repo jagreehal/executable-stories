@@ -1,6 +1,6 @@
 ---
 title: Why not Cucumber?
-description: We write code, not Gherkin — no feature files, no step matching, no world object
+description: We write code, not Gherkin. No feature files, no step matching, no world object
 ---
 
 import BeforeAfter from '../../../components/BeforeAfter.astro';
@@ -36,10 +36,10 @@ The reporter outputs **plain Markdown** with natural-language sections. You can 
 
 We **add** story metadata to your existing tests; we don’t replace `describe` / `it` or `test`.
 
-- **Your tests** — You keep `describe()` and `it()` (or `test.describe()` and `test()`). We don’t take over the test lifecycle.
-- **Opt-in docs** — Call `story.init(task)` (or `story.init()` / `story.init(testInfo)` for Jest/Playwright, or `ExecutableStories.init(...)` / `story(...)` in Ruby) at the start of a test, then `story.given`, `story.when`, `story.then` to attach step labels. The scenario title in the report is the **it/test name**.
-- **Modifiers** — Use the framework’s own: `it.skip`, `it.only`, `test.fail`, etc. No custom step registry.
-- **No enforced step order** — Steps are just labels inside one test; filter and run tests with the framework’s normal options (`-t`, `--watch`, etc.).
+- **Your tests**: You keep `describe()` and `it()` (or `test.describe()` and `test()`). We don’t take over the test lifecycle.
+- **Opt-in docs**: Call `story.init(task)` (or `story.init()` / `story.init(testInfo)` for Jest/Playwright, or `ExecutableStories.init(...)` / `story(...)` in Ruby) at the start of a test, then `story.given`, `story.when`, `story.then` to attach step labels. The scenario title in the report is the **it/test name**.
+- **Modifiers**: Use the framework’s own: `it.skip`, `it.only`, `test.fail`, etc. No custom step registry.
+- **No enforced step order**: Steps are just labels inside one test; filter and run tests with the framework’s normal options (`-t`, `--watch`, etc.).
 
 If you want BDD-style wording and shareable docs without a separate Gherkin runtime, executable-stories is built for that.
 

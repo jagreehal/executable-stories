@@ -9,9 +9,9 @@ the button. The test was never about the button.
 
 The fix is a layered structure. Dave Farley describes four:
 
-1. **Test cases** — what the system does, in the language of the business
-2. **DSL** — reusable domain operations the test cases call
-3. **Protocol drivers** — how an operation reaches the system
+1. **Test cases**: what the system does, in the language of the business
+2. **DSL**: reusable domain operations the test cases call
+3. **Protocol drivers**: how an operation reaches the system
 4. **The system under test**
 
 Layers 1 and 2 change when the behaviour changes. Layers 3 and 4 change when the

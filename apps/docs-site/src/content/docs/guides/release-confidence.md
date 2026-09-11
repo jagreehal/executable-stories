@@ -150,8 +150,8 @@ Record a deployment:
 
 Agents can query release evidence through the MCP server:
 
-- `get_deployment_status` — latest deployment per environment
-- `get_environment_drift` — scenarios only in one environment, shared scenarios, and status drift
+- `get_deployment_status`: latest deployment per environment
+- `get_environment_drift`: scenarios only in one environment, shared scenarios, and status drift
 
 Use these with `get_behavior_diff` when an agent needs to answer “is this branch or release safe to merge?”
 

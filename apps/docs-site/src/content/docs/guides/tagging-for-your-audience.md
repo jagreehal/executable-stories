@@ -3,10 +3,10 @@ title: Tagging for your audience
 description: A small tag vocabulary that turns one test suite into persona views for product, design, support, and QA
 ---
 
-The same run JSON can serve every audience — engineers get steps and traces,
-product owners get capabilities, designers get storyboards, support gets a
-behavior catalog. What routes a scenario to the right audience is nothing more
-than tags your tests already support:
+One run JSON serves every audience. Engineers read steps and traces, product
+owners read capabilities, designers read storyboards, support reads a behavior
+catalog. Tags your tests already support are what route a scenario to the right
+reader:
 
 ```ts
 story.init(testInfo, {
@@ -20,33 +20,33 @@ how to surface it as persona views on your Astro site.
 
 ## The vocabulary
 
-None of these are special-cased by the framework — they are conventions the
-views filter and group on. Adopt the ones you need; skip the rest.
+The framework special-cases none of these. They are conventions the views
+filter and group on, so adopt the ones you need and skip the rest.
 
 | Tag | Meaning | Who filters on it |
 |---|---|---|
 | `audience:stakeholder` | Readable by non-engineers: outcome-first title, no internals | Product, leadership |
-| `capability:<name>` | The business capability this verifies (`capability:checkout`) | Product — group by capability, not by file |
-| `journey:<id>:<n>` | Position `n` in an ordered walkthrough — becomes a page at `/journeys/<id>` | Product, design, support |
-| `storyboard` | Carries per-step screenshots — renders as a [visual filmstrip](/guides/understanding-the-report/) | Design |
-| `state:<name>` | A UI state the product can be in — appears on the `/states` thumbnail grid | Design — state catalog |
-| `viewport:<name>` | Layout variant (`viewport:mobile`) — shown side by side within its state | Design — responsive review |
+| `capability:<name>` | The business capability this verifies (`capability:checkout`) | Product: group by capability, not by file |
+| `journey:<id>:<n>` | Position `n` in an ordered walkthrough, which becomes a page at `/journeys/<id>` | Product, design, support |
+| `storyboard` | Carries per-step screenshots, rendered as a [visual filmstrip](/guides/understanding-the-report/) | Design |
+| `state:<name>` | A UI state the product can be in, shown on the `/states` thumbnail grid | Design: state catalog |
+| `viewport:<name>` | Layout variant (`viewport:mobile`), shown side by side within its state | Design: responsive review |
 | `support` | Answers "when a customer does X, what should happen?" | Customer success |
 | `known-issue` | A deliberate limitation, documented honestly (often with `story.but`) | Support, QA |
-| `criticality:<level>` | Business criticality (`criticality:revenue`) | QA, leadership — risk weighting |
+| `criticality:<level>` | Business criticality (`criticality:revenue`) | QA, leadership: risk weighting |
 
 Two existing options complement the tags: `ticket` links a scenario to the
 requirement it verifies (PM coverage questions), and `story.link({ label:
-'Figma — Checkout v3', url })` attaches design references. Links pointing at a
-design tool (Figma, Zeplin, Sketch) — or any link whose label starts with
-"Design" — also surface as a **Design** strip at the top of the scenario's
-story page and of every journey it belongs to, so designers land on the
-mockup next to the proof.
+'Figma: Checkout v3', url })` attaches design references. A link pointing at a
+design tool (Figma, Zeplin, Sketch), or any link whose label starts with
+"Design", also surfaces as a **Design** strip at the top of the scenario's
+story page and of every journey it belongs to. Designers land on the mockup
+next to the proof.
 
 ## Persona views
 
 The `views` config in `executable-stories-astro` mounts one filtered,
-re-grouped index per audience — same collection, different lens:
+re-grouped index per audience. Same collection, different lens:
 
 ```js
 // executable-stories.config.mjs
@@ -81,7 +81,7 @@ export default defineExecutableStories({
 
 Each view gets a page at its `base`, a sidebar group ("Audiences") via
 `storiesSidebar(config)`, and the same interactive index the main `/stories`
-page uses — search, filters, storyboard filmstrips, failure detail. A view
+page uses: search, filters, storyboard filmstrips, failure detail. A view
 whose filters match nothing renders a getting-started note naming the tags it
 expects, so an empty lens explains itself.
 
@@ -106,13 +106,13 @@ test('Guest checkout walkthrough', async ({ page }, testInfo) => {
 });
 ```
 
-Each journey id becomes a page at `/journeys/<id>` — the member scenarios in
-order, rendered as full cards with their storyboards, under one aggregate
-status (`failed` if any member failed; `passed` only when all passed). The
+Each journey id becomes a page at `/journeys/<id>`. The member scenarios run
+in order, rendered as full cards with their storyboards, under one aggregate
+status (`failed` if any member failed, `passed` only when all passed). The
 order suffix is optional; untagged order falls back to source order. Embed a
 journey in prose with `<StoryJourney id="guest-checkout" />`.
 
-Because journeys are a tag convention, they work in every adapter today —
+Because journeys are a tag convention, they work in every adapter today.
 Playwright journeys get filmstrips, and scenarios that capture
 [state snapshots](/guides/understanding-the-report/#state-snapshots-storyboards-for-data)
 show each chapter's final state card, so a data-only journey still ends every
@@ -121,9 +121,9 @@ boundaries: each chapter tells its own before-and-after. Support teams can
 paste `/journeys/<id>` links straight into tickets.
 
 If your CI runs the CLI with `--history-file`, point the site at the same
-store and journey pages add a run-history badge — "7/10 recent runs passed ·
-flaky" — aggregated from the member scenarios (a journey fails a run when any
-member failed it):
+store and journey pages add a run-history badge ("7/10 recent runs passed ·
+flaky") aggregated from the member scenarios. A journey fails a run when any
+member failed it:
 
 ```js
 export default defineExecutableStories({
@@ -135,12 +135,12 @@ export default defineExecutableStories({
 ## The state catalog
 
 `state:<name>` tags feed `/states`: a thumbnail grid of every state the
-product verifiably has, each card a scenario's first screenshot — or, for
-non-UI scenarios, a data-card thumbnail from its first
-[state snapshot](/guides/understanding-the-report/#state-snapshots-storyboards-for-data) —
+product verifiably has. Each card shows a scenario's first screenshot, or for
+non-UI scenarios a data-card thumbnail from its first
+[state snapshot](/guides/understanding-the-report/#state-snapshots-storyboards-for-data),
 linking to its story page. Tag viewport variants (`viewport:mobile`,
-`viewport:desktop`) and they sit side by side within their state — same
-state, two layouts, compared at a glance. Designers browse what shipped, not
+`viewport:desktop`) and they sit side by side within their state, so one
+state's two layouts are compared at a glance. Designers browse what shipped, not
 what a hand-maintained inventory claims.
 
 The tag and the doc verb are one concept at two granularities: `state:<name>`
@@ -156,8 +156,8 @@ executable-stories format reports/raw-run.json --format traceability-csv
 ```
 
 One row per requirement-scenario pair (ticket, requirement status, scenario,
-evidence grade, source, covered code), plus a row per untraced scenario — the
-coverage gaps listed explicitly, not hidden. The `evidence_grade` column is
+evidence grade, source, covered code), plus a row per untraced scenario. The
+coverage gaps are listed explicitly rather than hidden. The `evidence_grade` column is
 the same weak → strong grading the Evidence Review applies (screenshot, OTEL
 trace, mutation score, failing-first verification), so the spreadsheet says
 not just "passed" but how credible the proof is. It is a flat projection of
@@ -168,7 +168,7 @@ the `traceability-matrix` format, so the two can never disagree.
 When the site combines two or more `sources` (a staging run and a production
 run, or one run per repo in a docs hub), a `/drift` page appears: every
 scenario's status per source side by side, mismatches floated to the top.
-Behavior verified in one environment but failing — or missing — in another is
+Behavior verified in one environment but failing, or missing, in another is
 exactly the gap a per-environment report hides. Force it on or off with
 `injectDrift`, move it with `driftBase`.
 

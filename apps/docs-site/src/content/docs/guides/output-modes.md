@@ -235,9 +235,9 @@ Scenario ids carry the title, so a rename looks like a new scenario. Retiring th
 
 | The run says | What happens to scenarios it did not report |
 | --- | --- |
-| `runScope: "full"` — the adapter determined no name filter applied | Retired, with a warning naming each one |
-| `runScope: "filtered"` — a name filter applied | Kept, silently. The run only saw part of the file. |
-| nothing — the adapter cannot tell | Kept, with a warning naming each one |
+| `runScope: "full"`: the adapter determined no name filter applied | Retired, with a warning naming each one |
+| `runScope: "filtered"`: a name filter applied | Kept, silently. The run only saw part of the file. |
+| nothing: the adapter cannot tell | Kept, with a warning naming each one |
 
 Uncertainty preserves data and only certainty removes it, so incomplete detection leaves a stale report rather than deleting work. Adapters that can see their own filter report it; three cannot and take a declaration instead ([filtered runs](/reference/formatters-api/#filtered-runs)).
 
@@ -247,6 +247,6 @@ A report whose test file no longer exists on disk is removed outright: the file 
 
 `reports/by-file/` is ordinary output. Delete a file and its scenarios leave the combined view; delete the directory and the next full test run writes it again (`executable-stories runs reset` does the same).
 
-Do not commit it. Each report carries a `runId` and per-step durations, so every run leaves a dirty tree, and a release gate like `git diff --exit-code` then fails forever while reading as though someone forgot to commit generated docs. Ignore it with `**/<outputDir>/by-file/` — the `**/` matters, since a bare `docs/by-file/` is anchored where it sits and will not match `packages/anything/docs/by-file/` in a monorepo. Most projects ignore the whole `reports/` folder, which covers this; a project that renders docs into a committed directory needs the line.
+Do not commit it. Each report carries a `runId` and per-step durations, so every run leaves a dirty tree, and a release gate like `git diff --exit-code` then fails forever while reading as though someone forgot to commit generated docs. Ignore it with `**/<outputDir>/by-file/`, the `**/` matters, since a bare `docs/by-file/` is anchored where it sits and will not match `packages/anything/docs/by-file/` in a monorepo. Most projects ignore the whole `reports/` folder, which covers this; a project that renders docs into a committed directory needs the line.
 
 In CI it starts empty, which is why CI should run the full suite: that is the one place a complete run is worth insisting on.

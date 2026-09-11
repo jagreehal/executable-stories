@@ -232,10 +232,57 @@ describe('executable-stories format --format span-graph', () => {
     expect(result.stderr).not.toContain('carries OTel spans');
   });
 
-  it('puts the architecture section in the HTML report a person opens', () => {
+  /**
+   * The server-rendered markup, without the inlined island bundle or the
+   * embedded report JSON that follow it — the only part of the page that shows
+   * what actually rendered.
+   */
+  const serverMarkup = (html: string): string =>
+    html.slice(0, html.indexOf('<script type="application/json"'));
+
+  /** The island root's opening tag, where the CLI stamps its config. */
+  const rootTag = (html: string): string => {
+    const start = html.indexOf('<div id="es-report-root"');
+    return html.slice(start, html.indexOf('>', start) + 1);
+  };
+
+  it('puts the architecture section in the HTML report when --html-architecture asks for it', () => {
     // The .span-graph.md file is for a pipeline; the HTML report is what people
-    // actually open, and the section is worth nothing if it only lives beside
-    // the report rather than in it.
+    // open, so the section has to be reachable from inside it — behind a flag,
+    // because most readers are not there for the span picture.
+    ensurePackagedCliBuilt();
+    const dir = tmp();
+    const outputDir = join(dir, 'reports');
+    fs.writeFileSync(join(dir, 'raw-run.json'), JSON.stringify(rawRun(true)));
+
+    const result = spawnSync(
+      'node',
+      [
+        packagedCliPath, 'format', join(dir, 'raw-run.json'),
+        '--format', 'html', '--html-architecture',
+        '--output-dir', outputDir, '--output-name', 'index',
+      ],
+      { cwd: dir, encoding: 'utf8' },
+    );
+    expect(result.status, result.stderr).toBe(0);
+
+    // Only the server-rendered markup counts: the page also inlines the island
+    // bundle (every literal in the component) and the report JSON (every span
+    // attribute), so a bare `html.includes` proves nothing either way.
+    const staticMarkup = serverMarkup(fs.readFileSync(join(outputDir, 'index.html'), 'utf8'));
+    expect(staticMarkup).toContain('Architecture, as it ran');
+    expect(rootTag(fs.readFileSync(join(outputDir, 'index.html'), 'utf8'))).toContain(
+      'data-es-architecture="true"',
+    );
+    expect(staticMarkup).toContain('checkout-api');
+    expect(staticMarkup).toContain('postgres:orders');
+    // The mermaid source ships server-rendered, so the diagram is readable
+    // without JavaScript and by an agent reading the HTML.
+    expect(staticMarkup).toContain('flowchart LR');
+  });
+
+  it('leaves the architecture section out of the HTML report without the flag', () => {
+    // Same instrumented run as the test above, minus the flag.
     ensurePackagedCliBuilt();
     const dir = tmp();
     const outputDir = join(dir, 'reports');
@@ -252,12 +299,12 @@ describe('executable-stories format --format span-graph', () => {
     expect(result.status, result.stderr).toBe(0);
 
     const html = fs.readFileSync(join(outputDir, 'index.html'), 'utf8');
-    expect(html).toContain('Architecture, as it ran');
-    expect(html).toContain('checkout-api');
-    expect(html).toContain('postgres:orders');
-    // The mermaid source ships server-rendered, so the diagram is readable
-    // without JavaScript and by an agent reading the HTML.
-    expect(html).toContain('flowchart LR');
+    expect(serverMarkup(html)).not.toContain('Architecture, as it ran');
+    // And the island is told the same thing, so it cannot redraw the section
+    // when it re-renders over the static markup. Asserted on the root tag, not
+    // the page: the inlined island bundle reads the attribute, so its NAME is
+    // in the file eitherway.
+    expect(rootTag(html)).not.toContain('data-es-architecture');
   });
 
   it('leaves the HTML report untouched when the run carries no spans', () => {

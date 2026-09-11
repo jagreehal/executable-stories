@@ -1,0 +1,91 @@
+---
+title: Document status changes
+description: Explicit state transition
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+Name the before and after state in the step text so the transition reads without the code.
+
+## The test
+
+<Tabs syncKey="framework">
+
+<TabItem label="Vitest" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-vitest';
+import { it } from 'vitest';
+
+it("Document status changes", ({ task }) => {
+  story.init(task);
+  story.given('a document exists with status "draft"');
+  story.when("the user submits the document");
+  story.then('the document status should change to "submitted"');
+  story.then("an audit log entry should be created");
+});
+```
+
+</TabItem>
+
+<TabItem label="Jest" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-jest';
+
+it("Document status changes", () => {
+  story.init();
+  story.given('a document exists with status "draft"');
+  story.when("the user submits the document");
+  story.then('the document status should change to "submitted"');
+  story.then("an audit log entry should be created");
+});
+```
+
+</TabItem>
+
+<TabItem label="Playwright" icon="seti:typescript">
+
+```typescript
+import { test } from '@playwright/test';
+import { story } from 'executable-stories-playwright';
+
+test("Document status changes", async ({}, testInfo) => {
+  story.init(testInfo);
+  story.given('a document exists with status "draft"');
+  story.when("the user submits the document");
+  story.then('the document status should change to "submitted"');
+  story.then("an audit log entry should be created");
+});
+```
+
+</TabItem>
+
+<TabItem label="Cypress" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-cypress';
+
+it("Document status changes", () => {
+  story.init();
+  story.given('a document exists with status "draft"');
+  story.when("the user submits the document");
+  story.then('the document status should change to "submitted"');
+  story.then("an audit log entry should be created");
+});
+```
+
+</TabItem>
+
+</Tabs>
+
+## What the report renders
+
+```markdown
+### ✅ Document status changes
+
+- **Given** a document exists with status "draft"
+- **When** the user submits the document
+- **Then** the document status should change to "submitted"
+- **And** an audit log entry should be created
+```

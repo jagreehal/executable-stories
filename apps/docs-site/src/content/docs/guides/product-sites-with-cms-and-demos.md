@@ -3,7 +3,7 @@ title: Product sites with CMS and demos
 description: Publish customer-facing product demo sites from your Playwright runs with executable-stories-demo
 ---
 
-The `executable-stories-demo` package turns a Playwright run into a published product demo site — a customer-facing page with a hero, a featured scenario video, capability stats, and a list of every verified user journey. Use it to ship the same artefacts your sales-engineering team would build by hand, but always in sync with what the product actually does.
+The `executable-stories-demo` package turns a Playwright run into a published product demo site: a customer-facing page with a hero, a featured scenario video, capability stats, and a list of every verified user journey. Use it to ship the same artefacts your sales-engineering team would build by hand, but always in sync with what the product actually does.
 
 It is the sibling of the [Astro docs site guide](/guides/astro-docs-site/): same generator, different audience. The docs site speaks to engineers; the demo site speaks to buyers.
 
@@ -58,7 +58,7 @@ Edit `demo.config.json`:
     "accent": "#ff5722"
   },
   "seo": {
-    "title": "Acme Checkout — verified user journeys",
+    "title": "Acme Checkout: verified user journeys",
     "description": "Watch the product run end-to-end.",
     "twitter": "@acme",
     "canonical": "https://demo.acme.example.com/"
@@ -83,14 +83,14 @@ Edit `demo.config.json`:
 
 ## Templates
 
-- **`splash`** (default) — product-page chassis: hero with logo + CTA, optional featured scenario with inline media, capability-framed stats, custom feature-grid / narrative / quote sections, scenario list. Designed for customers and prospects.
-- **`dashboard`** — engineering test-report layout: hero, test-mode stats (Passed / Failed / Skipped), story list. The original demo behaviour.
+- **`splash`** (default): product-page chassis: hero with logo + CTA, optional featured scenario with inline media, capability-framed stats, custom feature-grid / narrative / quote sections, scenario list. Designed for customers and prospects.
+- **`dashboard`**: engineering test-report layout: hero, test-mode stats (Passed / Failed / Skipped), story list. The original demo behaviour.
 
 ## Stats modes
 
-- **`capability`** (splash default) — buyer-friendly: total scenarios + verified count.
-- **`test`** (dashboard default) — engineering view: passed / failed / skipped.
-- **`off`** — hide the stats strip entirely.
+- **`capability`** (splash default): buyer-friendly: total scenarios + verified count.
+- **`test`** (dashboard default): engineering view: passed / failed / skipped.
+- **`off`**: hide the stats strip entirely.
 
 ## Featured scenario
 
@@ -104,7 +104,7 @@ Themes that force a single colour scheme (`corporate`, `terminal`, `minimal`, `d
 
 ## SEO and branding
 
-The `seo` and `branding` blocks emit `og:`, `twitter:`, `link[rel=canonical]`, and `link[rel=icon]` tags via Starlight's frontmatter `head:` block. `branding.accent` overrides the active theme's `--demo-accent` token via a sanitised inline style — useful for matching brand colour without forking a theme.
+The `seo` and `branding` blocks emit `og:`, `twitter:`, `link[rel=canonical]`, and `link[rel=icon]` tags via Starlight's frontmatter `head:` block. `branding.accent` overrides the active theme's `--demo-accent` token via a sanitised inline style, useful for matching brand colour without forking a theme.
 
 ## Preview locally
 

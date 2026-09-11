@@ -1,0 +1,117 @@
+---
+title: Render markdown
+description: DocString for Markdown with doc.code
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+Attach Markdown source to a step without the renderer parsing it.
+
+## The test
+
+<Tabs syncKey="framework">
+
+<TabItem label="Vitest" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-vitest';
+import { it } from 'vitest';
+
+it("Render markdown", ({ task }) => {
+  story.init(task);
+  story.given("the markdown input is");
+  story.code({
+    label: "Markdown",
+    content: `# Title\n- Item 1\n- Item 2`,
+    lang: "markdown",
+  });
+  story.when("the user previews the markdown");
+  story.then('the preview should show a heading "Title"');
+  story.then("the preview should show a list with 2 items");
+});
+```
+
+</TabItem>
+
+<TabItem label="Jest" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-jest';
+
+it("Render markdown", () => {
+  story.init();
+  story.given("the markdown input is");
+  story.code({
+    label: "Markdown",
+    content: `# Title\n- Item 1\n- Item 2`,
+    lang: "markdown",
+  });
+  story.when("the user previews the markdown");
+  story.then('the preview should show a heading "Title"');
+  story.then("the preview should show a list with 2 items");
+});
+```
+
+</TabItem>
+
+<TabItem label="Playwright" icon="seti:typescript">
+
+```typescript
+import { test } from '@playwright/test';
+import { story } from 'executable-stories-playwright';
+
+test("Render markdown", async ({}, testInfo) => {
+  story.init(testInfo);
+  story.given("the markdown input is");
+  story.code({
+    label: "Markdown",
+    content: `# Title\n- Item 1\n- Item 2`,
+    lang: "markdown",
+  });
+  story.when("the user previews the markdown");
+  story.then('the preview should show a heading "Title"');
+  story.then("the preview should show a list with 2 items");
+});
+```
+
+</TabItem>
+
+<TabItem label="Cypress" icon="seti:typescript">
+
+```typescript
+import { story } from 'executable-stories-cypress';
+
+it("Render markdown", () => {
+  story.init();
+  story.given("the markdown input is");
+  story.code({
+    label: "Markdown",
+    content: `# Title\n- Item 1\n- Item 2`,
+    lang: "markdown",
+  });
+  story.when("the user previews the markdown");
+  story.then('the preview should show a heading "Title"');
+  story.then("the preview should show a list with 2 items");
+});
+```
+
+</TabItem>
+
+</Tabs>
+
+## What the report renders
+
+```markdown
+### ✅ Render markdown
+
+- **Given** the markdown input is
+    **Markdown**
+    ```markdown
+    # Title
+    - Item 1
+    - Item 2
+    ```
+- **When** the user previews the markdown
+- **Then** the preview should show a heading "Title"
+- **And** the preview should show a list with 2 items
+```

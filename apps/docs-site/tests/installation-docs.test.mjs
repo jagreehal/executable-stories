@@ -7,26 +7,13 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..', '..', '..');
 
-const packageToInstallDoc = {
-  'executable-stories-vitest': path.join(
-    repoRoot,
-    'apps/docs-site/src/content/docs/getting-started/installation-vitest.md',
-  ),
-  'executable-stories-jest': path.join(
-    repoRoot,
-    'apps/docs-site/src/content/docs/getting-started/installation-jest.md',
-  ),
-  'executable-stories-playwright': path.join(
-    repoRoot,
-    'apps/docs-site/src/content/docs/getting-started/installation-playwright.md',
-  ),
-  'executable-stories-cypress': path.join(
-    repoRoot,
-    'apps/docs-site/src/content/docs/getting-started/installation-cypress.md',
-  ),
-};
+const installDocPath = path.join(
+  repoRoot,
+  'apps/docs-site/src/content/docs/getting-started/install.mdx',
+);
 
-const homepageLabels = {
+// Manual setup lives in one page now, one <TabItem> per adapter.
+const packageToTabLabel = {
   'executable-stories-vitest': 'Vitest',
   'executable-stories-jest': 'Jest',
   'executable-stories-playwright': 'Playwright',
@@ -38,44 +25,41 @@ async function readJson(relativePath) {
   return JSON.parse(await readFile(filePath, 'utf8'));
 }
 
-test('JS adapter installation docs include executable-stories-formatters when the package requires it', async () => {
-  for (const [pkgName, installDocPath] of Object.entries(packageToInstallDoc)) {
-    const pkg = await readJson(`packages/${pkgName}/package.json`);
-    const installDoc = await readFile(installDocPath, 'utf8');
-    const requiresFormatters = Object.hasOwn(pkg.peerDependencies ?? {}, 'executable-stories-formatters');
+function tabContent(doc, label) {
+  const start = doc.indexOf(`<TabItem label="${label}"`);
+  if (start === -1) return null;
+  const end = doc.indexOf('</TabItem>', start);
+  return doc.slice(start, end === -1 ? undefined : end);
+}
 
-    if (!requiresFormatters) continue;
+test('every JS adapter has a manual setup tab on the install page', async () => {
+  const installDoc = await readFile(installDocPath, 'utf8');
 
-    assert.match(
-      installDoc,
-      /executable-stories-formatters/,
-      `${pkgName} install docs should mention executable-stories-formatters because it is a peer dependency`,
+  for (const label of Object.values(packageToTabLabel)) {
+    assert.notEqual(
+      tabContent(installDoc, label),
+      null,
+      `Expected a "${label}" tab in the manual setup section of install.mdx`,
     );
   }
 });
 
-test('homepage install snippets stay aligned with JS adapter peer dependencies', async () => {
-  const homeDoc = await readFile(
-    path.join(repoRoot, 'apps/docs-site/src/content/docs/index.mdx'),
-    'utf8',
-  );
+test('JS adapter setup tabs include executable-stories-formatters when the package requires it', async () => {
+  const installDoc = await readFile(installDocPath, 'utf8');
 
-  for (const pkgName of Object.keys(packageToInstallDoc)) {
+  for (const [pkgName, label] of Object.entries(packageToTabLabel)) {
     const pkg = await readJson(`packages/${pkgName}/package.json`);
-    const requiresFormatters = Object.hasOwn(pkg.peerDependencies ?? {}, 'executable-stories-formatters');
+    const requiresFormatters = Object.hasOwn(
+      pkg.peerDependencies ?? {},
+      'executable-stories-formatters',
+    );
 
     if (!requiresFormatters) continue;
 
-    const heading = `**${homepageLabels[pkgName]}:**`;
-    const start = homeDoc.indexOf(heading);
-
-    assert.notEqual(start, -1, `Expected a homepage install snippet for ${pkgName}`);
-
-    const snippet = homeDoc.slice(start, start + 160);
     assert.match(
-      snippet,
+      tabContent(installDoc, label),
       /executable-stories-formatters/,
-      `${pkgName} homepage install snippet should mention executable-stories-formatters because it is a peer dependency`,
+      `The ${label} setup tab should mention executable-stories-formatters because it is a peer dependency of ${pkgName}`,
     );
   }
 });

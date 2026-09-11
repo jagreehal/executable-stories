@@ -1,12 +1,29 @@
 ---
 title: Install
-description: Bootstrap executable-stories into your project with a single command using executable-stories-init.
+description: Set up executable-stories in your project, either with the init CLI or by wiring the adapter yourself.
 ---
 
-import { Tabs, TabItem } from '@astrojs/starlight/components';
+import { Tabs, TabItem, Aside, Steps, CardGrid, LinkCard } from '@astrojs/starlight/components';
 import ReportScreenshot from '../../../components/ReportScreenshot.astro';
 
-Use the `executable-stories-init` CLI to install everything in a single command. Run this inside your project's root directory:
+{/* Let ?framework=Playwright (from the homepage tags) pre-select the tab.
+    Starlight's own restore script reads this key on load. */}
+<script
+  is:inline
+  set:html={`(() => {
+  const labels = ['Vitest','Jest','Playwright','Cypress','Go','Python','Ruby','Rust','Kotlin','C#'];
+  const wanted = new URLSearchParams(location.search).get('framework') || '';
+  const match = labels.find((l) => l.toLowerCase() === wanted.toLowerCase());
+  if (!match) return;
+  try { localStorage.setItem('starlight-synced-tabs__framework', match); } catch {}
+})();`}
+/>
+
+There are two ways in. The init CLI sets up Vitest or Playwright in one command. Every other adapter takes about two minutes by hand.
+
+## Quick start
+
+Run this in your project root:
 
 <Tabs syncKey="pkg">
 <TabItem label="npm">
@@ -32,96 +49,28 @@ yarn create executable-stories
 </TabItem>
 </Tabs>
 
-`executable-stories-init` inspects your project, detects your test framework and workspace layout, asks you a couple of questions, and writes the right config — adapter, reporter, sample story, and `package.json` scripts — so your first report is one `pnpm test` away.
+The CLI reads your project, works out your package manager and workspace layout, asks two or three questions, and writes the adapter, the reporter config, a sample story, and your `package.json` scripts.
 
-## Project requirements
+<Steps>
 
-`executable-stories` is designed to work with a variety of frameworks. If your project uses one of the packages below, please ensure you have at least these versions installed:
+1. **It tells you what it found.** Package manager, TypeScript, monorepo layout.
 
-<div style={{ columns: 2, marginBottom: '1.5rem' }}>
+   ```
+   ◆ executable-stories
+   │  package manager: pnpm
+   │  typescript: yes
+   │  monorepo: yes (3 workspace packages)
+   ```
 
-- Node.js 22+
-- TypeScript 5.6+
-- Vitest 3+
-- Jest 29+
-- Playwright 1.45+
-- Cypress 13+
-- pnpm 9+
-- npm 10+
-- Yarn 4+
+2. **You pick the target packages.** Monorepos only. A single-package repo skips this.
 
-</div>
+3. **You pick a framework.** Vitest for unit and integration tests, Playwright for end-to-end. Anything already in `devDependencies` is flagged and left alone.
 
-The init CLI itself supports **Vitest** and **Playwright** in v0.1. Jest, Cypress, and the non-JS adapters (Ruby, Go, pytest, Rust, JUnit 5, xUnit) can be set up manually — see the per-framework installation pages in the sidebar.
+4. **You approve the plan.** Nothing is written until you confirm. The CLI lists every package it will install, every file it will create, and every script it will patch.
 
-## Installation
+</Steps>
 
-Run this command inside your project's root directory:
-
-<Tabs syncKey="pkg">
-<TabItem label="npm">
-
-```shell
-npm create executable-stories@latest
-```
-
-</TabItem>
-<TabItem label="pnpm">
-
-```shell
-pnpm create executable-stories@latest
-```
-
-</TabItem>
-<TabItem label="yarn">
-
-```shell
-yarn create executable-stories
-```
-
-</TabItem>
-</Tabs>
-
-When you run the command, you'll see a short interactive flow:
-
-**Detected**
-
-The CLI prints what it found: package manager, TypeScript, monorepo layout. No surprises.
-
-```
-◆ executable-stories
-│  package manager: pnpm
-│  typescript: yes
-│  monorepo: yes (3 workspace packages)
-```
-
-**Which package(s) to set up?**
-
-In a monorepo you'll be asked to select target packages. In a single-package repo this prompt is skipped.
-
-**Which framework(s)?**
-
-Pick one or both:
-
-- **Vitest** — unit and integration tests
-- **Playwright** — end-to-end tests
-
-Frameworks already installed in `devDependencies` are shown with an `already installed` hint and won't be re-installed.
-
-**Plan preview**
-
-Before any files are written, the CLI shows exactly what it's about to do — packages to install, files to create, scripts to add — and asks you to confirm.
-
-After you confirm, the command will:
-
-* 📦 Install the framework + the executable-stories adapter + the formatters package
-* 🛠 Write `vitest.config.ts` and/or `playwright.config.ts` wiring up the `StoryReporter`
-* 📝 Drop a working sample story (`src/example.story.test.ts` or `tests/example.story.spec.ts`)
-* 🔧 Patch `package.json` scripts (`test`, optionally `test:e2e`)
-
-## Run your tests
-
-The init CLI does not run your tests for you — it leaves you in control. Once it finishes:
+Then run your tests:
 
 <Tabs syncKey="pkg">
 <TabItem label="npm">
@@ -150,7 +99,7 @@ open reports/executable-stories.html
 </TabItem>
 </Tabs>
 
-You should see one passing story and two report files in `reports/`: `executable-stories.html` (open in a browser) and `executable-stories.md` (commit alongside your code as living documentation).
+You get one passing story and two files in `reports/`. Open `executable-stories.html` in a browser. Commit `executable-stories.md` next to your code.
 
 <ReportScreenshot
   src="/screenshots/hero-report.png"
@@ -159,7 +108,7 @@ You should see one passing story and two report files in `reports/`: `executable
   caption="This is executable-stories.html from the test you just ran. Search it, filter it, toggle dark mode. Click to open the live one."
 />
 
-If you chose Playwright, also install the browser binaries:
+On Playwright, install the browser binaries too:
 
 <Tabs syncKey="pkg">
 <TabItem label="npm">
@@ -185,117 +134,459 @@ yarn playwright install
 </TabItem>
 </Tabs>
 
-## Flags
+## Requirements
 
-Most users won't need flags — the prompts cover everything. For scripting, CI, or agent automation, the CLI accepts:
+<div style={{ columns: 2, marginBottom: '1.5rem' }}>
 
-| Flag | Effect |
-|------|--------|
-| `--vitest` / `--playwright` / `--both` | Choose framework(s) without prompting |
-| `--target <pkg...>` | In a monorepo, set up specific workspace package(s). Pass `root` for the repo root |
-| `--ts` / `--no-ts` | Write a minimal `tsconfig.json` if missing |
-| `--yes`, `-y` | Accept defaults, suppress all prompts (non-interactive) |
-| `--dry-run` | Print the plan but don't write or install anything |
-| `--json` | Emit a machine-readable plan + result (implies `--yes`). Useful for AI agents and CI |
-| `--force` | Overwrite existing config files with different contents |
-| `--interactive` | Force prompts even when stdin is piped |
+- Node.js 22+
+- TypeScript 5.6+
+- Vitest 3+
+- Jest 29+
+- Playwright 1.45+
+- Cypress 13+
+- pnpm 9+
+- npm 10+
+- Yarn 4+
 
-Example — non-interactive Vitest setup in a CI script:
+</div>
 
-<Tabs syncKey="pkg">
-<TabItem label="npm">
+Non-JavaScript adapters have their own floors: Go 1.22, Python 3.12, Rust 1.85 (edition 2024), Java 21 with JUnit 5.12, and the .NET 10 SDK with xUnit v3.
 
-```shell
-npm create executable-stories@latest -- --vitest --yes
+## Manual setup
+
+Pick your framework. The choice follows you across the rest of the docs.
+
+<Tabs syncKey="framework">
+
+<TabItem label="Vitest" icon="seti:typescript">
+
+```bash
+pnpm add -D vitest executable-stories-vitest executable-stories-formatters
+```
+
+In `vitest.config.ts`, import the reporter from the `/reporter` subpath:
+
+```typescript
+import { StoryReporter } from 'executable-stories-vitest/reporter';
+import { defineConfig } from 'vitest/config';
+
+export default defineConfig({
+  test: {
+    reporters: ['default', new StoryReporter()],
+  },
+});
+```
+
+<Aside type="caution" title="Use the /reporter subpath">
+The main entry imports Vitest. Loading it inside a config file produces `Vitest failed to access its internal state`. Always import `StoryReporter` from `executable-stories-vitest/reporter`.
+</Aside>
+
+With no options the reporter writes `reports/index.html` and keeps one canonical report per test source under `reports/by-file/`. For Markdown instead, pass `formats: ['markdown']`, `outputDir: 'docs'`, and `outputName: 'user-stories'`. See [Vitest reporter options](/reference/vitest-config/).
+
+```bash
+pnpm vitest run
 ```
 
 </TabItem>
-<TabItem label="pnpm">
+
+<TabItem label="Jest" icon="seti:typescript">
+
+```bash
+pnpm add -D jest executable-stories-jest executable-stories-formatters
+```
+
+In `jest.config.js`, add both the setup file and the reporter:
+
+```javascript
+export default {
+  // ... your existing config
+  setupFilesAfterEnv: ['executable-stories-jest/setup'],
+  reporters: [
+    'default',
+    [
+      'executable-stories-jest/reporter',
+      {
+        formats: ['markdown'],
+        outputDir: 'docs',
+        outputName: 'user-stories',
+        output: { mode: 'aggregated' },
+      },
+    ],
+  ],
+};
+```
+
+<Aside title="The setup file is not optional">
+Without `setupFilesAfterEnv`, `story.init()` cannot read the test name from `expect.getState()` and your scenarios come out unnamed.
+</Aside>
+
+That writes `docs/user-stories.md` after the run. See [Jest reporter options](/reference/jest-config/).
+
+```bash
+pnpm jest
+```
+
+</TabItem>
+
+<TabItem label="Playwright" icon="seti:typescript">
+
+```bash
+pnpm add -D @playwright/test executable-stories-playwright executable-stories-formatters
+```
+
+In `playwright.config.ts`, reference the reporter by package path so Playwright resolves it:
+
+```typescript
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  reporter: [
+    ['list'],
+    [
+      'executable-stories-playwright/reporter',
+      {
+        formats: ['markdown'],
+        outputDir: 'docs',
+        outputName: 'user-stories',
+        output: { mode: 'aggregated' },
+      },
+    ],
+  ],
+});
+```
+
+That writes `docs/user-stories.md` after the run. See [Playwright reporter options](/reference/playwright-config/).
+
+```bash
+pnpm playwright test
+```
+
+</TabItem>
+
+<TabItem label="Cypress" icon="seti:typescript">
+
+```bash
+pnpm add -D executable-stories-cypress
+```
+
+Cypress runs your tests in a browser, so story metadata travels to Node over `cy.task`. That takes two wires instead of one.
+
+Register the task in `cypress.config.ts`:
+
+```typescript
+import { defineConfig } from 'cypress';
+import { registerExecutableStoriesPlugin } from 'executable-stories-cypress/plugin';
+
+export default defineConfig({
+  e2e: {
+    setupNodeEvents(on) {
+      registerExecutableStoriesPlugin(on);
+    },
+  },
+});
+```
+
+Then import the support file in `cypress/support/e2e.ts`:
+
+```typescript
+import 'executable-stories-cypress/support';
+```
+
+That registers an `afterEach` which ships the collected metadata to Node.
+
+To render a report, either run Cypress with the Mocha reporter:
+
+```bash
+cypress run --reporter executable-stories-cypress/reporter \
+  --reporter-options outputDir=docs,outputName=user-stories
+```
+
+Or call the Module API after `cypress.run()`: `buildRawRunFromCypressResult(result, options)`, then `generateReportsFromRawRun(rawRun, options)`. Both are exported from `executable-stories-cypress/reporter`. See [Cypress reporter options](/reference/cypress-config/).
+
+</TabItem>
+
+<TabItem label="Go" icon="seti:go">
+
+```bash
+go get github.com/jagreehal/executable-stories/packages/executable-stories-go
+```
+
+Add a `TestMain` to each package that should produce a report. `RunAndReport` runs your tests and writes the raw run JSON before exiting:
+
+```go
+package mypackage_test
+
+import (
+	"os"
+	"testing"
+
+	es "github.com/jagreehal/executable-stories/packages/executable-stories-go"
+)
+
+func TestMain(m *testing.M) {
+	os.Exit(es.RunAndReport(m))
+}
+```
+
+It writes `.executable-stories/raw-run.json`. `EXECUTABLE_STORIES_OUTPUT` moves it.
+
+Render it with the formatters CLI, which defaults to that path:
+
+```bash
+go test ./...
+npx --package executable-stories-formatters executable-stories format --format markdown
+```
+
+</TabItem>
+
+<TabItem label="Python" icon="seti:python">
+
+```bash
+pip install executable-stories-pytest
+```
+
+Nothing to configure. The package registers itself as a pytest plugin, so `pytest.ini`, `pyproject.toml`, and `conftest.py` stay untouched. Import and go:
+
+```python
+from executable_stories import story
+```
+
+After the run, the plugin writes `.executable-stories/raw-run.json` under pytest's root directory. `EXECUTABLE_STORIES_OUTPUT` moves it, resolving relative paths against the project root so the file lands in the same place however you invoked pytest. `EXECUTABLE_STORIES_QUIET` silences the `next:` hint on stderr.
+
+```bash
+pytest
+npx --package executable-stories-formatters executable-stories format --format markdown
+```
+
+</TabItem>
+
+<TabItem label="Ruby" icon="seti:ruby">
+
+```bash
+gem install executable-stories-ruby
+```
+
+Or add `gem "executable-stories-ruby"` to your bundle.
+
+For Minitest:
+
+```ruby
+require "minitest/autorun"
+require "executable_stories/minitest"
+```
+
+For RSpec:
+
+```ruby
+require "rspec"
+require "executable_stories/rspec"
+
+ExecutableStories::RSpecPlugin.install!
+```
+
+Install the plugin once before your specs run, then call `story(...)` inside `describe` blocks.
+
+Either plugin writes `.executable-stories/raw-run.json` after the suite finishes.
+
+```bash
+npx --package executable-stories-formatters executable-stories format --format markdown
+```
+
+</TabItem>
+
+<TabItem label="Rust" icon="seti:rust">
+
+```bash
+cargo add executable-stories
+```
+
+For OpenTelemetry tracing, enable the optional feature: `cargo add executable-stories --features otel`.
+
+There is no reporter to register. Import `Story` and the first one installs a process-exit hook:
+
+```rust
+use executable_stories::Story;
+```
+
+It writes `.executable-stories/raw-run.json` under the project root. `EXECUTABLE_STORIES_OUTPUT` moves it, or call `write_results()` to pick the moment yourself. The file is renamed into place, so a reader never catches it half-written.
+
+<Aside type="caution" title="One binary per test file">
+Cargo compiles every file under `tests/` into its own binary, and doctests run as separate processes too. They all write that same default path and overwrite each other. Keep story tests in one file, or give each binary its own `EXECUTABLE_STORIES_OUTPUT` and format the runs separately.
+</Aside>
+
+A story records `pass` or `fail` when it drops. A failing assertion panics, and a story dropped during unwind records `fail`. A `#[test]` returning `Result` is the exception, since `Err` fails without panicking. Route the fallible call through `record_result`:
+
+```rust
+#[test]
+fn parses_a_price() -> Result<(), std::num::ParseIntError> {
+    let mut s = Story::new("parses a price");
+    s.then("the string parses to 499");
+
+    let parsed = s.record_result("499".parse::<u32>())?;
+    assert_eq!(parsed, 499);
+    Ok(())
+}
+```
+
+`s.fail()` sets the status directly if you would rather branch yourself.
+
+```bash
+cargo test
+npx --package executable-stories-formatters executable-stories format --format markdown
+```
+
+</TabItem>
+
+<TabItem label="Kotlin" icon="seti:kotlin">
+
+Gradle (Kotlin DSL):
+
+```kotlin
+testImplementation("io.github.jagreehal:executable-stories-junit5:0.1.0")
+```
+
+Gradle (Groovy DSL):
+
+```groovy
+testImplementation 'io.github.jagreehal:executable-stories-junit5:0.1.0'
+```
+
+Maven:
+
+```xml
+<dependency>
+  <groupId>io.github.jagreehal</groupId>
+  <artifactId>executable-stories-junit5</artifactId>
+  <version>0.1.0</version>
+  <scope>test</scope>
+</dependency>
+```
+
+Requires Java 21 and JUnit 5.12.
+
+Nothing else to configure. `StoryTestExecutionListener` registers itself through JUnit Platform service discovery, so adding the dependency activates it for the whole run. It writes `.executable-stories/raw-run.json` once every test has finished, relative to the working directory, which under Gradle or Maven is the project directory. `EXECUTABLE_STORIES_OUTPUT` sets the path outright. The file is renamed into place, so a watch task always reads a whole document.
+
+```bash
+./gradlew test
+npx --package executable-stories-formatters executable-stories format --format markdown
+```
+
+</TabItem>
+
+<TabItem label="C#" icon="seti:c-sharp">
+
+```bash
+dotnet add package ExecutableStories.Xunit
+```
+
+Requires the .NET 10 SDK and xUnit v3.
+
+Add the recording attribute once, in any file in the test project:
+
+```csharp
+using ExecutableStories.Xunit;
+
+[assembly: StoryRecording]
+```
+
+That covers every test in the assembly. It runs after each test, reads the outcome xUnit already computed, and records the story with the right status, the failure message, and the test class as its suite. Your tests only call `Story.Init` and the step methods.
+
+<Aside type="caution" title="Without the attribute, nothing is recorded">
+No test flushes its own story. `[StoryRecording]` also works on a single class or method for narrower scope, and `Story.RecordAndClear(...)` remains available for hand-rolled setups.
+</Aside>
+
+The raw run JSON lands at `.executable-stories/raw-run.json` under your test project directory when the process exits. `dotnet test` runs the host out of `bin/<config>/<tfm>`, so the adapter walks up from the test assembly to the project file rather than trusting the working directory. `EXECUTABLE_STORIES_OUTPUT` sets the file path and resolves relative paths against that project directory, so it cannot land back under `bin/`. `EXECUTABLE_STORIES_PROJECT_ROOT` changes the directory both resolve against.
+
+```bash
+dotnet test
+npx --package executable-stories-formatters executable-stories format .executable-stories/raw-run.json --format markdown
+```
+
+</TabItem>
+
+</Tabs>
+
+<Aside title="Report generation is shared">
+Every adapter produces the same raw run JSON, and one CLI renders it. If `format` cannot find or parse the file, run `executable-stories doctor`. It reports where the run JSON is, whether it parses, and whether its schema version matches the CLI.
+</Aside>
+
+## Init CLI flags
+
+The prompts cover everything, so most people never touch these. For CI and agents:
+
+| Flag | Effect |
+|------|--------|
+| `--vitest` / `--playwright` / `--both` | Choose frameworks without prompting |
+| `--target <pkg...>` | Set up specific workspace packages. Pass `root` for the repo root |
+| `--ts` / `--no-ts` | Write a minimal `tsconfig.json` if one is missing |
+| `--yes`, `-y` | Accept defaults and suppress prompts |
+| `--dry-run` | Print the plan without writing or installing |
+| `--json` | Emit a machine-readable plan and result. Implies `--yes` |
+| `--force` | Overwrite existing config files that differ |
+| `--interactive` | Force prompts even when stdin is piped |
+
+Non-interactive Vitest setup in a CI script:
 
 ```shell
 pnpm create executable-stories@latest --vitest --yes
 ```
 
-</TabItem>
-<TabItem label="yarn">
-
-```shell
-yarn create executable-stories --vitest --yes
-```
-
-</TabItem>
-</Tabs>
-
-Example — preview what would change in a monorepo without touching anything:
+Preview a monorepo change without touching anything:
 
 ```shell
 pnpm dlx executable-stories-init --both --target apps/web --dry-run
 ```
 
-## What gets installed
-
-Per framework, the CLI adds these to your target package's `devDependencies`:
+Per framework, the CLI adds these to your target's `devDependencies`, skipping anything already installed at any version:
 
 | Framework | Packages |
 |-----------|----------|
 | Vitest | `vitest`, `executable-stories-vitest`, `executable-stories-formatters` |
 | Playwright | `@playwright/test`, `executable-stories-playwright`, `executable-stories-formatters` |
 
-If any of these are already installed (any version), they're skipped — the init CLI never downgrades or re-pins a dependency you've already chosen.
-
-## Manual setup
-
-If you want to skip the CLI or you're on a framework the init CLI doesn't support yet, follow the per-framework guide:
-
-- [Installation (Vitest)](/getting-started/installation-vitest/)
-- [Installation (Jest)](/getting-started/installation-jest/)
-- [Installation (Playwright)](/getting-started/installation-playwright/)
-- [Installation (Cypress)](/getting-started/installation-cypress/)
-- [Installation (Ruby)](/getting-started/installation-ruby/)
-- [Installation (Go)](/getting-started/installation-go/)
-- [Installation (pytest)](/getting-started/installation-pytest/)
-- [Installation (Rust)](/getting-started/installation-rust/)
-- [Installation (JUnit 5)](/getting-started/installation-junit5/)
-- [Installation (xUnit)](/getting-started/installation-xunit/)
-
 ## Troubleshooting
 
 ### My framework wasn't detected
 
-`executable-stories-init` only auto-installs Vitest and Playwright. For other frameworks, follow the manual setup guide linked above.
+The init CLI auto-installs Vitest and Playwright only. Everything else uses the manual setup above.
 
-If you have Vitest or Playwright installed but the CLI didn't pick it up, check that the package appears in your target's `devDependencies` (not `dependencies` of a parent workspace package).
+If Vitest or Playwright is installed but the CLI missed it, check that the package sits in your target's own `devDependencies` rather than a parent workspace package's `dependencies`.
 
 ### "exists; use --force to overwrite"
 
-If you already have a `vitest.config.ts` or `playwright.config.ts`, the CLI won't clobber it. It prints a skip note with the existing path. You have two options:
-
-- Add the `StoryReporter` block from the [Vitest installation guide](/getting-started/installation-vitest/) or [Playwright installation guide](/getting-started/installation-playwright/) into your existing config manually.
-- Re-run with `--force` to overwrite (you'll lose your existing config).
+You already have a `vitest.config.ts` or `playwright.config.ts`, and the CLI will not clobber it. Either copy the reporter block from the manual setup above into your existing config, or re-run with `--force` and lose what you had.
 
 ### Monorepo: it set things up in the wrong package
 
-By default the CLI prompts you to select target packages. If you ran with `--yes` in a monorepo without `--target`, it defaults to the repo root. Re-run with `--target <package-name>` to target a specific workspace package — e.g. `--target apps/web`, or just `--target web` if the name is unambiguous.
+Running `--yes` in a monorepo without `--target` defaults to the repo root. Re-run with `--target apps/web`, or just `--target web` when the name is unambiguous.
 
-### I'm using AI agents to set this up
+### I'm driving this from an AI agent
 
-Pass `--json` to get a parseable plan + result:
+Pass `--json` for a parseable plan and result:
 
 ```shell
 pnpm dlx executable-stories-init --vitest --target apps/web --yes --json
 ```
 
-The output is a single JSON object: `{ ok, plan: { ops, summary }, result: { written, installed, patched, skipped, notes } }`. Pipe it into `jq` or your agent's parser.
+You get one JSON object: `{ ok, plan: { ops, summary }, result: { written, installed, patched, skipped, notes } }`.
 
-If you're using Claude Code or a similar agent, the [`executable-stories-init` skill](https://github.com/jagreehal/executable-stories/blob/main/skills/executable-stories-init/SKILL.md) gives the agent the same checklist the CLI follows, in case it can't run the CLI directly.
+For agents that cannot run the CLI, the [`executable-stories-init` skill](https://github.com/jagreehal/executable-stories/blob/main/skills/executable-stories-init/SKILL.md) hands them the same checklist the CLI follows.
 
-### The installation seems to hang on `pnpm add`
+### It hangs on `pnpm add`
 
-This is almost always a network issue or a missing `pnpm-lock.yaml`. Run the install yourself first to see the error: `cd <target> && pnpm install`. Fix any reported issue, then re-run `executable-stories-init`.
+Almost always a network problem or a missing `pnpm-lock.yaml`. Run the install yourself to see the real error: `cd <target> && pnpm install`. Fix it, then re-run the init CLI.
 
 ## Next
 
-Now that you have executable-stories installed, write your first scenario:
-
-- [First Story (Vitest)](/getting-started/first-story-vitest/)
-- [First Story (Playwright)](/getting-started/first-story-playwright/)
+<CardGrid>
+  <LinkCard
+    title="Write your first story"
+    href="/getting-started/first-story/"
+    description="Five lines of test code and the report they produce."
+  />
+  <LinkCard
+    title="Recipes"
+    href="/recipes/"
+    description="Thirty-two worked scenarios in every supported framework."
+  />
+</CardGrid>
