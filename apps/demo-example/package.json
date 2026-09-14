@@ -14,7 +14,7 @@
     "test": "node -e \"console.log('No tests in demo-example')\""
   },
   "devDependencies": {
-    "@astrojs/starlight": "^0.41.7",
+    "@astrojs/starlight": "^0.42.0",
     "@eslint/js": "^10.0.1",
     "astro": "^7.2.4",
     "astro-mermaid": "^2.1.0",
