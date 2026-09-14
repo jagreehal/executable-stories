@@ -85,7 +85,7 @@
     "tsup": "^8.5.1",
     "tsx": "^4.23.12",
     "typescript": "~6.0.3",
-    "vitest": "^4.1.11",
+    "vitest": "^5.0.0",
     "vitest-mock-extended": "^5.1.1"
   }
 }
