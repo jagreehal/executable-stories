@@ -20,7 +20,7 @@
     "executable-stories-formatters": "workspace:*",
     "@eslint/js": "^10.0.1",
     "@types/node": "^26.2.0",
-    "eslint": "^10.9.0",
+    "eslint": "^10.10.0",
     "eslint-config-executable-stories": "workspace:*",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-executable-stories-vitest": "workspace:*",
