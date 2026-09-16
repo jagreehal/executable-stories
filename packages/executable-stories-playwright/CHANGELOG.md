@@ -1,5 +1,17 @@
 # executable-stories-playwright
 
+## 8.10.9
+
+### Patch Changes
+
+- 72fe21b: **Playwright.** `story.attachSpans()` spans reach the report's trace waterfall.
+  Relative `rawRunPath` and `history.filePath` resolve from the working directory,
+  matching `outputDir` and the Vitest adapter; absolute paths are unchanged.
+
+  **Report.** The share dialog links to docs.executablestories.com.
+
+- executable-stories-formatters@1.19.1
+
 ## 8.10.8
 
 ### Patch Changes

@@ -1,5 +1,15 @@
 # executable-stories-react
 
+## 0.17.1
+
+### Patch Changes
+
+- 72fe21b: **Playwright.** `story.attachSpans()` spans reach the report's trace waterfall.
+  Relative `rawRunPath` and `history.filePath` resolve from the working directory,
+  matching `outputDir` and the Vitest adapter; absolute paths are unchanged.
+
+  **Report.** The share dialog links to docs.executablestories.com.
+
 ## 0.17.0
 
 ### Minor Changes
