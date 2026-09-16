@@ -397,14 +397,14 @@ export default {
 ```
 
 The same key works in `executable-stories.config.json`, which is how the non-JS
-adapters (Go, Ruby, Rust, pytest, JUnit 5, xUnit) configure the CLI — they reach
+adapters (Go, Ruby, Rust, pytest, JUnit 5, xUnit) configure the CLI: they reach
 the prebuilt binary rather than the library, so the file is their only way to set
 these. A number is accepted wherever a flag takes a string (`14` reads as `"14"`),
 and a repeatable flag such as `--webhook-url` takes a list.
 
 A key that is not a flag, or a value of the wrong type, is an error naming the
 key: a setting that silently does nothing is the expensive kind. `config` and
-`help` are refused — the first is already resolved by the time the file is read,
+`help` are refused; the first is already resolved by the time the file is read,
 the second is not a setting.
 
 `synthesize-stories` and `no-synthesize-stories` are one setting under two

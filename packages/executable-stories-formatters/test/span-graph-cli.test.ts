@@ -234,7 +234,7 @@ describe('executable-stories format --format span-graph', () => {
 
   /**
    * The server-rendered markup, without the inlined island bundle or the
-   * embedded report JSON that follow it — the only part of the page that shows
+   * embedded report JSON that follow it, the only part of the page that shows
    * what actually rendered.
    */
   const serverMarkup = (html: string): string =>
@@ -248,7 +248,7 @@ describe('executable-stories format --format span-graph', () => {
 
   it('puts the architecture section in the HTML report when --html-architecture asks for it', () => {
     // The .span-graph.md file is for a pipeline; the HTML report is what people
-    // open, so the section has to be reachable from inside it — behind a flag,
+    // open, so the section has to be reachable from inside it, behind a flag,
     // because most readers are not there for the span picture.
     ensurePackagedCliBuilt();
     const dir = tmp();

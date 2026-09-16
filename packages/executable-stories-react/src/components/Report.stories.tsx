@@ -58,7 +58,7 @@ export const KitchenSink: Story = {
 };
 
 /**
- * Off unless asked for. Same report as KitchenSink, spans and all — only the
+ * Off unless asked for. Same report as KitchenSink, spans and all; only the
  * flag differs, so this holds the section to being opt-in.
  */
 export const ArchitectureHiddenByDefault: Story = {

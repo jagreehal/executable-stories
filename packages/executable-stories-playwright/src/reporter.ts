@@ -3,45 +3,44 @@
  * Generates reports using the executable-stories-formatters package.
  */
 
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import type {
-  Reporter,
   FullConfig,
+  FullResult,
+  Reporter,
   Suite,
   TestCase,
   TestResult,
-  FullResult,
   TestStep,
-} from "@playwright/test/reporter";
-import * as fs from "node:fs";
-import * as path from "node:path";
-import type { StoryMeta } from "executable-stories-formatters";
-import {
-  tryLoadAutotel,
-  shouldInstrumentStep,
-  createTestSpan,
-  createStepSpan,
-  type AutotelApi,
-} from "./otel-reporter-spans.js";
-
+} from '@playwright/test/reporter';
+import type { StoryMeta } from 'executable-stories-formatters';
 // Import from formatters package
 import {
-  ReportGenerator,
   canonicalizeRun,
+  detectCI,
+  loadHistory,
   readGitSha,
   readPackageVersion,
-  detectCI,
-  sendNotifications,
-  toCIInfo,
-  loadHistory,
-  updateHistory,
+  ReportGenerator,
   saveHistory,
+  sendNotifications,
   stripAnsi,
-  type RawRun,
-  type RawTestCase,
-  type RawAttachment,
-  type RawStepEvent,
+  toCIInfo,
+  updateHistory,
   type FormatterOptions,
-} from "executable-stories-formatters";
+  type RawAttachment,
+  type RawRun,
+  type RawStepEvent,
+  type RawTestCase,
+} from 'executable-stories-formatters';
+import {
+  createStepSpan,
+  createTestSpan,
+  shouldInstrumentStep,
+  tryLoadAutotel,
+  type AutotelApi,
+} from './otel-reporter-spans.js';
 
 // Re-export types from formatters for convenience
 export type {
@@ -50,7 +49,7 @@ export type {
   ColocatedStyle,
   OutputRule,
   FormatterOptions,
-} from "executable-stories-formatters";
+} from 'executable-stories-formatters';
 
 // ============================================================================
 // Reporter Options (delegates to FormatterOptions)
@@ -91,7 +90,7 @@ interface CollectedScenario {
   meta: StoryMeta;
   sourceFile: string;
   sourceLine: number;
-  status: "passed" | "failed" | "skipped" | "timedOut" | "interrupted";
+  status: 'passed' | 'failed' | 'skipped' | 'timedOut' | 'interrupted';
   error?: string;
   errorStack?: string;
   durationMs: number;
@@ -126,12 +125,16 @@ function isNameFiltered(config: Partial<FullConfig> | undefined): boolean {
   // and a single-project run still names every scenario in a file.
   if (config.shard != null) return true;
   if (config.grepInvert != null) return true;
-  const patterns = Array.isArray(config.grep) ? config.grep : config.grep ? [config.grep] : [];
-  return patterns.some((pattern) => pattern.source !== ".*");
+  const patterns = Array.isArray(config.grep)
+    ? config.grep
+    : config.grep
+      ? [config.grep]
+      : [];
+  return patterns.some((pattern) => pattern.source !== '.*');
 }
 
 function toRelativePosix(absolutePath: string, projectRoot: string): string {
-  return path.relative(projectRoot, absolutePath).split(path.sep).join("/");
+  return path.relative(projectRoot, absolutePath).split(path.sep).join('/');
 }
 
 const DEFAULT_ATTACHMENT_INLINE_MAX_BYTES = 1024 * 1024; // 1 MB
@@ -151,13 +154,13 @@ function persistAttachment(
   // Attachment already has a body (either string content or a Buffer) — encode
   // it once and we're done. No filesystem I/O required.
   if (raw.body !== undefined) {
-    if (typeof raw.body === "string") {
+    if (typeof raw.body === 'string') {
       return {
         name: raw.name,
         mediaType: raw.contentType,
         path: raw.path,
         body: raw.body,
-        encoding: "IDENTITY",
+        encoding: 'IDENTITY',
       };
     }
     if (Buffer.isBuffer(raw.body) || raw.body instanceof Uint8Array) {
@@ -165,8 +168,8 @@ function persistAttachment(
         name: raw.name,
         mediaType: raw.contentType,
         path: raw.path,
-        body: Buffer.from(raw.body as Buffer | Uint8Array).toString("base64"),
-        encoding: "BASE64",
+        body: Buffer.from(raw.body as Buffer | Uint8Array).toString('base64'),
+        encoding: 'BASE64',
       };
     }
   }
@@ -182,8 +185,8 @@ function persistAttachment(
             name: raw.name,
             mediaType: raw.contentType,
             path: raw.path,
-            body: buf.toString("base64"),
-            encoding: "BASE64",
+            body: buf.toString('base64'),
+            encoding: 'BASE64',
             byteLength: stats.size,
           };
         }
@@ -225,11 +228,27 @@ export default class StoryReporter implements Reporter {
   private packageVersion: string | undefined;
   private gitSha: string | undefined;
   private projectRoot: string = process.cwd();
+
+  /**
+   * Where a relative *output* path is resolved from.
+   *
+   * `projectRoot` is Playwright's `rootDir`, the root of `testDir`. Scenario
+   * ids hash source paths made relative to it, so it must not move. Output
+   * paths are resolved from the cwd instead, like `outputDir` (written through
+   * Node's cwd-relative fs calls) and the Vitest adapter's `rawRunPath`.
+   * Resolving them against `rootDir` put `rawRunPath: "docs/run.json"` in
+   * `e2e/docs/` while `outputDir: "docs"` beside it wrote to `docs/`.
+   */
+  private resolveOutputPath(filePath: string): string {
+    return path.isAbsolute(filePath)
+      ? filePath
+      : path.resolve(process.cwd(), filePath);
+  }
   /**
    * Left unknown until onBegin sees a config. Claiming full coverage without
    * having looked would let a later merge retire scenarios on a guess.
    */
-  private runScope: "full" | "filtered" | undefined;
+  private runScope: 'full' | 'filtered' | undefined;
   /**
    * Every spec file this run executed, story-bearing or not. Collected from all
    * tests rather than from the scenarios, so a file whose last story was
@@ -258,7 +277,7 @@ export default class StoryReporter implements Reporter {
 
   private debug(...args: unknown[]): void {
     if (this.options.debug) {
-      console.error("[executable-stories-playwright][debug]", ...args);
+      console.error('[executable-stories-playwright][debug]', ...args);
     }
   }
 
@@ -266,7 +285,7 @@ export default class StoryReporter implements Reporter {
     this.startTime = Date.now();
     this.rootSuite = suite;
     this.projectRoot = config.rootDir ?? process.cwd();
-    if (config) this.runScope = isNameFiltered(config) ? "filtered" : "full";
+    if (config) this.runScope = isNameFiltered(config) ? 'filtered' : 'full';
     const includeMetadata = this.options.markdown?.includeMetadata ?? true;
     if (includeMetadata) {
       this.packageVersion = readPackageVersion(this.projectRoot);
@@ -328,11 +347,11 @@ export default class StoryReporter implements Reporter {
       this.coveredSourceFiles.add(relative);
       // No story annotation on a test that failed or timed out means the story
       // never got the chance to declare itself.
-      const declared = test.annotations?.some((a) => a.type === "story-meta");
+      const declared = test.annotations?.some((a) => a.type === 'story-meta');
       const brokeEarly =
-        result.status === "failed" ||
-        result.status === "timedOut" ||
-        result.status === "interrupted";
+        result.status === 'failed' ||
+        result.status === 'timedOut' ||
+        result.status === 'interrupted';
       if (!declared && brokeEarly) this.incompleteSourceFiles.add(relative);
     }
 
@@ -342,7 +361,7 @@ export default class StoryReporter implements Reporter {
       if (stack) {
         while (stack.length > 0) {
           const handle = stack.pop()!;
-          handle.endSpan("interrupted test");
+          handle.endSpan('interrupted test');
         }
         this.stepSpanStacks.delete(test.id);
       }
@@ -355,7 +374,9 @@ export default class StoryReporter implements Reporter {
     }
 
     // Find story-meta annotation
-    const storyAnnotation = test.annotations.find((a) => a.type === "story-meta");
+    const storyAnnotation = test.annotations.find(
+      (a) => a.type === 'story-meta',
+    );
     if (!storyAnnotation?.description) return;
 
     try {
@@ -363,7 +384,7 @@ export default class StoryReporter implements Reporter {
 
       // Read autotel OTel spans from annotations
       const otelSpansAnnotation = test.annotations.find(
-        (a) => a.type === "otel-spans",
+        (a) => a.type === 'story-otel-spans',
       );
       if (otelSpansAnnotation?.description) {
         try {
@@ -372,9 +393,9 @@ export default class StoryReporter implements Reporter {
             const valid = spans.filter(
               (s: unknown) =>
                 s != null &&
-                typeof s === "object" &&
-                typeof (s as Record<string, unknown>).spanId === "string" &&
-                typeof (s as Record<string, unknown>).name === "string",
+                typeof s === 'object' &&
+                typeof (s as Record<string, unknown>).spanId === 'string' &&
+                typeof (s as Record<string, unknown>).name === 'string',
             );
             if (valid.length > 0) {
               meta.otelSpans = valid;
@@ -388,7 +409,7 @@ export default class StoryReporter implements Reporter {
       // Get source file and line for sorting
       const sourceFile = test.location?.file
         ? toRelativePosix(test.location.file, this.projectRoot)
-        : "unknown";
+        : 'unknown';
       const sourceLine = (test.location as { line?: number })?.line ?? 1;
 
       // Get error message if failed. Playwright populates these with ANSI
@@ -396,7 +417,7 @@ export default class StoryReporter implements Reporter {
       // garbled escape sequences like "[2mexpect([22m...".
       let error: string | undefined;
       let errorStack: string | undefined;
-      if (result.status === "failed" && result.errors?.length) {
+      if (result.status === 'failed' && result.errors?.length) {
         const err = result.errors[0];
         error = stripAnsi(err.message || String(err));
         errorStack = err.stack ? stripAnsi(err.stack) : undefined;
@@ -408,37 +429,45 @@ export default class StoryReporter implements Reporter {
       // `persistAttachment` helper for the inline-vs-copy decision.
       const persistEnabled = this.options.attachments?.enabled ?? true;
       const inlineMaxBytes =
-        this.options.attachments?.inlineMaxBytes ?? DEFAULT_ATTACHMENT_INLINE_MAX_BYTES;
+        this.options.attachments?.inlineMaxBytes ??
+        DEFAULT_ATTACHMENT_INLINE_MAX_BYTES;
       const attachmentDir =
         this.options.attachments?.dir ??
-        path.join(this.options.outputDir ?? "reports", "attachments");
-      const allAttachments: RawAttachment[] = (result.attachments ?? []).map((a) => {
-        if (!persistEnabled) {
-          let body: string | undefined;
-          let encoding: "BASE64" | "IDENTITY" | undefined;
-          if (a.body !== undefined) {
-            if (typeof a.body === "string") {
-              body = a.body;
-              encoding = "IDENTITY";
-            } else if (Buffer.isBuffer(a.body) || (a.body as unknown) instanceof Uint8Array) {
-              body = Buffer.from(a.body as Buffer | Uint8Array).toString("base64");
-              encoding = "BASE64";
+        path.join(this.options.outputDir ?? 'reports', 'attachments');
+      const allAttachments: RawAttachment[] = (result.attachments ?? []).map(
+        (a) => {
+          if (!persistEnabled) {
+            let body: string | undefined;
+            let encoding: 'BASE64' | 'IDENTITY' | undefined;
+            if (a.body !== undefined) {
+              if (typeof a.body === 'string') {
+                body = a.body;
+                encoding = 'IDENTITY';
+              } else if (
+                Buffer.isBuffer(a.body) ||
+                (a.body as unknown) instanceof Uint8Array
+              ) {
+                body = Buffer.from(a.body as Buffer | Uint8Array).toString(
+                  'base64',
+                );
+                encoding = 'BASE64';
+              }
             }
+            return {
+              name: a.name,
+              mediaType: a.contentType,
+              path: a.path,
+              body,
+              encoding,
+            };
           }
-          return {
-            name: a.name,
-            mediaType: a.contentType,
-            path: a.path,
-            body,
-            encoding,
-          };
-        }
-        return persistAttachment(a, {
-          testId: test.id,
-          attachmentDir,
-          inlineMaxBytes,
-        });
-      });
+          return persistAttachment(a, {
+            testId: test.id,
+            attachmentDir,
+            inlineMaxBytes,
+          });
+        },
+      );
 
       // Deduplicate video attachments by name — Playwright may attach
       // multiple video files per test (e.g. video.webm and video-1.webm).
@@ -452,23 +481,24 @@ export default class StoryReporter implements Reporter {
       // attachment. Referenced by a path relative to the report output dir so
       // the generated HTML/Markdown resolves it alongside the report.
       const featureVideo =
-        (meta.meta as { featureVideo?: boolean } | undefined)?.featureVideo === true;
+        (meta.meta as { featureVideo?: boolean } | undefined)?.featureVideo ===
+        true;
       if (featureVideo) {
         const videoAtt = attachments.find(
-          (a) => a.mediaType?.startsWith("video/") && a.path,
+          (a) => a.mediaType?.startsWith('video/') && a.path,
         );
         if (videoAtt?.path) {
-          const outDir = this.options.outputDir ?? "reports";
+          const outDir = this.options.outputDir ?? 'reports';
           const relPath = path
             .relative(outDir, videoAtt.path)
             .split(path.sep)
-            .join("/");
+            .join('/');
           meta.docs = meta.docs ?? [];
           meta.docs.unshift({
-            kind: "video",
+            kind: 'video',
             path: relPath,
-            caption: "Recorded walkthrough",
-            phase: "runtime",
+            caption: 'Recorded walkthrough',
+            phase: 'runtime',
           });
         }
       }
@@ -476,12 +506,17 @@ export default class StoryReporter implements Reporter {
       // Extract step events (timing) from story steps
       const stepEvents: RawStepEvent[] = meta.steps
         .filter((s: { durationMs?: number }) => s.durationMs !== undefined)
-        .map((s: { durationMs?: number; text: string; id?: string }, i: number) => ({
-          index: i,
-          stepId: s.id,
-          title: s.text,
-          durationMs: s.durationMs,
-        }));
+        .map(
+          (
+            s: { durationMs?: number; text: string; id?: string },
+            i: number,
+          ) => ({
+            index: i,
+            stepId: s.id,
+            title: s.text,
+            durationMs: s.durationMs,
+          }),
+        );
 
       this.scenarios.push({
         testId: test.id,
@@ -517,18 +552,23 @@ export default class StoryReporter implements Reporter {
     if (!this.rootSuite) return [];
     // Eligibility is per project AND file: the same spec can carry story tests
     // under one project and nothing under another.
-    const key = (projectName: string | undefined, sourceFile: string) => `${projectName ?? ""}\u0000${sourceFile}`;
-    const storyFiles = new Set(this.scenarios.map((s) => key(s.projectName, s.sourceFile)));
+    const key = (projectName: string | undefined, sourceFile: string) =>
+      `${projectName ?? ''}\u0000${sourceFile}`;
+    const storyFiles = new Set(
+      this.scenarios.map((s) => key(s.projectName, s.sourceFile)),
+    );
     if (storyFiles.size === 0) return [];
 
     // A story that ran and then called test.fixme() at runtime is already
     // collected as a skipped scenario; it must not appear a second time as a
     // planned one.
-    const collectedIds = new Set(this.scenarios.map((s) => s.testId).filter(Boolean));
+    const collectedIds = new Set(
+      this.scenarios.map((s) => s.testId).filter(Boolean),
+    );
 
     const planned: RawTestCase[] = [];
     for (const test of this.rootSuite.allTests()) {
-      const isFixme = test.annotations.some((a) => a.type === "fixme");
+      const isFixme = test.annotations.some((a) => a.type === 'fixme');
       if (!isFixme) continue;
       if (collectedIds.has(test.id)) continue;
 
@@ -541,8 +581,13 @@ export default class StoryReporter implements Reporter {
       // Walk the parent chain rather than titlePath(): suite.type tells us
       // exactly which entries are describes, with no filename guessing.
       const suitePath: string[] = [];
-      for (let parent: Suite | undefined = test.parent; parent; parent = parent.parent) {
-        if (parent.type === "describe" && parent.title) suitePath.unshift(parent.title);
+      for (
+        let parent: Suite | undefined = test.parent;
+        parent;
+        parent = parent.parent
+      ) {
+        if (parent.type === 'describe' && parent.title)
+          suitePath.unshift(parent.title);
       }
       planned.push({
         title: test.title,
@@ -554,7 +599,7 @@ export default class StoryReporter implements Reporter {
         },
         sourceFile,
         sourceLine: test.location?.line ?? 1,
-        status: "todo",
+        status: 'todo',
         durationMs: 0,
         projectName,
         retry: 0,
@@ -566,27 +611,31 @@ export default class StoryReporter implements Reporter {
 
   async onEnd(_result: FullResult): Promise<void> {
     // Nothing ran and nothing was covered: there is genuinely nothing to say.
-    if (this.scenarios.length === 0 && this.coveredSourceFiles.size === 0) return;
+    if (this.scenarios.length === 0 && this.coveredSourceFiles.size === 0)
+      return;
 
     if (this.scenarios.length > 0) {
       const sampleScenario = this.scenarios[0];
-      if ("tags" in sampleScenario) {
-        this.debug("tags found at scenario level", Object.keys(sampleScenario));
+      if ('tags' in sampleScenario) {
+        this.debug('tags found at scenario level', Object.keys(sampleScenario));
       }
-      if (sampleScenario.meta && "tags" in sampleScenario.meta) {
-        this.debug("tags found inside meta (expected)", sampleScenario.meta.tags);
+      if (sampleScenario.meta && 'tags' in sampleScenario.meta) {
+        this.debug(
+          'tags found inside meta (expected)',
+          sampleScenario.meta.tags,
+        );
       }
     }
 
     // Collect test cases
     const rawTestCases: RawTestCase[] = this.scenarios.map((scenario) => {
       // Map Playwright status to raw status
-      const statusMap: Record<string, RawTestCase["status"]> = {
-        passed: "pass",
-        failed: "fail",
-        skipped: "skip",
-        timedOut: "timeout",
-        interrupted: "interrupted",
+      const statusMap: Record<string, RawTestCase['status']> = {
+        passed: 'pass',
+        failed: 'fail',
+        skipped: 'skip',
+        timedOut: 'timeout',
+        interrupted: 'interrupted',
       };
 
       const testCase = {
@@ -597,7 +646,7 @@ export default class StoryReporter implements Reporter {
         story: scenario.meta,
         sourceFile: scenario.sourceFile,
         sourceLine: Math.max(1, scenario.sourceLine),
-        status: statusMap[scenario.status] ?? "unknown",
+        status: statusMap[scenario.status] ?? 'unknown',
         durationMs: scenario.durationMs,
         error: scenario.error
           ? { message: scenario.error, stack: scenario.errorStack }
@@ -614,11 +663,11 @@ export default class StoryReporter implements Reporter {
 
     if (rawTestCases.length > 0) {
       const sample = rawTestCases[0];
-      if ("tags" in sample) {
-        this.debug("tags found at rawTestCase level", Object.keys(sample));
+      if ('tags' in sample) {
+        this.debug('tags found at rawTestCase level', Object.keys(sample));
       }
-      if (sample.story && "tags" in sample.story) {
-        this.debug("tags found inside story (expected)");
+      if (sample.story && 'tags' in sample.story) {
+        this.debug('tags found inside story (expected)');
       }
     }
 
@@ -645,13 +694,11 @@ export default class StoryReporter implements Reporter {
     // Optionally write raw run JSON for CLI/binary consumption
     const rawRunPath = this.options.rawRunPath;
     if (rawRunPath) {
-      const absolutePath = path.isAbsolute(rawRunPath)
-        ? rawRunPath
-        : path.join(this.projectRoot, rawRunPath);
+      const absolutePath = this.resolveOutputPath(rawRunPath);
       const dir = path.dirname(absolutePath);
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
       const payload = { schemaVersion: 1, ...rawRun };
-      fs.writeFileSync(absolutePath, JSON.stringify(payload, null, 2), "utf8");
+      fs.writeFileSync(absolutePath, JSON.stringify(payload, null, 2), 'utf8');
     }
 
     // Canonicalize
@@ -662,33 +709,43 @@ export default class StoryReporter implements Reporter {
     try {
       await generator.generate(canonicalRun);
     } catch (err) {
-      console.error("Failed to generate reports:", err);
+      console.error('Failed to generate reports:', err);
     }
 
     // 2. Update history (independent of report generation)
     try {
       const histOpts = this.options.history;
       if (histOpts?.filePath) {
-        const historyPath = path.isAbsolute(histOpts.filePath)
-          ? histOpts.filePath
-          : path.join(this.projectRoot, histOpts.filePath);
+        const historyPath = this.resolveOutputPath(histOpts.filePath);
         const store = loadHistory(
           { filePath: historyPath },
           {
-            readFile: (p: string) => { try { return fs.readFileSync(p, "utf8"); } catch { return undefined; } },
+            readFile: (p: string) => {
+              try {
+                return fs.readFileSync(p, 'utf8');
+              } catch {
+                return undefined;
+              }
+            },
             logger: console,
           },
         );
-        const updated = updateHistory({ store, run: canonicalRun, maxRuns: histOpts.maxRuns ?? 10 });
+        const updated = updateHistory({
+          store,
+          run: canonicalRun,
+          maxRuns: histOpts.maxRuns ?? 10,
+        });
         const dir = path.dirname(historyPath);
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
         saveHistory(
           { filePath: historyPath, store: updated },
-          { writeFile: (p: string, c: string) => fs.writeFileSync(p, c, "utf8") },
+          {
+            writeFile: (p: string, c: string) => fs.writeFileSync(p, c, 'utf8'),
+          },
         );
       }
     } catch (err) {
-      console.error("Failed to update history:", err);
+      console.error('Failed to update history:', err);
     }
 
     // 3. Send notifications (independent of both above)
@@ -700,7 +757,7 @@ export default class StoryReporter implements Reporter {
         );
       }
     } catch (err) {
-      console.error("Failed to send notifications:", err);
+      console.error('Failed to send notifications:', err);
     }
   }
 }
@@ -722,14 +779,14 @@ export function deduplicateVideoAttachments(
   // Find the last index for each video attachment name
   const lastVideoIndex = new Map<string, number>();
   for (let i = 0; i < attachments.length; i++) {
-    if (attachments[i].mediaType.startsWith("video/")) {
+    if (attachments[i].mediaType.startsWith('video/')) {
       lastVideoIndex.set(attachments[i].name, i);
     }
   }
 
   // Keep non-video attachments and only the last video per name
   return attachments.filter((att, i) => {
-    if (!att.mediaType.startsWith("video/")) return true;
+    if (!att.mediaType.startsWith('video/')) return true;
     return lastVideoIndex.get(att.name) === i;
   });
 }

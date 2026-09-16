@@ -105,8 +105,7 @@ export interface ReportInteractiveProps {
   share?: boolean;
   /**
    * Draw the "Architecture, as it ran" section (default false). Only an
-   * instrumented suite has anything to draw, and the span picture is a
-   * specialist view. `--html-architecture` turns it on.
+   * instrumented suite has anything to draw. `--html-architecture` turns it on.
    */
   architecture?: boolean;
   /** Command the share dialog hands over. Default: `npx executable-stories share reports/`. */

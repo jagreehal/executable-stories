@@ -34,7 +34,7 @@ The reporter uses `FormatterOptions` from `executable-stories-formatters`. Same 
 | `outputName` | `string`         | `"index"`                | Base filename (without extension).                                    |
 | `outputNameTimestamp` | `boolean` | `false`                | Append a UTC timestamp suffix to the output filename.                 |
 | `output`     | `OutputConfig`   | `{ mode: "aggregated" }` | Output routing configuration.                                         |
-| `rawRunPath` | `string`         | —                        | Write the raw run JSON to disk for later CLI use.                     |
+| `rawRunPath` | `string`         | —                        | Write the raw run JSON to disk for later CLI use. Relative paths resolve from the working directory, like `outputDir` and `history.filePath`. |
 
 Every run also maintains one canonical JSON report per test source under
 `<outputDir>/by-file/`. Documentation formats render accumulated state, while JUnit,

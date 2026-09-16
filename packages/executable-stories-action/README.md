@@ -4,7 +4,7 @@ Surface [executable-stories](https://github.com/jagreehal/executable-stories) te
 
 Works with all supported frameworks — zero configuration for the common case.
 
-> **Looking for the user-friendly docs?** See [executablestories.com/guides/github-action](https://executablestories.com/guides/github-action/).
+> **Looking for the user-friendly docs?** See [docs.executablestories.com/guides/github-action](https://docs.executablestories.com/guides/github-action/).
 
 ## Contents
 
@@ -38,7 +38,7 @@ The action auto-detects your test output. No inputs are required for the default
 
 ## Prerequisites
 
-The action does **not** run your tests. It surfaces the output of an `executable-stories` reporter that has already run, so set up an adapter first: [Install](https://executablestories.com/getting-started/install/) covers Vitest, Jest, Playwright, Cypress, Go, Python, Ruby, Rust, Kotlin, and C#.
+The action does **not** run your tests. It surfaces the output of an `executable-stories` reporter that has already run, so set up an adapter first: [Install](https://docs.executablestories.com/getting-started/install/) covers Vitest, Jest, Playwright, Cypress, Go, Python, Ruby, Rust, Kotlin, and C#.
 
 If your test command does not produce **either** `reports/test-results.{html,md}` **or** `.executable-stories/raw-run.json`, the action has nothing to surface and will fail with a "no reports found" error. See [Troubleshooting](#troubleshooting).
 

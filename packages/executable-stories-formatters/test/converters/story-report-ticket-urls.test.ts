@@ -52,7 +52,7 @@ describe("ticketUrlTemplate on the StoryReport converter", () => {
   });
 
   it("keeps a URL the adapter already attached", () => {
-    // The adapter knew something the template does not — a ticket in another
+    // The adapter knew something the template does not: a ticket in another
     // tracker, or one whose id does not fit the project's URL shape.
     expect(
       ticketsOf(

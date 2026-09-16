@@ -162,7 +162,7 @@ export const Drawn: Story = {
 
     // No label may overflow the box drawn for it. A node label is two lines
     // (the component, then how many scenarios reached it), so a mermaid that
-    // measures it as one clips the second line — caught here as geometry
+    // measures it as one clips the second line, caught here as geometry
     // rather than as a version number.
     const nodes = [...svg.querySelectorAll("g.node")];
     let measured = 0;

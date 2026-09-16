@@ -100,7 +100,7 @@ export type CliOptionValue = string | boolean | string[];
  * `--html-title` in a CI script and `"html-title"` in the config file are the
  * same string, so there is no second set of names to keep in step.
  *
- * Pure — it reports what to apply and what is wrong; the CLI owns exiting.
+ * Pure: it reports what to apply and what is wrong; the CLI owns exiting.
  * The rules keep a mistyped config loud:
  * - a key the CLI has no flag for is an error;
  * - a value of the wrong type is an error, except that a string flag takes a
@@ -171,19 +171,17 @@ function describe(value: unknown): string {
   return typeof value;
 }
 
-
-/** The one flag pair with two spellings. Kept together so they cannot drift. */
+/** The one flag pair with two spellings. */
 const SYNTHESIZE = "synthesize-stories";
 const NO_SYNTHESIZE = "no-synthesize-stories";
 
 /**
- * Story synthesis as ONE setting, however it was spelled.
+ * Story synthesis as one setting, however it was spelled.
  *
  * `--synthesize-stories` and `--no-synthesize-stories` are two spellings of the
  * same boolean, so they are resolved in one place under the rule the rest of
  * the config defaults follow: what the user typed wins, and between two typed
- * spellings the last one does — the way a shell user expects an alias to be
- * overridden at the prompt.
+ * spellings the last one does.
  *
  * A config that sets both keys against each other is an error rather than a
  * coin flip.

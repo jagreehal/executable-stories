@@ -3,7 +3,7 @@
  *
  * These pin the two rules that make the file safe to rely on: the command line
  * still wins, and a typo is an error rather than a setting that quietly does
- * nothing. The JSON form matters most — it is how the non-JS adapters' users
+ * nothing. The JSON form matters most; it is how the non-JS adapters' users
  * configure the CLI, since they reach the prebuilt binary, not the library.
  */
 import { execFileSync, spawnSync } from 'node:child_process';
