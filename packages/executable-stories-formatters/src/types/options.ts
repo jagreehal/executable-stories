@@ -96,20 +96,15 @@ export interface FormatterOptions {
   /** Output routing configuration */
   output?: OutputConfig;
 
-  /**
-   * Link templates that apply to every format that can render a link.
-   *
-   * One place to say "this is where our tickets live", rather than repeating
-   * it per format: markdown, confluence and astro-markdown take these as their
-   * default, and the StoryReport (HTML report, Astro pages, story-report-json)
-   * resolves ticket URLs from `ticketUrlTemplate`. A per-format option of the
-   * same name still wins where one is set.
-   */
-  /** Base URL for source permalinks. E.g., "https://github.com/user/repo/blob/main" */
+  // Link templates shared by every format that renders a link: markdown,
+  // confluence and astro-markdown take these as their default, and the
+  // StoryReport (HTML report, Astro pages, story-report-json) resolves ticket
+  // URLs from `ticketUrlTemplate`. A per-format option of the same name wins.
+  /** Base URL for source permalinks, e.g. "https://github.com/org/repo/blob/main". */
   permalinkBaseUrl?: string;
-  /** URL template for ticket links. `{ticket}` is the id. E.g., "https://jira.example.com/browse/{ticket}" */
+  /** URL template for ticket links; `{ticket}` is the id, e.g. "https://jira.example.com/browse/{ticket}". */
   ticketUrlTemplate?: string;
-  /** URL template for trace links. `{traceId}` is the trace id. */
+  /** URL template for trace links; `{traceId}` is the trace id. */
   traceUrlTemplate?: string;
 
   /** Cucumber JSON specific options */

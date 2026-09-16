@@ -8,8 +8,8 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { expect, test } from '@playwright/test';
-import type { StoryMeta } from '../types';
 import StoryReporter from '../reporter';
+import type { StoryMeta } from '../types';
 
 // Mock types that match Playwright's reporter interface
 interface MockAnnotation {
@@ -825,7 +825,8 @@ test.describe('StoryReporter', () => {
     test('does not emit debug logs by default', async () => {
       const logs: string[] = [];
       const original = console.error;
-      console.error = (...args: unknown[]) => logs.push(args.map(String).join(' '));
+      console.error = (...args: unknown[]) =>
+        logs.push(args.map(String).join(' '));
 
       try {
         const reporter = new StoryReporter({
@@ -840,20 +841,28 @@ test.describe('StoryReporter', () => {
           steps: [{ keyword: 'Given', text: 'something', docs: [] }],
         };
         const mockTestCase: MockTestCase = {
-          annotations: [{ type: 'story-meta', description: JSON.stringify(meta) }],
+          annotations: [
+            { type: 'story-meta', description: JSON.stringify(meta) },
+          ],
           location: { file: 'test.spec.ts' },
         };
         reporter.onBegin({} as Parameters<typeof reporter.onBegin>[0]);
         reporter.onTestEnd(
           mockTestCase as unknown as Parameters<typeof reporter.onTestEnd>[0],
-          { status: 'passed' } as unknown as Parameters<typeof reporter.onTestEnd>[1],
+          { status: 'passed' } as unknown as Parameters<
+            typeof reporter.onTestEnd
+          >[1],
         );
-        await reporter.onEnd({ status: 'passed' } as Parameters<typeof reporter.onEnd>[0]);
+        await reporter.onEnd({ status: 'passed' } as Parameters<
+          typeof reporter.onEnd
+        >[0]);
       } finally {
         console.error = original;
       }
 
-      const debugLogs = logs.filter((l) => l.includes('[executable-stories-playwright][debug]'));
+      const debugLogs = logs.filter((l) =>
+        l.includes('[executable-stories-playwright][debug]'),
+      );
       expect(debugLogs).toHaveLength(0);
     });
   });
@@ -1075,8 +1084,7 @@ test.describe('StoryReporter', () => {
 
       const ansiMessage =
         '[2mexpect([22m[31mreceived[39m[2m).[22mtoBe([32m"weather:Bristol"[39m)';
-      const ansiStack =
-        '    at [34m/runner/work/foo/spec.ts:533:26[39m';
+      const ansiStack = '    at [34m/runner/work/foo/spec.ts:533:26[39m';
 
       reporter.onBegin({} as Parameters<typeof reporter.onBegin>[0]);
       reporter.onTestEnd(
@@ -1141,7 +1149,11 @@ test.describe('StoryReporter', () => {
           status: 'passed',
           duration: 1,
           attachments: [
-            { name: 'screenshot', contentType: 'image/png', path: screenshotPath },
+            {
+              name: 'screenshot',
+              contentType: 'image/png',
+              path: screenshotPath,
+            },
           ],
         } as unknown as Parameters<typeof reporter.onTestEnd>[1],
       );
@@ -1153,7 +1165,9 @@ test.describe('StoryReporter', () => {
       const attachments = rawRun.testCases[0].attachments;
       expect(attachments).toHaveLength(1);
       expect(attachments[0].encoding).toBe('BASE64');
-      expect(Buffer.from(attachments[0].body, 'base64').equals(screenshotBytes)).toBe(true);
+      expect(
+        Buffer.from(attachments[0].body, 'base64').equals(screenshotBytes),
+      ).toBe(true);
 
       await fs.promises.rm(sourceDir, { recursive: true });
     });
@@ -1334,7 +1348,11 @@ test.describe('StoryReporter', () => {
           status: 'passed',
           duration: 1,
           attachments: [
-            { name: 'binary', contentType: 'application/octet-stream', body: buffer },
+            {
+              name: 'binary',
+              contentType: 'application/octet-stream',
+              body: buffer,
+            },
           ],
         } as unknown as Parameters<typeof reporter.onTestEnd>[1],
       );
@@ -1345,7 +1363,9 @@ test.describe('StoryReporter', () => {
       const rawRun = JSON.parse(await fs.promises.readFile(rawRunPath, 'utf8'));
       const attachments = rawRun.testCases[0].attachments;
       expect(attachments[0].encoding).toBe('BASE64');
-      expect(Buffer.from(attachments[0].body, 'base64').equals(buffer)).toBe(true);
+      expect(Buffer.from(attachments[0].body, 'base64').equals(buffer)).toBe(
+        true,
+      );
     });
   });
 });
@@ -1378,11 +1398,17 @@ test.describe('name-filtered runs', () => {
     reporter.onBegin(config as Parameters<typeof reporter.onBegin>[0]);
     reporter.onTestEnd(
       mockTestCase as unknown as Parameters<typeof reporter.onTestEnd>[0],
-      { status: 'passed', duration: 1 } as unknown as Parameters<typeof reporter.onTestEnd>[1],
+      { status: 'passed', duration: 1 } as unknown as Parameters<
+        typeof reporter.onTestEnd
+      >[1],
     );
-    await reporter.onEnd({ status: 'passed' } as Parameters<typeof reporter.onEnd>[0]);
+    await reporter.onEnd({ status: 'passed' } as Parameters<
+      typeof reporter.onEnd
+    >[0]);
 
-    return JSON.parse(fs.readFileSync(rawRunPath, 'utf8')) as { runScope?: string };
+    return JSON.parse(fs.readFileSync(rawRunPath, 'utf8')) as {
+      runScope?: string;
+    };
   }
 
   test('reports filtered scope when --grep narrowed it', async () => {
@@ -1393,19 +1419,28 @@ test.describe('name-filtered runs', () => {
     // A shard sees only some of each file's tests, so calling it authoritative
     // would retire whatever landed on the other machines.
     expect(
-      (await rawRunFor({ grep: /.*/, grepInvert: null, shard: { current: 1, total: 3 } }))
-        .runScope,
+      (
+        await rawRunFor({
+          grep: /.*/,
+          grepInvert: null,
+          shard: { current: 1, total: 3 },
+        })
+      ).runScope,
     ).toBe('filtered');
   });
 
   test('reports filtered scope when --grep-invert excluded something', async () => {
-    expect((await rawRunFor({ grep: /.*/, grepInvert: /slow/ })).runScope).toBe('filtered');
+    expect((await rawRunFor({ grep: /.*/, grepInvert: /slow/ })).runScope).toBe(
+      'filtered',
+    );
   });
 
   test("treats Playwright's match-everything default as full coverage", async () => {
     // `grep` is always present on FullConfig and defaults to a match-everything
     // pattern, so presence is not the signal; only a narrowing pattern is.
-    expect((await rawRunFor({ grep: /.*/, grepInvert: null })).runScope).toBe('full');
+    expect((await rawRunFor({ grep: /.*/, grepInvert: null })).runScope).toBe(
+      'full',
+    );
   });
 
   test('states no scope when onBegin never ran', async () => {
@@ -1419,17 +1454,120 @@ test.describe('name-filtered runs', () => {
       outputName: 'out',
       rawRunPath,
     });
-    const meta: StoryMeta = { scenario: 'refuses a negative amount', steps: [] };
+    const meta: StoryMeta = {
+      scenario: 'refuses a negative amount',
+      steps: [],
+    };
     reporter.onTestEnd(
       {
-        annotations: [{ type: 'story-meta', description: JSON.stringify(meta) }],
+        annotations: [
+          { type: 'story-meta', description: JSON.stringify(meta) },
+        ],
         location: { file: 'pay.story.spec.ts', line: 1 },
       } as unknown as Parameters<typeof reporter.onTestEnd>[0],
-      { status: 'passed', duration: 1 } as unknown as Parameters<typeof reporter.onTestEnd>[1],
+      { status: 'passed', duration: 1 } as unknown as Parameters<
+        typeof reporter.onTestEnd
+      >[1],
     );
-    await reporter.onEnd({ status: 'passed' } as Parameters<typeof reporter.onEnd>[0]);
+    await reporter.onEnd({ status: 'passed' } as Parameters<
+      typeof reporter.onEnd
+    >[0]);
 
-    const run = JSON.parse(fs.readFileSync(rawRunPath, 'utf8')) as { runScope?: string };
+    const run = JSON.parse(fs.readFileSync(rawRunPath, 'utf8')) as {
+      runScope?: string;
+    };
     expect(run.runScope).toBeUndefined();
+  });
+});
+
+test.describe('relative output paths', () => {
+  /**
+   * `outputDir` is written through Node's cwd-relative fs calls, so every
+   * output option has to resolve from the same place. Playwright's `rootDir`
+   * is the root of `testDir`, which for a typical `testDir: "./e2e"` is a
+   * directory below the repo root; resolving output paths against it silently
+   * wrote `rawRunPath: "docs/run.json"` to `e2e/docs/`.
+   */
+  async function runWithRoots(
+    options: Record<string, unknown>,
+  ): Promise<{ cwdDir: string; rootDir: string }> {
+    const cwdDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'es-cwd-'));
+    const rootDir = await fs.promises.mkdtemp(
+      path.join(os.tmpdir(), 'es-rootdir-'),
+    );
+    const originalCwd = process.cwd();
+    process.chdir(cwdDir);
+    try {
+      const reporter = new StoryReporter({
+        formats: [],
+        outputDir: 'reports',
+        outputName: 'run',
+        output: { mode: 'aggregated' },
+        ...options,
+      });
+
+      const meta: StoryMeta = {
+        scenario: 'writes its outputs',
+        steps: [{ keyword: 'Given', text: 'a run', docs: [] }],
+      };
+      const mockTestCase: MockTestCase = {
+        annotations: [
+          { type: 'story-meta', description: JSON.stringify(meta) },
+        ],
+        location: { file: 'test.story.spec.ts', line: 1 },
+      };
+
+      // Playwright reports `rootDir` as the root of `testDir`, not the cwd.
+      reporter.onBegin({ rootDir } as Parameters<typeof reporter.onBegin>[0]);
+      reporter.onTestEnd(
+        mockTestCase as unknown as Parameters<typeof reporter.onTestEnd>[0],
+        { status: 'passed', duration: 1 } as unknown as Parameters<
+          typeof reporter.onTestEnd
+        >[1],
+      );
+      await reporter.onEnd({ status: 'passed' } as Parameters<
+        typeof reporter.onEnd
+      >[0]);
+    } finally {
+      process.chdir(originalCwd);
+    }
+    return { cwdDir, rootDir };
+  }
+
+  test('resolves a relative rawRunPath from the working directory', async () => {
+    const { cwdDir, rootDir } = await runWithRoots({
+      rawRunPath: 'reports/raw-run.json',
+    });
+
+    expect(fs.existsSync(path.join(cwdDir, 'reports', 'raw-run.json'))).toBe(
+      true,
+    );
+    expect(fs.existsSync(path.join(rootDir, 'reports', 'raw-run.json'))).toBe(
+      false,
+    );
+  });
+
+  test('resolves a relative history filePath from the working directory', async () => {
+    const { cwdDir, rootDir } = await runWithRoots({
+      history: { filePath: 'reports/history.json' },
+    });
+
+    expect(fs.existsSync(path.join(cwdDir, 'reports', 'history.json'))).toBe(
+      true,
+    );
+    expect(fs.existsSync(path.join(rootDir, 'reports', 'history.json'))).toBe(
+      false,
+    );
+  });
+
+  test('still honours an absolute output path', async () => {
+    const absoluteDir = await fs.promises.mkdtemp(
+      path.join(os.tmpdir(), 'es-abs-'),
+    );
+    const absolutePath = path.join(absoluteDir, 'raw-run.json');
+
+    await runWithRoots({ rawRunPath: absolutePath });
+
+    expect(fs.existsSync(absolutePath)).toBe(true);
   });
 });

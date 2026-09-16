@@ -11,16 +11,16 @@
   --sl-font: 'Geist', system-ui, sans-serif;
   --sl-font-mono: 'Geist Mono', ui-monospace, 'SFMono-Regular', monospace;
 
-  /* Accent: cucumber green */
-  --sl-color-accent-low: #1b4332;
-  --sl-color-accent: #40916c;
-  --sl-color-accent-high: #95d5b2;
+  /* Accent: the stories report's green, shared with executablestories.com. */
+  --sl-color-accent-low: #123d25;
+  --sl-color-accent: #59d98e;
+  --sl-color-accent-high: #a5ecc3;
 }
 
 [data-theme='light'] {
-  --sl-color-accent-low: rgba(45, 106, 79, 0.1);
-  --sl-color-accent: #2d6a4f;
-  --sl-color-accent-high: #1b4332;
+  --sl-color-accent-low: rgba(26, 116, 64, 0.1);
+  --sl-color-accent: #1a7440;
+  --sl-color-accent-high: #114d2b;
 }
 
 /* ── Header / Nav ── */

@@ -72,7 +72,7 @@ export function ReportShare({
         <div className="mt-6 flex items-center justify-between gap-4">
           <a
             className="text-xs underline underline-offset-2"
-            href="https://executablestories.com/guides/sharing-reports/"
+            href="https://docs.executablestories.com/guides/sharing-reports/"
             target="_blank"
             rel="noreferrer"
           >

@@ -81,7 +81,7 @@ const legacyRedirects = Object.fromEntries([
 ]);
 
 export default defineConfig({
-  site: 'https://executablestories.com',
+  site: 'https://docs.executablestories.com',
   redirects: legacyRedirects,
   integrations: [
     sitemap(),

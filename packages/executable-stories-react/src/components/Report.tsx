@@ -24,8 +24,8 @@ export interface ReportProps {
   dataTheme?: "light" | "dark";
   /**
    * Draw the "Architecture, as it ran" section above the features. Off by
-   * default — only an instrumented run has anything to draw, and the span
-   * picture is a specialist view. `--html-architecture` turns it on.
+   * default: only an instrumented run has anything to draw. `--html-architecture`
+   * turns it on.
    */
   architecture?: boolean;
 }

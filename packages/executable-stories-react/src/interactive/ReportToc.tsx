@@ -34,42 +34,32 @@ export function TocContent({ onNavigate }: { onNavigate?: () => void }) {
       .filter((el): el is HTMLElement => el !== null);
     if (els.length === 0) return;
 
-    // Measured from every card on each scroll, not from IntersectionObserver
-    // entries. An observer callback only carries the elements whose visibility
-    // just CHANGED, so once the page is scrolled past the last card nothing
-    // changes again and the highlight stays stuck on whichever scenario
-    // crossed the band last — the reported bug: at the bottom of the report the
-    // sidebar named a card several screens up.
+    // Measured from every card on each scroll rather than from
+    // IntersectionObserver entries. An observer callback only carries the
+    // elements whose visibility just changed, so once the page is scrolled past
+    // the last card nothing changes again and the highlight stays on whichever
+    // scenario crossed the band last, several screens above what is on screen.
     let frame = 0;
     const update = () => {
       frame = 0;
       // The reading line: a fifth down the viewport. Active = the last card
-      // that has crossed it, or the first card when none has yet.
-      //
-      // At the very bottom of the document the line stops moving, so the last
-      // few cards can never cross it and the highlight sticks several screens
-      // above what fills the screen. There the whole viewport is the line: the
-      // last card that has started wins.
+      // that has crossed it, or the first card when none has yet. At the very
+      // bottom of the document the line stops moving and the last few cards
+      // can never cross it, so there the whole viewport is the line.
       const atBottom =
         window.scrollY + window.innerHeight >=
         document.documentElement.scrollHeight - 2;
       const line = atBottom ? window.innerHeight : window.innerHeight * 0.2;
       let active = els[0]!;
       let best = -Infinity;
-      let firstId: string | null = null;
-      let firstTop = Infinity;
       for (const el of els) {
         const top = el.getBoundingClientRect().top;
         if (top <= line && top > best) {
           best = top;
           active = el;
         }
-        if (top < firstTop) {
-          firstTop = top;
-          firstId = el.id;
-        }
       }
-      setActiveId(best === -Infinity ? firstId : active.id);
+      setActiveId(active.id);
     };
 
     const onScroll = () => {

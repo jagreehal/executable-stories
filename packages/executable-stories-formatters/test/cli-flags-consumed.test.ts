@@ -2,7 +2,7 @@
  * Every flag the parser accepts must be read by something.
  *
  * Config-file `defaults` can set any of them, so a flag with no reader is a
- * project setting that quietly does nothing — worth holding as an invariant
+ * project setting that quietly does nothing, worth holding as an invariant
  * across all 70-odd rather than spotting one at a time.
  *
  * Reads the source because `cli.ts` runs `main()` on import and so cannot be
@@ -23,7 +23,7 @@ const cliSource = fs.readFileSync(
 function declaredFlags(source: string): string[] {
   const start = source.indexOf("const CLI_OPTIONS = {");
   const end = source.indexOf("} as const satisfies", start);
-  expect(start, "CLI_OPTIONS table not found — this test needs updating").toBeGreaterThan(-1);
+  expect(start, "CLI_OPTIONS table not found; this test needs updating").toBeGreaterThan(-1);
   const table = source.slice(start, end);
   return [...table.matchAll(/^\s*'?([a-z0-9-]+)'?:\s*\{\s*type:/gm)].map((m) => m[1]!);
 }

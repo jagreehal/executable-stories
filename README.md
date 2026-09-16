@@ -53,7 +53,7 @@ Example apps: [apps/jest-example](./apps/jest-example), [apps/vitest-example](./
 
 The matrix below covers the JS/TS adapters. The same story structure and doc model
 are mirrored across the Go, Ruby, Rust, pytest, JUnit 5 (Kotlin), and xUnit (C#)
-adapters — see the [cross-language parity policy](https://executablestories.com/reference/cross-language-parity/).
+adapters — see the [cross-language parity policy](https://docs.executablestories.com/reference/cross-language-parity/).
 
 | Feature                           | Jest                                                                          | Vitest                                                       | Playwright                                           | Cypress                                              |
 | --------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------ | ---------------------------------------------------- | ---------------------------------------------------- |
@@ -157,7 +157,7 @@ npx --package executable-stories-formatters executable-stories format reports/ra
 
 See each package's README for detailed setup instructions.
 
-**Agent workflows:** Publish StoryReport JSON and a scenario index from CI — see the [agent artifact contract](https://executablestories.com/guides/agent-artifact-contract/) and [MCP server guide](https://executablestories.com/guides/mcp-server/). Package roles: [package map](https://executablestories.com/reference/package-map/). Cross-language parity policy: [parity matrix](https://executablestories.com/reference/cross-language-parity/).
+**Agent workflows:** Publish StoryReport JSON and a scenario index from CI — see the [agent artifact contract](https://docs.executablestories.com/guides/agent-artifact-contract/) and [MCP server guide](https://docs.executablestories.com/guides/mcp-server/). Package roles: [package map](https://docs.executablestories.com/reference/package-map/). Cross-language parity policy: [parity matrix](https://docs.executablestories.com/reference/cross-language-parity/).
 
 ## Living documentation site
 
@@ -189,9 +189,9 @@ their current scenario status. Point `historyFile` at the CLI's
 
 For a multi-repository hub, use the GitHub Action's `publish-run` mode in each
 product repository, fetch the stable run URLs, and build one Astro site. See
-the [Astro site guide](https://executablestories.com/guides/astro-docs-site/),
-[audience tagging guide](https://executablestories.com/guides/tagging-for-your-audience/),
-and [multi-repo hub guide](https://executablestories.com/guides/multi-repo-docs-hub/).
+the [Astro site guide](https://docs.executablestories.com/guides/astro-docs-site/),
+[audience tagging guide](https://docs.executablestories.com/guides/tagging-for-your-audience/),
+and [multi-repo hub guide](https://docs.executablestories.com/guides/multi-repo-docs-hub/).
 
 > **Removed:** the old `build-docs` command (a one-shot Markdown generator that
 > wrote story pages into a scaffold) has been removed — stories now render live
