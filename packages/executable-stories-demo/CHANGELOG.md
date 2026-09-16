@@ -1,5 +1,11 @@
 # executable-stories-demo
 
+## 0.1.47
+
+### Patch Changes
+
+- executable-stories-formatters@1.19.1
+
 ## 0.1.46
 
 ### Patch Changes
