@@ -73,6 +73,30 @@ describe("aggregateReports", () => {
     expect(result.files).toBe(2);
   });
 
+  it("merges two CI shards' reports for the same source file", () => {
+    // Playwright sharding can split one file across shards; each shard's
+    // report then holds a different subset of that file's scenarios.
+    const half = (scenario: string) => {
+      const run = JSON.parse(shard("src/pay.test.ts", [scenario])) as {
+        testCases: { id: string }[];
+      };
+      run.testCases[0]!.id = `src/pay.test.ts#${scenario}`;
+      return JSON.stringify(run);
+    };
+    const deps = memFs({
+      "reports/by-file/src-pay.story-report.shard-1.json": half("card pays"),
+      "reports/by-file/src-pay.story-report.shard-2.json": half("refund lands"),
+    });
+
+    const result = aggregateReports({ dir: "reports/by-file" }, deps);
+
+    expect(result.run.testCases.map((tc) => tc.story.scenario)).toEqual([
+      "card pays",
+      "refund lands",
+    ]);
+    expect(result.duplicateIds).toEqual([]);
+  });
+
   it("orders by source file so the same inputs always give the same report", () => {
     const seed = {
       "reports/by-file/z.story-report.json": shard("src/zeta.test.ts", ["z"]),

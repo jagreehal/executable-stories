@@ -19,6 +19,11 @@ export const NarrativeAndGlossary: Story = {
       glossary: [
         { term: 'Decline', definition: 'A payment the issuer refuses.' },
         { term: 'Retry', definition: 'A new authorization attempt.' },
+        {
+          term: 'Authorization hold',
+          definition:
+            'Funds the issuer reserves before capture. Released if the order is never placed, which can take several days on some cards.',
+        },
       ],
     }),
   },
@@ -30,6 +35,12 @@ export const NarrativeAndGlossary: Story = {
     await expect(
       canvas.getByText('A new authorization attempt.'),
     ).toBeVisible();
+    // Terms of different lengths must not push their definitions out of line:
+    // every definition starts at the same x.
+    const lefts = canvas
+      .getAllByRole('definition')
+      .map((dd) => dd.getBoundingClientRect().left);
+    expect(new Set(lefts).size).toBe(1);
   },
 };
 

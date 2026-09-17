@@ -28,11 +28,14 @@ export function ReportFeatureIntro({ feature }: ReportFeatureIntroProps) {
       ) : null}
 
       {hasGlossary ? (
-        <dl className="grid gap-1.5" aria-label="Glossary">
+        <dl
+          className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1.5 text-xs"
+          aria-label="Glossary"
+        >
           {feature.glossary!.map((entry) => (
-            <div key={entry.term} className="flex flex-wrap gap-x-2 text-xs">
+            <div key={entry.term} className="contents">
               <dt className="font-medium text-foreground">{entry.term}</dt>
-              <dd className="flex-1 text-muted-foreground">{entry.definition}</dd>
+              <dd className="text-muted-foreground">{entry.definition}</dd>
             </div>
           ))}
         </dl>

@@ -24,6 +24,64 @@ const confluenceAdfJson = new ConfluenceFormatter().format(canonical);
 // used internally by ReportGenerator({ formats: ["html"] }).
 ```
 
+### Markdown formatter options
+
+The Markdown report has authoring options the CLI does not expose; reach them
+through `ReportGenerator({ markdown: {...} })` or `new MarkdownFormatter({...})`.
+Pick them to match where the Markdown lands.
+
+| Option                 | Values                              | Default         | Use it for                                                                 |
+| ---------------------- | ----------------------------------- | --------------- | -------------------------------------------------------------------------- |
+| `stepStyle`            | `"bullets"` \| `"gherkin"`          | `"bullets"`     | `gherkin` prints steps as an indented Given/When/Then block, for readers who know Cucumber. |
+| `groupBy`              | `"file"` \| `"suite"` \| `"none"`   | `"file"`        | `suite` groups by `describe` path; `none` is one flat list, right for a single-feature PR comment. |
+| `scenarioHeadingLevel` | `2` \| `3` \| `4`                   | `3`             | Fit the report under an existing document's heading hierarchy.            |
+| `sortScenarios`        | `"source"` \| `"alpha"` \| `"none"` | `"source"`      | `alpha` gives a stable diff-friendly order across runs.                    |
+| `includeFrontMatter`   | boolean                             | `false`         | YAML front-matter (title, counts, timestamps) for static-site generators and machine parsing. |
+| `includeSummaryTable`  | boolean                             | `false`         | A counts/duration table under the title, for a standalone page.            |
+| `includeMetadata`      | boolean                             | `true`          | Turn off for a PR comment, where the run date is noise.                    |
+| `includeStatusIcons`   | boolean                             | `true`          | ✅/❌ on scenario headings.                                                 |
+| `includeErrors`        | boolean                             | `true`          | Failure messages under failed scenarios.                                   |
+| `title`                | string                              | `"User Stories"`| Document title.                                                            |
+| `suiteSeparator`       | string                              | `" - "`         | Joins nested `describe` titles in headings.                                |
+| `attachImages`         | boolean                             | `false`         | Keep local screenshot/video paths for `gh pr comment --attach`. CLI: `--attach-images`. |
+| `customRenderers`      | `MarkdownRenderers`                 | unset           | Override how a doc kind renders (`{ section: (e) => ... }`).               |
+
+`permalinkBaseUrl`, `ticketUrlTemplate` and `traceUrlTemplate` are also accepted here and win over the top-level ones.
+
+```typescript
+// A PR comment: flat, gherkin steps, no run metadata.
+const md = new MarkdownFormatter({
+  groupBy: "none",
+  stepStyle: "gherkin",
+  includeMetadata: false,
+  scenarioHeadingLevel: 4,
+}).format(canonical);
+
+// A docs page: front-matter and summary for the static-site build.
+await new ReportGenerator({
+  formats: ["markdown"],
+  outputDir: "docs/stories",
+  markdown: { includeFrontMatter: true, includeSummaryTable: true, sortScenarios: "alpha" },
+}).generate(canonical);
+```
+
+## Pushing a run to the cloud
+
+```bash
+# Name the run, say where it ran, and attach an agent's write-up above the results.
+executable-stories push reports/index.story-report.json \
+  --title "CI ${GITHUB_RUN_NUMBER}" --env staging --description @analysis.md
+```
+
+`--title` names the run on the cloud (the repo slug stands in when absent). `--env` records
+the environment (`staging`, `Browser:Chrome`), filterable there as `env == …`.
+`--description` takes Markdown text, or `@path` to send a file's contents, shown above the
+run's results. JUnit, Playwright JSON and allure inputs carry these in the request URL, so
+a push whose encoded URL passes 8 KB is refused before sending; shorten the description or
+convert to a StoryReport first (`format … --format story-report-json`). Sharded CI jobs
+should aggregate `reports/by-file` with `format` and push once, so no shard reads as a mass
+deletion of the scenarios it did not run.
+
 ## CLI flags
 
 ```bash

@@ -120,7 +120,9 @@ reads a current index instead of one from forty minutes ago.
 `list_scenarios`, `get_scenario`, `get_failing_scenarios`, `get_feature_summary`,
 `get_scenario_index`, `get_behavior_manifest`, plus `run_scenario` for a focused re-run.
 Prefer these over shelling out when they are available: they load the report once and
-project from it, rather than re-parsing per question.
+project from it, rather than re-parsing per question. Start it with `--tools read` (or
+`EXECUTABLE_STORIES_MCP_TOOLS=read`) for a review session that should observe and never
+execute; the `run_*` tools are then not registered, and every call carries fewer schemas.
 
 ## Re-running part of the suite
 

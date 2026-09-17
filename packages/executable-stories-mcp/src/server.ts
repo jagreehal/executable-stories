@@ -63,6 +63,21 @@ const runRefreshSchema = {
     .describe("Merge the run result back into the StoryReport (default true)."),
 };
 
+/**
+ * `--tools read` (or EXECUTABLE_STORIES_MCP_TOOLS=read) registers only the
+ * observe tools: nothing that executes tests. A long agentic session pays the
+ * tool schema on every call, and a reviewer's session should not be able to
+ * run anything by accident.
+ */
+function toolProfile(argv: readonly string[], env: NodeJS.ProcessEnv): "full" | "read" {
+  const flag = argv.indexOf("--tools");
+  const value = flag === -1 ? env.EXECUTABLE_STORIES_MCP_TOOLS : argv[flag + 1];
+  return value === "read" ? "read" : "full";
+}
+
+const profile = toolProfile(process.argv.slice(2), process.env);
+const executes = profile === "full";
+
 const server = new McpServer({
   name: "executable-stories",
   version: "0.2.0",
@@ -174,92 +189,94 @@ server.registerTool(
     json(getTrajectory(loadStoryReport(resolveReportPath(reportPath)), { reset })),
 );
 
-server.registerTool(
-  "run_scenario",
-  {
-    title: "Run scenario",
-    description:
-      "Run one scenario through the host test framework. Executes real tests, then merges the result back into the StoryReport so the observe tools see fresh state.",
-    inputSchema: {
-      ...reportPathSchema,
-      idOrTitle: z.string().describe("Scenario id or exact scenario title."),
-      framework: frameworkSchema,
-      ...runRefreshSchema,
+if (executes) {
+  server.registerTool(
+    "run_scenario",
+    {
+      title: "Run scenario",
+      description:
+        "Run one scenario through the host test framework. Executes real tests, then merges the result back into the StoryReport so the observe tools see fresh state.",
+      inputSchema: {
+        ...reportPathSchema,
+        idOrTitle: z.string().describe("Scenario id or exact scenario title."),
+        framework: frameworkSchema,
+        ...runRefreshSchema,
+      },
     },
-  },
-  async ({ reportPath, idOrTitle, framework, cwd, rawRunPath, refreshReport }) => {
-    const resolvedReportPath = resolveReportPath(reportPath);
-    const report = loadStoryReport(resolvedReportPath);
-    const outcome = await runScenarioById({
-      report,
-      reportPath: resolvedReportPath,
-      idOrTitle,
-      framework,
-      cwd,
-      rawRunPath,
-      refreshReport,
-    });
-    return json(outcome);
-  },
-);
+    async ({ reportPath, idOrTitle, framework, cwd, rawRunPath, refreshReport }) => {
+      const resolvedReportPath = resolveReportPath(reportPath);
+      const report = loadStoryReport(resolvedReportPath);
+      const outcome = await runScenarioById({
+        report,
+        reportPath: resolvedReportPath,
+        idOrTitle,
+        framework,
+        cwd,
+        rawRunPath,
+        refreshReport,
+      });
+      return json(outcome);
+    },
+  );
 
-server.registerTool(
-  "run_scenarios",
-  {
-    title: "Run scenarios",
-    description:
-      "Run several scenarios by id or title, in sequence, refreshing the report after each. Use to verify a set of behaviours in one call.",
-    inputSchema: {
-      ...reportPathSchema,
-      idsOrTitles: z.array(z.string()).min(1).describe("Scenario ids or exact titles to run."),
-      framework: frameworkSchema,
-      ...runRefreshSchema,
+  server.registerTool(
+    "run_scenarios",
+    {
+      title: "Run scenarios",
+      description:
+        "Run several scenarios by id or title, in sequence, refreshing the report after each. Use to verify a set of behaviours in one call.",
+      inputSchema: {
+        ...reportPathSchema,
+        idsOrTitles: z.array(z.string()).min(1).describe("Scenario ids or exact titles to run."),
+        framework: frameworkSchema,
+        ...runRefreshSchema,
+      },
     },
-  },
-  async ({ reportPath, idsOrTitles, framework, cwd, rawRunPath, refreshReport }) => {
-    const resolvedReportPath = resolveReportPath(reportPath);
-    const report = loadStoryReport(resolvedReportPath);
-    const outcomes = await runScenarios({
-      report,
-      reportPath: resolvedReportPath,
-      idsOrTitles,
-      framework,
-      cwd,
-      rawRunPath,
-      refreshReport,
-    });
-    return json({ outcomes });
-  },
-);
+    async ({ reportPath, idsOrTitles, framework, cwd, rawRunPath, refreshReport }) => {
+      const resolvedReportPath = resolveReportPath(reportPath);
+      const report = loadStoryReport(resolvedReportPath);
+      const outcomes = await runScenarios({
+        report,
+        reportPath: resolvedReportPath,
+        idsOrTitles,
+        framework,
+        cwd,
+        rawRunPath,
+        refreshReport,
+      });
+      return json({ outcomes });
+    },
+  );
 
-server.registerTool(
-  "run_changed",
-  {
-    title: "Run changed",
-    description:
-      "Code → run: find the scenarios whose declared `covers` globs match the given changed-file paths, then run them. The 'I edited these files, verify the behaviours that cover them' act in an agent loop.",
-    inputSchema: {
-      ...reportPathSchema,
-      paths: z.array(z.string()).min(1).describe("Product-code paths or globs that changed."),
-      framework: frameworkSchema,
-      ...runRefreshSchema,
+  server.registerTool(
+    "run_changed",
+    {
+      title: "Run changed",
+      description:
+        "Code → run: find the scenarios whose declared `covers` globs match the given changed-file paths, then run them. The 'I edited these files, verify the behaviours that cover them' act in an agent loop.",
+      inputSchema: {
+        ...reportPathSchema,
+        paths: z.array(z.string()).min(1).describe("Product-code paths or globs that changed."),
+        framework: frameworkSchema,
+        ...runRefreshSchema,
+      },
     },
-  },
-  async ({ reportPath, paths, framework, cwd, rawRunPath, refreshReport }) => {
-    const resolvedReportPath = resolveReportPath(reportPath);
-    const report = loadStoryReport(resolvedReportPath);
-    const result = await runChanged({
-      report,
-      reportPath: resolvedReportPath,
-      paths,
-      framework,
-      cwd,
-      rawRunPath,
-      refreshReport,
-    });
-    return json(result);
-  },
-);
+    async ({ reportPath, paths, framework, cwd, rawRunPath, refreshReport }) => {
+      const resolvedReportPath = resolveReportPath(reportPath);
+      const report = loadStoryReport(resolvedReportPath);
+      const result = await runChanged({
+        report,
+        reportPath: resolvedReportPath,
+        paths,
+        framework,
+        cwd,
+        rawRunPath,
+        refreshReport,
+      });
+      return json(result);
+    },
+  );
+}
 
 server.registerTool(
   "get_loop_status",
