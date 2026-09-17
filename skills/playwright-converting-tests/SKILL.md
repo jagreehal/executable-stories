@@ -8,7 +8,7 @@ description: >
 metadata:
   type: lifecycle
   library: executable-stories-playwright
-  library_version: "8.10.9"
+  library_version: "8.10.10"
   requires:
     - playwright-story-api
   sources:
