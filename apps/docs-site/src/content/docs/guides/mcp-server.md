@@ -128,6 +128,24 @@ Endpoints (each maps to the matching MCP tool):
 
 Every GET accepts a `?reportPath=` query parameter; `POST /run-scenarios` takes a JSON body of `{ framework, sourceFile, scenarioTitle?, cwd? }`.
 
+## The hosted server (Executable Stories Cloud)
+
+The local server reads one report on disk. The cloud exposes the same catalogue, plus runs,
+analytics, manual runs, comments and releases across every repository your organization
+ingests, at `https://<host>/api/mcp`. Two ways in:
+
+- **An API key** from Settings → "Agent and CI API keys", as `Authorization: Bearer es_…`.
+  For CI agents and long-lived scripts. `?tools=read` (or `X-MCP-Tools: read`) registers only
+  the read-only tools.
+- **OAuth 2.1** for hosted clients such as claude.ai, Cursor or the Claude desktop app: add
+  the URL as a connector, sign in when asked, and allow it on the consent page. The token
+  acts as you in your organization: a viewer seat reads, a member records. Discovery follows
+  RFC 9728 and RFC 8414 (`/.well-known/oauth-protected-resource/api/mcp`); PKCE, dynamic
+  registration and Client ID Metadata Documents are all accepted.
+
+Send `X-MCP-Session: <id>` on every call and each audit row the session writes carries it,
+so "what did the agent do" is one query.
+
 ## Agent loop
 
 1. Run framework tests and emit StoryReport + index in CI or locally

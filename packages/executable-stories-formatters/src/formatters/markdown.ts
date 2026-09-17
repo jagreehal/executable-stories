@@ -692,7 +692,7 @@ export class MarkdownFormatter {
       case "section":
         lines.push(`${indent}**${entry.title}**`);
         lines.push(`${indent}`);
-        for (const line of (entry.markdown ?? "").split("\n")) {
+        for (const line of dedentNarrative(entry.markdown ?? "").split("\n")) {
           lines.push(`${indent}${line}`);
         }
         lines.push(`${indent}`);

@@ -46,6 +46,14 @@ Options:
                      cloud can recommend a test scope for the change.
   --format <fmt>     auto (default), story, junit, playwright or allure.
                      Only needed when detection guesses wrong.
+  --title <text>     Name for the run on the cloud ("Nightly regression",
+                     "PR 42"). The repo slug stands in when absent.
+  --env <name>       Environment the run reports from ("staging",
+                     "Browser:Chrome"). Filterable as env == … in the cloud.
+  --description <text|@file.md>
+                     Markdown shown above the results on the cloud run page:
+                     an agent's analysis, why the run was made, a release
+                     note. Prefix a path with @ to send a file's contents.
   --review-json <path>
                      Write what a CI surface renders — the cloud run URL, this
                      run's outcome counts, and, when --gate is used, the org's
@@ -120,6 +128,9 @@ function foreignQuery(input: {
   baseSha: string | undefined;
   prNumber: number | undefined;
   prUrl: string | undefined;
+  title: string | undefined;
+  environment: string | undefined;
+  description: string | undefined;
 }): string {
   const query = new URLSearchParams({ repo: input.repo });
   if (input.branch) query.set("branch", input.branch);
@@ -128,6 +139,9 @@ function foreignQuery(input: {
   if (input.baseSha) query.set("baseSha", input.baseSha);
   if (input.prNumber) query.set("prNumber", String(input.prNumber));
   if (input.prUrl) query.set("prUrl", input.prUrl);
+  if (input.title) query.set("title", input.title);
+  if (input.environment) query.set("environment", input.environment);
+  if (input.description) query.set("description", input.description);
   return query.toString();
 }
 
@@ -171,11 +185,17 @@ function readInput(inputPath: string, deps: PushDeps): string {
  */
 const CHANGED_FILES_QUERY_BUDGET = 4000;
 
+/**
+ * What the whole request URL may come to, encoded. 8 KB is the smallest
+ * common server limit; anything over it is a 414 waiting to happen.
+ */
+const URL_BUDGET = 8000;
+
 function capForQuery(files: string[], deps: PushDeps): string[] {
   const kept: string[] = [];
   let used = 0;
   for (const file of files) {
-    used += file.length + 1;
+    used += encodeURIComponent(file).length + 1;
     if (used > CHANGED_FILES_QUERY_BUDGET) break;
     kept.push(file);
   }
@@ -346,6 +366,9 @@ export async function runPush(
         "git-sha": { type: "string" },
         base: { type: "string" },
         format: { type: "string" },
+        description: { type: "string" },
+        title: { type: "string" },
+        env: { type: "string" },
         gate: { type: "boolean" },
         "review-json": { type: "string" },
         force: { type: "boolean" },
@@ -463,6 +486,57 @@ export async function runPush(
 
   const forced = parsed.values.force === true;
 
+  // `@file.md` reads the file so a generated write-up lands without a shell
+  // dance; anything else is the text itself.
+  let description: string | undefined;
+  const descriptionArg = parsed.values.description;
+  if (descriptionArg !== undefined) {
+    if (descriptionArg.startsWith("@")) {
+      const file = descriptionArg.slice(1);
+      try {
+        description = deps.readFile(file);
+      } catch (err) {
+        deps.error(
+          `Could not read --description file ${file}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+        return EXIT_USAGE;
+      }
+    } else {
+      description = descriptionArg;
+    }
+    description = description.trim() || undefined;
+  }
+
+  // Foreign formats carry their metadata in the URL (the body is the verbatim
+  // report). The changed-file list is already capped, so what can still push
+  // the encoded URL over the limit is the description: a @file.md can be pages
+  // long, and every non-ASCII character encodes to nine. Refuse up front rather
+  // than let a 414 lose the run for the sake of its notes.
+  const foreignUrl =
+    format === "story"
+      ? undefined
+      : new URL(
+          `/api/v1/runs/${format}?${foreignQuery({
+            repo,
+            branch,
+            gitSha,
+            changedFiles: capForQuery(changedFiles, deps),
+            baseSha,
+            prNumber: github.prNumber,
+            prUrl: github.prUrl,
+            title: parsed.values.title,
+            environment: parsed.values.env,
+            description,
+          })}`,
+          baseUrl,
+        );
+  if (foreignUrl && foreignUrl.href.length > URL_BUDGET) {
+    deps.error(
+      `A ${format} push carries its metadata in the URL, and this one encodes to ${foreignUrl.href.length} characters (limit ${URL_BUDGET}). Shorten --description, or convert the run to a StoryReport first (executable-stories format … --format story-report-json).`,
+    );
+    return EXIT_USAGE;
+  }
+
   // Every exit path that can reach the gate needs the same values; a closure
   // keeps them from drifting apart across the four call sites. Only the success
   // path knows the run URL — a gate reached through a failure never had a run to
@@ -498,33 +572,22 @@ export async function runPush(
               // The cloud accepts both; "local" is what this is.
               source: onActions ? "action" : "local",
               report,
+              ...(description ? { description } : {}),
+              ...(parsed.values.title ? { title: parsed.values.title } : {}),
+              ...(parsed.values.env ? { environment: parsed.values.env } : {}),
               ...(changedFiles.length > 0 ? { changedFiles, baseSha } : {}),
               ...(github.prNumber ? { prNumber: github.prNumber } : {}),
               ...(github.prUrl ? { prUrl: github.prUrl } : {}),
             }),
           })
-        : await deps.fetchFn(
-            new URL(
-              `/api/v1/runs/${format}?${foreignQuery({
-                repo,
-                branch,
-                gitSha,
-                changedFiles: capForQuery(changedFiles, deps),
-                baseSha,
-                prNumber: github.prNumber,
-                prUrl: github.prUrl,
-              })}`,
-              baseUrl,
-            ),
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": format === "junit" ? "application/xml" : "application/json",
-                Authorization: `Bearer ${key}`,
-              },
-              body: raw,
+        : await deps.fetchFn(foreignUrl!, {
+            method: "POST",
+            headers: {
+              "Content-Type": format === "junit" ? "application/xml" : "application/json",
+              Authorization: `Bearer ${key}`,
             },
-          );
+            body: raw,
+          });
   } catch (err) {
     deps.error(`Could not reach ${baseUrl}: ${err instanceof Error ? err.message : String(err)}`);
     // --force covers the wire, not the verdict: a CI job that fails because

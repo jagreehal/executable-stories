@@ -20,7 +20,7 @@ export function DocEntry({ entry }: { entry: ReportDocEntry }) {
     case "tag":
       return <DocTag entry={entry} />;
     case "kv":
-      return <DocKv entry={entry} />;
+      return <DocKv entries={[entry]} />;
     case "code":
       return <DocCode entry={entry} />;
     case "table":

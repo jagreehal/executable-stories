@@ -5,6 +5,7 @@ import { DocEntry } from "../src/components/doc/DocEntry";
 import { DocNote } from "../src/components/doc/DocNote";
 import { DocTag } from "../src/components/doc/DocTag";
 import { DocKv } from "../src/components/doc/DocKv";
+import { ReportDocEntries } from "../src/components/ReportDocEntries";
 import { DocCode } from "../src/components/doc/DocCode";
 import { DocTable } from "../src/components/doc/DocTable";
 import { DocLink } from "../src/components/doc/DocLink";
@@ -34,14 +35,27 @@ describe("DocTag", () => {
 
 describe("DocKv", () => {
   it("renders label as <dt> and value as <dd>", () => {
-    render(<DocKv entry={{ kind: "kv", label: "endpoint", value: "/api/x", phase: "static" }} />);
+    render(<DocKv entries={[{ kind: "kv", label: "endpoint", value: "/api/x", phase: "static" }]} />);
     expect(screen.getByText("endpoint").tagName).toBe("DT");
     expect(screen.getByText("/api/x").tagName).toBe("DD");
   });
 
   it("JSON-stringifies object values", () => {
-    render(<DocKv entry={{ kind: "kv", label: "obj", value: { a: 1 }, phase: "static" }} />);
+    render(<DocKv entries={[{ kind: "kv", label: "obj", value: { a: 1 }, phase: "static" }]} />);
     expect(screen.getByText('{"a":1}')).toBeInTheDocument();
+  });
+
+  it("groups adjacent kv entries into one <dl>, leaving other kinds between them alone", () => {
+    const kv = (label: string) => ({ kind: "kv" as const, label, value: 1, phase: "static" as const });
+    const { container } = render(
+      <ReportDocEntries
+        entries={[kv("a"), kv("b"), { kind: "note", text: "n", phase: "static" }, kv("c")]}
+      />,
+    );
+    const lists = container.querySelectorAll("dl");
+    expect(lists).toHaveLength(2);
+    expect(lists[0].querySelectorAll("dt")).toHaveLength(2);
+    expect(lists[1].querySelectorAll("dt")).toHaveLength(1);
   });
 });
 
@@ -279,5 +293,23 @@ describe("DocEntry dispatcher", () => {
 
     rerender(<DocEntry entry={{ kind: "state", label: "Order", value: { s: 1 }, phase: "runtime" }} />);
     expect(container.querySelector("figure")).toBeInTheDocument();
+  });
+});
+
+describe("DocSection", () => {
+  it("dedents indented template-literal markdown instead of rendering a code block", () => {
+    const { container } = render(
+      <DocSection
+        entry={{
+          kind: "section",
+          phase: "static",
+          title: "Why",
+          markdown: "\n      Every rule pays *out*.\n\n      Picture a machine.\n",
+        }}
+      />,
+    );
+    expect(container.querySelector("pre")).toBeNull();
+    expect(container.querySelectorAll("p")).toHaveLength(2);
+    expect(container.querySelector("em")?.textContent).toBe("out");
   });
 });

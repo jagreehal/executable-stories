@@ -171,7 +171,7 @@ USAGE
   executable-stories init-astro [directory] [--install] [--force] [--update]
   executable-stories new <template> "<name>" [options]
   executable-stories check-links <dir> [options]
-  executable-stories push <run.json|results.xml|allure-results/> [--format <fmt>] [--gate] [--force]
+  executable-stories push <run.json|results.xml|allure-results/> [--format <fmt>] [--title <text>] [--env <name>] [--description <text|@file.md>] [--gate] [--force]
   executable-stories share <reports-dir|report.json> [--emails <a@b,c@d>] [--expires-days <n>]
   executable-stories coverage <testrail|xray> <run.json> [options]
   executable-stories sync <testrail|xray> <run.json> [--apply] [options]

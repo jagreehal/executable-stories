@@ -156,6 +156,43 @@ describe("runPush", () => {
     });
   });
 
+  it("sends --description as text, or a file's contents with @path, trimmed", async () => {
+    const { deps, fetchFn } = makeDeps({
+      readFile: vi.fn((filePath: string) =>
+        filePath === "notes.md" ? "  ## Why\nRe-ran after the retry fix.\n" : JSON.stringify(STORY_REPORT),
+      ),
+    });
+    await runPush(["run.json", "--key", "es_k", "--description", "Nightly"], deps);
+    await runPush(["run.json", "--key", "es_k", "--description", "@notes.md"], deps);
+    const bodies = fetchFn.mock.calls.map(
+      (call) => JSON.parse((call[1] as RequestInit).body as string) as { description?: string },
+    );
+    expect(bodies[0]?.description).toBe("Nightly");
+    expect(bodies[1]?.description).toBe("## Why\nRe-ran after the retry fix.");
+  });
+
+  it("sends --title and --env with the run", async () => {
+    const { deps, fetchFn } = makeDeps();
+    await runPush(["run.json", "--key", "es_k", "--title", "Nightly", "--env", "staging"], deps);
+    const body = JSON.parse((fetchFn.mock.calls[0]![1] as RequestInit).body as string) as {
+      title?: string;
+      environment?: string;
+    };
+    expect(body).toMatchObject({ title: "Nightly", environment: "staging" });
+  });
+
+  it("fails usage when the --description file cannot be read", async () => {
+    const { deps, fetchFn } = makeDeps({
+      readFile: vi.fn((filePath: string) => {
+        if (filePath === "missing.md") throw new Error("ENOENT");
+        return JSON.stringify(STORY_REPORT);
+      }),
+    });
+    const code = await runPush(["run.json", "--key", "es_k", "--description", "@missing.md"], deps);
+    expect(code).toBe(4);
+    expect(fetchFn).not.toHaveBeenCalled();
+  });
+
   it("sends changed files when --base is given", async () => {
     const { deps, fetchFn } = makeDeps({
       git: vi.fn((args: string[]) => {
@@ -525,6 +562,34 @@ describe("push --format and --force", () => {
     // Verbatim: conversion lives on the server so it cannot drift between
     // versions of this CLI in the wild.
     expect((init as RequestInit).body).toBe("<testsuites><testsuite/></testsuites>");
+  });
+
+  it("forwards --title, --env and --description to a foreign endpoint in the query", async () => {
+    const { deps, fetchFn } = makeDeps({
+      readFile: vi.fn().mockReturnValue("<testsuites><testsuite/></testsuites>"),
+    });
+    const code = await runPush(
+      ["results.xml", "--key", "es_test", "--title", "Nightly", "--env", "staging", "--description", "why"],
+      deps,
+    );
+    expect(code).toBe(0);
+    const url = new URL(String(fetchFn.mock.calls[0]![0]));
+    expect(url.searchParams.get("title")).toBe("Nightly");
+    expect(url.searchParams.get("environment")).toBe("staging");
+    expect(url.searchParams.get("description")).toBe("why");
+  });
+
+  it("refuses a foreign push whose encoded URL would overflow the server", async () => {
+    const { deps, fetchFn } = makeDeps({
+      readFile: vi.fn().mockReturnValue("<testsuites><testsuite/></testsuites>"),
+    });
+    // 3000 characters, but each encodes to nine: the raw length is not the limit.
+    const code = await runPush(
+      ["results.xml", "--key", "es_test", "--description", "é".repeat(3000)],
+      deps,
+    );
+    expect(code).toBe(4);
+    expect(fetchFn).not.toHaveBeenCalled();
   });
 
   it("honours an explicit --format over detection", async () => {

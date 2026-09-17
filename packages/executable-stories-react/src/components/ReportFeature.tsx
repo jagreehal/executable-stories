@@ -19,7 +19,8 @@ export function ReportFeature({ feature }: ReportFeatureProps) {
   const titleId = `${feature.id}-title`;
   const bodyId = `${feature.id}-body`;
   const s = feature.summary;
-  const skipped = s.skipped + s.pending;
+  // Pending (`it.todo`) is not skipped: the card badge says "Planned" and the
+  // summary card says "Pending", so the count line must not fold it into skipped.
   const collapse = useCollapse();
   const collapsed = collapse?.isCollapsed(feature.id) ?? false;
   const kindLabel = featureKindLabel(feature.kind);
@@ -65,15 +66,26 @@ export function ReportFeature({ feature }: ReportFeatureProps) {
             colour, so a broken suite reads at a glance without a colour salad. */}
         <p
           className="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground"
-          aria-label={`${s.passed} passed, ${s.failed} failed, ${skipped} skipped`}
+          aria-label={[
+            `${s.passed} passed`,
+            `${s.failed} failed`,
+            s.skipped > 0 && `${s.skipped} skipped`,
+            s.pending > 0 && `${s.pending} pending`,
+          ].filter(Boolean).join(", ")}
         >
           <span>{s.passed} passed</span>
           <span aria-hidden>·</span>
           <span className={cn(s.failed > 0 && "font-medium text-fail")}>{s.failed} failed</span>
-          {skipped > 0 ? (
+          {s.skipped > 0 ? (
             <>
               <span aria-hidden>·</span>
-              <span>{skipped} skipped</span>
+              <span>{s.skipped} skipped</span>
+            </>
+          ) : null}
+          {s.pending > 0 ? (
+            <>
+              <span aria-hidden>·</span>
+              <span>{s.pending} pending</span>
             </>
           ) : null}
         </p>

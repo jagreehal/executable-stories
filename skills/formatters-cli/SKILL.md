@@ -195,7 +195,7 @@ input is already assembled—such as `aggregateReports({ dir: "reports/by-file" 
   `index.html` (e.g. an aggregated report named `index` in mixed mode).
   Aggregated output needs no index — the single file already is the entry point.
 
-Full CLI flag list, per-formatter programmatic API, asset bundling, Atlassian publishing, validation helpers, before/after diffs, and notifications: [REFERENCE.md](REFERENCE.md).
+Markdown formatter options (`stepStyle: "gherkin"`, `groupBy`, `includeFrontMatter`, `includeSummaryTable`, heading level and sort order; programmatic only), cloud `push` flags, full CLI flag list, per-formatter API, asset bundling, Atlassian publishing, validation helpers, before/after diffs, and notifications: [REFERENCE.md](REFERENCE.md).
 
 ## Core Patterns
 

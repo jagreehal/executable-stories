@@ -62,3 +62,31 @@ export const HeadingsAndInlineCode: Story = {
     await expect(canvas.getByText("pnpm test")).toBeVisible();
   },
 };
+
+// Written the way a section is authored in a test file: a template literal
+// indented to match the surrounding code. The indentation must be stripped,
+// or Markdown turns the whole body into one code block.
+export const IndentedTemplateLiteral: Story = {
+  args: {
+    entry: {
+      kind: "section",
+      phase: "static",
+      title: "The big one",
+      markdown: `
+        Four slots, all the same colour. The machine hands over *everything* it has.
+
+        | You see       | You get       |
+        | ------------- | ------------- |
+        | Four the same | The whole pot |
+
+        The pot is counted **after** your pound went in.
+      `,
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    expect(canvasElement.querySelector("pre")).toBeNull();
+    await expect(canvas.getByRole("table")).toBeVisible();
+    await expect(canvas.getByText("everything")).toBeVisible();
+  },
+};

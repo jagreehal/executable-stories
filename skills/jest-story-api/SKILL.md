@@ -82,6 +82,61 @@ it("processes payment", () => {
 });
 ```
 
+### Feature narrative and glossary (story.feature)
+
+Scenarios say what the system does. `story.feature` says why the feature exists and defines its terms, so a reader meets the intent before the examples. Call it once per file at module scope. It heads every scenario in the file and applies its `tags` to all of them.
+
+```typescript
+story.feature({
+  title: "Fruit machine",
+  kind: "ability", // "feature" (default) | "ability" | "business-need"
+  narrative: `
+    A fruit machine holds a **pot** of money. You pay to spin four slots.
+    Match the colours and you win some of the pot; if the machine cannot
+    afford your prize it owes you *free plays* instead.
+  `,
+  tags: ["fruit-machine"],
+  glossary: [
+    { term: "float", definition: "The money the machine starts with, before anyone plays." },
+    { term: "free play", definition: "A go you do not pay for. Owed when the pot could not cover a prize." },
+  ],
+});
+```
+
+The HTML report renders the narrative above the scenarios and the glossary as an aligned term/definition list; the Markdown report prints both under the feature heading.
+
+### Prose with Markdown (story.section)
+
+`narrative` and `story.section({ title, markdown })` are the two places that take **Markdown** (CommonMark plus GFM tables). Everything else (`note`, `kv`, `table` cells, step text) is plain text. Use a section wherever a scenario needs explanation a note cannot carry: why this rule comes first, the trap a reader is likely to fall into, a worked example.
+
+```typescript
+it("four matching colours wins the jackpot", () => {
+  story.init();
+
+  // Before the first step: attached to the scenario, rendered after the steps.
+  story.section({
+    title: "The big one",
+    markdown: `
+      Four slots, all the same colour. The machine hands over everything it has:
+      the float, every pound other players lost, *and* the pound you just put in.
+
+      | You see          | You get       |
+      | ---------------- | ------------- |
+      | Four the same    | The whole pot |
+      | Four different   | Half the pot  |
+
+      The pot is counted **after** your pound went in, not before.
+    `,
+  });
+
+  story.given("a machine with a £10 float");
+  // After a step: attached to that step and rendered beneath it.
+  story.section({ title: "Where the money went", markdown: "…" });
+});
+```
+
+Template-literal indentation is stripped before parsing, so write the Markdown indented to match the surrounding code; a fenced block keeps its own relative indent. The `title` is the section's heading; do not add `#` headings inside the body, use **bold** run-in labels for sub-parts. Prefer `story.table` over a Markdown table when the rows are data the test already holds; Markdown tables are for prose that happens to line up.
+
 ### State snapshots (story.state)
 
 `story.state({ label?, value })` captures what the world looks like at the current step as a JSON-serializable snapshot. Steps carrying state docs (or screenshots) become storyboard frames: a label's first appearance shows the full snapshot, consecutive snapshots with the same label render as a diff (`items[0].qty: 1 → 2`), and multiple labels appear as side-by-side lanes. Labels are scoped to the scenario: snapshots in different scenarios never diff against each other.

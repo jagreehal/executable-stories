@@ -31,6 +31,10 @@ reports/index.story-report.json
 npx executable-stories-mcp
 ```
 
+Pass `--tools read` (or set `EXECUTABLE_STORIES_MCP_TOOLS=read`) to register only
+the observe tools, none of the `run_*` tools, for review sessions and for long agentic
+sessions where every tool schema is paid on every call.
+
 The binary speaks the MCP stdio transport. To register it with an MCP client
 (Claude Code, Claude Desktop, Cursor), add it to the client's `mcpServers` config:
 
