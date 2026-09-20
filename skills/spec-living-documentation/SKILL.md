@@ -194,7 +194,7 @@ Delivery references like ticket IDs can help trace origin, but they should not c
 
 ### Tag for derived stakeholder surfaces
 
-Use a small, intentional vocabulary. These conventions feed the Astro site;
+Use a small, intentional vocabulary. These conventions feed stakeholder views;
 arbitrary CI labels such as `slow` or `flaky` should not become audience
 navigation.
 

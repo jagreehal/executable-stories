@@ -14,7 +14,7 @@ const CHANGE_TAG_PREFIX = "change:";
 /** Tag prefix that explicitly overrides the derived audience, e.g. `audience:stakeholder`. */
 const AUDIENCE_TAG_PREFIX = "audience:";
 
-const VALID_CHANGE_TYPES: ReadonlySet<ChangeType> = new Set<ChangeType>([
+export const VALID_CHANGE_TYPES: ReadonlySet<ChangeType> = new Set<ChangeType>([
   "feature",
   "bugfix",
   "refactor",

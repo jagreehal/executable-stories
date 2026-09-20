@@ -203,8 +203,6 @@ It reads whatever reports are there, orders them by source file, and renders. Th
 
 `junit`, `cucumber-json`, `cucumber-messages` and `cucumber-html` are the exception. They record what a build executed, so they always describe the run in hand rather than the accumulated suite: a focused run emits only the tests it ran, which is what a CI dashboard needs to be true.
 
-The docs site reads the same directory (see [Astro docs site](/guides/astro-docs-site/#showing-the-whole-suite-not-just-the-last-run)).
-
 ### How old is each report
 
 A combined view holds results from several runs, so its run-level timestamp does not speak for its contents. Every scenario records when it last ran and on which commit; the HTML report flags scenarios older than the staleness threshold (`--html-stale-after-days`, 7 by default), and the metadata table says the view is accumulated and over what span.

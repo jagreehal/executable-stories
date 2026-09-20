@@ -242,7 +242,7 @@ describe("Astro format integration", () => {
   });
 
   describe("asset copy mode", () => {
-    it("copies assets into the Astro site public directory when output is nested under src/content/docs", async () => {
+    it("copies assets into the site public directory when output is nested under src/content/docs", async () => {
       const tempDir = makeTempDir();
       const outputDir = path.join(tempDir, "src/content/docs/stories");
       fs.mkdirSync(outputDir, { recursive: true });

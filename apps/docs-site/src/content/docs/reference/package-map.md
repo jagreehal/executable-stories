@@ -10,9 +10,7 @@ Use this page to pick the right package. Tests stay in your framework; packages 
 | Package | Role | Install when |
 | --- | --- | --- |
 | [executable-stories-formatters](https://github.com/jagreehal/executable-stories/tree/main/packages/executable-stories-formatters) | RawRun → ACL → HTML, Markdown, JUnit, Cucumber, StoryReport JSON; CLI (`executable-stories`) | You need reports or the CLI in CI |
-| [executable-stories-mcp](https://github.com/jagreehal/executable-stories/tree/main/packages/executable-stories-mcp) | Read-only MCP tools over StoryReport JSON | A coding agent needs discover/query tools |
 | [executable-stories-react](https://github.com/jagreehal/executable-stories/tree/main/packages/executable-stories-react) | Render StoryReport JSON in React apps | You embed reports in a product UI |
-| [executable-stories-demo](https://github.com/jagreehal/executable-stories/tree/main/packages/executable-stories-demo) | Astro/Starlight demo site from run artifacts | You publish a behavior catalog site |
 | [executable-stories-init](https://github.com/jagreehal/executable-stories/tree/main/packages/executable-stories-init) | Bootstrap JS adapters and reporter wiring | You want guided first-time setup |
 
 ## JavaScript / TypeScript adapters
@@ -60,7 +58,6 @@ Publish human-readable docs from CI?
 
 Give coding agents behavior context?
   → Emit StoryReport JSON + scenario index (see Agent artifact contract)
-  → Optional: executable-stories-mcp
 
 Embed reports in a React product?
   → executable-stories-react
@@ -69,4 +66,4 @@ Bootstrap a new JS project quickly?
   → executable-stories-init
 ```
 
-See also: [Agent artifact contract](/guides/agent-artifact-contract/), [Cross-language parity](/reference/cross-language-parity/), [MCP server](/guides/mcp-server/), [Setup decision tree](/guides/setup-decision-tree/).
+See also: [Agent artifact contract](/guides/agent-artifact-contract/), [Cross-language parity](/reference/cross-language-parity/), [Setup decision tree](/guides/setup-decision-tree/).

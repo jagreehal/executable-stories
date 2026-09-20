@@ -243,8 +243,6 @@ executable-stories list reports/by-file --list-format json > reports/scenario-in
 
 Documentation formats render accumulated per-source state. JUnit, Cucumber, and release-manifest formats always describe only the current execution.
 
-**MCP:** `executable-stories-mcp` exposes read-only tools (`list_scenarios`, `get_scenario`, `get_failing_scenarios`, `get_feature_summary`, `get_scenario_index`, `get_behavior_manifest`) and `run_scenario` for focused test runs. See [agent artifact contract](apps/docs-site/src/content/docs/guides/agent-artifact-contract.md) and `packages/executable-stories-mcp/README.md`.
-
 **Parity:** Non-JS adapters must match JS/TS semantics, doc model, and artifact outputs. See docs-site reference page `cross-language-parity` and root `pnpm run verify:*` scripts.
 
 ## Testing
@@ -338,10 +336,8 @@ When working in these areas, load the linked skill file into context for accurat
 | Choosing and wiring CI gates (PR, release, scheduled)        | `skills/ci-gates/SKILL.md`                                                                     |
 | Auditing coverage by requirement, code, and evidence         | `skills/coverage-audit/SKILL.md`                                                               |
 | Bridging TestRail or Xray to the suite                       | `skills/test-management-bridge/SKILL.md`                                                       |
-| Routing one run to stakeholder, design, and support views    | `skills/audience-views/SKILL.md`                                                               |
 | Publishing a report a non-developer's browser agent can query | `skills/report-webmcp/SKILL.md`                                                                |
 | Writing release notes from the behavioural diff              | `skills/release-notes/SKILL.md`                                                                |
-| Building a docs site that cannot go stale                    | `skills/living-docs-site/SKILL.md`                                                             |
 | Grilling a vague request into scenarios, one round at a time | `skills/spec-grilling/SKILL.md`                                                                |
 | Sending open questions to an absent expert as a questionnaire | `skills/spec-questionnaire/SKILL.md`                                                          |
 | Story mapping a release as journeys and planned scenarios    | `skills/spec-story-mapping/SKILL.md`                                                           |

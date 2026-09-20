@@ -134,6 +134,5 @@ no whiteboard involved.
 
 - `spec-plan-to-stories` is the mechanics of declaring a planned scenario per adapter.
 - `spec-example-mapping` and `spec-grilling` work one cell at a time once the map exists.
-- `audience-views` mounts the map as pages the stakeholders read.
 - `release-notes` reports a completed slice to the people who were promised it.
 - `spec-outside-in-behaviour` is the discovery discipline behind a good backbone.

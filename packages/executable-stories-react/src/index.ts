@@ -74,7 +74,7 @@ export type { ScenarioExplorerProps, ExplorerScenario, ExplorerStatus } from "./
 export { useCustomRenderers, useBuiltinRenderers } from "./hooks/useRenderers";
 
 // Provenance/freshness helpers shared by ReportMeta, the interactive
-// freshness banner, and downstream consumers (e.g. the Astro site).
+// freshness banner, and downstream consumers.
 export {
   reportLastRunMs,
   formatRelativeAge,

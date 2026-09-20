@@ -10,7 +10,7 @@ const pageHtml = (title: string, body: string) =>
   `<!DOCTYPE html><html><body style="font-family:sans-serif;padding:2rem"><h1>${title}</h1>${body}</body></html>`;
 
 // `journey:guest-checkout:<n>` composes these scenarios into one ordered
-// walkthrough at /journeys/guest-checkout on an Astro site.
+// walkthrough.
 test('Browse the catalog', async ({ page }, testInfo) => {
   story.init(testInfo, {
     tags: ['storyboard', 'audience:stakeholder', 'journey:guest-checkout:1', 'state:catalog', 'viewport:desktop'],

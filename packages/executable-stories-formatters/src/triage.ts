@@ -11,6 +11,7 @@
 import type { TestCaseResult, TestStatus } from "executable-stories-core/types/test-result";
 import { failingScenarioMessage } from "./scenario-failure";
 import { ownersFor, type CodeownersRule } from "./codeowners";
+import { asChoice, type JevClient } from "./jev";
 
 export interface TriageItem {
   rank: number;
@@ -28,7 +29,13 @@ export interface TriageItem {
   /** Passed in the baseline, failing now. Ranked first. */
   regressed: boolean;
   reason: "regression" | "failing";
+  /** Jev's pick when `covers` is empty: a path the run already routes to, with its probability. */
+  suggestedCovers?: { path: string; probability: number };
+  /** Jev's read of what failed: the product, the test itself, or the environment. */
+  failureKind?: { kind: FailureKind; confidence: number };
 }
+
+export type FailureKind = "product" | "test" | "infra";
 
 export interface TriageReport {
   total: number;
@@ -108,6 +115,78 @@ export function buildTriage(args: TriageArgs, _deps: TriageDeps = {}): TriageRep
   };
 }
 
+/** Below this probability no path is suggested. */
+export const TRIAGE_SUGGEST_MIN_PROBABILITY = 0.5;
+
+const FAILURE_KIND_CRITERIA: Record<FailureKind, string> = {
+  product: "the application code under test behaves wrongly",
+  test: "the scenario, assertion, fixture, or test data is wrong or stale",
+  infra: "environment, network, timeout, resource, or flaky-timing failure",
+};
+
+/**
+ * For each failing scenario with no `covers`, ask Jev to pick from the paths
+ * this run already routes to (every declared `covers`, plus CODEOWNERS
+ * patterns), and to say whether the product, the test, or the environment
+ * failed. The declared-`covers` count stays as declared: a suggestion is not
+ * a declaration.
+ */
+export async function enrichTriage(
+  report: TriageReport,
+  testCases: TestCaseResult[],
+  jev: JevClient,
+  codeowners?: readonly CodeownersRule[],
+): Promise<TriageReport> {
+  const candidates = new Set<string>(testCases.flatMap((tc) => tc.story.covers ?? []));
+  for (const rule of codeowners ?? []) candidates.add(rule.pattern);
+  const criteria = Object.fromEntries([...candidates].map((path) => [path, null]));
+
+  const byId = new Map(testCases.map((tc) => [tc.id, tc]));
+  const items = await Promise.all(
+    report.items.map(async (item) => {
+      if (item.covers.length > 0) return item;
+      const tc = byId.get(item.id);
+      const answers = await jev.ask(
+        {
+          scenario: item.scenario,
+          steps: tc?.story.steps.map((s) => `${s.keyword} ${s.text}`) ?? [],
+          testFile: item.location,
+          error: item.errorMessage ?? null,
+        },
+        {
+          kind: {
+            type: "choice",
+            instructions: "What is most likely broken, given this failing scenario and its error?",
+            criteria: FAILURE_KIND_CRITERIA,
+          },
+          ...(candidates.size > 0
+            ? {
+                covers: {
+                  type: "choice" as const,
+                  instructions: "Which of these product paths does the fix for this failure most likely land in?",
+                  criteria,
+                },
+              }
+            : {}),
+        },
+      );
+      const kind = asChoice(answers.kind);
+      const covers = asChoice(answers.covers);
+      const probability = covers ? (covers.probabilities[covers.choice] ?? 0) : 0;
+      return {
+        ...item,
+        ...(kind && kind.choice in FAILURE_KIND_CRITERIA
+          ? { failureKind: { kind: kind.choice as FailureKind, confidence: kind.confidence } }
+          : {}),
+        ...(covers && probability >= TRIAGE_SUGGEST_MIN_PROBABILITY
+          ? { suggestedCovers: { path: covers.choice, probability } }
+          : {}),
+      };
+    }),
+  );
+  return { ...report, items };
+}
+
 export interface RenderTriageOptions {
   /** Group the text worklist under each CODEOWNERS owner. */
   byOwner?: boolean;
@@ -141,8 +220,13 @@ export function renderTriage(
     }
     if (item.covers.length > 0) {
       lines.push(`   fix: ${item.covers.join(", ")}`);
+    } else if (item.suggestedCovers) {
+      lines.push(`   fix: ${item.suggestedCovers.path}? (jev ${item.suggestedCovers.probability.toFixed(2)}, no covers declared)`);
     } else {
       lines.push("   fix: (no covers declared — add `covers` to route this to code)");
+    }
+    if (item.failureKind) {
+      lines.push(`   kind: ${item.failureKind.kind} (jev ${item.failureKind.confidence.toFixed(2)})`);
     }
     if (item.tickets.length > 0) {
       lines.push(`   ticket: ${item.tickets.join(", ")}`);

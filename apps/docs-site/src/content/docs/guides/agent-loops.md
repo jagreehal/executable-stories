@@ -70,6 +70,16 @@ Exit `0` means met, `5` means not yet, so a loop runs until the verdict flips. D
 
 The **ratchet** matters for an unattended loop. An agent that can make "done" true by deleting the failing scenario will eventually try it. With a baseline, `goal` refuses a "done" that dropped, skipped, or shortened a scenario. Disable it with `--no-ratchet` if you need to.
 
+## Jev: judgments where the rules stop
+
+`check`, `triage`, and `goal` are rule-driven, and rules leave gaps: a failing scenario with no `covers`, a scenario whose steps were rewritten without shrinking, a claim with no `change:*` tag. Set `JEV_API_KEY` and the three commands ask [Jev](https://typesafe.ai) (TypeSafe AI's System One) a bounded question for each gap:
+
+- `triage` suggests a `covers` path from the paths the run already routes to, and labels each unrouted failure `product`, `test`, or `infra`.
+- `goal` lists rewritten scenarios that now check less as ratchet advisories.
+- `review` infers the change-type of untagged claims and marks it `inferred` with its confidence.
+
+Every answer carries its probability. Exit codes stay rule-driven, so a loop behaves the same with or without the key. `JEV_MODEL` and `JEV_ENDPOINT` override the defaults.
+
 ## `traceability-matrix`: the memory
 
 Tomorrow's run reads where today's stopped. The behavior artifacts on disk are that memory. The traceability matrix is the requirement-first view: each ticket, the scenarios that verify it, the code they cover, and whether they pass, plus any scenario linked to no requirement.
@@ -80,32 +90,6 @@ executable-stories format reports/raw-run.json \
 ```
 
 See the [Agent artifact contract](/guides/agent-artifact-contract/) for the StoryReport, scenario index, and behavior manifest an agent also reads.
-
-## Watch the loop on the Astro dev server
-
-`check`, `triage`, and `goal` are what the loop reads to act. The live docs site is what _you_ read to watch. Kick off a multi-hour loop, leave one URL open, and see the behaviour catalogue change in realtime, no refreshing, no digging through logs.
-
-Scaffold the site once, then run two processes: your tests in watch mode, and the Astro dev server.
-
-```bash
-executable-stories init-astro            # one-time: scaffolds a thin Astro docs site
-# terminal 1: your runner in watch mode (updates reports/by-file through the reporter)
-pnpm test --watch
-# terminal 2: the docs site
-cd story-docs && pnpm dev                 # astro dev
-```
-
-Configure the site with `source: '../reports/by-file'`. The content loader watches that directory: when a focused run updates one source report, `/stories` and Scenario Explorer hot-reload without dropping untouched scenarios. The generated reports are cacheable state; the tests remain the source of truth. The loader tolerates the directory not existing yet.
-
-The reload is the easy part. What the site adds is the **trajectory**. The shipped `Trajectory` component pins a baseline when the dev server starts, then shows what changed _since you started the loop_, drawn from the same run history as `compare`:
-
-```text
-Since you started: +6 passing, 1 regressed
-```
-
-That answers the question you actually have at 2am: is the loop making progress or thrashing?
-
-If you only want reloads and not the trajectory, you do not need the Astro site at all. Point any static server at the output, e.g. `live-server reports/`; the framework reporters rewrite `reports/test-results.html` on every run.
 
 ## Put it in the loop's instructions
 
@@ -136,6 +120,4 @@ A loop running unattended is also a loop making mistakes unattended. `goal` make
 ## Related
 
 - [Agent artifact contract](/guides/agent-artifact-contract/): the StoryReport, scenario index, and behavior manifest.
-- [MCP server](/guides/mcp-server/): `get_failing_scenarios`, `get_scenarios_for_paths`, `get_behavior_diff`, `run_scenario`.
 - [Release confidence](/guides/release-confidence/): the before-PR and release gates (`compare`, `gate-release`).
-- Live docs: the Astro dev server for watching a loop in realtime (above).

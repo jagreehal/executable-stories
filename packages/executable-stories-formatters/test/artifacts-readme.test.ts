@@ -21,7 +21,6 @@ describe("writeArtifactsReadme", () => {
     const content = fs.readFileSync(path.join(dir, "README.md"), "utf8");
     expect(content).toContain("raw-run.json");
     expect(content).toContain("scenario-index");
-    expect(content).toContain("executable-stories dev");
     // The per-file reports and how to combine them: the two things a reader
     // opening this folder for the first time will not guess.
     expect(content).toContain("by-file/");

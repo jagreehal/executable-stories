@@ -142,7 +142,6 @@ Two edits, both small, both easy to skip:
   traceability matrix, so the requirement side of the audit is answered too.
 - **Tag for the readers who care.** `criticality:revenue` for risk weighting, `support`
   if a customer-facing agent needs to know the answer to "what happens if…".
-  `audience-views` covers the vocabulary.
 
 ## When the bug cannot be fixed now
 

@@ -131,9 +131,6 @@ executable-stories format raw-run.json --format html \
 # Validate JSON against schema
 executable-stories validate raw-run.json
 
-# Scaffold a thin Astro docs site; run `astro dev` for live stories at /stories
-executable-stories init-astro story-docs
-
 # Shell completion
 executable-stories completion zsh > ~/.zsh/completions/_executable-stories
 
@@ -142,13 +139,9 @@ executable-stories publish-confluence reports/test-results.adf.json --page-id 12
 executable-stories publish-jira reports/test-results.adf.json --issue PROJ-123 --mode comment --dry-run
 ```
 
-The Astro site should read `<outputDir>/by-file/` for a whole local suite; use one
-raw-run JSON only for an intentional execution snapshot. Configure persona `views`, journeys,
-states, multi-source drift, and journey history in
-`story-docs/executable-stories.config.mjs`; do not generate per-story Markdown
-with the removed `build-docs` command. For a cross-repository hub, publish each
-product's run with the GitHub Action's `mode: publish-run`, fetch the stable
-URLs, then run the hub's normal Astro build.
+A docs site should read `<outputDir>/by-file/` for a whole local suite; use one
+raw-run JSON only for an intentional execution snapshot. For a cross-repository hub, publish each
+product's run with the GitHub Action's `mode: publish-run`, then fetch the stable URLs.
 
 ### Programmatic usage
 
@@ -269,7 +262,7 @@ executable-stories watch raw-run.json --format story-report-json,scenario-index-
 
 Regenerates the chosen reports whenever the raw-run file changes — keeps the live agent index (StoryReport JSON + scenario index) up to date during a coding loop without re-invoking `format` by hand.
 
-Live-reloading docs during a loop (`init-astro` + `astro dev`, the `Trajectory` component) and the remaining subcommands (`compare`, `gate-release`, `review`, `deploy`): [REFERENCE.md](REFERENCE.md).
+The remaining subcommands (`compare`, `gate-release`, `review`, `deploy`): [REFERENCE.md](REFERENCE.md).
 
 ## Each test file owns a report
 

@@ -353,9 +353,8 @@ steps:
 Unchanged runs are skipped, so scheduled builds add no empty commits. The action
 validates the run's transform-safe structure before touching the API and refuses
 to let a late, older `finishedAtMs` overwrite a newer published run, including
-when the existing JSON is too large for inline Contents API data. See the
-[multi-repo docs hub guide](/guides/multi-repo-docs-hub/) for the full picture:
-one Astro site collating the published runs from every repo.
+when the existing JSON is too large for inline Contents API data.
+A hub site can then collate the published runs from every repo.
 
 ### Render screenshots inline in PR comments (opt-in)
 

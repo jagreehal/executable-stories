@@ -26,25 +26,6 @@ function ensurePackagedCliBuilt(): void {
 
 describe("packaged CLI", () => {
   it(
-    "prints a migration message for the removed `serve` subcommand",
-    () => {
-      ensurePackagedCliBuilt();
-
-      const result = spawnSync("node", [packagedCliPath, "serve"], {
-        cwd: packageDir,
-        encoding: "utf8",
-      });
-
-      expect(result.status).toBe(4);
-      expect(result.stderr).toContain('"serve" subcommand was removed');
-      expect(result.stderr).toContain("executable-stories dev");
-      // Not the generic unknown-subcommand path.
-      expect(result.stderr).not.toContain("Unknown subcommand");
-    },
-    30000
-  );
-
-  it(
     "validates example input after build",
     () => {
       ensurePackagedCliBuilt();

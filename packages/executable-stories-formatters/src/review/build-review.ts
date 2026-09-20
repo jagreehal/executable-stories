@@ -11,6 +11,7 @@ import type { DocEntry } from "executable-stories-core/types/story";
 import { assertionState } from "executable-stories-core";
 import type { TestCaseResult } from "executable-stories-core/types/test-result";
 import type {
+  ChangeType,
   ChangedFileReview,
   CodeDiffEvidence,
   CodeDiffInput,
@@ -23,12 +24,14 @@ import type {
 } from "../types/review";
 import { parseUnifiedDiff, relocateAnchor } from "./diff-anchor";
 import {
+  VALID_CHANGE_TYPES,
   deriveAudience,
   deriveChangeType,
   isReviewableSource,
   sourceBaseKey,
   testBaseKey,
 } from "./conventions";
+import { asChoice, type JevClient } from "../jev";
 
 const STRENGTH_RANK: Record<EvidenceStrength, number> = {
   none: 0,
@@ -316,6 +319,75 @@ export function buildReview(
  * turns them into review-gate failures so CI catches explainers that lost
  * their grounding.
  */
+/** Below this confidence the claim stays `unknown`. */
+export const REVIEW_CHANGE_TYPE_MIN_CONFIDENCE = 0.6;
+/** Enough patch to classify; a claim rarely covers more than a few hunks. */
+const PATCH_EXCERPT_CHARS = 4000;
+
+const CHANGE_TYPE_CRITERIA: Record<Exclude<ChangeType, "unknown">, string> = {
+  feature: "new user-visible behaviour or capability",
+  bugfix: "corrects behaviour that was wrong",
+  refactor: "restructures code without changing behaviour",
+  perf: "same behaviour, faster or cheaper",
+  deps: "dependency, toolchain, or lockfile change",
+};
+
+/**
+ * For claims with no `change:*` tag, ask Jev to pick the change-type from the
+ * scenario plus the hunks of the files it covers. Confident answers are
+ * written back with their confidence so every renderer can say "inferred";
+ * the rest stay `unknown`.
+ */
+export async function enrichReview(review: ReviewResult, jev: JevClient): Promise<ReviewResult> {
+  const untagged = review.claims.filter((c) => c.changeType === "unknown" && c.coversFiles.length > 0);
+  if (untagged.length === 0) return review;
+
+  const hunksByPath = new Map<string, string[]>();
+  for (const group of review.context.codeDiffs ?? []) {
+    for (const file of parseUnifiedDiff(group.patch)) {
+      const path = file.newPath ?? file.oldPath;
+      if (!path) continue;
+      const text = file.hunks.flatMap((h) => h.lines.map((l) => (l.kind === "add" ? "+" : l.kind === "del" ? "-" : " ") + l.text));
+      hunksByPath.set(path, [...(hunksByPath.get(path) ?? []), ...text]);
+    }
+  }
+
+  const inferred = new Map<string, { changeType: ChangeType; confidence: number }>();
+  await Promise.all(
+    untagged.map(async (claim) => {
+      const patch = claim.coversFiles.flatMap((f) => hunksByPath.get(f) ?? []).join("\n").slice(0, PATCH_EXCERPT_CHARS);
+      const answers = await jev.ask(
+        {
+          scenario: claim.scenario,
+          steps: claim.testCase.story.steps.map((s) => `${s.keyword} ${s.text}`),
+          ...(claim.intent ? { intent: claim.intent } : {}),
+          changedFiles: claim.coversFiles,
+          ...(patch ? { patch } : {}),
+        },
+        {
+          changeType: {
+            type: "choice",
+            instructions: "What kind of change does this scenario prove?",
+            criteria: CHANGE_TYPE_CRITERIA,
+          },
+        },
+      );
+      const answer = asChoice(answers.changeType);
+      if (!answer || answer.confidence < REVIEW_CHANGE_TYPE_MIN_CONFIDENCE) return;
+      const changeType = answer.choice as ChangeType;
+      if (VALID_CHANGE_TYPES.has(changeType)) inferred.set(claim.id, { changeType, confidence: answer.confidence });
+    }),
+  );
+
+  return {
+    ...review,
+    claims: review.claims.map((claim) => {
+      const hit = inferred.get(claim.id);
+      return hit ? { ...claim, changeType: hit.changeType, changeTypeConfidence: hit.confidence } : claim;
+    }),
+  };
+}
+
 export function codeDiffDiagnostics(review: ReviewResult): string[] {
   const issues: string[] = [];
   for (const evidence of review.codeDiffs) {

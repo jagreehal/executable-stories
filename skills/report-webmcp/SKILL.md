@@ -152,6 +152,4 @@ untrue, and only a check on the DOM catches it.
 ## Related
 
 - `agent-loop` — the same run, for an agent that has a shell or MCP
-- `audience-views` — routing one run into the views each audience actually reads
-- `living-docs-site` — publishing the report where a stakeholder will find it
 - [Agent artifact contract](https://docs.executablestories.com/guides/agent-artifact-contract/#webmcp-in-the-readers-browser)

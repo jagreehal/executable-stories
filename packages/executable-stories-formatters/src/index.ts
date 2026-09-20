@@ -302,8 +302,7 @@ export {
   type WatchHandle,
 } from "./watch";
 
-// The old `serve` HTTP server is replaced by `astro dev` (executable-stories-astro).
-// Its valuable part — the session trajectory primitive — now lives in core.
+// The session trajectory primitive lives in core.
 export { advanceState, initialRunState, type RunState } from "executable-stories-core";
 export { aggregateReports, type AggregateDeps, type AggregateResult } from "./aggregate-reports";
 export { runsStatus, runsReset, type RunsStatusReport, type RunsResetResult } from "./runs-lifecycle";
@@ -488,7 +487,7 @@ export type {
   CheckStep,
 } from "./check";
 
-export { buildGoal, renderGoal } from "./goal";
+export { buildGoal, enrichGoal, renderGoal } from "./goal";
 export type {
   GoalArgs,
   GoalDeps,
@@ -497,13 +496,17 @@ export type {
   RatchetViolation,
 } from "./goal";
 
-export { buildTriage, renderTriage } from "./triage";
+export { buildTriage, enrichTriage, renderTriage } from "./triage";
 export type {
   TriageArgs,
   TriageDeps,
   TriageReport,
   TriageItem,
+  FailureKind,
 } from "./triage";
+
+export { createJevClient, jevFromEnv } from "./jev";
+export type { JevClient, JevQuestion, JevAnswer } from "./jev";
 
 // ============================================================================
 // ReportGenerator
@@ -565,7 +568,7 @@ export { diffRuns, type DiffRunsOptions } from "./compare/diff-runs";
 export { createPrCommentSummary } from "./compare/pr-summary";
 
 // Review domain + formatter (Evidence-Driven Review report)
-export { buildReview, gradeEvidence, codeDiffDiagnostics } from "./review/build-review";
+export { buildReview, enrichReview, gradeEvidence, codeDiffDiagnostics } from "./review/build-review";
 export {
   assembleCodeDiff,
   type CodeDiffSidecar,

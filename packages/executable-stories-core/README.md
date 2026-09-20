@@ -17,8 +17,7 @@ dependencies.
 ## Install
 
 You usually do not install this directly. It arrives as a dependency of
-`executable-stories-formatters`, `executable-stories-react`,
-`executable-stories-astro`, `executable-stories-mcp`, and the framework
+`executable-stories-formatters`, `executable-stories-react`, and the framework
 adapters.
 
 ```bash

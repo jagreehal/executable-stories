@@ -62,8 +62,6 @@
       "description": "Skills for shaping specifications into durable, audience-aware living documentation.",
       "skills": [
         "spec-living-documentation",
-        "audience-views",
-        "living-docs-site",
         "spec-convert-tests",
         "spec-plan-to-stories",
         "spec-review",

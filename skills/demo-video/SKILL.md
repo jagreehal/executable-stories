@@ -161,7 +161,6 @@ report goes after that is the user's decision, the same as every other report th
 
 ## Neighbouring skills
 
-- `audience-views` decides who the walkthrough is for before you narrate anything.
 - `show-me` answers a question now, in the conversation. This one produces something to
   send to someone who is not in the room.
 - `release-notes` covers the same "what shipped" question in text, which is diffable. Reach

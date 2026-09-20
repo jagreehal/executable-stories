@@ -27,9 +27,8 @@ export function useScenarioActions(): ScenarioActions | null {
 /**
  * A scenario rendered as Markdown — for pasting into PRs / issues / docs.
  *
- * Delegates to the shared serializer in core (`variant: "compact"`), the same
- * one behind the Astro site's `<slug>.md` twin endpoints, so what you copy here
- * and what an agent fetches there can never drift.
+ * Delegates to the shared serializer in core (`variant: "compact"`), so what you
+ * copy here and what an agent fetches elsewhere can never drift.
  */
 export function scenarioToMarkdown(scenario: ReportScenario): string {
   return coreScenarioToMarkdown(scenario, { variant: "compact" });

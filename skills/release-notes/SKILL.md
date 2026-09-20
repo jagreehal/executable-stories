@@ -151,8 +151,6 @@ keeps the notes linked to the scenarios that prove them.
 
 - `ci-gates` runs `gate-release` and `compare` on the pipeline; this skill reads their
   output.
-- `audience-views` supplies the tags that let you group the notes by capability and
-  audience.
 - `explain-change` goes deeper on one change, with citations and a quiz, when a release
   contains something that needs teaching rather than announcing.
 - `coverage-audit` answers the "is it covered" question the notes will provoke.

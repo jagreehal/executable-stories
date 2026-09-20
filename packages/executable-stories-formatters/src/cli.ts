@@ -51,14 +51,13 @@ import {
 import { ReviewHtmlFormatter } from './formatters/review-html';
 import { ReviewMarkdownFormatter } from './formatters/review-markdown';
 import { buildReviewJson } from './formatters/review-json';
-import { buildGoal, renderGoal } from './goal';
+import { buildGoal, enrichGoal, renderGoal } from './goal';
 import {
   loadHistory,
   saveHistory,
   updateHistory,
 } from './history/history-store';
 import type { HistoryStore } from './history/types';
-import { importOpenApi } from './import-openapi';
 // eslint-disable-next-line no-restricted-imports -- ReportGenerator and compare helpers currently live in the package entrypoint.
 import {
   createPrCommentSummary,
@@ -66,13 +65,6 @@ import {
   ReportGenerator,
   startWatch,
 } from './index.js';
-import {
-  detectPackageManager,
-  initAstro as initAstroFn,
-  installScaffoldDependencies,
-  isScaffoldedAstroSite,
-  runDocsDev,
-} from './init-astro';
 import { listScenarios } from './list-scenarios';
 import { sendNotifications } from './notifiers/send-notifications';
 import type {
@@ -86,7 +78,8 @@ import { publishConfluencePage } from './publishers/confluence';
 import { publishJiraIssue, type JiraPublishMode } from './publishers/jira';
 import { runPush } from './push';
 import { runShare } from './share';
-import { buildReview, codeDiffDiagnostics } from './review/build-review';
+import { buildReview, codeDiffDiagnostics, enrichReview } from './review/build-review';
+import { jevFromEnv, type JevClient } from './jev';
 import {
   assembleCodeDiff,
   type CodeDiffSidecar,
@@ -98,11 +91,10 @@ import {
   formatDoctorReport,
 } from './run-file';
 import { runsReset, runsStatus } from './runs-lifecycle';
-import { scaffoldDoc, TEMPLATES } from './scaffold-doc';
 import { selectTestCases } from './select-test-cases';
 import { summaryLine, type SummaryCounts } from './summary-line';
 import { runSyncCommand } from './sync/run';
-import { buildTriage, renderTriage } from './triage';
+import { buildTriage, enrichTriage, renderTriage } from './triage';
 import { parseCodeowners, type CodeownersRule } from './codeowners';
 import type { RunDiffSummary, ScenarioDiff } from './types/compare';
 import type { Formatter } from './types/formatter.js';
@@ -167,15 +159,11 @@ USAGE
   executable-stories triage <file|directory> [--baseline <path|auto>] [--triage-format text|json] [--by-owner]
   executable-stories validate <file>
   executable-stories validate --stdin
-  executable-stories dev [directory]
-  executable-stories init-astro [directory] [--install] [--force] [--update]
-  executable-stories new <template> "<name>" [options]
   executable-stories check-links <dir> [options]
   executable-stories push <run.json|results.xml|allure-results/> [--format <fmt>] [--title <text>] [--env <name>] [--description <text|@file.md>] [--gate] [--force]
   executable-stories share <reports-dir|report.json> [--emails <a@b,c@d>] [--expires-days <n>]
   executable-stories coverage <testrail|xray> <run.json> [options]
   executable-stories sync <testrail|xray> <run.json> [--apply] [options]
-  executable-stories import-openapi <spec> [options]
   executable-stories publish-confluence <file.adf.json> [options]
   executable-stories publish-jira <file.adf.json> [options]
   executable-stories deploy record <file> --env <env> [--tag <tag>] [options]
@@ -197,27 +185,24 @@ SUBCOMMANDS
   doctor             Diagnose the run JSON: where it is, whether it parses, schema version vs this CLI, what it contains
   runs               Inspect or clear the accumulated run state: "runs status", "runs reset"
   completion         Output a shell completion script (bash, zsh, fish)
-  init-astro         Scaffold a thin Astro docs site (Starlight + executable-stories-astro; live stories at /stories)
-  new                Scaffold a docs page from a template (adr, runbook, decision-log, incident, scenario-note)
   check-links        Scan docs for broken internal/external links (CI-friendly exit code)
   push               Send a run to a cloud ingest endpoint: StoryReport, raw run, JUnit XML, Playwright JSON or allure-results
   share              Publish a report (with its screenshots and video) and print a link to it
   coverage           Compare your stories against a test-management system (read-only)
   sync               Push cases, executions, and evidence to TestRail or Xray (dry run by default)
-  import-openapi     Generate API doc pages from an OpenAPI spec, linked to verifying stories
   publish-confluence Publish an ADF JSON file to a Confluence page via REST API
   publish-jira       Publish an ADF JSON file to a Jira issue (as comment or description)
   deploy             Record deployments, show environment status, detect drift
 
 OPTIONS
   --format <formats>            Comma-separated formats: html, markdown, release-manifest, traceability-matrix, traceability-csv, junit, cucumber-json, cucumber-messages, cucumber-html, astro-markdown, confluence, story-report-json, scenario-index-json, behavior-manifest-json, agent-text, span-graph, or custom names from config (default: html)
-                                  astro-markdown    Starlight-flavored Markdown (single aggregated page; for a live site use "init-astro" + "astro dev")
+                                  astro-markdown    Starlight-flavored Markdown (single aggregated page)
                                   confluence        Atlassian Document Format (ADF) JSON for Confluence / Jira
                                   behavior-manifest-json Agent-readable behavior manifest and debugger warnings
                                   agent-text        Full run as flat token-lean plain text for pasting into an LLM
                                   span-graph        Architecture the run exercised, from its OTel spans, as mermaid.
                                                     Writes nothing when the run carries no spans
-                                  html              Standalone interactive HTML report, rendered via executable-stories-react (same component tree as the Astro site)
+                                  html              Standalone interactive HTML report, rendered via executable-stories-react
                                   cucumber-html     Official Cucumber HTML report
                                   markdown          Markdown documentation
                                   junit             JUnit XML
@@ -343,6 +328,14 @@ TRIAGE
   with no covers are flagged. --triage-format json emits the work queue. triage
   always exits 0 — it reports work, it does not gate.
 
+JEV (optional)
+  With JEV_API_KEY set, triage, goal, and review ask Jev (TypeSafe AI) the
+  bounded questions their rules leave blank: triage suggests a covers path and
+  a failure kind (product/test/infra) for unrouted failures; goal flags
+  rewritten scenarios that check less as advisories; review infers change-type
+  for claims with no change:* tag. Every answer carries its probability and
+  none of them changes an exit code. JEV_MODEL / JEV_ENDPOINT override defaults.
+
 COMPARE
   compare supports --format html,markdown,changelog
   changelog writes a release-notes-style behavior changelog (<output-name>.changelog.md)
@@ -365,13 +358,6 @@ DEPLOY
 
   executable-stories deploy diff <env-a> <env-b> [--ledger <path>]
     Show scenario drift between two environments (what's in one but not the other).
-
-INIT-ASTRO
-  executable-stories dev [directory]          Run the live docs site (default: ./story-docs); installs its deps on first use
-  executable-stories init-astro [directory]   Scaffold into directory (default: ./story-docs)
-    --install    Also run the package manager install (detected from your lockfile) so the site is ready to \`dev\`
-  --force                                      Write into a non-empty directory (overlays template files)
-  --update                                     Refresh framework files only (keeps your content + config)
 
 PUBLISH-CONFLUENCE
   executable-stories publish-confluence <file.adf.json> [options]
@@ -664,34 +650,17 @@ async function parseCliArgs(
     subcommand !== 'validate' &&
     subcommand !== 'doctor' &&
     subcommand !== 'completion' &&
-    subcommand !== 'dev' &&
-    subcommand !== 'init-astro' &&
-    subcommand !== 'new' &&
     subcommand !== 'check-links' &&
     subcommand !== 'push' &&
     subcommand !== 'share' &&
-    subcommand !== 'import-openapi' &&
     subcommand !== 'publish-confluence' &&
     subcommand !== 'publish-jira' &&
     subcommand !== 'sync' &&
     subcommand !== 'coverage' &&
     subcommand !== 'runs'
   ) {
-    // `serve` was removed in favour of the Astro dev server. Give upgraders a
-    // direct migration message instead of the generic "unknown subcommand", so
-    // agent/docs loops that still call it fail with an actionable hint.
-    if (subcommand === 'serve' || subcommand === 'build-docs') {
-      console.error(
-        `The "${subcommand}" subcommand was removed. Living docs are now an Astro site, rendered live from the run JSON (no Markdown generation step):\n` +
-          '  1. executable-stories init-astro --install   (one-time scaffold)\n' +
-          '  2. run your tests in watch mode in one terminal\n' +
-          '  3. run `executable-stories dev` in another — it hot-reloads the docs.\n' +
-          'See: https://github.com/jagreehal/executable-stories (executable-stories-astro).',
-      );
-      process.exit(EXIT_USAGE);
-    }
     console.error(
-      `Unknown subcommand: "${subcommand}". Use "format", "watch", "compare", "gate-release", "deploy", "review", "list", "check", "check-explainers", "goal", "triage", "validate", "doctor", "completion", "dev", "init-astro", "new", "check-links", "push", "share", "sync", "coverage", "import-openapi", "publish-confluence", or "publish-jira".`,
+      `Unknown subcommand: "${subcommand}". Use "format", "watch", "compare", "gate-release", "deploy", "review", "list", "check", "check-explainers", "goal", "triage", "validate", "doctor", "completion", "check-links", "push", "share", "sync", "coverage", "publish-confluence", or "publish-jira".`,
     );
     process.exit(EXIT_USAGE);
   }
@@ -771,102 +740,8 @@ async function parseCliArgs(
     process.exit(await runDeploy(args.slice(1)));
   }
 
-  // Handle dev early (no parseArgs needed). The command body lives in
-  // init-astro.ts (runDocsDev); this branch only maps outcomes to messages
-  // and exit codes.
-  if (subcommand === 'dev') {
-    const devArgs = args.slice(1);
-    const siteDir = devArgs.find((a) => !a.startsWith('--')) ?? './story-docs';
-    const dev = runDocsDev(siteDir);
-    if (dev.kind === 'not-scaffolded') {
-      console.error(
-        `No docs site found at ${siteDir}. Create one (scaffold + install) with:\n` +
-          `  npx executable-stories init-astro --install`,
-      );
-      process.exit(EXIT_USAGE);
-    }
-    if (dev.kind === 'install-failed') {
-      console.error(
-        `"${dev.pm} install" failed in ${siteDir} — run it manually, then retry.`,
-      );
-      process.exit(EXIT_GENERATION);
-    }
-    process.exit(dev.status ?? EXIT_GENERATION);
-  }
-
-  // Handle init-astro early (no parseArgs needed)
-  if (subcommand === 'init-astro') {
-    const initArgs = args.slice(1);
-    const targetDir =
-      initArgs.find((a) => !a.startsWith('--')) ?? './story-docs';
-    const force = initArgs.includes('--force');
-    // --update merges any new template deps; the framework itself ships in the
-    // executable-stories-astro package, so there are no framework files to refresh.
-    const update = initArgs.includes('--update');
-    const install = initArgs.includes('--install');
-
-    try {
-      const result = initAstroFn({ targetDir, force, update });
-      if (update) {
-        console.log(
-          `Updated ${result.targetDir} (content + config left untouched)`,
-        );
-        console.log(
-          '  Framework updates come via: pnpm update executable-stories-astro',
-        );
-        process.exit(EXIT_SUCCESS);
-      }
-      console.log(`Scaffolded Astro docs site at ${result.targetDir}`);
-
-      const pm = detectPackageManager();
-      if (install) {
-        console.log(`Installing dependencies with ${pm}…`);
-        if (!installScaffoldDependencies(result.targetDir, pm)) {
-          console.error(
-            `Scaffold complete, but "${pm} install" failed in ${result.targetDir} — run it manually, then \`${pm} run dev\`.`,
-          );
-          process.exit(EXIT_GENERATION);
-        }
-      }
-
-      console.log('');
-      console.log('Next steps:');
-      let step = 1;
-      if (!install) {
-        console.log(`  ${step++}. cd ${result.targetDir} && ${pm} install`);
-      }
-      console.log(
-        `  ${step++}. In your TEST project, add the StoryReporter with a rawRunPath, e.g.`,
-      );
-      console.log(
-        "       StoryReporter({ rawRunPath: 'reports/raw-run.json' })",
-      );
-      console.log(
-        `  ${step++}. Run your tests in watch mode (terminal 1):  ${pm} test --watch`,
-      );
-      console.log(
-        `  ${step++}. Run the docs dev server (terminal 2):  npx executable-stories dev`,
-      );
-      console.log(
-        '     Editing tests hot-reloads the Stories pages — nothing is written to disk.',
-      );
-      console.log('');
-      console.log(
-        'Everything is configured in one file: executable-stories.config.mjs',
-      );
-      console.log(
-        '  — sources, scenario selection (include/exclude), grouping (groupBy), docs, and theme.',
-      );
-      process.exit(EXIT_SUCCESS);
-    } catch (err) {
-      console.error(`Error: ${(err as Error).message}`);
-      process.exit(EXIT_USAGE);
-    }
-  }
-
   // Docs-site subcommands have their own arg shapes — each owns its parsing and
   // exit code, mirroring runPublishConfluence/runPublishJira below.
-  if (subcommand === 'new') process.exit(runNew(args.slice(1)));
   if (subcommand === 'check-links')
     process.exit(await runCheckLinks(args.slice(1)));
   if (subcommand === 'push') process.exit(await runPush(args.slice(1)));
@@ -875,8 +750,6 @@ async function parseCliArgs(
     process.exit(await runSyncCommand('sync', args.slice(1)));
   if (subcommand === 'coverage')
     process.exit(await runSyncCommand('coverage', args.slice(1)));
-  if (subcommand === 'import-openapi')
-    process.exit(await runImportOpenApi(args.slice(1)));
 
   // Parse remaining args with node:util parseArgs. `tokens` records which
   // flags were actually typed, which is how a config default knows to yield.
@@ -1048,14 +921,12 @@ async function parseCliArgs(
   // compare-like subcommands; `format` keeps rejecting it as unknown.
   if (isCompareLike) builtInFormats.add('changelog');
   const requestedFormats = preset.formats;
-  // `astro` was the old name for the Starlight-Markdown format; it collided with the
-  // executable-stories-astro live integration. Accept it as a deprecated alias here, at
-  // the (untyped) CLI boundary, so everything downstream only ever sees "astro-markdown".
+  // `astro` is the old name for the Starlight-Markdown format. Accept it as a deprecated
+  // alias here, at the (untyped) CLI boundary, so everything downstream only ever sees "astro-markdown".
   if (requestedFormats.includes('astro')) {
     console.warn(
-      "⚠ The 'astro' format was renamed to 'astro-markdown' — it emits Starlight Markdown, not the\n" +
-        "  executable-stories-astro live integration. '--format astro' still works but will be removed in a\n" +
-        "  future major; use 'astro-markdown', or scaffold a live site with `init-astro` + `astro dev`.",
+      "⚠ The 'astro' format was renamed to 'astro-markdown'. '--format astro' still works but will be\n" +
+        "  removed in a future major; use 'astro-markdown'.",
     );
   }
   const allRequestedFormats = requestedFormats.map((f) =>
@@ -1981,7 +1852,8 @@ async function runReview(ctx: CliContext): Promise<void> {
   const { args } = ctx;
   const run = applySelection(await readRunInput(args), args);
   const context = loadReviewContext(args);
-  const review = buildReview(run, context);
+  const built = buildReview(run, context);
+  const review = await withJev(built, (jev) => enrichReview(built, jev));
 
   try {
     const files = writeReviewReport(review, args);
@@ -2117,24 +1989,39 @@ async function runCheckExplainers(ctx: CliContext): Promise<void> {
 // Met when the required scenarios/tags/tickets pass, nothing regressed (with
 // --no-regressions), and nothing was removed or weakened vs baseline (ratchet,
 // on when a baseline is given; disable with --no-ratchet). Exit 0 = met, 5 = not.
+/**
+ * Rules first, then Jev. With JEV_API_KEY set, Jev adds suggestions to the
+ * deterministic report. Without it, or when the request fails, the report is
+ * returned as built and the command keeps its exit code.
+ */
+async function withJev<T>(report: T, enrich: (jev: JevClient) => Promise<T>): Promise<T> {
+  const jev = jevFromEnv();
+  if (!jev) return report;
+  try {
+    return await enrich(jev);
+  } catch (err) {
+    console.error(`Jev unavailable, deterministic output only: ${err instanceof Error ? err.message : String(err)}`);
+    return report;
+  }
+}
+
 async function runGoal(ctx: CliContext): Promise<void> {
   const { args } = ctx;
   const run = applySelection(await readRunInput(args), args);
   const baseline = resolveBaselineRun(args, run);
 
-  const report = buildGoal(
-    {
-      run,
-      baseline,
-      requireTags: args.requireTags,
-      requireTickets: args.requireTickets,
-      requireScenarios: args.requireScenarios,
-      enforceNoRegressions: args.noRegressions,
-      enforceRatchet: !args.noRatchet,
-      format: args.goalFormat,
-    },
-    {},
-  );
+  const goalArgs = {
+    run,
+    baseline,
+    requireTags: args.requireTags,
+    requireTickets: args.requireTickets,
+    requireScenarios: args.requireScenarios,
+    enforceNoRegressions: args.noRegressions,
+    enforceRatchet: !args.noRatchet,
+    format: args.goalFormat,
+  };
+  const built = buildGoal(goalArgs, {});
+  const report = await withJev(built, (jev) => enrichGoal(built, goalArgs, jev));
   console.log(renderGoal(report, args.goalFormat));
   process.exit(report.met ? EXIT_SUCCESS : EXIT_AGENT_GATE);
 }
@@ -2165,7 +2052,7 @@ async function runTriage(ctx: CliContext): Promise<void> {
   const baseline = resolveBaselineStatusMap(args, run);
 
   const codeowners = args.byOwner ? readCodeowners() : undefined;
-  const report = buildTriage(
+  const built = buildTriage(
     {
       testCases: run.testCases,
       baseline,
@@ -2174,6 +2061,7 @@ async function runTriage(ctx: CliContext): Promise<void> {
     },
     {},
   );
+  const report = await withJev(built, (jev) => enrichTriage(built, run.testCases, jev, codeowners));
   console.log(renderTriage(report, args.triageFormat, { byOwner: args.byOwner }));
   process.exit(EXIT_SUCCESS);
 }
@@ -2200,10 +2088,6 @@ async function runWatch(ctx: CliContext): Promise<void> {
   });
   return; // long-lived; do not exit
 }
-
-// The old `serve` subcommand (a custom HTTP server with a live "what changed"
-// strip) is replaced by `astro dev` via executable-stories-astro: run your
-// tests in watch mode and the Astro dev server hot-reloads the docs.
 
 async function runFormatOrValidate(ctx: CliContext): Promise<void> {
   const { args, pluginConfig, customRequested, startMs } = ctx;
@@ -2659,7 +2543,6 @@ interface CliResult {
    */
   unasserted?: number;
   /** True when this run wrote the artifacts README, i.e. first contact with the output dir. */
-  createdArtifactsReadme: boolean;
   /** True when the run carries OTel spans but no span graph was asked for. */
   spansUnused: boolean;
   /** `gh pr comment --attach ...`, when --attach-images was passed and the run captured evidence. */
@@ -2746,7 +2629,7 @@ async function generateReports(
 
   // Make the output folder self-documenting for newcomers (write-once; an
   // existing README.md, ours or the user's, is never touched).
-  const createdArtifactsReadme = writeArtifactsReadme(args.outputDir);
+  writeArtifactsReadme(args.outputDir);
 
   // Count what was written. Documentation formats render the accumulated suite,
   // execution formats render only what this build ran, so a run that produced
@@ -2804,7 +2687,6 @@ async function generateReports(
   return {
     files,
     counts,
-    createdArtifactsReadme,
     // A run that traced itself can draw the architecture it exercised, and
     // nobody discovers a format they have never seen named.
     spansUnused:
@@ -3141,13 +3023,6 @@ function printResult(
         }),
       );
     }
-    // Discoverability: the living-docs Astro site is the first-class human
-    // surface (stories, explainers with freshness banners, explorer), but it's
-    // scaffolded once, not generated per run. Point at it only on first
-    // contact with the output dir (when the artifacts README was just
-    // written) — a nudge on every run would be permanent noise for anyone
-    // who scaffolded to a custom path or runs in CI. stderr keeps piped
-    // stdout clean; --json-summary (agent pipelines) skips it entirely.
     // --attach-images left local paths in the markdown, which only resolve
     // once gh has uploaded the files. Print the command that does it rather
     // than leaving the caller to work out the flag order.
@@ -3159,15 +3034,6 @@ function printResult(
     if (result.spansUnused) {
       console.error(
         'Tip: this run carries OTel spans, so it can draw the architecture it exercised: --format span-graph (a file), --html-architecture (a section in the HTML report)',
-      );
-    }
-    if (
-      result.createdArtifactsReadme &&
-      !isScaffoldedAstroSite('.') &&
-      !isScaffoldedAstroSite('./story-docs')
-    ) {
-      console.error(
-        'Tip: for a live docs site (stories, explainers, freshness): npx executable-stories init-astro --install',
       );
     }
   }
@@ -3564,51 +3430,6 @@ Generate an API token at https://id.atlassian.com/manage-profile/security/api-to
     process.exit(EXIT_GENERATION);
   }
 }
-
-/** `new <template> "<name>"` — scaffold a verified-by-wired docs page. Returns an exit code. */
-function runNew(rawArgs: string[]): number {
-  const { values, positionals } = parseArgs({
-    args: rawArgs,
-    options: {
-      dir: { type: 'string' },
-      force: { type: 'boolean', default: false },
-      'scenario-id': { type: 'string' },
-    },
-    allowPositionals: true,
-    strict: true,
-  });
-
-  const template = positionals[0];
-  const name = positionals.slice(1).join(' ');
-  if (!template) {
-    console.error(
-      `Usage: executable-stories new <template> "<name>" [--dir <docs-dir>] [--scenario-id <id>] [--force]`,
-    );
-    console.error(`Templates: ${TEMPLATES.join(', ')}`);
-    return EXIT_USAGE;
-  }
-
-  try {
-    const result = scaffoldDoc({
-      template,
-      name,
-      scenarioId: values['scenario-id'] as string | undefined,
-      baseDir: values.dir as string | undefined,
-      force: values.force as boolean,
-    });
-    console.log(`Created ${result.template}: ${result.path}`);
-    console.log(`  Title: ${result.title}`);
-    console.log('');
-    console.log(
-      'Next: fill in the content and link verifying stories in `verifiedBy`.',
-    );
-    return EXIT_SUCCESS;
-  } catch (err) {
-    console.error(`Error: ${(err as Error).message}`);
-    return EXIT_USAGE;
-  }
-}
-
 /** `check-links <dir>` — fail on broken docs links. Returns a CI-friendly exit code. */
 async function runCheckLinks(rawArgs: string[]): Promise<number> {
   const { values, positionals } = parseArgs({
@@ -3642,53 +3463,6 @@ async function runCheckLinks(rawArgs: string[]): Promise<number> {
     return EXIT_USAGE;
   }
 }
-
-/** `import-openapi <spec>` — generate API pages with per-endpoint coverage. Returns an exit code. */
-async function runImportOpenApi(rawArgs: string[]): Promise<number> {
-  const { values, positionals } = parseArgs({
-    args: rawArgs,
-    options: {
-      'output-dir': { type: 'string' },
-      run: { type: 'string' },
-      force: { type: 'boolean', default: false },
-    },
-    allowPositionals: true,
-    strict: true,
-  });
-
-  const spec = positionals[0];
-  if (!spec) {
-    console.error(
-      `Usage: executable-stories import-openapi <spec.json|yaml> [--output-dir <dir>] [--run <story-report.json>] [--force]`,
-    );
-    return EXIT_USAGE;
-  }
-
-  try {
-    const result = await importOpenApi({
-      specPath: spec,
-      outputDir: values['output-dir'] as string | undefined,
-      runFile: values.run as string | undefined,
-      force: values.force as boolean,
-    });
-    console.log(
-      `Generated ${result.pageCount} API page(s) at ${result.outputDir}`,
-    );
-    console.log(
-      `  Covered endpoints: ${result.coveredCount} / ${result.endpointCount}`,
-    );
-    if (result.uncoveredCount > 0) {
-      console.log(
-        `  ⚠ ${result.uncoveredCount} endpoint(s) have no verifying story`,
-      );
-    }
-    return EXIT_SUCCESS;
-  } catch (err) {
-    console.error(`Error: ${(err as Error).message}`);
-    return EXIT_USAGE;
-  }
-}
-
 async function runDeploy(rawArgs: string[]): Promise<number> {
   const mode = rawArgs[0];
   if (!mode || !['record', 'status', 'diff'].includes(mode)) {

@@ -49,7 +49,7 @@ to use is wrong.
 
 When a decision behind a term is hard to reverse, surprising without context, and the
 result of a real trade-off, record it as an ADR in `docs/adr/`. All three conditions, or
-skip it. `executable-stories new adr "<title>"` scaffolds one.
+skip it.
 
 ## Extracting the language from what exists
 
@@ -133,6 +133,4 @@ The step text is where the vocabulary is enforced, so it is worth being fussy ab
   either.
 - `spec-refine-examples` sharpens the sentence once the words are agreed.
 - `spec-review` checks scenarios against the glossary as part of its critique.
-- `audience-views` depends on this: `capability:<name>` tags are only coherent if the
-  capability names are.
 - `explain-system` writes the domain map for readers, using exactly these terms.
