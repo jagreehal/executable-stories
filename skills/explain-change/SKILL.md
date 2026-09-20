@@ -176,7 +176,6 @@ markup for them:
 | Files touched          | `story.custom({ type: "file-tree", data })`        |
 | Record / schema shape  | `story.custom({ type: "data-model", data })`       |
 | Annotated code         | `story.code`, or Code Diff evidence for a patch    |
-| HTTP surface           | `executable-stories import-openapi`                |
 | Before/after values    | `story.state`, `story.table`                       |
 
 `file-tree` and `data-model` render in every report surface with no setup. Directories

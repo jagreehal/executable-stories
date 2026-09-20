@@ -128,7 +128,7 @@ const result = parseStoryReport(data);
 <ReportInteractive report={result} client:visible />
 ```
 
-This works well alongside the [Astro docs site formatter](/guides/astro-docs-site): use the Astro/Markdown formatter for the canonical published spec, and embed the live React component on a separate "Latest test run" page that updates with every CI build.
+Use the Markdown formatter for the canonical published spec, and embed the live React component on a separate "Latest test run" page that updates with every CI build.
 
 ## Vite / SPA
 

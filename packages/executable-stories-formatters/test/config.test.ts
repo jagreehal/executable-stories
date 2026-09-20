@@ -40,7 +40,7 @@ describe("loadConfig", () => {
   });
 
   it("ignores a docs-site config (same filename, disjoint shape) instead of misreading it", async () => {
-    // `executable-stories.config.mjs` is also the init-astro site config
+    // `executable-stories.config.mjs` may also be a docs-site config
     // (source/sources, never formatters). Running the CLI next to one must
     // not treat it as plugin config.
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "es-site-config-"));

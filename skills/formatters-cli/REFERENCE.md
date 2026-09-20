@@ -125,28 +125,15 @@ deletion of the scenarios it did not run.
 --allow-missing-assets        # Warn on missing assets instead of failing
 ```
 
-## Living docs — `init-astro` + `astro dev`
-
-> **`build-docs` was removed.** The one-shot Markdown generator that wrote story
-> pages into a scaffold is gone; stories now render live from the run JSON via
-> the `executable-stories-astro` integration, with no Markdown-generation step.
-> Calling `executable-stories build-docs` prints a migration message. Use
-> **`init-astro` + `astro dev`** — see "Live docs for an agent loop" below. (For a
-> one-off single-page Markdown export, `format --format astro-markdown` still
-> exists.)
-
-## Live docs for an agent loop — Astro dev server
-
-The `serve` subcommand was **removed**. Live, hot-reloading docs now run on the Astro dev server via `executable-stories-astro`:
+## Jev judgments (optional)
 
 ```bash
-executable-stories init-astro     # one-time: scaffold a thin Astro docs site
-# then, in parallel: your runner in watch mode + `astro dev` (pnpm dev) in the scaffolded site
+JEV_API_KEY=… executable-stories triage raw-run.json    # + suggested covers path and failure kind per unrouted failure
+JEV_API_KEY=… executable-stories goal raw-run.json --baseline auto   # + advisories for rewritten scenarios that check less
+JEV_API_KEY=… executable-stories review raw-run.json    # + inferred change-type on untagged claims
 ```
 
-A content loader watches `raw-run.json`; when the loop rewrites it, the `/stories` pages and Scenario Explorer hot-reload in place. The shipped `Trajectory` component is the equivalent of the old delta strip — it pins a baseline when the dev server starts and shows *what changed since you started the loop* ("since you started: +2 passing, 1 regressed"). See the `astro-docs-site` and `agent-loops` guides.
-
-> Zero-install alternative for plain reload (no trajectory): run `live-server reports/` alongside your loop — the JS reporters rewrite `reports/test-results.html` each run, which live-server reloads on.
+Answers carry their probability; exit codes stay rule-driven. `JEV_MODEL` / `JEV_ENDPOINT` override the defaults.
 
 ## Atlassian publishing
 

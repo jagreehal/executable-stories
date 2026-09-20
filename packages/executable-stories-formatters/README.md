@@ -209,43 +209,6 @@ A component appears because a span named it while a scenario ran; an arrow is th
 
 It draws instrumented, exercised paths only. A component no scenario reaches does not appear, which is the same shape as coverage and worth reading as such. **A run with no spans writes no file**, so adding the format to a preset costs nothing until something is instrumented.
 
-## Living docs site (Confluence replacement)
-
-Scaffold an Astro/Starlight site whose pages stay honest because the tests keep
-them verified. These commands operate on the canonical story report, so they
-work for stories written in **any language** (TypeScript, Python, Go, Ruby,
-Java/Kotlin, Rust, C#).
-
-```bash
-# 1. Scaffold the thin site (the executable-stories-astro integration ships the
-#    verified-by badges, health dashboard, and Scenario Explorer)
-executable-stories init-astro story-docs
-
-# 2. Run your tests to write run.json, then start the Astro dev server.
-#    The integration loads run.json as a live `stories` collection — pages at
-#    /stories hot-reload as tests re-run; no Markdown generation step.
-cd story-docs && npm install && npm run dev
-
-# 3. Start hand-written pages from a verified template
-executable-stories new adr "Cap combined discount at 30%"   # also: runbook, decision-log, incident
-
-# 4. Generate API docs with per-endpoint test coverage
-executable-stories import-openapi openapi.json --run run.json --output-dir story-docs/src/content/docs/api
-
-# 5. Fail CI if docs links rot
-executable-stories check-links story-docs/src/content/docs
-```
-
-Any page can declare the stories that prove it. The badge under the title turns
-red the moment a linked story fails:
-
-```yaml
----
-title: ADR 0007 — Cap combined discount at 30%
-verifiedBy: [pricing, checkout--caps-the-discount-at-30-percent]
----
-```
-
 ## Architecture
 
 ```

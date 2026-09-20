@@ -4,8 +4,7 @@
  *
  *   - the HTML report's per-scenario "Copy as Markdown" button
  *     (executable-stories-react) — `variant: "compact"`
- *   - the Astro site's `<routeBase>/<slug>.md` twin endpoints
- *     (executable-stories-astro) — the default full variant
+ *   - standalone `<slug>.md` documents: the default full variant
  *
  * Before this lived here there were two implementations and the same scenario
  * produced different Markdown depending on which surface you copied it from.

@@ -232,7 +232,7 @@ skills:
     package: packages/executable-stories-formatters
     type: core
     description: >
-      executable-stories CLI with format, compare, list, validate, init-astro,
+      executable-stories CLI with format, compare, list, validate,
       and Atlassian publish subcommands. Pipeline: RawRun JSON →
       canonicalizeRun → formatters. 8 output formats: Astro, Confluence, HTML,
       Markdown, JUnit, Cucumber JSON/HTML/Messages. fn(args, deps) pattern.

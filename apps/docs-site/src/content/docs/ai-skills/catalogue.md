@@ -32,7 +32,7 @@ Getting a run to produce artifacts.
 | `jest-reporter-setup`       | The reporters array plus `setupFilesAfterEnv` for story flushing                |
 | `playwright-reporter-setup` | The reporter array in `playwright.config.ts`, formats and output paths          |
 | `cypress-reporter-setup`    | The Mocha reporter, by flag or config, and the module API                       |
-| `formatters-cli`            | Turning a raw run into HTML, Markdown, JUnit, Cucumber, Confluence, or an Astro site |
+| `formatters-cli`            | Turning a raw run into HTML, Markdown, JUnit, Cucumber, or Confluence |
 
 ## Adoption
 
@@ -73,8 +73,6 @@ Shaping what the scenarios say, and who gets to read them.
 | Skill                        | Load it when                                                                     |
 | ---------------------------- | -------------------------------------------------------------------------------- |
 | `spec-living-documentation`  | Writing specs meant to stay readable long after the feature ships (Gojko Adzic)  |
-| `audience-views`             | Product, design, support, or leadership need to read the suite                   |
-| `living-docs-site`           | Standing up an Astro site where behaviour is generated and only intent is authored |
 | `spec-convert-tests`         | Lifting low-level tests into business-facing specifications                      |
 | `spec-plan-to-stories`       | A plan exists and the work has not started: convert it into planned `it.todo` scenarios |
 | `spec-review`                | Critiquing existing scenarios for clarity, coverage, and rule separation         |

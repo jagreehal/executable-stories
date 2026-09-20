@@ -403,34 +403,6 @@ Append a deployment to an environment ledger so later runs (and `gate-release`) 
 
 Persist the ledger (artifact, cache, or committed file) if later jobs should compare environments. The written path is exposed as `deploy-ledger-path`.
 
-### Living documentation — a deployable docs site
-
-A living-docs site is no longer a mode of this action. It comes from a committed Astro project, so the site is a normal part of your repo you can theme, extend with hand-written guides, and deploy with any static host.
-
-Scaffold it once:
-
-```bash
-npx --package executable-stories-formatters executable-stories init-astro docs-site
-```
-
-Commit `docs-site/` and point its `executable-stories.config.mjs` at the reporter's per-source directory (`reports/by-file` by default). Then build and deploy it from your own workflow. A full CI run refreshes that directory before the site build; a raw-run source is appropriate only when it is deliberately a complete run snapshot:
-
-```yaml
-jobs:
-  docs:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: pnpm install
-      - run: pnpm test                 # writes reports/raw-run.json
-      - run: pnpm --filter docs-site build   # astro build → docs-site/dist
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: docs-site/dist
-```
-
-See the [Astro docs-site guide](https://github.com/jagreehal/executable-stories/blob/main/apps/docs-site/src/content/docs/guides/astro-docs-site.md) for theming, audience grouping, and the "What's changed" view.
-
 ### Publish run JSON for a multi-repo docs hub (`mode: publish-run`)
 
 To collate stories from many repositories into one docs site, each repo publishes its run JSON to an orphan branch with a stable path. A hub repo then fetches each file by URL at build time — no cross-repo artifact APIs, no artifact expiry, no extra tokens for public repos.
@@ -463,7 +435,7 @@ canonical transform. A late older job cannot overwrite a run with a newer
 inlined by GitHub's Contents API. If one repo has several suites, publish each
 under its own `runs-path`.
 
-In the hub repo, fetch the files and build the Astro site (see the [multi-repo docs hub guide](https://github.com/jagreehal/executable-stories/blob/main/apps/docs-site/src/content/docs/guides/multi-repo-docs-hub.md)):
+In the hub repo, fetch the files and build the site:
 
 ```yaml
 steps:
@@ -473,7 +445,7 @@ steps:
       mkdir -p reports
       curl -fsSL -o reports/web.json https://raw.githubusercontent.com/acme/web/executable-stories-runs/raw-run.json
       curl -fsSL -o reports/api.json https://raw.githubusercontent.com/acme/api/executable-stories-runs/raw-run.json
-  - run: pnpm install && pnpm build   # astro build reads reports/*.json via sources: [...]
+  - run: pnpm install && pnpm build   # the site build reads reports/*.json
 ```
 
 > **Concurrency note.** Like `host-images: branch`, publishing uses the Git Data API with the branch tip as parent, so two simultaneous runs publishing to the same branch race at `updateRef`. The loser automatically retries on the new tip (up to 3 attempts), which resolves the common overlap. If your repo runs many parallel publishers, serialize the workflow with [`concurrency`](https://docs.github.com/en/actions/using-jobs/using-concurrency) or use per-suite `runs-path` values.

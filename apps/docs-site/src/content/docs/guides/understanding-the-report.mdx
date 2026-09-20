@@ -127,8 +127,7 @@ The same frames feed the stakeholder surfaces:
   "here is what the world looked like".
 - **The `/states` catalog** (`state:<name>` tags) gives non-UI scenarios
   data-card thumbnails, so the grid is no longer screenshots-only. One concept
-  at two granularities: tags name states, `story.state()` shows them. See
-  [Tagging for your audience](/guides/tagging-for-your-audience/).
+  at two granularities: tags name states, `story.state()` shows them.
 
 There is no size cap, but the JS adapters warn above ~100KB per snapshot.
 Capture the business-relevant projection, not the ORM entity: `{ status,
@@ -234,7 +233,7 @@ Two limits worth knowing:
 - **Interactive reports only.** The tools ship with the report's hydration island. The embedded run JSON is written either way, so a report rendered without the island is still machine-readable at `#es-report-data`.
 - **Progressive.** WebMCP is behind a flag or origin trial in Chrome and Edge, and absent everywhere else. Without `document.modelContext` nothing registers, nothing is logged, and the report behaves exactly as it always has.
 
-The four read tools mirror the [MCP server](/guides/mcp-server/)'s names and payloads, so an agent learns one vocabulary whichever way it arrives. See the [agent artifact contract](/guides/agent-artifact-contract/#webmcp-in-the-readers-browser) for the differences that a browser forces.
+See the [agent artifact contract](/guides/agent-artifact-contract/#webmcp-in-the-readers-browser) for the differences that a browser forces.
 
 ## Enabling or hiding elements
 

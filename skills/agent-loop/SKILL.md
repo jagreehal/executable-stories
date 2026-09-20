@@ -32,6 +32,10 @@ because they answer different questions:
   "not covered by a scenario".
 - **One failing scenario is a signal, not an obstacle.** The loop's job when `check`
   exits 5 is to fix the product, not to make the check quieter.
+- **Jev fills the gaps the rules leave.** With `JEV_API_KEY` set, `triage` suggests a
+  `covers` path and a failure kind for unrouted failures, `goal` adds advisories for
+  rewritten scenarios that check less, and `review` infers change-type for untagged
+  claims. Each carries a probability; read them as hints, since exit codes stay rule-driven.
 
 ## Produce the artifacts once per run
 
@@ -113,16 +117,6 @@ executable-stories watch reports/raw-run.json --preset agent
 
 `watch` regenerates the artifacts whenever the raw run changes, so a long-running session
 reads a current index instead of one from forty minutes ago.
-
-## MCP, when the agent has tools rather than a shell
-
-`executable-stories-mcp` exposes the same artifacts as read-only tools:
-`list_scenarios`, `get_scenario`, `get_failing_scenarios`, `get_feature_summary`,
-`get_scenario_index`, `get_behavior_manifest`, plus `run_scenario` for a focused re-run.
-Prefer these over shelling out when they are available: they load the report once and
-project from it, rather than re-parsing per question. Start it with `--tools read` (or
-`EXECUTABLE_STORIES_MCP_TOOLS=read`) for a review session that should observe and never
-execute; the `run_*` tools are then not registered, and every call carries fewer schemas.
 
 ## Re-running part of the suite
 

@@ -39,9 +39,7 @@ If a test is skipped, failed, or todo, the docs reflect that.
 | [executable-stories-xunit](./packages/executable-stories-xunit)           | C# / xUnit                   | .NET package in repo                     |
 | [executable-stories-formatters](./packages/executable-stories-formatters) | Cross-runner formatter CLI   | `npm i -D executable-stories-formatters` |
 | [executable-stories-react](./packages/executable-stories-react)           | React StoryReport renderer   | `npm i executable-stories-react`         |
-| [executable-stories-mcp](./packages/executable-stories-mcp)               | Read-only MCP behavior tools | `npm i -D executable-stories-mcp`        |
 | [executable-stories-init](./packages/executable-stories-init)             | JS/TS onboarding CLI         | `npm i -D executable-stories-init`       |
-| [executable-stories-demo](./packages/executable-stories-demo)             | Demo site/report tooling     | workspace package                        |
 | [eslint-plugin-executable-stories-vitest](./packages/eslint-plugin-executable-stories-vitest) | ESLint plugin (Vitest) | `npm i -D eslint-plugin-executable-stories-vitest` |
 | [eslint-plugin-executable-stories-jest](./packages/eslint-plugin-executable-stories-jest) | ESLint plugin (Jest)   | `npm i -D eslint-plugin-executable-stories-jest` |
 | [eslint-plugin-executable-stories-playwright](./packages/eslint-plugin-executable-stories-playwright) | ESLint plugin (Playwright) | `npm i -D eslint-plugin-executable-stories-playwright` |
@@ -157,48 +155,7 @@ npx --package executable-stories-formatters executable-stories format reports/ra
 
 See each package's README for detailed setup instructions.
 
-**Agent workflows:** Publish StoryReport JSON and a scenario index from CI — see the [agent artifact contract](https://docs.executablestories.com/guides/agent-artifact-contract/) and [MCP server guide](https://docs.executablestories.com/guides/mcp-server/). Package roles: [package map](https://docs.executablestories.com/reference/package-map/). Cross-language parity policy: [parity matrix](https://docs.executablestories.com/reference/cross-language-parity/).
-
-## Living documentation site
-
-Render your stories as a live Astro site: a grouped index, one page per
-scenario, a searchable Explorer, persona views, ordered journeys, a UI-state
-catalog, and multi-source drift. The `executable-stories-astro` integration
-loads test run JSON as a hot-reloading `stories` collection: add a story test
-and re-run, its page appears; delete it and the page is pruned. Step screenshots
-and `story.state()` snapshots become storyboards (data diffs for non-UI code),
-and existing design links appear next to the proof. Zero
-per-test wiring or generated Markdown pages.
-
-The `executable-stories` CLI ships in the `executable-stories-formatters` package
-(install it, or invoke via `npx --package executable-stories-formatters executable-stories …`).
-
-```bash
-npx --package executable-stories-formatters executable-stories init-astro site   # scaffold the thin Astro/Starlight site
-# vitest.config: createStoryReporter({ rawRunPath: 'reports/raw-run.json' })
-cd site && npm install
-pnpm test            # (in your project) writes reports/raw-run.json — auto-includes all stories
-npm run dev          # live docs at /stories, hot-reloading as tests re-run; npm run build for static dist/
-```
-
-Configure audience lenses with `views`; compose walkthroughs with
-`journey:<id>:<n>` tags; feed `/states` with `state:<name>` and
-`viewport:<name>` tags. With two or more named `sources`, `/drift` compares
-their current scenario status. Point `historyFile` at the CLI's
-`--history-file` store to add recent-run stability to journey pages.
-
-For a multi-repository hub, use the GitHub Action's `publish-run` mode in each
-product repository, fetch the stable run URLs, and build one Astro site. See
-the [Astro site guide](https://docs.executablestories.com/guides/astro-docs-site/),
-[audience tagging guide](https://docs.executablestories.com/guides/tagging-for-your-audience/),
-and [multi-repo hub guide](https://docs.executablestories.com/guides/multi-repo-docs-hub/).
-
-> **Removed:** the old `build-docs` command (a one-shot Markdown generator that
-> wrote story pages into a scaffold) has been removed — stories now render live
-> from the run JSON via the `executable-stories-astro` integration, with no
-> Markdown-generation step. Use `init-astro` + `astro dev`. The
-> `format --format astro-markdown` output (a single aggregated Markdown page)
-> still exists for one-off exports but is not the recommended path for a site.
+**Agent workflows:** Publish StoryReport JSON and a scenario index from CI; see the [agent artifact contract](https://docs.executablestories.com/guides/agent-artifact-contract/). Package roles: [package map](https://docs.executablestories.com/reference/package-map/). Cross-language parity policy: [parity matrix](https://docs.executablestories.com/reference/cross-language-parity/).
 
 ## Development
 

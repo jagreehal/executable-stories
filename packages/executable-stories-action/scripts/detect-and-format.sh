@@ -282,8 +282,7 @@ run_deploy() {
 # ---------------------------------------------------------------------------
 # MODE: publish-run — validate the run JSON and hand its path to the publish
 # step in action.yml, which commits it to the runs branch via the Git Data API.
-# No binary needed: the raw run JSON is published as-is (it is what the
-# executable-stories-astro loader consumes).
+# No binary needed: the raw run JSON is published as-is.
 # ---------------------------------------------------------------------------
 run_publish() {
   local SOURCE="${RUN_JSON:-}"
@@ -295,7 +294,7 @@ run_publish() {
   fi
   # Gate on the file actually being a run JSON. Validate the structural fields
   # the raw -> canonical transform dereferences so a payload accepted here
-  # cannot later crash an executable-stories-astro loader. This deliberately
+  # cannot later crash a downstream loader. This deliberately
   # accepts both permissive raw runs and strict canonical runs; it is not a
   # second versioned schema. Node is available on every Actions runner that can
   # execute this composite action, so validation has no optional dependency or
@@ -418,11 +417,6 @@ run_ingest() {
 
 # ---------------------------------------------------------------------------
 # Main dispatch
-#
-# Living-docs sites are no longer built here. They come from a committed Astro
-# project: scaffold once with `executable-stories init-astro`, point it at your
-# run JSON, and deploy with `astro build` in your own workflow. See the
-# "Living documentation" section of the README.
 # ---------------------------------------------------------------------------
 case "$MODE" in
   report)
@@ -445,7 +439,6 @@ case "$MODE" in
     ;;
   *)
     echo "::error::Unknown mode: ${MODE}. Supported: report, review, gate-release, deploy, publish-run, ingest."
-    echo "::error::For a living-docs site, scaffold with 'executable-stories init-astro' and deploy with 'astro build' (see the action README)."
     exit 1
     ;;
 esac

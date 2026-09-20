@@ -9,6 +9,7 @@
  */
 
 import type { TestCaseResult, TestRunResult, TestStatus } from "executable-stories-core/types/test-result";
+import { asNoul, type JevClient } from "./jev";
 
 /** Result of one required selector (a tag, ticket, or scenario that must pass). */
 export interface GoalRequirementResult {
@@ -37,7 +38,12 @@ export interface GoalReport {
   /** Scenarios that went passed -> failed versus baseline (when --no-regressions). */
   regressions: Array<{ id: string; title: string }>;
   regressionsEnforced: boolean;
-  ratchet: { enforced: boolean; violations: RatchetViolation[] };
+  ratchet: {
+    enforced: boolean;
+    violations: RatchetViolation[];
+    /** Jev's read of scenarios that changed without shrinking. Never affects `met`. */
+    advisories: RatchetViolation[];
+  };
 }
 
 export interface GoalArgs {
@@ -112,8 +118,56 @@ export function buildGoal(args: GoalArgs, _deps: GoalDeps = {}): GoalReport {
     requirements,
     regressions,
     regressionsEnforced: Boolean(baseline && args.enforceNoRegressions),
-    ratchet: { enforced: Boolean(baseline && args.enforceRatchet), violations },
+    ratchet: { enforced: Boolean(baseline && args.enforceRatchet), violations, advisories: [] },
   };
+}
+
+/** Jev must be this sure before a rewrite is called out as weakening. */
+export const GOAL_WEAKENED_MIN_PROBABILITY = 0.75;
+
+const stepText = (tc: TestCaseResult) => tc.story.steps.map((s) => `${s.keyword} ${s.text}`);
+
+/**
+ * The step-count ratchet sees counts, so merging two steps keeps it clean.
+ * When a baseline scenario's steps were rewritten without shrinking, ask Jev
+ * whether the new version checks less. Advisory only: `met` is decided by
+ * the rules above, and this is a judgment.
+ */
+export async function enrichGoal(report: GoalReport, args: GoalArgs, jev: JevClient): Promise<GoalReport> {
+  const { baseline } = args;
+  if (!baseline || !report.ratchet.enforced) return report;
+  const current = new Map(args.run.testCases.map((tc) => [tc.id, tc]));
+  const flagged = new Set(report.ratchet.violations.map((v) => v.id));
+
+  const rewritten = baseline.testCases.flatMap((base) => {
+    const now = current.get(base.id);
+    if (!now || flagged.has(base.id)) return [];
+    const before = stepText(base);
+    const after = stepText(now);
+    return before.join("\n") === after.join("\n") ? [] : [{ base, before, after }];
+  });
+
+  const advisories = (
+    await Promise.all(
+      rewritten.map(async ({ base, before, after }) => {
+        const answers = await jev.ask(
+          { baseline: before, now: after },
+          {
+            weakened: {
+              type: "noul",
+              instructions:
+                "Does the NOW scenario check less than the BASELINE scenario: fewer or weaker assertions, looser expectations, or a removed check?",
+            },
+          },
+        );
+        const p = asNoul(answers.weakened);
+        if (p === undefined || p < GOAL_WEAKENED_MIN_PROBABILITY) return [];
+        return [{ id: base.id, title: base.story.scenario, kind: "weakened" as const, detail: `jev ${p.toFixed(2)}: steps rewritten, checks less` }];
+      }),
+    )
+  ).flat();
+
+  return { ...report, ratchet: { ...report.ratchet, advisories } };
 }
 
 function evaluate(selector: string, matched: TestCaseResult[]): GoalRequirementResult {
@@ -162,6 +216,9 @@ export function renderGoal(report: GoalReport, format: "text" | "json"): string 
       for (const v of report.ratchet.violations) {
         lines.push(`    ${v.kind}: ${v.title} (${v.detail})`);
       }
+    }
+    for (const v of report.ratchet.advisories) {
+      lines.push(`    advisory ${v.kind}: ${v.title} (${v.detail})`);
     }
   }
 

@@ -158,7 +158,6 @@ something it does not do; see the `github-action` guide on the docs site.
 
 Publish on every run, pass or fail. Pick the target that already has an audience:
 
-- **Docs site**: build the Astro site and deploy it (`living-docs-site`).
 - **Confluence or Jira**: `--format confluence` then `publish-confluence` /
   `publish-jira`. Use `--dry-run` first; it prints the request plan without posting.
 - **Test-management systems**: `sync testrail|xray` (`test-management-bridge`).

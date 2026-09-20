@@ -166,6 +166,7 @@ function toJsonClaim(claim: ReviewClaim): ReviewJsonClaim {
     status: claim.status,
     audience: claim.audience,
     changeType: claim.changeType,
+    ...(claim.changeTypeConfidence === undefined ? {} : { changeTypeConfidence: claim.changeTypeConfidence }),
     strength: claim.strength,
     strengthReasons: claim.strengthReasons,
     coversFiles: claim.coversFiles,

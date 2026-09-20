@@ -152,8 +152,10 @@ export interface ReviewClaim {
   status: TestStatus;
   /** Derived from file convention / `audience:` tag. */
   audience: ReviewAudience;
-  /** Declared via `change:*` tag (defaults to `unknown`). */
+  /** Declared via `change:*` tag (defaults to `unknown`), or inferred by Jev when `changeTypeConfidence` is set. */
   changeType: ChangeType;
+  /** Present only when `changeType` was inferred rather than declared. */
+  changeTypeConfidence?: number;
   /** Graded credibility of this claim's proof. */
   strength: EvidenceStrength;
   /** Human-readable reasons the strength was assigned (what corroborated / what was missing). */
@@ -255,6 +257,7 @@ export type ReviewJsonClaim = Pick<
   | "status"
   | "audience"
   | "changeType"
+  | "changeTypeConfidence"
   | "strength"
   | "strengthReasons"
   | "coversFiles"

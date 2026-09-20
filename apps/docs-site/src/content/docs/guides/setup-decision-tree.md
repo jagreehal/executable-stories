@@ -31,8 +31,6 @@ After tests write RawRun JSON:
 executable-stories format reports/raw-run.json --format html,markdown --output-dir reports
 ```
 
-For a Starlight/Astro docs site from artifacts: `executable-stories-demo` or formatters `init-astro`. See [Astro docs site](/guides/astro-docs-site/).
-
 ### Enable coding agents (behavior catalog)
 
 Emit machine artifacts in CI:
@@ -43,8 +41,6 @@ executable-stories format reports/raw-run.json \
   --output-dir reports \
   --output-name index
 ```
-
-Optional MCP: [MCP server](/guides/mcp-server/) (`executable-stories-mcp`).
 
 Full contract: [Agent artifact contract](/guides/agent-artifact-contract/).
 
@@ -90,9 +86,7 @@ pnpm run verify:ruby
 | --- | --- | --- |
 | `executable-stories-formatters` | CLI, all output formats, validation | In-test story API |
 | `executable-stories-init` | First-time JS wiring | Non-JS adapters |
-| `executable-stories-demo` | Demo/publish site from artifacts | In-process test API |
 | `executable-stories-react` | Product UI embedding | Static HTML reports (use formatters HTML) |
-| `executable-stories-mcp` | Agent query + focused runs | Replacing your test runner |
 
 ## Example app scripts
 

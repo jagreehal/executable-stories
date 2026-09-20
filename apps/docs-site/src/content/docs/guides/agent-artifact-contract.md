@@ -123,39 +123,6 @@ The framework remains the execution layer. Executable Stories supplies behavior 
 
 For loop-shaped, unattended agents, three commands wrap this loop: `triage` (the worklist of what to fix), `check` (the per-turn backpressure signal), and `goal` (a behavioral definition-of-done with an anti-fake-done ratchet). See [Agent loops and backpressure](/guides/agent-loops/).
 
-## MCP
-
-Use `executable-stories-mcp` when an MCP-capable agent needs direct tools:
-
-```bash
-npx executable-stories-mcp
-```
-
-Read-only tools:
-
-- `list_scenarios` (optional `statuses` / `tags` / `sourceFiles` filters)
-- `get_scenario`
-- `get_failing_scenarios`
-- `get_scenarios_for_paths`: code→scenario via declared `covers`
-- `get_feature_summary`
-- `get_scenario_index`
-- `get_behavior_manifest`
-- `get_behavior_diff`: regressed / fixed / added / removed between two reports
-- `get_deployment_status`: latest recorded deployment per environment
-- `get_environment_drift`: scenarios only in one environment and status drift for shared scenarios
-
-Execution tool:
-
-- `run_scenario`: runs one scenario through vitest, jest, playwright, or cypress
-
-Each tool reads StoryReport v1 JSON. By default it uses:
-
-```text
-reports/index.story-report.json
-```
-
-Pass `reportPath` to use another file. See [MCP server](/guides/mcp-server/).
-
 ## WebMCP (in the reader's browser)
 
 Everything above assumes an agent with a filesystem. Someone reading a published

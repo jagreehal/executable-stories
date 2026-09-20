@@ -56,7 +56,7 @@ Install the few that match your stack rather than all 56:
 | Building features day to day     | `story-tdd`, `bug-to-scenario`              |
 | Generating reports in CI         | `formatters-cli`, `ci-gates`                |
 | Running an agent unattended      | `agent-loop`, `failure-triage`              |
-| Working with product or QA input | `spec-grilling`, `audience-views`           |
+| Working with product or QA input | `spec-grilling`                              |
 | Publishing reports non-developers query | `report-webmcp`                      |
 
 Add more when you hit the problem they solve. A skill your agent never loads costs you nothing but a directory.

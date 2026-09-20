@@ -85,7 +85,6 @@ prose for the shapes prose handles badly:
 | Flow, sequence, state machine | `story.mermaid({ code, title })` |
 | Where things live | `story.custom({ type: 'file-tree', data })` |
 | The records and their fields | `story.custom({ type: 'data-model', data })` |
-| HTTP surface | `executable-stories import-openapi` |
 | Example values | `story.state`, `story.table` |
 
 ```ts
@@ -132,12 +131,9 @@ a question the same rough length so formatting leaks no clues.
 
 Same order of preference as any explainer:
 
-1. **Docs site** (`living-docs-site`): `src/content/docs/explainers/<slug>.md`, with the
-   explainer v1 frontmatter so it can be detected as stale. Copy `id`, `title`, and `hash`
-   verbatim from the scenario index; always quote the hash.
-2. **Attached to a story** via `story.section`, `story.mermaid`, and `story.html` when the
+1. **Attached to a story** via `story.section`, `story.mermaid`, and `story.html` when the
    explanation is about one capability and belongs next to it.
-3. **A file in `reports/explainers/`** when there is no site. Never a global temp
+2. **A file in `reports/explainers/`**. Never a global temp
    directory: an explanation of a system that lives in `/tmp` is a throwaway, and this one
    is meant to be read next year.
 
@@ -162,7 +158,6 @@ cannot.
 
 - `explain-change` explains a diff. Same evidence discipline, different scope. Link them
   when a change lands in an area this document covers.
-- `living-docs-site` is where the document is published and how it stays checkable.
 - `spec-domain-language` supplies the vocabulary; write the whole thing in it.
 - `coverage-audit` produces section 5 in more depth when the gaps are the point.
 - `executable-lessons` takes over when the reader needs to practise rather than read.

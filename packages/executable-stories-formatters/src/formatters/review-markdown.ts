@@ -87,7 +87,8 @@ function renderClaim(lines: string[], claim: ReviewClaim): void {
   lines.push("");
   lines.push(`- File: \`${claim.sourceFile}:${claim.sourceLine}\``);
   if (claim.changeType !== "unknown") {
-    lines.push(`- Change: \`${claim.changeType}\``);
+    const inferred = claim.changeTypeConfidence === undefined ? "" : ` _(inferred, jev ${claim.changeTypeConfidence.toFixed(2)})_`;
+    lines.push(`- Change: \`${claim.changeType}\`${inferred}`);
   }
   const tickets = claim.testCase.story.tickets ?? [];
   if (tickets.length > 0) {
