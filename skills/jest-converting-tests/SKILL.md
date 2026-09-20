@@ -8,7 +8,7 @@ description: >
 metadata:
   type: lifecycle
   library: executable-stories-jest
-  library_version: "8.8.10"
+  library_version: "8.8.11"
   requires:
     - jest-story-api
   sources:
