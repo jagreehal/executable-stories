@@ -342,5 +342,9 @@ When working in these areas, load the linked skill file into context for accurat
 | Sending open questions to an absent expert as a questionnaire | `skills/spec-questionnaire/SKILL.md`                                                          |
 | Story mapping a release as journeys and planned scenarios    | `skills/spec-story-mapping/SKILL.md`                                                           |
 | Building a glossary the scenarios enforce                    | `skills/spec-domain-language/SKILL.md`                                                         |
+| Pushing a run to the cloud, asking the release gate, export | `skills/executable-stories-cloud/SKILL.md`                                                     |
+| Running only the tests a change can break; gating a merge   | `skills/cloud-change-aware-testing/SKILL.md`                                                   |
+| Importing cases from TestRail or any tool's CSV             | `skills/cloud-migrate/SKILL.md`                                                                |
+| Connecting an agent to the cloud over MCP; ESQ queries      | `skills/cloud-mcp/SKILL.md`                                                                    |
 
 <!-- intent-skills:end -->
