@@ -69,7 +69,7 @@
     "@cucumber/messages": "^34.2.1",
     "ajv": "^8.20.0",
     "github-slugger": "^2.0.0",
-    "yaml": "^2.9.0",
+    "yaml": "^2.9.1",
     "executable-stories-core": "workspace:*",
     "executable-stories-react": "workspace:*",
     "react": "^19.2.8",
