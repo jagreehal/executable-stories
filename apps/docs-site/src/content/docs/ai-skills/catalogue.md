@@ -126,6 +126,17 @@ All three run over MCP, so the tracker can be Jira, GitHub Issues, Linear, or an
 else with a server. The receipt links back to the report. Your tracker never
 becomes the source of truth.
 
+## Cloud
+
+Executable Stories Cloud puts every run, manual case and release on one page. These skills need an `es_` API key (or an OAuth session) and do nothing without one.
+
+| Skill                          | Covers                                                                                   |
+| ------------------------------ | ---------------------------------------------------------------------------------------- |
+| `executable-stories-cloud`     | Pushing a run from any framework, asking the release gate, export and restore            |
+| `cloud-change-aware-testing`   | `push --base` for the recommended scope, `--gate`, the GitHub Action's ingest mode        |
+| `cloud-migrate`                | TestRail importer, CSV import from any tool with header synonyms, idempotent re-runs     |
+| `cloud-mcp`                    | Connecting an agent by key or OAuth, the read-only profile, the tools, the ESQ query language |
+
 ## ESLint
 
 Mechanical enforcement of the rules the API skills describe.

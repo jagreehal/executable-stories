@@ -71,12 +71,7 @@
     {
       "title": "Build Loop",
       "description": "Skills for the daily loop: driving behaviour test-first, reproducing bugs, triaging failures, and running agents against run artifacts.",
-      "skills": [
-        "story-tdd",
-        "bug-to-scenario",
-        "failure-triage",
-        "agent-loop"
-      ]
+      "skills": ["story-tdd", "bug-to-scenario", "failure-triage", "agent-loop"]
     },
     {
       "title": "Delivery",
@@ -117,6 +112,16 @@
         "eslint-vitest-rules",
         "eslint-jest-rules",
         "eslint-playwright-rules"
+      ]
+    },
+    {
+      "title": "Cloud",
+      "description": "Skills for Executable Stories Cloud: pushing runs, change-aware scope and gates, migrating cases in, and connecting agents over MCP.",
+      "skills": [
+        "executable-stories-cloud",
+        "cloud-change-aware-testing",
+        "cloud-migrate",
+        "cloud-mcp"
       ]
     }
   ]
