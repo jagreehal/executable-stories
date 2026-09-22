@@ -57,6 +57,10 @@ jobs:
   pytest:
     name: pytest
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # Oldest and newest supported Python.
+        python-version: ["3.10", "3.13"]
     defaults:
       run:
         working-directory: packages/executable-stories-pytest
@@ -64,7 +68,7 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python-version }}
       - run: pip install -e ".[dev]"
       - run: ruff format --check .
       - run: ruff check --no-fix .

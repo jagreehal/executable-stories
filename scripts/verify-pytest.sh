@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Verify executable-stories-pytest package and example app: install package, run example tests, assert raw-run.json.
-# Run from repo root when Python 3.12+ is available.
+# Run from repo root when Python 3.10+ is available.
 
 set -e
 

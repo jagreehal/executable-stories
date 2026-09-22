@@ -4,9 +4,9 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "executable-stories-pytest"
-version = "0.1.0"
+version = "0.1.1"
 description = "pytest plugin for executable-stories BDD documentation"
-requires-python = ">=3.12"
+requires-python = ">=3.10"
 license = "Apache-2.0"
 readme = "README.md"
 authors = [{ name = "Jag Reehal" }]
@@ -32,7 +32,7 @@ where = ["src"]
 
 [tool.ruff]
 line-length = 120
-target-version = "py312"
+target-version = "py310"
 
 [tool.ruff.format]
 quote-style = "double"
@@ -66,7 +66,7 @@ testpaths = ["tests"]
 addopts = "-q"
 
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.10"
 warn_return_any = true
 warn_unused_configs = true
 strict_optional = true

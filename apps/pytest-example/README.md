@@ -4,7 +4,7 @@ Example app using [executable-stories-pytest](../../packages/executable-stories-
 
 ## Prerequisites
 
-- Python 3.12+
+- Python 3.10+
 - pip
 
 ## Verification
@@ -35,4 +35,4 @@ Example app using [executable-stories-pytest](../../packages/executable-stories-
    node packages/executable-stories-formatters/dist/cli.js format apps/pytest-example/.executable-stories/raw-run.json --output-dir apps/pytest-example/reports --format markdown,html
    ```
 
-You can also run the full verification script from the repo root when Python 3.12+ is available: `pnpm run verify:pytest` or `./scripts/verify-pytest.sh`.
+You can also run the full verification script from the repo root when Python 3.10+ is available: `pnpm run verify:pytest` or `./scripts/verify-pytest.sh`.
