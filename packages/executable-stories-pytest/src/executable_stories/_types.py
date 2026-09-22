@@ -6,7 +6,11 @@ At runtime everything is just dicts serialized to JSON.
 
 from __future__ import annotations
 
-from typing import Any, NotRequired, TypedDict
+from typing import TYPE_CHECKING, Any, TypedDict
+
+if TYPE_CHECKING:
+    # typing.NotRequired is 3.11+; annotations are strings here, so only type checkers see it.
+    from typing_extensions import NotRequired
 
 # ── DocEntry variants ──────────────────────────────────────────────
 

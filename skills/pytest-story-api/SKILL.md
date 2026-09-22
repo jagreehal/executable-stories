@@ -7,7 +7,7 @@ description: >
 metadata:
   type: core
   library: executable-stories-pytest
-  library_version: "0.1.0"
+  library_version: "0.1.1"
   sources:
     - "jagreehal/executable-stories:packages/executable-stories-pytest/src/executable_stories/_story_api.py"
     - "jagreehal/executable-stories:packages/executable-stories-pytest/src/executable_stories/_plugin.py"

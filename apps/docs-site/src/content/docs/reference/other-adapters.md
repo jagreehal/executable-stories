@@ -119,7 +119,7 @@ func TestCheckout(t *testing.T) {
 |---|---|
 | Package | `executable-stories-pytest` |
 | Install | `pip install executable-stories-pytest` |
-| Min version | Python 3.12, pytest 8 |
+| Min version | Python 3.10, pytest 8 |
 | Import | `from executable_stories import story` |
 
 The distribution is named `executable-stories-pytest`; the module it installs is
