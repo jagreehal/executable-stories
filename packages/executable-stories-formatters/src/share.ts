@@ -1,14 +1,16 @@
 /** Publish a report and its evidence through presigned asset uploads. */
 
-import * as fs from "node:fs";
-import * as path from "node:path";
-import { parseArgs } from "node:util";
-
-import { canonicalizeRun } from "executable-stories-core/converters/acl/canonicalize";
-import { collectReportAssets, rewriteReportAssets } from "executable-stories-core/report-assets";
-import { toStoryReport } from "executable-stories-core/converters/story-report";
-import { synthesizeStories } from "executable-stories-core/converters/synthesize";
-import type { StoryReport } from "executable-stories-core/types/story-report";
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import { parseArgs } from 'node:util';
+import { canonicalizeRun } from 'executable-stories-core/converters/acl/canonicalize';
+import { toStoryReport } from 'executable-stories-core/converters/story-report';
+import { synthesizeStories } from 'executable-stories-core/converters/synthesize';
+import {
+  collectReportAssets,
+  rewriteReportAssets,
+} from 'executable-stories-core/report-assets';
+import type { StoryReport } from 'executable-stories-core/types/story-report';
 
 const EXIT_SUCCESS = 0;
 const EXIT_SHARE_FAILED = 1;
@@ -53,8 +55,9 @@ export interface ShareDeps {
 
 function defaultDeps(): ShareDeps {
   return {
-    readFile: (filePath) => fs.readFileSync(filePath, "utf8"),
-    readBinary: (filePath) => new Uint8Array(fs.readFileSync(filePath)) as Uint8Array<ArrayBuffer>,
+    readFile: (filePath) => fs.readFileSync(filePath, 'utf8'),
+    readBinary: (filePath) =>
+      new Uint8Array(fs.readFileSync(filePath)) as Uint8Array<ArrayBuffer>,
     fileSize: (filePath) => {
       try {
         const stat = fs.statSync(filePath);
@@ -79,24 +82,27 @@ function defaultDeps(): ShareDeps {
 
 /** Enough types to make a browser play the video and show the picture. */
 const CONTENT_TYPES: Record<string, string> = {
-  ".png": "image/png",
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".gif": "image/gif",
-  ".webp": "image/webp",
-  ".avif": "image/avif",
-  ".svg": "image/svg+xml",
-  ".mp4": "video/mp4",
-  ".webm": "video/webm",
-  ".mov": "video/quicktime",
-  ".html": "text/html",
-  ".json": "application/json",
-  ".txt": "text/plain",
-  ".zip": "application/zip",
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
+  '.avif': 'image/avif',
+  '.svg': 'image/svg+xml',
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm',
+  '.mov': 'video/quicktime',
+  '.html': 'text/html',
+  '.json': 'application/json',
+  '.txt': 'text/plain',
+  '.zip': 'application/zip',
 };
 
 export function contentTypeFor(filePath: string): string {
-  return CONTENT_TYPES[path.extname(filePath).toLowerCase()] ?? "application/octet-stream";
+  return (
+    CONTENT_TYPES[path.extname(filePath).toLowerCase()] ??
+    'application/octet-stream'
+  );
 }
 
 /** Prefer HTML for its bundled asset paths; skip pages without embedded reports. */
@@ -111,7 +117,7 @@ export function resolveReport(
       : candidateNames(entries).map((name) => path.join(inputPath, name));
   if (candidates.length === 0) {
     throw new Error(
-      "no report in it. Generate one first: executable-stories format <run.json> --format story-report-json --output-dir <dir> --output-name index",
+      'no report in it. Generate one first: executable-stories format <run.json> --format story-report-json --output-dir <dir> --output-name index',
     );
   }
 
@@ -128,33 +134,46 @@ export function resolveReport(
 
 /** Files in a report directory that could hold a report, best first. */
 function candidateNames(entries: string[]): string[] {
-  const html = entries.filter((name) => name.endsWith(".html")).sort();
-  const reports = entries.filter((name) => name.endsWith(".story-report.json")).sort();
+  const html = entries.filter((name) => name.endsWith('.html')).sort();
+  const reports = entries
+    .filter((name) => name.endsWith('.story-report.json'))
+    .sort();
   return [
-    ...html.filter((name) => name === "index.html"),
+    ...html.filter((name) => name === 'index.html'),
     ...html,
-    ...reports.filter((name) => name === "index.story-report.json"),
+    ...reports.filter((name) => name === 'index.story-report.json'),
     ...reports,
-    ...entries.filter((name) => name === "raw-run.json"),
+    ...entries.filter((name) => name === 'raw-run.json'),
   ].filter((name, i, all) => all.indexOf(name) === i);
 }
 
 /** The report inside `<script type="application/json" id="es-report-data">`. */
-const HTML_REPORT_DATA = /<script[^>]*\bid=["']?es-report-data["']?[^>]*>([\s\S]*?)<\/script>/;
+const HTML_REPORT_DATA =
+  /<script[^>]*\bid=["']?es-report-data["']?[^>]*>([\s\S]*?)<\/script>/;
 
 function loadReport(filePath: string, deps: ShareDeps): StoryReport {
   const text = deps.readFile(filePath);
-  if (filePath.endsWith(".html")) {
+  if (filePath.endsWith('.html')) {
     const match = HTML_REPORT_DATA.exec(text);
-    if (!match?.[1]) throw new Error(`${filePath} is an HTML page with no report embedded in it`);
-    return asStoryReport(JSON.parse(match[1]) as Record<string, unknown>, filePath);
+    if (!match?.[1])
+      throw new Error(
+        `${filePath} is an HTML page with no report embedded in it`,
+      );
+    return asStoryReport(
+      JSON.parse(match[1]) as Record<string, unknown>,
+      filePath,
+    );
   }
   return asStoryReport(JSON.parse(text) as Record<string, unknown>, filePath);
 }
 
 /** StoryReport v1 declares a string schemaVersion; a raw run uses a number. */
-function asStoryReport(data: Record<string, unknown>, filePath: string): StoryReport {
-  if (typeof data.schemaVersion === "string") return data as unknown as StoryReport;
+function asStoryReport(
+  data: Record<string, unknown>,
+  filePath: string,
+): StoryReport {
+  if (typeof data.schemaVersion === 'string')
+    return data as unknown as StoryReport;
   try {
     return toStoryReport(canonicalizeRun(synthesizeStories(data as never)));
   } catch (err) {
@@ -175,12 +194,17 @@ export interface AssetToUpload {
 }
 
 /** Use report-relative keys inside the report directory and flat keys elsewhere. */
-function keyFor(assetPath: string, reportDir: string, taken: Set<string>): string {
+function keyFor(
+  assetPath: string,
+  reportDir: string,
+  taken: Set<string>,
+): string {
   const resolved = path.resolve(reportDir, assetPath);
   const relative = path.relative(reportDir, resolved);
-  const inside = relative !== "" && !relative.startsWith("..") && !path.isAbsolute(relative);
+  const inside =
+    relative !== '' && !relative.startsWith('..') && !path.isAbsolute(relative);
   const base = inside
-    ? relative.split(path.sep).join("/")
+    ? relative.split(path.sep).join('/')
     : `assets/${path.basename(resolved)}`;
 
   // Two files can flatten to one name; the share needs them kept apart.
@@ -197,7 +221,11 @@ export function planAssets(
   report: StoryReport,
   reportDir: string,
   deps: ShareDeps,
-): { assets: AssetToUpload[]; missing: string[]; keyByPath: Map<string, string> } {
+): {
+  assets: AssetToUpload[];
+  missing: string[];
+  keyByPath: Map<string, string>;
+} {
   const assets: AssetToUpload[] = [];
   const missing: string[] = [];
   const keyByPath = new Map<string, string>();
@@ -212,7 +240,12 @@ export function planAssets(
       missing.push(assetPath);
       continue;
     }
-    assets.push({ path: key, localPath, contentType: contentTypeFor(key), bytes });
+    assets.push({
+      path: key,
+      localPath,
+      contentType: contentTypeFor(key),
+      bytes,
+    });
   }
   return { assets, missing, keyByPath };
 }
@@ -221,23 +254,35 @@ interface CreateShareResponse {
   id: string;
   url: string;
   uploads?: { path: string; url: string; headers?: Record<string, string> }[];
+  /** Assets the plan did not store, each with the reason; the share still published. */
+  notStored?: { path: string; reason: string }[];
 }
 
 interface ErrorBody {
-  error?: { type?: string; message?: string; limit?: number; maxBytes?: number };
+  error?: {
+    type?: string;
+    message?: string;
+    limit?: number;
+    maxBytes?: number;
+    used?: number;
+  };
 }
 
 /** Translate cloud limits into actionable CLI messages. */
 async function describeFailure(response: Response): Promise<string> {
-  const text = await response.text().catch(() => "");
+  const text = await response.text().catch(() => '');
   try {
     const body = JSON.parse(text) as ErrorBody;
     const error = body.error;
-    if (error?.type === "SHARE_LIMIT") {
+    if (error?.type === 'SHARE_LIMIT') {
       return `you already have ${error.limit ?? 3} shares. Delete one in your cloud settings, or upgrade, then run this again.`;
     }
-    if (error?.type === "SHARE_TOO_LARGE") {
+    if (error?.type === 'SHARE_TOO_LARGE') {
       return `the report and its assets are over the ${error.maxBytes ?? 0} byte limit for a share.`;
+    }
+    if (error?.type === 'STORAGE_LIMIT') {
+      const mb = (bytes: number) => `${Math.round(bytes / 1024 / 1024)} MB`;
+      return `stored evidence is at the plan's ${mb(error.limit ?? 0)} (${mb(error.used ?? 0)} used). Delete a share or an attachment in your cloud settings, or upgrade.`;
     }
     if (error?.message) return error.message;
     if (error?.type) return error.type;
@@ -259,13 +304,13 @@ export async function runShare(
       args: rawArgs,
       allowPositionals: true,
       options: {
-        key: { type: "string" },
-        url: { type: "string" },
-        title: { type: "string" },
-        emails: { type: "string" },
-        "expires-days": { type: "string" },
-        json: { type: "boolean" },
-        help: { type: "boolean", short: "h" },
+        key: { type: 'string' },
+        url: { type: 'string' },
+        title: { type: 'string' },
+        emails: { type: 'string' },
+        'expires-days': { type: 'string' },
+        json: { type: 'boolean' },
+        help: { type: 'boolean', short: 'h' },
       },
     });
   } catch (err) {
@@ -281,7 +326,9 @@ export async function runShare(
 
   const inputPath = parsed.positionals[0];
   if (!inputPath) {
-    deps.error("share needs a report: executable-stories share <reports-dir|report.html|report.json>");
+    deps.error(
+      'share needs a report: executable-stories share <reports-dir|report.html|report.json>',
+    );
     deps.error(HELP);
     return EXIT_USAGE;
   }
@@ -289,15 +336,17 @@ export async function runShare(
   const key = parsed.values.key ?? deps.env.EXECUTABLE_STORIES_API_KEY;
   if (!key) {
     deps.error(
-      "share needs an API key: pass --key or set EXECUTABLE_STORIES_API_KEY. Sign in with Google at https://app.executablestories.com and create one under Settings.",
+      'share needs an API key: pass --key or set EXECUTABLE_STORIES_API_KEY. Sign in with Google at https://app.executablestories.com and create one under Settings.',
     );
     return EXIT_USAGE;
   }
 
-  const expiresRaw = parsed.values["expires-days"];
+  const expiresRaw = parsed.values['expires-days'];
   const expiresInDays = expiresRaw === undefined ? 30 : Number(expiresRaw);
   if (!Number.isInteger(expiresInDays) || expiresInDays < 0) {
-    deps.error(`--expires-days takes a whole number of days (0 never expires), not "${expiresRaw}".`);
+    deps.error(
+      `--expires-days takes a whole number of days (0 never expires), not "${expiresRaw}".`,
+    );
     return EXIT_USAGE;
   }
 
@@ -306,33 +355,45 @@ export async function runShare(
   try {
     ({ path: reportPath, report } = resolveReport(inputPath, deps));
   } catch (err) {
-    deps.error(`Could not read ${inputPath}: ${err instanceof Error ? err.message : String(err)}`);
+    deps.error(
+      `Could not read ${inputPath}: ${err instanceof Error ? err.message : String(err)}`,
+    );
     return EXIT_USAGE;
   }
 
   const reportDir = path.dirname(reportPath);
   const { assets, missing, keyByPath } = planAssets(report, reportDir, deps);
   for (const assetPath of missing) {
-    deps.error(`Warning: ${assetPath} is missing, so it will not be in the share.`);
+    deps.error(
+      `Warning: ${assetPath} is missing, so it will not be in the share.`,
+    );
   }
 
   const shareReport = {
-    ...rewriteReportAssets(report, (assetPath) => keyByPath.get(assetPath) ?? assetPath),
-    projectRoot: "",
+    ...rewriteReportAssets(
+      report,
+      (assetPath) => keyByPath.get(assetPath) ?? assetPath,
+    ),
+    projectRoot: '',
   };
 
-  const emails = (parsed.values.emails ?? "")
-    .split(",")
+  const emails = (parsed.values.emails ?? '')
+    .split(',')
     .map((email) => email.trim())
     .filter(Boolean);
   const baseUrl =
-    parsed.values.url ?? deps.env.EXECUTABLE_STORIES_URL ?? "https://app.executablestories.com";
+    parsed.values.url ??
+    deps.env.EXECUTABLE_STORIES_URL ??
+    'https://app.executablestories.com';
 
   let created: CreateShareResponse;
   try {
-    const response = await deps.fetchFn(new URL("/api/v1/shares", baseUrl), {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+    const response = await deps.fetchFn(new URL('/api/v1/shares', baseUrl), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${key}`,
+      },
       body: JSON.stringify({
         title: parsed.values.title,
         report: shareReport,
@@ -341,7 +402,7 @@ export async function runShare(
           contentType,
           bytes,
         })),
-        visibility: emails.length > 0 ? "emails" : "link",
+        visibility: emails.length > 0 ? 'emails' : 'link',
         ...(emails.length > 0 ? { allowedEmails: emails } : {}),
         expiresInDays,
       }),
@@ -352,23 +413,34 @@ export async function runShare(
     }
     created = (await response.json()) as CreateShareResponse;
   } catch (err) {
-    deps.error(`Could not reach ${baseUrl}: ${err instanceof Error ? err.message : String(err)}`);
+    deps.error(
+      `Could not reach ${baseUrl}: ${err instanceof Error ? err.message : String(err)}`,
+    );
     return EXIT_SHARE_FAILED;
   }
 
   // Only read files offered in the manifest, regardless of the response paths.
-  const localByKey = new Map(assets.map((asset) => [asset.path, asset.localPath]));
+  const localByKey = new Map(
+    assets.map((asset) => [asset.path, asset.localPath]),
+  );
   for (const upload of created.uploads ?? []) {
     const filePath = localByKey.get(upload.path);
     if (filePath === undefined) {
-      deps.error(`Share asked for a file this report did not offer: ${upload.path}`);
+      deps.error(
+        `Share asked for a file this report did not offer: ${upload.path}`,
+      );
       return EXIT_SHARE_FAILED;
     }
     try {
       const response = await deps.fetchFn(upload.url, {
-        method: "PUT",
-        headers: { "Content-Type": contentTypeFor(upload.path), ...upload.headers },
-        body: new Blob([deps.readBinary(filePath)], { type: contentTypeFor(upload.path) }),
+        method: 'PUT',
+        headers: {
+          'Content-Type': contentTypeFor(upload.path),
+          ...upload.headers,
+        },
+        body: new Blob([deps.readBinary(filePath)], {
+          type: contentTypeFor(upload.path),
+        }),
       });
       if (!response.ok) {
         deps.error(`Upload of ${upload.path} failed: HTTP ${response.status}`);
@@ -385,12 +457,17 @@ export async function runShare(
   // The share stays invisible until this lands, so a half-uploaded report is
   // never something you can send to someone.
   try {
-    const response = await deps.fetchFn(new URL(`/api/v1/shares/${created.id}/complete`, baseUrl), {
-      method: "POST",
-      headers: { Authorization: `Bearer ${key}` },
-    });
+    const response = await deps.fetchFn(
+      new URL(`/api/v1/shares/${created.id}/complete`, baseUrl),
+      {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${key}` },
+      },
+    );
     if (!response.ok) {
-      deps.error(`Share could not be published: ${await describeFailure(response)}`);
+      deps.error(
+        `Share could not be published: ${await describeFailure(response)}`,
+      );
       return EXIT_SHARE_FAILED;
     }
   } catch (err) {
@@ -400,18 +477,30 @@ export async function runShare(
     return EXIT_SHARE_FAILED;
   }
 
+  const notStored = created.notStored ?? [];
   if (parsed.values.json) {
-    deps.log(JSON.stringify({ id: created.id, url: created.url, assets: assets.length }, null, 2));
+    deps.log(
+      JSON.stringify(
+        { id: created.id, url: created.url, assets: assets.length, notStored },
+        null,
+        2,
+      ),
+    );
     return EXIT_SUCCESS;
   }
 
-  const withAssets = assets.length === 1 ? "1 asset" : `${assets.length} assets`;
+  const withAssets =
+    assets.length === 1 ? '1 asset' : `${assets.length} assets`;
   deps.log(`Shared ${path.basename(reportPath)} (${withAssets}):`);
   deps.log(`  ${created.url}`);
   deps.log(
     emails.length > 0
-      ? `  Only ${emails.join(", ")} can open it, after signing in.`
-      : "  Anyone with the link can open it.",
+      ? `  Only ${emails.join(', ')} can open it, after signing in.`
+      : '  Anyone with the link can open it.',
   );
+  // Nothing silent: a file the plan did not keep is named, with the reason.
+  for (const skipped of notStored) {
+    deps.log(`  Not stored: ${skipped.path} (${skipped.reason})`);
+  }
   return EXIT_SUCCESS;
 }

@@ -66,6 +66,19 @@ A pushed run is an event, not a snapshot of the whole suite. A run from a
 filtered test command carries only the files it ran, and the cloud treats a
 scenario as gone only when its source file was in that set.
 
+## Publish a report with its evidence
+
+```bash
+executable-stories share reports/            # the HTML report, screenshots and videos beside it
+executable-stories share reports/ --emails pm@acme.com --expires-days 90
+```
+
+Free keeps screenshots (100 MB across shares and attachments) and three live
+shares; the CLI names each file the plan did not store, with the reason, and
+the share still publishes. A `STORAGE_LIMIT` (413) means the quota is full:
+delete a share or an attachment in Settings, or upgrade. Team keeps every kind
+of evidence and can bring its own bucket (Settings → Evidence storage).
+
 ## Is this safe to release?
 
 ```bash
