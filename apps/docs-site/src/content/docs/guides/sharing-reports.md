@@ -56,6 +56,14 @@ executable-stories share reports/ --emails alex@example.com,sam@example.com
 A share is deleted after 30 days unless you say otherwise. `--expires-days 0`
 never expires it.
 
+## What the plan keeps
+
+A Free organisation keeps screenshots, up to 100 MB across shares and manual-run
+attachments, and three live shares at a time. Videos, traces and other files
+are not stored on Free; the share still publishes and the CLI names each file
+it did not keep, with the reason. Team keeps every kind of evidence, without
+the cap, and can point new evidence at its own bucket.
+
 ## Options
 
 | Option | What it does |
