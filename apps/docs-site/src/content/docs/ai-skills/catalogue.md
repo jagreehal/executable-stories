@@ -1,6 +1,6 @@
 ---
 title: Skill catalogue
-description: All 57 shipped skills by group, what each one covers, and when your agent should load it.
+description: All 63 shipped skills by group, what each one covers, and when your agent should load it.
 ---
 
 Every skill lives at `skills/<name>/SKILL.md` in the [repository](https://github.com/jagreehal/executable-stories/tree/main/skills). See [Agent skills](/ai-skills/) for installation.
@@ -55,6 +55,8 @@ Turning a vague request into specification material, before any test exists.
 
 | Skill                        | Load it when                                                                     |
 | ---------------------------- | -------------------------------------------------------------------------------- |
+| `stories-guide`              | Not sure which skill fits: a router over all of them. Type `/stories-guide` |
+| `stories-propose`            | Start here for new work: idea to planned scenarios, then green one at a time. Type `/stories-propose` |
 | `spec-grilling`              | One person holds the answers: interrogate them in rounds until the tree is settled |
 | `spec-example-mapping`       | Turning a fuzzy conversation into rules, examples, and open questions            |
 | `spec-questionnaire`         | The answers belong to someone who is not in the room                             |
@@ -110,8 +112,10 @@ Explaining work that already ran.
 | `explain-change`     | Explaining a diff, branch, or PR as living documentation, with citations and a quiz    |
 | `explain-system`     | Explaining a whole area for onboarding or handover, grounded in what the suite proves  |
 | `executable-lessons` | Teaching a topic as runnable lessons that stay correct because they execute            |
+| `show-me`            | "Show me" mid-conversation: the smallest view that makes the point, from the run       |
+| `demo-video`         | A narrated demo built from storyboard frames a passing run produced. Type `/demo-video` |
 
-All three refuse to assert behaviour without a scenario behind it. They write "not covered by a scenario" where the run cannot back a claim, and mark anything drawn from reading code as agent-authored.
+`explain-change`, `explain-system`, and `executable-lessons` refuse to assert behaviour without a scenario behind it. They write "not covered by a scenario" where the run cannot back a claim, and mark anything drawn from reading code as agent-authored.
 
 ## Workflow receipts
 
@@ -125,6 +129,10 @@ All three refuse to assert behaviour without a scenario behind it. They write "n
 All three run over MCP, so the tracker can be Jira, GitHub Issues, Linear, or anything
 else with a server. The receipt links back to the report. Your tracker never
 becomes the source of truth.
+
+`tracker-receipts`, `scenarios-to-tickets`, and `linear-evidence-review` write to your
+tracker, so they run only when you type their name (`/tracker-receipts`). Your agent
+will not start them on its own. `stories-guide`, `stories-propose`, and `demo-video` work the same way.
 
 ## Cloud
 

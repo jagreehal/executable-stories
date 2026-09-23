@@ -1,6 +1,7 @@
 ---
 name: linear-evidence-review
-description: Posts idempotent Linear evidence receipts from executable-stories review reports using Linear MCP. Use when the user asks to update Linear from an Evidence Review, post a green-tick receipt to linked Linear issues, summarize verified behaviour on tickets, or use Linear MCP with executable-stories reports.
+description: Post Evidence Review receipts to linked Linear issues over MCP.
+disable-model-invocation: true
 ---
 
 # Linear Evidence Review

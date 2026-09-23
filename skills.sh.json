@@ -45,6 +45,8 @@
       "title": "Discovery",
       "description": "Skills for turning a vague request into specification material before any test is written.",
       "skills": [
+        "stories-guide",
+        "stories-propose",
         "spec-grilling",
         "spec-example-mapping",
         "spec-questionnaire",

@@ -1,6 +1,7 @@
 ---
 name: demo-video
-description: Use when someone wants a narrated demo video of what the suite does — a release walkthrough, a stakeholder demo, a "show the client what we shipped". Builds the video from a run's storyboard frames and step text, so the scenes are screenshots that a passing scenario produced and the narration is the steps, not a script someone wrote about the product.
+description: Build a narrated demo video from a run's storyboard frames and step text.
+disable-model-invocation: true
 ---
 
 # Demo Video

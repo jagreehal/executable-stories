@@ -1,6 +1,7 @@
 ---
 name: scenarios-to-tickets
-description: Use when the suite has found work the board does not know about — a failing scenario nobody owns, a planned scenario that never landed, a claim that asserts nothing, behaviour nobody has run in weeks — and it should become tickets. Turns run artifacts into a proposed, deduplicated ticket list, creates them through MCP once the user approves, and writes the new ids back onto the scenarios.
+description: File tickets for work a run found that the board is missing, then write the new ids back onto the scenarios.
+disable-model-invocation: true
 ---
 
 # Scenarios To Tickets
