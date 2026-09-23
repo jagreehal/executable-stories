@@ -26,6 +26,10 @@ Three things follow from that, and they are the whole skill:
 
 - Never write an assertion you have not watched fail. A green test that asserts nothing
   is worse than no test, because the report repeats the lie to everyone who reads it.
+- Take expected values from an independent source: a literal, a worked example, the
+  scenario's own wording. An assertion that recomputes the answer the way the code does
+  (`expect(total(items)).toBe(items.reduce(...))`) passes by construction and proves
+  nothing.
 - Do not attach doc entries describing behaviour until the scenario is green. Before
   then it is a plan, and plans belong in `it.todo` (`spec-plan-to-stories`) or in a
   `story.section` marked `authored: "agent"`.

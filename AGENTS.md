@@ -338,6 +338,8 @@ When working in these areas, load the linked skill file into context for accurat
 | Bridging TestRail or Xray to the suite                       | `skills/test-management-bridge/SKILL.md`                                                       |
 | Publishing a report a non-developer's browser agent can query | `skills/report-webmcp/SKILL.md`                                                                |
 | Writing release notes from the behavioural diff              | `skills/release-notes/SKILL.md`                                                                |
+| Not sure which skill fits (router over every skill)          | `skills/stories-guide/SKILL.md`                                                                |
+| Starting new work plan-first (idea → planned scenarios → green) | `skills/stories-propose/SKILL.md`                                                           |
 | Grilling a vague request into scenarios, one round at a time | `skills/spec-grilling/SKILL.md`                                                                |
 | Sending open questions to an absent expert as a questionnaire | `skills/spec-questionnaire/SKILL.md`                                                          |
 | Story mapping a release as journeys and planned scenarios    | `skills/spec-story-mapping/SKILL.md`                                                           |

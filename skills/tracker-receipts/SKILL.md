@@ -1,6 +1,7 @@
 ---
 name: tracker-receipts
-description: Use when a tracker and the suite have drifted, or when a ticket should carry proof that its behaviour passes — reconciling Jira, GitHub, or Linear tickets against scenarios, then posting an idempotent receipt with the verdict and a deep link to the report. Tool-agnostic over MCP. The run is the evidence; the ticket is the record.
+description: Reconcile Jira, GitHub, or Linear tickets against the suite and stamp each with a receipt from the run.
+disable-model-invocation: true
 ---
 
 # Tracker Receipts
