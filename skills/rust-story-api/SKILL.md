@@ -213,7 +213,10 @@ s.end_timer(token);
 ```rust
 s.attach("debug.log", "text/plain", "/tmp/debug.log");
 s.attach_inline("config", "application/json", r#"{"key":"val"}"#, "IDENTITY");
+s.attach_inline("notes.md", "text/markdown", "## Notes\n\nRetried once.", "IDENTITY");
 ```
+
+The HTML report previews `text/plain`, `text/markdown` and `text/html` attachments inline, next to the download link. Inline text needs the `IDENTITY` encoding.
 
 ### OTel trace integration (opt-in)
 

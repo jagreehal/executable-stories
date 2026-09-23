@@ -37,6 +37,8 @@ export interface Attachment {
   body: string;
   /** Content encoding */
   contentEncoding: "BASE64" | "IDENTITY";
+  /** Set when `body` holds the file's path or URL (file missing or too large to embed). */
+  external?: true;
 }
 
 /** Single test attempt for retry tracking */

@@ -281,6 +281,7 @@ function buildAttachments(tc: TestCaseResult): ReportAttachment[] {
     mediaType: a.mediaType,
     body: a.body,
     contentEncoding: a.contentEncoding,
+    ...(a.external ? { external: true as const } : {}),
   }));
 }
 

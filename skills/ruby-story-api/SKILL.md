@@ -183,8 +183,11 @@ story.end_timer(token)
 ```ruby
 story.attach("screenshot", "image/png", path: "/tmp/screenshot.png")
 story.attach_inline("log", "text/plain", "line1\nline2")
+story.attach_inline("notes.md", "text/markdown", "## Notes\n\nRetried once.")
 story.attach_spans(spans)
 ```
+
+The HTML report previews `text/plain`, `text/markdown` and `text/html` attachments inline, next to the download link. Inline attachments default to the `IDENTITY` encoding.
 
 ### Method Chaining
 

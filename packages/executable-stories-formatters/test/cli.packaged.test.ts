@@ -405,15 +405,16 @@ describe("packaged CLI", () => {
         const htmlPath = join(reportsDir, "index.html");
         expect(fs.existsSync(htmlPath)).toBe(true);
 
-        // The `html` report renders via executable-stories-react and is
-        // self-contained: the attachment is embedded as a data URI by the report
-        // components, so there is nothing to extract — `--asset-mode copy` makes
-        // no assets/ dir and the original absolute path never leaks into the HTML.
+        // Over the embed limit, the ACL keeps the video as an external reference
+        // relative to projectRoot, and the report links to that file.
+        // `--asset-mode copy` makes no assets/ dir and the absolute path stays
+        // out of the HTML.
         const assetsDir = join(reportsDir, "assets");
         expect(fs.existsSync(assetsDir)).toBe(false);
 
         const html = fs.readFileSync(htmlPath, "utf8");
-        expect(html).toContain("data:video/webm");
+        expect(html).toContain('href="../test-results/test-recording.webm"');
+        expect(html).not.toContain("data:video/webm");
         expect(html).not.toContain(videoPath);
       },
       60_000

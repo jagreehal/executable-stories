@@ -242,7 +242,10 @@ s.EndTimer(token)
 ```go
 s.Attach("debug.log", "text/plain", "/tmp/debug.log")
 s.AttachInline("config", "application/json", `{"key":"val"}`, "IDENTITY")
+s.AttachInline("notes.md", "text/markdown", "## Notes\n\nRetried once.", "IDENTITY")
 ```
+
+The HTML report previews `text/plain`, `text/markdown` and `text/html` attachments inline, next to the download link. Inline text needs the `IDENTITY` encoding.
 
 ## Common Mistakes
 

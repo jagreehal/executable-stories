@@ -60,6 +60,7 @@ class CalculatorStoryTest < Minitest::Test
     story.when("the first is divided by the second")
     result = Calculator.divide(20, 4)
     story.then("the result is 5")
+    story.attach_inline("division-rules.md", "text/markdown", "## Division rules\n\nDividing by zero raises an error instead of returning infinity.")
     assert_equal 5, result
   end
 

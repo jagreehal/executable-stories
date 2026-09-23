@@ -259,7 +259,10 @@ Story.EndTimer(token);
 ```csharp
 Story.Attach("debug.log", "text/plain", "/tmp/debug.log");
 Story.AttachInline("config", "application/json", "{\"key\":\"val\"}");
+Story.AttachInline("notes.md", "text/markdown", "## Notes\n\nRetried once.");
 ```
+
+The HTML report previews `text/plain`, `text/markdown` and `text/html` attachments inline, next to the download link. Inline attachments default to the `IDENTITY` encoding.
 
 ## Common Mistakes
 

@@ -67,6 +67,12 @@ fn test_calculator_divides_two_numbers() {
     s.when("the first is divided by the second");
     let result = divide(a, b);
     s.then("the result is 5");
+    s.attach_inline(
+        "division-rules.md",
+        "text/markdown",
+        "## Division rules\n\nDividing by zero raises an error instead of returning infinity.",
+        "IDENTITY",
+    );
     assert_eq!(result, 5);
 }
 

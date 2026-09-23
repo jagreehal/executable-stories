@@ -70,6 +70,7 @@ public class CalculatorStoryTest
         Story.When("the first is divided by the second");
         var result = Calculator.Divide(a, b);
         Story.Then("the result is 5");
+        Story.AttachInline("division-rules.md", "text/markdown", "## Division rules\n\nDividing by zero raises an error instead of returning infinity.");
         Assert.Equal(5, result);
     }
 

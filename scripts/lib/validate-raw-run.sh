@@ -104,6 +104,28 @@ validate_raw_run() {
       echo "[$LABEL] ERROR: missing index.scenario-index.json or index.behavior-manifest.json" >&2
       return 1
     fi
+
+    # Inline attachments: each example app attaches division-rules.md, and it
+    # must reach the StoryReport as content so the HTML report can preview it.
+    if ! node -e '
+      const report = require(process.argv[1]);
+      const found = [];
+      (function walk(v) {
+        if (Array.isArray(v)) return v.forEach(walk);
+        if (!v || typeof v !== "object") return;
+        if (v.mediaType === "text/markdown" && v.name === "division-rules.md") found.push(v);
+        Object.values(v).forEach(walk);
+      })(report);
+      const att = found[0];
+      if (!att) throw new Error("no division-rules.md markdown attachment in the StoryReport");
+      if (att.external) throw new Error("division-rules.md arrived as a reference, not content");
+      const text = att.contentEncoding === "BASE64" ? Buffer.from(att.body, "base64").toString("utf8") : att.body;
+      if (!text.includes("## Division rules")) throw new Error("division-rules.md body is not the attached markdown: " + text);
+    ' "$REPORT_DIR/index.story-report.json"; then
+      echo "[$LABEL] ERROR: inline markdown attachment did not reach the StoryReport" >&2
+      return 1
+    fi
+    echo "[$LABEL] ✓ inline markdown attachment reached the StoryReport"
   fi
 
   # Planned scenarios: every adapter must be able to emit status "todo" so a

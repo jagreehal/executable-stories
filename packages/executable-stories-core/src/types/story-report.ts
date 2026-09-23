@@ -45,6 +45,8 @@ export interface ReportAttachment {
   mediaType: string;
   body: string;
   contentEncoding: 'BASE64' | 'IDENTITY';
+  /** Set when `body` holds the file's path or URL. */
+  external?: true;
 }
 
 export interface ReportCIInfo {
