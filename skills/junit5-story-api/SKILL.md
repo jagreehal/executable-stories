@@ -227,7 +227,10 @@ Story.endTimer(token)
 ```kotlin
 Story.attach("debug.log", "text/plain", "/tmp/debug.log")
 Story.attachInline("config", "application/json", """{"key":"val"}""", "IDENTITY")
+Story.attachInline("notes.md", "text/markdown", "## Notes\n\nRetried once.", "IDENTITY")
 ```
+
+The HTML report previews `text/plain`, `text/markdown` and `text/html` attachments inline, next to the download link. Inline text needs the `IDENTITY` encoding.
 
 ## Common Mistakes
 

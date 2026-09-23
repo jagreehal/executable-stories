@@ -5,6 +5,8 @@ description: API reference for Go, Python, Rust, Kotlin, and C# adapters
 
 All non-JS adapters produce the same raw JSON schema (`RawRun`) and feed the shared formatter pipeline. Once a test run writes its JSON output, `executable-stories-formatters` generates HTML, Markdown, JUnit, Cucumber JSON/HTML/Messages, and other formats identically regardless of which language produced the data.
 
+The HTML report previews `text/plain`, `text/markdown` and `text/html` attachments inline, next to their download link. Pass inline text with the `IDENTITY` encoding; a body without an encoding is read as base64.
+
 ## Go
 
 ### Quick reference
@@ -72,7 +74,7 @@ func TestLogin(t *testing.T) {
 
 ```go
 s.Attach("response.json", "application/json", "/tmp/response.json")
-s.AttachInline("body", "text/plain", []byte("response body"))
+s.AttachInline("notes.md", "text/markdown", "## Notes\n\nRetried once.", "IDENTITY")
 s.AttachSpans(traceID, spanIDs)   // OTel trace links
 
 s.StartTimer("db-query")
@@ -207,7 +209,7 @@ writes it as a real `story.init` scenario.
 
 ```python
 story.attach("response.json", "application/json", path="/tmp/response.json")
-story.attach("body", "text/plain", body="response body")  # inline
+story.attach("notes.md", "text/markdown", body="## Notes\n\nRetried once.", encoding="IDENTITY")
 story.attach_spans([{"name": "GET /orders", "traceId": trace_id, "spanId": span_id}])
 
 story.given("the database is queried")
@@ -358,7 +360,7 @@ status `todo` and stops being planned once someone writes it as a real `Story`.
 
 ```rust
 s.attach("response.json", "application/json", "/tmp/response.json");
-s.attach_inline("body", "text/plain", b"response body", None);
+s.attach_inline("notes.md", "text/markdown", "## Notes\n\nRetried once.", "IDENTITY");
 s.attach_spans(vec![serde_json::json!({ "name": "GET /orders", "traceId": trace_id })]);
 
 s.given("the database is queried");
@@ -511,7 +513,7 @@ All doc methods return a `DocEntry` value that is appended to the current scenar
 
 ```kotlin
 Story.attach("response.json", "application/json", "/tmp/response.json")
-Story.attachInline("body", "text/plain", "response body", "IDENTITY")
+Story.attachInline("notes.md", "text/markdown", "## Notes\n\nRetried once.", "IDENTITY")
 Story.attachSpans(spans)  // OTel spans, for the trace waterfall
 
 // startTimer returns a token; endTimer stops the step it was opened against.
@@ -647,7 +649,7 @@ public class LoginTests
 
 ```csharp
 Story.Attach("response.json", "application/json", "/tmp/response.json");
-Story.AttachInline("body", "text/plain", "response body");
+Story.AttachInline("notes.md", "text/markdown", "## Notes\n\nRetried once.");
 Story.AttachSpans(spans);  // OTel spans, for the trace waterfall
 
 // StartTimer returns a token; EndTimer stops the step it was opened against.

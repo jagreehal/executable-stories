@@ -62,6 +62,12 @@ def test_calculator_divides_two_numbers():
     story.when("the first is divided by the second")
     result = divide(a, b)
     story.then("the result is 5")
+    story.attach(
+        "division-rules.md",
+        "text/markdown",
+        body="## Division rules\n\nDividing by zero raises an error instead of returning infinity.",
+        encoding="IDENTITY",
+    )
     assert result == 5
 
 

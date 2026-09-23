@@ -17,17 +17,19 @@ const PNG =
 
 const attachments: ReportAttachment[] = [
   { name: "checkout-screenshot.png", mediaType: "image/png", body: PNG, contentEncoding: "BASE64" },
+  { name: "notes.md", mediaType: "text/markdown", body: "## Checkout notes\n\nPaid with **test card**.", contentEncoding: "IDENTITY" },
   { name: "trace.json", mediaType: "application/json", body: '{"requestId":"abc123"}', contentEncoding: "IDENTITY" },
 ];
 
-// Mixed attachments: a base64 image renders inline with an alt + caption; a
-// non-image becomes a labelled data-URI download link.
+// Mixed attachments: the image renders with an alt and caption, the markdown
+// document previews inline, and the JSON gets a labelled download link.
 export const Populated: Story = {
   args: { attachments },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const group = canvas.getByRole("group", { name: "Attachments" });
     await expect(within(group).getByRole("img", { name: "checkout-screenshot.png" })).toBeVisible();
+    await expect(within(group).getByRole("heading", { name: "Checkout notes" })).toBeVisible();
     await expect(within(group).getByRole("link", { name: /trace\.json/ })).toBeVisible();
   },
 };

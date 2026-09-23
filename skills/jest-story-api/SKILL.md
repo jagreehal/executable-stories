@@ -177,6 +177,20 @@ allow-same-origin). CDN scripts (Tailwind, Mermaid) and inline DOM scripts work;
 `sessionStorage`/cookies throw `SecurityError` (and an unguarded access aborts the rest of that
 script block) — guard with try/catch or avoid. No `window.top`/parent access; no popups.
 
+### Attachments (story.attach)
+
+```typescript
+story.attach({ name: "debug.log", mediaType: "text/plain", path: "/tmp/debug.log" });
+story.attach({
+  name: "notes.md",
+  mediaType: "text/markdown",
+  body: "## Notes\n\nRetried once.",
+  encoding: "IDENTITY",
+});
+```
+
+The HTML report previews `text/plain`, `text/markdown` and `text/html` attachments inline, next to the download link. Pass inline text with `encoding: "IDENTITY"`; a body without an encoding is read as base64.
+
 ### Step wrappers with timing
 
 ```typescript

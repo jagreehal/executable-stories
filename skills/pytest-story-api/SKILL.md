@@ -224,7 +224,10 @@ story.end_timer(token)
 ```python
 story.attach("debug.log", "text/plain", path="/tmp/debug.log")
 story.attach("config", "application/json", body='{"key":"val"}', encoding="IDENTITY")
+story.attach("notes.md", "text/markdown", body="## Notes\n\nRetried once.", encoding="IDENTITY")
 ```
+
+The HTML report previews `text/plain`, `text/markdown` and `text/html` attachments inline, next to the download link. Inline text needs the `IDENTITY` encoding.
 
 ## Common Mistakes
 

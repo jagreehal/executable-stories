@@ -88,6 +88,12 @@ class CalculatorStoryTest {
         val result = Calculator.divide(a, b)
 
         Story.then("the result is 5")
+        Story.attachInline(
+            "division-rules.md",
+            "text/markdown",
+            "## Division rules\n\nDividing by zero raises an error instead of returning infinity.",
+            "IDENTITY",
+        )
         assertEquals(5, result)
     }
 

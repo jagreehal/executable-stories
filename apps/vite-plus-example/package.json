@@ -11,15 +11,15 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@types/node": "^26.2.0",
+    "@types/node": "^26.6.1",
     "eslint": "^10.10.0",
     "eslint-config-executable-stories": "workspace:*",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-executable-stories-vitest": "workspace:*",
     "executable-stories-vitest": "workspace:*",
     "typescript": "~6.0.3",
-    "typescript-eslint": "^8.67.0",
-    "vite-plus": "^0.3.0",
+    "typescript-eslint": "^8.70.0",
+    "vite-plus": "^0.3.2",
     "vitest": "^4.1.11"
   }
 }

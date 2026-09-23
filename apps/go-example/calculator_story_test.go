@@ -65,6 +65,12 @@ func TestCalculatorDividesTwoNumbers(t *testing.T) {
 	s.When("the first is divided by the second")
 	result := Divide(a, b)
 	s.Then("the result is 5")
+	s.AttachInline(
+		"division-rules.md",
+		"text/markdown",
+		"## Division rules\n\nDividing by zero raises an error instead of returning infinity.",
+		"IDENTITY",
+	)
 	if result != 5 {
 		t.Fatalf("expected 5, got %d", result)
 	}

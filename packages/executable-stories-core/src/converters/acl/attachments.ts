@@ -86,6 +86,7 @@ function resolveFromPath(
       mediaType: raw.mediaType,
       body: filePath,
       contentEncoding: "IDENTITY",
+      external: true,
     };
   }
 
@@ -103,6 +104,7 @@ function resolveFromPath(
         mediaType: raw.mediaType,
         body: destPath,
         contentEncoding: "IDENTITY",
+        external: true,
       };
     }
 
@@ -116,6 +118,7 @@ function resolveFromPath(
       mediaType: raw.mediaType,
       body: relativePath,
       contentEncoding: "IDENTITY",
+      external: true,
     };
   }
 

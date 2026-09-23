@@ -365,6 +365,10 @@
         "contentEncoding": {
           "type": "string",
           "enum": ["BASE64", "IDENTITY"]
+        },
+        "external": {
+          "const": true,
+          "description": "body holds the file's path or URL (file missing or too large to embed)."
         }
       },
       "required": ["name", "mediaType", "body", "contentEncoding"],

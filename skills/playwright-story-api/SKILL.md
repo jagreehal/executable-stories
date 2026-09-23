@@ -217,6 +217,20 @@ markup via `content`. Directory bundling is planned.
 All embedded HTML renders inside `<iframe sandbox="allow-scripts">` — scripts
 run (charts work) but cannot touch the report DOM, cookies, or storage.
 
+### Attachments (story.attach)
+
+```typescript
+story.attach({ name: "debug.log", mediaType: "text/plain", path: "/tmp/debug.log" });
+story.attach({
+  name: "notes.md",
+  mediaType: "text/markdown",
+  body: "## Notes\n\nRetried once.",
+  encoding: "IDENTITY",
+});
+```
+
+The HTML report previews `text/plain`, `text/markdown` and `text/html` attachments inline, next to the download link. Pass inline text with `encoding: "IDENTITY"`; a body without an encoding is read as base64.
+
 ### Step wrappers with timing
 
 ```typescript
