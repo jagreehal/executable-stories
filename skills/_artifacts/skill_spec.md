@@ -37,7 +37,7 @@ All skills MUST capture:
 
 ## Structure
 
-Skills use a repository-root **flat structure** for skills.sh and cross-agent discovery. Each skill is a directory containing `SKILL.md`: `skills/<name>/SKILL.md`. Shared reference that several skills point at lives in `skills/spec-shared/`.
+Skills use a repository-root **flat structure** for skills.sh and cross-agent discovery. Each skill is a directory containing `SKILL.md`: `skills/<name>/SKILL.md`. Shared reference that several skills point at lives in `skills/spec-shared/`, with a copy inside each skill that links it: installers copy one skill directory, so a `../` link would dangle. The skill-sync test keeps the copies identical.
 
 ## Invocation
 

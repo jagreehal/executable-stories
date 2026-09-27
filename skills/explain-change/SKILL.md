@@ -117,7 +117,7 @@ Four sections, in this order. Intuition before details throughout.
 ### Writing the walkthrough's lines
 
 Each group in the literate walkthrough gets a heading and a line, and they follow
-the same rules as a release note: [CHANGE-LINES.md](../spec-shared/CHANGE-LINES.md).
+the same rules as a release note: [CHANGE-LINES.md](CHANGE-LINES.md).
 Name the thing and what happened to it, then say what the system now does
 differently. A heading that could have been true before the change is a section
 label, not a step in a story about a change.

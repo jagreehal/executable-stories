@@ -37,7 +37,7 @@ Three things follow from that, and they are the whole skill:
   renaming a scenario away from its promise is caught by the ratchet in `goal` with a
   `--baseline`, and it should be.
 - Keep it framework-native. `story.init` inside the host's own `it`/`test`, steps inline.
-  Per-adapter init syntax lives in `skills/spec-shared/AGENT-GUARDRAILS.md`.
+  Per-adapter init syntax lives in [AGENT-GUARDRAILS.md](AGENT-GUARDRAILS.md).
 
 ## The loop
 

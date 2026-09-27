@@ -74,7 +74,7 @@ executable-stories deploy diff staging production
 ## Write each line as a change
 
 How to write the heading and body of a single line, and the words that never
-belong in one: [CHANGE-LINES.md](../spec-shared/CHANGE-LINES.md). It is the
+belong in one: [CHANGE-LINES.md](CHANGE-LINES.md). It is the
 difference between "Batch sending improvements" and "Postmark now gets 500 emails
 per call", and the reason a reader gets the release from the headings alone.
 

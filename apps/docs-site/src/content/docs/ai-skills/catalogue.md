@@ -159,4 +159,4 @@ See [ESLint plugins](/reference/eslint-plugins/) for rule-level detail and confi
 
 ## Shared reference
 
-`skills/spec-shared/AGENT-GUARDRAILS.md` holds the guardrails the specification skills share. It is not a skill your agent loads on its own; the spec skills point at it.
+`skills/spec-shared/` holds the reference the specification skills share: `AGENT-GUARDRAILS.md` and `CHANGE-LINES.md`. Your agent does not load it as a skill. Each skill that links a shared file carries its own copy, so `npx skills add` installs a skill with every link intact. Edit the file in `spec-shared/` and copy it out; the skill-sync test fails if a copy drifts.
