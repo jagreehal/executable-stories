@@ -1,7 +1,8 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
+import { dirname, join, relative, resolve } from 'node:path';
+import { parse as parseYaml } from 'yaml';
 import { describe, expect, it } from 'vitest';
 import { story } from 'executable-stories-vitest';
 import { renderTemplate, type TemplateName } from '../src/templates';
@@ -155,5 +156,94 @@ describe('SKILL.md ↔ package version parity', () => {
         'describes a version nobody is running.',
     );
     expect(stale.map((v) => `${v.skill}: says ${v.declared}, package is ${v.actual}`)).toEqual([]);
+  });
+});
+
+/**
+ * `npx skills add` copies one skill directory, so each SKILL.md needs parseable
+ * frontmatter and links that stay inside its own directory.
+ */
+async function skillFiles(): Promise<Array<{ skill: string; md: string }>> {
+  const entries = await readdir(SKILLS_DIR, { withFileTypes: true });
+  const out: Array<{ skill: string; md: string }> = [];
+  for (const entry of entries) {
+    const path = join(SKILLS_DIR, entry.name, 'SKILL.md');
+    if (entry.isDirectory() && existsSync(path)) {
+      out.push({ skill: entry.name, md: await readFile(path, 'utf8') });
+    }
+  }
+  return out;
+}
+
+describe('SKILL.md installs standalone', () => {
+  it('has frontmatter an installer can parse', async ({ task }) => {
+    story.init(task, { tags: ['skills'], covers: ['skills/'] });
+
+    story.given('every SKILL.md');
+    const skills = await skillFiles();
+
+    story.when('its frontmatter is parsed as YAML');
+    const broken = skills.flatMap(({ skill, md }) => {
+      const block = /^---\n([\s\S]*?)\n---/.exec(md)?.[1];
+      if (block === undefined) return [`${skill}: no frontmatter`];
+      try {
+        const fm = parseYaml(block) as { name?: unknown; description?: unknown };
+        if (fm?.name !== skill) return [`${skill}: name is ${JSON.stringify(fm?.name)}`];
+        if (typeof fm.description !== 'string') return [`${skill}: no description`];
+        return [];
+      } catch (error) {
+        return [`${skill}: ${(error as Error).message.split('\n')[0]}`];
+      }
+    });
+
+    story.then('each has a matching name and a description');
+    expect(broken).toEqual([]);
+  });
+
+  it('only links to files inside its own directory', async ({ task }) => {
+    story.init(task, { tags: ['skills'], covers: ['skills/'] });
+
+    story.given('every relative link in every SKILL.md');
+    const skills = await skillFiles();
+
+    story.when('each link is resolved against the skill directory');
+    const dangling = skills.flatMap(({ skill, md }) => {
+      const dir = join(SKILLS_DIR, skill);
+      return [...md.matchAll(/\]\(([^)\s#]+)(?:#[^)]*)?\)/g)]
+        .map((m) => m[1]!)
+        .filter((href) => !/^[a-z]+:/i.test(href))
+        .filter((href) => {
+          const target = resolve(dir, href);
+          return relative(dir, target).startsWith('..') || !existsSync(target);
+        })
+        .map((href) => `${skill}: ${href}`);
+    });
+
+    story.then('the file exists and ships with the skill');
+    story.note('Shared references are copied from skills/spec-shared/ into each skill that links them.');
+    expect(dangling).toEqual([]);
+  });
+
+  it('keeps shared-reference copies identical to skills/spec-shared', async ({ task }) => {
+    story.init(task, { tags: ['skills'], covers: ['skills/spec-shared/'] });
+
+    story.given('each file in skills/spec-shared and every skill-local copy of it');
+    const shared = await readdir(join(SKILLS_DIR, 'spec-shared'));
+    const skills = await skillFiles();
+
+    story.when('each copy is compared with its source');
+    const drift: string[] = [];
+    for (const file of shared) {
+      const source = await readFile(join(SKILLS_DIR, 'spec-shared', file), 'utf8');
+      for (const { skill } of skills) {
+        const copy = join(SKILLS_DIR, skill, file);
+        if (existsSync(copy) && (await readFile(copy, 'utf8')) !== source) {
+          drift.push(`cp skills/spec-shared/${file} skills/${skill}/${file}`);
+        }
+      }
+    }
+
+    story.then('none has drifted');
+    expect(drift).toEqual([]);
   });
 });

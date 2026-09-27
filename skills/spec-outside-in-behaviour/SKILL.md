@@ -13,7 +13,7 @@ BDD is not "test scripts in Given/When/Then form." It is collaborative, behaviou
 
 This skill guides what the executable specification should say. It is not an adapter API reference. Treat code examples as specification sketches; if an example uses `story.init(task)`, adapt it before editing non-Vitest adapters.
 
-Framework-native rules and per-adapter init syntax: [AGENT-GUARDRAILS.md](../spec-shared/AGENT-GUARDRAILS.md).
+Framework-native rules and per-adapter init syntax: [AGENT-GUARDRAILS.md](AGENT-GUARDRAILS.md).
 
 ## The outside-in sequence
 
