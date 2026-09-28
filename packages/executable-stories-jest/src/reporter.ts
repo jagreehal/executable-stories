@@ -9,6 +9,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import fg from "fast-glob";
+import { assertionComparison } from "executable-stories-core/utils/assertion-comparison";
 import type { StoryMeta } from "executable-stories-formatters";
 
 // Import from formatters package
@@ -73,6 +74,7 @@ interface JestTestResult {
     status: "passed" | "failed" | "pending" | "todo";
     duration?: number;
     failureMessages?: string[];
+    failureDetails?: unknown[];
   }>;
 }
 
@@ -253,7 +255,14 @@ export default class StoryReporter {
           status,
           durationMs: matchingTest?.duration ?? 0,
           error: matchingTest?.failureMessages?.length
-            ? { message: matchingTest.failureMessages.join("\n") }
+            ? {
+                message: matchingTest.failureMessages.join("\n"),
+                // Jest sets matcherResult on `expect` failures only.
+                ...assertionComparison(
+                  (matchingTest.failureDetails?.[0] as { matcherResult?: unknown } | undefined)
+                    ?.matcherResult,
+                ),
+              }
             : undefined,
           attachments: rawAttachments.length > 0 ? rawAttachments : undefined,
           stepEvents: stepEvents.length > 0 ? stepEvents : undefined,

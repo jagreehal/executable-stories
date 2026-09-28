@@ -59,6 +59,8 @@ function scenarioLines(scenario: ReportScenario): string[] {
     const failed = step.status === "failed" ? " !! FAILED" : "";
     lines.push(`  ${step.keyword} ${step.text}${failed}`);
     if (step.errorMessage) lines.push(indent(step.errorMessage, "    ! "));
+    if (step.expected !== undefined) lines.push(indent(`expected: ${step.expected}`, "    ! "));
+    if (step.actual !== undefined) lines.push(indent(`actual: ${step.actual}`, "    ! "));
     for (const entry of step.docEntries) lines.push(...docLines(entry, "    "));
   }
   for (const entry of scenario.docEntries) lines.push(...docLines(entry, "  "));

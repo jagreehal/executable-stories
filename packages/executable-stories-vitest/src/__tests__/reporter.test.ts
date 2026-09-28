@@ -949,6 +949,48 @@ describe('StoryReporter', () => {
       expect(content).toContain('Expected 1 to equal 2');
     });
 
+    it('shows the assertion expected and actual values', async () => {
+      const reporter = new StoryReporter({
+        formats: ['markdown'],
+        outputDir: TEMP_DIR,
+        outputName: 'comparison',
+        output: { mode: 'aggregated' },
+        markdown: { includeMetadata: false },
+      });
+
+      reporter.onInit({
+        config: { root: process.cwd() },
+      } as unknown as Parameters<typeof reporter.onInit>[0]);
+
+      const mockModule = createMockTestModule('test.story.test.ts', [
+        {
+          meta: {
+            scenario: 'replicas stay available',
+            steps: [{ keyword: 'Then', text: 'at least 3 replicas are available', docs: [] }],
+            sourceOrder: 0,
+          },
+          result: {
+            state: 'failed',
+            errors: [{ message: 'expected 2 to be greater than or equal to 3', expected: 3, actual: 2 }],
+          },
+        },
+      ]);
+
+      await reporter.onTestRunEnd(
+        [
+          mockModule as unknown as Parameters<
+            typeof reporter.onTestRunEnd
+          >[0][0],
+        ],
+        [],
+        'passed',
+      );
+
+      const content = fs.readFileSync(path.join(TEMP_DIR, 'comparison.md'), 'utf8');
+      expect(content).toContain('Expected:\n\n```text\n3\n```');
+      expect(content).toContain('Actual:\n\n```text\n2\n```');
+    });
+
     it('can disable failure details', async () => {
       const reporter = new StoryReporter({
         formats: ['markdown'],

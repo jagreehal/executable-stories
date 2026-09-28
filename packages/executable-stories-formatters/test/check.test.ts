@@ -52,6 +52,8 @@ describe("buildCheck", () => {
           status: "failed",
           durationMs: 1,
           errorMessage: "expected redirect to /login, received 200",
+          expected: "302",
+          actual: "200",
         },
       ],
     });
@@ -72,6 +74,9 @@ describe("buildCheck", () => {
     expect(text).toContain("Expired session redirects to login");
     expect(text).toContain("Given an expired session");
     expect(text).toContain("→ expected redirect to /login, received 200");
+    expect(f).toMatchObject({ expected: "302", actual: "200" });
+    expect(text).toContain("expected: 302");
+    expect(text).toContain("actual:   200");
     expect(text).toContain("covers: src/auth/session.ts, src/middleware/auth.ts");
     expect(text).toContain("ticket: AUTH-123");
   });

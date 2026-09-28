@@ -75,6 +75,10 @@ export interface RawTestCase {
   error?: {
     message?: string;
     stack?: string;
+    /** Serialized expected value, when the assertion error carries one */
+    expected?: string;
+    /** Serialized actual (observed) value, when the assertion error carries one */
+    actual?: string;
   };
 
   /** Step-level info if framework provides it */

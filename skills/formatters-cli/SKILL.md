@@ -210,7 +210,7 @@ Three subcommands turn a run into signals a coding agent (or an unattended loop)
 
 ### check — backpressure signal (run after every change)
 
-Compress success, expand failure. Passing scenarios collapse to a count; each failing scenario expands to its Given/When/Then, the failing step, the error, and the product code it `covers`.
+Compress success, expand failure. Passing scenarios collapse to a count; each failing scenario expands to its Given/When/Then, the failing step, the error, the assertion's expected and actual values when the host reports them, and the product code it `covers`.
 
 ```bash
 executable-stories check .executable-stories/raw-run.json --baseline reports/previous.json

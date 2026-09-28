@@ -10,3 +10,12 @@ export function failingScenarioMessage(tc: TestCaseResult): string | undefined {
   const failingStep = tc.stepResults.find((s) => s.status === "failed" && s.errorMessage);
   return failingStep?.errorMessage ?? tc.errorMessage;
 }
+
+/** The failed assertion's expected and actual values, from the step that carries them. */
+export function failingComparison(tc: TestCaseResult): { expected?: string; actual?: string } {
+  const step = tc.stepResults.find((s) => s.expected !== undefined || s.actual !== undefined);
+  return {
+    ...(step?.expected !== undefined ? { expected: step.expected } : {}),
+    ...(step?.actual !== undefined ? { actual: step.actual } : {}),
+  };
+}

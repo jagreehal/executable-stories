@@ -207,6 +207,10 @@ export interface ReportStep {
    */
   assertions?: number;
   errorMessage?: string;
+  /** Serialized expected value of the failed assertion, when the host reports one. */
+  expected?: string;
+  /** Serialized actual (observed) value of the failed assertion, when the host reports one. */
+  actual?: string;
   mode?: StepMode;
   docEntries: ReportDocEntry[];
 }

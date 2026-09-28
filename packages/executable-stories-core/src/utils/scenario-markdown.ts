@@ -139,6 +139,9 @@ function stepLines(step: ReportStep, ordinal: number, full: boolean, stateLanes?
   if (step.errorMessage) {
     lines.push(...step.errorMessage.split("\n").map((l) => `   > ${l}`));
   }
+  for (const [label, value] of [["Expected", step.expected], ["Actual", step.actual]] as const) {
+    if (value !== undefined) lines.push(...`${label}: ${value}`.split("\n").map((l) => `   > ${l}`));
+  }
   for (const entry of step.docEntries) {
     // Indent step-level docs under the list item so they read as belonging to it.
     lines.push("", ...docEntryToMarkdown(entry, stateLanes).map((l) => (l === "" ? l : `   ${l}`)));

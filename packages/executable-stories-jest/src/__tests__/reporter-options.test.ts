@@ -148,6 +148,42 @@ describe("StoryReporter (unit)", () => {
     expect(raw).toContain("Received: 1");
   });
 
+  it("shows the matcher's expected and actual values", async () => {
+    const reporter = new StoryReporter(undefined, {
+      formats: ["markdown"],
+      outputDir: testOutputDir,
+      outputName: "with-comparison",
+      output: { mode: "aggregated" },
+      markdown: { includeErrors: true },
+    });
+    reporter.onRunStart();
+    writeStoryReport("/fake/path/compare.story.test.ts", [
+      {
+        scenario: "replicas stay available",
+        steps: [{ keyword: "Then", text: "at least 3 replicas are available" }],
+        suitePath: [],
+      },
+    ]);
+    await reporter.onRunComplete(new Set(), {
+      testResults: [
+        {
+          testFilePath: "/fake/path/compare.story.test.ts",
+          testResults: [
+            {
+              fullName: "replicas stay available",
+              status: "failed",
+              failureMessages: ["Expected: 3\nReceived: 2"],
+              failureDetails: [{ matcherResult: { expected: 3, actual: 2, pass: false } }],
+            },
+          ],
+        },
+      ],
+    });
+    const raw = fs.readFileSync(path.join(testOutputDir, "with-comparison.md"), "utf-8");
+    expect(raw).toContain("Expected:\n\n```text\n3\n```");
+    expect(raw).toContain("Actual:\n\n```text\n2\n```");
+  });
+
   it("omits failure block when includeErrors is false", async () => {
     const reporter = new StoryReporter(undefined, {
       formats: ["markdown"],
