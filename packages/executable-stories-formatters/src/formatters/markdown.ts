@@ -13,6 +13,7 @@ import type { StoryStep, DocEntry } from "executable-stories-core/types/story";
 import type { FeatureDeclaration, TestRunResult, TestCaseResult, TestStatus } from "executable-stories-core/types/test-result";
 import type { MarkdownRenderers } from "../types/options";
 import { bySourcePosition, earliestSourceLine } from "./source-order";
+import { failingComparison } from "../scenario-failure";
 
 /**
  * True for a local filesystem path (`/foo`, `\foo`, `C:\foo`) rather than a
@@ -566,6 +567,9 @@ export class MarkdownFormatter {
       }
       lines.push("```");
       lines.push("");
+      const { expected, actual } = failingComparison(tc);
+      if (expected !== undefined) lines.push("Expected:", "", "```text", expected, "```", "");
+      if (actual !== undefined) lines.push("Actual:", "", "```text", actual, "```", "");
     }
 
     lines.push("");

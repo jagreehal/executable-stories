@@ -25,7 +25,7 @@ import type { TestStatus, StepResult } from "../../types/test-result.js";
 export function deriveStepResults(
   steps: StoryStep[],
   scenarioStatus: TestStatus,
-  error?: { message?: string; stack?: string }
+  error?: { message?: string; stack?: string; expected?: string; actual?: string }
 ): StepResult[] {
   if (steps.length === 0) {
     return [];
@@ -66,6 +66,8 @@ export function deriveStepResults(
         status: "failed" as TestStatus,
         durationMs: 0,
         errorMessage: error?.message,
+        ...(error?.expected !== undefined ? { expected: error.expected } : {}),
+        ...(error?.actual !== undefined ? { actual: error.actual } : {}),
       };
     } else {
       // Steps after failure are skipped
@@ -156,6 +158,8 @@ export function mergeStepResults(
       status: normalizeStepStatus(actual.status) ?? step.status,
       durationMs: actual.durationMs ?? step.durationMs,
       errorMessage: actual.errorMessage ?? step.errorMessage,
+      ...(step.expected !== undefined ? { expected: step.expected } : {}),
+      ...(step.actual !== undefined ? { actual: step.actual } : {}),
     };
   });
 }

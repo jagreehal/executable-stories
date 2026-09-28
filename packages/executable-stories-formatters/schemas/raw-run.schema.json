@@ -143,6 +143,14 @@
             "stack": {
               "type": "string",
               "description": "Error stack trace."
+            },
+            "expected": {
+              "type": "string",
+              "description": "Serialized expected value, when the assertion error carries one."
+            },
+            "actual": {
+              "type": "string",
+              "description": "Serialized actual (observed) value, when the assertion error carries one."
             }
           },
           "additionalProperties": false

@@ -301,6 +301,14 @@
         "errorMessage": {
           "type": "string"
         },
+        "expected": {
+          "type": "string",
+          "description": "Serialized expected value of the failed assertion. Present only when the host framework reports one."
+        },
+        "actual": {
+          "type": "string",
+          "description": "Serialized actual (observed) value of the failed assertion. Present only when the host framework reports one."
+        },
         "mode": {
           "$ref": "#/$defs/StepMode"
         },

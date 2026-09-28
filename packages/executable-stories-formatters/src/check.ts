@@ -15,7 +15,7 @@
 import type { TestCaseResult, TestStatus } from "executable-stories-core/types/test-result";
 import type { StepKeyword } from "executable-stories-core/types/story";
 import { formatDuration } from "executable-stories-core/utils/duration";
-import { failingScenarioMessage } from "./scenario-failure";
+import { failingComparison, failingScenarioMessage } from "./scenario-failure";
 
 export interface CheckArgs {
   testCases: TestCaseResult[];
@@ -45,6 +45,10 @@ export interface CheckFailure {
   steps: CheckStep[];
   /** Failing step's error if isolated, else the scenario-level error. */
   errorMessage?: string;
+  /** Expected value of the failed assertion, when the host reports one. */
+  expected?: string;
+  /** Actual value of the failed assertion, when the host reports one. */
+  actual?: string;
   /** Product-code paths/globs this scenario exercises (what to fix). */
   covers: string[];
   tickets: string[];
@@ -201,6 +205,7 @@ function toFailure(
     location: `${tc.sourceFile}:${tc.sourceLine}`,
     steps,
     errorMessage: failingScenarioMessage(tc),
+    ...failingComparison(tc),
     covers: tc.story.covers ?? [],
     tickets: (tc.story.tickets ?? []).map((t) => t.id),
     regressed: baseline?.get(tc.id) === "passed",
@@ -258,6 +263,8 @@ function renderCheckText(report: CheckReport): string {
       const firstLine = f.errorMessage.split("\n")[0];
       lines.push(`    → ${firstLine}`);
     }
+    if (f.expected !== undefined) lines.push(`      expected: ${f.expected.split("\n")[0]}`);
+    if (f.actual !== undefined) lines.push(`      actual:   ${f.actual.split("\n")[0]}`);
     if (f.covers.length > 0) {
       lines.push(`  covers: ${f.covers.join(", ")}`);
     }

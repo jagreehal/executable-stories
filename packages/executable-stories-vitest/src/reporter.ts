@@ -24,6 +24,7 @@ import type {
 import * as fs from "node:fs";
 import * as path from "node:path";
 import type { StoryMeta } from "./types";
+import { assertionComparison } from "executable-stories-core/utils/assertion-comparison";
 
 // Import from formatters package
 import {
@@ -530,12 +531,14 @@ export default class StoryReporter implements StoryReporterProtocol {
         // Get error details
         let errorMessage: string | undefined;
         let errorStack: string | undefined;
+        let comparison: { expected?: string; actual?: string } = {};
         if (state === "failed" && result) {
           const errors = (result as { errors?: SerializedError[] }).errors;
           if (errors?.length) {
             const err = errors[0];
             errorMessage = err.message;
             errorStack = err.stack;
+            comparison = assertionComparison(err, { preformatted: true });
           }
         }
 
@@ -617,7 +620,11 @@ export default class StoryReporter implements StoryReporterProtocol {
           status: (statusMap[state] ?? "unknown") as RawTestCase["status"],
           durationMs,
           error: errorMessage
-            ? { message: errorMessage, stack: errorStack }
+            ? {
+                message: errorMessage,
+                stack: errorStack,
+                ...comparison,
+              }
             : undefined,
           attachments: attachments.length > 0 ? attachments : undefined,
           stepEvents: stepEvents.length > 0 ? stepEvents : undefined,

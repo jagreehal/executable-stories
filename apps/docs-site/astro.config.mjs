@@ -185,6 +185,7 @@ export default defineConfig({
               items: [
                 { label: 'GitHub Action', slug: 'guides/github-action' },
                 { label: 'Release confidence', slug: 'guides/release-confidence' },
+                { label: 'Verify a deploy', slug: 'guides/verifying-a-deploy' },
                 { label: 'Evidence Review and Code Diff', slug: 'guides/evidence-review' },
               ],
             },

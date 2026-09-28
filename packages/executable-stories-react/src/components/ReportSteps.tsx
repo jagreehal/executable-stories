@@ -106,6 +106,25 @@ export function ReportStepItem({
           {step.errorMessage}
         </pre>
       ) : null}
+      {step.expected !== undefined || step.actual !== undefined ? (
+        <dl
+          data-slot="step-comparison"
+          className="mt-1.5 ml-6 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 font-mono text-xs"
+        >
+          {step.expected !== undefined ? (
+            <>
+              <dt className="text-muted-foreground">Expected</dt>
+              <dd className="overflow-x-auto whitespace-pre-wrap text-pass">{step.expected}</dd>
+            </>
+          ) : null}
+          {step.actual !== undefined ? (
+            <>
+              <dt className="text-muted-foreground">Actual</dt>
+              <dd className="overflow-x-auto whitespace-pre-wrap text-fail">{step.actual}</dd>
+            </>
+          ) : null}
+        </dl>
+      ) : null}
       {step.docEntries.length > 0 ? (
         <div data-es-docs className="mt-2 ml-6">
           <ReportDocEntries entries={step.docEntries} />

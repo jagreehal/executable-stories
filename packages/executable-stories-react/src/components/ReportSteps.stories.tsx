@@ -36,6 +36,28 @@ export const WithFailedStep: Story = {
   },
 };
 
+// A failed assertion that reports its values shows Expected and Actual under the error.
+export const WithExpectedActual: Story = {
+  args: {
+    scenario: (() => {
+      const scenario = failedScenario();
+      return {
+        ...scenario,
+        steps: scenario.steps.map((step) =>
+          step.status === "failed"
+            ? { ...step, expected: '"declined"', actual: '"Order placed"' }
+            : step,
+        ),
+      };
+    })(),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("Expected")).toBeVisible();
+    await expect(canvas.getByText('"Order placed"')).toBeVisible();
+  },
+};
+
 // Full keyword variety in one story: Given / When / Then (auto-And on repeat) /
 // And / But, with a mix of passed and skipped statuses.
 export const KeywordVariety: Story = {

@@ -25,6 +25,10 @@ export interface StepResult {
   durationMs: number;
   /** Error message if step failed */
   errorMessage?: string;
+  /** Serialized expected value of the failed assertion, when known */
+  expected?: string;
+  /** Serialized actual (observed) value of the failed assertion, when known */
+  actual?: string;
 }
 
 /** Resolved attachment (always has body) */

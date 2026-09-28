@@ -216,6 +216,8 @@ function buildStep(args: {
   durationMs: number;
   assertions?: number;
   errorMessage?: string;
+  expected?: string;
+  actual?: string;
   mode?: ReportStep['mode'];
   docEntries: ReportDocEntry[];
 }): ReportStep {
@@ -229,6 +231,8 @@ function buildStep(args: {
     docEntries: args.docEntries,
   };
   if (args.errorMessage !== undefined) step.errorMessage = args.errorMessage;
+  if (args.expected !== undefined) step.expected = args.expected;
+  if (args.actual !== undefined) step.actual = args.actual;
   if (args.assertions !== undefined) step.assertions = args.assertions;
   if (args.mode !== undefined) step.mode = args.mode;
   return step;
@@ -266,6 +270,8 @@ function buildSteps(scenarioId: string, tc: TestCaseResult): ReportStep[] {
         ...(res?.errorMessage !== undefined
           ? { errorMessage: res.errorMessage }
           : {}),
+        ...(res?.expected !== undefined ? { expected: res.expected } : {}),
+        ...(res?.actual !== undefined ? { actual: res.actual } : {}),
         ...(decl?.mode !== undefined ? { mode: decl.mode } : {}),
         docEntries,
       }),
