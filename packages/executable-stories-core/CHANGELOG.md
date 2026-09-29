@@ -1,5 +1,11 @@
 # executable-stories-core
 
+## 0.28.0
+
+### Minor Changes
+
+- a0c2946: Failed steps show the assertion's expected and actual values. Vitest and Jest reporters capture them, and the HTML report, Markdown, agent-text, `check` and StoryReport JSON display them. New guide: Verify a deploy.
+
 ## 0.27.0
 
 ### Minor Changes
