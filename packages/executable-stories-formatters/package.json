@@ -35,6 +35,7 @@
   },
   "files": [
     "dist",
+    "docs",
     "skills",
     "schemas"
   ],
@@ -56,6 +57,7 @@
   "scripts": {
     "embed-assets": "node scripts/embed-react-assets.mjs",
     "build": "node scripts/embed-react-assets.mjs && tsup",
+    "prepack": "node scripts/copy-docs.mjs",
     "lint": "eslint .",
     "test": "node scripts/embed-react-assets.mjs && vitest run",
     "test:watch": "node scripts/embed-react-assets.mjs && vitest",

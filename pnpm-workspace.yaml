@@ -23,6 +23,7 @@ minimumReleaseAgeExclude:
   - '@vitest/*'
   - vite-node
   - tinybench # transitive: vitest@5's bench provider
+  - e2e # executable-stories-e2e builds on the Reporter API from 0.15
 
 overrides:
   # starlight 0.41.10 still pins satteri 0.9.2 while astro 7.2.9 is on 0.10.5;

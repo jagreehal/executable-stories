@@ -10,6 +10,7 @@
         "jest-story-api",
         "playwright-story-api",
         "cypress-story-api",
+        "e2e-story-api",
         "go-story-api",
         "ruby-story-api",
         "junit5-story-api",
@@ -73,7 +74,13 @@
     {
       "title": "Build Loop",
       "description": "Skills for the daily loop: driving behaviour test-first, reproducing bugs, triaging failures, and running agents against run artifacts.",
-      "skills": ["story-tdd", "bug-to-scenario", "failure-triage", "agent-loop"]
+      "skills": [
+        "story-tdd",
+        "bug-to-scenario",
+        "bug-bash",
+        "failure-triage",
+        "agent-loop"
+      ]
     },
     {
       "title": "Delivery",

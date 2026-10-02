@@ -21,6 +21,7 @@ Use this page to pick the right package. Tests stay in your framework; packages 
 | [executable-stories-jest](https://github.com/jagreehal/executable-stories/tree/main/packages/executable-stories-jest) | Jest | `story.init()` + optional top-level step helpers |
 | [executable-stories-playwright](https://github.com/jagreehal/executable-stories/tree/main/packages/executable-stories-playwright) | Playwright | Fixture-aware steps; reporter for E2E stories |
 | [executable-stories-cypress](https://github.com/jagreehal/executable-stories/tree/main/packages/executable-stories-cypress) | Cypress | Support file + plugin + reporter split |
+| [executable-stories-e2e](https://github.com/jagreehal/executable-stories/tree/main/packages/executable-stories-e2e) | e2e | Reporter plus optional step markers |
 
 Each adapter emits RawRun JSON (via reporter `rawRunPath` or language default). Feed that file to `executable-stories format`.
 

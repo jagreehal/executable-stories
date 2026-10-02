@@ -11,7 +11,7 @@ import ReportScreenshot from '../../../components/ReportScreenshot.astro';
 <script
   is:inline
   set:html={`(() => {
-  const labels = ['Vitest','Jest','Playwright','Cypress','Go','Python','Ruby','Rust','Kotlin','C#'];
+  const labels = ['Vitest','Jest','Playwright','Cypress','e2e','Go','Python','Ruby','Rust','Kotlin','C#'];
   const wanted = new URLSearchParams(location.search).get('framework') || '';
   const match = labels.find((l) => l.toLowerCase() === wanted.toLowerCase());
   if (!match) return;
@@ -144,6 +144,7 @@ yarn playwright install
 - Jest 29+
 - Playwright 1.45+
 - Cypress 13+
+- e2e 0.15+
 - pnpm 9+
 - npm 10+
 - Yarn 4+
@@ -302,6 +303,29 @@ cypress run --reporter executable-stories-cypress/reporter \
 ```
 
 Or call the Module API after `cypress.run()`: `buildRawRunFromCypressResult(result, options)`, then `generateReportsFromRawRun(rawRun, options)`. Both are exported from `executable-stories-cypress/reporter`. See [Cypress reporter options](/reference/cypress-config/).
+
+</TabItem>
+
+<TabItem label="e2e" icon="seti:typescript">
+
+```bash
+pnpm add -D executable-stories-e2e
+```
+
+Add the reporter to `e2e.config.ts`:
+
+```typescript
+import type { E2EConfig } from 'e2e';
+import { web } from '@e2e-dev/web';
+import { storyReporter } from 'executable-stories-e2e';
+
+export default {
+  targets: [{ engine: web(), app: { url: 'http://localhost:3000' } }],
+  reporters: ['list', storyReporter()],
+} satisfies E2EConfig;
+```
+
+Each `npx e2e run` writes `.executable-stories/raw-run.json`. See [e2e reporter and markers](/reference/e2e/) for step markers.
 
 </TabItem>
 

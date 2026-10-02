@@ -37,7 +37,8 @@ export default defineConfig({
       "default",
       new StoryReporter({
         formats: ["markdown"],
-        outputDir: "docs",
+        // docs/ holds the docs-site pages that prepack ships (scripts/copy-docs.mjs).
+        outputDir: "reports/stories",
         outputName: "formatters-stories",
       }),
     ],

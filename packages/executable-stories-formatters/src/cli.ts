@@ -1382,6 +1382,14 @@ function readStdin(): Promise<string> {
 // Validation Pipeline
 // ============================================================================
 
+/** Print one note when `format` skipped fields or doc kinds from a newer adapter. */
+function warnIgnoredUnknown(result: { ignoredUnknown?: boolean }): void {
+  if (!result.ignoredUnknown) return;
+  console.error(
+    'Note: skipped fields or doc kinds from a newer adapter. `executable-stories validate <file>` lists them.',
+  );
+}
+
 function parseJson(text: string): unknown {
   try {
     return JSON.parse(text);
@@ -1427,7 +1435,7 @@ function normalizeRunFromJsonData(
     process.exit(EXIT_SCHEMA_VALIDATION);
   }
 
-  const schemaResult = validateRawRun(data);
+  const schemaResult = validateRawRun(data, { tolerateUnknown: true });
   if (!schemaResult.valid) {
     console.error('Schema validation failed:');
     for (const err of schemaResult.errors) {
@@ -1435,6 +1443,7 @@ function normalizeRunFromJsonData(
     }
     process.exit(EXIT_SCHEMA_VALIDATION);
   }
+  warnIgnoredUnknown(schemaResult);
 
   let raw = data as RawRun;
   let droppedMissingStory = 0;
@@ -1556,7 +1565,7 @@ function tryNormalizeRunFromText(
   const obj = data as Record<string, unknown>;
   if (obj.schemaVersion !== 1) return undefined;
 
-  const schemaResult = validateRawRun(data);
+  const schemaResult = validateRawRun(data, { tolerateUnknown: true });
   if (!schemaResult.valid) return undefined;
 
   let raw = data as RawRun;
@@ -2298,7 +2307,7 @@ async function runFormatOrValidate(ctx: CliContext): Promise<void> {
   }
 
   // 2. Ajv schema validation
-  const schemaResult = validateRawRun(data);
+  const schemaResult = validateRawRun(data, { tolerateUnknown: true });
   if (!schemaResult.valid) {
     console.error('Schema validation failed:');
     for (const err of schemaResult.errors) {
@@ -2306,6 +2315,7 @@ async function runFormatOrValidate(ctx: CliContext): Promise<void> {
     }
     process.exit(EXIT_SCHEMA_VALIDATION);
   }
+  warnIgnoredUnknown(schemaResult);
 
   // 3. Synthesize stories (optional)
   let raw = data as RawRun;
