@@ -1,6 +1,6 @@
 {
   "name": "executable-stories-e2e",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "license": "Apache-2.0",
   "description": "executable-stories reporter for the e2e agentic test runner: turns its report-1 document into story docs",
   "type": "module",
