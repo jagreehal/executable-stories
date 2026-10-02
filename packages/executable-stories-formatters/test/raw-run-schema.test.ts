@@ -58,3 +58,29 @@ describe("raw-run schema", () => {
     expect(validateRawRun(run({ nonsense: true })).valid).toBe(false);
   });
 });
+
+describe("raw-run schema, read tolerantly", () => {
+  // A newer adapter can add a field or a doc kind before this CLI knows it.
+  // `format` must still render the run; `validate` (strict) still flags it.
+  const newer = run();
+  Object.assign(newer.testCases[0]!.story, {
+    futureField: 1,
+    docs: [
+      { kind: "note", text: "kept", phase: "static", futureField: 1 },
+      { kind: "hologram", phase: "runtime", frames: 3 },
+    ],
+  });
+
+  it("accepts unknown fields and doc kinds, and says it ignored them", () => {
+    expect(validateRawRun(newer, { tolerateUnknown: true })).toEqual({
+      valid: true,
+      errors: [],
+      ignoredUnknown: true,
+    });
+    expect(validateRawRun(newer).valid).toBe(false);
+  });
+
+  it("still rejects a known field with the wrong shape", () => {
+    expect(validateRawRun(run({ runScope: "partial" }), { tolerateUnknown: true }).valid).toBe(false);
+  });
+});

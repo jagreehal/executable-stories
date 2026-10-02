@@ -5,7 +5,7 @@
  * strict canonical TestRunResult for formatters.
  */
 
-import type { StoryMeta, NormalizedTicket } from "../../types/story.js";
+import type { StoryMeta, NormalizedTicket, DocEntry } from "../../types/story.js";
 import type { RawRun, RawTestCase } from "../../types/raw.js";
 import type {
   TestRunResult,
@@ -112,7 +112,7 @@ function canonicalizeTestCase(
   /** Tags declared by this file's `story.feature(...)`, keyed by source file. */
   inheritedTags: Map<string, string[]> = new Map()
 ): TestCaseResult {
-  const story = raw.story!;
+  const story = withKnownDocs(raw.story!);
   const sourceFile = raw.sourceFile ?? "unknown";
   const scenario = story.scenario ?? raw.title ?? "Unknown Scenario";
 
@@ -172,6 +172,34 @@ function canonicalizeTestCase(
     retries: raw.retries ?? 0,
     tags,
     ...(raw.evidence ? { evidence: raw.evidence } : {}),
+  };
+}
+
+/**
+ * Every doc kind this version renders. A `Record` over the union, so adding a
+ * kind fails to compile here until it is listed.
+ */
+const KNOWN_DOC_KINDS: Record<DocEntry["kind"], true> = {
+  note: true, tag: true, kv: true, code: true, table: true, link: true, section: true,
+  mermaid: true, screenshot: true, video: true, html: true, state: true, custom: true,
+};
+
+/**
+ * Keep the doc entries whose kind this version renders. Renderers switch
+ * exhaustively, so an entry from a newer adapter stops here and the rest of
+ * the report renders.
+ */
+function knownDocs(docs: DocEntry[] | undefined): DocEntry[] | undefined {
+  return docs
+    ?.filter((doc) => Object.hasOwn(KNOWN_DOC_KINDS, doc.kind))
+    .map((doc) => (doc.children ? { ...doc, children: knownDocs(doc.children) } : doc));
+}
+
+function withKnownDocs(story: StoryMeta): StoryMeta {
+  return {
+    ...story,
+    ...(story.docs ? { docs: knownDocs(story.docs) } : {}),
+    ...(story.steps ? { steps: story.steps.map((step) => (step.docs ? { ...step, docs: knownDocs(step.docs) } : step)) } : {}),
   };
 }
 

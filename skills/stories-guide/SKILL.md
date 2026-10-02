@@ -22,8 +22,9 @@ A **flow** is a path through the skills. Most work travels one **main flow**. Se
   `vitest-reporter-setup`, `jest-reporter-setup`, `playwright-reporter-setup`,
   `cypress-reporter-setup`.
 - Writing the first story in a given framework → `vitest-story-api`, `jest-story-api`,
-  `playwright-story-api`, `cypress-story-api`, `go-story-api`, `ruby-story-api`,
-  `rust-story-api`, `pytest-story-api`, `junit5-story-api`, `xunit-story-api`.
+  `playwright-story-api`, `cypress-story-api`, `e2e-story-api`, `go-story-api`,
+  `ruby-story-api`, `rust-story-api`, `pytest-story-api`, `junit5-story-api`,
+  `xunit-story-api`.
 - Lint rules that catch a missing `story.init` → `eslint-vitest-rules`,
   `eslint-jest-rules`, `eslint-playwright-rules`.
 - Anything the CLI does (formats, `list`, `check`, `goal`, `compare`) →
@@ -44,6 +45,8 @@ A starting situation that produces work, then joins the main flow.
 - **A plan already written** (a PRD, a chat plan, another agent's plan) →
   `spec-plan-to-stories`, then `story-tdd` per scenario.
 - **A bug** → `bug-to-scenario`. The reproduction is the red step.
+- **"Go find what's broken"** → `bug-bash`. Explorers fan out over the app, and only
+  findings a failing scenario reproduces come back as bugs.
 - **A red or flaky run** → `failure-triage`. It routes each failure to its owner.
 - **An existing test suite** → `vitest-converting-tests`, `jest-converting-tests`,
   `playwright-converting-tests`, `cypress-converting-tests`, or

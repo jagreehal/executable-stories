@@ -16,6 +16,9 @@ Sources of truth: `packages/executable-stories-formatters/src/cli.ts`,
 `packages/executable-stories-formatters/src/index.ts`, and the docs-site
 formatters API reference.
 
+Offline: the published package ships every docs-site page as markdown under
+`node_modules/executable-stories-formatters/docs/`. Grep there before fetching the site.
+
 ```bash
 npm install -D executable-stories-formatters
 ```

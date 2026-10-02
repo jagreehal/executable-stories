@@ -239,6 +239,7 @@ export default defineConfig({
                 { label: 'Jest', slug: 'reference/jest-story-api' },
                 { label: 'Playwright', slug: 'reference/playwright-story-api' },
                 { label: 'Cypress', slug: 'reference/cypress-story-api' },
+                { label: 'e2e', slug: 'reference/e2e' },
                 { label: 'Ruby', slug: 'reference/ruby-story-api' },
                 { label: 'Go, Python, Rust, Kotlin, C#', slug: 'reference/other-adapters' },
               ],

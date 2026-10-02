@@ -28,6 +28,7 @@ packages/
   executable-stories-jest/       # Jest adapter
   executable-stories-playwright/ # Playwright adapter
   executable-stories-cypress/    # Cypress adapter
+  executable-stories-e2e/        # e2e (TesterArmy) reporter + step markers
   executable-stories-formatters/ # Core: report generation (HTML, Markdown, JUnit, Cucumber JSON/HTML/Messages)
   executable-stories-ruby/       # Ruby adapter (Minitest story API + JSON output)
   executable-stories-go/         # Go adapter (testing.T story API + JSON output)
@@ -296,6 +297,7 @@ When working in these areas, load the linked skill file into context for accurat
 | Configuring Playwright reporter                             | `skills/playwright-reporter-setup/SKILL.md`                                                    |
 | Converting existing Playwright tests                        | `skills/playwright-converting-tests/SKILL.md`                                                  |
 | Writing Cypress story tests                                 | `skills/cypress-story-api/SKILL.md`                                                            |
+| Story docs from e2e (TesterArmy) runs                       | `skills/e2e-story-api/SKILL.md`                                                                |
 | Configuring Cypress reporter                                | `skills/cypress-reporter-setup/SKILL.md`                                                       |
 | Converting existing Cypress tests                           | `skills/cypress-converting-tests/SKILL.md`                                                     |
 | Migrating a CucumberJS suite                                | `skills/cucumber-converting-tests/SKILL.md`                                                    |
@@ -331,6 +333,7 @@ When working in these areas, load the linked skill file into context for accurat
 | Explaining a whole system or feature area for onboarding     | `skills/explain-system/SKILL.md`                                                               |
 | Test-driving a behaviour with a story test as the red step   | `skills/story-tdd/SKILL.md`                                                                    |
 | Reproducing a bug as a failing scenario, then fixing it      | `skills/bug-to-scenario/SKILL.md`                                                              |
+| Bug bashing an app: explore, triage, prove each bug          | `skills/bug-bash/SKILL.md`                                                                     |
 | Triaging a red or flaky run into a routed worklist           | `skills/failure-triage/SKILL.md`                                                               |
 | Running an autonomous agent loop against run artifacts       | `skills/agent-loop/SKILL.md`                                                                   |
 | Choosing and wiring CI gates (PR, release, scheduled)        | `skills/ci-gates/SKILL.md`                                                                     |

@@ -18,6 +18,31 @@ import {
 } from "../fixtures/raw-runs/basic";
 
 describe("canonicalizeRun", () => {
+  it("drops doc kinds it does not know, at every depth, and keeps the rest", () => {
+    // A newer adapter's doc kind would hit a renderer's assertNever and fail the
+    // whole report. The ACL is the one place every renderer reads through.
+    const note = (text: string) => ({ kind: "note", text, phase: "static" });
+    const unknown = { kind: "hologram", phase: "runtime" };
+    const raw = createRawRun({
+      testCases: [
+        createTestCase({
+          story: {
+            scenario: "s",
+            docs: [note("story"), unknown] as never,
+            steps: [
+              { keyword: "Given", text: "x", docs: [{ ...note("step"), children: [unknown, note("child")] }] as never },
+            ],
+          },
+        }),
+      ],
+    });
+
+    const story = canonicalizeRun(raw).testCases[0]!.story;
+
+    expect(story.docs).toEqual([note("story")]);
+    expect(story.steps[0]!.docs).toEqual([{ ...note("step"), children: [note("child")] }]);
+  });
+
   it("should transform a basic raw run to canonical format", () => {
     const raw = createRawRun();
     const result = canonicalizeRun(raw);

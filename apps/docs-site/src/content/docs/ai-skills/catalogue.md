@@ -15,6 +15,7 @@ The story API for each language. Load the one matching the suite you are writing
 | `jest-story-api`        | `story.init()` plus the top-level `given`/`when`/`then` imports                     |
 | `playwright-story-api`  | `story.init(testInfo)`, async steps that receive fixtures, screenshots and video    |
 | `cypress-story-api`     | `story.init()`, `doc.story()`, and the browser-to-Node bridge                       |
+| `e2e-story-api`         | `storyReporter()` for the e2e runner and `story.given/when/then` markers             |
 | `go-story-api`          | `Init(t, scenario, opts...)`, `RunAnd`, JSON output                                 |
 | `ruby-story-api`        | `ExecutableStories.init` in Minitest                                                |
 | `junit5-story-api`      | The static `Story.init` API in Kotlin and Java, with wrapped steps                  |
@@ -88,6 +89,7 @@ The daily loop, driven by run artifacts rather than by reading the suite.
 | ------------------ | ------------------------------------------------------------------------------------ |
 | `story-tdd`        | Building a behaviour test-first, with the red step as a published promise             |
 | `bug-to-scenario`  | A bug is reported: reproduce it as a failing scenario, fix, keep the reproduction     |
+| `bug-bash`         | Exploring for bugs: fan out charters, triage findings, prove each with a failing scenario |
 | `failure-triage`   | A run is red or flaky and you need the routed worklist, not the raw list              |
 | `agent-loop`       | An agent works unattended and needs a stopping condition it does not control          |
 

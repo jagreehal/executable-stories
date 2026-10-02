@@ -70,7 +70,8 @@ src/content/docs/
 │   ├── playwright-config.md
 │   ├── playwright-story-api.md
 │   ├── cypress-config.md
-│   └── cypress-story-api.md
+│   ├── cypress-story-api.md
+│   └── e2e.md
 └── recipes/                     # Example scenarios with code + output
     ├── vitest/
     │   ├── index.md             # Overview with full recipe table
