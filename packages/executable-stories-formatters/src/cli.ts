@@ -10,6 +10,7 @@
  */
 
 import * as fs from 'node:fs';
+import { execFile } from 'node:child_process';
 import * as path from 'node:path';
 import { parseArgs } from 'node:util';
 import { canonicalizeRun } from 'executable-stories-core/converters/acl/canonicalize';
@@ -66,6 +67,7 @@ import {
   startWatch,
 } from './index.js';
 import { listScenarios } from './list-scenarios';
+import { writeGifs } from './gif';
 import { sendNotifications } from './notifiers/send-notifications';
 import type {
   GenericWebhookNotifierOptions,
@@ -177,6 +179,7 @@ SUBCOMMANDS
   gate-release       Verify a release candidate against the dev test baseline (RC gate)
   review             Generate an Evidence Review of AI-authored changes (correlate a run to the diff)
   list               List scenarios from a test run (text table or JSON)
+  gif                Animated GIF per passing scenario from its step screenshots (needs ffmpeg), into <output-dir>/gif
   check              Backpressure summary: compress passing, expand failing (GWT + error + covers); non-zero exit on failures
   check-explainers   Audit explainer docs (explain-change skill) against a run: stale when a cited scenario changed/renamed/vanished (exit 5)
   goal               Behavioral definition-of-done for agent loops: required scenarios pass, no regressions, no weakened scenarios (exit 0 = met, 5 = not)
@@ -417,6 +420,7 @@ interface CliArgs {
     | 'gate-release'
     | 'review'
     | 'list'
+    | 'gif'
     | 'check'
     | 'check-explainers'
     | 'goal'
@@ -643,6 +647,7 @@ async function parseCliArgs(
     subcommand !== 'deploy' &&
     subcommand !== 'review' &&
     subcommand !== 'list' &&
+    subcommand !== 'gif' &&
     subcommand !== 'check' &&
     subcommand !== 'check-explainers' &&
     subcommand !== 'goal' &&
@@ -660,7 +665,7 @@ async function parseCliArgs(
     subcommand !== 'runs'
   ) {
     console.error(
-      `Unknown subcommand: "${subcommand}". Use "format", "watch", "compare", "gate-release", "deploy", "review", "list", "check", "check-explainers", "goal", "triage", "validate", "doctor", "completion", "check-links", "push", "share", "sync", "coverage", "publish-confluence", or "publish-jira".`,
+      `Unknown subcommand: "${subcommand}". Use "format", "watch", "compare", "gate-release", "deploy", "review", "list", "gif", "check", "check-explainers", "goal", "triage", "validate", "doctor", "completion", "check-links", "push", "share", "sync", "coverage", "publish-confluence", or "publish-jira".`,
     );
     process.exit(EXIT_USAGE);
   }
@@ -1155,6 +1160,7 @@ async function parseCliArgs(
       | 'gate-release'
       | 'review'
       | 'list'
+      | 'gif'
       | 'check'
       | 'validate',
     inputFile: resolvedInputFile,
@@ -1721,6 +1727,7 @@ const SUBCOMMAND_HANDLERS: Record<string, (ctx: CliContext) => Promise<void>> =
     'gate-release': runGateRelease,
     review: runReview,
     list: runList,
+    gif: runGif,
     check: runCheck,
     'check-explainers': runCheckExplainers,
     goal: runGoal,
@@ -1915,6 +1922,37 @@ async function runList(ctx: CliContext): Promise<void> {
   );
   console.log(output);
   process.exit(EXIT_SUCCESS);
+}
+
+async function runGif(ctx: CliContext): Promise<void> {
+  const { args } = ctx;
+  const run = applySelection(await readRunInput(args), args);
+  try {
+    const { written, skipped } = await writeGifs(
+      { testCases: run.testCases, outputDir: path.join(args.outputDir, 'gif') },
+      {
+        ffmpeg: (ffArgs) =>
+          new Promise((resolve, reject) =>
+            execFile('ffmpeg', ffArgs, (err, _stdout, stderr) =>
+              err
+                ? reject((err as NodeJS.ErrnoException).code === 'ENOENT' ? err : new Error(stderr.trim() || err.message))
+                : resolve(),
+            ),
+          ),
+      },
+    );
+    for (const w of written) console.log(`${w.path}  (${w.frames} frames)  ${w.scenario}`);
+    console.log(`${written.length} GIF(s) written, ${skipped.length} scenario(s) skipped`);
+    process.exit(EXIT_SUCCESS);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(
+      (err as NodeJS.ErrnoException).code === 'ENOENT'
+        ? 'gif needs ffmpeg on PATH (brew install ffmpeg / apt install ffmpeg).'
+        : `gif failed: ${msg}`,
+    );
+    process.exit(EXIT_GENERATION);
+  }
 }
 
 // === check subcommand: context-efficient backpressure for coding agents ===

@@ -51,6 +51,17 @@ Same as Vitest/Jest: **`story.given`**, **`story.when`**, **`story.then`**, **`s
 
 Doc methods: **`story.note`**, **`story.tag`**, **`story.kv`**, **`story.json`**, **`story.state`**, **`story.code`**, **`story.table`**, **`story.link`**, **`story.section`**, **`story.mermaid`**, **`story.screenshot`**, **`story.video`**, **`story.html`**, **`story.custom`**, same signatures as Vitest.
 
+`story.screenshot({ page })` captures the page itself and takes two Playwright-only options for docs images. `highlight` outlines one or more locators. `mask` covers dates, IDs and other changing data with a grey box. Both apply to the capture only.
+
+```typescript
+await story.screenshot({
+  page,
+  alt: "Place the order",
+  highlight: page.getByRole("button", { name: "Place order" }),
+  mask: [page.getByTestId("order-date")],
+});
+```
+
 **Example:**
 
 ```typescript

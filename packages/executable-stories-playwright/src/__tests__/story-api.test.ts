@@ -4,7 +4,7 @@
  * These tests verify that the story API correctly builds StoryMeta
  * and attaches it to testInfo.annotations for the reporter to consume.
  */
-import { test, expect } from "@playwright/test";
+import { test, expect, type Locator } from "@playwright/test";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -900,6 +900,27 @@ test.describe("standalone doc methods", () => {
     expect(fs.existsSync(screenshotPath)).toBe(true);
     const screenshotEntry = entry as { path: string };
     expect(screenshotEntry.path.startsWith("data:image/png;base64,")).toBe(true);
+  });
+
+  test("story.screenshot({ page, highlight, mask }) outlines and covers elements in the capture only", async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: 320, height: 120 });
+    await page.setContent('<button>Place order</button> <span id="when">8 Oct 2026, 17:12:03</span>');
+    story.init(testInfo);
+    story.when("I place the order");
+    const shot = async (options: { highlight?: Locator; mask?: Locator[] }) =>
+      ((await story.screenshot({ page, fullPage: false, ...options })) as { path: string }).path;
+
+    const plain = await shot({});
+    const highlighted = await shot({ highlight: page.getByRole("button") });
+    const masked = await shot({ mask: [page.locator("#when")] });
+
+    expect(highlighted).not.toBe(plain);
+    expect(masked).not.toBe(plain);
+    // The page is left as it was: no marker attribute survives the capture.
+    await expect(page.locator("[data-executable-stories-highlight]")).toHaveCount(0);
+    expect(await shot({})).toBe(plain);
   });
 
   test("inline docs screenshot ({ screenshot: { path } }) inlines existing files as data URIs", async ({}, testInfo) => {

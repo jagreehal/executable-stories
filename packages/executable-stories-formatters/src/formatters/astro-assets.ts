@@ -1,3 +1,4 @@
+import * as crypto from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { copyAsset } from "../bundler/copy-asset";
@@ -121,8 +122,8 @@ function splitByCode(markdown: string): string[] {
 
 /** Returns true if segment is a code block or inline code span. */
 function isCode(segment: string): boolean {
-  const trimmed = segment.trimStart();
-  return trimmed.startsWith("`") || trimmed.startsWith("~") || trimmed.startsWith("<pre") || trimmed.startsWith("<code");
+  // Case-insensitive, matching splitByCode.
+  return /^(?:`|~|<pre\b|<code\b)/i.test(segment.trimStart());
 }
 
 /**
@@ -181,6 +182,39 @@ export function rewriteAssetPaths(
     .join("");
 }
 
+const INLINE_IMAGE_RE = /data:image\/(png|jpeg|gif|webp);base64,([A-Za-z0-9+/=]+)/g;
+
+/**
+ * Write each base64 image in markdown prose to assetsDir (content-hashed, so
+ * repeats share one file) and point the markdown at it. Code is left alone.
+ */
+export function extractInlineImages(
+  markdown: string,
+  assetsDir: string,
+  assetsBaseUrl: string,
+): { markdown: string; refs: Set<string> } {
+  const refs = new Set<string>();
+  const out = splitByCode(markdown)
+    .map((seg) =>
+      isCode(seg)
+        ? seg
+        : seg.replace(INLINE_IMAGE_RE, (_match, type: string, base64: string) => {
+            const bytes = Buffer.from(base64, "base64");
+            const hash = crypto.createHash("sha256").update(bytes).digest("hex").slice(0, 8);
+            const name = `screenshot-${hash}.${type === "jpeg" ? "jpg" : type}`;
+            const ref = `${assetsBaseUrl}/${name}`;
+            if (!refs.has(ref)) {
+              fs.mkdirSync(assetsDir, { recursive: true });
+              fs.writeFileSync(path.join(assetsDir, name), bytes);
+              refs.add(ref);
+            }
+            return ref;
+          }),
+    )
+    .join("");
+  return { markdown: out, refs };
+}
+
 /**
  * Full pipeline: scan markdown for local asset refs, copy them to assetsDir
  * with content-hashed names, and rewrite the paths in the markdown.
@@ -194,7 +228,11 @@ export function copyMarkdownAssets(options: CopyMarkdownAssetsOptions): AstroAss
     allowMissing = false,
   } = options;
 
-  const refs = scanMarkdownAssets(markdown);
+  // Inline screenshots (story.screenshot({ page }) captures) become files too,
+  // which keeps docs pages small and lets them cache and diff.
+  const { markdown: extracted, refs: inlined } = extractInlineImages(markdown, assetsDir, assetsBaseUrl);
+  // Already written above.
+  const refs = scanMarkdownAssets(extracted).filter((ref) => !inlined.has(ref));
   const pathMap = new Map<string, string>();
   const missing: string[] = [];
 
@@ -217,11 +255,11 @@ export function copyMarkdownAssets(options: CopyMarkdownAssetsOptions): AstroAss
     pathMap.set(ref, fileName);
   }
 
-  const rewritten = rewriteAssetPaths(markdown, assetsBaseUrl, pathMap);
+  const rewritten = rewriteAssetPaths(extracted, assetsBaseUrl, pathMap);
 
   return {
     markdown: rewritten,
-    copiedCount: pathMap.size,
+    copiedCount: pathMap.size + inlined.size,
     missingCount: missing.length,
     missing,
   };

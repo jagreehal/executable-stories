@@ -165,6 +165,41 @@ describe("copyMarkdownAssets", () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
+  it("writes inline base64 screenshots to files, one per distinct image, leaving code alone", () => {
+    const png = Buffer.from("fake png bytes").toString("base64");
+    const uri = `data:image/png;base64,${png}`;
+    const md = `![a](${uri})\n\n![again](${uri})\n\n\`${uri}\``;
+    const assetsDir = path.join(tmpDir, "assets");
+
+    const result = copyMarkdownAssets({ markdown: md, markdownDir: tmpDir, assetsDir, assetsBaseUrl: "assets" });
+
+    expect(result.copiedCount).toBe(1);
+    expect(fs.readdirSync(assetsDir)).toEqual([expect.stringMatching(/^screenshot-[0-9a-f]{8}\.png$/)]);
+    expect(result.markdown.match(/!\[[a-z]+\]\(assets\/screenshot-/g)).toHaveLength(2);
+    // The inline-code copy is documentation, not an image: untouched.
+    expect(result.markdown).toContain(`\`${uri}\``);
+  });
+
+  it.each([
+    ["<PRE>", "</PRE>"],
+    ["<CODE>", "</CODE>"],
+    ["<Pre class=\"x\">", "</Pre>"],
+  ])("leaves inline images inside uppercase %s blocks alone", (open, close) => {
+    const md = `${open}data:image/png;base64,aGVsbG8=${close}`;
+    const assetsDir = path.join(tmpDir, "assets");
+
+    const result = copyMarkdownAssets({ markdown: md, markdownDir: tmpDir, assetsDir, assetsBaseUrl: "assets" });
+
+    expect(result.markdown).toBe(md);
+    expect(result.copiedCount).toBe(0);
+    expect(fs.existsSync(assetsDir)).toBe(false);
+  });
+
+  it("does not rewrite local refs inside uppercase <PRE> or <CODE>", () => {
+    const md = "<PRE>![a](./shot.png)</PRE> <CODE><img src=\"./shot.png\"></CODE>";
+    expect(rewriteAssetPaths(md, "/assets")).toBe(md);
+  });
+
   it("copies referenced image files and rewrites paths", () => {
     writeFile(tmpDir, "screenshot.png", "PNG_DATA");
     const md = "Here is a screenshot: ![shot](./screenshot.png)";

@@ -102,6 +102,22 @@ visual walkthrough, call `await story.screenshot({ page, alt })` once after
 each step — the `alt` becomes the frame caption. Derived automatically; no
 option to set.
 
+**Screenshots for product docs:** `highlight` outlines the element a step is
+about. `mask` covers data that changes between runs (dates, IDs, avatars) with a
+grey box, so images stay stable. Both apply to the capture only.
+
+```typescript
+await story.screenshot({
+  page,
+  alt: "Place the order",
+  highlight: page.getByRole("button", { name: "Place order" }),
+  mask: [page.getByTestId("order-date")],
+});
+```
+
+`executable-stories gif reports/raw-run.json` turns each passing scenario's step
+screenshots into an animated GIF (needs `ffmpeg`).
+
 The HTML `compare` report reuses these step screenshots for scenarios whose
 status flipped between runs (`Regressed` or `Fixed`). Capture the product state
 that explains the outcome; screenshots stored only as unresolved local absolute

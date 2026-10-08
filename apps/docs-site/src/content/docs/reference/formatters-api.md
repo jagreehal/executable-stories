@@ -468,6 +468,17 @@ executable-stories list raw-run.json                         # this run only
 | `--input-type`   | string  | `raw`   | Input type: `raw`, `canonical`, or `ndjson` |
 | `--stdin`        | boolean | `false` | Read from stdin                             |
 
+### `gif`
+
+One animated GIF per passing scenario, one frame per step screenshot, for product docs and READMEs. The frames come from the run's `story.screenshot()` calls, so you regenerate a GIF with one command. Needs `ffmpeg` on `PATH`.
+
+```bash
+executable-stories gif reports/raw-run.json                     # → reports/gif/<scenario>.gif
+executable-stories gif reports/by-file --include-tags docs       # only scenarios tagged for docs
+```
+
+The command skips and counts scenarios that did not pass or have fewer than two screenshots. Each frame shows for 1.5 seconds. The command pads frames of different sizes to the largest and scales them to at most 1280px wide. It takes the same input and tag-filter flags as `list`, plus `--output-dir` (default `reports`).
+
 ### `check`
 
 Backpressure summary for coding agents: passing scenarios collapse to one line, each failing scenario expands to its Given/When/Then, the failing step, the error, and the code it `covers`. Exits `5` when any scenario failed, so an agent loop reacts before a human. See [Agent loops and backpressure](/guides/agent-loops/).
