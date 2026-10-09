@@ -1,5 +1,20 @@
 # executable-stories-playwright
 
+## 8.11.0
+
+### Minor Changes
+
+- 29b68de: Screenshots, GIFs and Markdown assets for product docs.
+
+  - `story.screenshot({ page, highlight, mask })` outlines the element a step is about and covers dates, IDs and other changing data with a grey box. Both apply to the capture only.
+  - `executable-stories gif <run>` writes one looping GIF per passing scenario from its step screenshots into `<output-dir>/gif`. It needs `ffmpeg` on `PATH`.
+  - `--asset-mode copy` writes inline screenshots in Markdown and Astro Markdown output to `assets/` as files, so docs pages stay small.
+
+### Patch Changes
+
+- Updated dependencies [29b68de]
+  - executable-stories-formatters@1.24.0
+
 ## 8.10.15
 
 ### Patch Changes
