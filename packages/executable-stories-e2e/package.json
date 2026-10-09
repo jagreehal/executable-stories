@@ -33,7 +33,7 @@
   },
   "devDependencies": {
     "@types/node": "^26.6.1",
-    "e2e": "0.15.1",
+    "e2e": "0.17.0",
     "eslint-config-executable-stories": "workspace:*",
     "executable-stories-formatters": "workspace:*",
     "executable-stories-vitest": "workspace:*",
