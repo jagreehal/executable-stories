@@ -257,6 +257,15 @@ executable-stories list raw-run.json --list-format json      # this execution on
 
 The discovery index for agents and explorers — one scenario per line (text) or machine-parsable JSON. Use it for triage before reading source tests. Point it at `by-file/` for the accumulated suite; a single run file lists only what that run executed.
 
+### gif — walkthrough GIFs for docs
+
+```bash
+executable-stories gif reports/raw-run.json                  # → reports/gif/<scenario>.gif
+executable-stories gif reports/by-file --include-tags docs   # scenarios tagged for docs
+```
+
+Writes one looping GIF per passing scenario, one frame per step screenshot. Needs `ffmpeg` on `PATH`. Pair it with `format --asset-mode copy` so the Markdown links screenshots as files in `assets/`.
+
 ### watch — keep agent artifacts fresh
 
 ```bash

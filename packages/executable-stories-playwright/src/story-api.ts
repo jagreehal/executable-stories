@@ -976,6 +976,41 @@ function playwrightAttach(options: AttachmentOptions): void {
  *    exists on disk (e.g. one taken earlier for another purpose). The caller
  *    is responsible for making sure something wrote a file to `path` first.
  */
+const HIGHLIGHT_ATTR = 'data-executable-stories-highlight';
+
+/**
+ * Takes the screenshot. Highlights are marked with an attribute and outlined by CSS
+ * that Playwright applies only during the capture, so the page is left as it was.
+ */
+async function capture(page: Page, options: ScreenshotOptions): Promise<Buffer> {
+  const highlight = options.highlight === undefined ? [] : [options.highlight].flat();
+  const mark = (on: boolean) =>
+    Promise.all(
+      highlight.map((locator) =>
+        locator.evaluateAll(
+          (els, [attr, add]) => els.forEach((el) => (add ? el.setAttribute(attr, '') : el.removeAttribute(attr))),
+          [HIGHLIGHT_ATTR, on] as const,
+        ),
+      ),
+    );
+
+  await mark(true);
+  try {
+    return await page.screenshot({
+      path: options.path,
+      fullPage: options.fullPage ?? true,
+      mask: options.mask,
+      // Neutral grey suits product docs better than Playwright's default magenta.
+      maskColor: '#d1d5db',
+      style: highlight.length
+        ? `[${HIGHLIGHT_ATTR}] { outline: 3px solid #e11d48 !important; outline-offset: 3px !important; border-radius: 4px; }`
+        : undefined,
+    });
+  } finally {
+    await mark(false);
+  }
+}
+
 function screenshotImpl(
   options: ScreenshotOptions & { page: Page },
   children?: DocEntry[],
@@ -989,12 +1024,7 @@ function screenshotImpl(
   children?: DocEntry[],
 ): DocEntry | Promise<DocEntry> {
   if (options.page) {
-    return options.page
-      .screenshot(
-        options.path
-          ? { path: options.path, fullPage: options.fullPage ?? true }
-          : { fullPage: options.fullPage ?? true },
-      )
+    return capture(options.page, options)
       .then((buffer) => {
         const dataUri = `data:image/png;base64,${buffer.toString('base64')}`;
         return attachDoc(

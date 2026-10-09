@@ -5,7 +5,7 @@
  * Playwright-specific types are defined here.
  */
 
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 
 // ============================================================================
 // Re-export shared story types from core
@@ -99,6 +99,16 @@ export interface ScreenshotOptions {
   page?: Page;
   /** Forwarded to `page.screenshot()` when `page` is provided. Defaults to `true`. */
   fullPage?: boolean;
+  /**
+   * Outline these elements in the capture, e.g. the button the next step clicks.
+   * Only with `page`; the page itself is left unchanged.
+   */
+  highlight?: Locator | Locator[];
+  /**
+   * Cover these elements with a grey box, so dates, IDs and avatars don't change
+   * the image between runs. Forwarded to `page.screenshot({ mask })`. Only with `page`.
+   */
+  mask?: Locator[];
 }
 
 export interface VideoOptions {
