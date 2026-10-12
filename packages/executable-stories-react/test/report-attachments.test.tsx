@@ -85,3 +85,31 @@ describe("ReportAttachments text documents", () => {
     expect(g.querySelector("a")?.getAttribute("href") ?? "").not.toContain("javascript:");
   });
 });
+
+describe("ReportAttachments screenshot comparisons", () => {
+  const png = (name: string): ReportAttachment => ({
+    name,
+    mediaType: "image/png",
+    body: "iVBORw0KGgo=",
+    contentEncoding: "BASE64",
+  });
+
+  it("pairs expected, actual and diff images that share a stem, in that order", () => {
+    const g = group([png("home-diff.png"), png("home-actual.png"), png("home-expected.png"), png("other.png")]);
+    const comparison = within(g).getByRole("group", { name: "Screenshot comparison: home" });
+    expect(within(comparison).getAllByRole("img").map((img) => img.getAttribute("alt"))).toEqual([
+      "home expected",
+      "home actual",
+      "home diff",
+    ]);
+    // The unrelated image renders on its own, outside the comparison.
+    expect(within(g).getAllByRole("img", { name: "other.png" })).toHaveLength(1);
+    expect(within(comparison).queryByRole("img", { name: "other.png" })).toBeNull();
+  });
+
+  it("keeps a lone expected image as a plain attachment", () => {
+    const g = group([png("home-expected.png")]);
+    expect(within(g).queryByRole("group", { name: /Screenshot comparison/ })).toBeNull();
+    expect(within(g).getByRole("img", { name: "home-expected.png" })).toBeInTheDocument();
+  });
+});

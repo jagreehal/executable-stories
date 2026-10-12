@@ -34,6 +34,23 @@ type ReportAttempt = ReportResult['attempts'][number];
 type ReportStep = ReportAttempt['steps'][number];
 type ReportArtifact = ReportAttempt['artifacts'][number];
 type ReportError = NonNullable<ReportAttempt['error']>;
+/**
+ * One line of what the app did during an attempt (e2e 0.19+): console output,
+ * an uncaught error, a failed request or a 4xx/5xx response, with the index of
+ * the step that was running.
+ */
+type AppLogLine = NonNullable<ReportAttempt['appLog']>[number];
+
+type FinalAttempt = Pick<
+  ReportAttempt,
+  | 'error'
+  | 'startedAt'
+  | 'durationMs'
+  | 'artifacts'
+  | 'steps'
+  | 'appLog'
+  | 'skip'
+>;
 
 export interface StoryReporterOptions {
   /** Where to write the RawRun JSON, relative to the project root. Default: `.executable-stories/raw-run.json`, where `executable-stories format` looks first. */
@@ -196,7 +213,28 @@ function agentExplanation(step: ReportStep): DocEntry[] {
   return [{ kind: 'note', text: `Agent: ${why}`, phase: 'runtime' }];
 }
 
-function toSteps(groups: readonly Group[]): StoryStep[] {
+const APP_LOG_SOURCE: Readonly<Record<string, string>> = {
+  console: 'console',
+  error: 'uncaught',
+  network: 'network',
+  system: 'system',
+};
+
+/** Warnings and errors the app logged while a step ran; info lines are noise in docs. */
+function appLogNotes(lines: readonly AppLogLine[]): DocEntry[] {
+  return lines
+    .filter((l) => l.level === 'error' || l.level === 'warning')
+    .map((l) => ({
+      kind: 'note' as const,
+      text: `App ${APP_LOG_SOURCE[l.source] ?? l.source} ${l.level}: ${l.text}`,
+      phase: 'runtime' as const,
+    }));
+}
+
+function toSteps(
+  groups: readonly Group[],
+  appLog: readonly AppLogLine[],
+): StoryStep[] {
   const out: StoryStep[] = [];
   groups.forEach((group, index) => {
     const repeat =
@@ -222,6 +260,7 @@ function toSteps(groups: readonly Group[]): StoryStep[] {
           ]
         : []),
       ...agentExplanation(c),
+      ...appLogNotes(appLog.filter((l) => l.step === c.index)),
     ]);
     out.push({
       id: `step-${index}`,
@@ -233,6 +272,18 @@ function toSteps(groups: readonly Group[]): StoryStep[] {
     });
   });
   return out;
+}
+
+/**
+ * A failed `toHaveScreenshot` attaches `<stem>-expected.png`, `-actual.png`
+ * and `-diff.png` to its step, all of kind `screenshot`. They keep their file
+ * name, as Playwright names the same trio, so the report pairs them.
+ */
+function artifactName(artifact: ReportArtifact): string {
+  const file = path.basename(artifact.path ?? '');
+  return /-(?:expected|actual|diff|previous)\.png$/.test(file)
+    ? file
+    : artifact.kind;
 }
 
 /**
@@ -270,7 +321,7 @@ function toMedia(
       ),
     );
     attachments.push({
-      name: artifact.kind,
+      name: artifactName(artifact),
       mediaType: artifact.mediaType,
       path: path.join(artifactsRoot, artifact.path),
       fileName: path.basename(artifact.path),
@@ -286,10 +337,7 @@ function finalAttempt(
   result: ReportResult,
   report: Report,
 ): {
-  attempt?: Pick<
-    ReportAttempt,
-    'error' | 'startedAt' | 'durationMs' | 'artifacts' | 'steps'
-  >;
+  attempt?: FinalAttempt;
   count: number;
 } {
   if (result.serialGroupId === undefined) {
@@ -308,6 +356,8 @@ function finalAttempt(
       durationMs: member?.durationMs ?? last.durationMs,
       artifacts: last.artifacts,
       steps: member?.steps ?? [],
+      ...(member?.appLog ? { appLog: member.appLog } : {}),
+      ...(member?.skip ? { skip: member.skip } : {}),
     },
     count: attempts.length,
   };
@@ -352,6 +402,7 @@ function toTestCase(
   artifactsRoot: string,
   markers: readonly Marker[],
   projectRoot: string,
+  tracePage: string | undefined,
 ): RawTestCase {
   const scenario = result.titlePath.at(-1) ?? result.testId;
   const suitePath = result.titlePath.slice(0, -1);
@@ -367,6 +418,26 @@ function toTestCase(
     groups,
     artifactsRoot,
   );
+  // e2e 0.19 writes a markdown trace page per test that kept one (failed
+  // tests by default): what each step did, read and logged.
+  if (tracePage !== undefined) {
+    attachments.push({
+      name: 'trace',
+      mediaType: 'text/markdown',
+      path: path.resolve(projectRoot, tracePage),
+      fileName: path.basename(tracePage),
+    });
+  }
+  const appLog = attempt?.appLog ?? [];
+  // Lines logged before the first step have no step to sit under.
+  docs.push(...appLogNotes(appLog.filter((l) => l.step === undefined)));
+  if (result.status !== 'skipped' && attempt?.skip !== undefined) {
+    docs.push({
+      kind: 'note',
+      text: `Skipped itself after a failure: ${attempt.skip.reason}`,
+      phase: 'runtime',
+    });
+  }
   const error = attempt?.error;
   const details = error?.details;
   const stepEvents: RawStepEvent[] = groups.map((group, index) => {
@@ -387,7 +458,7 @@ function toTestCase(
     titlePath: [...result.titlePath],
     story: {
       scenario,
-      steps: toSteps(groups),
+      steps: toSteps(groups, appLog),
       ...(result.tags.length > 0 ? { tags: [...result.tags] } : {}),
       ...(suitePath.length > 0 ? { suitePath } : {}),
       ...(docs.length > 0 ? { docs } : {}),
@@ -428,6 +499,8 @@ export function toRawRun(args: {
   lastRun?: Report;
   /** Step markers the run's tests recorded with `story.given/when/then`. */
   markers?: readonly Marker[];
+  /** e2e 0.19+: each kept `trace.md` page by result id, as a path from the project root. */
+  traces?: ReadonlyMap<string, string>;
 }): RawRun {
   const { report, projectRoot, artifactsRoot } = args;
   // Unselected results stay out of the docs.
@@ -436,7 +509,14 @@ export function toRawRun(args: {
     args.lastRun !== undefined || results.length < report.run.results.length;
   return {
     testCases: results.map((r) =>
-      toTestCase(r, report, artifactsRoot, args.markers ?? [], projectRoot),
+      toTestCase(
+        r,
+        report,
+        artifactsRoot,
+        args.markers ?? [],
+        projectRoot,
+        args.traces?.get(r.id),
+      ),
     ),
     startedAtMs: Date.parse(report.run.startedAt),
     finishedAtMs: Date.parse(report.run.finishedAt),
@@ -488,11 +568,14 @@ export function storyReporter(options: StoryReporterOptions = {}): Reporter {
         await rm(markersDir, { recursive: true, force: true });
         return [{ label: 'Stories', text: 'skipped (explore run)' }];
       }
+      // Added in e2e 0.19; undefined on an older runner.
+      const traces = run.traces as FinishedRun['traces'] | undefined;
       const rawRun = toRawRun({
         report: run.report,
         projectRoot: run.projectRoot,
         artifactsRoot: run.artifactsRoot,
         markers: await readMarkers(markersDir),
+        ...(traces ? { traces } : {}),
         ...(run.lastRun ? { lastRun: run.lastRun } : {}),
       });
       await rm(markersDir, { recursive: true, force: true });

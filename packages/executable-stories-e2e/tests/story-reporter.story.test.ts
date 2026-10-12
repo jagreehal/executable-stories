@@ -47,7 +47,7 @@ function step(
   };
 }
 
-/** A web test under a describe: app, locator, assertion and agent steps, a screenshot and a trace, retried once. */
+/** A web test under a describe: app, locator, assertion and agent steps, a screenshot and a log, retried once. */
 const checkout: Result = {
   ...fixture.run.results[0]!,
   id: 'cccc',
@@ -94,9 +94,9 @@ const checkout: Result = {
         },
         {
           id: 'attempt-c:artifact:1',
-          kind: 'trace',
-          mediaType: 'application/zip',
-          path: 'web/checkout/attempt-1/trace/trace.zip',
+          kind: 'log',
+          mediaType: 'text/plain',
+          path: 'web/checkout/attempt-1/browser.log',
           redaction: 'complete',
           producer: { kind: 'attempt' },
         },
@@ -615,7 +615,9 @@ describe('e2e report-1 to RawRun', () => {
       actual: 'text "Pending"',
     });
 
-    story.and('a screenshot pins to its step and a trace stays on the test');
+    story.and(
+      'a screenshot pins to its step and an attempt log stays on the test',
+    );
     expect(tc.attachments).toEqual([
       {
         name: 'screenshot',
@@ -627,10 +629,10 @@ describe('e2e report-1 to RawRun', () => {
         stepId: 'step-4',
       },
       {
-        name: 'trace',
-        mediaType: 'application/zip',
-        path: '/project/.e2e/artifacts/web/checkout/attempt-1/trace/trace.zip',
-        fileName: 'trace.zip',
+        name: 'log',
+        mediaType: 'text/plain',
+        path: '/project/.e2e/artifacts/web/checkout/attempt-1/browser.log',
+        fileName: 'browser.log',
       },
     ]);
 
@@ -639,6 +641,123 @@ describe('e2e report-1 to RawRun', () => {
       {
         kind: 'video',
         path: 'https://recordings.example.com/sessions/abc/replay.mp4',
+        phase: 'runtime',
+      },
+    ]);
+  });
+
+  it('reads the trace page, screenshot comparison, app log and skip reason e2e 0.19 adds', ({
+    task,
+  }) => {
+    story.init(task);
+    story.given(
+      'an e2e 0.19 attempt with a failed toHaveScreenshot, app log lines and a skip after a soft failure',
+    );
+    const attempt = checkout.attempts[1]!;
+    const shot = (
+      n: number,
+      name: string,
+    ): (typeof attempt.artifacts)[number] => ({
+      id: `attempt-c:shot:${n}`,
+      kind: 'screenshot',
+      mediaType: 'image/png',
+      path: `web/checkout/attempt-1/home-${name}.png`,
+      redaction: 'complete',
+      producer: { kind: 'step', stepId: 'attempt-c:3' },
+    });
+    const visual: Result = {
+      ...checkout,
+      id: 'vvvv',
+      status: 'failed',
+      attempts: [
+        {
+          ...attempt,
+          status: 'failed',
+          artifacts: [shot(0, 'diff'), shot(1, 'actual'), shot(2, 'expected')],
+          appLog: [
+            {
+              source: 'console',
+              level: 'info',
+              text: 'booted',
+              at: attempt.startedAt,
+            },
+            {
+              source: 'error',
+              level: 'error',
+              text: 'TypeError: x is undefined',
+              at: attempt.startedAt,
+            },
+            {
+              source: 'network',
+              level: 'error',
+              text: 'GET /api/cart 500',
+              at: attempt.startedAt,
+              step: 2,
+            },
+            {
+              source: 'console',
+              level: 'warning',
+              text: 'slow render',
+              at: attempt.startedAt,
+              step: 2,
+            },
+          ],
+          skip: { cause: 'explicit', reason: 'no card reader' },
+        },
+      ],
+    };
+    const raw = toRawRun({
+      report: { ...fixture, run: { ...fixture.run, results: [visual] } },
+      projectRoot: '/project',
+      artifactsRoot: '/project/.e2e/results',
+      traces: new Map([['vvvv', '.e2e/results/checkout-vvvv/trace.md']]),
+    });
+    const tc = raw.testCases[0]!;
+
+    story.then(
+      'the comparison images keep their file names, as Playwright names them',
+    );
+    expect(tc.attachments?.map((a) => a.name)).toEqual([
+      'home-diff.png',
+      'home-actual.png',
+      'home-expected.png',
+      'trace',
+    ]);
+
+    story.and('the trace page is a markdown attachment on the test');
+    expect(tc.attachments?.at(-1)).toEqual({
+      name: 'trace',
+      mediaType: 'text/markdown',
+      path: '/project/.e2e/results/checkout-vvvv/trace.md',
+      fileName: 'trace.md',
+    });
+
+    story.and('app warnings and errors sit under the step that was running');
+    expect(tc.story!.steps[2]!.docs).toEqual([
+      {
+        kind: 'note',
+        text: 'App network error: GET /api/cart 500',
+        phase: 'runtime',
+      },
+      {
+        kind: 'note',
+        text: 'App console warning: slow render',
+        phase: 'runtime',
+      },
+    ]);
+
+    story.and(
+      'a line before any step, and the skip reason, sit on the scenario',
+    );
+    expect(tc.story!.docs).toEqual([
+      {
+        kind: 'note',
+        text: 'App uncaught error: TypeError: x is undefined',
+        phase: 'runtime',
+      },
+      {
+        kind: 'note',
+        text: 'Skipped itself after a failure: no card reader',
         phase: 'runtime',
       },
     ]);
