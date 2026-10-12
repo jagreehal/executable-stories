@@ -1,5 +1,11 @@
 # executable-stories-playwright
 
+## 8.11.1
+
+### Patch Changes
+
+- executable-stories-formatters@1.24.1
+
 ## 8.11.0
 
 ### Minor Changes

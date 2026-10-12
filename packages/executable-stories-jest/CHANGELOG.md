@@ -1,5 +1,11 @@
 # executable-stories-jest
 
+## 8.9.3
+
+### Patch Changes
+
+- executable-stories-formatters@1.24.1
+
 ## 8.9.2
 
 ### Patch Changes
