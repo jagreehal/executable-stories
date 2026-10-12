@@ -25,6 +25,8 @@ npx executable-stories format --format html,markdown   # reads .executable-stori
 
 Option: `storyReporter({ rawRunPath })` writes somewhere else, relative to the project root.
 
+Works with e2e 0.15 and later. e2e 0.18 and later need Node.js `^22.22.3 || >=24.8.0`; fields a newer e2e adds are read when present.
+
 ## How a run maps
 
 | e2e                                                    | executable-stories                                                      |
@@ -43,6 +45,10 @@ Option: `storyReporter({ rawRunPath })` writes somewhere else, relative to the p
 | error `details.expected` / `observed`                  | expected / actual on the failure                                        |
 | test tags                                              | story tags                                                              |
 | agent step `explanation`                               | `Agent:` note under the step                                            |
+| `toHaveScreenshot` expected / actual / diff images     | attachments on the step, paired in the report as a comparison           |
+| `trace.md` page (e2e 0.19+)                            | `trace` attachment (markdown) on the test                               |
+| app log warning / error (e2e 0.19+)                    | `App <source> <level>:` note under the step that was running            |
+| skip reason on a failed attempt (e2e 0.19+)            | `Skipped itself after a failure:` note on the scenario                  |
 
 The report shows the final attempt. Unselected results stay out. A `--last-failed` or tag-filtered run is marked `runScope: "filtered"`, so it keeps the scenarios it did not run.
 

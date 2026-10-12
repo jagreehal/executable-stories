@@ -42,3 +42,22 @@ export const Empty: Story = {
     await expect(canvas.queryByRole("group", { name: "Attachments" })).toBeNull();
   },
 };
+
+// A failed toHaveScreenshot: expected, actual and diff render side by side,
+// whatever order the adapter attached them in.
+export const ScreenshotComparison: Story = {
+  args: {
+    attachments: ["diff", "actual", "expected"].map((role) => ({
+      name: `home-${role}.png`,
+      mediaType: "image/png",
+      body: PNG,
+      contentEncoding: "BASE64" as const,
+    })),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const comparison = canvas.getByRole("group", { name: "Screenshot comparison: home" });
+    await expect(within(comparison).getByRole("img", { name: "home expected" })).toBeVisible();
+    await expect(within(comparison).getByRole("img", { name: "home diff" })).toBeVisible();
+  },
+};

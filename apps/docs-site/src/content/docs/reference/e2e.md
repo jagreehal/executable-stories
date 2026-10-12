@@ -45,7 +45,11 @@ The reporter works with the web engine (`@e2e-dev/web`) and the mobile engine (`
 | `expect` on a locator, `agent.assert` | Then, one observed assertion each |
 | Repeated Given, When or Then | And |
 | Agent explanation | `Agent:` note under the step |
-| Screenshot, video, Playwright trace | Attachment on the step that produced it |
+| Screenshot, video, download, log (a Playwright trace before e2e 0.19) | Attachment on the step that produced it |
+| `toHaveScreenshot` expected / actual / diff | Attachments on the step, side by side in the HTML report |
+| `trace.md` page (e2e 0.19+) | Markdown attachment on the test |
+| App log warning or error (e2e 0.19+) | `App <source> <level>:` note under the step that was running |
+| Skip reason on a failed attempt (e2e 0.19+) | `Skipped itself after a failure:` note on the scenario |
 | Failed assertion | Expected and actual values from e2e |
 | Retries | The final attempt, with earlier attempts counted |
 | Blocked or timed-out step | Fail, with e2e's error code in the message |

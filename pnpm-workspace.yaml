@@ -26,6 +26,10 @@ minimumReleaseAgeExclude:
   - tinybench # transitive: vitest@5's bench provider
   - e2e # executable-stories-e2e builds on the Reporter API from 0.15
 
+# TEMPORARY — e2e@0.19.0 (2026-10-09) pins these transitives, newer than the
+# 7-day window on 2026-10-12. Delete once they clear it (~2026-10-16).
+  - pixelmatch
+
 overrides:
   # starlight 0.41.10 still pins satteri 0.9.2 while astro 7.2.9 is on 0.10.5;
   # two copies give tsc two unrelated MdastVisitorContext types.

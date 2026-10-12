@@ -87,7 +87,8 @@ Each marker renders as a step with the e2e steps that ran after it listed beneat
 
 - Describes become the suite path; test tags become story tags.
 - Agent steps add the agent's explanation as an `Agent:` note.
-- Screenshots, videos and Playwright traces attach to the step that produced them.
+- Screenshots, videos and traces attach to the step that produced them. A failed `toHaveScreenshot` keeps its `-expected`, `-actual` and `-diff` images, which the HTML report shows side by side.
+- e2e 0.19+: the `trace.md` page attaches to the test, app warnings and errors (console, uncaught, network) become `App ...` notes under the step that was running, and a test that skipped itself after a failure keeps the skip reason as a note.
 - Failed assertions keep e2e's expected and observed values.
 - Retries show the final attempt and count the earlier ones.
 - An `e2e explore` run, or a run that reached no test, leaves the last `raw-run.json` in place. Use the `bug-bash` skill to turn explore findings into scenarios.
