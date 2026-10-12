@@ -1,0 +1,8 @@
+{
+  "name": "code-screen",
+  "extends": "email-code",
+  "description": "Opens straight on the code screen, skipping the password step",
+  "tags": ["login", "mfa"],
+  "state": { "auth": { "screen": "code", "email": "ada@example.com" } },
+  "ready": "text=Check your email"
+}

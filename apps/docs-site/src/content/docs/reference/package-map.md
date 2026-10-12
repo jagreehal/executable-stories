@@ -25,6 +25,16 @@ Use this page to pick the right package. Tests stay in your framework; packages 
 
 Each adapter emits RawRun JSON (via reporter `rawRunPath` or language default). Feed that file to `executable-stories format`.
 
+## Showcase
+
+| Package | Role |
+| --- | --- |
+| [executable-stories-showcase](https://github.com/jagreehal/executable-stories/tree/main/packages/executable-stories-showcase) | Puts a running app into any state from a URL: JSON scenarios for network, URL and app state, a dev panel, Playwright helpers and store adapters |
+| [executable-stories-showcase-cli](https://github.com/jagreehal/executable-stories/tree/main/packages/executable-stories-showcase-cli) | `shoot`, `record`, `validate`, `doctor` and an MCP server; installs skills so anyone can ask an agent for screenshots and clips |
+| [executable-stories-showcase-react](https://github.com/jagreehal/executable-stories/tree/main/packages/executable-stories-showcase-react) | `useScenarioState` for React and Preact component state |
+
+A scenario opens a story's starting state; `openScenario(page, name)` in a Playwright story test sets the Given without a backend.
+
 ## Language adapters (non-JS)
 
 | Package | Language | Output |

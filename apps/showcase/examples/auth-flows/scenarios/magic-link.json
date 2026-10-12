@@ -1,0 +1,15 @@
+{
+  "name": "magic-link",
+  "description": "The user clicked a sign-in link in their email",
+  "tags": ["magic-link"],
+  "path": "/magic",
+  "url": { "token": "from-the-email" },
+  "network": [
+    {
+      "method": "POST",
+      "path": "/api/magic-link",
+      "response": { "body": { "token": "fake", "email": "ada@example.com" } }
+    }
+  ],
+  "ready": "text=Signed in as ada@example.com"
+}

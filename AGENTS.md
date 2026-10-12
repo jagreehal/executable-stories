@@ -36,6 +36,9 @@ packages/
   executable-stories-pytest/     # Python pytest adapter
   executable-stories-junit5/     # JUnit 5 (Kotlin) adapter
   executable-stories-xunit/      # xUnit (C#) adapter
+  executable-stories-showcase/   # Open any app state from a URL (scenarios, dev panel, Playwright helpers, store adapters)
+  executable-stories-showcase-cli/   # Showcase CLI: shoot, record, validate, doctor, MCP; ships its own skills
+  executable-stories-showcase-react/ # useScenarioState for React/Preact
   eslint-config/                 # Shared ESLint config
   eslint-plugin-*-executable-stories/ # Per-framework ESLint plugins
 
@@ -45,6 +48,7 @@ apps/
   playwright-example/ # Playwright example app
   cypress-example/   # Cypress example app
   docs-site/         # Astro Starlight documentation site
+  showcase/          # Showcase unit tests, Playwright suite, and example apps (examples/* are workspace packages)
 ```
 
 - **Packages** (publishable): `executable-stories-formatters` is the CLI; can be built as a Bun single binary via `bun run compile`; CI/release artifacts include prebuilt binaries for linux, darwin, windows.
@@ -142,6 +146,15 @@ it('Title', ({ task }) => {
   story.then('...');
 });
 ```
+
+## Showcase packages
+
+Showcase is not an adapter: it runs inside the app under test (an MSW worker, a dev panel, store adapters) to put it into a named state, so a story's Given can open that state without a backend. The "no separate runtime" rule above is about the story API and still holds there; showcase's runtime is the app-side fixture layer.
+
+- "Scenario" in showcase means an app state (a JSON file), not a test case. Keep the two apart in prose.
+- Its packages load optional peers and page hooks with dynamic `import()`, so their ESLint configs turn off the repo's no-dynamic-import rule.
+- `apps/showcase` unit tests run in `pnpm quality`. Its Playwright suite (`pnpm --filter showcase-example test:e2e`) does not: CI runs it in the `showcase-e2e` job inside the Playwright Docker image, which the `*-linux.png` visual baselines come from. Keep that image's version in step with `@playwright/test`.
+- The CLI's skills live in `packages/executable-stories-showcase-cli/skills/` and ship in the package; `init` installs them into a user's repo. They are not part of the root `skills/` sync.
 
 ## Compatibility rule
 
@@ -328,6 +341,7 @@ When working in these areas, load the linked skill file into context for accurat
 | Filing tickets for what a run found that the board is missing | `skills/scenarios-to-tickets/SKILL.md`                                                         |
 | Authoring technical/coding lessons as executable story tests | `skills/executable-lessons/SKILL.md`                                                           |
 | Showing the current topic visually, from the run where possible | `skills/show-me/SKILL.md`                                                                       |
+| Opening app states, screenshots and clips with showcase       | `packages/executable-stories-showcase-cli/skills/executable-stories-showcase/SKILL.md`         |
 | Building a narrated demo video from a run's storyboard frames | `skills/demo-video/SKILL.md`                                                                    |
 | Explaining a code change as living documentation (with quiz) | `skills/explain-change/SKILL.md`                                                               |
 | Explaining a whole system or feature area for onboarding     | `skills/explain-system/SKILL.md`                                                               |

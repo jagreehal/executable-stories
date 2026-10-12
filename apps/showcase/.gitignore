@@ -1,0 +1,8 @@
+test-results/
+playwright-report/
+.next/
+next-env.d.ts
+examples/next-app/AGENTS.md
+examples/next-app/CLAUDE.md
+# Snippets the README and skills quote (tests/docs.test.ts); the root **/docs rule is for generated docs.
+!/docs/

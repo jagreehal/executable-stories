@@ -1,0 +1,50 @@
+{
+  "name": "executable-stories-showcase-react",
+  "version": "0.0.0",
+  "description": "useScenarioState: connect React (or Preact) component state to executable-stories-showcase.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jagreehal/executable-stories.git",
+    "directory": "packages/executable-stories-showcase-react"
+  },
+  "type": "module",
+  "files": [
+    "dist",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "source": "./src/index.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup && tsc -p tsconfig.json --noEmit false --declaration --emitDeclarationOnly --outDir dist",
+    "dev": "tsup --watch",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint ."
+  },
+  "peerDependencies": {
+    "executable-stories-showcase": "workspace:^",
+    "react": ">=18",
+    "zod": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/react": "19.3.0",
+    "eslint-config-executable-stories": "workspace:*",
+    "executable-stories-showcase": "workspace:*",
+    "react": "19.3.0",
+    "tsup": "^8.5.1",
+    "typescript": "~6.0.3",
+    "zod": "4.6.5"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}

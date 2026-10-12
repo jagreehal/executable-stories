@@ -1,0 +1,13 @@
+{
+  "name": "login-locked",
+  "description": "Too many attempts: the password step is refused",
+  "tags": ["login", "error"],
+  "network": [
+    {
+      "method": "POST",
+      "path": "/api/login",
+      "response": { "status": 423, "body": { "message": "Too many attempts. Try again in 15 minutes." } }
+    }
+  ],
+  "ready": "text=Sign in"
+}

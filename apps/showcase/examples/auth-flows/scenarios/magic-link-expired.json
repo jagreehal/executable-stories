@@ -1,0 +1,14 @@
+{
+  "name": "magic-link-expired",
+  "extends": "magic-link",
+  "description": "The sign-in link is too old",
+  "tags": ["magic-link", "error"],
+  "network": [
+    {
+      "method": "POST",
+      "path": "/api/magic-link",
+      "response": { "status": 410, "body": { "message": "This link has expired" } }
+    }
+  ],
+  "ready": "text=This link has expired"
+}

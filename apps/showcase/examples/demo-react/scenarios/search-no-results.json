@@ -1,0 +1,14 @@
+{
+  "$schema": "../scenario.schema.json",
+  "name": "search-no-results",
+  "extends": "default",
+  "description": "Search text that matches nothing",
+  "tags": [
+    "empty",
+    "url"
+  ],
+  "url": {
+    "q": "zzz"
+  },
+  "ready": "text=No countries match"
+}

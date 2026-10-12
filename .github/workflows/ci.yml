@@ -63,6 +63,53 @@ jobs:
         env:
           CI: true
 
+  # executable-stories-showcase drives four example apps in a browser. Its
+  # visual baselines (*-linux.png) come from this image, so the job runs in it;
+  # keep the image version in step with @playwright/test so screenshots render
+  # identically. The Quality job above runs the showcase unit tests.
+  showcase-e2e:
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install pnpm
+        run: corepack prepare pnpm@10.28.1 --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build showcase packages
+        run: pnpm turbo build --filter=showcase-example...
+
+      - name: Validate demo scenarios
+        working-directory: apps/showcase
+        # The CLI's bin is linked at install, before its dist exists, so call the build directly.
+        run: node ../../packages/executable-stories-showcase-cli/dist/cli.js validate examples/demo-react/scenarios --rules examples/demo-react/rules.ts
+
+      - name: Playwright tests
+        run: pnpm --filter showcase-example test:e2e
+        env:
+          CI: true
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: showcase-playwright-report
+          path: |
+            apps/showcase/playwright-report/
+            apps/showcase/test-results/
+
   # The Vitest adapter declares `vitest: ">=4.1.5"`. The job above only ever
   # exercises whatever the dev dependency happens to pin, so the rest of that
   # range is an untested promise. This runs the adapter against both ends of

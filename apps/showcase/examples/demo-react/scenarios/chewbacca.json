@@ -1,0 +1,32 @@
+{
+  "$schema": "../scenario.schema.json",
+  "name": "chewbacca",
+  "extends": "default",
+  "description": "Kashyyyk: custom flag image, unknown region",
+  "tags": [
+    "fun",
+    "edge"
+  ],
+  "network": [
+    {
+      "method": "GET",
+      "path": "/api/countries",
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "name": "Kashyyyk",
+            "cca2": "KA",
+            "flag": "/kashyyyk.png",
+            "capital": "Rwookrrorro",
+            "region": "New Republic",
+            "languages": {
+              "shy": "Shyriiwook"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "ready": "text=Kashyyyk"
+}

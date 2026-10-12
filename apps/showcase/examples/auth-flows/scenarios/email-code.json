@@ -1,0 +1,14 @@
+{
+  "name": "email-code",
+  "description": "Password accepted; the emailed code is accepted. Any email, password and code work",
+  "tags": ["login", "mfa"],
+  "network": [
+    { "method": "POST", "path": "/api/login", "response": { "body": { "mfa": "email" } } },
+    {
+      "method": "POST",
+      "path": "/api/verify-code",
+      "response": { "body": { "token": "fake", "email": "ada@example.com" } }
+    }
+  ],
+  "ready": "text=Sign in"
+}

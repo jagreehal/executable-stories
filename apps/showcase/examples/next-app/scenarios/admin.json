@@ -1,0 +1,5 @@
+{
+  "name": "admin",
+  "description": "Signed in as admin: the server component reads the cookie after a refresh",
+  "state": { "cookies": { "role": "admin" } }
+}

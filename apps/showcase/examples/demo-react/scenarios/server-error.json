@@ -1,0 +1,22 @@
+{
+  "$schema": "../scenario.schema.json",
+  "name": "server-error",
+  "extends": "default",
+  "description": "API answers 503",
+  "tags": [
+    "error"
+  ],
+  "network": [
+    {
+      "method": "GET",
+      "path": "/api/countries",
+      "response": {
+        "status": 503,
+        "body": {
+          "message": "Server is busy"
+        }
+      }
+    }
+  ],
+  "ready": "text=Server is busy"
+}

@@ -1,0 +1,17 @@
+{
+  "name": "wrong-then-right-code",
+  "extends": "email-code",
+  "description": "The first code is rejected, the second accepted",
+  "tags": ["login", "mfa", "error", "sequence"],
+  "network": [
+    {
+      "method": "POST",
+      "path": "/api/verify-code",
+      "sequence": [
+        { "status": 401, "body": { "message": "That code is wrong" } },
+        { "body": { "token": "fake", "email": "ada@example.com" } }
+      ]
+    }
+  ],
+  "ready": "text=Sign in"
+}

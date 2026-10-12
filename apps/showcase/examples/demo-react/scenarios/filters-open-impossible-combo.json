@@ -1,0 +1,16 @@
+{
+  "$schema": "../scenario.schema.json",
+  "name": "filters-open-impossible-combo",
+  "extends": "default",
+  "description": "Filter panel open, Europe + four languages no country shares",
+  "tags": [
+    "url",
+    "ui-only"
+  ],
+  "url": {
+    "filters": "open",
+    "region": "Europe",
+    "lang": "eng,fra,spa,ara"
+  },
+  "ready": "text=No countries match"
+}

@@ -1,0 +1,13 @@
+{
+  "name": "greeting-error",
+  "description": "The greeting API fails; the name comes from the URL",
+  "url": { "name": "Ada" },
+  "network": [
+    {
+      "method": "GET",
+      "path": "/api/greeting",
+      "response": { "status": 500, "body": { "message": "Greeting service down" } }
+    }
+  ],
+  "ready": "text=Greeting service down"
+}

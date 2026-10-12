@@ -1,0 +1,222 @@
+{
+  "$schema": "../scenario.schema.json",
+  "name": "twenty-one-countries",
+  "extends": "default",
+  "description": "Pagination boundary: 3 pages, last has one card",
+  "tags": [
+    "pagination",
+    "edge"
+  ],
+  "url": {
+    "page": "3"
+  },
+  "network": [
+    {
+      "method": "GET",
+      "path": "/api/countries",
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "name": "Aruba",
+            "cca2": "AW",
+            "capital": "Oranjestad",
+            "region": "Americas",
+            "languages": {
+              "nld": "Dutch",
+              "pap": "Papiamento"
+            }
+          },
+          {
+            "name": "Afghanistan",
+            "cca2": "AF",
+            "capital": "Kabul",
+            "region": "Asia",
+            "languages": {
+              "prs": "Dari",
+              "pus": "Pashto",
+              "tuk": "Turkmen"
+            }
+          },
+          {
+            "name": "Angola",
+            "cca2": "AO",
+            "capital": "Luanda",
+            "region": "Africa",
+            "languages": {
+              "por": "Portuguese"
+            }
+          },
+          {
+            "name": "Anguilla",
+            "cca2": "AI",
+            "capital": "The Valley",
+            "region": "Americas",
+            "languages": {
+              "eng": "English"
+            }
+          },
+          {
+            "name": "Åland Islands",
+            "cca2": "AX",
+            "capital": "Mariehamn",
+            "region": "Europe",
+            "languages": {
+              "swe": "Swedish"
+            }
+          },
+          {
+            "name": "Albania",
+            "cca2": "AL",
+            "capital": "Tirana",
+            "region": "Europe",
+            "languages": {
+              "sqi": "Albanian"
+            }
+          },
+          {
+            "name": "Andorra",
+            "cca2": "AD",
+            "capital": "Andorra la Vella",
+            "region": "Europe",
+            "languages": {
+              "cat": "Catalan"
+            }
+          },
+          {
+            "name": "United Arab Emirates",
+            "cca2": "AE",
+            "capital": "Abu Dhabi",
+            "region": "Asia",
+            "languages": {
+              "ara": "Arabic"
+            }
+          },
+          {
+            "name": "Argentina",
+            "cca2": "AR",
+            "capital": "Buenos Aires",
+            "region": "Americas",
+            "languages": {
+              "grn": "Guaraní",
+              "spa": "Spanish"
+            }
+          },
+          {
+            "name": "Armenia",
+            "cca2": "AM",
+            "capital": "Yerevan",
+            "region": "Asia",
+            "languages": {
+              "hye": "Armenian",
+              "rus": "Russian"
+            }
+          },
+          {
+            "name": "American Samoa",
+            "cca2": "AS",
+            "capital": "Pago Pago",
+            "region": "Oceania",
+            "languages": {
+              "eng": "English",
+              "smo": "Samoan"
+            }
+          },
+          {
+            "name": "Antarctica",
+            "cca2": "AQ",
+            "capital": "",
+            "region": "",
+            "languages": {}
+          },
+          {
+            "name": "French Southern and Antarctic Lands",
+            "cca2": "TF",
+            "capital": "Port-aux-Français",
+            "region": "",
+            "languages": {
+              "fra": "French"
+            }
+          },
+          {
+            "name": "Antigua and Barbuda",
+            "cca2": "AG",
+            "capital": "Saint John's",
+            "region": "Americas",
+            "languages": {
+              "eng": "English"
+            }
+          },
+          {
+            "name": "Australia",
+            "cca2": "AU",
+            "capital": "Canberra",
+            "region": "Oceania",
+            "languages": {
+              "eng": "English"
+            }
+          },
+          {
+            "name": "Austria",
+            "cca2": "AT",
+            "capital": "Vienna",
+            "region": "Europe",
+            "languages": {
+              "bar": "Austro-Bavarian German"
+            }
+          },
+          {
+            "name": "Azerbaijan",
+            "cca2": "AZ",
+            "capital": "Baku",
+            "region": "Asia",
+            "languages": {
+              "aze": "Azerbaijani",
+              "rus": "Russian"
+            }
+          },
+          {
+            "name": "Burundi",
+            "cca2": "BI",
+            "capital": "Bujumbura",
+            "region": "Africa",
+            "languages": {
+              "fra": "French",
+              "run": "Kirundi"
+            }
+          },
+          {
+            "name": "Belgium",
+            "cca2": "BE",
+            "capital": "Brussels",
+            "region": "Europe",
+            "languages": {
+              "deu": "German",
+              "fra": "French",
+              "nld": "Dutch"
+            }
+          },
+          {
+            "name": "Benin",
+            "cca2": "BJ",
+            "capital": "Porto-Novo",
+            "region": "Africa",
+            "languages": {
+              "fra": "French"
+            }
+          },
+          {
+            "name": "Burkina Faso",
+            "cca2": "BF",
+            "capital": "Ouagadougou",
+            "region": "Africa",
+            "languages": {
+              "fra": "French"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "ready": "text=\"Page 3 of 3\""
+}
