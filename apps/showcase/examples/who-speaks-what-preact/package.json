@@ -1,0 +1,28 @@
+{
+  "name": "who-speaks-what-preact",
+  "private": true,
+  "type": "module",
+  "description": "who-speaks-what on Preact 11, XState 5, preact-iso and Tailwind 4, connected to executable-stories-showcase.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@xstate/react": "^6.1.0",
+    "preact": "^11.0.0",
+    "preact-iso": "^2.12.2",
+    "executable-stories-showcase": "workspace:*",
+    "executable-stories-showcase-react": "workspace:*",
+    "xstate": "^5.33.2",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@preact/preset-vite": "^2.10.6",
+    "@tailwindcss/forms": "^0.5.11",
+    "@tailwindcss/vite": "^4.3.3",
+    "tailwindcss": "^4.3.3",
+    "typescript": "~6.0.3",
+    "vite": "8.3.2"
+  }
+}

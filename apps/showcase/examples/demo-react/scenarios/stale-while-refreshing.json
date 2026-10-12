@@ -1,0 +1,63 @@
+{
+  "$schema": "../scenario.schema.json",
+  "name": "stale-while-refreshing",
+  "extends": "default",
+  "description": "Cached data on screen while a refetch hangs (cache adapter)",
+  "tags": [
+    "loading",
+    "adapter"
+  ],
+  "network": [
+    {
+      "method": "GET",
+      "path": "/api/countries",
+      "response": {
+        "status": 200,
+        "delay": "infinite"
+      }
+    }
+  ],
+  "state": {
+    "tanstack-query": [
+      {
+        "queryKey": [
+          "countries"
+        ],
+        "data": [
+          {
+            "name": "Japan",
+            "cca2": "JP",
+            "capital": "Tokyo",
+            "region": "Asia",
+            "languages": {
+              "jpn": "Japanese"
+            }
+          },
+          {
+            "name": "Kenya",
+            "cca2": "KE",
+            "capital": "Nairobi",
+            "region": "Africa",
+            "languages": {
+              "eng": "English",
+              "swa": "Swahili"
+            }
+          },
+          {
+            "name": "Peru",
+            "cca2": "PE",
+            "capital": "Lima",
+            "region": "Americas",
+            "languages": {
+              "aym": "Aymara",
+              "que": "Quechua",
+              "spa": "Spanish"
+            }
+          }
+        ],
+        "stale": true
+      }
+    ]
+  },
+  "ready": "text=Refreshing…"
+}

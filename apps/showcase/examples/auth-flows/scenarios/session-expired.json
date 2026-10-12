@@ -1,0 +1,14 @@
+{
+  "name": "session-expired",
+  "extends": "signed-in",
+  "description": "The session cookie is there, but the server no longer accepts it",
+  "tags": ["session", "error"],
+  "network": [
+    {
+      "method": "GET",
+      "path": "/api/me",
+      "response": { "status": 401, "body": { "message": "Your session expired" } }
+    }
+  ],
+  "ready": "text=Your session expired"
+}

@@ -1,0 +1,31 @@
+{
+  "$schema": "../scenario.schema.json",
+  "name": "one-country",
+  "extends": "default",
+  "description": "A single result, singular copy",
+  "tags": [
+    "edge"
+  ],
+  "network": [
+    {
+      "method": "GET",
+      "path": "/api/countries",
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "name": "Aruba",
+            "cca2": "AW",
+            "capital": "Oranjestad",
+            "region": "Americas",
+            "languages": {
+              "nld": "Dutch",
+              "pap": "Papiamento"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "ready": "text=\"1 country\""
+}

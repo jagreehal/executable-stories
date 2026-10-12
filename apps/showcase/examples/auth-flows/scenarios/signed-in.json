@@ -1,0 +1,8 @@
+{
+  "name": "signed-in",
+  "description": "Skip login: a session cookie and the session check that accepts it",
+  "tags": ["session"],
+  "state": { "cookies": { "session": "fake" } },
+  "network": [{ "method": "GET", "path": "/api/me", "response": { "body": { "email": "ada@example.com" } } }],
+  "ready": "text=Signed in as ada@example.com"
+}

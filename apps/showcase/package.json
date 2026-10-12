@@ -1,0 +1,32 @@
+{
+  "name": "showcase-example",
+  "private": true,
+  "type": "module",
+  "description": "Tests, Playwright suites and example apps for executable-stories-showcase.",
+  "scripts": {
+    "lint": "eslint .",
+    "type-check": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "test:e2e:update": "playwright test --update-snapshots"
+  },
+  "devDependencies": {
+    "@anthropic-ai/sdk": "0.131.0",
+    "@playwright/test": "^1.63.0",
+    "@tanstack/react-query": "5.104.1",
+    "@types/node": "^26.6.1",
+    "ajv": "^8.20.0",
+    "eslint-config-executable-stories": "workspace:*",
+    "executable-stories-showcase": "workspace:*",
+    "executable-stories-showcase-cli": "workspace:*",
+    "happy-dom": "^20.0.0",
+    "msw": "3.0.2",
+    "redux": "5.0.1",
+    "typescript": "~6.0.3",
+    "vite": "^8.3.0",
+    "vitest": "^5.0.1",
+    "xstate": "5.33.2",
+    "zod": "^4.6.5",
+    "zustand": "5.0.15"
+  }
+}

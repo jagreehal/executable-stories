@@ -1,0 +1,121 @@
+{
+  "name": "executable-stories-showcase",
+  "version": "0.0.0",
+  "description": "Put a running app into any state from a URL: shareable JSON scenarios for network, URL and app state, with a dev panel, Playwright helpers and adapters.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jagreehal/executable-stories.git",
+    "directory": "packages/executable-stories-showcase"
+  },
+  "type": "module",
+  "files": [
+    "dist",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "source": "./src/index.ts",
+      "import": "./dist/index.js"
+    },
+    "./panel": {
+      "types": "./dist/panel.d.ts",
+      "source": "./src/panel.ts",
+      "import": "./dist/panel.js"
+    },
+    "./playwright": {
+      "types": "./dist/playwright.d.ts",
+      "source": "./src/playwright.ts",
+      "import": "./dist/playwright.js"
+    },
+    "./vite": {
+      "types": "./dist/vite.d.ts",
+      "source": "./src/vite.ts",
+      "import": "./dist/vite.js"
+    },
+    "./next": {
+      "types": "./dist/next.d.ts",
+      "source": "./src/next.ts",
+      "import": "./dist/next.js"
+    },
+    "./tanstack-query": {
+      "types": "./dist/adapters/tanstack-query.d.ts",
+      "source": "./src/adapters/tanstack-query.ts",
+      "import": "./dist/adapters/tanstack-query.js"
+    },
+    "./zustand": {
+      "types": "./dist/adapters/zustand.d.ts",
+      "source": "./src/adapters/zustand.ts",
+      "import": "./dist/adapters/zustand.js"
+    },
+    "./redux": {
+      "types": "./dist/adapters/redux.d.ts",
+      "source": "./src/adapters/redux.ts",
+      "import": "./dist/adapters/redux.js"
+    },
+    "./xstate": {
+      "types": "./dist/adapters/xstate.d.ts",
+      "source": "./src/adapters/xstate.ts",
+      "import": "./dist/adapters/xstate.js"
+    },
+    "./cookies": {
+      "types": "./dist/adapters/cookies.d.ts",
+      "source": "./src/adapters/cookies.ts",
+      "import": "./dist/adapters/cookies.js"
+    }
+  },
+  "imports": {
+    "#msw-browser": {
+      "node": {
+        "source": "./src/no-msw-browser.ts",
+        "default": "./dist/no-msw-browser.js"
+      },
+      "default": "msw/browser"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup && tsc -p tsconfig.json --noEmit false --declaration --emitDeclarationOnly --outDir dist",
+    "dev": "tsup --watch",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint ."
+  },
+  "peerDependencies": {
+    "msw": "^2.4.0 || ^3.0.0",
+    "zod": "^4.1.0",
+    "@playwright/test": ">=1.40",
+    "@tanstack/react-query": ">=5",
+    "vite": ">=5"
+  },
+  "peerDependenciesMeta": {
+    "msw": {
+      "optional": true
+    },
+    "@playwright/test": {
+      "optional": true
+    },
+    "@tanstack/react-query": {
+      "optional": true
+    },
+    "vite": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@tanstack/react-query": "5.104.1",
+    "eslint-config-executable-stories": "workspace:*",
+    "msw": "3.0.2",
+    "tsup": "^8.5.1",
+    "typescript": "~6.0.3",
+    "vite": "8.3.2",
+    "zod": "4.6.5"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}

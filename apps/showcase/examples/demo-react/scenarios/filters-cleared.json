@@ -1,0 +1,15 @@
+{
+  "$schema": "../scenario.schema.json",
+  "name": "filters-cleared",
+  "extends": "filters-open-impossible-combo",
+  "description": "Same open panel with inherited filters removed (null drops a param)",
+  "tags": [
+    "url",
+    "inheritance"
+  ],
+  "url": {
+    "region": null,
+    "lang": null
+  },
+  "ready": "text=\"248 countries\""
+}

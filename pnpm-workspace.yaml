@@ -1,6 +1,7 @@
 packages:
   - 'packages/*'
   - 'apps/*'
+  - 'apps/showcase/examples/*'
 
 # A dependency version must be at least 7 days old before it can be installed,
 # so a compromised release has a window to be caught and unpublished before it

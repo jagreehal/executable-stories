@@ -1,0 +1,7 @@
+{
+  "name": "google-cancelled",
+  "description": "Back from Google without signing in. Signing in with Google itself runs against the emulator",
+  "tags": ["login", "google", "error"],
+  "url": { "auth_error": "Google sign-in was cancelled" },
+  "ready": "text=Google sign-in was cancelled"
+}

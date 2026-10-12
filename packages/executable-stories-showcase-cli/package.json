@@ -1,0 +1,60 @@
+{
+  "name": "executable-stories-showcase-cli",
+  "version": "0.0.0",
+  "description": "executable-stories-showcase CLI: init, guide, doctor, validate, list, shoot, record, mcp, suggest and promote scenarios.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jagreehal/executable-stories.git",
+    "directory": "packages/executable-stories-showcase-cli"
+  },
+  "type": "module",
+  "files": [
+    "dist",
+    "skills",
+    "LICENSE"
+  ],
+  "bin": {
+    "executable-stories-showcase": "./dist/cli.js"
+  },
+  "exports": {
+    "./suggest": {
+      "types": "./dist/suggest.d.ts",
+      "source": "./src/suggest.ts",
+      "import": "./dist/suggest.js"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup && tsc -p tsconfig.json --noEmit false --declaration --emitDeclarationOnly --outDir dist",
+    "dev": "tsup --watch",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.131.0",
+    "ajv": "^8.20.0",
+    "executable-stories-showcase": "workspace:^",
+    "zod": "4.6.5"
+  },
+  "peerDependencies": {
+    "@playwright/test": ">=1.40"
+  },
+  "peerDependenciesMeta": {
+    "@playwright/test": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@types/node": "^26.6.1",
+    "eslint-config-executable-stories": "workspace:*",
+    "tsup": "^8.5.1",
+    "typescript": "~6.0.3"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}

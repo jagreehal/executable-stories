@@ -1,0 +1,66 @@
+{
+  "$schema": "../scenario.schema.json",
+  "name": "long-content",
+  "extends": "default",
+  "description": "Very long names and many languages",
+  "tags": [
+    "edge",
+    "layout"
+  ],
+  "network": [
+    {
+      "method": "GET",
+      "path": "/api/countries",
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "name": "The United Kingdom of Great Britain and Northern Ireland and Associated Territories",
+            "cca2": "GB",
+            "capital": "Llanfairpwllgwyngyllgogerychwyrndrobwllllantysiliogogogoch",
+            "region": "Europe",
+            "languages": {
+              "eng": "English",
+              "cym": "Welsh",
+              "gla": "Scottish Gaelic",
+              "gle": "Irish",
+              "cor": "Cornish",
+              "sco": "Scots"
+            }
+          },
+          {
+            "name": "South Africa",
+            "cca2": "ZA",
+            "capital": "Pretoria",
+            "region": "Africa",
+            "languages": {
+              "afr": "Afrikaans",
+              "eng": "English",
+              "nbl": "Southern Ndebele",
+              "nso": "Northern Sotho",
+              "sot": "Southern Sotho",
+              "ssw": "Swazi",
+              "tsn": "Tswana",
+              "tso": "Tsonga",
+              "ven": "Venda",
+              "xho": "Xhosa",
+              "zul": "Zulu"
+            }
+          },
+          {
+            "name": "India",
+            "cca2": "IN",
+            "capital": "New Delhi",
+            "region": "Asia",
+            "languages": {
+              "eng": "English",
+              "hin": "Hindi",
+              "tam": "Tamil"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "ready": "text=Llanfairpwll"
+}

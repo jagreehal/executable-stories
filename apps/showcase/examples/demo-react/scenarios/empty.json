@@ -1,0 +1,20 @@
+{
+  "$schema": "../scenario.schema.json",
+  "name": "empty",
+  "extends": "default",
+  "description": "API returns no countries",
+  "tags": [
+    "empty"
+  ],
+  "network": [
+    {
+      "method": "GET",
+      "path": "/api/countries",
+      "response": {
+        "status": 200,
+        "body": []
+      }
+    }
+  ],
+  "ready": "text=No countries match"
+}

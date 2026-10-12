@@ -1,0 +1,23 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "customConditions": [
+      "source"
+    ],
+    "types": [
+      "vite/client",
+      "node"
+    ],
+    "allowImportingTsExtensions": true
+  },
+  "include": [
+    "tests",
+    "e2e",
+    "examples/demo-react",
+    "examples/auth-flows",
+    "playwright.config.ts",
+    "vitest.config.ts",
+    "docs/examples"
+  ]
+}

@@ -1,0 +1,62 @@
+{
+  "$schema": "../scenario.schema.json",
+  "name": "flaky-then-recovers",
+  "extends": "default",
+  "description": "First call fails; Retry succeeds",
+  "tags": [
+    "error",
+    "sequence"
+  ],
+  "network": [
+    {
+      "method": "GET",
+      "path": "/api/countries",
+      "sequence": [
+        {
+          "status": 500,
+          "body": {
+            "message": "Upstream timeout"
+          }
+        },
+        {
+          "status": 200,
+          "delay": 400,
+          "body": [
+            {
+              "name": "France",
+              "cca2": "FR",
+              "capital": "Paris",
+              "region": "Europe",
+              "languages": {
+                "fra": "French"
+              }
+            },
+            {
+              "name": "Germany",
+              "cca2": "DE",
+              "capital": "Berlin",
+              "region": "Europe",
+              "languages": {
+                "deu": "German"
+              }
+            },
+            {
+              "name": "Spain",
+              "cca2": "ES",
+              "capital": "Madrid",
+              "region": "Europe",
+              "languages": {
+                "cat": "Catalan",
+                "eus": "Basque",
+                "glg": "Galician",
+                "oci": "Occitan",
+                "spa": "Spanish"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "ready": "text=Upstream timeout"
+}

@@ -1,0 +1,20 @@
+# executable-stories-showcase-cli
+
+```sh
+npx executable-stories-showcase init src/scenarios           # scaffold, install agent skills, register the MCP server
+npx executable-stories-showcase doctor scenarios --base-url http://localhost:5173
+npx executable-stories-showcase guide [topic]
+npx executable-stories-showcase mcp scenarios --base-url http://localhost:5173
+npx executable-stories-showcase validate scenarios --rules rules.ts
+npx executable-stories-showcase list scenarios --base-url http://localhost:5173 --json
+npx executable-stories-showcase shoot scenarios --base-url http://localhost:5173 --out shots
+npx executable-stories-showcase shoot scenarios --base-url http://localhost:5173 --no-panel --viewport 1440x900 --scale 2 --color-scheme dark --locale de-DE --timezone Europe/Berlin
+npx executable-stories-showcase record scenarios --base-url http://localhost:5173 --steps steps.ts --format mp4
+npx executable-stories-showcase suggest scenarios --src src --schema scenario.schema.json
+```
+
+- `shoot` opens every scenario in Chromium, waits until it's ready, and saves a screenshot. It fails on unmocked requests, uncaught exceptions and `console.error` calls, and writes `<out>/<name>.md` for each failure with the fix. It needs `@playwright/test`.
+- `doctor` checks the wiring one step at a time and prints each fix. `mcp` lets a coding agent open, drive and save scenarios. `guide` prints the shipped agent skill.
+- Exit codes: `1` a scenario failed, `2` bad arguments or scenarios, `3` something needed is missing or down. Errors print a stable code, e.g. `[DEV_SERVER_DOWN]`.
+- `record` opens each scenario named in `--steps`, runs its steps with a visible cursor, and saves an MP4, GIF or WebM, optionally cropped to `--element`. MP4, GIF and cropping need ffmpeg.
+- `suggest` asks Claude, or another model behind `ANTHROPIC_BASE_URL` via `--model`, which UI states lack scenarios, and drafts them for review.

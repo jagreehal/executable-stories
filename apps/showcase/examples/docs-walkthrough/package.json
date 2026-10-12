@@ -1,0 +1,14 @@
+{
+  "name": "docs-walkthrough",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "walkthrough": "rm -rf docs reports && playwright test && executable-stories format reports/raw-run.json --format markdown,html --asset-mode copy --output-dir docs --output-name walkthroughs && executable-stories gif reports/raw-run.json --output-dir docs && node verify.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "executable-stories-formatters": "workspace:*",
+    "executable-stories-playwright": "workspace:*",
+    "executable-stories-showcase": "workspace:*"
+  }
+}

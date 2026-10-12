@@ -1,0 +1,20 @@
+{
+  "$schema": "../scenario.schema.json",
+  "name": "loading",
+  "extends": "default",
+  "description": "Request never resolves",
+  "tags": [
+    "loading"
+  ],
+  "network": [
+    {
+      "method": "GET",
+      "path": "/api/countries",
+      "response": {
+        "status": 200,
+        "delay": "infinite"
+      }
+    }
+  ],
+  "ready": "text=Loading countries…"
+}
