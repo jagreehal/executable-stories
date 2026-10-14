@@ -5,6 +5,7 @@
 
 import type { TestCaseResult } from "executable-stories-core/types/test-result";
 import type { StoryStep } from "executable-stories-core/types/story";
+import { assertionState } from "executable-stories-core/utils/assertive-steps";
 
 export interface ListScenariosArgs {
   testCases: TestCaseResult[];
@@ -48,6 +49,8 @@ export function listScenarios(
         : undefined,
       steps: tc.story.steps.map((step, index) => toScenarioStep(step, index, tc)),
       docKinds: collectDocKinds(tc),
+      // "unasserted": its Then steps ran and checked nothing. "unobserved": the adapter can't count, not zero.
+      assertion: assertionState(tc.story.steps),
     }));
     return minify ? JSON.stringify(items) : JSON.stringify(items, null, 2);
   }

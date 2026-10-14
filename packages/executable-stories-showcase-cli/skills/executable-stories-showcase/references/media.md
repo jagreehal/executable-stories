@@ -33,8 +33,8 @@ export default {
 npx executable-stories-showcase record src/scenarios --base-url http://localhost:5173 --steps steps.ts --format mp4
 ```
 
-- The panel is hidden and a cursor is drawn (Playwright videos don't show the mouse). Actions are
-  slowed slightly so the cursor reaches each target before the click.
+- The panel is hidden and a pulsing arrow cursor is drawn (Playwright videos don't show the
+  mouse). Each locator click waits for the cursor to reach its target, then sends out a ripple.
 - The video starts once the scenario is ready, so the page load isn't in it, and holds the last
   frame for `--hold` ms.
 - `--format mp4` (default) plays in every browser and phone at a fraction of a GIF's size; use it
@@ -57,7 +57,11 @@ npx executable-stories-showcase record src/scenarios --base-url http://localhost
   zoom has time to arrive.
 - MP4, GIF, `--element`, `--fps` and `--width` need ffmpeg on `PATH`, or `FFMPEG_PATH`. Plain WebM
   doesn't.
+- `--cursor dot` or `--cursor pointer.svg` swaps the default pulsing arrow; `--cursor-color '#00b3ff'` recolors it.
+- Click with locators (`page.getByRole(...).click()`): during `record` each locator click waits for the
+  cursor to glide to its target first. `page.mouse.click(x, y)` doesn't wait.
 - In your own Playwright scripts, `showCursor(page)` from `executable-stories-showcase/playwright` draws the
-  cursor; call it before `openScenario(page, name, { panel: false })`.
+  cursor (a pulsing arrow by default; `{ pointer: 'dot' | svgMarkup, color }` to change it); call it before
+  `openScenario(page, name, { panel: false })`.
 
 Use demo data in scenarios meant for public images: fictional names, no real customer records.

@@ -1,0 +1,107 @@
+name: executable-stories-showcase screenshots
+description: >
+  Show a pull request's UI change in one comment: shoot the states it touches on its base and on the
+  change, publish what changed, and post before | after | changed images. Two steps in two jobs, so
+  the job that runs the pull request's code never holds a write token.
+branding:
+  icon: image
+  color: purple
+
+inputs:
+  step:
+    description: >
+      "shoot" runs the pull request's code: install, start the app, screenshot. Give its job no write
+      permissions. "publish" pushes the images and comments; run it in a second job, on a checkout
+      of the base commit, so none of the pull request's code runs where the token is.
+    required: true
+  scenarios:
+    description: (shoot) Scenarios folder, e.g. src/scenarios.
+    default: ''
+  dev-command:
+    description: (shoot) Starts the dev server, e.g. "npm run dev". Started and stopped once per side.
+    default: ''
+  base-url:
+    description: (shoot) Where the dev server answers, e.g. http://localhost:5173.
+    default: ''
+  install-command:
+    description: (shoot) Installs dependencies and Chromium; run on the base and on the change.
+    default: npm ci && npx playwright install --with-deps chromium
+  cli:
+    description: How to run the executable-stories-showcase CLI from the installed dependencies.
+    default: npx executable-stories-showcase
+  src:
+    description: (shoot) The app's folders, comma-separated, so changes elsewhere in a monorepo are ignored.
+    default: ''
+  shoot-args:
+    description: (shoot) Extra flags for shoot on both sides, e.g. "--no-panel --viewport 1280x800".
+    default: ''
+  all-when-unmatched:
+    description: (shoot) Shoot every state when a changed file maps to none (a shared stylesheet, a layout).
+    default: 'true'
+  fail-on-error:
+    description: (shoot) Fail when a touched state fails on the change (didn't render, unmocked request, error).
+    default: 'true'
+  branch:
+    description: (publish) Branch the images are pushed to.
+    default: scenario-shots
+  comment:
+    description: (publish) Post or update the PR comment. The job summary gets it either way.
+    default: 'true'
+  artifact:
+    description: Name of the artifact that carries step 1's results to step 2.
+    default: showcase-screenshots
+
+outputs:
+  out:
+    description: Folder with the screenshots, diffs and results.
+    value: ${{ runner.temp }}/showcase-screenshots
+
+runs:
+  using: composite
+  steps:
+    - if: inputs.step != 'shoot' && inputs.step != 'publish'
+      shell: bash
+      run: echo "::error::step must be shoot or publish" && exit 1
+
+    # ---- step 1: no token ----
+    - if: inputs.step == 'shoot'
+      id: shoot
+      shell: bash
+      env:
+        INPUT_SCENARIOS: ${{ inputs.scenarios }}
+        INPUT_DEV-COMMAND: ${{ inputs.dev-command }}
+        INPUT_BASE-URL: ${{ inputs.base-url }}
+        INPUT_INSTALL-COMMAND: ${{ inputs.install-command }}
+        INPUT_CLI: ${{ inputs.cli }}
+        INPUT_SRC: ${{ inputs.src }}
+        INPUT_SHOOT-ARGS: ${{ inputs.shoot-args }}
+        INPUT_ALL-WHEN-UNMATCHED: ${{ inputs.all-when-unmatched }}
+        INPUT_FAIL-ON-ERROR: ${{ inputs.fail-on-error }}
+        INPUT_OUT: ${{ runner.temp }}/showcase-screenshots
+      run: node "$GITHUB_ACTION_PATH/shoot.mjs"
+
+    # Uploaded even when a state failed, so step 2 can still report it.
+    - if: always() && inputs.step == 'shoot'
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ inputs.artifact }}
+        path: ${{ runner.temp }}/showcase-screenshots
+        if-no-files-found: ignore
+        retention-days: 7
+
+    # ---- step 2: the token, and none of the pull request's code ----
+    - if: inputs.step == 'publish'
+      uses: actions/download-artifact@v7
+      with:
+        name: ${{ inputs.artifact }}
+        path: ${{ runner.temp }}/showcase-screenshots
+
+    - if: inputs.step == 'publish'
+      shell: bash
+      env:
+        INPUT_CLI: ${{ inputs.cli }}
+        INPUT_BRANCH: ${{ inputs.branch }}
+        INPUT_COMMENT: ${{ inputs.comment }}
+        INPUT_OUT: ${{ runner.temp }}/showcase-screenshots
+        GH_TOKEN: ${{ github.token }}
+      run: node "$GITHUB_ACTION_PATH/publish.mjs"

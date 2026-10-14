@@ -71,6 +71,28 @@ describe("buildTriage", () => {
     expect(report.items).toEqual([]);
     expect(renderTriage(report, "text")).toBe("Nothing to triage. No failing scenarios.");
   });
+
+  it("--limit keeps the top-ranked items in a stable order, and counts every failure", () => {
+    const failing = (id: string, line: number) =>
+      stubs.testCaseResult({
+        id,
+        status: "failed",
+        sourceFile: "a.test.ts",
+        sourceLine: line,
+        story: stubs.storyMeta({ scenario: id, steps: [] }),
+        stepResults: [],
+      });
+    // Two on one line (it.each) tie on location; id decides, whatever order they arrive in.
+    const tcs = [failing("z", 1), failing("b", 1), failing("m", 9)];
+
+    const report = buildTriage({ testCases: tcs, format: "json", limit: 1 });
+    const reversed = buildTriage({ testCases: [...tcs].reverse(), format: "json", limit: 1 });
+
+    expect(report.items.map((i) => i.id)).toEqual(["b"]);
+    expect(reversed.items.map((i) => i.id)).toEqual(["b"]);
+    expect(report.failing).toBe(3);
+    expect(report.needsCovers).toBe(3);
+  });
 });
 
 describe("buildTriage --by-owner", () => {

@@ -54,6 +54,9 @@ A starting situation that produces work, then joins the main flow.
   behaviour.
 - **An agent working unattended** → `agent-loop`. It gives the agent a stopping
   condition it does not control.
+- **An agent on a schedule, chipping away at a target** (claims nothing checks, planned
+  scenarios, missing `covers`, a red suite) → `story-control-loop`. One scenario and one PR
+  per run, gated so a PR can never make the suite worse.
 
 ## Words and quality, underneath
 
@@ -72,6 +75,8 @@ pull them in too.
 ## Delivery
 
 - What blocks a merge or a release → `ci-gates`.
+- A PR description a reviewer can trust → `story-pr`. Behaviour from the diff between the
+  base and head runs, each claim citing its scenario.
 - "Is it covered?" → `coverage-audit`.
 - What shipped, for people who are not engineers → `release-notes`.
 - A PR written by an AI that needs reviewing by behaviour and proof →

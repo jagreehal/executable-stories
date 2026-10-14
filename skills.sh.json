@@ -79,7 +79,8 @@
         "bug-to-scenario",
         "bug-bash",
         "failure-triage",
-        "agent-loop"
+        "agent-loop",
+        "story-control-loop"
       ]
     },
     {
@@ -89,6 +90,7 @@
         "ci-gates",
         "coverage-audit",
         "release-notes",
+        "story-pr",
         "test-management-bridge",
         "report-webmcp"
       ]

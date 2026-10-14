@@ -1,0 +1,50 @@
+# Dampener: every PR keeps scenarios valid, the map honest, and every state rendering.
+# Replace every <placeholder>. Make it a required check once it's stable.
+
+name: Scenarios
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  SCENARIOS: <src/scenarios>
+  BASE_URL: <http://localhost:5173>
+
+jobs:
+  scenarios:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Install
+        run: |
+          <npm ci>
+          npx playwright install --with-deps chromium
+
+      - name: Scenarios parse and the map names only real ones
+        run: |
+          npx executable-stories-showcase validate "$SCENARIOS"
+          npx executable-stories-showcase coverage "$SCENARIOS"
+
+      - name: Start the app
+        run: |
+          <npm run dev> > /tmp/dev.log 2>&1 &
+          for i in $(seq 60); do curl -sf "$BASE_URL" > /dev/null && exit 0; sleep 2; done
+          cat /tmp/dev.log; exit 1
+
+      - name: Every state still renders
+        run: npx executable-stories-showcase shoot "$SCENARIOS" --base-url "$BASE_URL" --out .shots
+
+      - name: Keep failures
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: scenario-shots
+          path: .shots

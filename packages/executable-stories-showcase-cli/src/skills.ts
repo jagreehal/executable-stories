@@ -17,7 +17,12 @@ import { CliError } from './errors.js';
 /** Shipped in the package, so the guidance always matches the installed version. */
 const SKILLS = fileURLToPath(new URL('../skills/', import.meta.url));
 
-export const SKILL_NAMES = ['executable-stories-showcase', 'create-scenario-map'];
+export const SKILL_NAMES = [
+  'executable-stories-showcase',
+  'create-scenario-map',
+  'scenario-pr',
+  'scenario-coverage-loop',
+];
 
 const topics = () =>
   readdirSync(join(SKILLS, 'executable-stories-showcase/references')).map((f) => f.replace(/\.md$/, '')).toSorted();

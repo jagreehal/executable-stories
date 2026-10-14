@@ -56,6 +56,8 @@ Install the few that match your stack rather than all 56:
 | Building features day to day     | `story-tdd`, `bug-to-scenario`              |
 | Generating reports in CI         | `formatters-cli`, `ci-gates`                |
 | Running an agent unattended      | `agent-loop`, `failure-triage`              |
+| Scheduling an agent in CI        | `story-control-loop`                        |
+| Opening pull requests            | `story-pr`                                  |
 | Working with product or QA input | `spec-grilling`                              |
 | Publishing reports non-developers query | `report-webmcp`                      |
 | Using Executable Stories Cloud   | `executable-stories-cloud`, `cloud-mcp`     |

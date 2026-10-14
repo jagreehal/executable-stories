@@ -47,13 +47,32 @@ naming the app and when to use it), then:
 | Doctor         | `npx executable-stories-showcase doctor <dir> --base-url <url>`; run it first whenever something looks off |
 | Open a state   | The link pattern and the MCP server; that links beat clicking through                          |
 | Base scenarios | What `default` and `signed-in` (or the app's equivalents) contain, and which to extend         |
-| Map            | A table: feature, route, state, scenario name, status (`covered`, `missing`, `can't mock`)     |
+| Map            | The map table below                                                                            |
 | Gotchas        | What reads as broken but isn't; third parties in `ignore`; states only the server can produce  |
 
 For more than a handful of features, put one file per feature under `features/` with the same
 columns and link them from the map.
 
 Name scenarios `<feature>-<state>`, e.g. `orders-empty`, `orders-error`, `checkout-card-declined`.
+
+The CLI reads the map, so keep these column names (order doesn't matter):
+
+```markdown
+| Feature | Route   | State | Scenario       | Status     | Source                 |
+| ------- | ------- | ----- | -------------- | ---------- | ---------------------- |
+| Orders  | /orders | Empty | `orders-empty` | covered    | `src/features/orders/` |
+| Orders  | /orders | Error | `orders-error` | missing    | `src/features/orders/` |
+| Orders  | /orders | SSR   |                | can't mock | `app/orders/page.tsx`  |
+```
+
+- **Status** is `covered`, `missing` or `can't mock`.
+- **Scenario** is the name, or the planned name for a missing state.
+- **Source** lists the files or folders, from the project root, that render the state. `npx executable-stories-showcase affected`
+  maps a changed file to the states it touches through this column, so be specific: the feature's
+  folder, not `src/`.
+
+`npx executable-stories-showcase coverage <dir>` counts the rows by status, and fails when a `covered` row names a
+scenario that doesn't exist. Other tables in the file are ignored.
 
 ## 3. Fill the most important gaps
 
@@ -68,7 +87,8 @@ A state the browser can't produce (server-rendered data, a native permission pro
 ## 4. Prove it before handing over
 
 1. `doctor` passes.
-2. `npx executable-stories-showcase validate <dir>` passes.
+2. `npx executable-stories-showcase validate <dir>` passes, and `npx executable-stories-showcase coverage <dir>` exits 0 (no
+   row names a scenario that doesn't exist). Give every scenario it lists as unmapped a row.
 3. `npx executable-stories-showcase shoot <dir> --base-url <url> --only <the scenarios you added>` passes. Look
    at each screenshot: it must show the state the map says.
 4. Open one state through the link pattern the map gives.
@@ -77,8 +97,8 @@ Fix what fails. A map that was never run is a draft.
 
 ## 5. Hand over
 
-Tell the user: the skill path, features mapped, states covered and missing, the scenarios you added,
-and the screenshot folder. Don't commit for them. When a feature gains a state, its map row changes
+Tell the user: the skill path, features mapped, the `coverage` line (states covered and missing), the
+scenarios you added, and the screenshot folder. Don't commit for them. When a feature gains a state, its map row changes
 in the same commit as the scenario.
 
 ## Rules

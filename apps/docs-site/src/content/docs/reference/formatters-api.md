@@ -468,6 +468,8 @@ executable-stories list raw-run.json                         # this run only
 | `--input-type`   | string  | `raw`   | Input type: `raw`, `canonical`, or `ndjson` |
 | `--stdin`        | boolean | `false` | Read from stdin                             |
 
+Each JSON entry carries `assertion`: `asserted`, `unasserted` (its Then steps ran and checked nothing) or `unobserved` (the adapter can't count assertions). `jq 'map(select(.assertion == "unasserted"))'` lists the claims nothing checked.
+
 ### `gif`
 
 One animated GIF per passing scenario, one frame per step screenshot, for product docs and READMEs. The frames come from the run's `story.screenshot()` calls, so you regenerate a GIF with one command. Needs `ffmpeg` on `PATH`.
@@ -525,7 +527,11 @@ executable-stories triage raw-run.json --baseline reports/last-green.json --tria
 | ----------------- | ------- | ------- | ------------------------------------------------------------- |
 | `--baseline`      | string  | —       | Prior run (path or `auto`) to flag and rank regressions first |
 | `--triage-format` | string  | `text`  | `text` or `json`                                              |
+| `--by-owner`      | boolean | `false` | Group the worklist by `CODEOWNERS` owner                      |
+| `--limit`         | number  | —       | Keep the first n items; the counts still cover every failure  |
 | `--stdin`         | boolean | `false` | Read from stdin                                               |
+
+The order is stable: regressions, then file, line and scenario id. `--limit 1` picks the same target from the same run, which a scheduled loop needs.
 
 ### `publish-confluence`
 

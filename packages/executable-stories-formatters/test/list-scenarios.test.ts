@@ -136,6 +136,30 @@ describe("listScenarios", () => {
     ]);
   });
 
+  it("JSON says whether each scenario's claim was checked, so a loop can pick an unasserted one", () => {
+    const scenario = (id: string, thenAssertions?: number) =>
+      stubs.testCaseResult({
+        id,
+        story: stubs.storyMeta({
+          steps: [
+            { keyword: "Given", text: "a cart", assertions: 2 },
+            { keyword: "Then", text: "the total is shown", ...(thenAssertions === undefined ? {} : { assertions: thenAssertions }) },
+          ],
+        }),
+      });
+
+    const parsed = JSON.parse(
+      listScenarios({ testCases: [scenario("checked", 1), scenario("empty", 0), scenario("uncounted")], format: "json" }, {}),
+    );
+
+    // An assertion in Given proves the setup, not the claim.
+    expect(parsed.map((s: { id: string; assertion: string }) => [s.id, s.assertion])).toEqual([
+      ["checked", "asserted"],
+      ["empty", "unasserted"],
+      ["uncounted", "unobserved"],
+    ]);
+  });
+
   it("handles empty test cases", () => {
     const result = listScenarios({ testCases: [], format: "text" }, {});
     expect(result).toBe("No scenarios found.");

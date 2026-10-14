@@ -44,6 +44,13 @@ http://localhost:5173/orders?scenario=orders-empty&scenario-strict
 real backend. Once `<html data-scenario="orders-empty">` is set and the `ready` selector is
 visible, the state is on screen.
 
+## Show the real state, not a mock-up
+
+When you explain a UI change or a design choice to a person, show the app: `shoot --only` the states
+in question and put the PNGs (or `--compare` diffs) in front of them, instead of drawing the UI in
+HTML or ASCII. Real screenshots show real data, real styles and real bugs. Describe in words only
+what a screenshot can't show, such as the order things happen in.
+
 ## Topics
 
 Read the topic for the job before you start. The files sit next to this one, and
@@ -56,7 +63,7 @@ Read the topic for the job before you start. The files sit next to this one, and
 | `capture`           | [references/capture.md](references/capture.md)                     | Making a scenario from the running app: the panel, `?scenario-record`, MCP `save_scenario`           |
 | `auth`              | [references/auth.md](references/auth.md)                           | Signed-in and signed-out states, cookies, apps that validate a token on startup                      |
 | `network`           | [references/network.md](references/network.md)                     | Strict mode, `allow`, `ignore` for analytics, an existing MSW setup, named handlers                  |
-| `verify`            | [references/verify.md](references/verify.md)                       | Checking a UI change across every state with `shoot`, reading failure pages, PR evidence             |
+| `verify`            | [references/verify.md](references/verify.md)                       | Checking a UI change: `affected`, `shoot`, before/after `--compare`, failure pages, `publish`        |
 | `media`             | [references/media.md](references/media.md)                         | Screenshots and videos for docs and websites: viewports, dark mode, locales, `record`                |
 | `mcp`               | [references/mcp.md](references/mcp.md)                             | Driving the live app from a coding agent: open, observe, act, check ready, save                      |
 | `debugging`         | [references/debugging.md](references/debugging.md)                 | Something fails: `doctor`, error codes and exit codes, common causes                                 |
@@ -69,9 +76,10 @@ Read the topic for the job before you start. The files sit next to this one, and
    the wiring one step at a time and prints the fix for each problem.
 3. New state: capture it from the running app (topic `capture`) instead of writing fixtures by
    hand. Set a `ready` selector and check it matches.
-4. Changed UI: `npx executable-stories-showcase shoot <dir> --base-url <url>` and look at the screenshots of the
-   states your change touches (topic `verify`). Each failed scenario gets `<out>/<name>.md` with the
-   fix; read that page, not the JSON.
+4. Changed UI: `npx executable-stories-showcase affected <dir>` names the states your branch touches; shoot
+   them with `--only`, and with `--compare` against a run from before the change (topic `verify`).
+   Look at the screenshots. Each failed scenario gets `<out>/<name>.md` with the fix; read that
+   page, not the JSON.
 5. `npx executable-stories-showcase validate <dir>` before committing.
 
 ## Rules

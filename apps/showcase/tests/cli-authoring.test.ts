@@ -112,7 +112,9 @@ describe('promoteScenarios with invalid JSON', () => {
 
 describe('installing the agent skills and MCP server', () => {
   it('copies skills into .agents, links them from .claude, and keeps an existing MCP entry', async () => {
-    const { installSkills, registerMcp } = await import('../../../packages/executable-stories-showcase-cli/src/skills.ts');
+    const { installSkills, registerMcp, SKILL_NAMES } = await import(
+      '../../../packages/executable-stories-showcase-cli/src/skills.ts'
+    );
     const root = mkdtempSync(join(tmpdir(), 'ss-skills-'));
 
     installSkills(root);
@@ -124,6 +126,13 @@ describe('installing the agent skills and MCP server', () => {
     expect(readFileSync(join(root, '.claude/skills/create-scenario-map/SKILL.md'), 'utf8')).toContain(
       'create-scenario-map',
     );
+
+    // Agents find a skill by its frontmatter name, which must match its folder.
+    for (const name of SKILL_NAMES) {
+      expect(readFileSync(join(root, `.agents/skills/${name}/SKILL.md`), 'utf8')).toMatch(
+        new RegExp(`^---\\nname: ${name}\\n`),
+      );
+    }
 
     writeFileSync(join(root, '.mcp.json'), '{"mcpServers":{"other":{"command":"x"}}}');
     expect(registerMcp(root, ['mcp', 'src/scenarios', '--base-url', 'http://localhost:5173'])).toEqual([

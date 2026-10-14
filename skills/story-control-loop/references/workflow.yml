@@ -1,0 +1,420 @@
+# Agent: <loop title> (story-control-loop)
+#
+# Drives one target with one small PR at a time:
+#   schedule / manual: pick one scenario -> agent fixes it -> verify -> open a PR
+#   /iterate comment:  update the loop's own PR from a maintainer's feedback
+#
+# Four jobs, so neither the write token nor the gate's verdict depends on anything the agent touched:
+#   gate     read-only token. Decides whether to run; builds the /iterate prompt.
+#   agent    read-only token. Picks the target (saved before the agent starts), runs the agent,
+#            hands over its commits as patches.
+#   verify   no token, no secrets. Fresh checkout: runs the suite, saves that run, applies the
+#            patches, runs the suite again. The only job where the agent's code runs.
+#   publish  write token. Gates with a CLI installed from npm, on the two runs from verify.
+#            Applies the patches with hooks off and pushes. Runs no code from the repo or the agent.
+#
+# What is still trusted: the second run in verify is produced by the patched code, which could
+# write its own results. The patch check limits which files the agent may change; the reviewer
+# reading the PR is the last check.
+#
+# Replace every <placeholder>. TARGET is one of: unasserted, planned, uncovered, failing.
+
+name: 'Agent: <loop title>'
+
+on:
+  schedule:
+    - cron: '0 7 * * 1-5' # <cadence>
+  workflow_dispatch:
+  issue_comment:
+    types: [created]
+
+permissions: {}
+
+concurrency:
+  group: agent-<slug>
+  cancel-in-progress: false
+
+env:
+  TARGET: <unasserted|planned|uncovered|failing>
+  LOOP: agent-<slug>
+  MEMORY: .github/agent-memory/<slug>.md
+  RAW_RUN: <reports/raw-run.json>
+  # The CLI publish gates with, from npm, so nothing in the repo can change the verdict.
+  ES_CLI: executable-stories-formatters@<version>
+  # Paths the agent's patch may touch (extended regex). Keep test config and reporters out of it.
+  ALLOWED: '^(<src/>|<tests/>)'
+  # What the agent may do. It reads code, PR text and comments, any of which can carry
+  # instructions, so it gets these tools and nothing else. Widen with care.
+  AGENT_TOOLS: 'Read,Edit,Write,Glob,Grep,Bash(<test command>:*),Bash(git add:*),Bash(git commit:*),Bash(git diff:*),Bash(git status:*)'
+  AGENT_DENY: 'Edit(.git/**),Write(.git/**),Edit(.github/workflows/**),Write(.github/workflows/**),Edit(.github/scripts/**),Write(.github/scripts/**),Edit(node_modules/**),Write(node_modules/**)'
+
+jobs:
+  gate:
+    # Comments only reach this job when they start with /iterate, on a PR, from someone with write access.
+    if: |
+      github.event_name != 'issue_comment' ||
+      (github.event.issue.pull_request &&
+       startsWith(github.event.comment.body, '/iterate') &&
+       contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+    outputs:
+      run: ${{ steps.gate.outputs.run }}
+      number: ${{ steps.gate.outputs.number }}
+      ref: ${{ steps.gate.outputs.ref }}
+    steps:
+      - name: Gate
+        id: gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          PR_URL: ${{ github.event.issue.pull_request.url }}
+          COMMENTER: ${{ github.event.comment.user.login }}
+        run: |
+          # Scheduled runs wait while this loop's last PR is open, so the loop goes at review pace.
+          if [ "$EVENT" = "schedule" ]; then
+            open=$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --label "$LOOP" --json number --jq length)
+            if [ "$open" -gt 0 ]; then echo "run=false" >> "$GITHUB_OUTPUT"; echo "A $LOOP PR is open; nothing to do."; exit 0; fi
+          fi
+          if [ "$EVENT" != "issue_comment" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+
+          # author_association calls read-only collaborators COLLABORATOR too; ask for the
+          # commenter's real permission, and treat any failure to answer as none.
+          perm=none
+          if [[ "$COMMENTER" =~ ^[A-Za-z0-9-]+$ ]]; then
+            perm=$(gh api "repos/$GITHUB_REPOSITORY/collaborators/$COMMENTER/permission" --jq .permission 2>/dev/null || echo none)
+          fi
+          case "$perm" in
+            admin | maintain | write) ;;
+            *) echo "run=false" >> "$GITHUB_OUTPUT"; echo "$COMMENTER can't write to this repo; /iterate ignored."; exit 0 ;;
+          esac
+
+          # Every loop hears /iterate; only this loop's own PRs get an answer. The body marker
+          # alone is not enough: anyone can paste it into a PR, and the PR's text reaches the agent.
+          pr=$(gh api "$PR_URL")
+          ref=$(jq -r .head.ref <<< "$pr")
+          if jq -e --arg repo "$GITHUB_REPOSITORY" --arg loop "$LOOP" '
+              .user.login == "github-actions[bot]"
+              and .head.repo.full_name == $repo
+              and any(.labels[]; .name == $loop)
+              and ((.body // "") | contains("story-control-loop:workflow=" + $loop + ";"))' <<< "$pr" > /dev/null \
+            && [[ "$ref" =~ ^$LOOP/[0-9]+$ ]]; then
+            { echo "run=true"; echo "number=$(jq -r .number <<< "$pr")"; echo "ref=$ref"; } >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # The prompt script comes from the default branch, never from the PR.
+      - uses: actions/checkout@v6
+        if: steps.gate.outputs.run == 'true' && github.event_name == 'issue_comment'
+        with:
+          sparse-checkout: .github
+          persist-credentials: false
+
+      - name: Iterate prompt
+        if: steps.gate.outputs.run == 'true' && github.event_name == 'issue_comment'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          # Passed through the environment, never pasted into the script: it is user input.
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          PR: ${{ steps.gate.outputs.number }}
+        run: |
+          mkdir -p /tmp/iterate
+          node .github/scripts/agent-iteration.mjs prompt --workflow "$LOOP" --memory "$MEMORY" \
+            --repo "$GITHUB_REPOSITORY" --pr "$PR" > /tmp/iterate/prompt.md
+
+      - uses: actions/upload-artifact@v7
+        if: steps.gate.outputs.run == 'true' && github.event_name == 'issue_comment'
+        with:
+          name: iterate-prompt
+          path: /tmp/iterate/prompt.md
+          retention-days: 1
+
+  agent:
+    needs: gate
+    if: needs.gate.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      id: ${{ steps.control.outputs.id }}
+      base: ${{ steps.setup.outputs.base }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.gate.outputs.ref || '' }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      # <setup: copy this repo's existing CI setup steps (Node, pnpm, install, browsers)>
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - name: Install
+        id: setup
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          npm install -g @anthropic-ai/claude-code
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          echo "base=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          mkdir -p /tmp/target /tmp/handoff
+
+      # ---- schedule / manual: choose the target before the agent exists ----
+      - name: Sense
+        if: github.event_name != 'issue_comment'
+        run: |
+          <test command> || true # a red suite is input here, not a reason to stop
+          npx executable-stories list "$RAW_RUN" --list-format json > /tmp/scenarios.json
+
+      - name: Control
+        id: control
+        if: github.event_name != 'issue_comment'
+        run: |
+          # Stable order (file, line, id), so a rerun of the same run picks the same scenario.
+          case "$TARGET" in
+            failing)    npx executable-stories triage "$RAW_RUN" --triage-format json --limit 1 \
+                          | jq '.items[0] // empty' > /tmp/target/target.json ;;
+            unasserted) filter='.assertion == "unasserted"' ;;
+            planned)    filter='.status == "pending"' ;;
+            uncovered)  filter='.covers == []' ;;
+            *) echo "Unknown TARGET: $TARGET"; exit 1 ;;
+          esac
+          if [ -n "${filter:-}" ]; then
+            jq "map(select($filter)) | length" /tmp/scenarios.json | xargs echo "Gap ($TARGET):"
+            jq "map(select($filter)) | sort_by(.sourceFile, .sourceLine, .id) | .[0] // empty
+                | {id, scenario, sourceFile, sourceLine, covers, steps: [.steps[] | {keyword, text}]}" \
+              /tmp/scenarios.json > /tmp/target/target.json
+          fi
+          if [ ! -s /tmp/target/target.json ]; then echo "Set point met: nothing to do."; echo "id=" >> "$GITHUB_OUTPUT"; exit 0; fi
+          echo "${filter:-}" > /tmp/target/filter
+          echo "id=$(jq -r .id /tmp/target/target.json)" >> "$GITHUB_OUTPUT"
+          cat /tmp/target/target.json
+
+      # Uploaded before the agent runs, so it cannot pick an easier target afterwards.
+      - uses: actions/upload-artifact@v7
+        if: steps.control.outputs.id != ''
+        with:
+          name: target
+          path: /tmp/target
+          retention-days: 3
+
+      - name: Actuate
+        if: steps.control.outputs.id != ''
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          TARGET_JSON="$(cat /tmp/target/target.json)"
+          MEMORY_TEXT="$(cat "$MEMORY" 2>/dev/null || echo '(none yet)')"
+          # <paste the filled-in prompt from references/prompt.md between the markers>
+          cat > /tmp/prompt.md <<PROMPT
+          <actuator prompt, with \$TARGET_JSON and \$MEMORY_TEXT where the template has them>
+          PROMPT
+          claude -p "$(cat /tmp/prompt.md)" --output-format json \
+            --allowedTools "$AGENT_TOOLS" --disallowedTools "$AGENT_DENY" \
+            | jq -r .result > /tmp/handoff/summary.md
+
+      # ---- /iterate: one agent pass over a maintainer's feedback ----
+      - uses: actions/download-artifact@v7
+        if: github.event_name == 'issue_comment'
+        with:
+          name: iterate-prompt
+          path: /tmp/iterate
+
+      - name: Iterate
+        if: github.event_name == 'issue_comment'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          claude -p "$(cat /tmp/iterate/prompt.md)" --output-format json \
+            --allowedTools "$AGENT_TOOLS" --disallowedTools "$AGENT_DENY" \
+            | jq -r .result > /tmp/handoff/summary.md
+
+      # Only the agent's commits leave this job. Test output and anything else in the workspace stays.
+      - name: Hand off
+        if: github.event_name == 'issue_comment' || steps.control.outputs.id != ''
+        env:
+          BASE: ${{ steps.setup.outputs.base }}
+        run: git format-patch "$BASE..HEAD" -o /tmp/handoff/patches
+
+      - uses: actions/upload-artifact@v7
+        if: github.event_name == 'issue_comment' || steps.control.outputs.id != ''
+        with:
+          name: handoff
+          path: /tmp/handoff
+          retention-days: 3
+
+  verify:
+    needs: [gate, agent]
+    if: needs.gate.outputs.run == 'true' && (github.event_name == 'issue_comment' || needs.agent.outputs.id != '')
+    runs-on: ubuntu-latest
+    # No token and no secrets: the agent's code runs here.
+    permissions: {}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.agent.outputs.base }}
+          persist-credentials: false
+
+      - uses: actions/download-artifact@v7
+        with:
+          name: handoff
+          path: /tmp/handoff
+
+      # <setup: the same steps as the agent job, without the agent CLI>
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - name: Install
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Run before
+        run: |
+          mkdir -p /tmp/runs
+          <test command> || true
+          cp "$RAW_RUN" /tmp/runs/before.json
+
+      # Saved before any patched code runs.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: run-before
+          path: /tmp/runs/before.json
+          retention-days: 3
+
+      - name: Run after
+        run: |
+          shopt -s nullglob
+          patches=(/tmp/handoff/patches/*.patch)
+          [ ${#patches[@]} -eq 0 ] || git -c core.hooksPath=/dev/null am --keep-cr "${patches[@]}"
+          <install command, in case the patch changed dependencies>
+          <test command> || true
+          cp "$RAW_RUN" /tmp/runs/after.json
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: run-after
+          path: /tmp/runs/after.json
+          retention-days: 3
+
+  publish:
+    needs: [gate, agent, verify]
+    if: needs.gate.outputs.run == 'true' && (github.event_name == 'issue_comment' || needs.agent.outputs.id != '')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      # The default branch, for the trusted footer script; nothing from the agent is checked out yet.
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/download-artifact@v7
+        with:
+          path: /tmp/in
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Check
+        id: check
+        env:
+          ID: ${{ needs.agent.outputs.id }}
+        run: |
+          shopt -s nullglob
+          patches=(/tmp/in/handoff/patches/*.patch)
+          if [ ${#patches[@]} -eq 0 ]; then echo "The agent committed nothing; no PR."; echo "skip=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+
+          # The scope check runs in Apply, on what git applied rather than on the patch text.
+
+          # The gate, from npm: no repo code, no agent code.
+          npm install --prefix /tmp/es --no-save --ignore-scripts "$ES_CLI" > /dev/null
+          es=/tmp/es/node_modules/.bin/executable-stories
+          before=/tmp/in/run-before/before.json
+          after=/tmp/in/run-after/after.json
+
+          # Nothing that passed before fails, and no scenario was removed, skipped or stripped of
+          # steps (the ratchet). A scheduled run's target must also pass.
+          "$es" goal "$after" --baseline "$before" --no-regressions --goal-format json \
+            ${ID:+--require-scenarios "$ID"} > /tmp/goal.json || true
+          if ! jq -e --arg id "$ID" '.regressions == [] and .ratchet.violations == []
+              and ($id == "" or all(.requirements[]; .met))' /tmp/goal.json > /dev/null; then
+            echo "The change failed the gate; no PR."; jq . /tmp/goal.json; exit 1
+          fi
+
+          # A scheduled run's target moved: it no longer matches the gap's filter.
+          filter=$(cat /tmp/in/target/filter 2>/dev/null || true)
+          if [ -n "$filter" ]; then
+            "$es" list "$after" --list-format json > /tmp/after-list.json
+            if jq -e --arg id "$ID" "map(select(.id == \$id and ($filter))) | length > 0" /tmp/after-list.json > /dev/null; then
+              echo "Scenario $ID still matches $filter; no PR."; exit 1
+            fi
+          fi
+
+          "$es" compare "$before" "$after" --format changelog --output-dir /tmp/changelog --output-name loop > /dev/null || true
+          # Built from the default branch, before the patch is applied.
+          node .github/scripts/agent-iteration.mjs footer --workflow "$LOOP" --memory "$MEMORY" > /tmp/footer.md
+
+      - name: Apply
+        if: steps.check.outputs.skip != 'true'
+        env:
+          REF: ${{ needs.gate.outputs.ref }}
+          BASE: ${{ needs.agent.outputs.base }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if [ -n "$REF" ]; then git checkout "origin/$REF"; else git checkout --detach "$BASE"; fi
+          start=$(git rev-parse HEAD)
+          git -c core.hooksPath=/dev/null am --keep-cr /tmp/in/handoff/patches/*.patch
+
+          # Scope comes from git's own record of what it applied, NUL-separated, so no file name
+          # can be read two ways. The memory file is the one path outside ALLOWED the loop may change.
+          outside=""
+          while IFS= read -r -d '' path; do
+            [ "$path" = "$MEMORY" ] || [[ "$path" =~ $ALLOWED ]] || outside+="$path"$'\n'
+          done < <(git diff --name-only --no-renames -z "$start" HEAD)
+          if [ -n "$outside" ]; then echo "The patch touches files outside the loop's scope:"; printf '%s' "$outside"; exit 1; fi
+          if git diff --summary --no-renames "$start" HEAD | grep -Eq 'mode 1(2|6)0000'; then
+            echo "The patch adds a symlink or a submodule; no PR."; exit 1
+          fi
+
+      - name: Push iteration
+        if: github.event_name == 'issue_comment' && steps.check.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ needs.gate.outputs.number }}
+          REF: ${{ needs.gate.outputs.ref }}
+        run: |
+          git -c core.hooksPath=/dev/null push --no-verify \
+            "https://x-access-token:$GH_TOKEN@github.com/$GITHUB_REPOSITORY.git" "HEAD:refs/heads/$REF"
+          gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body-file /tmp/in/handoff/summary.md
+
+      - name: Open PR
+        if: github.event_name != 'issue_comment' && steps.check.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          { cat /tmp/in/handoff/summary.md
+            printf '\n\n## Behaviour change\n\n'
+            cat /tmp/changelog/loop.changelog.md 2>/dev/null || echo "No scenario changed."
+            cat /tmp/footer.md
+          } > /tmp/body.md
+          branch="$LOOP/$GITHUB_RUN_ID"
+          git -c core.hooksPath=/dev/null push --no-verify \
+            "https://x-access-token:$GH_TOKEN@github.com/$GITHUB_REPOSITORY.git" "HEAD:refs/heads/$branch"
+          gh label create "$LOOP" --repo "$GITHUB_REPOSITORY" --color 0E8A16 \
+            --description "Opened by the $LOOP loop" 2>/dev/null || true
+          gh pr create --repo "$GITHUB_REPOSITORY" --head "$branch" \
+            --title "$LOOP: $(jq -r .scenario /tmp/in/target/target.json | head -c 200)" \
+            --body-file /tmp/body.md --label "$LOOP"

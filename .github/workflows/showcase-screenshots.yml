@@ -1,0 +1,83 @@
+name: Showcase screenshots
+
+# This repo's own use of actions/showcase-screenshots: before and after images of the demo app's
+# states on each pull request that touches it.
+on:
+  pull_request:
+    paths:
+      - apps/showcase/examples/demo-react/**
+      - packages/executable-stories-showcase/src/**
+      - actions/showcase-screenshots/**
+
+concurrency:
+  group: showcase-screenshots-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  # Runs the pull request's code (install, build, dev server), so it can't write anything.
+  shoot:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 # affected needs the base's history
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - run: corepack enable && corepack prepare pnpm@10.28.1 --activate
+      - uses: ./actions/showcase-screenshots
+        with:
+          step: shoot
+          scenarios: apps/showcase/examples/demo-react/scenarios
+          # The library too: its changes match no scenario, so they shoot every state.
+          src: apps/showcase/examples/demo-react,packages/executable-stories-showcase/src
+          install-command: >-
+            pnpm install --frozen-lockfile && pnpm turbo build --filter=showcase-example... &&
+            pnpm --filter showcase-example exec playwright install --with-deps chromium
+          dev-command: pnpm --filter demo-react exec vite --port 5179 --strictPort
+          base-url: http://localhost:5179
+          cli: node packages/executable-stories-showcase-cli/dist/cli.js
+          shoot-args: --no-panel
+
+  # Holds the write token and runs none of the pull request's code: the base commit's CLI,
+  # on the images and results the shoot job uploaded.
+  publish:
+    needs: shoot
+    if: always() && needs.shoot.result != 'cancelled'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # push the images to the scenario-shots branch
+      pull-requests: write # comment on the PR
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+      # This job only trusts the base's copy of the action and CLI. On the PR that adds them
+      # there is none yet, and falling back to the PR's copy would run its code next to the token.
+      - name: Does the base have the action?
+        id: base
+        run: |
+          if [ -f actions/showcase-screenshots/action.yml ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::The base commit has no actions/showcase-screenshots yet, so no comment this time. The images are in the shoot job's showcase-screenshots artifact; the comment starts once this lands."
+          fi
+      - if: steps.base.outputs.ready == 'true'
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - if: steps.base.outputs.ready == 'true'
+        run: |
+          corepack enable && corepack prepare pnpm@10.28.1 --activate
+          pnpm install --frozen-lockfile --ignore-scripts
+          pnpm turbo build --filter=executable-stories-showcase-cli
+      - if: steps.base.outputs.ready == 'true'
+        uses: ./actions/showcase-screenshots
+        with:
+          step: publish
+          cli: node packages/executable-stories-showcase-cli/dist/cli.js
