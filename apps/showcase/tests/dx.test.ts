@@ -77,6 +77,33 @@ describe('ffmpegArgs', () => {
       'fps=12,split[a][b];[a]palettegen=stats_mode=diff[p];[b][p]paletteuse=dither=bayer',
     );
   });
+
+  it('crops, then downscales to --width, then sets --fps', () => {
+    const args = ffmpegArgs({
+      input: 'in.webm',
+      output: 'out.gif',
+      format: 'gif',
+      start: 0,
+      crop: { x: 0, y: 0, width: 1200, height: 800 },
+      width: 901,
+      fps: 8,
+    });
+
+    expect(args[args.indexOf('-vf') + 1]).toMatch(
+      /^crop=1200:800:0:0,scale='min\(iw,900\)':-2:flags=lanczos,fps=8,split/,
+    );
+  });
+
+  it('keeps the recorded frame rate for video unless --fps is set', () => {
+    const vf = (fps?: number) => {
+      const args = ffmpegArgs({ input: 'in.webm', output: 'out.mp4', format: 'mp4', start: 0, fps });
+
+      return args.includes('-vf') ? args[args.indexOf('-vf') + 1] : undefined;
+    };
+
+    expect(vf()).toBeUndefined();
+    expect(vf(30)).toBe('fps=30');
+  });
 });
 
 describe('redactSecrets', () => {
