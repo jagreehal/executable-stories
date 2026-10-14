@@ -29,8 +29,10 @@ const HELP = `Usage: executable-stories-showcase <command> <scenarios-dir> [opti
              Each failed scenario gets <out>/<name>.md: what failed and how to fix it
   record     Open each scenario that has steps, run them, and save a video with a visible cursor.
              --base-url and --steps (required): a module whose default export maps scenario names
-             to async (page) => {} steps. --format mp4 (default), gif or webm; --out, --only, --element.
-             mp4, gif and --element need ffmpeg on PATH (or FFMPEG_PATH)
+             to async (page) => {} steps, or to { element, steps } to crop that scenario to its own element.
+             --format mp4 (default), gif or webm; --out, --only, --element.
+             --fps n (GIF default 12), --width px to downscale, --hold ms on the last frame (default 800).
+             mp4, gif, --element, --fps and --width need ffmpeg on PATH (or FFMPEG_PATH)
   suggest    Ask Claude which UI states lack scenarios and draft them into --out (default <dir>/proposed).
              --src dir[,dir] (required), --schema file, --max n, --model (default $EXECUTABLE_STORIES_SHOWCASE_MODEL or claude-opus-5-5).
              Needs ANTHROPIC_API_KEY or \`ant auth login\`; ANTHROPIC_BASE_URL points it at a compatible proxy.
@@ -58,6 +60,9 @@ const { positionals, values } = parseArgs({
     locale: { type: 'string' },
     timezone: { type: 'string' },
     steps: { type: 'string' },
+    fps: { type: 'string' },
+    width: { type: 'string' },
+    hold: { type: 'string' },
     format: { type: 'string' },
     json: { type: 'boolean' },
     src: { type: 'string' },
@@ -71,11 +76,26 @@ const { positionals, values } = parseArgs({
   },
 });
 
-/** `--steps` module: scenario name to the steps recorded after it opens. */
+const StepsFn = z.function({ input: [z.custom<Page>()], output: z.unknown() });
+
+/** `--steps` module: scenario name to the steps recorded after it opens, optionally with its own crop. */
 const StepsSchema = z.record(
   z.string(),
-  z.function({ input: [z.custom<Page>()], output: z.unknown() }),
+  z.union([StepsFn, z.object({ element: z.string().optional(), steps: StepsFn })])
+    .transform((v) => (typeof v === 'function' ? { element: undefined, steps: v } : v)),
 );
+
+/** A whole-number flag of at least `min`, or undefined when it wasn't passed. */
+function wholeNumber(flag: string, value: string | undefined, min = 1) {
+  if (value === undefined) return undefined;
+  const n = Number(value);
+
+  if (!Number.isInteger(n) || n < min) {
+    throw new CliError('INVALID_ARGUMENT', `--${flag} must be a whole number of at least ${min}, not "${value}"`);
+  }
+
+  return n;
+}
 
 const [command, dir = command === 'init' ? 'src/scenarios' : undefined] = positionals;
 
@@ -328,6 +348,12 @@ For agents that need a pointer, add to AGENTS.md (or CLAUDE.md):
         throw new CliError('INVALID_ARGUMENT', `--format must be mp4, gif or webm, not "${format}"`);
       }
 
+      const fps = wholeNumber('fps', values.fps);
+      const width = wholeNumber('width', values.width);
+      const hold = wholeNumber('hold', values.hold, 0) ?? 800;
+
+      if (values.scale) console.log('  --scale applies to screenshots; video records at --viewport size.');
+
       const steps = StepsSchema.parse((await import(pathToFileURL(resolve(values.steps)).href)).default);
       const only = values.only?.split(',');
       const names = Object.keys(steps).filter((n) => !only || only.includes(n));
@@ -362,11 +388,11 @@ For agents that need a pointer, add to AGENTS.md (or CLAUDE.md):
 
         const visible = box && visibleCrop(box, viewport);
 
-        if (!visible) throw new CliError('ELEMENT_NOT_FOUND', `--element "${selector}" isn't visible`);
+        if (!visible) throw new CliError('ELEMENT_NOT_FOUND', `element "${selector}" isn't visible`);
 
         if (visible.clipped) {
           console.log(
-            `  --element "${selector}" (${Math.round(box.width)}x${
+            `  element "${selector}" (${Math.round(box.width)}x${
               Math.round(box.height)
             }) is larger than the viewport; `
               + `the video shows the visible part. Use a larger --viewport to fit it.`,
@@ -376,11 +402,10 @@ For agents that need a pointer, add to AGENTS.md (or CLAUDE.md):
         return visible.crop;
       };
 
-      for (const [name, run] of Object.entries(steps).filter(([n]) => names.includes(n))) {
+      for (const [name, { element, steps: run }] of Object.entries(steps).filter(([n]) => names.includes(n))) {
         const resolved = catalog.resolve(catalog.get(name) ?? { name });
         const options = contextOptions(resolved, values);
 
-        // Playwright records video at CSS-pixel size whatever the scale, so use a larger --viewport for sharper video.
         const context = await browser.newContext({
           baseURL,
           ...options,
@@ -394,19 +419,20 @@ For agents that need a pointer, add to AGENTS.md (or CLAUDE.md):
         try {
           await showCursor(page);
           await openScenario(page, name, { path: resolved.path, strict: !values['no-strict'], panel: false });
-          const crop = values.element ? await cropTo(page, values.element, options.viewport) : undefined;
+          const selector = element ?? values.element;
+          const crop = selector ? await cropTo(page, selector, options.viewport) : undefined;
 
           const start = (Date.now() - began) / 1000;
           await Promise.resolve(run(page)).catch((err: Error) => {
             throw new CliError('STEPS_FAILED', `steps failed: ${err.message.split('\n')[0]}`);
           });
-          await page.waitForTimeout(800); // hold the final frame
+          await page.waitForTimeout(hold); // hold the final frame
           await context.close();
 
           const video = page.video();
 
           if (!video) throw new Error('Playwright recorded no video');
-          encodeVideo({ input: await video.path(), output: file, format, start, crop });
+          encodeVideo({ input: await video.path(), output: file, format, start, crop, fps, width });
           console.log(`✓ ${name.padEnd(32)} ${file}`);
         } catch (err) {
           exitCode = Math.max(exitCode, err instanceof CliError ? err.exitCode : 1);
