@@ -1,5 +1,11 @@
 # executable-stories-showcase-cli
 
+## 0.2.0
+
+### Minor Changes
+
+- bf28008: `record` adds `--width`, `--fps` and `--hold <ms>` to set a video's size, frame rate and time on the last frame. A steps entry can be `{ element, steps }`, so each scenario in one run gets its own crop.
+
 ## 0.1.0
 
 ### Minor Changes
