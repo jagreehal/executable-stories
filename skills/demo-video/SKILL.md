@@ -28,7 +28,8 @@ run that nothing verified, next to a real one that already has the frames.
 | Shipping the file | `--asset-mode copy` bundles referenced local media into `assets/` beside the report and rewrites the paths (`html`, `markdown`, `astro-markdown`) |
 | Hosting | the user's, already: it is a folder. Or `executable-stories share` |
 
-So this skill is TTS plus ffmpeg. No uploader, no bucket, no CDN code.
+So this skill is TTS plus ffmpeg, or TTS plus Remotion when the user wants motion. No
+uploader, no bucket, no CDN code.
 
 If the ask is just "show the app running", there may be nothing to build at all: turn on
 `featureVideo` and you have a playable walkthrough in the report today. Narration is the
@@ -144,6 +145,47 @@ already do; a mixed set needs a common `scale` in the per-frame command.
 **Delegate this step to a background subagent.** TTS and ffmpeg emit hundreds of lines that
 teach nobody anything, and there is no reason for them to occupy the conversation. Hand the
 subagent the frame list, the narration lines, and the output path.
+
+## 4b. Or render with Remotion
+
+Pick Remotion when the user wants motion on top of stills: animated `story.state()` cards,
+captions that appear line by line, a title card, zoom toward clicks. It also handles
+scenarios with no screenshots at all, because a state snapshot is a frame too. The project
+already has a Remotion app, or the user agrees to add one (`npx create-video@latest`); check
+whether Remotion's license applies to them before you add it.
+
+`executable-stories-remotion` holds the composition, so you write props, not scenes:
+
+```bash
+npm i executable-stories-remotion
+executable-stories format reports/raw-run.json --format story-report-json \
+  --output-dir public --output-name index
+```
+
+```tsx
+const fromRun = (scenario: string): CalculateMetadataFunction<StoryVideoProps> => async () => {
+  const report = (await (await fetch(staticFile('index.story-report.json'))).json()) as StoryReport;
+  const props = storyVideoProps({ report, scenario, resolveAsset: staticFile });
+  // Voiceover: each scene plays its clip from step 3 for the clip's length (ffprobe it).
+  props.scenes.forEach((scene, i) => {
+    scene.audio = staticFile(`video/frame-${i + 1}.mp3`);
+    scene.seconds = clipSeconds[i];
+  });
+
+  return { props, durationInFrames: storyVideoFrames(props, 30) };
+};
+```
+
+`<StoryVideo>` is the component; `npx remotion render <id> reports/video/${SCENARIO_ID}.mp4`
+writes the file the `story.video()` path expects. `storyVideoProps` already applies the rules
+from step 1: passed scenarios only, frameless steps fold into the next scene, and it throws on
+a scenario with no frames.
+
+For showcase recordings, `executable-stories-showcase record` writes a `<name>.video.json`
+next to each video, and `<RecordingVideo>` cuts several into one video, captioned, with the
+camera zooming to each click. `apps/remotion-example` in this repo
+renders both from its own run (`pnpm --filter remotion-example video`). Install Remotion's own
+skills (`npx skills add remotion-dev/skills`) for anything past these two compositions.
 
 ## 5. Bundle and open
 

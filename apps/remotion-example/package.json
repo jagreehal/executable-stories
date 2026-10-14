@@ -1,0 +1,42 @@
+{
+  "name": "remotion-example",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Videos rendered with Remotion from an executable-stories run and a showcase recording",
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "report": "executable-stories format reports/raw-run.json --format story-report-json --output-dir public --output-name index",
+    "record": "node scripts/record-demo.mjs",
+    "studio": "remotion studio",
+    "render": "remotion render CheckoutStates out/checkout-states.mp4 && remotion render CatalogueSearch out/catalogue-search.mp4 && remotion render DemoRecording out/demo-recording.mp4",
+    "video": "pnpm test && pnpm report && pnpm record && pnpm render",
+    "lint": "eslint .",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@remotion/media": "4.0.533",
+    "executable-stories-core": "workspace:*",
+    "executable-stories-remotion": "workspace:*",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "remotion": "4.0.533"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@remotion/cli": "4.0.533",
+    "@types/node": "^25.9.2",
+    "@types/react": "19.3.0",
+    "demo-react": "workspace:*",
+    "eslint": "^10.12.0",
+    "eslint-config-executable-stories": "workspace:*",
+    "eslint-plugin-executable-stories-vitest": "workspace:*",
+    "executable-stories-formatters": "workspace:*",
+    "executable-stories-showcase-cli": "workspace:*",
+    "executable-stories-vitest": "workspace:*",
+    "typescript": "~6.0.3",
+    "vitest": "^5.0.1",
+    "zod": "4.5.4"
+  }
+}

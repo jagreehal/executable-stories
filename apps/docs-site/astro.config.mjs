@@ -168,6 +168,7 @@ export default defineConfig({
                 { label: 'Output modes', slug: 'guides/output-modes' },
                 { label: 'Collating reports', slug: 'guides/collating-reports' },
                 { label: 'Sharing reports', slug: 'guides/sharing-reports' },
+                { label: 'Videos with Remotion', slug: 'guides/videos-with-remotion' },
                 { label: 'CI and source links', slug: 'guides/ci-and-source-links' },
               ],
             },

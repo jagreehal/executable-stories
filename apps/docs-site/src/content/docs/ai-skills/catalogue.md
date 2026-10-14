@@ -115,7 +115,7 @@ Explaining work that already ran.
 | `explain-system`     | Explaining a whole area for onboarding or handover, grounded in what the suite proves  |
 | `executable-lessons` | Teaching a topic as runnable lessons that stay correct because they execute            |
 | `show-me`            | "Show me" mid-conversation: the smallest view that makes the point, from the run       |
-| `demo-video`         | A narrated demo built from storyboard frames a passing run produced. Type `/demo-video` |
+| `demo-video`         | A narrated demo built from storyboard frames a passing run produced, with ffmpeg or Remotion. Type `/demo-video` |
 
 `explain-change`, `explain-system`, and `executable-lessons` refuse to assert behaviour without a scenario behind it. They write "not covered by a scenario" where the run cannot back a claim, and mark anything drawn from reading code as agent-authored.
 

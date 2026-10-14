@@ -8,7 +8,12 @@ import {
   networkEntryFor,
 } from '../../../packages/executable-stories-showcase-cli/src/inspect.ts';
 import { createMcpHandler, tool } from '../../../packages/executable-stories-showcase-cli/src/mcp-protocol.ts';
-import { ffmpegArgs, visibleCrop } from '../../../packages/executable-stories-showcase-cli/src/record.ts';
+import {
+  ffmpegArgs,
+  outputSize,
+  videoManifest,
+  visibleCrop,
+} from '../../../packages/executable-stories-showcase-cli/src/record.ts';
 import { createCatalog, diffScenario } from '../../../packages/executable-stories-showcase/src/catalog.ts';
 import { unsignedJwt } from '../../../packages/executable-stories-showcase/src/jwt.ts';
 import { openScenario } from '../../../packages/executable-stories-showcase/src/playwright.ts';
@@ -103,6 +108,45 @@ describe('ffmpegArgs', () => {
 
     expect(vf()).toBeUndefined();
     expect(vf(30)).toBe('fps=30');
+  });
+});
+
+describe('videoManifest', () => {
+  it('matches the size ffmpeg writes, never upscaling', () => {
+    expect(outputSize({ width: 1280, height: 720 }, 900)).toEqual({ width: 900, height: 506 });
+    // ffmpeg rounds 467.4 up to 468, not down to 466.
+    expect(outputSize({ width: 1000, height: 779 }, 600)).toEqual({ width: 600, height: 468 });
+    expect(outputSize({ width: 390, height: 700 }, 900)).toEqual({ width: 390, height: 700 });
+    expect(outputSize({ width: 390, height: 700 })).toEqual({ width: 390, height: 700 });
+  });
+
+  it('times clicks from the start of the saved video and maps them into the crop and scale', () => {
+    const manifest = videoManifest({
+      name: 'search',
+      description: 'Search text that matches nothing',
+      video: 'search.mp4',
+      viewport: { width: 1280, height: 720 },
+      crop: { x: 100, y: 50, width: 801, height: 400 },
+      width: 400,
+      start: 10_000,
+      end: 14_250,
+      clicks: [
+        { at: 11_000, x: 500, y: 250 },
+        // Before the video starts, and outside the crop: not in the video.
+        { at: 9_000, x: 500, y: 250 },
+        { at: 12_000, x: 50, y: 250 },
+      ],
+    });
+
+    expect(manifest).toEqual({
+      name: 'search',
+      description: 'Search text that matches nothing',
+      video: 'search.mp4',
+      width: 400,
+      height: 200,
+      durationMs: 4250,
+      clicks: [{ t: 1000, x: 200, y: 100 }],
+    });
   });
 });
 

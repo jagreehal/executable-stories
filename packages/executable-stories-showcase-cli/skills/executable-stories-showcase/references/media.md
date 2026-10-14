@@ -50,6 +50,11 @@ npx executable-stories-showcase record src/scenarios --base-url http://localhost
   end on their last action.
 - Video records at viewport size and `--scale` applies to screenshots. For a sharp hero video,
   record a larger `--viewport` and scale it down with `--width`.
+- Each video gets `<name>.video.json`: name, description, file, size, `durationMs` and clicks
+  (`t` in ms, `x`/`y` in video pixels after the crop and `--width`; iframe clicks map to the
+  page). `RecordingVideo` from `executable-stories-remotion` reads it to caption each clip and
+  zoom to its clicks in Remotion. Add a short `page.waitForTimeout` before each click so the
+  zoom has time to arrive.
 - MP4, GIF, `--element`, `--fps` and `--width` need ffmpeg on `PATH`, or `FFMPEG_PATH`. Plain WebM
   doesn't.
 - In your own Playwright scripts, `showCursor(page)` from `executable-stories-showcase/playwright` draws the
