@@ -20,6 +20,7 @@ fn test_raw_run_serialization() {
                         duration_ms: None,
                         docs: None,
                         assertions: None,
+                        started_at_ms: None,
                     },
                     StoryStep {
                         keyword: "When".to_string(),
@@ -30,6 +31,7 @@ fn test_raw_run_serialization() {
                         duration_ms: None,
                         docs: None,
                         assertions: None,
+                        started_at_ms: None,
                     },
                     StoryStep {
                         keyword: "Then".to_string(),
@@ -40,6 +42,7 @@ fn test_raw_run_serialization() {
                         duration_ms: None,
                         docs: None,
                         assertions: None,
+                        started_at_ms: None,
                     },
                 ],
                 tags: Some(vec!["smoke".to_string()]),
@@ -49,6 +52,7 @@ fn test_raw_run_serialization() {
                 docs: None,
                 source_order: Some(0),
                 otel_spans: None,
+                started_at_ms: None,
             }),
             duration_ms: Some(42.5),
             ..Default::default()
@@ -143,6 +147,7 @@ fn test_step_with_docs() {
         mode: None,
         wrapped: None,
         assertions: None,
+        started_at_ms: None,
         duration_ms: None,
         docs: Some(vec![DocEntry::note("important detail")]),
     };
@@ -174,6 +179,7 @@ fn test_story_meta_with_docs() {
         ]),
         source_order: Some(5),
         otel_spans: None,
+        started_at_ms: None,
     };
 
     let json = serde_json::to_value(&meta).unwrap();

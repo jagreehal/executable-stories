@@ -355,6 +355,7 @@ function createStepMarker(keyword: StepKeyword, mode?: StepMode): StepMarker {
 
     ctx.meta.steps.push(step);
     ctx.currentStep = step;
+    stampWhenReached(step);
 
     // Handle DocEntry[] children: attach as step docs and deduplicate from story-level
     if (isChildrenArray) {
@@ -403,6 +404,20 @@ function createStepMarker(keyword: StepKeyword, mode?: StepMode): StepMarker {
   return marker;
 }
 
+/**
+ * Stamp when the step starts. A Cypress test body only queues its commands, which
+ * run after it returns, so the step starts when the queue reaches this point, not
+ * when `story.given()` is called. A queued `cy.then` notes that moment; it does not
+ * show in the Command Log or change the subject. Outside a running test (no `cy`)
+ * nothing is stamped, which the doc model reads as "cannot observe".
+ */
+function stampWhenReached(step: StoryStep): void {
+  if (typeof cy === 'undefined') return;
+  cy.then(() => {
+    step.startedAtMs = Date.now();
+  });
+}
+
 // ============================================================================
 // story.init() - Cypress-specific
 // ============================================================================
@@ -428,6 +443,7 @@ function init(options?: StoryOptions, scenarioOverride?: string): void {
     covers: options?.covers,
     meta: options?.meta,
     sourceOrder: sourceOrderCounter++,
+    startedAtMs: Date.now(),
   };
 
   activeContext = {
@@ -518,6 +534,7 @@ function fn<T>(keyword: StepKeyword, text: string, body: () => T): T {
   };
   ctx.meta.steps.push(step);
   ctx.currentStep = step;
+  stampWhenReached(step);
 
   const start = performance.now();
   try {

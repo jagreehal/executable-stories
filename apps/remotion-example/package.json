@@ -10,10 +10,11 @@
     "report": "executable-stories format reports/raw-run.json --format story-report-json --output-dir public --output-name index",
     "record": "node scripts/record-demo.mjs",
     "studio": "remotion studio",
-    "render": "remotion render CheckoutStates out/checkout-states.mp4 && remotion render CatalogueSearch out/catalogue-search.mp4 && remotion render DemoRecording out/demo-recording.mp4",
-    "video": "pnpm test && pnpm report && pnpm record && pnpm render",
+    "render": "remotion render CheckoutStates out/checkout-states.mp4 && remotion render CatalogueSearch out/catalogue-search.mp4 && remotion render DemoRecording out/demo-recording.mp4 && remotion render Walkthrough out/walkthrough.mp4",
+    "video": "pnpm test && pnpm report && pnpm record && pnpm walkthrough && pnpm render",
     "lint": "eslint .",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "walkthrough": "playwright test -c e2e/playwright.config.ts && executable-stories video reports/walkthrough/raw-run.json --output-dir public"
   },
   "dependencies": {
     "@remotion/media": "4.0.533",
@@ -33,6 +34,8 @@
     "eslint-config-executable-stories": "workspace:*",
     "eslint-plugin-executable-stories-vitest": "workspace:*",
     "executable-stories-formatters": "workspace:*",
+    "executable-stories-playwright": "workspace:*",
+    "executable-stories-showcase": "workspace:*",
     "executable-stories-showcase-cli": "workspace:*",
     "executable-stories-vitest": "workspace:*",
     "typescript": "~6.0.3",

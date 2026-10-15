@@ -11,7 +11,8 @@ module ExecutableStories
     attr_accessor :scenario, :steps, :tags, :tickets, :covers, :meta, :docs,
                   :current_step, :seen_primary, :start_time, :end_time,
                   :source_order, :step_counter, :attachments, :active_timers,
-                  :timer_counter, :otel_spans, :trace_url_template, :suite_path
+                  :timer_counter, :otel_spans, :trace_url_template, :suite_path,
+                  :started_at_ms
 
     def initialize(scenario, tags: nil, ticket: nil, covers: nil, meta: nil, trace_url_template: nil)
       @scenario = scenario
@@ -24,6 +25,8 @@ module ExecutableStories
       @current_step = nil
       @seen_primary = {}
       @start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC) * 1000.0
+      # Wall clock, unlike @start_time: epoch ms so a report can place it in time.
+      @started_at_ms = Process.clock_gettime(Process::CLOCK_REALTIME, :millisecond)
       @source_order = Collector.next_order
       @step_counter = 0
       @attachments = []
@@ -287,7 +290,8 @@ module ExecutableStories
         suite_path: @suite_path,
         docs: @docs.empty? ? nil : @docs,
         source_order: @source_order,
-        otel_spans: @otel_spans
+        otel_spans: @otel_spans,
+        started_at_ms: @started_at_ms
       )
     end
 
@@ -346,7 +350,8 @@ module ExecutableStories
         mode: nil,
         wrapped: nil,
         duration_ms: nil,
-        docs: nil
+        docs: nil,
+        started_at_ms: Process.clock_gettime(Process::CLOCK_REALTIME, :millisecond)
       )
       @step_counter += 1
       # Close the previous marker before this step's own assertions begin.
@@ -393,7 +398,8 @@ module ExecutableStories
         mode: nil,
         wrapped: nil,
         duration_ms: nil,
-        docs: nil
+        docs: nil,
+        started_at_ms: Process.clock_gettime(Process::CLOCK_REALTIME, :millisecond)
       )
       @step_counter += 1
       flush_pending_assertions
@@ -528,6 +534,8 @@ module ExecutableStories
   def planned(scenario, source_file: nil, source_line: nil, **opts)
     location = caller_locations(1, 1)&.first
     story = Story.new(scenario, **opts)
+    # A planned scenario never ran, so it has no start time.
+    story.instance_variable_set(:@started_at_ms, nil)
     story.record(
       status: "todo",
       duration_ms: 0,

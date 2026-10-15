@@ -77,6 +77,25 @@ class StoryApiTest {
     }
 
     @Test
+    fun stepsAndScenarioRecordStartTimes() {
+        Story.init("Timed flow")
+        Story.given("a first step")
+        Story.fn("When", "a wrapped step", Runnable { })
+
+        val meta = Story.getContext()!!.toStoryMeta()
+        val mapper = ObjectMapper().registerKotlinModule()
+        val node = mapper.readTree(mapper.writeValueAsString(meta))
+        val scenarioStart = node["startedAtMs"].asLong()
+        val first = node["steps"][0]["startedAtMs"].asLong()
+        val second = node["steps"][1]["startedAtMs"].asLong()
+
+        assertTrue(scenarioStart > 1_000_000_000_000L, "scenario startedAtMs should be epoch ms")
+        assertTrue(first > 1_000_000_000_000L, "step startedAtMs should be epoch ms")
+        assertTrue(first >= scenarioStart)
+        assertTrue(second >= first)
+    }
+
+    @Test
     fun stepMethodsAddSteps() {
         Story.init("Shopping cart flow")
 

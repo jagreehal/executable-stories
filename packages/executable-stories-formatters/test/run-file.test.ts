@@ -1,4 +1,4 @@
-import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -9,6 +9,7 @@ import {
   diagnoseRunFile,
   findDefaultRunFile,
   formatDoctorReport,
+  staleRunCheck,
 } from "../src/run-file";
 
 function project(files: Record<string, unknown | string> = {}): string {
@@ -127,5 +128,35 @@ describe("formatDoctorReport", () => {
     expect(text).toContain("Run file has problems");
     // A passing check carries no arrow line.
     expect(text).toMatch(/✔ json\s+parses\n/);
+  });
+});
+
+describe("doctor: did the stories reporter run?", () => {
+  const LAST_RUN = "test-results/.last-run.json";
+
+  it("blames --reporter when Playwright ran but no run file exists", () => {
+    const root = project({ [LAST_RUN]: { status: "passed" } });
+    const report = diagnoseRunFile(undefined, root);
+    expect(report.healthy).toBe(false);
+    expect(report.checks[0].fix).toMatch(/--reporter/);
+  });
+
+  it("warns when the run file is older than Playwright's last run", () => {
+    const root = project({ [DEFAULT_RUN_FILES[1]]: VALID_RUN, [LAST_RUN]: {} });
+    const hourAgo = new Date(Date.now() - 3_600_000);
+    utimesSync(path.join(root, DEFAULT_RUN_FILES[1]), hourAgo, hourAgo);
+    expect(check(root, "freshness")).toMatchObject({ status: "warn", fix: expect.stringMatching(/--reporter/) });
+  });
+
+  it("says nothing when the run file is as new as the run", () => {
+    const root = project({ [DEFAULT_RUN_FILES[1]]: VALID_RUN, [LAST_RUN]: {} });
+    expect(check(root, "freshness")).toBeUndefined();
+  });
+
+  it("says nothing about a reports folder, whose own time stays put while its reports are rewritten", () => {
+    const root = project({ "reports/by-file/a.json": {}, [LAST_RUN]: {} });
+    const hourAgo = new Date(Date.now() - 3_600_000);
+    utimesSync(path.join(root, "reports/by-file"), hourAgo, hourAgo);
+    expect(staleRunCheck("reports/by-file", root)).toBeUndefined();
   });
 });

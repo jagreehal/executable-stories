@@ -189,6 +189,7 @@ class StoryStep(TypedDict):
     # An absent key means unobserved, which is not the same as zero.
     assertions: NotRequired[int]
     durationMs: NotRequired[float]
+    startedAtMs: NotRequired[float]
     docs: NotRequired[list[DocEntry]]
 
 
@@ -205,6 +206,7 @@ class StoryMeta(TypedDict):
     suitePath: NotRequired[list[str]]
     docs: NotRequired[list[DocEntry]]
     sourceOrder: NotRequired[int]
+    startedAtMs: NotRequired[float]
 
 
 # ── RawTestCase ────────────────────────────────────────────────────

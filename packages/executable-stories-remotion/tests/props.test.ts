@@ -1,7 +1,7 @@
 import type { ReportStep, StoryReport } from 'executable-stories-core';
 import { describe, expect, it } from 'vitest';
 import { storyVideoFrames, storyVideoProps } from '../src/props.js';
-import { recordingFrames } from '../src/RecordingVideo.js';
+import { recordingFrames, stepAt } from '../src/RecordingVideo.js';
 import { clipFrames, zoomAt } from '../src/zoom.js';
 
 const step = (
@@ -168,6 +168,33 @@ describe('zoomAt', () => {
 
     expect(zoomAt(rapid, 1000).x).toBe(100);
     expect(zoomAt(rapid, 1100).x).toBe(300);
+  });
+});
+
+describe('zoomAt on a focused field', () => {
+  it('holds while the field is typed into, until the next point', () => {
+    const points = [
+      { t: 1000, x: 100, y: 50, kind: 'focus' as const },
+      { t: 5000, x: 300, y: 250, kind: 'click' as const },
+    ];
+
+    // A click would have zoomed out by 2500ms; the focus is still being typed into.
+    expect(zoomAt(points, 3000)).toMatchObject({ scale: 1.6, x: 100, y: 50 });
+    expect(zoomAt(points.map((p) => ({ ...p, kind: 'click' as const })), 3000).scale).toBe(1);
+  });
+});
+
+describe('stepAt', () => {
+  const steps = [
+    { t: 0, keyword: 'Given', text: 'a' },
+    { t: 1500, keyword: 'When', text: 'b' },
+  ];
+
+  it('shows the last step that has begun', () => {
+    expect(stepAt(steps, 0)).toBe(0);
+    expect(stepAt(steps, 1499)).toBe(0);
+    expect(stepAt(steps, 1500)).toBe(1);
+    expect(stepAt(steps, 9000)).toBe(1);
   });
 });
 

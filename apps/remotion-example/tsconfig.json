@@ -11,5 +11,5 @@
     "noEmit": true,
     "types": ["node", "vitest"]
   },
-  "include": ["src", "stories", "recordings", "vitest.config.ts", "remotion.config.ts"]
+  "include": ["src", "stories", "recordings", "e2e", "vitest.config.ts", "remotion.config.ts"]
 }

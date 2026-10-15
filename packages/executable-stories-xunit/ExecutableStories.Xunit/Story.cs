@@ -207,7 +207,8 @@ namespace ExecutableStories.Xunit
         /// <param name="tags">Optional tags for categorization.</param>
         public static void Planned(string scenario, params string[] tags)
         {
-            Holder().Context = new StoryContext(scenario, tags);
+            // A planned scenario never ran, so it has no start time.
+            Holder().Context = new StoryContext(scenario, tags) { StartedAtMs = null };
 
             // Recording here leaves the recording hook nothing to attribute, so
             // the class comes from xUnit directly — the same answer that hook

@@ -116,6 +116,9 @@ pub struct StoryMeta {
     pub source_order: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub otel_spans: Option<Vec<serde_json::Value>>,
+    /// When the scenario started (epoch ms): `Story::new`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub started_at_ms: Option<f64>,
 }
 
 #[derive(Serialize, Clone)]
@@ -140,6 +143,9 @@ pub struct StoryStep {
     /// which is not the same as zero.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub assertions: Option<u32>,
+    /// When the step started (epoch ms): the step call, or a wrapped body's start.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub started_at_ms: Option<f64>,
 }
 
 #[derive(Serialize, Clone)]

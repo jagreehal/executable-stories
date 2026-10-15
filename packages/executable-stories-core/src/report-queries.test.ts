@@ -1,7 +1,9 @@
 import { describe, it, expect } from "vitest";
 
 import {
+  docsOf,
   getFeatureSummary,
+  isPassed,
   getScenario,
   listScenarioSummaries,
   runProvenance,
@@ -407,5 +409,31 @@ describe("slowestScenarios", () => {
       features: [feature({ scenarios: [scenario({ id: "todo", status: "pending", durationMs: 0 })] })],
     });
     expect(slowestScenarios(pendingOnly, 5)).toEqual([]);
+  });
+});
+
+describe("isPassed", () => {
+  it("accepts the raw-run and the StoryReport spelling", () => {
+    expect(isPassed("pass")).toBe(true);
+    expect(isPassed("passed")).toBe(true);
+    expect(isPassed("fail")).toBe(false);
+    expect(isPassed("failed")).toBe(false);
+  });
+});
+
+describe("docsOf", () => {
+  it("collects one kind from the scenario, its steps and nested children, in order", () => {
+    const table = (label: string) => ({ kind: "table" as const, label, columns: ["a"], rows: [["1"]], phase: "runtime" as const });
+    const found = docsOf(
+      scenario({
+        docEntries: [table("story"), { kind: "note", text: "n", phase: "runtime" }],
+        steps: [
+          step({ docEntries: [{ kind: "section", title: "s", markdown: "", phase: "runtime", children: [table("nested")] }] }),
+          step({ docEntries: [table("step")] }),
+        ],
+      }),
+      "table",
+    );
+    expect(found.map((t) => t.label)).toEqual(["story", "nested", "step"]);
   });
 });

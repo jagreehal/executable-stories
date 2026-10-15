@@ -190,6 +190,11 @@
           "type": "number",
           "minimum": 0
         },
+        "startedAtMs": {
+          "type": "number",
+          "minimum": 0,
+          "description": "When the scenario started (epoch ms), when the adapter records it."
+        },
         "tags": {
           "type": "array",
           "items": {
@@ -292,6 +297,11 @@
         "durationMs": {
           "type": "number",
           "minimum": 0
+        },
+        "startedAtMs": {
+          "type": "number",
+          "minimum": 0,
+          "description": "When the step started (epoch ms), when the adapter records it."
         },
         "assertions": {
           "type": "integer",

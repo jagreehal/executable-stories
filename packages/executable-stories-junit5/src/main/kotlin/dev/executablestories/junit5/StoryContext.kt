@@ -19,6 +19,7 @@ class StoryContext(
     val meta: MutableMap<String, Any?> = LinkedHashMap()
     val docs: MutableList<DocEntry> = mutableListOf()
     val sourceOrder: Int = ORDER_COUNTER.getAndIncrement()
+    val startedAtMs: Long = System.currentTimeMillis()
 
     var traceUrlTemplate: String? = null
 
@@ -60,6 +61,7 @@ class StoryContext(
         }
         val step = StoryStep(effectiveKeyword, text)
         step.id = "step-${stepCounter++}"
+        step.startedAtMs = System.currentTimeMillis()
         steps.add(step)
         currentStep = step
         for (doc in docs) {
@@ -124,6 +126,8 @@ class StoryContext(
             docs = if (this@StoryContext.docs.isEmpty()) null else ArrayList(this@StoryContext.docs)
             sourceOrder = this@StoryContext.sourceOrder
             otelSpans = this@StoryContext.otelSpans
+            // A planned scenario never ran, so it has no start time.
+            startedAtMs = if (planned) null else this@StoryContext.startedAtMs
         }
 
     fun startTimer(): Int {

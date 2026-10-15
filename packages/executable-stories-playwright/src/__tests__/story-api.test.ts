@@ -475,6 +475,58 @@ test.describe("step with inline docs", () => {
     expect((meta!.meta as { featureVideo?: boolean }).featureVideo).toBe(true);
   });
 
+  test("stamps when the scenario and each step started", async ({}, testInfo) => {
+    const before = Date.now();
+    story.init(testInfo);
+    story.given("a step");
+    story.when("another");
+    const meta = getStoryMeta(testInfo)!;
+    expect(meta.startedAtMs).toBeGreaterThanOrEqual(before);
+    expect(meta.steps.map((s) => s.startedAtMs! >= meta.startedAtMs!)).toEqual([true, true]);
+  });
+
+  test("featureVideo with a page notes each click and focused field", async ({ page }, testInfo) => {
+    story.init({ page }, testInfo, { featureVideo: true });
+    // A navigation, not setContent: init scripts run on new documents.
+    await page.goto(
+      "data:text/html," +
+        encodeURIComponent(
+          `<!doctype html><button style="position:absolute;left:10px;top:10px;width:100px;height:20px">Go</button>` +
+            `<input style="position:absolute;left:10px;top:100px;width:200px;height:20px">`,
+        ),
+    );
+    await page.getByRole("button").click();
+    await page.locator("input").fill("Lena");
+    await expect.poll(() => getStoryMeta(testInfo)?.recording?.attention.length).toBe(2);
+    const { recording } = getStoryMeta(testInfo)!;
+    expect(recording!.viewport).toEqual(page.viewportSize());
+    // A focus is the field's border-box centre, wherever the browser's default padding and border put it.
+    const box = (await page.locator("input").boundingBox())!;
+    expect(recording!.attention.map(({ kind, x, y }) => ({ kind, x: Math.round(x), y: Math.round(y) }))).toEqual([
+      { kind: "click", x: 60, y: 20 },
+      { kind: "focus", x: Math.round(box.x + box.width / 2), y: Math.round(box.y + box.height / 2) },
+    ]);
+    // Each point carries the page size it happened at, for tests that resize the page.
+    expect(recording!.attention.map((p) => p.viewport)).toEqual([page.viewportSize(), page.viewportSize()]);
+  });
+
+  test("featureVideo maps a click inside an iframe to the page", async ({ page }, testInfo) => {
+    story.init({ page }, testInfo, { featureVideo: true });
+    const inner = encodeURIComponent(`<body style="margin:0"><button style="position:absolute;left:20px;top:30px;width:40px;height:20px">In</button>`);
+    // A 10px border and a half-size transform: the point goes through both.
+    await page.goto(
+      "data:text/html," +
+        encodeURIComponent(
+          `<body style="margin:0"><iframe src="data:text/html,${inner}" style="position:absolute;left:100px;top:200px;width:400px;height:300px;border:10px solid;transform:scale(.5);transform-origin:0 0"></iframe>`,
+        ),
+    );
+    await page.frameLocator("iframe").getByRole("button").click();
+    await expect.poll(() => getStoryMeta(testInfo)?.recording?.attention.length).toBe(1);
+    const [point] = getStoryMeta(testInfo)!.recording!.attention;
+    // Button centre in the iframe is (40, 40); through the border and the scale: 100 + (10 + 40) * .5.
+    expect({ kind: point.kind, x: Math.round(point.x), y: Math.round(point.y) }).toEqual({ kind: "click", x: 125, y: 225 });
+  });
+
   test("story.video() does not warn for a relative path (resolved later by the asset bundler)", async ({}, testInfo) => {
     const originalWarn = console.warn;
     const warnCalls: unknown[][] = [];

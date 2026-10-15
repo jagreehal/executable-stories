@@ -19,6 +19,9 @@ class StoryStep() {
      */
     var assertions: Int? = null
     var durationMs: Double? = null
+
+    /** When the step started (epoch ms). */
+    var startedAtMs: Long? = null
     var docs: MutableList<DocEntry>? = null
 
     constructor(keyword: String, text: String) : this() {

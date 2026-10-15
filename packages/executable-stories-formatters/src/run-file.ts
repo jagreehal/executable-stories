@@ -28,6 +28,35 @@ export function findDefaultRunFile(cwd = process.cwd()): string | undefined {
   return undefined;
 }
 
+/** Playwright rewrites this after every run, whichever reporters ran. */
+const PLAYWRIGHT_LAST_RUN = "test-results/.last-run.json";
+const REPORTER_SKIPPED_FIX =
+  "Playwright ran without the stories reporter: `--reporter` on the command line replaces every reporter in the config. Drop it, or list the stories reporter there too.";
+
+/**
+ * A run file Playwright's last run did not write: missing, or more than a minute
+ * older than `test-results/.last-run.json`. Undefined when nothing says so.
+ */
+export function staleRunCheck(runFile: string | undefined, cwd = process.cwd()): DoctorCheck | undefined {
+  const lastRun = path.resolve(cwd, PLAYWRIGHT_LAST_RUN);
+  if (!fs.existsSync(lastRun)) return undefined;
+  const ranAt = fs.statSync(lastRun).mtimeMs;
+  const file = runFile && path.resolve(cwd, runFile);
+  if (!file || !fs.existsSync(file)) {
+    return { label: "freshness", status: "fail", detail: `Playwright ran, but no run file was written`, fix: REPORTER_SKIPPED_FIX };
+  }
+  // A directory's mtime moves only when entries come and go, not when reports are rewritten.
+  if (fs.statSync(file).isDirectory()) return undefined;
+  const behind = ranAt - fs.statSync(file).mtimeMs;
+  if (behind <= 60_000) return undefined;
+  return {
+    label: "freshness",
+    status: "warn",
+    detail: `${runFile} is ${Math.round(behind / 60_000)} min older than Playwright's last run (${PLAYWRIGHT_LAST_RUN})`,
+    fix: REPORTER_SKIPPED_FIX,
+  };
+}
+
 /** One thing `doctor` checked, and how it went. */
 export interface DoctorCheck {
   label: string;
@@ -69,12 +98,13 @@ export function diagnoseRunFile(file: string | undefined, cwd = process.cwd()): 
   const checks: DoctorCheck[] = [];
 
   const resolved = file ?? findDefaultRunFile(cwd);
+  const stale = staleRunCheck(resolved ?? "reports/raw-run.json", cwd);
   if (!resolved) {
     checks.push({
       label: "run file",
       status: "fail",
       detail: `not found at ${DEFAULT_RUN_FILES.join(" or ")}`,
-      fix: "Run your tests first. Non-JS adapters write .executable-stories/raw-run.json; in a JS reporter set rawRunPath.",
+      fix: stale?.fix ?? "Run your tests first. Non-JS adapters write .executable-stories/raw-run.json; in a JS reporter set rawRunPath.",
     });
     return { checks, healthy: false };
   }
@@ -96,6 +126,7 @@ export function diagnoseRunFile(file: string | undefined, cwd = process.cwd()): 
     status: "ok",
     detail: `${resolved} (${stat.size} bytes, modified ${stat.mtime.toISOString()})`,
   });
+  if (stale) checks.push(stale);
 
   let parsed: unknown;
   try {

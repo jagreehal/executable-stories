@@ -1,6 +1,5 @@
 import { expect, type Page, test } from '@playwright/test';
-import { showCursor } from 'executable-stories-showcase/playwright';
-import { glideBeforeClick } from '../../../packages/executable-stories-showcase-cli/src/record';
+import { glideBeforeActions, showCursor } from 'executable-stories-showcase/playwright';
 
 // Pages served from a stand-in origin, so these need none of the example apps.
 const pages = {
@@ -16,6 +15,7 @@ const pages = {
     `<body style="margin:0"><iframe src="/inner" style="position:absolute;left:100px;top:50px;width:400px;height:300px;border:5px solid;padding:20px;transform:scale(.5);transform-origin:0 0"></iframe></body>`,
   // Far from where the cursor starts, so a click that doesn't wait lands before it arrives.
   '/far': `<body style="margin:0"><button id=t style="position:absolute;left:20px;top:20px;width:50px">t</button></body>`,
+  '/far-field': `<body style="margin:0"><input id=t style="position:absolute;left:20px;top:20px;width:200px"></body>`,
   // Moves, or widens, just after the cursor reaches it.
   '/move':
     `<body style="margin:0"><button id=t style="position:absolute;left:20px;top:100px;width:50px">t</button><script>t.addEventListener('mouseenter',()=>setTimeout(()=>t.style.left='500px',100),{once:true})</script></body>`,
@@ -116,7 +116,7 @@ test('maps through an iframe’s CSS scale, border and padding', async ({ page }
 
 for (const path of ['/far', '/move', '/grow']) {
   test(`record's click lands once the cursor has arrived (${path})`, async ({ page }) => {
-    glideBeforeClick(page);
+    glideBeforeActions(page);
     await page.goto(`http://cursor.test${path}`);
 
     const at = atMousedown(page);
@@ -125,3 +125,30 @@ for (const path of ['/far', '/move', '/grow']) {
     expect(cursor).toBeCloseTo(click, 0);
   });
 }
+
+test('typing waits for the cursor to reach the field', async ({ page }) => {
+  glideBeforeActions(page);
+  await page.goto('http://cursor.test/far-field');
+  const box = (await page.locator('#t').boundingBox())!;
+
+  // Where the cursor is drawn when the first character goes in.
+  const at = page.evaluate(() =>
+    new Promise<number>((resolve) =>
+      addEventListener('input', () => {
+        resolve(new DOMMatrix(getComputedStyle(document.querySelector('.es-cursor')!).transform).e);
+      }, { once: true, capture: true })
+    )
+  );
+  await page.locator('#t').pressSequentially('Lena');
+  expect(await at).toBeCloseTo(box.x + 24, 0);
+});
+
+test('size scales the pointer and halo: false drops the halo', async ({ page }) => {
+  await showCursor(page, { size: 2, halo: false });
+  await page.goto('http://cursor.test/far');
+
+  // beforeEach drew a default cursor too; the last one is this test's.
+  const last = page.locator('.es-cursor').last();
+  await expect(last.locator('.es-halo')).toHaveCount(0);
+  expect((await last.locator('svg').boundingBox())?.width).toBeCloseTo(48, 0);
+});

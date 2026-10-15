@@ -23,7 +23,9 @@ run that nothing verified, next to a real one that already has the frames.
 | --- | --- |
 | Scene list, in order | `deriveStoryboard()` in `executable-stories-core`, or the steps in the StoryReport JSON |
 | Narration script | the step's `text` |
-| Screen recording | Playwright `story.init(testInfo, { featureVideo: true })` promotes the `.webm` with no per-test call (needs `video: "on"` in the Playwright config) |
+| Screen recording | Playwright `story.init({ page }, testInfo, { featureVideo: true })` promotes the `.webm` with no per-test call (needs `video: "on"` in the Playwright config) |
+| MP4, trimmed, with step times | `executable-stories video reports/raw-run.json` → `reports/video/<scenario>.mp4` + `.video.json` (clicks, focused fields, `steps[].t`) |
+| Step captions over the recording | `StoryRecordingVideo` in `executable-stories-remotion`, from that manifest |
 | Attaching the file | `story.video({ path, caption, poster })` |
 | Shipping the file | `--asset-mode copy` bundles referenced local media into `assets/` beside the report and rewrites the paths (`html`, `markdown`, `astro-markdown`) |
 | Hosting | the user's, already: it is a folder. Or `executable-stories share` |

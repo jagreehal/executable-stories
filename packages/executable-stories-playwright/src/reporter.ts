@@ -500,6 +500,18 @@ export default class StoryReporter implements Reporter {
             caption: 'Recorded walkthrough',
             phase: 'runtime',
           });
+          // `executable-stories video` counts step and click times from when
+          // the video began, which story.init notes when given the page.
+          // Otherwise Playwright's own "Create page" step ends about then: the
+          // video starts with the page. The test's start is the last resort.
+          const viewport = test.parent?.project()?.use.viewport ?? undefined;
+          meta.recording = {
+            ...(viewport ? { viewport } : {}),
+            attention: [],
+            ...meta.recording,
+            startedAtMs:
+              meta.recording?.startedAtMs ?? pageCreatedAt(result.steps) ?? result.startTime.getTime(),
+          };
         }
       }
 
@@ -760,6 +772,18 @@ export default class StoryReporter implements Reporter {
       console.error('Failed to send notifications:', err);
     }
   }
+}
+
+/** When the test's page fixture finished creating its page (epoch ms), from Playwright's step tree. */
+export function pageCreatedAt(steps: TestStep[]): number | undefined {
+  for (const step of steps) {
+    if (step.category === 'pw:api' && step.title === 'Create page') {
+      return step.startTime.getTime() + step.duration;
+    }
+    const nested = pageCreatedAt(step.steps);
+    if (nested !== undefined) return nested;
+  }
+  return undefined;
 }
 
 /**

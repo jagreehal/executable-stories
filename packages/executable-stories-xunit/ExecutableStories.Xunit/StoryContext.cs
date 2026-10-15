@@ -23,6 +23,7 @@ namespace ExecutableStories.Xunit
         public List<DocEntry> Docs { get; } = [];
         public int SourceOrder { get; } = Interlocked.Increment(ref _orderCounter) - 1;
         public long StartedTicks { get; } = System.Diagnostics.Stopwatch.GetTimestamp();
+        public long? StartedAtMs { get; set; } = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         public StoryStep? CurrentStep { get; set; }
         public string? TraceUrlTemplate { get; set; }
         private readonly HashSet<string> _seenPrimary = [];
@@ -55,7 +56,8 @@ namespace ExecutableStories.Xunit
             {
                 Keyword = effective,
                 Text = text,
-                Id = $"step-{_stepCounter++}"
+                Id = $"step-{_stepCounter++}",
+                StartedAtMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
             };
             Steps.Add(step);
             CurrentStep = step;
@@ -163,6 +165,7 @@ namespace ExecutableStories.Xunit
                 Meta = Meta.Count > 0 ? new Dictionary<string, object>(Meta) : null,
                 Docs = Docs.Count > 0 ? new List<DocEntry>(Docs) : null,
                 SourceOrder = SourceOrder,
+                StartedAtMs = StartedAtMs,
                 OtelSpans = OtelSpans
             };
         }

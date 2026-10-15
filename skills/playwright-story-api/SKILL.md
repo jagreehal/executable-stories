@@ -118,6 +118,22 @@ await story.screenshot({
 `executable-stories gif reports/raw-run.json` turns each passing scenario's step
 screenshots into an animated GIF (needs `ffmpeg`).
 
+**Recorded walkthroughs:** with `video: "on"` in the config, pass the page so the
+scenario also notes each click and focused field, and `hold` a screen so viewers
+can read it (the hold applies only while the page is being recorded):
+
+```typescript
+test("Lena adds a payee", async ({ page }, testInfo) => {
+  story.init({ page }, testInfo, { featureVideo: true }); // before page.goto
+  // ...
+  await story.screenshot({ page, alt: "New payee form", hold: 1800 });
+});
+```
+
+`executable-stories video reports/raw-run.json` writes an MP4 per passing recorded
+scenario, page load trimmed, with a `.video.json` manifest (clicks, step times) for
+`executable-stories-remotion`. Every step carries `startedAtMs` (epoch ms) in the run.
+
 The HTML `compare` report reuses these step screenshots for scenarios whose
 status flipped between runs (`Regressed` or `Fixed`). Capture the product state
 that explains the outcome; screenshots stored only as unresolved local absolute

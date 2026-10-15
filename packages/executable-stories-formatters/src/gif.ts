@@ -9,7 +9,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import type { TestCaseResult } from "executable-stories-core/types/test-result";
-import { slugify } from "executable-stories-core/converters/acl/ids";
+import { scenarioSlug } from "executable-stories-core/utils/slug";
 
 export interface GifArgs {
   testCases: TestCaseResult[];
@@ -73,8 +73,8 @@ export async function writeGifs(args: GifArgs, deps: GifDeps): Promise<GifResult
       const sizes = frames.map(pngSize);
       const w = Math.max(...sizes.map((s) => s.width));
       const h = Math.max(...sizes.map((s) => s.height));
-      let name = slugify(scenario) || "scenario";
-      for (let n = 2; used.has(name); n++) name = `${slugify(scenario) || "scenario"}-${n}`;
+      let name = scenarioSlug(scenario);
+      for (let n = 2; used.has(name); n++) name = `${scenarioSlug(scenario)}-${n}`;
       used.add(name);
       const out = path.join(outputDir, `${name}.gif`);
       fs.mkdirSync(outputDir, { recursive: true });

@@ -38,6 +38,11 @@ namespace ExecutableStories.Xunit
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public double? DurationMs { get; set; }
 
+        /// <summary>When the step started (epoch ms).</summary>
+        [JsonPropertyName("startedAtMs")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public long? StartedAtMs { get; set; }
+
         [JsonPropertyName("docs")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public List<DocEntry>? Docs { get; set; }

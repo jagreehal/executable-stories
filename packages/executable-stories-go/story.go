@@ -278,6 +278,7 @@ func Init(t TestingT, scenario string, opts ...Option) *S {
 		}
 
 		order := s.sourceOrder
+		startedAt := float64(s.startTime.UnixMilli())
 		story := &StoryMeta{
 			Scenario:    s.scenario,
 			SuitePath:   suitePath(t.Name()),
@@ -289,6 +290,7 @@ func Init(t TestingT, scenario string, opts ...Option) *S {
 			Docs:        s.docs,
 			SourceOrder: &order,
 			OtelSpans:   s.otelSpans,
+			StartedAtMs: &startedAt,
 		}
 
 		tc := RawTestCase{
@@ -398,10 +400,12 @@ func (s *S) addStep(keyword, text string, docs ...DocEntry) *S {
 		}
 	}
 
+	startedAt := float64(time.Now().UnixMilli())
 	step := StoryStep{
-		ID:      fmt.Sprintf("step-%d", s.stepCounter),
-		Keyword: effective,
-		Text:    text,
+		ID:          fmt.Sprintf("step-%d", s.stepCounter),
+		Keyword:     effective,
+		Text:        text,
+		StartedAtMs: &startedAt,
 	}
 	s.stepCounter++
 	s.steps = append(s.steps, step)

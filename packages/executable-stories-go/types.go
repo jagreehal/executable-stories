@@ -72,6 +72,8 @@ type StoryMeta struct {
 	Docs        []DocEntry     `json:"docs,omitempty"`
 	SourceOrder *int           `json:"sourceOrder,omitempty"`
 	OtelSpans   []any          `json:"otelSpans,omitempty"`
+	// StartedAtMs is when Init ran, in epoch milliseconds.
+	StartedAtMs *float64 `json:"startedAtMs,omitempty"`
 }
 
 // StoryStep represents a single BDD step (Given/When/Then/And/But).
@@ -87,6 +89,9 @@ type StoryStep struct {
 	// this is set only when the author wraps a claim in Expect/Fn("Then", ...).
 	// A nil pointer means unobserved, which is not the same as zero.
 	Assertions *int `json:"assertions,omitempty"`
+	// StartedAtMs is when the step was declared (for Fn, when its body
+	// started), in epoch milliseconds.
+	StartedAtMs *float64 `json:"startedAtMs,omitempty"`
 }
 
 // DocEntry is a discriminated union via the "kind" field.

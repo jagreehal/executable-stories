@@ -21,6 +21,7 @@ export const COMPLETION_SUBCOMMANDS: Array<[string, string]> = [
   ["review", "Generate an Evidence Review of AI-authored changes"],
   ["list", "List scenarios from a test run"],
   ["gif", "Animated GIF per passing scenario from its step screenshots"],
+  ["video", "MP4 and Remotion manifest per passing recorded scenario"],
   ["check", "Backpressure summary: compress passing, expand failing"],
   ["check-explainers", "Audit explainer docs against a run"],
   ["goal", "Behavioral definition-of-done for agent loops"],
