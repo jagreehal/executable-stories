@@ -1,6 +1,6 @@
 {
   "name": "executable-stories-showcase-react",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "useScenarioState: connect React (or Preact) component state to executable-stories-showcase.",
   "license": "Apache-2.0",
   "repository": {
