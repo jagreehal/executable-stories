@@ -1,6 +1,6 @@
 {
   "name": "executable-stories-showcase",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Put a running app into any state from a URL: shareable JSON scenarios for network, URL and app state, with a dev panel, Playwright helpers and adapters.",
   "license": "Apache-2.0",
   "repository": {
