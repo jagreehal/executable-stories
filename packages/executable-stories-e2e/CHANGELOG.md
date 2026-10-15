@@ -1,5 +1,12 @@
 # executable-stories-e2e
 
+## 0.2.1
+
+### Patch Changes
+
+- Updated dependencies [67ded1b]
+  - executable-stories-core@0.29.0
+
 ## 0.2.0
 
 ### Minor Changes
