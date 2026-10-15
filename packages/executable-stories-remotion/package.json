@@ -1,0 +1,62 @@
+{
+  "name": "executable-stories-remotion",
+  "version": "0.0.0",
+  "description": "Remotion compositions built from executable-stories runs: storyboard videos from screenshots and state snapshots, and showcase recordings that zoom to each click.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jagreehal/executable-stories.git",
+    "directory": "packages/executable-stories-remotion"
+  },
+  "keywords": [
+    "remotion",
+    "video",
+    "executable-stories",
+    "bdd",
+    "living-documentation"
+  ],
+  "type": "module",
+  "files": [
+    "dist",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "source": "./src/index.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup && tsc -p tsconfig.json --noEmit false --declaration --emitDeclarationOnly --outDir dist",
+    "dev": "tsup --watch",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "executable-stories-core": "workspace:^"
+  },
+  "peerDependencies": {
+    "@remotion/media": "^4.0.0",
+    "react": ">=18",
+    "remotion": "^4.0.0"
+  },
+  "devDependencies": {
+    "@remotion/media": "4.0.533",
+    "@types/react": "19.3.0",
+    "eslint-config-executable-stories": "workspace:*",
+    "react": "19.3.0",
+    "remotion": "4.0.533",
+    "tsup": "^8.5.1",
+    "typescript": "~6.0.3",
+    "vitest": "^5.0.1"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}

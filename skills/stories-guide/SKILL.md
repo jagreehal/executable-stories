@@ -93,7 +93,7 @@ These write to the tracker, so you start them by name.
 - Explain a diff or PR → `explain-change`. A whole area, for onboarding →
   `explain-system`.
 - "Show me" in the middle of a conversation → `show-me`.
-- A narrated demo from a run's storyboard → `/demo-video`.
+- A narrated demo or a Remotion video from a run's storyboard → `/demo-video`.
 - Teach a topic as runnable lessons → `executable-lessons`.
 
 ## Cloud

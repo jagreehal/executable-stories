@@ -39,6 +39,7 @@ packages/
   executable-stories-showcase/   # Open any app state from a URL (scenarios, dev panel, Playwright helpers, store adapters)
   executable-stories-showcase-cli/   # Showcase CLI: shoot, record, validate, doctor, MCP; ships its own skills
   executable-stories-showcase-react/ # useScenarioState for React/Preact
+  executable-stories-remotion/   # Remotion compositions from a run's storyboard and showcase recordings
   eslint-config/                 # Shared ESLint config
   eslint-plugin-*-executable-stories/ # Per-framework ESLint plugins
 
@@ -49,6 +50,7 @@ apps/
   cypress-example/   # Cypress example app
   docs-site/         # Astro Starlight documentation site
   showcase/          # Showcase unit tests, Playwright suite, and example apps (examples/* are workspace packages)
+  remotion-example/  # Remotion videos rendered from its own story run and a showcase recording
 ```
 
 - **Packages** (publishable): `executable-stories-formatters` is the CLI; can be built as a Bun single binary via `bun run compile`; CI/release artifacts include prebuilt binaries for linux, darwin, windows.
@@ -268,14 +270,14 @@ Documentation formats render accumulated per-source state. JUnit, Cucumber, and 
 
 ### Chromium under an agent sandbox
 
-`apps/formatters-e2e` and `apps/playwright-example` drive Chromium through Playwright. macOS Seatbelt denies the Mach port registration Chromium needs to talk to its child processes, so inside an agent sandbox the browser dies on launch:
+`apps/formatters-e2e`, `apps/playwright-example` and `apps/remotion-example` drive Chromium through Playwright. macOS Seatbelt denies the Mach port registration Chromium needs to talk to its child processes, so inside an agent sandbox the browser dies on launch:
 
 ```
 FATAL:base/apple/mach_port_rendezvous_mac.cc:159] Check failed: kr == KERN_SUCCESS.
 bootstrap_check_in org.chromium.Chromium.MachPortRendezvousServer.NNNNN: Permission denied (1100)
 ```
 
-Set `ES_CHROMIUM_SINGLE_PROCESS=1`. Both configs then launch Chromium with `--single-process`, which spawns no children and so never registers that port:
+Set `ES_CHROMIUM_SINGLE_PROCESS=1`. All three then launch Chromium with `--single-process`, which spawns no children and so never registers that port:
 
 ```bash
 ES_CHROMIUM_SINGLE_PROCESS=1 pnpm quality
@@ -342,7 +344,7 @@ When working in these areas, load the linked skill file into context for accurat
 | Authoring technical/coding lessons as executable story tests | `skills/executable-lessons/SKILL.md`                                                           |
 | Showing the current topic visually, from the run where possible | `skills/show-me/SKILL.md`                                                                       |
 | Opening app states, screenshots and clips with showcase       | `packages/executable-stories-showcase-cli/skills/executable-stories-showcase/SKILL.md`         |
-| Building a narrated demo video from a run's storyboard frames | `skills/demo-video/SKILL.md`                                                                    |
+| Building a narrated demo video from a run's storyboard frames (ffmpeg or Remotion) | `skills/demo-video/SKILL.md`                                             |
 | Explaining a code change as living documentation (with quiz) | `skills/explain-change/SKILL.md`                                                               |
 | Explaining a whole system or feature area for onboarding     | `skills/explain-system/SKILL.md`                                                               |
 | Test-driving a behaviour with a story test as the red step   | `skills/story-tdd/SKILL.md`                                                                    |
