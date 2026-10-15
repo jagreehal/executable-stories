@@ -158,7 +158,7 @@ USAGE
   executable-stories check <file|directory> [--baseline <path|auto>] [--check-format text|json] [--max-skipped <n>] [--max-duration <ms>] [--no-fail]
   executable-stories check-explainers <file|directory> --explainers-dir <dir> [--check-format text|json] [--no-fail]
   executable-stories goal <file|directory> [--require-tags <csv>] [--require-tickets <csv>] [--require-scenarios <csv>] [--baseline <path|auto>] [--no-regressions] [--goal-format text|json]
-  executable-stories triage <file|directory> [--baseline <path|auto>] [--triage-format text|json] [--by-owner]
+  executable-stories triage <file|directory> [--baseline <path|auto>] [--triage-format text|json] [--by-owner] [--limit <n>]
   executable-stories validate <file>
   executable-stories validate --stdin
   executable-stories check-links <dir> [options]
@@ -256,6 +256,7 @@ ${presetHelpLines()
   --max-skipped <n>             (check) Exit 5 when more than n scenarios are turned off
   --max-duration <ms>           (check) Exit 5 when a scenario runs longer than ms
   --by-owner                    (triage) Group the worklist by CODEOWNERS owner
+  --limit <n>                   (triage) Keep the first n items; counts still cover every failure
   --explainers-dir <dir>        (check-explainers) Directory of explainer markdown to audit
   --no-fail                     (check) Report only — always exit 0 even when scenarios failed
   --require-tags <csv>          (goal) Every scenario carrying any of these tags must pass
@@ -328,8 +329,10 @@ TRIAGE
   triage is the discovery-phase worklist for a loop. It lists failing scenarios,
   regressions first (with --baseline), each with the product code it covers, the
   error, and its tickets, so the loop can route each fix to a sub-agent. Failures
-  with no covers are flagged. --triage-format json emits the work queue. triage
-  always exits 0 — it reports work, it does not gate.
+  with no covers are flagged. --triage-format json emits the work queue. The order
+  is stable, so --limit 1 picks the same next target from the same run, which is
+  what a scheduled loop needs. triage always exits 0 — it reports work, it does
+  not gate.
 
 JEV (optional)
   With JEV_API_KEY set, triage, goal, and review ask Jev (TypeSafe AI) the
@@ -481,6 +484,8 @@ interface CliArgs {
   triageFormat: 'text' | 'json';
   /** (triage) Group the worklist by CODEOWNERS owner. */
   byOwner: boolean;
+  /** (triage) Keep the first n ranked items. */
+  limit?: number;
   emitCanonical?: string;
   slackWebhook?: string;
   teamsWebhook?: string;
@@ -571,6 +576,7 @@ const CLI_OPTIONS = {
   'max-skipped': { type: 'string' },
   'max-duration': { type: 'string' },
   'by-owner': { type: 'boolean' },
+  limit: { type: 'string' },
   'require-tags': { type: 'string' },
   'require-tickets': { type: 'string' },
   'require-scenarios': { type: 'string' },
@@ -982,6 +988,16 @@ async function parseCliArgs(
     return n;
   };
 
+  const parseLimit = (v: string | undefined): number | undefined => {
+    if (v === undefined) return undefined;
+    const n = Number(v);
+    if (!Number.isInteger(n) || n < 1) {
+      console.error(`Error: --limit must be a positive integer, got "${v}".`);
+      process.exit(EXIT_USAGE);
+    }
+    return n;
+  };
+
   const parseMaxSkipped = (v: string | undefined): number | undefined => {
     if (v === undefined) return undefined;
     const n = Number(v);
@@ -1214,6 +1230,7 @@ async function parseCliArgs(
     goalFormat,
     triageFormat,
     byOwner: values['by-owner'] === true,
+    limit: parseLimit(values.limit as string | undefined),
     emitCanonical: values['emit-canonical'] as string | undefined,
     slackWebhook,
     teamsWebhook,
@@ -2105,6 +2122,8 @@ async function runTriage(ctx: CliContext): Promise<void> {
       baseline,
       format: args.triageFormat,
       ...(codeowners ? { codeowners } : {}),
+      // Before Jev enrichment, so a limited run only asks about the items it keeps.
+      ...(args.limit === undefined ? {} : { limit: args.limit }),
     },
     {},
   );
@@ -3765,6 +3784,13 @@ function createDefaultCliArgs(): CliArgs {
     strictCodeDiff: false,
     baselineMode: 'explicit',
   };
+}
+
+// Subcommands print, then call process.exit(). POSIX pipes take async writes, so blocking writes
+// make sure all of a large output (`list --list-format json | jq`) reaches the reader before exit.
+// Files and TTYs write synchronously already.
+for (const stream of [process.stdout, process.stderr]) {
+  (stream as { _handle?: { setBlocking?: (blocking: boolean) => void } })._handle?.setBlocking?.(true);
 }
 
 main().catch((err) => {

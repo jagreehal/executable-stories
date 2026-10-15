@@ -37,7 +37,7 @@ packages/
   executable-stories-junit5/     # JUnit 5 (Kotlin) adapter
   executable-stories-xunit/      # xUnit (C#) adapter
   executable-stories-showcase/   # Open any app state from a URL (scenarios, dev panel, Playwright helpers, store adapters)
-  executable-stories-showcase-cli/   # Showcase CLI: shoot, record, validate, doctor, MCP; ships its own skills
+  executable-stories-showcase-cli/   # Showcase CLI: shoot, affected, coverage, publish, record, validate, doctor, MCP; ships its own skills
   executable-stories-showcase-react/ # useScenarioState for React/Preact
   executable-stories-remotion/   # Remotion compositions from a run's storyboard and showcase recordings
   eslint-config/                 # Shared ESLint config
@@ -81,6 +81,8 @@ This runs (in order): `turbo run build`, `turbo run lint`, `turbo run type-check
 
 ## Architecture
 
+<important if="you are changing packages/executable-stories-formatters or how a run becomes a report">
+
 ### Formatter pipeline (packages/executable-stories-formatters)
 
 ```
@@ -95,12 +97,20 @@ Test code (story.given/when/then/json/mermaid/...)
 - No classes except thin wrappers for backward compat (e.g., `HtmlFormatter`, `ReportGenerator`)
 - `--format html` renders via `executable-stories-react` (SSR + an interactive hydration island); there is no string HTML renderer.
 
+</important>
+
+<important if="you are changing the HTML report or its --html-* CLI flags">
+
 ### HTML report CDN features (enabled by default)
 
 - `syntaxHighlighting`: highlight.js for code blocks
 - `mermaidEnabled`: Mermaid.js for live diagram rendering
 
 Use `--html-no-syntax-highlighting` and `--html-no-mermaid` to disable; the Share button is hidden unless `--html-share` is passed. (Markdown in `section` doc entries is always parsed by the React renderer; there is no toggle.)
+
+</important>
+
+<important if="you are adding or changing a story API method, a doc kind, or step assertion counting in an adapter">
 
 ### Story API
 
@@ -113,6 +123,8 @@ All framework adapters expose the same API surface:
 
 **Assertions per step:** steps carry an `assertions` count so a claim nothing checked stops reading as proof. Vitest, Jest, Playwright and Ruby/Minitest observe it from the framework's own assertion counter, so tests are written unchanged. Cypress `story.expect`, Go `s.Expect`, Rust `expect_step`, pytest `story.expect`, JUnit 5 `Story.expect` and xUnit `Story.Expect` declare one, because those hosts expose no counter. Where nothing can be observed the field is omitted: absent means "cannot observe" and is deliberately not `0`. A scenario whose observable claim steps asserted nothing grades `none` in Evidence Review and is counted in the CLI summary and `--json-summary` (`unasserted`).
 
+</important>
+
 ## Conventions
 
 - Package scripts use **kebab-case**: `type-check`, not `typecheck`
@@ -120,8 +132,18 @@ All framework adapters expose the same API surface:
 - ESM throughout (`"type": "module"` in all package.json)
 - Packages export via tsup with both ESM and CJS builds
 - `@types/node` should be `^25.9.2` across all workspace packages
+<important if="you are writing a switch over a discriminated union, above all DocEntry.kind">
+
 - **A closed union ends in `assertNever`.** Any `switch` over a discriminated union (above all `DocEntry.kind` / `ReportDocEntry.kind`, which a dozen renderers switch on) ends `default: assertNever(value, "<where>: unhandled doc kind")`, imported from `executable-stories-core/utils/assert-never`. Adding a doc kind then fails to compile in every renderer that has not handled it, instead of rendering nothing in one of them — which is how `story.video()` shipped to all eleven adapters and was dropped by the JUnit and Cucumber JSON writers. Where a format deliberately covers only part of the union, list the excluded kinds as explicit no-op cases and keep the guard; never a bare `default` returning `""`, `null` or `undefined`. `test/doc-kind-coverage.test.ts` is the runtime half: it pushes every kind through each formatter and fails if one vanishes.
+
+</important>
+<important if="you are editing skill frontmatter or bumping a package version">
+
 - Skill frontmatter `library_version:` is generated, not hand-edited. `pnpm version-packages` runs `changeset version` then `node scripts/sync-skill-versions.mjs`, which rewrites every `skills/*/SKILL.md` from the package manifest it names. `packages/executable-stories-init/tests/skill-sync.story.test.ts` fails when the two disagree. Non-JS packages release through `non-js-release.yml`, which does not call the script, so run it by hand after bumping a Python, Rust, Ruby, JVM, or .NET manifest.
+
+</important>
+
+<important if="you are working in an eslint-plugin-*-executable-stories package">
 
 ## ESLint plugins
 
@@ -131,6 +153,10 @@ One ESLint plugin per framework (Jest, Vitest, Playwright). Each lives in `packa
 - **Testing:** Lint rules **must** be tested. Use the same pattern as [awaitly eslint-plugin](https://github.com/jagreehal/awaitly/tree/main/packages/eslint-plugin-awaitly): Vitest + `new Linter({ configType: "flat" })`, flat config with plugin and rule enabled, `linter.verify(code, config)`, assert valid (0 messages) and invalid (1+ messages, correct ruleId/message).
 - **Configs:** Each plugin exports a `recommended` config. Vitest enables `require-task-for-story-init`, `require-test-context-for-story-init`, and `require-init-before-steps`. Jest/Playwright include `require-init-before-steps` plus legacy guards for older top-level-step / `doc.story` patterns.
 - **No peer deps on official framework ESLint plugins** (e.g. eslint-plugin-playwright): our rules do not depend on their code. Document using our plugin alongside official ones if desired; do not require or bundle them.
+
+</important>
+
+<important if="you are changing what executable-stories-vitest exports">
 
 ## Vitest: do not export top-level `then`
 
@@ -149,6 +175,10 @@ it('Title', ({ task }) => {
 });
 ```
 
+</important>
+
+<important if="you are working in an executable-stories-showcase* package or apps/showcase">
+
 ## Showcase packages
 
 Showcase is not an adapter: it runs inside the app under test (an MSW worker, a dev panel, store adapters) to put it into a named state, so a story's Given can open that state without a backend. The "no separate runtime" rule above is about the story API and still holds there; showcase's runtime is the app-side fixture layer.
@@ -157,6 +187,11 @@ Showcase is not an adapter: it runs inside the app under test (an MSW worker, a 
 - Its packages load optional peers and page hooks with dynamic `import()`, so their ESLint configs turn off the repo's no-dynamic-import rule.
 - `apps/showcase` unit tests run in `pnpm quality`. Its Playwright suite (`pnpm --filter showcase-example test:e2e`) does not: CI runs it in the `showcase-e2e` job inside the Playwright Docker image, which the `*-linux.png` visual baselines come from. Keep that image's version in step with `@playwright/test`.
 - The CLI's skills live in `packages/executable-stories-showcase-cli/skills/` and ship in the package; `init` installs them into a user's repo. They are not part of the root `skills/` sync.
+- `actions/showcase-screenshots` posts before and after images on a pull request in two jobs: `shoot` runs the PR's code with no write permission, and `publish` holds the token and runs only the base commit's code. Keep that split when changing it; `apps/showcase/tests/showcase-screenshots.test.ts` checks that `publish` only takes image files from `shoot`'s folder.
+
+</important>
+
+<important if="you are adding or changing a step modifier, doc kind, or scenario option in one adapter">
 
 ## Compatibility rule
 
@@ -164,6 +199,10 @@ Keep the same story structure and doc model across packages.
 Framework specific behavior is allowed only when the host framework requires it.
 
 **Feature matrix (README.md):** When adding a step/scenario modifier, doc kind, or scenario option to one package, update the Features matrix in `README.md` and note any intentional divergence (e.g. Vitest no top-level `then`, Playwright `.fail` vs Jest/Vitest `.fails`).
+
+</important>
+
+<important if="you are changing how Given/When/Then/And/But keywords render">
 
 ## Keyword resolution rules
 
@@ -193,6 +232,10 @@ story('Login blocked for suspended user', () => {
 });
 ```
 
+</important>
+
+<important if="you are writing Vitest story tests or changing the Vitest adapter API">
+
 ## Vitest API
 
 Vitest exports: `story`, types, reporter via subpath.
@@ -210,15 +253,27 @@ it('...', ({ task }) => {
 
 Do not add top-level step exports to Vitest (see `then` issue above).
 
+</important>
+
+<important if="you are writing Jest story tests or changing the Jest adapter API">
+
 ## Jest API
 
 Jest exports `story` plus top-level step functions: `given`, `when`, `then`, `and`, `but`.
 Do not change this - it's intentional for Jest.
 
+</important>
+
+<important if="you are writing Playwright story tests or changing the Playwright adapter API">
+
 ## Playwright API
 
 Playwright exports `story` plus top-level step functions: `given`, `when`, `then`, `and`, `but`.
 Steps receive Playwright fixtures: `async ({ page }) => { ... }`.
+
+</important>
+
+<important if="you are attaching story metadata to a plain it()/test(), or changing how suite paths become doc headings">
 
 ## Framework-native tests
 
@@ -238,6 +293,10 @@ Use this when you want a framework-native test (e.g. `it("adds two numbers", () 
   - **Vitest:** Always when the test runs under a `describe()` — suite path is taken from `task.suite`.
   - **Jest:** Only if `expect.getState().currentTestName` contains `" > "`. In the default Jest setup this is **space-separated** (e.g. `"Describe title test name"`), so suite path is usually undefined and docs are flat. Verified in `apps/jest-example` (see test "verify currentTestName format for docs" in framework-native.story.test.ts).
   - **Playwright:** Suite path comes from `test.info().titlePath`; after filtering file-like parts, describe titles are kept so colocated docs get `## Suite name` when tests run inside `test.describe()`.
+
+</important>
+
+<important if="you are reading run artifacts, triaging failures, or wiring the report flow into CI">
 
 ## Agent artifacts and MCP
 
@@ -261,12 +320,16 @@ Documentation formats render accumulated per-source state. JUnit, Cucumber, and 
 
 **Parity:** Non-JS adapters must match JS/TS semantics, doc model, and artifact outputs. See docs-site reference page `cross-language-parity` and root `pnpm run verify:*` scripts.
 
+</important>
+
 ## Testing
 
 - `packages/executable-stories-formatters/` has the most tests (260+) covering all formatters
 - App tests are integration/example tests demonstrating the story API
 - Cypress tests are excluded from `pnpm quality` (run separately)
 - Tests in `packages/` use Vitest; `apps/jest-example` uses Jest
+
+<important if="you are running formatters-e2e or playwright-example, or Chromium fails to launch">
 
 ### Chromium under an agent sandbox
 
@@ -294,6 +357,8 @@ CI leaves the variable unset, so it runs a normal multi-process Chromium.
 Turbo caches these suites. A run that touches nothing under `packages/executable-stories-formatters` or `packages/executable-stories-react` skips `formatters-e2e`, which is why the gate can pass once and fail on the next run.
 
 <!-- intent-skills:start -->
+
+</important>
 
 ## Agent Skills
 
@@ -352,6 +417,8 @@ When working in these areas, load the linked skill file into context for accurat
 | Bug bashing an app: explore, triage, prove each bug          | `skills/bug-bash/SKILL.md`                                                                     |
 | Triaging a red or flaky run into a routed worklist           | `skills/failure-triage/SKILL.md`                                                               |
 | Running an autonomous agent loop against run artifacts       | `skills/agent-loop/SKILL.md`                                                                   |
+| Scheduling an agent that drives a target one PR at a time    | `skills/story-control-loop/SKILL.md`                                                           |
+| Writing a PR description from the behavioural diff           | `skills/story-pr/SKILL.md`                                                                     |
 | Choosing and wiring CI gates (PR, release, scheduled)        | `skills/ci-gates/SKILL.md`                                                                     |
 | Auditing coverage by requirement, code, and evidence         | `skills/coverage-audit/SKILL.md`                                                               |
 | Bridging TestRail or Xray to the suite                       | `skills/test-management-bridge/SKILL.md`                                                       |

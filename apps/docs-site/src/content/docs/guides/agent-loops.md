@@ -50,6 +50,8 @@ executable-stories triage .executable-stories/raw-run.json \
 
 Failures with no `covers` are flagged: the loop cannot route them to code, so they need a `covers` annotation or a human first. `triage` always exits `0`. It reports work rather than gating.
 
+The order is stable, so `--limit 1` gives a scheduled loop the same next target from the same run. To run that loop in CI, one PR at a time, see the `story-control-loop` skill: it measures the gap with `list` and `triage`, has an agent fix one scenario, and opens a PR only when `goal` passes against the run from before.
+
 ## `goal`: the definition-of-done
 
 A `/goal`-style loop runs until a verifiable condition holds. `goal` expresses that condition in behavior. It is met when the required scenarios pass, nothing regressed (with `--no-regressions`), and no scenario was removed, disabled, or had steps deleted versus the baseline.

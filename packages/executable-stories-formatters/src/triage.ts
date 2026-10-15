@@ -53,6 +53,8 @@ export interface TriageArgs {
   format: "text" | "json";
   /** Parsed CODEOWNERS. Without it every item is unowned. */
   codeowners?: readonly CodeownersRule[];
+  /** Keep only the first n ranked items, e.g. 1 for a scheduled loop's next target. Counts still cover every failure. */
+  limit?: number;
 }
 
 export type TriageDeps = Record<string, never>;
@@ -89,7 +91,8 @@ export function buildTriage(args: TriageArgs, _deps: TriageDeps = {}): TriageRep
       if (a.regressed !== b.regressed) return a.regressed ? -1 : 1;
       const la = `${a.tc.sourceFile}:${a.tc.sourceLine}`;
       const lb = `${b.tc.sourceFile}:${b.tc.sourceLine}`;
-      return la.localeCompare(lb);
+      // Id breaks ties (two scenarios on one line, e.g. it.each), so the same run always ranks the same.
+      return la.localeCompare(lb) || a.tc.id.localeCompare(b.tc.id);
     });
 
   const items: TriageItem[] = ranked.map((entry, index) => ({
@@ -111,7 +114,7 @@ export function buildTriage(args: TriageArgs, _deps: TriageDeps = {}): TriageRep
     failing: failing.length,
     regressions: items.filter((i) => i.regressed).length,
     needsCovers: items.filter((i) => i.covers.length === 0).length,
-    items,
+    items: args.limit === undefined ? items : items.slice(0, args.limit),
   };
 }
 

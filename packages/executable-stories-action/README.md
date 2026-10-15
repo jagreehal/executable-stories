@@ -513,6 +513,41 @@ permissions:
   contents: write
 ```
 
+A permission belongs to the whole job, not just the action's step. Your test step runs the pull request's code and every dependency's install script, and with `contents: write` on the job a compromised package can push to your branches. To keep write access away from that code, run the tests in one job and the action in another:
+
+```yaml
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+      # ...install and run tests...
+      - uses: actions/upload-artifact@v7
+        with:
+          name: stories
+          path: reports/
+
+  report:
+    needs: test
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: write # only if you use host-images: branch
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          name: stories
+          path: reports/
+      - uses: jagreehal/executable-stories-action@v2
+        with:
+          host-images: branch
+```
+
+The `report` job runs no code from the pull request: it reads the files the tests wrote. Upload every folder the report points at, e.g. Playwright's `test-results/` when screenshots live there. `mode: review` also reads the diff, so add an `actions/checkout` with `fetch-depth: 0` to that job; it still runs nothing from the PR.
+
 For PRs from forks, GitHub restricts the default `GITHUB_TOKEN` to read-only — see [FAQ](#faq) for workarounds.
 
 ## What you see in PRs

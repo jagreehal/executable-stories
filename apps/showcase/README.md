@@ -295,7 +295,7 @@ await openInlineScenario(page, { name: 'one-off', extends: 'default', url: { q: 
 expect(await unhandledRequests(page)).toEqual([]);
 ```
 
-`showCursor(page)` draws a pointer that follows Playwright's mouse, because recorded videos don't show one. Call it before `openScenario`. `{ path: '/orders/42' }` opens a route. `{ panel: false }` hides the dev panel before the app renders, for screenshots and videos in product docs; a later `openScenario` without it shows the panel again. [`examples/docs-walkthrough`](examples/docs-walkthrough) builds Markdown, GIFs and video from scenarios with [executable-stories](https://www.npmjs.com/package/executable-stories-playwright).
+`showCursor(page)` draws a pointer that follows Playwright's mouse, because recorded videos don't show one: a pulsing arrow that ripples on each click and moves to fields that `fill()` focuses. `showCursor(page, { pointer: 'dot', color: '#00b3ff' })` swaps the shape and color; `pointer` also takes your own SVG markup, drawn with its top-left corner on the mouse. Call it before `openScenario`. `{ path: '/orders/42' }` opens a route. `{ panel: false }` hides the dev panel before the app renders, for screenshots and videos in product docs; a later `openScenario` without it shows the panel again. [`examples/docs-walkthrough`](examples/docs-walkthrough) builds Markdown, GIFs and video from scenarios with [executable-stories](https://www.npmjs.com/package/executable-stories-playwright).
 
 ## CLI
 
@@ -318,6 +318,10 @@ pnpm executable-stories-showcase promote examples/demo-react/scenarios   # move 
 - **`shoot`** suits an agent checking a UI change. It opens every scenario (or `--only a,b`), waits for `ready`, saves a screenshot, and reports unmocked requests, uncaught exceptions and `console.error` calls. It exits non-zero on any of them. It ignores the browser's "Failed to load resource" logs, which error scenarios cause on purpose. Each failed scenario gets `<out>/<name>.md`, a short page written for whoever fixes it: the codes, the link that reopens the state, whether the `ready` selector matched anything plus selectors on the page that would, unmocked requests as `network` entries ready to paste, and the errors.
   - For docs and marketing images: `--no-panel` hides the panel, `--viewport 1440x900` and `--scale 2` set size and sharpness, `--color-scheme dark` switches theme, and `--element <selector>` captures one component instead of the page. A scenario's `viewport` overrides `--viewport`, so a phone layout and a desktop one shoot in the same run.
   - For every market: `--locale` takes a BCP 47 tag (`en-GB`, `de-DE`, `ar-EG`, `hi-IN`, `pt-BR`) and `--timezone` an IANA zone (`Europe/Berlin`, `Asia/Kolkata`, `America/Sao_Paulo`). They set what `Intl`, `Date` and `navigator.language` report, so dates, numbers, currencies and right-to-left layouts render as people there see them. Without them, the browser uses the machine's settings, and shots differ between team members.
+- **`shoot --compare <dir>`** diffs each screenshot against an earlier run's (say, from the base branch) and writes `<out>/<name>.diff.png` for each state that changed: before, after and the changed pixels in red. States are reported `changed`, `same`, `new` or `removed`; diffs don't fail the run.
+- **`affected`** lists the scenarios a branch's changes (committed, uncommitted and new files since `--base`, default `main`) can affect, each with why: its scenario file changed, it extends one that did, a scenario map row's Source column covers a changed file, a changed file mentions an endpoint it mocks, or a changed file sits under a folder named like its route. It ends with an `--only` list for `shoot`, and names changed source files nothing pointed at. `--src` limits it to the app's folders.
+- **`coverage`** reads the scenario map that `/create-scenario-map` writes and counts its states: covered, missing and can't mock. It exits 1 when a row claims a scenario that doesn't exist, and lists scenarios no row mentions.
+- **`publish <files…> --folder pr-42`** commits files to a `scenario-shots` branch with git plumbing, without touching the checkout, pushes it, and prints a Markdown image link per file, pinned to that commit. `gh` can't upload images to a PR; this is how screenshots get into one.
 - **`record`** turns scenarios into videos for docs and websites. `--steps` names a module whose default export maps scenario names to steps:
 
   ```ts
@@ -332,7 +336,7 @@ pnpm executable-stories-showcase promote examples/demo-react/scenarios   # move 
   };
   ```
 
-  Each scenario opens with the panel hidden and a drawn cursor, runs its steps, and holds the last frame for `--hold` ms (default 800). The video starts once the scenario is ready, so the page load isn't in it. `--format mp4` (default) is H.264, which plays in every browser and phone and is a fraction of a GIF's size; prefer it on websites. `--format gif` is for places that only take images, such as READMEs. `--element <selector>` crops to one component; map a scenario to `{ element, steps }` in the steps module to give it its own crop. `--width` scales the video down to that width and `--fps` sets the frame rate (GIFs default to 12). Each video gets a `<name>.video.json` with its size, length, scenario description and clicks, which `RecordingVideo` in `executable-stories-remotion` uses to caption it and zoom to the clicks. The browser flags above apply too, except `--scale`: video records at viewport size, so use a larger `--viewport` and `--width` for a sharper video. mp4, gif, `--element`, `--width` and `--fps` need [ffmpeg](https://ffmpeg.org/download.html) on `PATH`, or set `FFMPEG_PATH`. Plain `--format webm` needs no ffmpeg, but includes the page load.
+  Each scenario opens with the panel hidden and a drawn cursor, runs its steps, and holds the last frame for `--hold` ms (default 800). `--cursor` takes `arrow` (default), `dot` or a path to an `.svg` file, and `--cursor-color` any CSS color (default `#ff3d71`). Each locator click (`page.getByRole(...).click()`) waits for the cursor to glide to its target, so viewers see where it's going before the page reacts; `page.mouse.click` doesn't wait. The video starts once the scenario is ready, so the page load isn't in it. `--format mp4` (default) is H.264, which plays in every browser and phone and is a fraction of a GIF's size; prefer it on websites. `--format gif` is for places that only take images, such as READMEs. `--element <selector>` crops to one component; map a scenario to `{ element, steps }` in the steps module to give it its own crop. `--width` scales the video down to that width and `--fps` sets the frame rate (GIFs default to 12). Each video gets a `<name>.video.json` with its size, length, scenario description and clicks, which `RecordingVideo` in `executable-stories-remotion` uses to caption it and zoom to the clicks. The browser flags above apply too, except `--scale`: video records at viewport size, so use a larger `--viewport` and `--width` for a sharper video. mp4, gif, `--element`, `--width` and `--fps` need [ffmpeg](https://ffmpeg.org/download.html) on `PATH`, or set `FFMPEG_PATH`. Plain `--format webm` needs no ffmpeg, but includes the page load.
 - **`suggest`** sends your source files and a summary of the catalog to a model; fixture bodies go as a count and a first item. The model lists **candidate** UI states, marks which existing scenarios cover them, and drafts scenarios for the gaps. The CLI rejects drafts that fail `--schema` (adapter state shapes included), the rules or an `extends` lookup, and says why. Valid drafts land in `<dir>/proposed/` for review, a folder `*.json` globs don't load. Prefer panel capture (record + Mark ready) for fixtures; treat suggest as ideation.
   - Default model: `claude-opus-5-5`, with server-side refusal fallback. It needs `ANTHROPIC_API_KEY` or `ant auth login`.
   - Other models: `--model` (or `EXECUTABLE_STORIES_SHOWCASE_MODEL`), with `ANTHROPIC_BASE_URL` pointing at an Anthropic-compatible proxy. `--env-file` loads those variables. The CLI drops Claude-only options for other models, and when a proxy rejects structured output it retries, asking for plain JSON.
@@ -357,16 +361,77 @@ Vue and Svelte hooks would be sibling packages (`executable-stories-showcase-vue
 - **`examples/next-app/`** runs the session in a Next.js App Router layout: client fetches, URL params and cookies.
 - **`examples/demo-react/`** rebuilds the same app in React around an API. Its 13 scenario files cover network fixtures, sequences, cache seeding, strict mode and inheritance.
 
+## Screenshots on every pull request
+
+`actions/showcase-screenshots` is a GitHub Action that shows each pull request's UI change in a comment. It runs `affected` to pick the states the PR touches, shoots them on the base and on the change, publishes what changed to a `scenario-shots` branch, and posts one comment with before, after and changed-pixel images. Pushing again updates the comment. It needs no model or API key.
+
+It runs as two steps in two jobs. `shoot` installs and runs the pull request's code, so its job gets no write permission. `publish` holds the token and runs none of the pull request's code: it checks out the base commit, takes `shoot`'s images and results as untrusted data, and publishes only image files from `shoot`'s folder.
+
+```yaml
+on: pull_request
+
+permissions: {}
+
+jobs:
+  shoot:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 # affected needs the base's history
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - uses: jagreehal/executable-stories/actions/showcase-screenshots@main
+        with:
+          step: shoot
+          scenarios: src/scenarios
+          dev-command: npm run dev
+          base-url: http://localhost:5173
+
+  publish:
+    needs: shoot
+    if: always() && needs.shoot.result != 'cancelled'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # push the images to the scenario-shots branch
+      pull-requests: write # comment on the PR
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - run: npm ci --ignore-scripts
+      - uses: jagreehal/executable-stories/actions/showcase-screenshots@main
+        with:
+          step: publish
+```
+
+- `shoot` installs and starts the app twice, base then change, with `install-command` (default `npm ci` plus Chromium) and `dev-command`, and stops the dev server each time. It fails rather than guess: when the base can't be shot, or a state already fails on the base, there is nothing sound to compare against.
+- When a changed file maps to no scenario (a stylesheet, a layout), it shoots every state (`all-when-unmatched: 'false'` turns that off). `src` limits it to the app's folders in a monorepo; `shoot-args` passes flags such as `--no-panel --viewport 1280x800` to both sides.
+- It fails when a touched state fails on the change (`fail-on-error: 'false'` to only report). `publish` still posts the comment, which lists the failures. The job summary has the comment too, and the `showcase-screenshots` artifact has every image.
+- Pull requests from forks get a read-only token, so they get the summary and the artifact, not a comment.
+- Keep `publish` on the base checkout. Checking out the pull request there would put its code next to the token. For the same reason, the pull request that adds the workflow gets no comment: its base has no action to run. Skip that step when the base lacks it, as [this repo's workflow](../../.github/workflows/showcase-screenshots.yml) does; the images are still in the artifact.
+
+This repository runs it on the demo app: [`.github/workflows/showcase-screenshots.yml`](../../.github/workflows/showcase-screenshots.yml).
+
 ## Coding agents
 
 Claude Code, Codex, Cursor and other coding agents use executable-stories-showcase in three ways.
 
 **Links.** Any browser tool opens a state directly with `?scenario=<name>&scenario-strict`, so an agent never has to click through the app to reach it. `list --json` prints every scenario with its link.
 
-**Skills.** The CLI package ships two skills, and `init` installs them into `.agents/skills/` (read by Codex, Cursor and others) with links from `.claude/skills/` for Claude Code. Rerun `init` after upgrading to update them. `executable-stories-showcase guide [topic]` prints the same text from the installed package, so the guidance always matches the version.
+**Skills.** The CLI package ships four skills, and `init` installs them into `.agents/skills/` (read by Codex, Cursor and others) with links from `.claude/skills/` for Claude Code. Rerun `init` after upgrading to update them. `executable-stories-showcase guide [topic]` prints the same text from the installed package, so the guidance always matches the version.
 
 - **`executable-stories-showcase`**: a short overview and rules, with topics loaded when needed: `setup`, `writing-scenarios`, `capture`, `auth`, `network`, `verify`, `media`, `mcp`, `debugging`.
 - **`create-scenario-map`**: maps each feature to its states (loading, empty, error, signed out…), marks which have scenarios, captures the most important missing ones, and proves the map with `shoot`. It writes a project-local `scenarios-<app>` skill. Run it with `/create-scenario-map`.
+- **`scenario-pr`**: writes a PR description that shows the change: `affected` picks the states the branch touches, `shoot --compare` takes them before and after, `publish` puts the images in the PR, and a short outline shows the code's shape. Run it with `/scenario-pr`.
+- **`scenario-coverage-loop`**: sets up a scheduled agent that fills the map's missing states a few at a time, one PR per run: `coverage` measures the gap, a small script picks the next states, the agent captures them, and a PR check keeps every state rendering. The agent's patch may only touch scenario JSON and the map, so the jobs that check and push it never run the agent's code. Run it with `/scenario-coverage-loop`.
 
 For agents that need a pointer, add a line to `AGENTS.md` or `CLAUDE.md`: `UI states use executable-stories-showcase; read .agents/skills/executable-stories-showcase/SKILL.md before adding or checking one.`
 

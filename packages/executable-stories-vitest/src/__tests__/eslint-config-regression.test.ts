@@ -36,7 +36,9 @@ describe("eslint config regressions", () => {
 
       expect(dynamicImportErrors).toHaveLength(0);
     },
-    10_000,
+    // The first lint loads the root config cold: under a second alone, longer while every
+    // package tests in parallel in CI.
+    30_000,
   );
 
   it("allows dynamic import in vitest reporter implementation", async () => {

@@ -92,6 +92,7 @@ The daily loop, driven by run artifacts rather than by reading the suite.
 | `bug-bash`         | Exploring for bugs: fan out charters, triage findings, prove each with a failing scenario |
 | `failure-triage`   | A run is red or flaky and you need the routed worklist, not the raw list              |
 | `agent-loop`       | An agent works unattended and needs a stopping condition it does not control          |
+| `story-control-loop` | A scheduled agent should drive one target (unasserted, planned, uncovered, failing) one PR at a time |
 
 ## Delivery
 
@@ -102,6 +103,7 @@ Gating, auditing, and reporting what a run proves.
 | `ci-gates`                | Deciding what blocks a merge, what blocks a release, and what only reports       |
 | `coverage-audit`          | Answering "is it covered?" by requirement, by code, and by evidence strength     |
 | `release-notes`           | Writing notes from the behavioural diff, including what quietly disappeared      |
+| `story-pr`                | Writing a PR description from the behavioural diff, citing the scenarios that prove it |
 | `test-management-bridge`  | TestRail or Xray runs alongside the suite and has to stay a mirror, not a source |
 | `report-webmcp`           | A non-developer needs to ask a published report questions from their browser    |
 

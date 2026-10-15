@@ -413,7 +413,8 @@ runs:
             issue_number: context.issue.number,
             per_page: 100,
           });
-          const existing = comments.find(c => c.body && c.body.includes(marker));
+          const { findOwnComment } = require('${{ github.action_path }}/scripts/own-comment.cjs');
+          const existing = findOwnComment(comments, marker);
 
           let commentId;
           if (existing) {

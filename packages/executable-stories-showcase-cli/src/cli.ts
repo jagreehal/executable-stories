@@ -1,6 +1,16 @@
 #!/usr/bin/env node
 import type { Page } from '@playwright/test';
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -9,6 +19,7 @@ import { type Catalog, createCatalog, scenarioJsonSchema, type ScenarioRule } fr
 import { z } from 'zod';
 import { checkServer, contextOptions, launchChromium, scenarioLink } from './browser.js';
 import { CliError } from './errors.js';
+import type { ChangedFile } from './map.js';
 
 const HELP = `Usage: executable-stories-showcase <command> <scenarios-dir> [options]
 
@@ -26,12 +37,24 @@ const HELP = `Usage: executable-stories-showcase <command> <scenarios-dir> [opti
   shoot      Open each scenario in Chromium, wait for its ready selector, screenshot it,
              and report requests it didn't mock. --base-url (required), --out, --only a,b, --no-strict,
              --element <selector> to capture one element instead of the full page.
-             Each failed scenario gets <out>/<name>.md: what failed and how to fix it
+             Each failed scenario gets <out>/<name>.md: what failed and how to fix it.
+             --compare <dir> diffs each shot against an earlier run's PNGs and writes
+             <out>/<name>.diff.png (before | after | changed) for each state that changed
+  affected   List the scenarios a branch's changes can affect, and why: changed scenario files,
+             map rows whose Source covers a changed file, endpoints and routes the changes touch.
+             --base <ref> (default main), --src dir[,dir] to consider only the app's files,
+             --map <file|dir>[,…], --json
+  coverage   Count the scenario map's states by status (covered, missing, can't mock), and report rows
+             naming scenarios that don't exist and scenarios no row names. --map, --json.
+             Exits 1 when the map names a missing scenario
+  publish    publish <file…> --folder <name>: commit files to the scenario-shots branch (--branch) without
+             touching your checkout, push it (--remote, default origin), and print Markdown image links
   record     Open each scenario that has steps, run them, and save a video with a visible cursor.
              --base-url and --steps (required): a module whose default export maps scenario names
              to async (page) => {} steps, or to { element, steps } to crop that scenario to its own element.
              --format mp4 (default), gif or webm; --out, --only, --element.
              --fps n (GIF default 12), --width px to downscale, --hold ms on the last frame (default 800).
+             --cursor arrow (default), dot or a path to an .svg file; --cursor-color any CSS color (default #ff3d71).
              Writes <name>.video.json next to each video: size, length, description and clicks.
              mp4, gif, --element, --fps and --width need ffmpeg on PATH (or FFMPEG_PATH)
   suggest    Ask Claude which UI states lack scenarios and draft them into --out (default <dir>/proposed).
@@ -41,7 +64,7 @@ const HELP = `Usage: executable-stories-showcase <command> <scenarios-dir> [opti
   promote    Move <dir>/proposed/*.json into <dir> after validate. --dry-run lists moves only.
 
 Common: --rules file   module exporting \`rules\` (ScenarioRule[])
-        --json         machine-readable output (list, shoot, doctor)`;
+        --json         machine-readable output (list, shoot, doctor, affected, coverage, publish)`;
 
 declare global {
   interface Window {
@@ -71,6 +94,8 @@ const { positionals, values } = parseArgs({
     fps: { type: 'string' },
     width: { type: 'string' },
     hold: { type: 'string' },
+    cursor: { type: 'string' },
+    'cursor-color': { type: 'string' },
     format: { type: 'string' },
     json: { type: 'boolean' },
     src: { type: 'string' },
@@ -80,6 +105,12 @@ const { positionals, values } = parseArgs({
     'env-file': { type: 'string' },
     'dry-run': { type: 'boolean' },
     'no-skills': { type: 'boolean' },
+    compare: { type: 'string' },
+    base: { type: 'string' },
+    map: { type: 'string' },
+    folder: { type: 'string' },
+    branch: { type: 'string' },
+    remote: { type: 'string' },
     help: { type: 'boolean', short: 'h' },
   },
 });
@@ -116,6 +147,40 @@ if (command === 'guide') {
   } catch (err) {
     console.error(err instanceof Error ? err.message : String(err));
     process.exit(2);
+  }
+}
+
+if (command === 'publish') {
+  const { publishFiles } = await import('./publish.js');
+  const files = positionals.slice(1);
+
+  try {
+    if (!files.length || !values.folder) {
+      throw new CliError(
+        'INVALID_ARGUMENT',
+        'publish needs files and --folder, e.g. publish shots/*.png --folder pr-42',
+      );
+    }
+
+    const links = publishFiles({
+      files,
+      folder: values.folder,
+      branch: values.branch,
+      remote: values.remote,
+    });
+
+    // Markdown images for a GitHub remote; elsewhere, where each file landed.
+    const lines = links.map((l) => (l.url.startsWith('https://') ? `![${l.file}](${l.url})` : `${l.file}  ${l.url}`));
+
+    console.log(values.json ? JSON.stringify(links, null, 2) : lines.join('\n'));
+    process.exit(0);
+  } catch (err) {
+    // A failed git command carries git's own message on stderr.
+    const detail = z.object({ stderr: z.string() }).safeParse(err).data?.stderr ?? '';
+    console.error(
+      `executable-stories-showcase publish: ${err instanceof Error ? err.message : String(err)}\n${detail}`.trim(),
+    );
+    process.exit(err instanceof CliError ? err.exitCode : 1);
   }
 }
 
@@ -267,14 +332,144 @@ For agents that need a pointer, add to AGENTS.md (or CLAUDE.md):
       break;
     }
 
+    case 'affected': {
+      const { affectedScenarios, findMapFiles, readMap } = await import('./map.js');
+      const { execFileSync } = await import('node:child_process');
+      const base = values.base ?? 'main';
+      const git = (args: string[]) => execFileSync('git', args, { encoding: 'utf8' }).trim();
+
+      let since: string;
+
+      try {
+        since = git(['merge-base', base, 'HEAD']);
+      } catch {
+        throw new CliError(
+          'INVALID_ARGUMENT',
+          `can't find --base "${base}"; pass a branch or commit, e.g. --base origin/main`,
+        );
+      }
+
+      // Committed, uncommitted and new files, as paths from here.
+      const paths = new Set(
+        [
+          ...git(['diff', '--name-only', '--relative', since]).split('\n'),
+          ...git(['ls-files', '--others', '--exclude-standard']).split('\n'),
+        ].filter(Boolean),
+      );
+
+      // --src keeps it to the app's folders, so a monorepo's other packages don't show as unmatched.
+      const src = values.src?.split(',').map((d) => `${d.replace(/^\.\//, '').replace(/\/$/, '')}/`);
+
+      const inScope = (path: string) =>
+        !src || path.startsWith(`${dir.replace(/^\.\//, '')}/`) || src.some((d) => path.startsWith(d));
+
+      const changed = [...paths].flatMap((path): ChangedFile[] => {
+        if (!inScope(path)) return [];
+
+        try {
+          return [{ path, content: readFileSync(path, 'utf8') }];
+        } catch {
+          return [{ path }]; // deleted
+        }
+      });
+
+      const rows = readMap(findMapFiles(values.map?.split(',')));
+      const result = affectedScenarios({ changed, dir, catalog, rows });
+
+      if (values.json) {
+        console.log(JSON.stringify({ base, since, changed: changed.length, ...result }, null, 2));
+        break;
+      }
+
+      console.log(
+        `${changed.length} files changed since ${base} (${since.slice(0, 9)})${
+          rows.length ? '' : '; no scenario map found'
+        }\n`,
+      );
+
+      for (const s of result.scenarios) {
+        console.log(s.name);
+
+        for (const r of s.reasons) console.log(`    ${r.kind}: ${r.detail}`);
+      }
+
+      if (!result.scenarios.length) console.log('No scenario matched.');
+
+      if (result.unmatched.length) {
+        console.log('\nChanged source files no scenario points at (shared ones can change every state):');
+
+        const deleted = new Set(changed.flatMap((f) => (f.content === undefined ? [f.path] : [])));
+
+        for (const f of result.unmatched) console.log(`    ${f}${deleted.has(f) ? ' (deleted)' : ''}`);
+      }
+
+      if (result.scenarios.length) console.log(`\n--only ${result.scenarios.map((s) => s.name).join(',')}`);
+      break;
+    }
+
+    case 'coverage': {
+      const { coverage, findMapFiles, readMap } = await import('./map.js');
+      const files = findMapFiles(values.map?.split(','));
+
+      if (!files.length) {
+        throw new CliError(
+          'INVALID_ARGUMENT',
+          'no scenario map found in .agents/skills/scenarios-*; run /create-scenario-map, or pass --map',
+        );
+      }
+
+      const result = coverage(readMap(files), catalog);
+
+      if (values.json) console.log(JSON.stringify({ maps: files, ...result }, null, 2));
+      else {
+        const percent = Math.round(result.ratio * 100);
+        console.log(
+          `${result.covered}/${
+            result.covered + result.missing
+          } states covered (${percent}%), ${result.cantMock} can't be mocked`,
+        );
+
+        if (result.missingStates.length) console.log('\nMissing:');
+
+        for (const r of result.missingStates) {
+          const state = [r.feature, r.state].filter(Boolean).join(' / ');
+          console.log(`    ${state.padEnd(48)} ${r.scenario || '-'}  ${r.at}`);
+        }
+
+        if (result.stale.length) console.log('\nCovered rows naming a scenario that does not exist:');
+
+        for (const r of result.stale) console.log(`    ${(r.scenario || '(none)').padEnd(48)} ${r.at}`);
+
+        if (result.unmapped.length) {
+          console.log(`\nScenarios no map row names: ${result.unmapped.join(', ')}`);
+        }
+      }
+
+      process.exit(result.stale.length ? 1 : 0);
+    }
+
+    // eslint-disable-next-line no-fallthrough -- the case above ends in process.exit
     case 'shoot': {
       const baseURL = requireBaseUrl();
       const out = values.out ?? 'scenario-shots';
       const only = values.only?.split(',');
+
+      // Shooting into the baseline overwrites each PNG before it's compared, so every state reads "same".
+      const real = (path: string) => (existsSync(path) ? realpathSync(path) : resolve(path));
+
+      if (values.compare && real(values.compare) === real(out)) {
+        throw new CliError(
+          'INVALID_ARGUMENT',
+          `--compare and --out are the same folder (${out}); shoot into a new one, e.g. --out .shots/after`,
+        );
+      }
+
       mkdirSync(out, { recursive: true });
       await checkServer(baseURL);
 
       const { inspectScenario, failurePage } = await import('./inspect.js');
+      const { compareImages } = await import('./compare.js');
+      const before = values.compare;
       const browser = await launchChromium();
       const report = [];
 
@@ -316,16 +511,54 @@ For agents that need a pointer, add to AGENTS.md (or CLAUDE.md):
           writeFileSync(details, failurePage(result, { screenshot, appOrigin: new URL(baseURL).origin }));
         }
 
-        report.push({ ...result, screenshot, details: result.ok ? null : details });
         await context.close();
+
+        // Clear this state's diff from an earlier run into the same folder.
+        const diffImage = join(out, `${s.name}.diff.png`);
+        rmSync(diffImage, { force: true });
+        const previous = before && join(before, `${s.name}.png`);
+        let compare: { status: 'same' | 'changed' | 'new'; ratio: number; image: string | null; } | undefined;
+
+        if (previous && existsSync(previous)) {
+          const { changed, total, image } = await compareImages(
+            browser,
+            readFileSync(previous),
+            readFileSync(screenshot),
+          );
+
+          if (image) writeFileSync(diffImage, image);
+          compare = {
+            status: changed ? 'changed' : 'same',
+            ratio: changed / total,
+            image: image ? diffImage : null,
+          };
+        } else if (previous) {
+          compare = { status: 'new', ratio: 1, image: null };
+        }
+
+        report.push({ ...result, screenshot, details: result.ok ? null : details, compare });
       }
 
       await browser.close();
 
-      if (values.json) console.log(JSON.stringify(report, null, 2));
+      // States the earlier run shot that no longer exist (with --only, only the ones asked for).
+      const removed = before && existsSync(before)
+        ? readdirSync(before)
+          .filter((f) => f.endsWith('.png') && !f.endsWith('.diff.png'))
+          .map((f) => f.slice(0, -'.png'.length))
+          .filter((n) => !catalog.get(n) && (!only || only.includes(n)))
+        : [];
+
+      if (values.json) console.log(JSON.stringify(before ? { scenarios: report, removed } : report, null, 2));
       else {
         for (const r of report) {
-          console.log(`${r.ok ? '✓' : '✗'} ${r.name.padEnd(32)} ${r.screenshot}`);
+          const change = r.compare && r.compare.status !== 'same'
+            ? `  ${r.compare.status}${
+              r.compare.image ? ` ${r.compare.image} (${(r.compare.ratio * 100).toFixed(1)}% of pixels)` : ''
+            }`
+            : '';
+
+          console.log(`${r.ok ? '✓' : '✗'} ${r.name.padEnd(32)} ${r.screenshot}${change}`);
 
           if (r.ok) continue;
           console.log(`    ${r.codes.join(', ')}${r.error ? `: ${r.error}` : ''}`);
@@ -336,6 +569,13 @@ For agents that need a pointer, add to AGENTS.md (or CLAUDE.md):
 
           for (const e of r.consoleErrors) console.log(`    console.error: ${e}`);
           console.log(`    ❯ details ${r.details}`);
+        }
+
+        for (const n of removed) console.log(`- ${n.padEnd(32)} removed since ${before}`);
+
+        if (before) {
+          const changed = report.filter((r) => r.compare && r.compare.status !== 'same').length;
+          console.log(`\n${changed} of ${report.length} states changed or new since ${before}`);
         }
       }
 
@@ -359,6 +599,19 @@ For agents that need a pointer, add to AGENTS.md (or CLAUDE.md):
       const fps = wholeNumber('fps', values.fps);
       const width = wholeNumber('width', values.width);
       const hold = wholeNumber('hold', values.hold, 0) ?? 800;
+      const readCursor = (file: string) => {
+        try {
+          return readFileSync(file, 'utf8');
+        } catch {
+          throw new CliError('INVALID_ARGUMENT', `--cursor must be arrow, dot or a readable .svg file, not "${file}"`);
+        }
+      };
+      const cursor = {
+        pointer: !values.cursor || values.cursor === 'arrow' || values.cursor === 'dot'
+          ? values.cursor
+          : readCursor(values.cursor),
+        color: values['cursor-color'],
+      };
 
       if (values.scale) console.log('  --scale applies to screenshots; video records at --viewport size.');
 
@@ -376,8 +629,8 @@ For agents that need a pointer, add to AGENTS.md (or CLAUDE.md):
 
       await checkServer(baseURL);
       const { openScenario, showCursor } = await import('executable-stories-showcase/playwright');
-      const { encodeVideo, pagePoint, videoManifest, visibleCrop } = await import('./record.js');
-      // slowMo gives the drawn cursor time to glide to each target before the click lands.
+      const { encodeVideo, glideBeforeClick, pagePoint, videoManifest, visibleCrop } = await import('./record.js');
+      // slowMo spaces out steps so viewers can follow them; glideBeforeClick lets the cursor arrive first.
       const browser = await launchChromium({ slowMo: 150 });
       let exitCode = 0;
 
@@ -427,7 +680,8 @@ For agents that need a pointer, add to AGENTS.md (or CLAUDE.md):
         const clicks: Promise<{ at: number; x: number; y: number; } | undefined>[] = [];
 
         try {
-          await showCursor(page);
+          await showCursor(page, cursor);
+          glideBeforeClick(page);
           // The listener runs in every frame; a click in an iframe maps through the iframe's place and scale.
           await page.exposeBinding('showcaseClick', ({ frame }, x: number, y: number) => {
             const at = Date.now();

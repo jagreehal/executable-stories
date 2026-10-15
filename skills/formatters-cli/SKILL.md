@@ -230,6 +230,7 @@ Failing scenarios, regressions first, each with the code it `covers`, the error,
 ```bash
 executable-stories triage .executable-stories/raw-run.json --baseline reports/last-green.json --triage-format json
 # --by-owner → group the worklist by CODEOWNERS, unowned work last
+# --limit 1  → only the top item; the order is stable (regressions, file, line, id), so a scheduled loop picks the same target from the same run
 ```
 
 `--by-owner` routes each failure by the product code it `covers`, falling back to the test
@@ -254,6 +255,8 @@ executable-stories list reports/by-file --list-format json   # text (default) | 
 executable-stories list raw-run.json --list-format json      # this execution only
 # supports --include-tags / --exclude-tags, --input-type, --stdin
 ```
+
+Each JSON entry carries `assertion`: `asserted`, `unasserted` (its Then steps ran and checked nothing), or `unobserved` (the adapter cannot count assertions, which is not zero). `map(select(.assertion == "unasserted"))` lists the claims nothing checked.
 
 The discovery index for agents and explorers — one scenario per line (text) or machine-parsable JSON. Use it for triage before reading source tests. Point it at `by-file/` for the accumulated suite; a single run file lists only what that run executed.
 

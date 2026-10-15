@@ -711,3 +711,41 @@ describe("large state snapshot notice", () => {
     120_000
   );
 });
+
+describe("piped output", () => {
+  it(
+    "writes all of a large list to a pipe before exiting",
+    () => {
+      ensurePackagedCliBuilt();
+      const dir = fs.mkdtempSync(join(os.tmpdir(), "es-pipe-"));
+      const run = join(dir, "raw-run.json");
+      // Well past the 64 KiB a pipe takes in one write, so the CLI must wait for it to drain.
+      fs.writeFileSync(
+        run,
+        JSON.stringify({
+          schemaVersion: 1,
+          projectRoot: dir,
+          testCases: Array.from({ length: 2000 }, (_, i) => ({
+            title: `Scenario ${i} with a title long enough to fill the pipe`,
+            status: "pass",
+          })),
+        }),
+      );
+
+      try {
+        // execFileSync reads the child's stdout through a pipe.
+        const output = execFileSync("node", [packagedCliPath, "list", run, "--list-format", "json"], {
+          encoding: "utf8",
+          stdio: "pipe",
+          maxBuffer: 64 * 1024 * 1024,
+        });
+
+        expect(output.length).toBeGreaterThan(65_536);
+        expect(JSON.parse(output)).toHaveLength(2000);
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    },
+    120_000,
+  );
+});

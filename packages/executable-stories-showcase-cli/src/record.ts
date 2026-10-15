@@ -1,4 +1,4 @@
-import type { Frame } from '@playwright/test';
+import type { Frame, Locator, Page } from '@playwright/test';
 import { spawnSync } from 'node:child_process';
 import { copyFileSync } from 'node:fs';
 import { CliError } from './errors.js';
@@ -200,4 +200,45 @@ export async function pagePoint(frame: Frame, x: number, y: number) {
   const scaleY = box.height / layout.height;
 
   return { x: box.x + (layout.left + x) * scaleX, y: box.y + (layout.top + y) * scaleY };
+}
+
+const gliding = new WeakMap<Page, number>();
+
+/**
+ * Make `locator.click()` on this page hover first and wait for the drawn cursor's glide, so videos
+ * show the pointer reaching its target before the click. Playwright's click moves and presses in
+ * one go, so the page would react before the cursor arrives. The Locator prototype is shared, so
+ * it's patched once and other pages click as usual.
+ */
+export function glideBeforeClick(page: Page, ms = 400) {
+  gliding.set(page, ms);
+
+  const proto: Locator & { glides?: true; } = Object.getPrototypeOf(page.locator('html'));
+
+  if (proto.glides) return;
+  proto.glides = true;
+
+  const click: (this: Locator, options?: Parameters<Locator['click']>[0]) => Promise<void> = Object
+    .getOwnPropertyDescriptor(proto, 'click')?.value;
+
+  proto.click = async function(this: Locator, options) {
+    const wait = gliding.get(this.page());
+    const hover = { position: options?.position, force: options?.force, timeout: options?.timeout };
+
+    // A target that moves or resizes during the glide (its click point moves either way) gets
+    // another one, so the cursor is there when the click lands.
+    // Three tries at most; a target that never settles is clicked wherever it is.
+    if (wait !== undefined) {
+      for (let tries = 0; tries < 3; tries++) {
+        await this.hover(hover);
+        const before = await this.boundingBox();
+        await this.page().waitForTimeout(wait);
+        const after = await this.boundingBox();
+
+        if (JSON.stringify(before) === JSON.stringify(after)) break;
+      }
+    }
+
+    return click.call(this, options);
+  };
 }

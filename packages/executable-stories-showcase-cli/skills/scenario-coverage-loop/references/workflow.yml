@@ -1,0 +1,241 @@
+# Scenario coverage loop: sense -> select -> capture -> check -> one PR.
+# Replace every <placeholder>. Shown with Claude Code and npm; swap in the repo's agent and package manager.
+#
+# Three jobs, so the checks are a boundary and not the agent's word for it:
+#   agent    read-only token. Runs the agent; hands over a patch, never a push.
+#   verify   read-only token, fresh runner. Refuses a patch outside the scenarios folder and the map,
+#            then checks it with the default branch's own install and code: nothing the agent wrote runs.
+#   open-pr  the only job with write access. Applies the checked patch and opens the PR.
+
+name: 'Agent: scenario coverage'
+
+on:
+  schedule:
+    - cron: '0 7 * * 1' # Mondays 07:00 UTC
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: scenario-coverage
+  cancel-in-progress: false
+
+env:
+  SCENARIOS: <src/scenarios>
+  MAP: <.agents/skills/scenarios-app>
+  BASE_URL: <http://localhost:5173>
+  BATCH: 3
+  LABEL: scenario-coverage
+
+jobs:
+  agent:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      work: ${{ steps.patch.outputs.work }}
+    steps:
+      # Flow control: scheduled runs wait until the last loop PR is merged or closed.
+      - name: One open loop PR at a time
+        id: gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          OPEN=$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --label "$LABEL" --json number --jq length)
+          if [ "${{ github.event_name }}" = schedule ] && [ "$OPEN" -gt 0 ]; then
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v6
+        if: steps.gate.outputs.run == 'true'
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@v6
+        if: steps.gate.outputs.run == 'true'
+        with:
+          node-version: 24
+
+      - name: Install
+        if: steps.gate.outputs.run == 'true'
+        run: |
+          <npm ci>
+          npx playwright install --with-deps chromium
+
+      - name: Sensor
+        if: steps.gate.outputs.run == 'true'
+        run: npx executable-stories-showcase coverage "$SCENARIOS" --json > /tmp/coverage.json
+
+      - name: Controller
+        id: select
+        if: steps.gate.outputs.run == 'true'
+        run: |
+          node scripts/scenario-coverage-next.mjs /tmp/coverage.json "$BATCH" > /tmp/selected.md
+          if [ -s /tmp/selected.md ]; then echo "work=true" >> "$GITHUB_OUTPUT"; else echo "Nothing missing."; fi
+
+      - name: Start the app
+        if: steps.select.outputs.work == 'true'
+        run: |
+          <npm run dev> > /tmp/dev.log 2>&1 &
+          for i in $(seq 60); do curl -sf "$BASE_URL" > /dev/null && exit 0; sleep 2; done
+          cat /tmp/dev.log; exit 1
+
+      - name: Actuator
+        if: steps.select.outputs.work == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          set -o pipefail
+          PROMPT="$(cat .github/agent-prompts/scenario-coverage.md)"
+          PROMPT="${PROMPT/\$SELECTED/$(cat /tmp/selected.md)}"
+          PROMPT="${PROMPT/\$MEMORY/$(cat .github/agent-memory/scenario-coverage.md)}"
+
+          # An explicit tool list rather than a permission bypass. It isn't a sandbox: --rules and
+          # --steps load JavaScript, and the agent can write files, so it can run code here. That's
+          # why this job holds no write token and the verify job decides what's kept.
+          npx -y @anthropic-ai/claude-code -p "$PROMPT" \
+            --mcp-config .mcp.json \
+            --permission-mode acceptEdits \
+            --allowedTools "Read,Edit,Write,Glob,Grep,mcp__executable-stories-showcase,Bash(npx executable-stories-showcase validate:*),Bash(npx executable-stories-showcase coverage:*),Bash(npx executable-stories-showcase list:*),Bash(npx executable-stories-showcase shoot:*),Bash(git status:*),Bash(git diff:*)" \
+            --max-turns 80 \
+            --output-format stream-json --verbose \
+            2>&1 | tee /tmp/agent.jsonl
+
+          grep '^{' /tmp/agent.jsonl \
+            | jq -rs '[.[] | select(.type == "assistant")] | last | .message.content[] | select(.type == "text") | .text' \
+            > /tmp/pr-body.md
+
+      - name: Hand over a patch
+        id: patch
+        if: steps.select.outputs.work == 'true'
+        run: |
+          mkdir -p /tmp/handover
+          git add -A
+          git diff --cached --binary HEAD > /tmp/handover/change.patch
+          cp /tmp/pr-body.md /tmp/handover/pr-body.md
+          if [ -s /tmp/handover/change.patch ]; then echo "work=true" >> "$GITHUB_OUTPUT"; else echo "The agent changed nothing."; fi
+
+      - uses: actions/upload-artifact@v7
+        if: steps.patch.outputs.work == 'true'
+        with:
+          name: handover
+          path: /tmp/handover
+
+      - name: Keep the agent's log
+        if: always() && steps.select.outputs.work == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: agent-log
+          path: |
+            /tmp/agent.jsonl
+            /tmp/dev.log
+
+  verify:
+    needs: agent
+    if: needs.agent.outputs.work == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@v7
+        with:
+          name: handover
+          path: /tmp/handover
+
+      # Only data may change: scenario JSON and the map's Markdown. No symlinks, no "..",
+      # nothing else, so the install and dev server below are the default branch's own.
+      - name: The patch stays in scope
+        run: |
+          set -euo pipefail
+          PATCH=/tmp/handover/change.patch
+          git apply --check "$PATCH"
+          if git apply --summary "$PATCH" | grep -Eq 'mode 120000|rename|copy'; then
+            echo "::error::The patch adds a symlink, rename or copy."; exit 1
+          fi
+          # Paths NUL-separated, so no file name can be read two ways.
+          while IFS= read -r -d '' entry; do
+            path=${entry#*$'\t'}; path=${path#*$'\t'}
+            case "$path" in
+              *..*) echo "::error::Out of scope: $path"; exit 1 ;;
+              "$SCENARIOS"/*.json | "$MAP"/*.md) ;;
+              *) echo "::error::Out of scope: $path"; exit 1 ;;
+            esac
+          done < <(git apply --numstat -z "$PATCH")
+          # The map's Markdown also holds the skill every later run and every developer's agent
+          # reads. The loop may change map table rows there and nothing else: no new files, and
+          # every added or removed line is a row.
+          git apply --index "$PATCH"
+          if [ -n "$(git diff --cached --diff-filter=A --name-only -z -- "$MAP")" ]; then
+            echo "::error::The patch adds a file under $MAP."; exit 1
+          fi
+          if git diff --cached -U0 -- "$MAP" | grep -E '^[+-]' | grep -vE '^(\+\+\+|---) ' | grep -vE '^[+-][[:space:]]*\|' | grep -q .; then
+            echo "::error::The patch changes $MAP outside the map's table rows."; exit 1
+          fi
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Install
+        run: |
+          <npm ci>
+          npx playwright install --with-deps chromium
+
+      - name: Scenarios parse and the map names only real ones
+        run: |
+          npx executable-stories-showcase validate "$SCENARIOS"
+          npx executable-stories-showcase coverage "$SCENARIOS"
+
+      - name: Start the app
+        run: |
+          <npm run dev> > /tmp/dev.log 2>&1 &
+          for i in $(seq 60); do curl -sf "$BASE_URL" > /dev/null && exit 0; sleep 2; done
+          cat /tmp/dev.log; exit 1
+
+      - name: Every state renders, the new ones included
+        run: npx executable-stories-showcase shoot "$SCENARIOS" --base-url "$BASE_URL" --out /tmp/shots
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: shots
+          path: /tmp/shots
+
+  open-pr:
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/download-artifact@v7
+        with:
+          name: handover
+          path: /tmp/handover
+
+      # Nothing runs here but git and gh, on a patch verify already accepted.
+      - name: Open the PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          BRANCH="agent/scenario-coverage-$GITHUB_RUN_ID"
+          git switch -c "$BRANCH"
+          git apply --index /tmp/handover/change.patch
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit -m "scenarios: fill coverage gaps"
+          git push --set-upstream origin "$BRANCH"
+          gh label create "$LABEL" --color 0E8A16 --description "Scenario coverage loop" 2>/dev/null || true
+          gh pr create --head "$BRANCH" --title "Scenarios: fill coverage gaps ($(date +%F))" \
+            --body-file /tmp/handover/pr-body.md --label "$LABEL"

@@ -101,6 +101,18 @@ Done when all of these hold:
 
 There is no archive step. The run is the record.
 
+## Handing off between sessions
+
+End every step by telling the user the next step and the line that resumes it, for
+example `/stories-propose step 5: build "checkout is blocked for a suspended account"`.
+They can run it here, after compaction, or in a new session.
+
+From step 5 on, nothing else is needed: the planned scenarios and the plan story carry the
+plan. Before step 4 the reasoning lives only in this context, so a session that has to
+stop early runs a short step 4 first. It declares what is settled as planned scenarios,
+and the open branches of the decision tree as open questions in the plan story. The next
+session reads them with `list` and the plan story, and carries on from step 2 or 3.
+
 ## Where the usual spec documents go
 
 | Usual document | Here                                                                                                                                  |
