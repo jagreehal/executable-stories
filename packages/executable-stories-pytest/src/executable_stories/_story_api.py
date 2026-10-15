@@ -49,6 +49,7 @@ class _StoryContext:
         "timer_counter",
         "otel_spans",
         "planned",
+        "started_at_ms",
     )
 
     def __init__(
@@ -76,6 +77,7 @@ class _StoryContext:
         self.timer_counter: int = 0
         self.otel_spans: list[dict[str, Any]] | None = None
         self.planned: bool = False
+        self.started_at_ms: float = time.time() * 1000
 
 
 class Story:
@@ -246,6 +248,9 @@ class Story:
             result["docs"] = list(ctx.docs)
         if ctx.otel_spans:
             result["otelSpans"] = ctx.otel_spans
+        # A planned scenario never ran, so it has no start time.
+        if not ctx.planned:
+            result["startedAtMs"] = ctx.started_at_ms
         return result
 
     def _get_attachments(self) -> list[dict[str, Any]]:
@@ -285,7 +290,7 @@ class Story:
                 keyword = "And"
             else:
                 ctx.seen_primary_keywords.add(keyword)
-        step: dict[str, Any] = {"keyword": keyword, "text": text}
+        step: dict[str, Any] = {"keyword": keyword, "text": text, "startedAtMs": time.time() * 1000}
         step["id"] = f"step-{ctx.step_counter}"
         ctx.step_counter += 1
         if mode is not None:

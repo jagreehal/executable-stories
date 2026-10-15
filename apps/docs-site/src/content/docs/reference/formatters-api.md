@@ -228,7 +228,7 @@ Instantiate with the same options as in **ReportGenerator** (e.g. `MarkdownForma
 - **`canonicalizeRun(rawRun, options?)`**: Normalize `RawRun` to `TestRunResult`. Options: `attachments`, `cucumber`, `defaults`.
 - **`validateCanonicalRun(run)`**: Returns validation result; **`assertValidRun(run)`** throws if invalid.
 
-Utilities: **`normalizeStatus`**, **`generateTestCaseId`**, **`generateRunId`**, **`slugify`**, **`deriveStepResults`**, **`mergeStepResults`**, **`resolveAttachment`**, **`resolveAttachments`**.
+Utilities: **`normalizeStatus`**, **`generateTestCaseId`**, **`generateRunId`**, **`slugify`**, **`scenarioSlug`**, **`deriveStepResults`**, **`mergeStepResults`**, **`resolveAttachment`**, **`resolveAttachments`**.
 
 ## Types
 
@@ -479,7 +479,22 @@ executable-stories gif reports/raw-run.json                     # → reports/gi
 executable-stories gif reports/by-file --include-tags docs       # only scenarios tagged for docs
 ```
 
-The command skips and counts scenarios that did not pass or have fewer than two screenshots. Each frame shows for 1.5 seconds. The command pads frames of different sizes to the largest and scales them to at most 1280px wide. It takes the same input and tag-filter flags as `list`, plus `--output-dir` (default `reports`).
+The command skips and counts scenarios that did not pass or have fewer than two screenshots. Each frame shows for 1.5 seconds. The command pads frames of different sizes to the largest and scales them to at most 1280px wide. It takes the same input and tag-filter flags as `list`, plus `--output-dir` (default `reports`). `--json` prints the files written and the scenarios skipped.
+
+### `video`
+
+One MP4 per passing scenario that Playwright recorded (`story.init({ page }, testInfo, { featureVideo: true })` with `video: "on"`), for marketing pages and help articles. Needs `ffmpeg` and `ffprobe` on `PATH`.
+
+```bash
+executable-stories video reports/raw-run.json                   # → reports/video/<scenario>.mp4
+```
+
+- **Encoding:** H.264 in `yuv420p` with `+faststart`, so it plays in every browser and phone.
+- **Lead-in:** Playwright starts recording when the page is created, so a video opens on the blank page while the app loads. The command cuts to the first frame where 2% or more of the picture is not white (a drawn cursor is far less). `--no-trim` keeps it.
+- **Manifest:** `<scenario>.video.json` beside each video holds its size and length, each click and focused field (`clicks[]`, with `kind: "click" | "focus"`), and when each step began (`steps[]`). Times are ms into the trimmed video. `executable-stories-remotion` reads it: `RecordingVideo` zooms to the clicks and `StoryRecordingVideo` captions each step.
+- **Naming:** the same as `gif`: `scenarioSlug(title)` from `executable-stories-core`. `--json` prints what it wrote.
+
+Both commands warn when `test-results/.last-run.json` is newer than the run file: Playwright ran, but `--reporter` on the command line replaced the stories reporter, so the run file is from an earlier run.
 
 ### `check`
 

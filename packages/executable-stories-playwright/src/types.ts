@@ -109,6 +109,12 @@ export interface ScreenshotOptions {
    * the image between runs. Forwarded to `page.screenshot({ mask })`. Only with `page`.
    */
   mask?: Locator[];
+  /**
+   * Milliseconds to stay on this screen after the capture, so a recorded walkthrough
+   * holds it long enough to read. Only with `page`, and only while Playwright is
+   * recording video for the page; otherwise the step moves on at once.
+   */
+  hold?: number;
 }
 
 export interface VideoOptions {
@@ -202,6 +208,10 @@ export interface StoryOptions {
    * Playwright config) into a featured inline video doc entry. The reporter
    * surfaces the recorded `.webm` so the scenario shows a playable walkthrough
    * with no per-test `story.video()` call.
+   *
+   * Pass the page too (`story.init({ page }, testInfo, { featureVideo: true })`)
+   * and the scenario also records each click and focused field, which
+   * `executable-stories video` writes into the video's manifest for zooming.
    */
   featureVideo?: boolean;
 }

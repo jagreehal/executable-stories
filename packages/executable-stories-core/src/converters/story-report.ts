@@ -214,6 +214,7 @@ function buildStep(args: {
   text: string;
   status: TestStatus;
   durationMs: number;
+  startedAtMs?: number;
   assertions?: number;
   errorMessage?: string;
   expected?: string;
@@ -230,6 +231,7 @@ function buildStep(args: {
     durationMs: args.durationMs,
     docEntries: args.docEntries,
   };
+  if (args.startedAtMs !== undefined) step.startedAtMs = args.startedAtMs;
   if (args.errorMessage !== undefined) step.errorMessage = args.errorMessage;
   if (args.expected !== undefined) step.expected = args.expected;
   if (args.actual !== undefined) step.actual = args.actual;
@@ -264,6 +266,9 @@ function buildSteps(scenarioId: string, tc: TestCaseResult): ReportStep[] {
         text,
         status,
         durationMs,
+        ...(decl?.startedAtMs !== undefined
+          ? { startedAtMs: decl.startedAtMs }
+          : {}),
         ...(decl?.assertions !== undefined
           ? { assertions: decl.assertions }
           : {}),
@@ -315,6 +320,7 @@ function buildScenario(
   };
 
   if (tc.sourceLine && tc.sourceLine > 0) scenario.sourceLine = tc.sourceLine;
+  if (tc.story.startedAtMs !== undefined) scenario.startedAtMs = tc.story.startedAtMs;
   if (tc.errorMessage !== undefined) scenario.errorMessage = tc.errorMessage;
   if (tc.errorStack !== undefined) scenario.errorStack = tc.errorStack;
   // Canonical status collapses todo → pending; keep "planned, not yet

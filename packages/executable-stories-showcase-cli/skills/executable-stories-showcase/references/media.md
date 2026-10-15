@@ -58,10 +58,12 @@ npx executable-stories-showcase record src/scenarios --base-url http://localhost
 - MP4, GIF, `--element`, `--fps` and `--width` need ffmpeg on `PATH`, or `FFMPEG_PATH`. Plain WebM
   doesn't.
 - `--cursor dot` or `--cursor pointer.svg` swaps the default pulsing arrow; `--cursor-color '#00b3ff'` recolors it.
-- Click with locators (`page.getByRole(...).click()`): during `record` each locator click waits for the
-  cursor to glide to its target first. `page.mouse.click(x, y)` doesn't wait.
+- Act with locators (`page.getByRole(...).click()`, `.fill()`): during `record` each locator click,
+  check, fill, `pressSequentially` and `selectOption` waits for the cursor to glide to its target first.
+  `page.mouse.click(x, y)` doesn't wait.
 - In your own Playwright scripts, `showCursor(page)` from `executable-stories-showcase/playwright` draws the
-  cursor (a pulsing arrow by default; `{ pointer: 'dot' | svgMarkup, color }` to change it); call it before
-  `openScenario(page, name, { panel: false })`.
+  cursor (a pulsing arrow by default; `{ pointer: 'dot' | svgMarkup, color, size: 1.5, halo: false }` to
+  change it, `glide: true` to wait for it like `record` does); call it before
+  `openScenario(page, name, { panel: false })`. `glideBeforeActions(page)` is the glide on its own.
 
 Use demo data in scenarios meant for public images: fictional names, no real customer records.

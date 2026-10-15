@@ -2,9 +2,12 @@ export {
   loadClips,
   type RecordingClip,
   RecordingScene,
+  RecordingPlayer,
   recordingFrames,
   RecordingVideo,
   type RecordingVideoProps,
+  stepAt,
+  StoryRecordingVideo,
 } from './RecordingVideo.js';
 export {
   readingSeconds,
@@ -14,4 +17,4 @@ export {
   storyVideoProps,
 } from './props.js';
 export { StoryVideo } from './StoryVideo.js';
-export { type Click, clipFrames, type VideoManifest, zoomAt } from './zoom.js';
+export { type Click, clipFrames, type ManifestStep, type VideoManifest, zoomAt } from './zoom.js';

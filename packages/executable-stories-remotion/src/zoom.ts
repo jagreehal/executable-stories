@@ -1,7 +1,16 @@
-/** A click from a `<name>.video.json` manifest: ms into the video and pixels in it. */
-export type Click = { t: number; x: number; y: number };
+/**
+ * A point of attention from a `<name>.video.json` manifest: ms into the video and pixels in it.
+ * A `focus` is a field taking focus to be typed into; the camera holds on it until the next point.
+ */
+export type Click = { t: number; x: number; y: number; kind?: 'click' | 'focus' };
 
-/** What `executable-stories-showcase record` writes to `<name>.video.json` next to each video. */
+/** A step from the manifest `executable-stories video` writes: when it began, ms into the video. */
+export type ManifestStep = { t: number; keyword: string; text: string };
+
+/**
+ * What `executable-stories-showcase record` and `executable-stories video` write to
+ * `<name>.video.json` next to each video. Only the second has `steps`.
+ */
 export type VideoManifest = {
   name: string;
   description?: string;
@@ -11,6 +20,7 @@ export type VideoManifest = {
   height: number;
   durationMs: number;
   clicks: Click[];
+  steps?: ManifestStep[];
 };
 
 const LEAD = 400;
@@ -20,16 +30,23 @@ const OUT = 600;
 const ease = (p: number) => p * p * (3 - 2 * p);
 const clamp = (p: number) => Math.min(1, Math.max(0, p));
 
-/** 0 to 1: zooming in before a click, held after it, then zooming out. */
-const level = (ms: number) =>
-  ms < 0 ? ease(clamp(1 + ms / LEAD)) : ease(clamp(1 - (ms - HOLD) / OUT));
+/** 0 to 1: zooming in before a click, held after it for `hold` ms, then zooming out. */
+const level = (ms: number, hold: number) =>
+  ms < 0 ? ease(clamp(1 + ms / LEAD)) : ease(clamp(1 - (ms - hold) / OUT));
+
+/** A click holds briefly; a focused field holds while it is typed into, until the next point. */
+const holdFor = (clicks: Click[], i: number) => {
+  const next = clicks[i + 1];
+
+  return clicks[i]?.kind === 'focus' && next ? Math.max(HOLD, next.t - clicks[i]!.t) : HOLD;
+};
 
 /**
  * The camera at `ms`: how far it zooms in and the point it zooms to. The camera reaches each click
  * as it lands, and between clicks close enough to overlap it glides from one to the next.
  */
 export function zoomAt(clicks: Click[], ms: number, peak = 1.6) {
-  const strength = Math.max(0, ...clicks.map((c) => level(ms - c.t)));
+  const strength = Math.max(0, ...clicks.map((c, i) => level(ms - c.t, holdFor(clicks, i))));
   const next = clicks.findIndex((c) => c.t >= ms);
   const to = clicks[next === -1 ? clicks.length - 1 : next];
   const from = clicks[next - 1] ?? to;

@@ -776,3 +776,34 @@ describe("doc.story", () => {
     ]);
   });
 });
+
+describe("step start times", () => {
+  afterEach(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    delete (globalThis as any).cy;
+    getAndClearMeta();
+  });
+
+  it("stamps a step when Cypress's queue reaches it, not when it is declared", () => {
+    resetForTest("start times");
+    const queue: (() => void)[] = [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (globalThis as any).cy = { then: (fn: () => void) => void queue.push(fn) };
+    story.init();
+    story.given("a queued step");
+    story.when("a wrapped step", () => {});
+
+    const steps = getAndClearMeta()!.meta.steps;
+    expect(steps.map((s) => s.startedAtMs)).toEqual([undefined, undefined]);
+    // The queue runs after the body, as Cypress does.
+    for (const run of queue) run();
+    expect(steps.every((s) => typeof s.startedAtMs === "number")).toBe(true);
+  });
+
+  it("leaves steps unstamped without cy, which reads as cannot observe", () => {
+    resetForTest("no cy");
+    story.init();
+    story.given("a step");
+    expect(getAndClearMeta()!.meta.steps[0].startedAtMs).toBeUndefined();
+  });
+});

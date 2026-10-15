@@ -201,6 +201,8 @@ export interface ReportStep {
   text: string;
   status: TestStatus;
   durationMs: number;
+  /** When the step started (epoch ms), when the adapter records it. */
+  startedAtMs?: number;
   /**
    * Assertions observed or declared for this step. Absent means the adapter
    * cannot observe assertions; zero means it observed that none ran.
@@ -226,6 +228,8 @@ export interface ReportScenario {
    */
   planned?: boolean;
   durationMs: number;
+  /** When the scenario started (epoch ms), when the adapter records it. */
+  startedAtMs?: number;
   tags: string[];
   tickets?: ReportTicket[];
   /** Product-code paths/globs this scenario exercises (project-root-relative). */

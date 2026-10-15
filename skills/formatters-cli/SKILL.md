@@ -269,6 +269,16 @@ executable-stories gif reports/by-file --include-tags docs   # scenarios tagged 
 
 Writes one looping GIF per passing scenario, one frame per step screenshot. Needs `ffmpeg` on `PATH`. Pair it with `format --asset-mode copy` so the Markdown links screenshots as files in `assets/`.
 
+### video — MP4s of recorded scenarios
+
+```bash
+executable-stories video reports/raw-run.json --json         # → reports/video/<scenario>.mp4 + <scenario>.video.json
+```
+
+One MP4 (H.264, `yuv420p`, `+faststart`) per passing scenario Playwright recorded with `story.init({ page }, testInfo, { featureVideo: true })`, with the blank page load cut off the start (`--no-trim` keeps it). Beside each is a `<scenario>.video.json` manifest for `executable-stories-remotion`: size, length, clicks and focused fields, and when each step began, all in ms into the trimmed video. Needs `ffmpeg` and `ffprobe` on `PATH`.
+
+`gif` and `video` name files with `scenarioSlug(title)` from `executable-stories-core` (an apostrophe is dropped: "an artist's" → `an-artists`), and `--json` prints what they wrote and skipped. Both warn when Playwright's last run (`test-results/.last-run.json`) is newer than the run file, which means `--reporter` on the command line replaced the stories reporter.
+
 ### watch — keep agent artifacts fresh
 
 ```bash

@@ -17,7 +17,7 @@ static EXIT_HOOK: Once = Once::new();
 /// How long to wait for `git rev-parse` before giving up on the commit sha.
 const GIT_TIMEOUT: Duration = Duration::from_secs(5);
 
-fn epoch_ms() -> f64 {
+pub(crate) fn epoch_ms() -> f64 {
     SystemTime::now().duration_since(UNIX_EPOCH).map_or(0.0, |d| d.as_secs_f64() * 1000.0)
 }
 

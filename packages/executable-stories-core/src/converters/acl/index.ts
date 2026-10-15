@@ -8,6 +8,6 @@
 
 export { canonicalizeRun } from "./canonicalize.js";
 export { normalizeStatus } from "./status.js";
-export { generateTestCaseId, generateRunId, slugify } from "./ids.js";
+export { generateTestCaseId, generateRunId, slugify, scenarioSlug } from "./ids.js";
 export { deriveStepResults, mergeStepResults } from "./steps.js";
 export { resolveAttachment, resolveAttachments } from "./attachments.js";

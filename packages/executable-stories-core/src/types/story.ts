@@ -61,6 +61,8 @@ export interface StoryStep {
   docs?: DocEntry[];
   /** Opt-in step duration in milliseconds */
   durationMs?: number;
+  /** When the step started (epoch ms), so it can be lined up with a recording */
+  startedAtMs?: number;
   /** Whether this step wrapped a function body (step.fn / step.step) vs a text marker */
   wrapped?: boolean;
   /**
@@ -113,6 +115,31 @@ export interface StoryMeta {
   sourceOrder?: number;
   /** OTel spans from autotel for trace waterfall rendering */
   otelSpans?: OtelSpan[];
+  /** When the scenario started (epoch ms): `story.init()` */
+  startedAtMs?: number;
+  /** Set when the scenario was screen-recorded (Playwright `featureVideo`) */
+  recording?: StoryRecording;
+}
+
+/** Where the viewer's eye goes in a recording: a click, or a field taking focus (fill, typing). */
+export interface AttentionPoint {
+  /** Epoch ms */
+  at: number;
+  /** CSS pixels in the page */
+  x: number;
+  y: number;
+  kind: "click" | "focus";
+  /** The page size when it happened; a test can resize the page partway through */
+  viewport?: { width: number; height: number };
+}
+
+/** What a screen recording needs to line up with its scenario. */
+export interface StoryRecording {
+  /** When recording began (epoch ms) */
+  startedAtMs?: number;
+  /** Page size in CSS pixels at the start; a point's own `viewport` wins */
+  viewport?: { width: number; height: number };
+  attention: AttentionPoint[];
 }
 
 /** Key used to store StoryMeta in test metadata */

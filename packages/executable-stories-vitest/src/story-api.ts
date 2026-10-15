@@ -446,6 +446,7 @@ function init(task: TaskLike, options?: StoryOptions): void {
     covers: options?.covers,
     meta: options?.meta,
     sourceOrder: sourceOrderCounter++,
+    startedAtMs: Date.now(),
   };
 
   // OTel bridge: detect active span, flow data bidirectionally
@@ -588,6 +589,7 @@ function createStepMarker(keyword: StepKeyword) {
 
     const step: StoryStep = {
       id: `step-${ctx.stepCounter++}`,
+      startedAtMs: Date.now(),
       keyword: resolvedKeyword,
       text,
       docs: stepDocs,
@@ -1075,6 +1077,7 @@ function fn<T>(keyword: StepKeyword, text: string, body: () => T): T {
 
   const step: StoryStep = {
     id: `step-${ctx.stepCounter++}`,
+    startedAtMs: Date.now(),
     keyword: resolvedKeyword,
     text,
     docs: [],

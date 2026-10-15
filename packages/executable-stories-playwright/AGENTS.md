@@ -2,7 +2,9 @@
 
 Story API and `StoryReporter` for Playwright Test. This package reports on tests;
 it does not launch browsers. `story.init(testInfo)` reads `testInfo` and nothing
-else, and the only place it touches `page` is `story.screenshot({ page })`.
+else. It touches `page` only in `story.screenshot({ page })` and, with
+`featureVideo` and a `page` fixture, to note clicks and focused fields for the video
+manifest.
 
 That separation is deliberate. Browser selection, channels, flags and executable
 paths belong in the consumer's `playwright.config.ts`. Do not add launch options,

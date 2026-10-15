@@ -1223,3 +1223,29 @@ func TestOtelBridgeCapturesTheTrace(t *testing.T) {
 		t.Fatalf("expected a resolved trace link, got %q", linked)
 	}
 }
+
+func TestStartedAtMs(t *testing.T) {
+	reset()
+
+	mt := &mockT{name: "TestStartedAt"}
+	s := Init(mt, "started at")
+	s.Given("first")
+	time.Sleep(2 * time.Millisecond)
+	s.Fn("When", "second", func() {})
+	mt.runCleanups()
+
+	story := getAll()[0].Story
+	if story.StartedAtMs == nil || *story.StartedAtMs < 1e12 {
+		t.Fatalf("expected scenario startedAtMs as epoch ms, got %v", story.StartedAtMs)
+	}
+	prev := *story.StartedAtMs
+	for i, step := range story.Steps {
+		if step.StartedAtMs == nil || *step.StartedAtMs < 1e12 {
+			t.Fatalf("step %d: expected startedAtMs as epoch ms, got %v", i, step.StartedAtMs)
+		}
+		if *step.StartedAtMs < prev {
+			t.Errorf("step %d: startedAtMs %v before %v", i, *step.StartedAtMs, prev)
+		}
+		prev = *step.StartedAtMs
+	}
+}

@@ -292,6 +292,14 @@
             "type": "object"
           },
           "description": "OpenTelemetry spans captured for this scenario (from autotel), used to render a trace waterfall."
+        },
+        "startedAtMs": {
+          "type": "number",
+          "minimum": 0,
+          "description": "When the scenario started (epoch ms): story.init()."
+        },
+        "recording": {
+          "$ref": "#/$defs/StoryRecording"
         }
       },
       "required": [
@@ -337,6 +345,11 @@
           "type": "integer",
           "minimum": 0,
           "description": "Assertions observed while this step ran. Omit when the adapter cannot observe assertions at all: absent means unknown, 0 means observed none."
+        },
+        "startedAtMs": {
+          "type": "number",
+          "minimum": 0,
+          "description": "When the step started (epoch ms). Lines a step up with a screen recording of the test."
         }
       },
       "required": [
@@ -1023,6 +1036,93 @@
       "required": [
         "term",
         "definition"
+      ],
+      "additionalProperties": false
+    },
+    "StoryRecording": {
+      "type": "object",
+      "description": "What a screen recording of the scenario needs to line up with it: when recording began, the page size, and where the viewer's eye went.",
+      "properties": {
+        "startedAtMs": {
+          "type": "number",
+          "minimum": 0,
+          "description": "When the recording started (epoch ms)."
+        },
+
+        "viewport": {
+          "type": "object",
+          "properties": {
+            "width": {
+              "type": "number",
+              "minimum": 0
+            },
+            "height": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "width",
+            "height"
+          ],
+          "additionalProperties": false,
+          "description": "Page size in CSS pixels; attention points are measured in it."
+        },
+        "attention": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "at": {
+                "type": "number",
+                "minimum": 0,
+                "description": "Epoch ms."
+              },
+              "x": {
+                "type": "number"
+              },
+              "y": {
+                "type": "number"
+              },
+              "kind": {
+                "enum": [
+                  "click",
+                  "focus"
+                ]
+              },
+              "viewport": {
+                "type": "object",
+                "properties": {
+                  "width": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "height": {
+                    "type": "number",
+                    "minimum": 0
+                  }
+                },
+                "required": [
+                  "width",
+                  "height"
+                ],
+                "additionalProperties": false,
+                "description": "Page size in CSS pixels when this happened."
+              }
+            },
+            "required": [
+              "at",
+              "x",
+              "y",
+              "kind"
+            ],
+            "additionalProperties": false
+          },
+          "description": "Clicks, and fields taking focus (fill, typing), in the page."
+        }
+      },
+      "required": [
+        "attention"
       ],
       "additionalProperties": false
     }

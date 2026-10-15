@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import { DATA_KEY, PARAM, STRICT_PARAM } from './link.js';
 import type { ScenarioInput } from './schema.js';
 
@@ -106,6 +106,16 @@ export interface CursorOptions {
   pointer?: 'arrow' | 'dot' | (string & {});
   /** Any CSS color for the pointer, its pulsing halo and the click ripple. Default `#ff3d71`. */
   color?: string;
+  /** Scale for the pointer: 1 is a browser-sized 24px arrow, 1.5 half again. Default 1. */
+  size?: number;
+  /** Diameter of the pulsing halo in pixels, or `false` for none. Default 36. */
+  halo?: false | number;
+  /**
+   * Let the cursor arrive before each action lands, for videos: clicks, checks and typing
+   * (`fill`, `pressSequentially`, `selectOption`) wait for the glide first. `true` waits 400ms,
+   * a number that many ms. See {@link glideBeforeActions}.
+   */
+  glide?: boolean | number;
 }
 
 /**
@@ -114,8 +124,12 @@ export interface CursorOptions {
  * typing lands), and drops a ripple on each click. One pointer is drawn in the top frame and
  * follows the mouse into iframes. Call before the page loads, e.g. before `openScenario`.
  */
-export async function showCursor(page: Page, { pointer = 'arrow', color = '#ff3d71' }: CursorOptions = {}) {
-  await page.addInitScript(({ pointer, color }) => {
+export async function showCursor(
+  page: Page,
+  { pointer = 'arrow', color = '#ff3d71', size = 1, halo = 36, glide = false }: CursorOptions = {},
+) {
+  if (glide !== false) glideBeforeActions(page, glide === true ? undefined : glide);
+  await page.addInitScript(({ pointer, color, size, halo }) => {
     type Pointer = { type: 'move' | 'down' | 'up'; x: number; y: number; };
 
     // Only the top frame draws. Other frames pass their pointer to their parent, which adds the
@@ -169,10 +183,10 @@ export async function showCursor(page: Page, { pointer = 'arrow', color = '#ff3d
       .es-cursor, .es-ripple { position: fixed; left: 0; top: 0; pointer-events: none; z-index: 2147483647; }
       .es-cursor { transition: transform .35s cubic-bezier(.2,.7,.3,1); }
       .es-cursor > * { position: absolute; left: 0; top: 0; }
-      .es-cursor > :last-child { transition: scale .1s; transform-origin: 0 0; }
+      .es-cursor > :last-child { transition: scale .1s; transform-origin: 0 0; transform: scale(${size}); }
       .es-cursor[data-down] > :last-child { scale: .8; }
       .es-halo {
-        left: -18px; top: -18px; width: 36px; height: 36px; border-radius: 50%; background: ${color};
+        left: ${-halo / 2}px; top: ${-halo / 2}px; width: ${halo}px; height: ${halo}px; border-radius: 50%; background: ${color};
         animation: es-cursor-halo 1.2s ease-out infinite;
       }
       .es-ripple {
@@ -192,7 +206,7 @@ export async function showCursor(page: Page, { pointer = 'arrow', color = '#ff3d
     const cursor = document.createElement('div');
     cursor.className = 'es-cursor';
     cursor.setAttribute('aria-hidden', 'true');
-    cursor.innerHTML = `<div class="es-halo"></div><div>${shapes[pointer] ?? pointer}</div>`;
+    cursor.innerHTML = `${halo ? '<div class="es-halo"></div>' : ''}<div>${shapes[pointer] ?? pointer}</div>`;
     // Start mid-screen so the first glide to a target shows in the video.
     cursor.style.transform = `translate(${innerWidth / 2}px,${innerHeight / 2}px)`;
 
@@ -221,5 +235,68 @@ export async function showCursor(page: Page, { pointer = 'arrow', color = '#ff3d
 
     if (document.documentElement) attach();
     else addEventListener('DOMContentLoaded', attach);
-  }, { pointer, color });
+  }, { pointer, color, size, halo: halo || 0 });
+}
+
+const gliding = new WeakMap<Page, number>();
+// Actions that press at a point take its `position`; the typing ones only need the field.
+const POINTED = ['click', 'dblclick', 'check', 'uncheck'] as const;
+const TYPED = ['fill', 'pressSequentially', 'selectOption'] as const;
+
+type ActionOptions = { position?: { x: number; y: number; }; force?: boolean; timeout?: number; };
+
+/**
+ * Make locator actions on this page move the mouse to their target and wait for the drawn
+ * cursor's glide before they land, so videos show the pointer arriving first. Playwright's
+ * click moves and presses in one go, and `fill` types without moving the mouse at all.
+ * Covers click, dblclick, check, uncheck, fill, pressSequentially and selectOption. The Locator
+ * prototype is shared, so it's patched once and other pages act as usual.
+ * `showCursor(page, { glide: true })` calls this for you.
+ */
+export function glideBeforeActions(page: Page, ms = 400) {
+  gliding.set(page, ms);
+
+  const proto: Record<string, unknown> & { glides?: true; } = Object.getPrototypeOf(page.locator('html'));
+
+  if (proto.glides) return;
+  proto.glides = true;
+
+  for (const name of [...POINTED, ...TYPED]) {
+    const action = proto[name] as (this: Locator, ...args: unknown[]) => Promise<unknown>;
+    const pointed = (POINTED as readonly string[]).includes(name);
+
+    proto[name] = async function(this: Locator, ...args: unknown[]) {
+      const wait = gliding.get(this.page());
+      // click(options), fill(value, options): the options come after the value when there is one.
+      const options = (pointed ? args[0] : args[1]) as ActionOptions | undefined;
+
+      if (wait !== undefined) await glideTo(this, wait, pointed, options);
+
+      return action.apply(this, args);
+    };
+  }
+}
+
+async function glideTo(locator: Locator, wait: number, pointed: boolean, options: ActionOptions = {}) {
+  // A target that moves or resizes during the glide (its point moves either way) gets
+  // another one, so the cursor is there when the action lands.
+  // Three tries at most; a target that never settles gets the action wherever it is.
+  for (let tries = 0; tries < 3; tries++) {
+    if (pointed) {
+      await locator.hover({ position: options.position, force: options.force, timeout: options.timeout });
+    } else {
+      // No hover: a field can be typed into while something covers it, which hover would wait out.
+      const box = await locator.boundingBox({ timeout: options.timeout });
+
+      if (!box) return;
+      // Where showCursor puts the pointer when the field takes focus.
+      await locator.page().mouse.move(box.x + Math.min(24, box.width / 2), box.y + box.height / 2);
+    }
+
+    const before = await locator.boundingBox();
+    await locator.page().waitForTimeout(wait);
+    const after = await locator.boundingBox();
+
+    if (JSON.stringify(before) === JSON.stringify(after)) break;
+  }
 }

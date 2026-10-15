@@ -21,4 +21,7 @@ class StoryMeta {
     var docs: List<DocEntry>? = null
     var sourceOrder: Int? = null
     var otelSpans: List<Any>? = null
+
+    /** When the scenario started (epoch ms): Story.init(). */
+    var startedAtMs: Long? = null
 }

@@ -1,8 +1,11 @@
 import type { StoryReport } from 'executable-stories-core';
 import {
+  clipFrames,
   loadClips,
+  type RecordingClip,
   recordingFrames,
   RecordingVideo,
+  StoryRecordingVideo,
   StoryVideo,
   storyVideoFrames,
   storyVideoProps,
@@ -48,6 +51,16 @@ const recording: CalculateMetadataFunction<RecordingVideoProps> = async ({
   };
 };
 
+/**
+ * `pnpm walkthrough` runs the Playwright suite in e2e/ with video on, then
+ * `executable-stories video` writes each MP4 and its manifest, step times included, into public/video.
+ */
+const walkthrough: CalculateMetadataFunction<{ clip: RecordingClip }> = async () => {
+  const [clip] = await loadClips([{ name: 'find-a-country-by-the-start-of-its-name' }], 'video');
+
+  return { props: { clip: clip! }, durationInFrames: clipFrames(clip!, fps) };
+};
+
 const empty: StoryVideoProps = {
   title: '',
   feature: '',
@@ -87,6 +100,16 @@ export function RemotionRoot() {
         durationInFrames={1}
         defaultProps={{ title: 'Who speaks what', clips: [] }}
         calculateMetadata={recording}
+      />
+      <Composition
+        id="Walkthrough"
+        component={StoryRecordingVideo}
+        fps={fps}
+        width={1920}
+        height={1080}
+        durationInFrames={1}
+        defaultProps={{ clip: { name: '', video: '', src: '', width: 1, height: 1, durationMs: 0, clicks: [] } }}
+        calculateMetadata={walkthrough}
       />
     </>
   );

@@ -647,6 +647,18 @@ class TestTicketNormalization:
 
 
 class TestStepTiming:
+    def test_started_at_ms_on_scenario_and_steps(self, fresh_story: Story):
+        fresh_story.init("Start times")
+        fresh_story.given("a step")
+        fresh_story.fn("When", "a wrapped step", lambda: None)
+        meta = fresh_story._get_meta()
+        assert meta is not None
+        scenario_start = meta["startedAtMs"]
+        first, second = (s["startedAtMs"] for s in meta["steps"])
+        assert scenario_start > 1_000_000_000_000  # epoch ms, not seconds or zero
+        assert first >= scenario_start
+        assert second >= first
+
     def test_start_timer_end_timer_sets_duration_ms(self, fresh_story: Story):
         fresh_story.init("Timing test")
         fresh_story.given("a step")

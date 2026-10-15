@@ -32,6 +32,7 @@ import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
 import type {
+  Frame,
   Page,
   PlaywrightTestArgs,
   PlaywrightTestOptions,
@@ -566,6 +567,7 @@ function createStepMarker(keyword: StepKeyword) {
 
     const step: StoryStep = {
       id: `step-${ctx.stepCounter++}`,
+      startedAtMs: Date.now(),
       keyword: resolvedKeyword,
       text,
       docs: stepDocs,
@@ -725,6 +727,7 @@ function init(
     covers: options?.covers,
     meta: options?.meta,
     sourceOrder: sourceOrderCounter++,
+    startedAtMs: Date.now(),
   };
 
   // Flag the scenario so the reporter promotes the Playwright screen recording
@@ -805,6 +808,128 @@ function init(
     pendingStep: null,
   };
   activeTestInfo = testInfo;
+
+  const page = (fixtures as { page?: Page } | undefined)?.page;
+  if (options?.featureVideo && page) recordAttention(page, meta, testInfo);
+}
+
+/**
+ * Note where the viewer's eye goes while the video records: each click, and
+ * each field that takes focus without one (fill, typing). A video editor zooms
+ * to them (executable-stories-remotion's `zoomAt`). Registered before the
+ * test's first navigation, so call `story.init` before `page.goto`. Points
+ * inside iframes are mapped to the page, so they line up with the video.
+ */
+function recordAttention(page: Page, meta: StoryMeta, testInfo: TestInfo): void {
+  const recording: NonNullable<StoryMeta['recording']> = { attention: [] };
+  const viewport = page.viewportSize();
+  if (viewport) recording.viewport = viewport;
+  meta.recording = recording;
+  syncAnnotationToTest();
+
+  // Recording starts when the page is created, and the blank page it opens on
+  // was made then too. Otherwise the reporter reads Playwright's page-creation step.
+  if (page.url() === 'about:blank') {
+    page
+      .evaluate(() => performance.timeOrigin)
+      .then((origin) => {
+        recording.startedAtMs = origin;
+        if (activeTestInfo === testInfo) syncAnnotationToTest();
+      })
+      .catch(() => {});
+  }
+
+  // Not awaited: init is synchronous.
+  page
+    .exposeBinding(
+      '__executableStoriesAttention',
+      async ({ frame }, kind: 'click' | 'focus', x: number, y: number) => {
+        const at = Date.now();
+        // The page's size now: a test can resize it, and the video fits each size differently.
+        const size = page.viewportSize();
+        const point = await pagePoint(frame, x, y).catch(() => undefined);
+        if (!point) return;
+        recording.attention.push({ at, ...point, kind, ...(size ? { viewport: size } : {}) });
+        // Mapping an iframe's point takes a round trip, so points can arrive out of order.
+        recording.attention.sort((a, b) => a.at - b.at);
+        if (activeTestInfo === testInfo) syncAnnotationToTest();
+      },
+    )
+    .catch(() => {});
+  // Runs in every frame; each reports in its own coordinates and Node maps them to the page.
+  const install = () => {
+    // Runs in the page; typed by hand because this package has no DOM lib.
+    type Rect = { left: number; top: number; width: number; height: number };
+    type El = { getBoundingClientRect?(): Rect; contains?(other: El): boolean; control?: El | null; tagName?: string };
+    type Pointer = { clientX: number; clientY: number; target: El | null };
+    const page = globalThis as unknown as {
+      addEventListener(type: string, fn: (e: Pointer) => void, capture: boolean): void;
+      __executableStoriesAttention?: (kind: string, x: number, y: number) => void;
+      __executableStoriesAttentionOn?: boolean;
+    };
+    if (page.__executableStoriesAttentionOn) return;
+    page.__executableStoriesAttentionOn = true;
+    // A click focuses what it lands on (or a label's field); that is the click's point, not a second one.
+    let pressed: El | null = null;
+    page.addEventListener(
+      'pointerdown',
+      (e) => {
+        pressed = e.target;
+        page.__executableStoriesAttention?.('click', e.clientX, e.clientY);
+      },
+      true,
+    );
+    page.addEventListener('pointerup', () => setTimeout(() => (pressed = null)), true);
+    page.addEventListener(
+      'focusin',
+      (e) => {
+        const target = e.target;
+        const r = target?.getBoundingClientRect?.();
+        const byClick = !!pressed && (target === pressed || !!target?.contains?.(pressed) || pressed.control === target);
+        // An iframe takes focus when something inside it does; that frame reports where.
+        if (byClick || !r || target?.tagName === 'IFRAME') return;
+        page.__executableStoriesAttention?.('focus', r.left + r.width / 2, r.top + r.height / 2);
+      },
+      true,
+    );
+  };
+  // Also into the frames already loaded, for a navigation that beat the registration.
+  page
+    .addInitScript(install)
+    .then(() => Promise.all(page.frames().map((f) => f.evaluate(install).catch(() => {}))))
+    .catch(() => {});
+}
+
+/**
+ * A point in a frame, in page coordinates. Playwright measures the iframe element
+ * on the page, CSS transforms included; comparing that with its layout size gives
+ * the scale for its border, padding and the point. Nested iframes come out right
+ * because the box is always measured on the page. A rotated or skewed iframe maps
+ * to its bounding box.
+ */
+async function pagePoint(frame: Frame, x: number, y: number): Promise<{ x: number; y: number }> {
+  if (!frame.parentFrame()) return { x, y };
+  const element = await frame.frameElement();
+  const [box, layout] = await Promise.all([
+    element.boundingBox(),
+    element.evaluate((node) => {
+      // In the page; typed by hand because this package has no DOM lib.
+      const el = node as unknown as { clientLeft: number; clientTop: number; offsetWidth: number; offsetHeight: number };
+      const style = (globalThis as unknown as {
+        getComputedStyle(n: unknown): { paddingLeft: string; paddingTop: string };
+      }).getComputedStyle(node);
+      return {
+        left: el.clientLeft + parseFloat(style.paddingLeft),
+        top: el.clientTop + parseFloat(style.paddingTop),
+        width: el.offsetWidth,
+        height: el.offsetHeight,
+      };
+    }),
+  ]);
+  if (!box || !layout.width || !layout.height) throw new Error('The iframe is not visible');
+  const scaleX = box.width / layout.width;
+  const scaleY = box.height / layout.height;
+  return { x: box.x + (layout.left + x) * scaleX, y: box.y + (layout.top + y) * scaleY };
 }
 
 /**
@@ -884,6 +1009,7 @@ function fn<T>(
       : keyword;
   const step: StoryStep = {
     id: `step-${ctx.stepCounter++}`,
+    startedAtMs: Date.now(),
     keyword: resolvedKeyword,
     text,
     docs: [],
@@ -1024,8 +1150,11 @@ function screenshotImpl(
   children?: DocEntry[],
 ): DocEntry | Promise<DocEntry> {
   if (options.page) {
-    return capture(options.page, options)
-      .then((buffer) => {
+    const page = options.page;
+    return capture(page, options)
+      .then(async (buffer) => {
+        // Hold the screen in the video, and only there: a run that isn't recording stays fast.
+        if (options.hold && page.video()) await page.waitForTimeout(options.hold);
         const dataUri = `data:image/png;base64,${buffer.toString('base64')}`;
         return attachDoc(
           {

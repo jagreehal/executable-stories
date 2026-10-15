@@ -144,6 +144,24 @@ Playwright's reporter config expects a string path and options object tuple, not
 
 Source: packages/executable-stories-playwright/src/reporter.ts
 
+### HIGH Passing `--reporter` on the command line
+
+Wrong:
+
+```bash
+npx playwright test --reporter=line
+```
+
+`--reporter` replaces every reporter in `playwright.config.ts`, so the stories reporter does not run and no `raw-run.json` is written. The commands that read it then work on the previous run's file, or find none.
+
+Correct: leave `--reporter` off, or name both:
+
+```bash
+npx playwright test --reporter=line,executable-stories-playwright/reporter
+```
+
+`executable-stories doctor` (and `gif`/`video`) say so when `test-results/.last-run.json` is newer than the run file.
+
 ### MEDIUM Default format is html, not markdown
 
 The default `formats` is `["html"]`. Always specify `formats: ["markdown"]` explicitly to get readable markdown output.

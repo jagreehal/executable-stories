@@ -16,6 +16,7 @@
  */
 
 import type {
+  ReportDocEntry,
   ReportFeature,
   ReportScenario,
   ReportStep,
@@ -267,4 +268,31 @@ export function runProvenance(report: StoryReport, nowMs: number): RunProvenance
     ...(report.packageVersion !== undefined && { packageVersion: report.packageVersion }),
     ageDays: Math.max(0, Math.floor((nowMs - report.finishedAtMs) / 86_400_000)),
   };
+}
+
+/**
+ * Whether a status means the scenario passed, in either vocabulary: a raw run
+ * (`raw-run.json` test cases) says `"pass"`, a canonical run and a StoryReport
+ * say `"passed"`. Script against either without checking which one you hold.
+ */
+export function isPassed(status: string): boolean {
+  return status === "passed" || status === "pass";
+}
+
+type DocKind = ReportDocEntry["kind"];
+
+/**
+ * Every doc entry of one kind in a scenario, story-level first, then each step
+ * in order, nested children included. `docsOf(scenario, "table")` gives the
+ * tables a test attached with `story.table()`, typed as tables.
+ */
+export function docsOf<K extends DocKind>(
+  scenario: Pick<ReportScenario, "docEntries" | "steps">,
+  kind: K,
+): Extract<ReportDocEntry, { kind: K }>[] {
+  const walk = (entries: ReportDocEntry[]): ReportDocEntry[] =>
+    entries.flatMap((e) => [e, ...("children" in e && e.children ? walk(e.children) : [])]);
+  return walk([...scenario.docEntries, ...scenario.steps.flatMap((s) => s.docEntries)]).filter(
+    (e): e is Extract<ReportDocEntry, { kind: K }> => e.kind === kind,
+  );
 }

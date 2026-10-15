@@ -629,8 +629,8 @@ For agents that need a pointer, add to AGENTS.md (or CLAUDE.md):
 
       await checkServer(baseURL);
       const { openScenario, showCursor } = await import('executable-stories-showcase/playwright');
-      const { encodeVideo, glideBeforeClick, pagePoint, videoManifest, visibleCrop } = await import('./record.js');
-      // slowMo spaces out steps so viewers can follow them; glideBeforeClick lets the cursor arrive first.
+      const { encodeVideo, pagePoint, videoManifest, visibleCrop } = await import('./record.js');
+      // slowMo spaces out steps so viewers can follow them; glide lets the cursor arrive first.
       const browser = await launchChromium({ slowMo: 150 });
       let exitCode = 0;
 
@@ -680,8 +680,7 @@ For agents that need a pointer, add to AGENTS.md (or CLAUDE.md):
         const clicks: Promise<{ at: number; x: number; y: number; } | undefined>[] = [];
 
         try {
-          await showCursor(page, cursor);
-          glideBeforeClick(page);
+          await showCursor(page, { ...cursor, glide: true });
           // The listener runs in every frame; a click in an iframe maps through the iframe's place and scale.
           await page.exposeBinding('showcaseClick', ({ frame }, x: number, y: number) => {
             const at = Date.now();

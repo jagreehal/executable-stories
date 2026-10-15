@@ -8,7 +8,8 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { expect, test } from '@playwright/test';
-import StoryReporter from '../reporter';
+import StoryReporter, { pageCreatedAt } from '../reporter';
+import type { TestStep } from '@playwright/test/reporter';
 import type { StoryMeta } from '../types';
 
 // Mock types that match Playwright's reporter interface
@@ -1569,5 +1570,25 @@ test.describe('relative output paths', () => {
     await runWithRoots({ rawRunPath: absolutePath });
 
     expect(fs.existsSync(absolutePath)).toBe(true);
+  });
+});
+
+test.describe("pageCreatedAt", () => {
+  const step = (category: string, title: string, start: number, duration: number, steps: unknown[] = []) =>
+    ({ category, title, startTime: new Date(start), duration, steps }) as unknown as TestStep;
+
+  test("finds the page fixture's Create page step, nested under Before Hooks", () => {
+    const steps = [
+      step("hook", "Before Hooks", 0, 300, [
+        step("fixture", 'Fixture "browser"', 10, 170, [step("pw:api", "Launch browser", 11, 168)]),
+        step("fixture", 'Fixture "page"', 200, 96, [step("pw:api", "Create page", 201, 95)]),
+      ]),
+      step("pw:api", "Navigate", 320, 10),
+    ];
+    expect(pageCreatedAt(steps)).toBe(296);
+  });
+
+  test("is undefined for a test with no page", () => {
+    expect(pageCreatedAt([step("pw:api", "Navigate", 0, 1)])).toBeUndefined();
   });
 });

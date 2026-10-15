@@ -211,6 +211,23 @@ class TestStory < Minitest::Test
     assert s.steps[0].duration_ms
   end
 
+  def test_started_at_ms_on_story_and_steps
+    s = ExecutableStories::Story.new("start times")
+    s.given("an earlier step")
+    s.fn("When", "a later wrapped step") { nil }
+
+    meta = ExecutableStories.meta_to_h(s.get_meta)
+    started = meta["startedAtMs"]
+    first, second = meta["steps"].map { |st| st["startedAtMs"] }
+
+    [started, first, second].each do |t|
+      assert_kind_of Integer, t
+      assert_operator t, :>, 1_600_000_000_000
+    end
+    assert_operator first, :>=, started
+    assert_operator second, :>=, first
+  end
+
   def test_fn_propagates_exceptions
     s = ExecutableStories::Story.new("fn exception")
     assert_raises(RuntimeError) do

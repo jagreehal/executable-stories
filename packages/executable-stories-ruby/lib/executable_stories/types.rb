@@ -17,12 +17,13 @@ module ExecutableStories
 
   StoryStep = Struct.new(
     :id, :keyword, :text, :mode, :wrapped, :duration_ms, :docs, :assertions,
+    :started_at_ms,
     keyword_init: true
   )
 
   StoryMeta = Struct.new(
     :scenario, :steps, :tags, :tickets, :covers, :meta, :suite_path, :docs,
-    :source_order, :otel_spans,
+    :source_order, :otel_spans, :started_at_ms,
     keyword_init: true
   )
 
@@ -63,6 +64,7 @@ module ExecutableStories
     h["mode"] = step.mode if step.mode
     h["wrapped"] = step.wrapped if step.wrapped
     h["durationMs"] = step.duration_ms if step.duration_ms
+    h["startedAtMs"] = step.started_at_ms if step.started_at_ms
     # 0 is a finding, so test for nil rather than truthiness.
     h["assertions"] = step.assertions unless step.assertions.nil?
     h["docs"] = step.docs.map { |d| d.is_a?(Hash) ? d : d.to_h } if step.docs && !step.docs.empty?
@@ -82,6 +84,7 @@ module ExecutableStories
     h["docs"] = meta.docs if meta.docs && !meta.docs.empty?
     h["sourceOrder"] = meta.source_order unless meta.source_order.nil?
     h["otelSpans"] = meta.otel_spans if meta.otel_spans
+    h["startedAtMs"] = meta.started_at_ms if meta.started_at_ms
     h
   end
 

@@ -101,6 +101,7 @@ pub struct Story {
     seen_primary: HashSet<String>,
     source_order: Option<u32>,
     start_time: std::time::Instant,
+    started_at_ms: f64,
     passed: bool,
     failed: bool,
     planned: bool,
@@ -137,6 +138,7 @@ impl Story {
             seen_primary: HashSet::new(),
             source_order: Some(collector::next_order()),
             start_time: std::time::Instant::now(),
+            started_at_ms: collector::epoch_ms(),
             passed: false,
             failed: false,
             planned: false,
@@ -275,6 +277,7 @@ impl Story {
             assertions: None,
             duration_ms: None,
             docs: None,
+            started_at_ms: Some(collector::epoch_ms()),
         });
         self.current_step_index = Some(self.steps.len() - 1);
         self
@@ -420,6 +423,7 @@ impl Story {
         }
 
         let start = std::time::Instant::now();
+        self.steps[idx].started_at_ms = Some(collector::epoch_ms());
         let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(body));
         self.steps[idx].duration_ms = Some(start.elapsed().as_secs_f64() * 1000.0);
 
@@ -692,6 +696,8 @@ impl Drop for Story {
                 docs: if self.docs.is_empty() { None } else { Some(self.docs.clone()) },
                 source_order: self.source_order,
                 otel_spans: self.otel_spans.clone(),
+                // A planned scenario never ran, so it has no start time.
+                started_at_ms: (!self.planned).then_some(self.started_at_ms),
             }),
             duration_ms: Some(duration),
             retry: 0,
@@ -725,6 +731,33 @@ mod tests {
             .story
             .expect("story meta was not recorded")
             .steps
+    }
+
+    #[test]
+    fn steps_and_scenario_record_start_times() {
+        let scenario = "timing: start times";
+        let mut s = Story::new(scenario);
+        s.given("a first step");
+        thread::sleep(Duration::from_millis(2));
+        s.expect_step("a later wrapped step", || {});
+        s.pass();
+        drop(s);
+
+        let meta = crate::collector::get_all()
+            .into_iter()
+            .find(|tc| tc.story.as_ref().is_some_and(|m| m.scenario == scenario))
+            .and_then(|tc| tc.story)
+            .unwrap();
+        let story_start = meta.started_at_ms.unwrap();
+        let first = meta.steps[0].started_at_ms.unwrap();
+        let second = meta.steps[1].started_at_ms.unwrap();
+        assert!(story_start > 1_000_000_000_000.0, "epoch ms, got {story_start}");
+        assert!(first >= story_start);
+        assert!(second >= first);
+
+        let json = serde_json::to_value(&meta).unwrap();
+        assert!(json["startedAtMs"].is_number());
+        assert!(json["steps"][0]["startedAtMs"].is_number());
     }
 
     #[test]

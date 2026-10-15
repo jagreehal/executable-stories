@@ -7,6 +7,9 @@ import { createHash } from "node:crypto";
 // Re-exported so it stays beside `behaviourFingerprint`, whose "" contract it
 // honours. It lives in its own module because this one is Node-only.
 export { pairByFingerprint } from "./pair-by-fingerprint.js";
+// Browser-safe, so it lives outside this Node-only module.
+export { slugify, scenarioSlug } from "../../utils/slug.js";
+import { slugify } from "../../utils/slug.js";
 
 /**
  * Generate a deterministic test case ID from source file and scenario name.
@@ -30,25 +33,6 @@ export function generateTestCaseId(sourceFile: string, scenario: string): string
 export function generateRunId(startedAtMs: number, projectRoot: string): string {
   const input = `${startedAtMs}::${projectRoot}`;
   return createHash("sha1").update(input).digest("hex").slice(0, 16);
-}
-
-/**
- * Slugify a string for Cucumber JSON IDs.
- *
- * Converts to lowercase, replaces path separators/spaces with hyphens,
- * removes other special chars, and trims leading/trailing hyphens.
- *
- * @param text - The text to slugify
- * @returns A URL-safe slug
- */
-export function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[/\\]+/g, "-") // Convert path separators to hyphens
-    .replace(/[^\w\s-]/g, "") // Remove other special characters
-    .replace(/[\s_]+/g, "-") // Replace spaces and underscores with hyphens
-    .replace(/-+/g, "-") // Remove consecutive hyphens
-    .replace(/^-+|-+$/g, ""); // Trim leading/trailing hyphens
 }
 
 /**

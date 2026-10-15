@@ -298,6 +298,12 @@ importers:
       executable-stories-formatters:
         specifier: workspace:*
         version: link:../../packages/executable-stories-formatters
+      executable-stories-playwright:
+        specifier: workspace:*
+        version: link:../../packages/executable-stories-playwright
+      executable-stories-showcase:
+        specifier: workspace:*
+        version: link:../../packages/executable-stories-showcase
       executable-stories-showcase-cli:
         specifier: workspace:*
         version: link:../../packages/executable-stories-showcase-cli

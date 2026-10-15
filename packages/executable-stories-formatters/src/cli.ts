@@ -68,6 +68,7 @@ import {
 } from './index.js';
 import { listScenarios } from './list-scenarios';
 import { writeGifs } from './gif';
+import { writeVideos } from './video';
 import { sendNotifications } from './notifiers/send-notifications';
 import type {
   GenericWebhookNotifierOptions,
@@ -91,6 +92,7 @@ import {
   diagnoseRunFile,
   findDefaultRunFile,
   formatDoctorReport,
+  staleRunCheck,
 } from './run-file';
 import { runsReset, runsStatus } from './runs-lifecycle';
 import { selectTestCases } from './select-test-cases';
@@ -180,6 +182,9 @@ SUBCOMMANDS
   review             Generate an Evidence Review of AI-authored changes (correlate a run to the diff)
   list               List scenarios from a test run (text table or JSON)
   gif                Animated GIF per passing scenario from its step screenshots (needs ffmpeg), into <output-dir>/gif
+  video              MP4 per passing scenario Playwright recorded (featureVideo), page load trimmed, with a
+                     <name>.video.json manifest for executable-stories-remotion (needs ffmpeg), into <output-dir>/video.
+                     --no-trim keeps the page load. gif and video take --json to print what they wrote.
   check              Backpressure summary: compress passing, expand failing (GWT + error + covers); non-zero exit on failures
   check-explainers   Audit explainer docs (explain-change skill) against a run: stale when a cited scenario changed/renamed/vanished (exit 5)
   goal               Behavioral definition-of-done for agent loops: required scenarios pass, no regressions, no weakened scenarios (exit 0 = met, 5 = not)
@@ -424,6 +429,7 @@ interface CliArgs {
     | 'review'
     | 'list'
     | 'gif'
+    | 'video'
     | 'check'
     | 'check-explainers'
     | 'goal'
@@ -464,6 +470,10 @@ interface CliArgs {
   /** Markdown keeps local screenshot/video paths, for `gh ... --attach`. */
   attachImages: boolean;
   jsonSummary: boolean;
+  /** gif/video: print what was written as JSON. */
+  json: boolean;
+  /** video: keep the page load at the start of each recording. */
+  noTrim: boolean;
   /** Emit compact JSON for agent-facing artifacts (story-report, scenario-index, behavior-manifest, list --json). */
   minify: boolean;
   listFormat: 'text' | 'json' | 'csv' | 'markdown-table';
@@ -568,6 +578,8 @@ const CLI_OPTIONS = {
   'trace-url-template': { type: 'string' },
   stdin: { type: 'boolean', default: false },
   'json-summary': { type: 'boolean', default: false },
+  json: { type: 'boolean', default: false },
+  'no-trim': { type: 'boolean', default: false },
   minify: { type: 'boolean', default: false },
   'list-format': { type: 'string', default: 'text' },
   'check-format': { type: 'string', default: 'text' },
@@ -654,6 +666,7 @@ async function parseCliArgs(
     subcommand !== 'review' &&
     subcommand !== 'list' &&
     subcommand !== 'gif' &&
+    subcommand !== 'video' &&
     subcommand !== 'check' &&
     subcommand !== 'check-explainers' &&
     subcommand !== 'goal' &&
@@ -671,7 +684,7 @@ async function parseCliArgs(
     subcommand !== 'runs'
   ) {
     console.error(
-      `Unknown subcommand: "${subcommand}". Use "format", "watch", "compare", "gate-release", "deploy", "review", "list", "gif", "check", "check-explainers", "goal", "triage", "validate", "doctor", "completion", "check-links", "push", "share", "sync", "coverage", "publish-confluence", or "publish-jira".`,
+      `Unknown subcommand: "${subcommand}". Use "format", "watch", "compare", "gate-release", "deploy", "review", "list", "gif", "video", "check", "check-explainers", "goal", "triage", "validate", "doctor", "completion", "check-links", "push", "share", "sync", "coverage", "publish-confluence", or "publish-jira".`,
     );
     process.exit(EXIT_USAGE);
   }
@@ -1177,6 +1190,7 @@ async function parseCliArgs(
       | 'review'
       | 'list'
       | 'gif'
+      | 'video'
       | 'check'
       | 'validate',
     inputFile: resolvedInputFile,
@@ -1209,6 +1223,8 @@ async function parseCliArgs(
     traceUrlTemplate: values['trace-url-template'] as string | undefined,
     attachImages: values['attach-images'] as boolean,
     jsonSummary: values['json-summary'] as boolean,
+    json: values.json as boolean,
+    noTrim: values['no-trim'] as boolean,
     minify: values['minify'] as boolean,
     listFormat: values['list-format'] as string as
       | 'text'
@@ -1745,6 +1761,7 @@ const SUBCOMMAND_HANDLERS: Record<string, (ctx: CliContext) => Promise<void>> =
     review: runReview,
     list: runList,
     gif: runGif,
+    video: runVideo,
     check: runCheck,
     'check-explainers': runCheckExplainers,
     goal: runGoal,
@@ -1941,8 +1958,51 @@ async function runList(ctx: CliContext): Promise<void> {
   process.exit(EXIT_SUCCESS);
 }
 
+/** Warn, on stderr, when Playwright ran without writing this run file (see `doctor`). */
+function warnStaleRun(args: CliArgs): void {
+  const stale = args.stdin ? undefined : staleRunCheck(args.inputFile);
+  if (stale) console.error(`Warning: ${stale.detail}. ${stale.fix}`);
+}
+
+async function runVideo(ctx: CliContext): Promise<void> {
+  const { args } = ctx;
+  warnStaleRun(args);
+  const run = applySelection(await readRunInput(args), args);
+  try {
+    const { written, skipped } = await writeVideos(
+      { testCases: run.testCases, outputDir: path.join(args.outputDir, 'video'), trimLeadIn: !args.noTrim },
+      {
+        exec: (command, execArgs) =>
+          new Promise((resolve, reject) =>
+            // Frame stats run to a few MB on a long recording.
+            execFile(command, execArgs, { maxBuffer: 256 * 1024 * 1024 }, (err, stdout, stderr) =>
+              err
+                ? reject((err as NodeJS.ErrnoException).code === 'ENOENT' ? err : new Error(stderr.trim() || err.message))
+                : resolve({ stdout, stderr }),
+            ),
+          ),
+      },
+    );
+    if (args.json) console.log(JSON.stringify({ written, skipped }, null, 2));
+    else {
+      for (const w of written) console.log(`${w.video}  (trimmed ${(w.trimmedMs / 1000).toFixed(1)}s)  ${w.scenario}`);
+      console.log(`${written.length} video(s) written, ${skipped.length} scenario(s) skipped`);
+    }
+    process.exit(EXIT_SUCCESS);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(
+      (err as NodeJS.ErrnoException).code === 'ENOENT'
+        ? 'video needs ffmpeg and ffprobe on PATH (brew install ffmpeg / apt install ffmpeg).'
+        : `video failed: ${msg}`,
+    );
+    process.exit(EXIT_GENERATION);
+  }
+}
+
 async function runGif(ctx: CliContext): Promise<void> {
   const { args } = ctx;
+  warnStaleRun(args);
   const run = applySelection(await readRunInput(args), args);
   try {
     const { written, skipped } = await writeGifs(
@@ -1958,8 +2018,11 @@ async function runGif(ctx: CliContext): Promise<void> {
           ),
       },
     );
-    for (const w of written) console.log(`${w.path}  (${w.frames} frames)  ${w.scenario}`);
-    console.log(`${written.length} GIF(s) written, ${skipped.length} scenario(s) skipped`);
+    if (args.json) console.log(JSON.stringify({ written, skipped }, null, 2));
+    else {
+      for (const w of written) console.log(`${w.path}  (${w.frames} frames)  ${w.scenario}`);
+      console.log(`${written.length} GIF(s) written, ${skipped.length} scenario(s) skipped`);
+    }
     process.exit(EXIT_SUCCESS);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -3751,6 +3814,8 @@ function createDefaultCliArgs(): CliArgs {
     htmlArchitecture: false,
     htmlStaleAfterDays: 7,
     jsonSummary: false,
+    json: false,
+    noTrim: false,
     minify: false,
     listFormat: 'text',
     checkFormat: 'text',

@@ -51,6 +51,11 @@ namespace ExecutableStories.Xunit
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public int? SourceOrder { get; set; }
 
+        /// <summary>When the scenario started (epoch ms): story init.</summary>
+        [JsonPropertyName("startedAtMs")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public long? StartedAtMs { get; set; }
+
         [JsonPropertyName("otelSpans")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public List<object>? OtelSpans { get; set; }
