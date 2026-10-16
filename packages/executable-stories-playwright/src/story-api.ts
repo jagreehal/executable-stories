@@ -843,13 +843,19 @@ function recordAttention(page: Page, meta: StoryMeta, testInfo: TestInfo): void 
   page
     .exposeBinding(
       '__executableStoriesAttention',
-      async ({ frame }, kind: 'click' | 'focus', x: number, y: number) => {
+      async ({ frame }, kind: 'click' | 'focus', x: number, y: number, cover?: number) => {
         const at = Date.now();
         // The page's size now: a test can resize it, and the video fits each size differently.
         const size = page.viewportSize();
         const point = await pagePoint(frame, x, y).catch(() => undefined);
         if (!point) return;
-        recording.attention.push({ at, ...point, kind, ...(size ? { viewport: size } : {}) });
+        recording.attention.push({
+          at,
+          ...point,
+          kind,
+          ...(cover !== undefined ? { cover } : {}),
+          ...(size ? { viewport: size } : {}),
+        });
         // Mapping an iframe's point takes a round trip, so points can arrive out of order.
         recording.attention.sort((a, b) => a.at - b.at);
         if (activeTestInfo === testInfo) syncAnnotationToTest();
@@ -864,8 +870,17 @@ function recordAttention(page: Page, meta: StoryMeta, testInfo: TestInfo): void 
     type Pointer = { clientX: number; clientY: number; target: El | null };
     const page = globalThis as unknown as {
       addEventListener(type: string, fn: (e: Pointer) => void, capture: boolean): void;
-      __executableStoriesAttention?: (kind: string, x: number, y: number) => void;
+      __executableStoriesAttention?: (kind: string, x: number, y: number, cover?: number) => void;
       __executableStoriesAttentionOn?: boolean;
+      innerWidth: number;
+      innerHeight: number;
+      top: unknown;
+    };
+    // Share of the page an element covers. Inside an iframe its viewport is not the page's, so none.
+    const cover = (el: El | null) => {
+      const r = el?.getBoundingClientRect?.();
+      if (!r || page.top !== page) return undefined;
+      return Math.min(1, (r.width * r.height) / (page.innerWidth * page.innerHeight));
     };
     if (page.__executableStoriesAttentionOn) return;
     page.__executableStoriesAttentionOn = true;
@@ -875,7 +890,7 @@ function recordAttention(page: Page, meta: StoryMeta, testInfo: TestInfo): void 
       'pointerdown',
       (e) => {
         pressed = e.target;
-        page.__executableStoriesAttention?.('click', e.clientX, e.clientY);
+        page.__executableStoriesAttention?.('click', e.clientX, e.clientY, cover(e.target));
       },
       true,
     );
@@ -888,7 +903,7 @@ function recordAttention(page: Page, meta: StoryMeta, testInfo: TestInfo): void 
         const byClick = !!pressed && (target === pressed || !!target?.contains?.(pressed) || pressed.control === target);
         // An iframe takes focus when something inside it does; that frame reports where.
         if (byClick || !r || target?.tagName === 'IFRAME') return;
-        page.__executableStoriesAttention?.('focus', r.left + r.width / 2, r.top + r.height / 2);
+        page.__executableStoriesAttention?.('focus', r.left + r.width / 2, r.top + r.height / 2, cover(target));
       },
       true,
     );

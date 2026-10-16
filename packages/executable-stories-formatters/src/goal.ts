@@ -38,11 +38,19 @@ export interface GoalReport {
   /** Scenarios that went passed -> failed versus baseline (when --no-regressions). */
   regressions: Array<{ id: string; title: string }>;
   regressionsEnforced: boolean;
+  /** Files where a test failed before declaring its scenario. Any of them blocks `met`. */
+  incompleteFiles: string[];
   ratchet: {
     enforced: boolean;
     violations: RatchetViolation[];
     /** Jev's read of scenarios that changed without shrinking. Never affects `met`. */
     advisories: RatchetViolation[];
+    /**
+     * Baseline scenarios this run could not have seen: absent from a `filtered`
+     * run, or from an incomplete file. Any of them blocks `met`: only a full run
+     * proves a scenario is still there.
+     */
+    unchecked: Array<{ id: string; title: string }>;
   };
 }
 
@@ -89,10 +97,19 @@ export function buildGoal(args: GoalArgs, _deps: GoalDeps = {}): GoalReport {
   }
 
   const violations: RatchetViolation[] = [];
+  const unchecked: GoalReport["ratchet"]["unchecked"] = [];
   if (baseline && args.enforceRatchet) {
     const current = new Map(cases.map((tc) => [tc.id, tc]));
+    // A focused run lacks everything it did not target, so its absences prove
+    // nothing. An unknown scope still counts, so the guard stays strict for
+    // adapters that cannot tell.
+    const incomplete = new Set(run.incompleteSourceFiles ?? []);
     for (const base of baseline.testCases) {
       const now = current.get(base.id);
+      if (!now && (run.runScope === "filtered" || incomplete.has(base.sourceFile))) {
+        unchecked.push({ id: base.id, title: base.story.scenario });
+        continue;
+      }
       if (!now) {
         violations.push({ id: base.id, title: base.story.scenario, kind: "removed", detail: "scenario no longer present" });
         continue;
@@ -108,17 +125,22 @@ export function buildGoal(args: GoalArgs, _deps: GoalDeps = {}): GoalReport {
     }
   }
 
+  // A file that broke before declaring its scenarios hides them from every check above.
+  const incompleteFiles = [...(run.incompleteSourceFiles ?? [])].sort();
   const met =
     requirements.every((r) => r.met) &&
     regressions.length === 0 &&
-    violations.length === 0;
+    violations.length === 0 &&
+    unchecked.length === 0 &&
+    incompleteFiles.length === 0;
 
   return {
     met,
     requirements,
     regressions,
     regressionsEnforced: Boolean(baseline && args.enforceNoRegressions),
-    ratchet: { enforced: Boolean(baseline && args.enforceRatchet), violations, advisories: [] },
+    incompleteFiles,
+    ratchet: { enforced: Boolean(baseline && args.enforceRatchet), violations, advisories: [], unchecked },
   };
 }
 
@@ -208,6 +230,10 @@ export function renderGoal(report: GoalReport, format: "text" | "json"): string 
     }
   }
 
+  if (report.incompleteFiles.length > 0) {
+    lines.push(`  incomplete: ${report.incompleteFiles.length} file(s) failed before declaring scenarios (${report.incompleteFiles.join(", ")})`);
+  }
+
   if (report.ratchet.enforced) {
     if (report.ratchet.violations.length === 0) {
       lines.push("  ratchet: clean (0 scenarios removed/weakened)");
@@ -216,6 +242,9 @@ export function renderGoal(report: GoalReport, format: "text" | "json"): string 
       for (const v of report.ratchet.violations) {
         lines.push(`    ${v.kind}: ${v.title} (${v.detail})`);
       }
+    }
+    if (report.ratchet.unchecked.length > 0) {
+      lines.push(`  not checked for removal: ${report.ratchet.unchecked.length} baseline scenarios this run did not cover; run the full suite, or pass --no-ratchet for a focused run`);
     }
     for (const v of report.ratchet.advisories) {
       lines.push(`    advisory ${v.kind}: ${v.title} (${v.detail})`);

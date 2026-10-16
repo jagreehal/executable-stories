@@ -139,6 +139,7 @@ describe('SKILL.md ↔ package version parity', () => {
         'playwright-story-api',
         'cypress-story-api',
         'e2e-story-api',
+        'bun-story-api',
         'pytest-story-api',
         'ruby-story-api',
         'rust-story-api',

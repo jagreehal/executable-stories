@@ -11,6 +11,7 @@
         "playwright-story-api",
         "cypress-story-api",
         "e2e-story-api",
+        "bun-story-api",
         "go-story-api",
         "ruby-story-api",
         "junit5-story-api",

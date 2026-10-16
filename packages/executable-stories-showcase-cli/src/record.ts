@@ -139,7 +139,7 @@ export function videoManifest(
     start: number;
     end: number;
     /** Epoch ms and page coordinates of each pointerdown. */
-    clicks: { at: number; x: number; y: number; }[];
+    clicks: { at: number; x: number; y: number; cover?: number; }[];
   },
 ) {
   // Playwright records at even sizes, and the crop is cut even.
@@ -149,6 +149,8 @@ export function videoManifest(
 
   const size = outputSize({ width: source.width, height: source.height }, width);
   const ratio = size.width / source.width;
+  // `cover` is measured against the page; a crop shows less of it, so the element covers more of the video.
+  const zoomIn = (viewport.width * viewport.height) / (source.width * source.height);
 
   return {
     name,
@@ -162,6 +164,7 @@ export function videoManifest(
         t: Math.round(c.at - start),
         x: Math.round((c.x - Math.round(source.x)) * ratio),
         y: Math.round((c.y - Math.round(source.y)) * ratio),
+        ...(c.cover !== undefined && { cover: Math.round(Math.min(1, c.cover * zoomIn) * 1000) / 1000 }),
       }))
       .filter((c) => c.t >= 0 && c.x >= 0 && c.y >= 0 && c.x < size.width && c.y < size.height),
   };

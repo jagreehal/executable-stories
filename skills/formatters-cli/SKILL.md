@@ -238,7 +238,7 @@ file when a scenario declares none. It reads `CODEOWNERS` from `./`, `.github/`,
 
 ### goal — behavioral definition-of-done (loop stopping condition)
 
-Met when the required scenarios pass, nothing regressed (`--no-regressions`), and no scenario was removed, disabled, or had steps deleted vs `--baseline` (the ratchet, on by default with a baseline — it blocks an agent from faking "done" by deleting the failing scenario). Exit 0 = met, 5 = not yet.
+Met when the required scenarios pass, nothing regressed (`--no-regressions`), and no scenario was removed, disabled, or had steps deleted vs `--baseline` (the ratchet, on by default with a baseline; it blocks an agent from faking "done" by deleting the failing scenario, so a `filtered` run cannot satisfy it), and no file failed before declaring its scenarios. Exit 0 = met, 5 = not yet.
 
 ```bash
 executable-stories goal raw-run.json --require-tickets US-101 --baseline prev.json --no-regressions

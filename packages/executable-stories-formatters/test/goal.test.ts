@@ -116,6 +116,53 @@ describe("buildGoal", () => {
     expect(kinds).toEqual(["disabled", "removed", "weakened"]);
   });
 
+  it("a filtered run's missing scenarios are unchecked, not removed; a skip in it still counts; an incomplete file blocks the goal", () => {
+    const steps = [{ keyword: "Given" as const, text: "x" }];
+    const baseline = stubs.testRunResult({
+      testCases: [
+        tc({ id: "untouched", sourceFile: "src/a.test.ts", status: "passed", story: stubs.storyMeta({ scenario: "Untouched", steps }) }),
+        tc({ id: "target", sourceFile: "src/b.test.ts", status: "passed", story: stubs.storyMeta({ scenario: "Target", steps }) }),
+        tc({ id: "broken", sourceFile: "src/c.test.ts", status: "passed", story: stubs.storyMeta({ scenario: "Broken", steps }) }),
+      ],
+    });
+    const goal = (over: Partial<Parameters<typeof stubs.testRunResult>[0]>) =>
+      buildGoal({
+        run: stubs.testRunResult({ testCases: [tc({ id: "target", sourceFile: "src/b.test.ts", status: "skipped", story: stubs.storyMeta({ scenario: "Target", steps }) })], ...over }),
+        baseline,
+        requireTags: [],
+        requireTickets: [],
+        requireScenarios: [],
+        enforceNoRegressions: false,
+        enforceRatchet: true,
+        format: "text",
+      });
+
+    const filtered = goal({ runScope: "filtered" });
+    expect(filtered.ratchet.violations.map((v) => v.kind)).toEqual(["disabled"]);
+    expect(filtered.ratchet.unchecked.map((u) => u.id)).toEqual(["untouched", "broken"]);
+    expect(renderGoal(filtered, "text")).toContain("not checked for removal: 2");
+    expect(filtered.incompleteFiles).toEqual([]);
+    expect(filtered.met).toBe(false);
+
+    const full = goal({ runScope: "full", incompleteSourceFiles: ["src/c.test.ts"] });
+    expect(full.ratchet.violations.map((v) => `${v.kind}:${v.id}`).sort()).toEqual(["disabled:target", "removed:untouched"]);
+    expect(full.ratchet.unchecked.map((u) => u.id)).toEqual(["broken"]);
+    expect(full.incompleteFiles).toEqual(["src/c.test.ts"]);
+    expect(renderGoal(full, "text")).toContain("incomplete: 1 file(s) failed before declaring scenarios (src/c.test.ts)");
+
+    // Even with every requirement met and nothing removed, a broken file is not done.
+    const onlyBroken = buildGoal({
+      run: stubs.testRunResult({ testCases: [tc({ status: "passed" })], incompleteSourceFiles: ["src/c.test.ts"] }),
+      requireTags: [],
+      requireTickets: [],
+      requireScenarios: [],
+      enforceNoRegressions: false,
+      enforceRatchet: false,
+      format: "text",
+    });
+    expect(onlyBroken.met).toBe(false);
+  });
+
   it("renders a met verdict", () => {
     const run = stubs.testRunResult({ testCases: [tc({ status: "passed" })] });
     const report = buildGoal({

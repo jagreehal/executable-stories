@@ -1090,6 +1090,12 @@
                   "focus"
                 ]
               },
+              "cover": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1,
+                "description": "Share of the page the element covers."
+              },
               "viewport": {
                 "type": "object",
                 "properties": {

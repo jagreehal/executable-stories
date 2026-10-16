@@ -72,6 +72,8 @@ Exit `0` means met, `5` means not yet, so a loop runs until the verdict flips. D
 
 The **ratchet** matters for an unattended loop. An agent that can make "done" true by deleting the failing scenario will eventually try it. With a baseline, `goal` refuses a "done" that dropped, skipped, or shortened a scenario. Disable it with `--no-ratchet` if you need to.
 
+A run only proves a scenario is gone when it could have seen it. A `filtered` run (a name filter, a focused rerun) lacks everything it did not target, so `goal` lists those baseline scenarios as `not checked for removal` instead of removed, and the goal stays unmet until a full run sees them. Pass `--no-ratchet` for a focused rerun. A file where a test failed before declaring its scenario (`incompleteSourceFiles`) keeps the goal unmet and `goal` names it, since its scenarios are missing from every check. A skipped or shortened scenario that the run did execute still fails the ratchet.
+
 ## Jev: judgments where the rules stop
 
 `check`, `triage`, and `goal` are rule-driven, and rules leave gaps: a failing scenario with no `covers`, a scenario whose steps were rewritten without shrinking, a claim with no `change:*` tag. Set `JEV_API_KEY` and the three commands ask [Jev](https://typesafe.ai) (TypeSafe AI's System One) a bounded question for each gap:

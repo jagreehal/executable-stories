@@ -241,6 +241,7 @@ export default defineConfig({
                 { label: 'Playwright', slug: 'reference/playwright-story-api' },
                 { label: 'Cypress', slug: 'reference/cypress-story-api' },
                 { label: 'e2e', slug: 'reference/e2e' },
+                { label: 'Bun', slug: 'reference/bun-story-api' },
                 { label: 'Ruby', slug: 'reference/ruby-story-api' },
                 { label: 'Go, Python, Rust, Kotlin, C#', slug: 'reference/other-adapters' },
               ],

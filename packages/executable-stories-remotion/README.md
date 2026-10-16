@@ -79,6 +79,7 @@ const recording: CalculateMetadataFunction<RecordingVideoProps> = async ({ props
 
 - Each clip fits the composition as a card, so recordings of any size, cropped ones included, sit in one video.
 - The camera reaches each click as it lands and glides between clicks close together. `zoom` (default 1.6) sets how far it moves in.
+- Clicks under 400ms apart (a double-click, a label then its field) are one zoom, on the last. A click on an element covering over 60% of the picture (`cover` in the manifest) gets no zoom: there is nothing to look closer at.
 - A short `page.waitForTimeout` before each click in your steps gives viewers, and the zoom, time to follow.
 - A manifest point with `kind: 'focus'` is a field being typed into: the camera holds on it until the next point instead of zooming out after a moment.
 - For your own compositions: `RecordingPlayer` is just the zooming video, sized by its parent, so it fits any layout (article text beside it, say). `RecordingScene` is that card with a caption; `caption={null}` leaves the caption out. `zoomAt(clicks, ms)` exposes the camera.
@@ -105,7 +106,7 @@ Then turn the run into MP4s and manifests in `public/video`:
 executable-stories video reports/raw-run.json --output-dir public
 ```
 
-Each `<scenario>.video.json` has the clicks (`RecordingVideo` zooms to them) and each step's start (`steps[].t`), both counted from after the blank page load the command trims off. `StoryRecordingVideo` captions the steps:
+Each `<scenario>.video.json` has the clicks (`RecordingVideo` zooms to them) and each step's start (`steps[].t`), both counted from after the blank page load the command trims off. `StoryRecordingVideo` captions the steps. A step on screen for under a second shares a caption with the step after it (up to three lines), so a burst of quick steps doesn't flash past; `captionGroups` exposes the grouping:
 
 ```tsx
 const walkthrough: CalculateMetadataFunction<{ clip: RecordingClip }> = async () => {
@@ -117,6 +118,14 @@ const walkthrough: CalculateMetadataFunction<{ clip: RecordingClip }> = async ()
 <Composition id='Payee' component={StoryRecordingVideo} fps={30} width={1920} height={1080} durationInFrames={1}
   defaultProps={{ clip: undefined as unknown as RecordingClip }} calculateMetadata={walkthrough} />
 ```
+
+Playwright moves no visible pointer, so a recording without showcase's `showCursor` has none. `cursor` draws one from the click log, on `StoryRecordingVideo`, `RecordingVideo`, `RecordingScene` and `RecordingPlayer`: it glides to each click on a slight arc, lands on it as it happens and dips. `cursorAt(clicks, ms, size)` exposes its position.
+
+```tsx
+<Composition id='Payee' component={StoryRecordingVideo} defaultProps={{ clip, cursor: true }} ... />
+```
+
+`executable-stories video` warns when a step's line takes longer to say (about 170 words a minute) than the step is on screen, so a voiceover would talk over the next step. Slow that step down in the test, or shorten its text.
 
 Names are `scenarioSlug(title)` from `executable-stories-core`, the rule `gif` uses too: "Lena's payee" becomes `lenas-payee`. To show a table the test attached with `story.table()`, read it from the StoryReport with `docsOf(getScenario(report, title)!.scenario, 'table')`.
 

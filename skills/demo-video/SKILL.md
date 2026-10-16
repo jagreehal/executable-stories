@@ -24,7 +24,9 @@ run that nothing verified, next to a real one that already has the frames.
 | Scene list, in order | `deriveStoryboard()` in `executable-stories-core`, or the steps in the StoryReport JSON |
 | Narration script | the step's `text` |
 | Screen recording | Playwright `story.init({ page }, testInfo, { featureVideo: true })` promotes the `.webm` with no per-test call (needs `video: "on"` in the Playwright config) |
-| MP4, trimmed, with step times | `executable-stories video reports/raw-run.json` → `reports/video/<scenario>.mp4` + `.video.json` (clicks, focused fields, `steps[].t`) |
+| MP4, trimmed, with step times | `executable-stories video reports/raw-run.json` → `reports/video/<scenario>.mp4` + `.video.json` (clicks, focused fields, `steps[].t`). `--from-step when` leaves sign-in and setup off camera |
+| A check that the video shows what each step claims | `video --frames` → `reports/video/<scenario>/step-NN.jpg` (each step as it ends) and `step-NN-click.jpg` (its click, ringed) |
+| Steps too short to narrate | `video` warns per step ("narration overrun") before you pay for any TTS |
 | Step captions over the recording | `StoryRecordingVideo` in `executable-stories-remotion`, from that manifest |
 | Attaching the file | `story.video({ path, caption, poster })` |
 | Shipping the file | `--asset-mode copy` bundles referenced local media into `assets/` beside the report and rewrites the paths (`html`, `markdown`, `astro-markdown`) |
@@ -188,6 +190,13 @@ next to each video, and `<RecordingVideo>` cuts several into one video, captione
 camera zooming to each click. `apps/remotion-example` in this repo
 renders both from its own run (`pnpm --filter remotion-example video`). Install Remotion's own
 skills (`npx skills add remotion-dev/skills`) for anything past these two compositions.
+
+For a Playwright recording, `executable-stories video --frames` writes the manifest
+`<StoryRecordingVideo>` reads, plus a still per step. **Read every still before you
+render.** `step-NN.jpg` is the step's last frame: a Then must show its outcome there, or the
+video proves nothing. `step-NN-click.jpg` rings the click: the ring must sit on the control
+the step names. Pass `cursor: true` for a pointer, since Playwright draws none (leave it off
+for showcase recordings, which draw their own).
 
 ## 5. Bundle and open
 

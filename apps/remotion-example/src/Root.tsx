@@ -55,10 +55,10 @@ const recording: CalculateMetadataFunction<RecordingVideoProps> = async ({
  * `pnpm walkthrough` runs the Playwright suite in e2e/ with video on, then
  * `executable-stories video` writes each MP4 and its manifest, step times included, into public/video.
  */
-const walkthrough: CalculateMetadataFunction<{ clip: RecordingClip }> = async () => {
+const walkthrough: CalculateMetadataFunction<{ clip: RecordingClip; cursor?: boolean }> = async ({ props }) => {
   const [clip] = await loadClips([{ name: 'find-a-country-by-the-start-of-its-name' }], 'video');
 
-  return { props: { clip: clip! }, durationInFrames: clipFrames(clip!, fps) };
+  return { props: { ...props, clip: clip! }, durationInFrames: clipFrames(clip!, fps) };
 };
 
 const empty: StoryVideoProps = {

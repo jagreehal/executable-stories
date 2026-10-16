@@ -69,7 +69,7 @@ Common: --rules file   module exporting \`rules\` (ScenarioRule[])
 declare global {
   interface Window {
     /** Set by record: reports each pointerdown for the video's manifest. */
-    showcaseClick(x: number, y: number): void;
+    showcaseClick(x: number, y: number, cover?: number): void;
   }
 }
 
@@ -677,18 +677,24 @@ For agents that need a pointer, add to AGENTS.md (or CLAUDE.md):
         const began = Date.now();
         const file = join(out, `${name}.${format}`);
 
-        const clicks: Promise<{ at: number; x: number; y: number; } | undefined>[] = [];
+        const clicks: Promise<{ at: number; x: number; y: number; cover?: number; } | undefined>[] = [];
 
         try {
           await showCursor(page, { ...cursor, glide: true });
           // The listener runs in every frame; a click in an iframe maps through the iframe's place and scale.
-          await page.exposeBinding('showcaseClick', ({ frame }, x: number, y: number) => {
+          await page.exposeBinding('showcaseClick', ({ frame }, x: number, y: number, cover?: number) => {
             const at = Date.now();
 
-            clicks.push(pagePoint(frame, x, y).then((point) => ({ at, ...point }), () => undefined));
+            clicks.push(pagePoint(frame, x, y).then((point) => ({ at, ...point, ...(cover !== undefined && { cover }) }), () => undefined));
           });
           await page.addInitScript(() => {
-            addEventListener('pointerdown', (e) => window.showcaseClick(e.clientX, e.clientY), true);
+            addEventListener('pointerdown', (e) => {
+              // Share of the page the clicked element covers, so a video skips zooming to a big one. Not inside an iframe.
+              const r = e.target instanceof Element && top === self ? e.target.getBoundingClientRect() : undefined;
+              const cover = r ? Math.min(1, (r.width * r.height) / (innerWidth * innerHeight)) : undefined;
+
+              window.showcaseClick(e.clientX, e.clientY, cover);
+            }, true);
           });
           await openScenario(page, name, { path: resolved.path, strict: !values['no-strict'], panel: false });
           const selector = element ?? values.element;

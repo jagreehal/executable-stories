@@ -491,7 +491,10 @@ executable-stories video reports/raw-run.json                   # → reports/vi
 
 - **Encoding:** H.264 in `yuv420p` with `+faststart`, so it plays in every browser and phone.
 - **Lead-in:** Playwright starts recording when the page is created, so a video opens on the blank page while the app loads. The command cuts to the first frame where 2% or more of the picture is not white (a drawn cursor is far less). `--no-trim` keeps it.
-- **Manifest:** `<scenario>.video.json` beside each video holds its size and length, each click and focused field (`clicks[]`, with `kind: "click" | "focus"`), and when each step began (`steps[]`). Times are ms into the trimmed video. `executable-stories-remotion` reads it: `RecordingVideo` zooms to the clicks and `StoryRecordingVideo` captions each step.
+- **Manifest:** `<scenario>.video.json` beside each video holds its size and length, each click and focused field (`clicks[]`, with `kind: "click" | "focus"` and `cover`, the share of the page the element covers), and when each step began (`steps[]`). Times are ms into the trimmed video. `executable-stories-remotion` reads it: `RecordingVideo` zooms to the clicks and `StoryRecordingVideo` captions each step.
+- **Starting later:** `--from-step <n|keyword>` starts each video at that step, a number from 1 or the first step with that keyword (`--from-step when`), so sign-in and setup in the Givens stay off camera. Earlier steps leave the manifest; a scenario without that step is not cut.
+- **Stills to check:** `--frames` writes `<scenario>/step-NN.jpg`, each step's last frame, and `step-NN-click.jpg`, a third-of-the-frame close-up of the step's last click with a magenta ring on it. `--json` lists them under `frames`. An agent reads them to confirm the video shows what each step claims.
+- **Narration overruns:** a step whose line takes longer to say (about 170 words a minute) than the step is on screen is printed as a warning and listed in `--json` as `overruns`, before any voiceover is made.
 - **Naming:** the same as `gif`: `scenarioSlug(title)` from `executable-stories-core`. `--json` prints what it wrote.
 
 Both commands warn when `test-results/.last-run.json` is newer than the run file: Playwright ran, but `--reporter` on the command line replaced the stories reporter, so the run file is from an earlier run.
@@ -513,7 +516,7 @@ executable-stories check .executable-stories/raw-run.json --baseline reports/pre
 
 ### `goal`
 
-Behavioral definition-of-done for an agent loop (the `/goal` stopping condition). Met when the required scenarios pass, nothing regressed (`--no-regressions`), and no scenario was removed, disabled, or had steps deleted versus `--baseline` (the ratchet, on by default with a baseline). Exit `0` = met, `5` = not yet, so a loop runs until the verdict flips.
+Behavioral definition-of-done for an agent loop (the `/goal` stopping condition). Met when the required scenarios pass, nothing regressed (`--no-regressions`), no scenario was removed, disabled, or had steps deleted versus `--baseline` (the ratchet, on by default with a baseline; a `filtered` run cannot satisfy it), and no file failed before declaring its scenarios. Exit `0` = met, `5` = not yet, so a loop runs until the verdict flips.
 
 ```bash
 executable-stories goal raw-run.json --require-tickets US-101 --baseline prev.json --no-regressions

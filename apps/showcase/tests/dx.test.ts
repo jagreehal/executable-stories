@@ -131,7 +131,7 @@ describe('videoManifest', () => {
       start: 10_000,
       end: 14_250,
       clicks: [
-        { at: 11_000, x: 500, y: 250 },
+        { at: 11_000, x: 500, y: 250, cover: 0.01234 },
         // Before the video starts, and outside the crop: not in the video.
         { at: 9_000, x: 500, y: 250 },
         { at: 12_000, x: 50, y: 250 },
@@ -145,7 +145,8 @@ describe('videoManifest', () => {
       width: 400,
       height: 200,
       durationMs: 4250,
-      clicks: [{ t: 1000, x: 200, y: 100 }],
+      // A crop of 800x400 out of 1280x720 shows 2.88 times less page: the element covers that much more video.
+      clicks: [{ t: 1000, x: 200, y: 100, cover: 0.036 }],
     });
   });
 });
