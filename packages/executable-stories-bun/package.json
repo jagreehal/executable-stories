@@ -1,6 +1,6 @@
 {
   "name": "executable-stories-bun",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "license": "Apache-2.0",
   "description": "BDD-style executable stories for bun:test with documentation generation",
   "type": "module",

@@ -1,5 +1,12 @@
 # executable-stories-react
 
+## 0.21.2
+
+### Patch Changes
+
+- Updated dependencies [1ec073d]
+  - executable-stories-core@0.30.0
+
 ## 0.21.1
 
 ### Patch Changes
