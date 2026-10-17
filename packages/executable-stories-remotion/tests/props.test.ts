@@ -1,7 +1,7 @@
 import type { ReportStep, StoryReport } from 'executable-stories-core';
 import { describe, expect, it } from 'vitest';
 import { storyVideoFrames, storyVideoProps } from '../src/props.js';
-import { recordingFrames, stepAt } from '../src/RecordingVideo.js';
+import { captionAt, captionGroups, recordingFrames, stepAt } from '../src/RecordingVideo.js';
 import { clipFrames, zoomAt } from '../src/zoom.js';
 
 const step = (
@@ -154,20 +154,48 @@ describe('zoomAt', () => {
     expect(zoomAt(clicks, 1400)).toEqual({ scale: 1.6, x: 200, y: 150 });
   });
 
-  it('moves the point continuously between clicks closer together than the glide', () => {
-    const rapid = [
+  it('moves the point continuously between clicks', () => {
+    const near = [
       { t: 1000, x: 100, y: 50 },
-      { t: 1100, x: 300, y: 250 },
+      { t: 1450, x: 300, y: 250 },
     ];
 
-    for (let ms = 900; ms < 1200; ms++) {
+    for (let ms = 900; ms < 1600; ms++) {
       expect(
-        Math.abs(zoomAt(rapid, ms + 1).x - zoomAt(rapid, ms).x),
+        Math.abs(zoomAt(near, ms + 1).x - zoomAt(near, ms).x),
       ).toBeLessThan(5);
     }
 
-    expect(zoomAt(rapid, 1000).x).toBe(100);
-    expect(zoomAt(rapid, 1100).x).toBe(300);
+    expect(zoomAt(near, 1000).x).toBe(100);
+    expect(zoomAt(near, 1450).x).toBe(300);
+  });
+
+  it('makes clicks under 400ms apart one zoom, on the last', () => {
+    const double = [
+      { t: 1000, x: 100, y: 50 },
+      { t: 1100, x: 105, y: 52 },
+      { t: 1200, x: 300, y: 250 },
+    ];
+
+    expect(zoomAt(double, 1000)).toMatchObject({ x: 300, y: 250 });
+    expect(zoomAt(double, 1200)).toEqual({ scale: 1.6, x: 300, y: 250 });
+  });
+
+  it('ends a focused field\'s hold at a big element\'s click, though that click gets no zoom', () => {
+    const points = [
+      { t: 1000, x: 100, y: 50, kind: 'focus' as const },
+      { t: 3000, x: 640, y: 360, cover: 0.9 },
+      { t: 10_000, x: 900, y: 600 },
+    ];
+
+    expect(zoomAt(points, 5000).scale).toBe(1);
+  });
+
+  it('does not zoom to an element covering most of the page', () => {
+    const big = [{ t: 1000, x: 100, y: 50, cover: 0.9 }];
+
+    expect(zoomAt(big, 1000).scale).toBe(1);
+    expect(zoomAt([{ ...big[0]!, cover: 0.2 }], 1000).scale).toBe(1.6);
   });
 });
 
@@ -213,5 +241,29 @@ describe('recordingFrames', () => {
     expect(recordingFrames({ clips: [clip, clip] }, 30)).toBe(120);
     expect(recordingFrames({ title: 'Demo', clips: [clip] }, 30)).toBe(105);
     expect(clipFrames({ durationMs: 1001 }, 30)).toBe(31);
+  });
+});
+
+describe('captionGroups', () => {
+  const step = (t: number, text: string) => ({ t, keyword: 'When', text });
+
+  it('gives a step on screen under a second the caption of the step after it', () => {
+    const steps = [step(0, 'a'), step(2000, 'b'), step(2400, 'c'), step(4000, 'd')];
+
+    expect(captionGroups(steps, 6000)).toEqual([[0], [1, 2], [3]]);
+    // The quick step's line shows from its own start, with the next one under it.
+    expect(captionAt(steps, 2000, 6000)).toEqual([1, 2]);
+    expect(captionAt(steps, 3000, 6000)).toEqual([1, 2]);
+    expect(captionAt(steps, 500, 6000)).toEqual([0]);
+  });
+
+  it('holds no more than three lines, however quick the steps', () => {
+    const quick = [0, 200, 400, 600, 800].map((t) => step(t, String(t)));
+
+    expect(captionGroups(quick, 3000)).toEqual([[0, 1, 2], [3, 4]]);
+  });
+
+  it('keeps a short last step on its own: nothing comes after it to share with', () => {
+    expect(captionGroups([step(0, 'a'), step(2000, 'b')], 2300)).toEqual([[0], [1]]);
   });
 });

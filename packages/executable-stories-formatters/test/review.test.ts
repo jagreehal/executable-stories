@@ -799,6 +799,15 @@ describe("buildReviewJson", () => {
     expect(json.summary.uncovered).toBe(1);
   });
 
+  it("records where the run executed apart from the comparison it was asked for", () => {
+    const run = { ...bandedRun(), gitSha: "a".repeat(40), runScope: "full" as const };
+    const json = buildReviewJson(buildReview(run, { changedFiles, baseRef: "main", headRef: "b".repeat(40) }));
+
+    expect(json.headRef).toBe("b".repeat(40));
+    expect(json.execution).toEqual({ gitSha: "a".repeat(40), runScope: "full" });
+    expect(buildReviewJson(buildReview({ ...bandedRun(), gitSha: undefined }, { changedFiles })).execution).toBeUndefined();
+  });
+
   it("projects claims without the canonical test case", () => {
     const json = buildReviewJson(buildReview(bandedRun(), { changedFiles }));
     const claim = json.claims.find((c) => c.id === "checkout")!;

@@ -508,6 +508,9 @@ test.describe("step with inline docs", () => {
     ]);
     // Each point carries the page size it happened at, for tests that resize the page.
     expect(recording!.attention.map((p) => p.viewport)).toEqual([page.viewportSize(), page.viewportSize()]);
+    // And the share of the page its element covers, so a video can skip zooming to a big one.
+    const { width, height } = page.viewportSize()!;
+    expect(recording!.attention[0].cover).toBeCloseTo((100 * 20) / (width * height), 6);
   });
 
   test("featureVideo maps a click inside an iframe to the page", async ({ page }, testInfo) => {
@@ -525,6 +528,8 @@ test.describe("step with inline docs", () => {
     const [point] = getStoryMeta(testInfo)!.recording!.attention;
     // Button centre in the iframe is (40, 40); through the border and the scale: 100 + (10 + 40) * .5.
     expect({ kind: point.kind, x: Math.round(point.x), y: Math.round(point.y) }).toEqual({ kind: "click", x: 125, y: 225 });
+    // An iframe's viewport is not the page's, so its share of the page is not known.
+    expect(point.cover).toBeUndefined();
   });
 
   test("story.video() does not warn for a relative path (resolved later by the asset bundler)", async ({}, testInfo) => {

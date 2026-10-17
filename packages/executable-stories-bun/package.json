@@ -1,0 +1,54 @@
+{
+  "name": "executable-stories-bun",
+  "version": "0.0.0",
+  "license": "Apache-2.0",
+  "description": "BDD-style executable stories for bun:test with documentation generation",
+  "type": "module",
+  "sideEffects": false,
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./preload": {
+      "types": "./dist/preload.d.ts",
+      "import": "./dist/preload.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "bun test src/__tests__"
+  },
+  "engines": {
+    "bun": ">=1.3.3"
+  },
+  "dependencies": {
+    "executable-stories-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.2.0",
+    "@types/node": "^26.6.1",
+    "eslint-config-executable-stories": "workspace:*",
+    "tsup": "^8.5.1",
+    "typescript": "~6.0.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jagreehal/executable-stories.git",
+    "directory": "packages/executable-stories-bun"
+  },
+  "keywords": [
+    "bun",
+    "bdd",
+    "testing",
+    "documentation",
+    "executable-stories"
+  ]
+}

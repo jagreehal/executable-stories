@@ -129,6 +129,8 @@ export interface AttentionPoint {
   x: number;
   y: number;
   kind: "click" | "focus";
+  /** Share of the page (0 to 1) the clicked or focused element covers; a video skips zooming to a big one. Absent inside iframes */
+  cover?: number;
   /** The page size when it happened; a test can resize the page partway through */
   viewport?: { width: number; height: number };
 }

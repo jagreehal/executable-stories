@@ -17,6 +17,13 @@ export interface VideoArgs {
   outputDir: string;
   /** Cut the blank page off the start. Default true. */
   trimLeadIn?: boolean;
+  /**
+   * Start each video at this step, leaving sign-in and setup off camera: a step number from 1,
+   * or a keyword ("When" starts at the first When). A scenario without that step is not cut.
+   */
+  fromStep?: string;
+  /** Also write a still per step, and a close-up of its click, into `<name>/` for an agent to check. */
+  frames?: boolean;
 }
 
 export interface VideoDeps {
@@ -32,14 +39,37 @@ export interface VideoManifest {
   width: number;
   height: number;
   durationMs: number;
-  /** Clicks and focused fields: ms into the video, pixels in it. */
-  clicks: { t: number; x: number; y: number; kind: "click" | "focus" }[];
+  /** Clicks and focused fields: ms into the video, pixels in it, and the share of the page the element covers. */
+  clicks: { t: number; x: number; y: number; kind: "click" | "focus"; cover?: number }[];
   /** Each step, from when it began: ms into the video. Steps before the trim start at 0. */
   steps: { t: number; keyword: string; text: string }[];
 }
 
+/** A step whose line, said aloud, runs past the next step (or the end of the video). */
+export interface StepOverrun {
+  step: string;
+  /** How long the line takes to say. */
+  needMs: number;
+  /** How long the step is on screen. */
+  haveMs: number;
+}
+
+/** A step's still: the frame as it ends, and a close-up of its last click, ringed, when it has one. */
+export interface StepFrame {
+  step: string;
+  frame: string;
+  closeUp?: string;
+}
+
 export interface VideoResult {
-  written: { scenario: string; video: string; manifest: string; trimmedMs: number }[];
+  written: {
+    scenario: string;
+    video: string;
+    manifest: string;
+    trimmedMs: number;
+    overruns: StepOverrun[];
+    frames?: StepFrame[];
+  }[];
   /** Scenarios left out, with why: not passing, or not recorded. */
   skipped: { scenario: string; reason: string }[];
 }
@@ -109,7 +139,21 @@ export function videoManifest(
         : (recording?.attention ?? [])
             .map((p) => {
               const r = ratio(p.viewport);
-              return { t: at(p.at), x: Math.round(p.x * r), y: Math.round(p.y * r), kind: p.kind };
+              // `cover` is a share of the page; a page padded inside a larger video covers less of it.
+              const page = p.viewport ?? recording?.viewport;
+              const cover =
+                p.cover === undefined
+                  ? undefined
+                  : page
+                    ? Math.min(1, (p.cover * page.width * page.height * r * r) / (size.width * size.height))
+                    : p.cover;
+              return {
+                t: at(p.at),
+                x: Math.round(p.x * r),
+                y: Math.round(p.y * r),
+                kind: p.kind,
+                ...(cover !== undefined ? { cover: Math.round(cover * 1000) / 1000 } : {}),
+              };
             })
             .filter((c) => c.t >= 0 && c.t <= durationMs && c.x >= 0 && c.y >= 0 && c.x < size.width && c.y < size.height),
     steps:
@@ -121,8 +165,84 @@ export function videoManifest(
   };
 }
 
+/** Speaking pace for narration: a typical TTS voice, and about how fast a viewer reads a caption. */
+const WORDS_PER_MINUTE = 170;
+
+/**
+ * Steps whose line ("Given ...") takes longer to say than the step is on screen, so a
+ * voiceover would talk over the next step. Words at 170 per minute: an estimate, made
+ * before any audio exists. Seeing it here beats hearing it in the render.
+ */
+export function stepOverruns(
+  { steps, durationMs }: Pick<VideoManifest, "steps" | "durationMs">,
+  wordsPerMinute = WORDS_PER_MINUTE,
+): StepOverrun[] {
+  return steps.flatMap((s, i) => {
+    const line = `${s.keyword} ${s.text}`;
+    const needMs = Math.round((line.trim().split(/\s+/).length / wordsPerMinute) * 60_000);
+    const haveMs = (steps[i + 1]?.t ?? durationMs) - s.t;
+    return needMs > haveMs ? [{ step: line, needMs, haveMs }] : [];
+  });
+}
+
+/** Where `--from-step` starts: the step's index, from a number from 1 or a keyword. */
+export function fromStepIndex(steps: { keyword: string }[], from: string): number | undefined {
+  const i = /^\d+$/.test(from)
+    ? Number(from) - 1
+    : steps.findIndex((s) => s.keyword.toLowerCase() === from.toLowerCase());
+  return i >= 0 && i < steps.length ? i : undefined;
+}
+
+/**
+ * Stills to check the video against its steps, with ffmpeg: each step's last frame, so a Then
+ * shows its outcome, and a third-of-the-frame close-up of the step's last click with a magenta
+ * ring on it, at the click. An agent reads these to confirm the video shows what a step claims.
+ */
+export function frameCommands(
+  manifest: VideoManifest,
+  video: string,
+  dir: string,
+): { frames: StepFrame[]; commands: string[][] } {
+  const frames: StepFrame[] = [];
+  const commands: string[][] = [];
+  const name = (i: number, suffix = "") => path.join(dir, `step-${String(i + 1).padStart(2, "0")}${suffix}.jpg`);
+  // Never past the last frame: a quick final step can begin after the footage ends.
+  const lastMs = Math.max(0, manifest.durationMs - 50);
+  const grab = (ms: number, out: string, filter?: string) => [
+    "-y", "-loglevel", "error", "-ss", (Math.max(0, Math.min(ms, lastMs)) / 1000).toFixed(3), "-i", video,
+    ...(filter ? ["-vf", filter] : []), "-frames:v", "1", "-q:v", "3", out,
+  ];
+  const { width, height, steps, clicks } = manifest;
+  const w = Math.round(width / 3);
+  const h = Math.round(height / 3);
+  const ring = Math.max(12, Math.round(width * 0.015));
+
+  steps.forEach((s, i) => {
+    const end = steps[i + 1]?.t ?? manifest.durationMs;
+    // A frame short of the end, so the next step has not begun; never before this step began.
+    const frame: StepFrame = { step: `${s.keyword} ${s.text}`, frame: name(i) };
+    commands.push(grab(Math.max(s.t, end - 50), frame.frame));
+    const click = clicks.filter((c) => c.t >= s.t && c.t < end).at(-1);
+    if (click) {
+      frame.closeUp = name(i, "-click");
+      const x = Math.min(Math.max(0, click.x - w / 2), width - w);
+      const y = Math.min(Math.max(0, click.y - h / 2), height - h);
+      commands.push(
+        grab(
+          click.t,
+          frame.closeUp,
+          `drawbox=x=${click.x - ring}:y=${click.y - ring}:w=${ring * 2}:h=${ring * 2}:color=magenta:t=3,` +
+            `crop=${w}:${h}:${Math.round(x)}:${Math.round(y)}`,
+        ),
+      );
+    }
+    frames.push(frame);
+  });
+  return { frames, commands };
+}
+
 export async function writeVideos(args: VideoArgs, deps: VideoDeps): Promise<VideoResult> {
-  const { testCases, outputDir, trimLeadIn = true } = args;
+  const { testCases, outputDir, trimLeadIn = true, fromStep, frames: withFrames = false } = args;
   const result: VideoResult = { written: [], skipped: [] };
   const used = new Set<string>();
 
@@ -149,9 +269,22 @@ export async function writeVideos(args: VideoArgs, deps: VideoDeps): Promise<Vid
       const stats = await deps.exec("ffmpeg", [
         "-v", "info", "-i", input, "-vf", "negate,blackframe=amount=0:threshold=32", "-f", "null", "-",
       ]);
-      const frames = parseFrames(stats.stderr);
-      const lead = trimLeadIn ? leadInSeconds(frames) : 0;
-      const durationMs = ((frames.at(-1)?.t ?? 0) - lead) * 1000;
+      const coverage = parseFrames(stats.stderr);
+      const lead = trimLeadIn ? leadInSeconds(coverage) : 0;
+      const fullMs = ((coverage.at(-1)?.t ?? 0) - lead) * 1000;
+      const size = { width: stream.width - (stream.width % 2), height: stream.height - (stream.height % 2) };
+
+      // Starting at a later step cuts everything before it, and drops the steps that came before.
+      const leadMs = Math.round(lead * 1000);
+      const uncut = videoManifest(tc, { name: "", size, durationMs: fullMs, trimmedMs: leadMs });
+      const from = fromStep === undefined ? undefined : fromStepIndex(uncut.steps, fromStep);
+      const cutMs = from === undefined ? 0 : uncut.steps[from]!.t;
+      if (cutMs >= fullMs) {
+        result.skipped.push({ scenario, reason: `--from-step ${fromStep} begins after the recording ends` });
+        continue;
+      }
+      const trimmedMs = leadMs + cutMs;
+      const durationMs = fullMs - cutMs;
 
       let name = scenarioSlug(scenario);
       for (let n = 2; used.has(name); n++) name = `${scenarioSlug(scenario)}-${n}`;
@@ -160,15 +293,24 @@ export async function writeVideos(args: VideoArgs, deps: VideoDeps): Promise<Vid
       const video = path.join(outputDir, `${name}.mp4`);
       // H.264 in yuv420p plays everywhere, Safari and phones included; it needs even sizes.
       await deps.exec("ffmpeg", [
-        "-y", "-loglevel", "error", "-i", input, "-ss", lead.toFixed(3), "-an",
+        "-y", "-loglevel", "error", "-i", input, "-ss", (trimmedMs / 1000).toFixed(3), "-an",
         "-vf", "scale=trunc(iw/2)*2:trunc(ih/2)*2",
         "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "23", "-movflags", "+faststart", video,
       ]);
-      const size = { width: stream.width - (stream.width % 2), height: stream.height - (stream.height % 2) };
       const manifest = path.join(outputDir, `${name}.video.json`);
-      const trimmedMs = Math.round(lead * 1000);
-      fs.writeFileSync(manifest, `${JSON.stringify(videoManifest(tc, { name, size, durationMs, trimmedMs }), null, 2)}\n`);
-      result.written.push({ scenario, video, manifest, trimmedMs });
+      const written = videoManifest(tc, { name, size, durationMs, trimmedMs });
+      if (from !== undefined) written.steps = written.steps.slice(from);
+      fs.writeFileSync(manifest, `${JSON.stringify(written, null, 2)}\n`);
+      const entry: VideoResult["written"][number] = { scenario, video, manifest, trimmedMs, overruns: stepOverruns(written) };
+      if (withFrames) {
+        const dir = path.join(outputDir, name);
+        fs.rmSync(dir, { recursive: true, force: true });
+        fs.mkdirSync(dir, { recursive: true });
+        const { frames, commands } = frameCommands(written, video, dir);
+        for (const command of commands) await deps.exec("ffmpeg", command);
+        entry.frames = frames;
+      }
+      result.written.push(entry);
     } finally {
       fs.rmSync(tmp, { recursive: true, force: true });
     }

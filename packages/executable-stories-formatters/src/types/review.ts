@@ -216,8 +216,19 @@ export interface ReviewResult {
  */
 export interface ReviewJson {
   version: 1;
+  /**
+   * The comparison the review was asked for, as the caller passed it
+   * (`--changed-files`). Not evidence of which commit the tests ran on: read
+   * {@link ReviewJson.execution} for that.
+   */
   baseRef?: string;
   headRef?: string;
+  /**
+   * Where the run behind this review executed, copied from the raw run: the
+   * commit its adapter recorded and how much of each file it ran. Absent
+   * fields mean the adapter did not record them.
+   */
+  execution?: { gitSha?: string; runScope?: "full" | "filtered" };
   summary: ReviewSummary;
   /** Outcome counts for the run behind the review. */
   run: {

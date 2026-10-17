@@ -546,7 +546,10 @@ Each invocation produces:
 
 `mode: review` also writes `reports/<output-name>.review.json`, the machine contract behind
 all of the above (ranked findings, evidence bands, per-claim strength). Read that rather than
-scraping the comment if you are building on top of it.
+scraping the comment if you are building on top of it. Its `baseRef` and `headRef` are the
+comparison the review was asked for; `execution.gitSha` and `execution.runScope` say which commit
+the tests actually ran on and whether the run was filtered. Check `execution` when it matters which
+commit a report proves.
 
 On subsequent pushes to the same PR, the comment is **updated in place** rather than duplicated,
 and an unchanged body is skipped entirely rather than re-posted.

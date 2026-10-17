@@ -29,6 +29,7 @@ packages/
   executable-stories-playwright/ # Playwright adapter
   executable-stories-cypress/    # Cypress adapter
   executable-stories-e2e/        # e2e (TesterArmy) reporter + step markers
+  executable-stories-bun/        # bun:test adapter (test/describe wrappers + preload)
   executable-stories-formatters/ # Core: report generation (HTML, Markdown, JUnit, Cucumber JSON/HTML/Messages)
   executable-stories-ruby/       # Ruby adapter (Minitest story API + JSON output)
   executable-stories-go/         # Go adapter (testing.T story API + JSON output)
@@ -381,6 +382,7 @@ When working in these areas, load the linked skill file into context for accurat
 | Configuring Cypress reporter                                | `skills/cypress-reporter-setup/SKILL.md`                                                       |
 | Converting existing Cypress tests                           | `skills/cypress-converting-tests/SKILL.md`                                                     |
 | Migrating a CucumberJS suite                                | `skills/cucumber-converting-tests/SKILL.md`                                                    |
+| Writing Bun (`bun:test`) story tests                        | `skills/bun-story-api/SKILL.md`                                                                |
 | Writing Go story tests                                      | `skills/go-story-api/SKILL.md`                                                                 |
 | Writing Ruby (Minitest) story tests                         | `skills/ruby-story-api/SKILL.md`                                                               |
 | Writing JUnit 5 (Kotlin) story tests                        | `skills/junit5-story-api/SKILL.md`                                                             |

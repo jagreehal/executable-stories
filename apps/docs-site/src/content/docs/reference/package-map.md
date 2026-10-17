@@ -35,6 +35,12 @@ Each adapter emits RawRun JSON (via reporter `rawRunPath` or language default). 
 
 A scenario opens a story's starting state; `openScenario(page, name)` in a Playwright story test sets the Given without a backend.
 
+## Bun
+
+| Package | Framework | Output |
+| --- | --- | --- |
+| [executable-stories-bun](https://github.com/jagreehal/executable-stories/tree/main/packages/executable-stories-bun) | `bun:test` | `.executable-stories/raw-run.json` |
+
 ## Language adapters (non-JS)
 
 | Package | Language | Output |

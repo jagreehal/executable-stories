@@ -184,7 +184,9 @@ SUBCOMMANDS
   gif                Animated GIF per passing scenario from its step screenshots (needs ffmpeg), into <output-dir>/gif
   video              MP4 per passing scenario Playwright recorded (featureVideo), page load trimmed, with a
                      <name>.video.json manifest for executable-stories-remotion (needs ffmpeg), into <output-dir>/video.
-                     --no-trim keeps the page load. gif and video take --json to print what they wrote.
+                     --no-trim keeps the page load. --from-step <n|keyword> starts at that step (setup off camera);
+                     --frames writes a still per step, plus a ringed close-up of its click, into video/<name>/ to check.
+                     gif and video take --json to print what they wrote.
   check              Backpressure summary: compress passing, expand failing (GWT + error + covers); non-zero exit on failures
   check-explainers   Audit explainer docs (explain-change skill) against a run: stale when a cited scenario changed/renamed/vanished (exit 5)
   goal               Behavioral definition-of-done for agent loops: required scenarios pass, no regressions, no weakened scenarios (exit 0 = met, 5 = not)
@@ -474,6 +476,10 @@ interface CliArgs {
   json: boolean;
   /** video: keep the page load at the start of each recording. */
   noTrim: boolean;
+  /** video: start each recording at this step (a number from 1, or a keyword). */
+  fromStep: string | undefined;
+  /** video: write a still per step, and a close-up of its click. */
+  frames: boolean;
   /** Emit compact JSON for agent-facing artifacts (story-report, scenario-index, behavior-manifest, list --json). */
   minify: boolean;
   listFormat: 'text' | 'json' | 'csv' | 'markdown-table';
@@ -580,6 +586,8 @@ const CLI_OPTIONS = {
   'json-summary': { type: 'boolean', default: false },
   json: { type: 'boolean', default: false },
   'no-trim': { type: 'boolean', default: false },
+  'from-step': { type: 'string' },
+  frames: { type: 'boolean', default: false },
   minify: { type: 'boolean', default: false },
   'list-format': { type: 'string', default: 'text' },
   'check-format': { type: 'string', default: 'text' },
@@ -1225,6 +1233,8 @@ async function parseCliArgs(
     jsonSummary: values['json-summary'] as boolean,
     json: values.json as boolean,
     noTrim: values['no-trim'] as boolean,
+    fromStep: values['from-step'] as string | undefined,
+    frames: values.frames as boolean,
     minify: values['minify'] as boolean,
     listFormat: values['list-format'] as string as
       | 'text'
@@ -1970,7 +1980,13 @@ async function runVideo(ctx: CliContext): Promise<void> {
   const run = applySelection(await readRunInput(args), args);
   try {
     const { written, skipped } = await writeVideos(
-      { testCases: run.testCases, outputDir: path.join(args.outputDir, 'video'), trimLeadIn: !args.noTrim },
+      {
+        testCases: run.testCases,
+        outputDir: path.join(args.outputDir, 'video'),
+        trimLeadIn: !args.noTrim,
+        fromStep: args.fromStep,
+        frames: args.frames,
+      },
       {
         exec: (command, execArgs) =>
           new Promise((resolve, reject) =>
@@ -1985,7 +2001,14 @@ async function runVideo(ctx: CliContext): Promise<void> {
     );
     if (args.json) console.log(JSON.stringify({ written, skipped }, null, 2));
     else {
-      for (const w of written) console.log(`${w.video}  (trimmed ${(w.trimmedMs / 1000).toFixed(1)}s)  ${w.scenario}`);
+      for (const w of written) {
+        console.log(`${w.video}  (trimmed ${(w.trimmedMs / 1000).toFixed(1)}s)  ${w.scenario}`);
+        if (w.frames) console.log(`  ${w.frames.length} step still(s) in ${path.join(path.dirname(w.video), path.basename(w.video, '.mp4'))}`);
+        for (const o of w.overruns) {
+          console.log(`  narration overrun: "${o.step}" takes ~${(o.needMs / 1000).toFixed(1)}s to say, on screen ${(o.haveMs / 1000).toFixed(1)}s`);
+        }
+      }
+      for (const s of skipped) console.log(`skipped: ${s.scenario} (${s.reason})`);
       console.log(`${written.length} video(s) written, ${skipped.length} scenario(s) skipped`);
     }
     process.exit(EXIT_SUCCESS);
@@ -3816,6 +3839,8 @@ function createDefaultCliArgs(): CliArgs {
     jsonSummary: false,
     json: false,
     noTrim: false,
+    fromStep: undefined,
+    frames: false,
     minify: false,
     listFormat: 'text',
     checkFormat: 'text',

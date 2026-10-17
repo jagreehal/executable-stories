@@ -22,7 +22,7 @@ A **flow** is a path through the skills. Most work travels one **main flow**. Se
   `vitest-reporter-setup`, `jest-reporter-setup`, `playwright-reporter-setup`,
   `cypress-reporter-setup`.
 - Writing the first story in a given framework → `vitest-story-api`, `jest-story-api`,
-  `playwright-story-api`, `cypress-story-api`, `e2e-story-api`, `go-story-api`,
+  `playwright-story-api`, `cypress-story-api`, `e2e-story-api`, `bun-story-api`, `go-story-api`,
   `ruby-story-api`, `rust-story-api`, `pytest-story-api`, `junit5-story-api`,
   `xunit-story-api`.
 - Lint rules that catch a missing `story.init` → `eslint-vitest-rules`,

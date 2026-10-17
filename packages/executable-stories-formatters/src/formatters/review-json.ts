@@ -192,6 +192,9 @@ export function buildReviewJson(review: ReviewResult): ReviewJson {
     version: 1,
     baseRef: review.context.baseRef,
     headRef: review.context.headRef,
+    ...(review.run.gitSha || review.run.runScope
+      ? { execution: { ...(review.run.gitSha ? { gitSha: review.run.gitSha } : {}), ...(review.run.runScope ? { runScope: review.run.runScope } : {}) } }
+      : {}),
     summary: review.summary,
     run,
     findings: reviewFindings(review),
