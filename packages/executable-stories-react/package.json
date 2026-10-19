@@ -69,7 +69,7 @@
     "lucide-react": "^1.46.0",
     "marked": "^18.1.1",
     "tailwind-merge": "^3.7.0",
-    "webmcpable": "0.6.0",
+    "webmcpable": "0.7.0",
     "zod": "^4.6.5"
   },
   "devDependencies": {
