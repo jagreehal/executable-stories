@@ -29,12 +29,20 @@ Then register a composition. `calculateMetadata` reads the report and sizes the
 video to the scenes:
 
 ```tsx
-const fromRun = (scenario: string): CalculateMetadataFunction<StoryVideoProps> => async () => {
-  const report = (await (await fetch(staticFile('index.story-report.json'))).json()) as StoryReport;
-  const props = storyVideoProps({ report, scenario, resolveAsset: staticFile });
+const fromRun =
+  (scenario: string): CalculateMetadataFunction<StoryVideoProps> =>
+  async () => {
+    const report = (await (
+      await fetch(staticFile('index.story-report.json'))
+    ).json()) as StoryReport;
+    const props = storyVideoProps({
+      report,
+      scenario,
+      resolveAsset: staticFile,
+    });
 
-  return { props, durationInFrames: storyVideoFrames(props, 30) };
-};
+    return { props, durationInFrames: storyVideoFrames(props, 30) };
+  };
 ```
 
 - The scenario must have passed. A demo shows behaviour the suite proved.
@@ -69,23 +77,58 @@ a card captioned with its scenario's description, and the camera zooms to every
 click:
 
 ```tsx
-const recording: CalculateMetadataFunction<RecordingVideoProps> = async ({ props }) => {
+const recording: CalculateMetadataFunction<RecordingVideoProps> = async ({
+  props,
+}) => {
   const clips = await loadClips([
     { name: 'default', caption: 'Search 248 countries by name' },
     { name: 'server-error' },
   ]);
 
-  return { props: { ...props, clips }, durationInFrames: recordingFrames({ ...props, clips }, 30) };
+  return {
+    props: { ...props, clips },
+    durationInFrames: recordingFrames({ ...props, clips }, 30),
+  };
 };
 ```
 
 Add a short `page.waitForTimeout` before each click in your steps, so the zoom
 has time to arrive.
 
+## A help-centre article as a video
+
+`<ArticleVideo>` plays a Playwright recording beside the article it illustrates: a title card
+with the article's opening line, the recording with the article's steps beside it, then an outro
+pointing at the full article. The step on screen is highlighted, and the camera follows each click
+and typed field.
+
+```tsx
+const article: CalculateMetadataFunction<ArticleVideoProps> = async ({
+  props,
+}) => {
+  const [clip] = (await loadClips([{ name: 'add-a-contact' }], 'video')) as [
+    RecordingClip,
+  ];
+
+  return {
+    props: { ...props, clip },
+    durationInFrames: articleVideoFrames({ ...props, clip }, 30),
+  };
+};
+```
+
+- `quotes` maps a step's text to the article's wording for it. Write steps in the article's words
+  and you need none.
+- `table` (`{ label, columns, rows }`) adds a scene before the recording, such as the spreadsheet an
+  import uploads, read from the run's `story.table()`.
+- `accent` sets the brand colour.
+
+To put the rendered media into the article, see [Help-centre media](/guides/help-centre-media/).
+
 ## Working example
 
 `apps/remotion-example` in the repo renders a state-only video, a screenshot
-video and a two-clip recording from its own run:
+video, a two-clip recording and an article walkthrough from its own run:
 
 ```bash
 pnpm --filter remotion-example video

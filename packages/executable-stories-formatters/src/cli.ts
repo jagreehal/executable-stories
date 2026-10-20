@@ -81,6 +81,7 @@ import { publishConfluencePage } from './publishers/confluence';
 import { publishJiraIssue, type JiraPublishMode } from './publishers/jira';
 import { runPush } from './push';
 import { runShare } from './share';
+import { runDocs } from './docs';
 import { buildReview, codeDiffDiagnostics, enrichReview } from './review/build-review';
 import { jevFromEnv, type JevClient } from './jev';
 import {
@@ -685,6 +686,7 @@ async function parseCliArgs(
     subcommand !== 'check-links' &&
     subcommand !== 'push' &&
     subcommand !== 'share' &&
+    subcommand !== 'docs' &&
     subcommand !== 'publish-confluence' &&
     subcommand !== 'publish-jira' &&
     subcommand !== 'sync' &&
@@ -692,7 +694,7 @@ async function parseCliArgs(
     subcommand !== 'runs'
   ) {
     console.error(
-      `Unknown subcommand: "${subcommand}". Use "format", "watch", "compare", "gate-release", "deploy", "review", "list", "gif", "video", "check", "check-explainers", "goal", "triage", "validate", "doctor", "completion", "check-links", "push", "share", "sync", "coverage", "publish-confluence", or "publish-jira".`,
+      `Unknown subcommand: "${subcommand}". Use "format", "watch", "compare", "gate-release", "deploy", "review", "list", "gif", "video", "check", "check-explainers", "goal", "triage", "validate", "doctor", "completion", "check-links", "push", "share", "docs", "sync", "coverage", "publish-confluence", or "publish-jira".`,
     );
     process.exit(EXIT_USAGE);
   }
@@ -778,6 +780,7 @@ async function parseCliArgs(
     process.exit(await runCheckLinks(args.slice(1)));
   if (subcommand === 'push') process.exit(await runPush(args.slice(1)));
   if (subcommand === 'share') process.exit(await runShare(args.slice(1)));
+  if (subcommand === 'docs') process.exit(await runDocs(args.slice(1)));
   if (subcommand === 'sync')
     process.exit(await runSyncCommand('sync', args.slice(1)));
   if (subcommand === 'coverage')

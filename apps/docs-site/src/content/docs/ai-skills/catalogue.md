@@ -118,6 +118,7 @@ Explaining work that already ran.
 | `executable-lessons` | Teaching a topic as runnable lessons that stay correct because they execute            |
 | `show-me`            | "Show me" mid-conversation: the smallest view that makes the point, from the run       |
 | `demo-video`         | A narrated demo built from storyboard frames a passing run produced, with ffmpeg or Remotion. Type `/demo-video` |
+| `article-walkthrough` | A help-centre GIF or video recorded from a scenario written in the article's words, then published into the article |
 
 `explain-change`, `explain-system`, and `executable-lessons` refuse to assert behaviour without a scenario behind it. They write "not covered by a scenario" where the run cannot back a claim, and mark anything drawn from reading code as agent-authored.
 

@@ -195,6 +195,7 @@ export default defineConfig({
               collapsed: true,
               items: [
                 { label: 'Publishing to Confluence & Jira', slug: 'guides/publishing-to-atlassian' },
+                { label: 'Help-centre media', slug: 'guides/help-centre-media' },
                 { label: 'TestRail & Xray sync', slug: 'guides/test-management-sync' },
               ],
             },
