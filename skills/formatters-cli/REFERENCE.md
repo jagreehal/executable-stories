@@ -276,11 +276,25 @@ executable-stories format raw-run.json \
 ```bash
 # Every article and the images no slot covers yet; --csv for a spreadsheet
 executable-stories docs list --csv > backlog.csv
-# Which slots are changed, published, failing or missing media
-executable-stories docs status --report reports/index.story-report.json
-# Put each changed file into its article and record it in docs.lock.json
+# One row per image with the heading it sits under, GIFs only, from a local export (HTML, Markdown
+# or Help Scout .json files, in any folder)
+executable-stories docs list --csv --images --only gif --from export > backlog.csv
+# A slot for the 2nd image in an article, and a scenario stub quoting the article
+executable-stories docs add 60ae0addafcffb241935e294 --image 2
+# The same from the article's public link, as JSON for an agent
+executable-stories docs add https://help.example.com/article/16-how-to-create-payees --image 2 --json
+# Which slots are changed, unapproved, published, failing or missing media; --wording flags
+# published steps the article no longer says
+executable-stories docs status --report reports/index.story-report.json --wording
+# One self-contained HTML page: each slot's current image beside the new one
+executable-stories docs review --report reports/index.story-report.json --out review.html
+# Record who approved each slot's current file (docs.approvals.json)
+executable-stories docs approve add-contact --by Sam --report reports/index.story-report.json
+# Put each changed (and, with "approval": true, approved) file into its article
 executable-stories docs publish --report reports/index.story-report.json
 ```
+
+A slot names its scenario by `scenario` (title) or `tag` (survives renaming the scenario).
 
 `docs.json` lists the slots and a `markdown`, `helpscout` or `confluence` target. Credentials come
 from the environment (`HELPSCOUT_API_KEY`; `CONFLUENCE_BASE_URL`, `CONFLUENCE_EMAIL`,

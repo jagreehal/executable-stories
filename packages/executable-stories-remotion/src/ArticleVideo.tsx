@@ -37,8 +37,9 @@ export type ArticleVideoProps = {
   heading: string;
   clip: RecordingClip;
   /**
-   * The article's wording for a step, keyed by the step's text. A step without one shows its own
-   * text, so a scenario whose steps already use the article's wording needs none.
+   * The article's wording for a step, keyed by the step's text or its number from 1 ("2"), which
+   * survives rewording the step. A step without one shows its own text, so a scenario whose steps
+   * already use the article's wording needs none. `unmatchedQuotes` finds keys no step has.
    */
   quotes?: Record<string, string>;
   /** Shown before the recording, beside the first step's wording. */
@@ -66,11 +67,24 @@ const MUTED = '#6b7280';
 const FONT = 'Inter, ui-sans-serif, system-ui, -apple-system, sans-serif';
 const ACCENT = '#4f46e5';
 
-/** What each step reads as: the article's wording for it, or the step's own text. */
+/** What each step reads as: the article's wording for it, by text or number, or the step's own text. */
 export const articleSteps = (
   steps: ManifestStep[],
   quotes: Record<string, string> = {},
-) => steps.map((s) => quotes[s.text] ?? s.text);
+) => steps.map((s, i) => quotes[s.text] ?? quotes[String(i + 1)] ?? s.text);
+
+/**
+ * Quote keys that match no step: a step was reworded or removed, and its quote is not shown.
+ * Check them in `calculateMetadata` or a test, so a renamed step fails loudly.
+ */
+export const unmatchedQuotes = (
+  steps: ManifestStep[],
+  quotes: Record<string, string> = {},
+) =>
+  Object.keys(quotes).filter(
+    (key) =>
+      !steps.some((s, i) => s.text === key || String(i + 1) === key),
+  );
 
 /**
  * A help-centre walkthrough: a title card with the article's opening line, an optional table,

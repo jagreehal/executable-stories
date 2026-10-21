@@ -513,6 +513,16 @@ test.describe("step with inline docs", () => {
     expect(recording!.attention[0].cover).toBeCloseTo((100 * 20) / (width * height), 6);
   });
 
+  test("story.upload clicks the control and chooses the file in the picker it opens", async ({ page }, testInfo) => {
+    story.init({ page }, testInfo);
+    await page.setContent(
+      `<button onclick="document.querySelector('input').click()">Click to upload</button>` +
+        `<input type="file" hidden onchange="document.body.dataset.file = this.files[0].name">`,
+    );
+    await story.upload(page.getByRole("button"), { name: "contacts.xlsx", mimeType: "application/octet-stream", buffer: Buffer.from("x") });
+    await expect(page.locator("body")).toHaveAttribute("data-file", "contacts.xlsx");
+  });
+
   test("featureVideo maps a click inside an iframe to the page", async ({ page }, testInfo) => {
     story.init({ page }, testInfo, { featureVideo: true });
     const inner = encodeURIComponent(`<body style="margin:0"><button style="position:absolute;left:20px;top:30px;width:40px;height:20px">In</button>`);

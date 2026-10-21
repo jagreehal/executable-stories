@@ -12,6 +12,8 @@ import { createHash } from 'node:crypto';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { parseArgs } from 'node:util';
+import { REPORT_FAVICON_LINK } from 'executable-stories-core/utils/report-favicon';
+import { scenarioSlug } from 'executable-stories-core/utils/slug';
 
 export type DocsTargetConfig =
   | { type: 'markdown'; dir: string }
@@ -28,11 +30,21 @@ export interface DocsSlot {
   replaces?: string;
   /** Scenario title. With `--report`, only a passed scenario's media is published. */
   scenario?: string;
+  /**
+   * A tag on the scenario instead of its title, e.g. `media:add-contact`: renaming the
+   * scenario then keeps the slot. Exactly one scenario in the report may carry it.
+   */
+  tag?: string;
 }
 
 export interface DocsConfig {
   target: DocsTargetConfig;
   slots: DocsSlot[];
+  /**
+   * Publish only media someone approved with `docs approve`: the approval is for that exact
+   * file, so re-rendering it needs a new one.
+   */
+  approval?: boolean;
 }
 
 export interface Published {
@@ -42,11 +54,27 @@ export interface Published {
   src: string;
   sha256: string;
   publishedAt: string;
+  /**
+   * The scenario's steps that quoted the article when it was published. `docs status --wording`
+   * flags any the article no longer says.
+   */
+  quoted?: string[];
 }
 
 export type DocsLock = Record<string, Published>;
 
-export type SlotStatus = 'no media' | 'failing' | 'changed' | 'published';
+/** `docs.approvals.json`: who approved which rendering of each slot. */
+export type DocsApprovals = Record<
+  string,
+  { sha256: string; by: string; approvedAt: string }
+>;
+
+export type SlotStatus =
+  | 'no media'
+  | 'failing'
+  | 'unapproved'
+  | 'changed'
+  | 'published';
 
 /** An article in the help centre and the images in it, for `docs list`. */
 export interface ArticleRef {
@@ -55,6 +83,18 @@ export interface ArticleRef {
   title: string;
   url?: string;
   images: string[];
+  /** The heading each image sits under, by index ('' before the first heading). */
+  headings?: string[];
+  /** How often the article was read, when the help centre counts it. */
+  views?: number;
+  updatedAt?: string;
+}
+
+/** One article's body, as `docs add`, `review` and `status --wording` read it. */
+export interface ArticleBody {
+  title: string;
+  url?: string;
+  body: string;
 }
 
 export interface DocsTarget {
@@ -66,7 +106,22 @@ export interface DocsTarget {
   ): Promise<{ src: string }>;
   /** Every article and the images in it. */
   list(): Promise<ArticleRef[]>;
+  /** One article as it is now. */
+  read(article: string): Promise<ArticleBody>;
+  /**
+   * The bytes of an image the article shows by a src that only resolves inside the help centre
+   * (a relative path, a page attachment), so a review page can show it. Undefined when not media.
+   */
+  image?(article: string, src: string): Promise<Buffer | undefined>;
+  /** The article a public link points at, as a slot names it; undefined when it is not one of ours. */
+  resolve?(url: string): Promise<string | undefined>;
 }
+
+/** A link with its trailing slash, query and fragment dropped, so two spellings of one page match. */
+const sameLink = (a: string, b: string) => {
+  const norm = (u: string) => u.split(/[?#]/)[0]!.replace(/\/+$/, '').toLowerCase();
+  return norm(a) === norm(b);
+};
 
 /**
  * Each way an article shows an image. Group 1 is the text a publish replaces, the last group the
@@ -154,6 +209,79 @@ const imageRefs = (body: string) =>
 
 /** The src of every image in an article body. */
 export const imagesIn = (body: string) => imageRefs(body).map((r) => r.src);
+
+/** Markdown `## Heading` lines and HTML `<h1>`–`<h6>`, in order, with where each starts and ends. */
+const headingsIn = (body: string) =>
+  [
+    ...body.matchAll(/^#{1,6}\s+(.+?)\s*#*$/gm),
+    ...body.matchAll(/<h[1-6]\b[^>]*>([\s\S]*?)<\/h[1-6]>/gi),
+  ]
+    .map((m) => ({ at: m.index, end: m.index + m[0].length, text: plainText(m[1]) }))
+    .sort((a, b) => a.at - b.at);
+
+/** Text with HTML tags, Markdown image/link syntax and entities removed, whitespace collapsed. */
+export const plainText = (s: string) =>
+  decodeEntities(
+    s
+      .replace(/<!--[\s\S]*?-->/g, ' ')
+      .replace(/<(script|style)\b[\s\S]*?<\/\1>/gi, ' ')
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
+      .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1'),
+  )
+    .replace(/\s+/g, ' ')
+    .trim();
+
+/**
+ * Each image in a body with the heading above it and the text that leads up to it: from that
+ * heading, or from the image before it under the same heading.
+ */
+export function imageSections(body: string) {
+  const heads = headingsIn(body);
+  const refs = imageRefs(body);
+  return refs.map((r, i) => {
+    const head = heads.filter((h) => h.end <= r.start).at(-1);
+    const prev = refs[i - 1];
+    // A src ends inside its markup: resume after the tag's `>` or the link's `)`.
+    const after = (at: number) => {
+      const close = body.slice(at).search(/[>)]/);
+      return close < 0 ? at : at + close + 1;
+    };
+    const from = Math.max(head?.end ?? 0, prev ? after(prev.end) : 0);
+    // Up to where this image's markup begins, so none of it reads as text.
+    const opens = [...body.slice(from, r.start).matchAll(/<img\b|<ac:image\b|!\[/gi)];
+    const to = from + (opens.at(-1)?.index ?? r.start - from);
+    return { src: r.src, heading: head?.text ?? '', text: plainText(body.slice(from, to)) };
+  });
+}
+
+/** Sentences of `text`, for steps that quote the article. */
+export const sentences = (text: string) =>
+  text
+    .split(/(?<=[.!?])\s+(?=[A-Z0-9"'“])/)
+    .map((s) => s.trim())
+    .filter((s) => /\w/.test(s));
+
+/** Lower case, one kind of quote and dash, no punctuation at the end: for "does the article still say this". */
+const comparable = (s: string) =>
+  plainText(s)
+    .toLowerCase()
+    .replace(/[‘’]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/[–—]/g, '-')
+    .replace(/[\s.!?:;,]+$/, '');
+
+/** The steps whose text the article says, word for word once punctuation and case are set aside. */
+export const quotedIn = (body: string, steps: string[]) => {
+  const article = comparable(body);
+  return steps.filter((s) => comparable(s) && article.includes(comparable(s)));
+};
+
+/** An exported HTML article's own URL: `<link rel="canonical">`, or a comment holding just a URL. */
+const urlIn = (body: string) =>
+  /<link\b[^>]*rel=["']canonical["'][^>]*href=["']([^"']+)["']/i.exec(
+    body,
+  )?.[1] ?? /<!--\s*(https?:\/\/\S+)\s*-->/.exec(body)?.[1];
 
 /**
  * Swaps exactly one image whose src contains `match` for `next` (see `IMAGE_REFS`). None or
@@ -269,18 +397,6 @@ export function destination(
 export const publishedTo = (lock: DocsLock, slot: DocsSlot, to: string) =>
   lock[slot.id]?.to === to ? lock[slot.id] : undefined;
 
-/** What the article shows now, given the rendered file, what was published there and the run. */
-export function slotStatus(
-  slot: DocsSlot,
-  media: Buffer | undefined,
-  previous: Published | undefined,
-  passed?: Set<string>,
-): SlotStatus {
-  if (!media) return 'no media';
-  if (slot.scenario && passed && !passed.has(slot.scenario)) return 'failing';
-  return previous?.sha256 === sha256(media) ? 'published' : 'changed';
-}
-
 // === Targets ===
 
 export type FetchFn = typeof fetch;
@@ -302,31 +418,109 @@ const firstSrc = (slot: DocsSlot, previous?: Published) => {
   return match;
 };
 
-/** Articles as Markdown or HTML files: the media goes in `media/` beside the article. */
+/** An article's title: a Markdown `# Title`, else an HTML `<h1>` with its tags and entities removed. */
+const titleOf = (body: string, fallback: string) => {
+  const h1 = /<h1\b[^>]*>([\s\S]*?)<\/h1>/i.exec(body)?.[1];
+  return /^#\s+(.+)$/m.exec(body)?.[1]?.trim() || (h1 && plainText(h1)) || fallback;
+};
+
+/** What `docs list` shows for one article body. */
+const refOf = (article: string, title: string, body: string, extra: Partial<ArticleRef> = {}): ArticleRef => {
+  const sections = imageSections(body);
+  return {
+    article,
+    title,
+    images: sections.map((s) => s.src),
+    headings: sections.map((s) => s.heading),
+    ...extra,
+  };
+};
+
+/** The files a Markdown target or an export holds articles in. */
+const ARTICLE_FILE = /\.(md|mdx|html|json)$/;
+
+/** A Help Scout article as its API returns it, bare or under `article`, saved to a `.json` file. */
+type HelpScoutArticleFile = {
+  name?: string;
+  publicUrl?: string;
+  text?: string;
+  viewCount?: number;
+  updatedAt?: string;
+};
+
+/** The article in a Help Scout `.json` export, or undefined when the file is not one. */
+const helpScoutArticle = (raw: string) => {
+  try {
+    const parsed = JSON.parse(raw) as HelpScoutArticleFile & { article?: HelpScoutArticleFile };
+    const a = parsed?.article ?? parsed;
+    return typeof a?.text === 'string' ? (a as HelpScoutArticleFile & { text: string }) : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+/**
+ * Articles as Markdown or HTML files: the media goes in `media/` beside the article. Help Scout
+ * `.json` exports are read too, for `--from`; publishing into one is refused.
+ */
 export function markdownTarget(dir: string): DocsTarget {
+  const readArticle = (article: string): ArticleBody & Partial<ArticleRef> => {
+    if (!inside(dir, article)) throw new Error(`article "${article}" is outside ${dir}`);
+    const raw = fs.readFileSync(path.join(dir, article), 'utf8');
+    if (article.endsWith('.json')) {
+      const a = helpScoutArticle(raw);
+      if (!a) throw new Error(`"${article}" is not a Help Scout article export`);
+      const body = a.text;
+      return {
+        title: a.name || titleOf(body, article),
+        url: a.publicUrl,
+        body,
+        views: a.viewCount,
+        updatedAt: a.updatedAt,
+      };
+    }
+    return { title: titleOf(raw, article), url: urlIn(raw), body: raw };
+  };
   return {
     async list() {
       return (
         fs
           .readdirSync(dir, { recursive: true, encoding: 'utf8' })
           // A symlinked article that points out of `dir` is not listed: its contents are not ours.
-          .filter((f) => /\.(md|mdx|html)$/.test(f) && inside(dir, f))
+          .filter((f) => ARTICLE_FILE.test(f) && inside(dir, f))
+          // Other JSON beside the articles (`_meta.json`, …) is not an article.
+          .filter((f) => !f.endsWith('.json') || helpScoutArticle(fs.readFileSync(path.join(dir, f), 'utf8')))
           .sort()
           .map((article) => {
-            const body = fs.readFileSync(path.join(dir, article), 'utf8');
-            // A Markdown `# Title`, else an HTML `<h1>` with its tags and entities removed.
-            const h1 = /<h1\b[^>]*>([\s\S]*?)<\/h1>/i.exec(body)?.[1];
-            const title =
-              /^#\s+(.+)$/m.exec(body)?.[1]?.trim() ||
-              (h1 && decodeEntities(h1.replace(/<[^>]*>/g, '')).trim()) ||
-              article;
-            return { article, title, images: imagesIn(body) };
+            const { title, body, url, views, updatedAt } = readArticle(article);
+            return refOf(article, title, body, {
+              ...(url ? { url } : {}),
+              ...(views !== undefined ? { views } : {}),
+              ...(updatedAt ? { updatedAt } : {}),
+            });
           })
       );
+    },
+    async read(article) {
+      const { title, url, body } = readArticle(article);
+      return { title, url, body };
+    },
+    // An export carries each article's link (see `urlIn`): the file with this one is the article.
+    async resolve(url) {
+      return (await this.list()).find((a) => a.url && sameLink(a.url, url))?.article;
+    },
+    async image(article, src) {
+      // Relative to the article, and only from inside the docs: a src is written by whoever edits it.
+      const file = path.join(path.dirname(article), decodeURI(src.split(/[?#]/)[0]));
+      if (!inside(dir, article) || !inside(dir, file)) return undefined;
+      const bytes = read(path.join(dir, file));
+      return bytes && isMedia(bytes) ? bytes : undefined;
     },
     async publish(slot, media, previous) {
       if (!inside(dir, slot.article))
         throw new Error(`article "${slot.article}" is outside ${dir}`);
+      if (slot.article.endsWith('.json'))
+        throw new Error(`article "${slot.article}" is an export to read; publish to the help centre`);
       const article = path.join(dir, slot.article);
       const src = `media/${slot.id}${path.extname(slot.file)}`;
       if (!inside(dir, path.join(path.dirname(slot.article), src)))
@@ -388,6 +582,8 @@ export function helpScoutTarget(
           id: string;
           name: string;
           publicUrl?: string;
+          viewCount?: number;
+          updatedAt?: string;
         }>(
           `${base}/collections/${encodeURIComponent(id)}/articles?pageSize=100`,
           'articles',
@@ -396,15 +592,29 @@ export function helpScoutTarget(
           const { article } = await get<{ article: { text: string } }>(
             `${base}/articles/${encodeURIComponent(a.id)}`,
           );
-          refs.push({
-            article: a.id,
-            title: a.name,
-            url: a.publicUrl,
-            images: imagesIn(article.text ?? ''),
-          });
+          refs.push(
+            refOf(a.id, a.name, article.text ?? '', {
+              url: a.publicUrl,
+              views: a.viewCount,
+              updatedAt: a.updatedAt,
+            }),
+          );
         }
       }
       return refs;
+    },
+    async read(id) {
+      const { article } = await get<{
+        article: { name: string; publicUrl?: string; text: string };
+      }>(`${base}/articles/${encodeURIComponent(id)}`);
+      return { title: article.name, url: article.publicUrl, body: article.text ?? '' };
+    },
+    // A public link is ".../article/16-how-to-create-payees"; the API takes the number for the id.
+    async resolve(url) {
+      const number = /\/article\/(\d+)/.exec(url)?.[1];
+      if (!number) return undefined;
+      const { article } = await get<{ article: { id: string } }>(`${base}/articles/${number}`);
+      return article.id;
     },
     async publish(slot, media, previous) {
       const url = `${base}/articles/${encodeURIComponent(slot.article)}`;
@@ -480,12 +690,11 @@ export function confluenceTarget(
           _links?: { next?: string };
         };
         for (const p of res.results)
-          refs.push({
-            article: p.id,
-            title: p.title,
-            url: `${base}${p._links.webui}`,
-            images: imagesIn(p.body.storage.value),
-          });
+          refs.push(
+            refOf(p.id, p.title, p.body.storage.value, {
+              url: `${base}${p._links.webui}`,
+            }),
+          );
         // `next` is a path from the site root ("/wiki/api/v2/…"); only follow it on the same host.
         next = res._links?.next
           ? new URL(res._links.next, base).href
@@ -494,6 +703,41 @@ export function confluenceTarget(
           next = undefined;
       }
       return refs;
+    },
+    async read(id) {
+      const url = `${base}/api/v2/pages/${encodeURIComponent(id)}?body-format=storage`;
+      const page = (await (
+        await ok(await fetchFn(url, { headers }), `GET ${url}`)
+      ).json()) as {
+        title: string;
+        body: { storage: { value: string } };
+        _links: { webui: string };
+      };
+      return {
+        title: page.title,
+        url: `${base}${page._links.webui}`,
+        body: page.body.storage.value,
+      };
+    },
+    // ".../wiki/spaces/ENG/pages/123/Title" on this site only: a page id means nothing on another.
+    async resolve(url) {
+      if (!URL.canParse(url) || new URL(url).origin !== new URL(base).origin) return undefined;
+      return /\/pages\/(\d+)/.exec(new URL(url).pathname)?.[1];
+    },
+    async image(id, filename) {
+      const list = `${base}/rest/api/content/${encodeURIComponent(id)}/child/attachment?filename=${encodeURIComponent(filename)}`;
+      const found = (await (
+        await ok(await fetchFn(list, { headers }), `GET ${list}`)
+      ).json()) as { results: { _links: { download: string } }[] };
+      const download = found.results[0]?._links.download;
+      // The download link is a path under the site; never follow it, with credentials, elsewhere.
+      if (!download?.startsWith('/')) return undefined;
+      const url = new URL(`${base}${download}`);
+      if (url.origin !== new URL(base).origin) return undefined;
+      const bytes = Buffer.from(
+        await (await ok(await fetchFn(url.href, { headers }), `GET ${url}`)).arrayBuffer(),
+      );
+      return isMedia(bytes) ? bytes : undefined;
     },
     async publish(slot, media, previous) {
       const page = encodeURIComponent(slot.article);
@@ -561,16 +805,33 @@ export interface DocsDeps {
 }
 
 const HELP = `Usage:
-  executable-stories docs list    [--config docs.json] [--json | --csv]
-  executable-stories docs status  [--config docs.json] [--report index.story-report.json] [--json]
-  executable-stories docs publish [--config docs.json] [--report index.story-report.json] [--only <slot>]
+  executable-stories docs list    [--config docs.json] [--from <dir>] [--json | --csv] [--images] [--only gif]
+  executable-stories docs add     <article | link> --image <n> [--id <slot>] [--scenario <title>] [--from <dir>] [--json]
+  executable-stories docs status  [--config docs.json] [--report index.story-report.json] [--wording] [--json]
+  executable-stories docs review  [--config docs.json] [--report index.story-report.json] [--out docs-review.html] [--json]
+  executable-stories docs approve <slot>… [--by <name>] [--config docs.json] [--report index.story-report.json] [--json]
+  executable-stories docs publish [--config docs.json] [--report index.story-report.json] [--only <slot>] [--json]
 
 Keeps the GIFs and videos in your help centre in step with the scenarios that record them.
 docs.json lists each media slot: the article, the rendered file, the image it replaces and the
-scenario behind it. publish puts every changed file into its article and records it in
-docs.lock.json. With --report, a slot whose scenario did not pass is never published.
-list shows every article in the help centre and its images, and which images no slot covers yet:
-the backlog. --csv opens in a spreadsheet.
+scenario behind it (its title, or a "tag" that survives renaming it). publish puts every changed
+file into its article and records it in docs.lock.json. With --report, a slot whose scenario did
+not pass is never published.
+
+  list     Every article and its images, and which images no slot covers yet: the backlog.
+           --csv opens in a spreadsheet; --images gives one row per image with the heading it
+           sits under; --only keeps one kind (gif, png, …); --from reads a local export of the
+           help centre (Markdown, HTML or Help Scout .json files, in any folder) instead of
+           the target.
+  add      Adds a slot for the nth image (from 1) in an article, named by id or by its public
+           link, and prints a scenario to record it, its steps the article's sentences before
+           that image. --json prints the slot, the section and the scenario for an agent.
+  status   no media, failing, unapproved, changed or published. --wording reads each published
+           article and lists steps that quoted it and no longer do.
+  review   One HTML page to review without the repo: each slot's current image beside the new
+           one, the section it illustrates and the scenario's steps.
+  approve  Records who approved each slot's current file in docs.approvals.json. With
+           "approval": true in docs.json, publish sends only approved files.
 
 Targets (docs.json "target"):
   { "type": "markdown", "dir": "docs" }
@@ -610,24 +871,74 @@ function makeTarget(
   );
 }
 
-/** Titles of the passed scenarios in a StoryReport, and titles more than one scenario shares. */
-function scenarioResults(reportPath: string) {
-  const report = JSON.parse(fs.readFileSync(reportPath, 'utf8')) as {
-    features: { scenarios: { title: string; status: string }[] }[];
-  };
-  const scenarios = report.features.flatMap((f) => f.scenarios);
-  const seen = new Set<string>();
-  const shared = new Set<string>();
-  for (const { title } of scenarios)
-    (seen.has(title) ? shared : seen).add(title);
-  const passed = new Set(
-    scenarios.filter((s) => s.status === 'passed').map((s) => s.title),
-  );
-  return { passed, shared };
+/** The parts of a StoryReport scenario `docs` reads. */
+export interface ReportedScenario {
+  title: string;
+  status: string;
+  tags?: string[];
+  steps?: { keyword: string; text: string }[];
+}
+
+const readScenarios = (reportPath: string) =>
+  (
+    JSON.parse(fs.readFileSync(reportPath, 'utf8')) as {
+      features: { scenarios: ReportedScenario[] }[];
+    }
+  ).features.flatMap((f) => f.scenarios);
+
+/**
+ * The scenario a slot names, by its tag or else its title. Several is an error: one failing
+ * scenario among several with the same name must not let the slot pass.
+ */
+export function scenarioFor(
+  slot: DocsSlot,
+  scenarios: ReportedScenario[],
+): ReportedScenario | undefined {
+  const found = slot.tag
+    ? scenarios.filter((s) => s.tags?.includes(slot.tag!))
+    : slot.scenario
+      ? scenarios.filter((s) => s.title === slot.scenario)
+      : [];
+  if (found.length > 1)
+    throw new Error(
+      slot.tag
+        ? `slot "${slot.id}": several scenarios are tagged "${slot.tag}"; tag one`
+        : `slot "${slot.id}": several scenarios are titled "${slot.scenario}"; give it a unique title`,
+    );
+  return found[0];
+}
+
+/** What the article shows now, given the rendered file, what was published there, the run and the approvals. */
+export function slotStatus(
+  slot: DocsSlot,
+  media: Buffer | undefined,
+  previous: Published | undefined,
+  scenario?: ReportedScenario | null,
+  approved?: boolean,
+): SlotStatus {
+  if (!media) return 'no media';
+  // `null`: the run was read and the slot's scenario is not in it.
+  if ((slot.scenario || slot.tag) && scenario !== undefined && scenario?.status !== 'passed')
+    return 'failing';
+  if (previous?.sha256 === sha256(media)) return 'published';
+  return approved === false ? 'unapproved' : 'changed';
 }
 
 const read = (file: string) =>
   fs.existsSync(file) ? fs.readFileSync(file) : undefined;
+
+const readJson = <T>(file: string): T =>
+  // No prototype, so a slot id like "__proto__" is an ordinary key.
+  Object.assign(Object.create(null), JSON.parse(read(file)?.toString() ?? '{}'));
+
+const writeJson = (file: string, data: unknown) =>
+  writeFresh(file, Buffer.from(JSON.stringify(data, null, 2) + '\n'));
+
+const message = (err: unknown) => (err instanceof Error ? err.message : String(err));
+
+/** A slot's steps as "Given …" lines. */
+const stepLines = (scenario?: ReportedScenario | null) =>
+  (scenario?.steps ?? []).map((s) => `${s.keyword} ${s.text}`);
 
 export async function runDocs(
   rawArgs: string[],
@@ -651,67 +962,112 @@ export async function runDocs(
         only: { type: 'string' },
         json: { type: 'boolean' },
         csv: { type: 'boolean' },
+        images: { type: 'boolean' },
+        from: { type: 'string' },
+        image: { type: 'string' },
+        id: { type: 'string' },
+        scenario: { type: 'string' },
+        out: { type: 'string', default: 'docs-review.html' },
+        by: { type: 'string' },
+        wording: { type: 'boolean' },
         help: { type: 'boolean', short: 'h' },
       },
     });
   } catch (err) {
-    deps.error(err instanceof Error ? err.message : String(err));
+    deps.error(message(err));
     deps.error(HELP);
     return 4;
   }
-  const [command] = parsed.positionals;
+  const [command, ...names] = parsed.positionals;
+  const opts = parsed.values;
   if (
-    parsed.values.help ||
-    !['list', 'status', 'publish'].includes(command ?? '')
+    opts.help ||
+    !['list', 'add', 'status', 'review', 'approve', 'publish'].includes(command ?? '')
   ) {
-    (parsed.values.help ? deps.log : deps.error)(HELP);
-    return parsed.values.help ? 0 : 4;
+    (opts.help ? deps.log : deps.error)(HELP);
+    return opts.help ? 0 : 4;
   }
 
-  const configPath = path.resolve(parsed.values.config!);
+  // An export is a copy to read: publishing to it, or judging status against it, would record
+  // media as live where it never went.
+  if (opts.from && command !== 'list' && command !== 'add') {
+    deps.error(`--from reads a local export; it only works with list and add, not ${command}.`);
+    return 4;
+  }
+
+  const configPath = path.resolve(opts.config!);
   const root = path.dirname(configPath);
   const lockPath = path.join(root, 'docs.lock.json');
+  const approvalsPath = path.join(root, 'docs.approvals.json');
   let config: DocsConfig;
   try {
     config = JSON.parse(fs.readFileSync(configPath, 'utf8')) as DocsConfig;
   } catch (err) {
-    deps.error(
-      `Cannot read ${configPath}: ${err instanceof Error ? err.message : String(err)}`,
-    );
+    deps.error(`Cannot read ${configPath}: ${message(err)}`);
     return 4;
   }
-  if (!inside(root, lockPath)) {
-    deps.error(`${lockPath} links outside the project`);
-    return 4;
-  }
-  // No prototype, so a slot id like "__proto__" is an ordinary key.
-  const lock: DocsLock = Object.assign(
-    Object.create(null),
-    JSON.parse(read(lockPath)?.toString() ?? '{}'),
-  );
+  for (const file of [lockPath, approvalsPath])
+    if (!inside(root, file)) {
+      deps.error(`${file} links outside the project`);
+      return 4;
+    }
+  const lock = readJson<DocsLock>(lockPath);
+  const approvals = readJson<DocsApprovals>(approvalsPath);
+  // `--from` is the caller's own choice, so it may sit beside the project; docs.json's dir may not.
   if (config.target.type === 'markdown' && !inside(root, config.target.dir)) {
     deps.error(`target dir "${config.target.dir}" is outside the project`);
     return 4;
   }
+  if (opts.from && !fs.existsSync(path.resolve(root, opts.from))) {
+    deps.error(`--from ${opts.from}: no such folder`);
+    return 4;
+  }
+  const target = () =>
+    deps.target ??
+    (opts.from
+      ? markdownTarget(path.resolve(root, opts.from))
+      : makeTarget(config, root, deps.env));
+
   if (command === 'list')
-    return listArticles(config, root, lock, parsed.values, deps);
-  const needsRun = config.slots.some((s) => s.scenario);
-  if (command === 'publish' && needsRun && !parsed.values.report) {
+    return listArticles(config, lock, opts, target, deps);
+  if (command === 'add')
+    return addSlot(config, configPath, root, names[0], opts, target, deps);
+
+  const needsRun = config.slots.some((s) => s.scenario || s.tag);
+  if (
+    (command === 'publish' || command === 'approve') &&
+    needsRun &&
+    !opts.report
+  ) {
     deps.error(
-      'Slots name scenarios: pass --report so only passed scenarios are published.',
+      `Slots name scenarios: pass --report so only passed scenarios are ${command === 'publish' ? 'published' : 'approved'}.`,
     );
     return 4;
   }
-  const results = parsed.values.report
-    ? scenarioResults(path.resolve(parsed.values.report))
+  const scenarios = opts.report
+    ? readScenarios(path.resolve(opts.report))
     : undefined;
-  const slots = config.slots.filter(
-    (s) => !parsed.values.only || s.id === parsed.values.only,
+  const slots = config.slots.filter((s) =>
+    command === 'approve'
+      ? names.includes(s.id)
+      : !opts.only || s.id === opts.only,
   );
+  if (command === 'approve') {
+    const unknown = names.filter((n) => !config.slots.some((s) => s.id === n));
+    if (!names.length || unknown.length) {
+      deps.error(
+        names.length
+          ? `No slot ${unknown.map((n) => `"${n}"`).join(', ')} in docs.json`
+          : 'Name the slots to approve: docs approve <slot>…',
+      );
+      return 4;
+    }
+  }
   const articleDir =
     config.target.type === 'markdown'
       ? path.resolve(root, config.target.dir)
       : undefined;
+  let rows;
   try {
     for (const slot of slots) {
       checkSlot(slot, root, articleDir);
@@ -726,81 +1082,415 @@ export async function runDocs(
     const ids = config.slots.map((s) => s.id);
     const dup = ids.find((id, i) => ids.indexOf(id) !== i);
     if (dup) throw new Error(`slot id "${dup}" is used twice`);
-    // One failing scenario among several with the same title must not let the title pass.
-    for (const slot of slots)
-      if (slot.scenario && results?.shared.has(slot.scenario))
-        throw new Error(
-          `slot "${slot.id}": several scenarios are titled "${slot.scenario}"; give it a unique title`,
-        );
+    rows = slots.map((slot) => {
+      const media = read(path.resolve(root, slot.file));
+      const to = destination(config.target, slot, deps.env);
+      const previous = publishedTo(lock, slot, to);
+      const scenario = scenarios && (scenarioFor(slot, scenarios) ?? null);
+      const approved = config.approval
+        ? !!media && approvals[slot.id]?.sha256 === sha256(media)
+        : undefined;
+      return {
+        slot,
+        media,
+        to,
+        previous,
+        scenario,
+        status: slotStatus(slot, media, previous, scenario, approved),
+      };
+    });
   } catch (err) {
-    deps.error(err instanceof Error ? err.message : String(err));
+    deps.error(message(err));
     return 4;
   }
-  const rows = slots.map((slot) => {
-    const media = read(path.resolve(root, slot.file));
-    const to = destination(config.target, slot, deps.env);
-    const previous = publishedTo(lock, slot, to);
-    return {
-      slot,
-      media,
-      to,
-      previous,
-      status: slotStatus(slot, media, previous, results?.passed),
+
+  if (command === 'status') return showStatus(rows, opts, target, deps);
+  if (command === 'review')
+    return writeReview(rows, path.resolve(opts.out!), approveCommand(opts), target, deps, opts.json);
+
+  if (command === 'approve') {
+    const result = {
+      approved: [] as { id: string; sha256: string; by: string }[],
+      refused: [] as { id: string; status: SlotStatus }[],
     };
-  });
-
-  if (command === 'status') {
-    if (parsed.values.json) {
-      deps.log(
-        JSON.stringify(
-          rows.map((r) => ({
-            id: r.slot.id,
-            article: r.slot.article,
-            status: r.status,
-          })),
-          null,
-          2,
-        ),
-      );
-    } else {
-      for (const r of rows)
-        deps.log(`${r.status.padEnd(10)} ${r.slot.id}  (${r.slot.article})`);
+    for (const { slot, media, status } of rows) {
+      if (status === 'no media' || status === 'failing') {
+        result.refused.push({ id: slot.id, status });
+        if (!opts.json) deps.error(`refused  ${slot.id}: ${status}`);
+        continue;
+      }
+      approvals[slot.id] = {
+        sha256: sha256(media!),
+        by: opts.by ?? deps.env.GIT_AUTHOR_NAME ?? deps.env.USER ?? 'unknown',
+        approvedAt: deps.now().toISOString(),
+      };
+      result.approved.push({ id: slot.id, sha256: approvals[slot.id].sha256, by: approvals[slot.id].by });
+      if (!opts.json) deps.log(`approve  ${slot.id} (${approvals[slot.id].by})`);
     }
-    return 0;
+    writeJson(approvalsPath, approvals);
+    if (opts.json) deps.log(JSON.stringify(result, null, 2));
+    return result.refused.length ? 1 : 0;
   }
 
-  let target: DocsTarget;
+  let publishTo: DocsTarget;
   try {
-    target = deps.target ?? makeTarget(config, root, deps.env);
+    publishTo = target();
   } catch (err) {
-    deps.error(err instanceof Error ? err.message : String(err));
+    deps.error(message(err));
     return 4;
   }
-  let failed = 0;
-  for (const { slot, media, to, previous, status } of rows) {
+  const result = {
+    published: [] as { id: string; src: string; sha256: string }[],
+    skipped: [] as { id: string; status: SlotStatus }[],
+    failed: [] as { id: string; error: string }[],
+  };
+  for (const { slot, media, to, previous, scenario, status } of rows) {
     if (status !== 'changed') {
-      deps.log(`skip     ${slot.id}: ${status}`);
+      result.skipped.push({ id: slot.id, status });
+      if (!opts.json) deps.log(`skip     ${slot.id}: ${status}`);
       continue;
     }
     try {
-      const { src } = await target.publish(slot, media!, previous);
+      const { src } = await publishTo.publish(slot, media!, previous);
+      // The steps the article says now, so `status --wording` notices when it stops saying them.
+      let quoted: string[] | undefined;
+      if (scenario?.steps?.length) {
+        try {
+          const { body } = await publishTo.read(slot.article);
+          quoted = quotedIn(body, scenario.steps.map((s) => s.text));
+        } catch {
+          // The media is out; only the wording check misses this article.
+        }
+      }
       lock[slot.id] = {
         to,
         src,
         sha256: sha256(media!),
         publishedAt: deps.now().toISOString(),
+        ...(quoted?.length ? { quoted } : {}),
       };
       // Written per slot, so a failure later in the list never forgets what already went out.
-      writeFresh(lockPath, Buffer.from(JSON.stringify(lock, null, 2) + '\n'));
-      deps.log(`publish  ${slot.id} → ${src}`);
+      writeJson(lockPath, lock);
+      result.published.push({ id: slot.id, src, sha256: lock[slot.id].sha256 });
+      if (!opts.json) deps.log(`publish  ${slot.id} → ${src}`);
     } catch (err) {
-      failed++;
-      deps.error(
-        `failed   ${slot.id}: ${err instanceof Error ? err.message : String(err)}`,
-      );
+      result.failed.push({ id: slot.id, error: message(err) });
+      if (!opts.json) deps.error(`failed   ${slot.id}: ${message(err)}`);
     }
   }
-  return failed ? 1 : 0;
+  if (opts.json) deps.log(JSON.stringify(result, null, 2));
+  return result.failed.length ? 1 : 0;
+}
+
+type SlotRow = {
+  slot: DocsSlot;
+  media?: Buffer;
+  previous?: Published;
+  scenario?: ReportedScenario | null;
+  status: SlotStatus;
+};
+
+async function showStatus(
+  rows: SlotRow[],
+  opts: { json?: boolean; wording?: boolean },
+  target: () => DocsTarget,
+  deps: DocsDeps,
+): Promise<number> {
+  // Which quoted steps each published article no longer says.
+  const reworded = new Map<string, string[]>();
+  if (opts.wording) {
+    let t: DocsTarget;
+    try {
+      t = target();
+    } catch (err) {
+      deps.error(message(err));
+      return 4;
+    }
+    for (const { slot, previous } of rows) {
+      if (!previous?.quoted?.length) continue;
+      try {
+        const { body } = await t.read(slot.article);
+        const still = new Set(quotedIn(body, previous.quoted));
+        const gone = previous.quoted.filter((q) => !still.has(q));
+        if (gone.length) reworded.set(slot.id, gone);
+      } catch (err) {
+        deps.error(`cannot read ${slot.article} for ${slot.id}: ${message(err)}`);
+      }
+    }
+  }
+  if (opts.json) {
+    deps.log(
+      JSON.stringify(
+        rows.map((r) => ({
+          id: r.slot.id,
+          article: r.slot.article,
+          status: r.status,
+          ...(reworded.has(r.slot.id) ? { reworded: reworded.get(r.slot.id) } : {}),
+        })),
+        null,
+        2,
+      ),
+    );
+  } else {
+    for (const r of rows) {
+      deps.log(`${r.status.padEnd(10)} ${r.slot.id}  (${r.slot.article})`);
+      for (const q of reworded.get(r.slot.id) ?? [])
+        deps.log(`           the article no longer says: "${q}"`);
+    }
+  }
+  return 0;
+}
+
+/** `url` when it is one http(s) URL with no whitespace: an article's URL comes from whoever wrote the article. */
+const webUrl = (url?: string) => (url && /^https?:\/\/\S+$/i.test(url) ? url : undefined);
+
+const escapeHtml = (s: string) =>
+  s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+
+const MIME: Record<string, string> = {
+  '.gif': 'image/gif',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm',
+};
+
+/** An image or video element for media, inline as a data URI so the page works on its own. */
+function mediaTag(file: string, bytes: Buffer, alt: string) {
+  const type = MIME[path.extname(file).toLowerCase()] ?? 'application/octet-stream';
+  const src = `data:${type};base64,${bytes.toString('base64')}`;
+  return type.startsWith('video/')
+    ? `<video src="${src}" controls muted loop playsinline></video>`
+    : `<img src="${src}" alt="${escapeHtml(alt)}">`;
+}
+
+/** A shell word: as is when safe, else single-quoted. */
+const shellWord = (s: string) =>
+  /^[\w@%+=:,./-]+$/.test(s) ? s : `'${s.replace(/'/g, `'\\''`)}'`;
+
+/** The `docs approve` command for a slot, with the config and run this review was made from. */
+const approveCommand =
+  (opts: { config?: string; report?: string }) => (slot: string) =>
+    [
+      'executable-stories',
+      'docs',
+      'approve',
+      slot,
+      ...(opts.config && opts.config !== 'docs.json' ? ['--config', opts.config] : []),
+      ...(opts.report ? ['--report', opts.report] : []),
+    ]
+      .map(shellWord)
+      .join(' ');
+
+/** One HTML page a reviewer opens anywhere: the article's image beside the new one, per slot. */
+async function writeReview(
+  rows: SlotRow[],
+  out: string,
+  approve: (slot: string) => string,
+  target: () => DocsTarget,
+  deps: DocsDeps,
+  json?: boolean,
+): Promise<number> {
+  let t: DocsTarget | undefined;
+  try {
+    t = target();
+  } catch (err) {
+    deps.error(`${message(err)}: the page shows the new media without the article`);
+  }
+  const shown = rows.filter((r) => r.media);
+  const sections: string[] = [];
+  for (const r of shown) {
+    let article: ArticleBody | undefined;
+    try {
+      article = await t?.read(r.slot.article);
+    } catch (err) {
+      deps.error(`cannot read ${r.slot.article}: ${message(err)}`);
+    }
+    const match = r.previous?.src ?? r.slot.replaces;
+    const section = article
+      ? imageSections(article.body).find((s) => match && s.src.includes(match))
+      : undefined;
+    // An absolute URL shows as is; a relative path or attachment only resolves inside the help
+    // centre, so its bytes go into the page.
+    let bytes: Buffer | undefined;
+    if (section && !/^https?:\/\//.test(section.src)) {
+      try {
+        bytes = await t?.image?.(r.slot.article, section.src);
+      } catch (err) {
+        deps.error(`cannot read ${section.src}: ${message(err)}`);
+      }
+    }
+    const current = !section
+      ? '<p class="none">Not found in the article</p>'
+      : /^https?:\/\//.test(section.src)
+        ? `<img src="${escapeHtml(section.src)}" alt="Current image">`
+        : bytes
+          ? mediaTag(section.src, bytes, 'Current image')
+          : `<p class="none">${escapeHtml(section.src)}</p>`;
+    const steps = stepLines(r.scenario);
+    sections.push(`<section>
+  <h2>${escapeHtml(r.slot.id)} <span class="status ${r.status.replace(' ', '-')}">${escapeHtml(r.status)}</span></h2>
+  <p class="where">${article ? `<a href="${escapeHtml(webUrl(article.url) ?? '#')}">${escapeHtml(article.title)}</a>` : escapeHtml(r.slot.article)}${section?.heading ? ` › ${escapeHtml(section.heading)}` : ''}</p>
+  ${section?.text ? `<blockquote>${escapeHtml(section.text)}</blockquote>` : ''}
+  <div class="pair">
+    <figure><figcaption>Now</figcaption>${current}</figure>
+    <figure><figcaption>New</figcaption>${mediaTag(r.slot.file, r.media!, r.slot.id)}</figure>
+  </div>
+  ${steps.length ? `<ol>${steps.map((s) => `<li>${escapeHtml(s)}</li>`).join('')}</ol>` : ''}
+  <p class="approve">Approve: <code>${escapeHtml(approve(r.slot.id))}</code></p>
+</section>`);
+  }
+  const html = `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: https: http:; media-src data:; style-src 'unsafe-inline'">
+<title>Docs media review</title>
+${REPORT_FAVICON_LINK}
+<style>
+:root { color-scheme: light dark; --line: #d0d7de; --muted: #57606a; }
+body { font: 15px/1.5 system-ui, sans-serif; margin: 0 auto; max-width: 1200px; padding: 16px; }
+section { border-top: 1px solid var(--line); padding: 16px 0; }
+h2 { font-size: 18px; margin: 0 0 4px; }
+.status { font-size: 12px; font-weight: 500; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); vertical-align: middle; }
+.where, .none, figcaption { color: var(--muted); }
+blockquote { margin: 8px 0; padding-left: 12px; border-left: 3px solid var(--line); }
+.pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+figure { margin: 0; } img, video { max-width: 100%; border: 1px solid var(--line); border-radius: 6px; }
+</style></head><body>
+<h1>Docs media review</h1>
+<p>${shown.length} slot(s). Compare each new recording with the article, then approve it.</p>
+${sections.join('\n')}
+</body></html>
+`;
+  writeFresh(out, Buffer.from(html));
+  if (json)
+    deps.log(JSON.stringify({ out, slots: shown.map((r) => ({ id: r.slot.id, status: r.status })) }, null, 2));
+  else deps.log(`wrote ${out} (${shown.length} slot(s))`);
+  return 0;
+}
+
+/** Adds a slot for an article's nth image and prints a scenario to record it. */
+async function addSlot(
+  config: DocsConfig,
+  configPath: string,
+  root: string,
+  article: string | undefined,
+  opts: { image?: string; id?: string; scenario?: string; from?: string; json?: boolean },
+  target: () => DocsTarget,
+  deps: DocsDeps,
+): Promise<number> {
+  const n = Number(opts.image);
+  if (!article || !Number.isInteger(n) || n < 1) {
+    deps.error('Usage: docs add <article | link> --image <n> (the nth image, from 1)');
+    return 4;
+  }
+  // A link as people share it: the target says which article that is.
+  if (/^https?:\/\//i.test(article)) {
+    let resolved: string | undefined;
+    try {
+      const t = target();
+      if (!t.resolve) throw new Error('this target cannot look up an article from a link');
+      resolved = await t.resolve(article);
+    } catch (err) {
+      deps.error(message(err));
+      return 1;
+    }
+    if (!resolved) {
+      deps.error(`${article} is not an article in this help centre`);
+      return 4;
+    }
+    article = resolved;
+  }
+  // From an export, `42` reads `42.html`; the slot still names the article as the target does:
+  // a remote target knows `collection/42.html` as `42`.
+  const file =
+    opts.from
+      ? ['', '.html', '.md', '.mdx', '.json'].map((ext) => article + ext)
+          .find((f) => fs.existsSync(path.resolve(root, opts.from!, f))) ?? article
+      : article;
+  if (opts.from && config.target.type !== 'markdown')
+    article = path.basename(article).replace(ARTICLE_FILE, '');
+  let found: ArticleBody;
+  try {
+    found = await target().read(file);
+  } catch (err) {
+    deps.error(message(err));
+    return 1;
+  }
+  const sections = imageSections(found.body);
+  const image = sections[n - 1];
+  if (!image) {
+    deps.error(`"${found.title}" has ${sections.length} image(s), not ${n}`);
+    return 4;
+  }
+  // The title names the scenario and the GIF it renders, so no two slots may share it: a second
+  // image under one heading becomes "<heading> 2". A --scenario that is taken is refused instead.
+  const gifFor = (t: string) => `reports/gif/${scenarioSlug(t)}.gif`;
+  const taken = (t: string) =>
+    config.slots.some((s) => s.scenario === t || s.file === gifFor(t));
+  const base = (image.heading || found.title).toLowerCase();
+  let title = opts.scenario ?? base;
+  if (opts.scenario && taken(title)) {
+    deps.error(`scenario "${title}" is used by another slot already; pass a different --scenario`);
+    return 4;
+  }
+  for (let k = 2; taken(title); k++) title = `${base} ${k}`;
+  const id = opts.id ?? scenarioSlug(title);
+  const name = path.basename(image.src.split(/[?#]/)[0]);
+  // `replaces` must name one image only; the whole src does when the filename is shared.
+  const replaces = sections.filter((s) => s.src.includes(name)).length === 1 ? name : image.src;
+  const slot: DocsSlot = {
+    id,
+    article,
+    file: gifFor(title),
+    replaces,
+    scenario: title,
+  };
+  try {
+    checkSlot(slot, root);
+    if (config.slots.some((s) => s.id === id))
+      throw new Error(`slot id "${id}" is used already; pass --id`);
+  } catch (err) {
+    deps.error(message(err));
+    return 4;
+  }
+  config.slots.push(slot);
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
+  // A GIF needs two frames or more: one per step, so a short section gets an outcome step.
+  const steps = sentences(image.text);
+  const lines = [...(steps.length ? steps : ['TODO: the first step'])];
+  if (lines.length < 2) lines.push('TODO: what the viewer sees once it is done');
+  const stub = [
+    `// ${webUrl(found.url) ?? article}`,
+    `test(${JSON.stringify(title)}, async ({ page }, testInfo) => {`,
+    '  story.init({ page }, testInfo, { featureVideo: true });',
+    ...lines.flatMap((text, i) => [
+      `  story.${i === 0 ? 'given' : i === lines.length - 1 && text.startsWith('TODO') ? 'then' : 'when'}(${JSON.stringify(text)});`,
+      '  // TODO: do what it says, then:',
+      `  await story.screenshot({ page, hold: 'auto' });`,
+    ]),
+    '});',
+  ].join('\n');
+  if (opts.json) {
+    deps.log(
+      JSON.stringify(
+        {
+          slot,
+          article: { title: found.title, url: webUrl(found.url), heading: image.heading, image: n, src: image.src, text: image.text },
+          steps: lines,
+          scenario: stub,
+        },
+        null,
+        2,
+      ),
+    );
+    return 0;
+  }
+  deps.log(`Added slot "${id}" to ${path.basename(configPath)}: ${found.title}${image.heading ? ` › ${image.heading}` : ''}, image ${n}.`);
+  deps.log('');
+  deps.log(stub);
+  return 0;
 }
 
 /** Whether a slot already covers this image: it replaced it, or is going to. */
@@ -814,37 +1504,62 @@ export const csvCell = (v: string | number) => {
   return /[",\r\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
 };
 
+/** An image's kind from its filename: gif, png, … */
+const kindOf = (src: string) =>
+  path.extname(src.split(/[?#]/)[0]).slice(1).toLowerCase();
+
+/** A slot names an article the way its target does; an exported copy may add `.html` or `.md`. */
+const sameArticle = (slotArticle: string, listed: string) =>
+  slotArticle === listed ||
+  slotArticle === listed.replace(ARTICLE_FILE, '') ||
+  slotArticle === path.basename(listed).replace(ARTICLE_FILE, '');
+
 async function listArticles(
   config: DocsConfig,
-  root: string,
   lock: DocsLock,
-  flags: { json?: boolean; csv?: boolean },
+  flags: { json?: boolean; csv?: boolean; images?: boolean; only?: string },
+  target: () => DocsTarget,
   deps: DocsDeps,
 ): Promise<number> {
   let refs: ArticleRef[];
   try {
-    refs = await (deps.target ?? makeTarget(config, root, deps.env)).list();
+    refs = await target().list();
   } catch (err) {
-    deps.error(err instanceof Error ? err.message : String(err));
+    deps.error(message(err));
     return 1;
   }
+  const only = flags.only?.toLowerCase().replace(/^\./, '');
   const rows = refs.map((ref) => {
-    const slots = config.slots.filter((s) => s.article === ref.article);
-    const uncovered = ref.images.filter(
-      (img) =>
-        !slots.some((s) =>
-          covers(
-            s,
-            img,
-            publishedTo(lock, s, destination(config.target, s, deps.env)),
-          ),
-        ),
-    );
-    return { ...ref, slots: slots.map((s) => s.id), uncovered };
+    const slots = config.slots.filter((s) => sameArticle(s.article, ref.article));
+    const coveredBy = (img: string) =>
+      slots.find((s) =>
+        covers(s, img, publishedTo(lock, s, destination(config.target, s, deps.env))),
+      );
+    const images = ref.images
+      .map((src, i) => ({ src, heading: ref.headings?.[i] ?? '', slot: coveredBy(src)?.id }))
+      .filter((img) => !only || kindOf(img.src) === only);
+    return {
+      ...ref,
+      images: images.map((i) => i.src),
+      headings: images.map((i) => i.heading),
+      slots: slots.map((s) => s.id),
+      uncovered: images.filter((i) => !i.slot).map((i) => i.src),
+      detail: images,
+    };
   });
-  if (flags.json) deps.log(JSON.stringify(rows, null, 2));
-  else if (flags.csv) {
-    deps.log('article,title,url,images,slots,uncovered');
+  if (flags.json)
+    deps.log(JSON.stringify(rows.map(({ detail: _, ...r }) => r), null, 2));
+  else if (flags.csv && flags.images) {
+    deps.log('article,title,url,views,heading,image,type,slot');
+    for (const r of rows)
+      for (const img of r.detail)
+        deps.log(
+          [r.article, r.title, r.url ?? '', r.views ?? '', img.heading, img.src, kindOf(img.src), img.slot ?? '']
+            .map(csvCell)
+            .join(','),
+        );
+  } else if (flags.csv) {
+    deps.log('article,title,url,images,slots,uncovered,gifs,views,updated');
     for (const r of rows)
       deps.log(
         [
@@ -854,6 +1569,9 @@ async function listArticles(
           r.images.length,
           r.slots.join(' '),
           r.uncovered.join(' '),
+          r.images.filter((i) => kindOf(i) === 'gif').length,
+          r.views ?? '',
+          r.updatedAt ?? '',
         ]
           .map(csvCell)
           .join(','),

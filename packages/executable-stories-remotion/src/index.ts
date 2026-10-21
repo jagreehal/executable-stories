@@ -22,6 +22,7 @@ export {
   type Article,
   type ArticleTable,
   articleSteps,
+  unmatchedQuotes,
   ArticleVideo,
   articleVideoFrames,
   type ArticleVideoProps,

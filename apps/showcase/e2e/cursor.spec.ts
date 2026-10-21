@@ -140,7 +140,8 @@ test('typing waits for the cursor to reach the field', async ({ page }) => {
     )
   );
   await page.locator('#t').pressSequentially('Lena');
-  expect(await at).toBeCloseTo(box.x + 24, 0);
+  // Near the right end, clear of the text being typed.
+  expect(await at).toBeCloseTo(box.x + box.width - 24, 0);
 });
 
 test('size scales the pointer and halo: false drops the halo', async ({ page }) => {

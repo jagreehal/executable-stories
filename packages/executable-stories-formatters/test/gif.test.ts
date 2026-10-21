@@ -4,7 +4,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import * as zlib from "node:zlib";
 import { describe, it, expect } from "vitest";
-import { pngSize, writeGifs, type GifDeps } from "../src/gif";
+import { pngSize, screenshotFrames, writeGifs, type GifDeps } from "../src/gif";
 import { stubs } from "./stubs";
 
 /** A solid-colour RGB PNG, built by hand so the test needs no image library. */
@@ -53,6 +53,16 @@ const hasFfmpeg = (() => {
 describe("gif", () => {
   it("reads PNG dimensions from the header", () => {
     expect(pngSize(png(7, 3, [0, 0, 0]))).toEqual({ width: 7, height: 3 });
+  });
+
+  it("reads screenshot paths relative to the run's projectRoot", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "es-gif-root-"));
+    const red = png(4, 4, [255, 0, 0]);
+    fs.writeFileSync(path.join(root, "step-1.png"), red);
+    const tc = stubs.testCaseResult({
+      story: stubs.storyMeta({ steps: [{ keyword: "Given", text: "a", docs: [{ kind: "screenshot", path: "step-1.png" }] }] }),
+    });
+    expect(screenshotFrames(tc, root)).toEqual([red]);
   });
 
   it("makes one GIF per passing scenario with two or more screenshots", async () => {

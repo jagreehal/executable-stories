@@ -120,9 +120,9 @@ export interface CursorOptions {
 
 /**
  * Draw a mouse pointer that follows Playwright's mouse, since recorded videos don't show one.
- * It pulses so the eye finds it, glides between points, follows focus (so `fill()` steps show where
- * typing lands), and drops a ripple on each click. One pointer is drawn in the top frame and
- * follows the mouse into iframes. Call before the page loads, e.g. before `openScenario`.
+ * It pulses so the eye finds it, glides between points, follows focus (resting near the field's
+ * right end, clear of the text, so `fill()` steps show where typing lands), and drops a ripple on
+ * each click. One pointer is drawn in the top frame and follows the mouse into iframes. Call before the page loads, e.g. before `openScenario`.
  */
 export async function showCursor(
   page: Page,
@@ -153,8 +153,9 @@ export async function showCursor(
     // something inside it does; that frame reports where.
     addEventListener('focusin', (e) => {
       if (clicking || !(e.target instanceof Element) || e.target instanceof HTMLIFrameElement) return;
+      // Near the right end, so the pointer doesn't cover what's typed (or chosen) from the left.
       const r = e.target.getBoundingClientRect();
-      show({ type: 'move', x: r.left + Math.min(24, r.width / 2), y: r.top + r.height / 2 });
+      show({ type: 'move', x: r.right - Math.min(24, r.width / 2), y: r.top + r.height / 2 });
     }, true);
     addEventListener('message', (e) => {
       const p: Pointer | undefined = e.data?.executableStoriesShowcaseCursor;
@@ -290,7 +291,7 @@ async function glideTo(locator: Locator, wait: number, pointed: boolean, options
 
       if (!box) return;
       // Where showCursor puts the pointer when the field takes focus.
-      await locator.page().mouse.move(box.x + Math.min(24, box.width / 2), box.y + box.height / 2);
+      await locator.page().mouse.move(box.x + box.width - Math.min(24, box.width / 2), box.y + box.height / 2);
     }
 
     const before = await locator.boundingBox();
