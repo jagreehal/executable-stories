@@ -93,6 +93,7 @@ The daily loop, driven by run artifacts rather than by reading the suite.
 | `failure-triage`   | A run is red or flaky and you need the routed worklist, not the raw list              |
 | `agent-loop`       | An agent works unattended and needs a stopping condition it does not control          |
 | `story-control-loop` | A scheduled agent should drive one target (unasserted, planned, uncovered, failing) one PR at a time |
+| `stories-verify-skill` | An agent workflow (pstack and similar) wants a `verify-<app>` skill: wrap the suite, generate the feature map |
 
 ## Delivery
 

@@ -41,6 +41,11 @@ symptom, and check the sibling callers before editing one.
 - **Fix the root cause, not the reported path.** The report names one symptom. Before
   editing, find every caller that routes through the same code and decide whether they
   share the defect. One guard in the shared function beats a guard per caller.
+- **Reproduce on the surface it was reported on.** A bug seen in the browser gets a browser
+  scenario (Playwright, Cypress, e2e). A unit scenario beside it can pin the root cause,
+  and it proves branch behaviour.
+- **An existing fix switches you to verify mode.** If a PR or commit already claims the fix,
+  run the reproduction against it and report the verdict.
 - **Never delete or skip the scenario after the fix.** It is the documentation now. The
   ratchet in `executable-stories goal --baseline` exists to catch exactly that move.
 

@@ -251,12 +251,14 @@ Put `check` and `goal` in `CLAUDE.md`/`AGENTS.md` so the loop runs them without 
 ### list — scenario discovery / failure triage
 
 ```bash
-executable-stories list reports/by-file --list-format json   # text (default) | json | csv | markdown-table
+executable-stories list reports/by-file --list-format json   # text (default) | json | csv | markdown-table | feature-map
 executable-stories list raw-run.json --list-format json      # this execution only
 # supports --include-tags / --exclude-tags, --input-type, --stdin
 ```
 
 Each JSON entry carries `assertion`: `asserted`, `unasserted` (its Then steps ran and checked nothing), or `unobserved` (the adapter cannot count assertions, which is not zero). `map(select(.assertion == "unasserted"))` lists the claims nothing checked.
+
+`--list-format feature-map` prints the suite as a feature map, one `##` section per story file with Sub-features, How to get to it, Driving it and Gotchas. Agent `verify-<app>` skills (pstack and similar) read this shape. Regenerate it after each run; the `stories-verify-skill` skill sets that up.
 
 The discovery index for agents and explorers — one scenario per line (text) or machine-parsable JSON. Use it for triage before reading source tests. Point it at `by-file/` for the accumulated suite; a single run file lists only what that run executed.
 

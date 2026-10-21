@@ -5,11 +5,11 @@
 
 import type { TestCaseResult } from "executable-stories-core/types/test-result";
 import type { StoryStep } from "executable-stories-core/types/story";
-import { assertionState } from "executable-stories-core/utils/assertive-steps";
+import { assertionState, assertiveSteps } from "executable-stories-core/utils/assertive-steps";
 
 export interface ListScenariosArgs {
   testCases: TestCaseResult[];
-  format: "text" | "json" | "csv" | "markdown-table";
+  format: "text" | "json" | "csv" | "markdown-table" | "feature-map";
   /** Emit compact (single-line) JSON for agent consumption. Only affects "json". Default false. */
   minify?: boolean;
 }
@@ -90,6 +90,10 @@ export function listScenarios(
     return [header, divider, ...rows].join("\n");
   }
 
+  if (format === "feature-map") {
+    return featureMap(testCases);
+  }
+
   // Text format
   if (testCases.length === 0) {
     return "No scenarios found.";
@@ -134,6 +138,94 @@ export function listScenarios(
   ];
 
   return lines.join("\n");
+}
+
+/**
+ * A feature map in the shape `verify-<app>/features/` agent skills read: one
+ * section per story file with Sub-features, How to get to it, Driving it, and
+ * Gotchas. It comes from the run, so it always matches what the tests check.
+ */
+function featureMap(testCases: TestCaseResult[]): string {
+  const byFile = new Map<string, TestCaseResult[]>();
+  for (const tc of testCases) {
+    byFile.set(tc.sourceFile, [...(byFile.get(tc.sourceFile) ?? []), tc]);
+  }
+  const features = [...byFile].sort(([a], [b]) => a.localeCompare(b));
+  const titleOf = (cases: TestCaseResult[], file: string) =>
+    cases[0].story.suitePath?.[0] ?? cases[0].titlePath[0] ?? file;
+
+  const lines = [
+    "# Feature map",
+    "",
+    "Generated from the story run by `executable-stories list <run> --list-format feature-map`.",
+    "Regenerate it after a run; do not edit it by hand. A wrong entry means a wrong test.",
+    "",
+    ...features.map(([file, cases]) => {
+      const failing = cases.filter((tc) => tc.status === "failed").length;
+      const title = titleOf(cases, file);
+      const label = title === file ? `\`${file}\`` : `${title}: \`${file}\``;
+      const count = `${cases.length} scenario${cases.length === 1 ? "" : "s"}`;
+      return `- ${label} (${count}${failing ? `, ${failing} failing` : ""})`;
+    }),
+  ];
+
+  for (const [file, cases] of features) {
+    const gotchas = cases.flatMap((tc) => scenarioGotchas(tc));
+    lines.push(
+      "",
+      `## ${titleOf(cases, file)}`,
+      "",
+      "### Sub-features",
+      "",
+      ...cases.map(
+        (tc) => `- ${STATUS_ICONS[tc.status] ?? "?"} ${tc.story.scenario} (\`${file}:${tc.sourceLine}\`)`,
+      ),
+      "",
+      "### How to get to it (user POV)",
+      "",
+      ...cases.map((tc) => {
+        const claim = new Set(assertiveSteps(tc.story.steps));
+        const setup = tc.story.steps.filter((step) => !claim.has(step));
+        return `- ${tc.story.scenario}: ${setup.map(stepText).join("; ") || "no setup steps"}`;
+      }),
+      "",
+      "### Driving it with the story suite",
+      "",
+      `Run \`${file}\` with the project's test command, filtered to the scenario title. The run's report is the evidence.`,
+      "",
+      ...cases.map((tc) => {
+        const claim = assertiveSteps(tc.story.steps);
+        return `- ${tc.story.scenario}: proven by ${claim.map(stepText).join("; ") || "no Then step"}`;
+      }),
+      "",
+      "### Gotchas",
+      "",
+      ...(gotchas.length > 0 ? gotchas : ["- None recorded by the run."]),
+    );
+  }
+
+  return lines.join("\n");
+}
+
+function stepText(step: StoryStep): string {
+  return `${step.keyword} ${step.text}`;
+}
+
+function scenarioGotchas(tc: TestCaseResult): string[] {
+  const name = tc.story.scenario;
+  const notes = [...(tc.story.docs ?? []), ...tc.story.steps.flatMap((step) => step.docs ?? [])]
+    .flatMap((doc) => (doc.kind === "note" ? [`- ${name}: ${doc.text.replace(/\s+/g, " ").trim()}`] : []));
+  const status =
+    tc.status === "failed"
+      ? [`- ${name}: failing in this run: ${(tc.errorMessage ?? "no message").split("\n")[0]}`]
+      : tc.status === "passed"
+        ? []
+        : [`- ${name}: ${tc.status} in this run, so nothing here is proven yet.`];
+  const unasserted =
+    assertionState(tc.story.steps) === "unasserted"
+      ? [`- ${name}: its Then steps asserted nothing, so a pass proves nothing.`]
+      : [];
+  return [...status, ...unasserted, ...notes];
 }
 
 function toScenarioStep(

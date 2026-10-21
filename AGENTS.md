@@ -420,6 +420,7 @@ When working in these areas, load the linked skill file into context for accurat
 | Bug bashing an app: explore, triage, prove each bug          | `skills/bug-bash/SKILL.md`                                                                     |
 | Triaging a red or flaky run into a routed worklist           | `skills/failure-triage/SKILL.md`                                                               |
 | Running an autonomous agent loop against run artifacts       | `skills/agent-loop/SKILL.md`                                                                   |
+| Giving pstack (or any agent workflow) a `verify-<app>` skill backed by the suite | `skills/stories-verify-skill/SKILL.md`                                          |
 | Scheduling an agent that drives a target one PR at a time    | `skills/story-control-loop/SKILL.md`                                                           |
 | Writing a PR description from the behavioural diff           | `skills/story-pr/SKILL.md`                                                                     |
 | Choosing and wiring CI gates (PR, release, scheduled)        | `skills/ci-gates/SKILL.md`                                                                     |

@@ -57,6 +57,9 @@ A starting situation that produces work, then joins the main flow.
 - **An agent on a schedule, chipping away at a target** (claims nothing checks, planned
   scenarios, missing `covers`, a red suite) → `story-control-loop`. One scenario and one PR
   per run, gated so a PR can never make the suite worse.
+- **Another agent workflow wants a `verify-<app>` skill** (pstack's `/poteto-mode`,
+  `/create-verification-skill`) → `stories-verify-skill`. It wraps the suite as that skill
+  with a feature map generated from the run.
 
 ## Words and quality, underneath
 

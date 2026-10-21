@@ -464,11 +464,14 @@ executable-stories list raw-run.json                         # this run only
 | ---------------- | ------- | ------- | ------------------------------------------- |
 | `--include-tags` | string  | —       | Comma-separated tags to include             |
 | `--exclude-tags` | string  | —       | Comma-separated tags to exclude             |
+| `--list-format`  | string  | `text`  | `text`, `json`, `csv`, `markdown-table`, or `feature-map` |
 | `--json-summary` | boolean | `false` | Output as JSON instead of text table        |
 | `--input-type`   | string  | `raw`   | Input type: `raw`, `canonical`, or `ndjson` |
 | `--stdin`        | boolean | `false` | Read from stdin                             |
 
 Each JSON entry carries `assertion`: `asserted`, `unasserted` (its Then steps ran and checked nothing) or `unobserved` (the adapter can't count assertions). `jq 'map(select(.assertion == "unasserted"))'` lists the claims nothing checked.
+
+`--list-format feature-map` prints a feature map for agent `verify-<app>` skills: one section per story file with Sub-features, How to get to it (Given and When steps), Driving it (the Then steps that prove it), and Gotchas (failing, pending and unasserted scenarios, plus `story.note()` text).
 
 ### `gif`
 
