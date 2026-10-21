@@ -35,7 +35,9 @@ executable-stories format reports/raw-run.json \
 executable-stories share reports/
 ```
 
-An API key comes from `EXECUTABLE_STORIES_API_KEY`, or `--key`. Prefer the
+An API key comes from `EXECUTABLE_STORIES_API_KEY`, or `--key`. It needs the
+`share` scope; create one on the Cloud Team page (a service key for CI, a
+personal key for your own machine). Prefer the
 environment variable: a key on the command line lands in your shell history and
 is visible to anyone who can list processes on the machine.
 

@@ -15,13 +15,21 @@ and gates is `cloud-change-aware-testing`.
 ## Setup
 
 ```
-EXECUTABLE_STORIES_API_KEY=es_...   # Settings → API keys
+EXECUTABLE_STORIES_API_KEY=es_...   # Team page → API keys
 EXECUTABLE_STORIES_URL=https://app.executablestories.com
 ```
 
 Keys carry scopes: `read`, `ingest`, `write:results`, `write:cases`,
-`write:releases`. A 403 naming a scope means the key lacks it; tell the user
-which one to add rather than retrying.
+`write:releases`, `share`, on every repository or on named ones. A 403 naming
+a scope or a repository means the key lacks it there; tell the user which one
+to add rather than retrying.
+
+There are two kinds. A **personal** key acts for one person: it never holds
+more than they do, narrows when their groups do, and stops working when they
+leave the organisation. A **service** key belongs to the organisation (owners
+and admins create it) and survives people leaving: use one for CI, and a
+personal key for an agent working on someone's behalf. Export and restore need
+`read` / `ingest` on every repository.
 
 ## Push a run (no test changes)
 

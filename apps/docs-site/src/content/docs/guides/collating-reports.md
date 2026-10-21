@@ -78,4 +78,9 @@ jobs:
           EXECUTABLE_STORIES_API_KEY: ${{ secrets.EXECUTABLE_STORIES_API_KEY }}
 ```
 
+Use a **service key** here, created by an owner or admin on the Cloud Team page
+with the `ingest` scope (limited to this repository if you like). A personal
+key stops working when the person who made it leaves the organisation, and the
+pipeline would stop with it.
+
 `format reports/by-file` merges every report in the directory into one StoryReport: scenarios are keyed by id and features by source file, so two shard reports for the same file combine rather than collide, and the `features[].sourceFile` set is the whole suite. `push` sends that one run. The cloud then computes the diff against the previous run, notifies the channels the org configured, and updates the catalogue from a complete picture. No server-side "shared run" mode is needed: the aggregation already happens where the files are.
