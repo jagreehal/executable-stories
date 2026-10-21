@@ -15,10 +15,38 @@ or Confluence pages.
 ```bash
 executable-stories docs list
 executable-stories docs list --csv > backlog.csv
+executable-stories docs list --csv --images --only gif > gifs.csv
 ```
 
-Share the CSV as the team's tracker. An export of the articles as HTML files works offline: point a
-`markdown` target at the folder.
+Share the CSV as the team's tracker: add owner and status columns. `--images` gives one row per
+image with the heading it sits under, which is how people name them ("the import GIF"), and the
+article's views where the help centre counts them, so the most-read articles go first.
+
+An export of the articles works offline: Markdown or HTML files, or the `.json` files the Help Scout
+API returns. `--from export` lists it against the slots in `docs.json`, even when they name articles
+by id (`42` matches `export/42.html` or `export/42.json`). The folder can sit outside the project;
+a relative path starts from `docs.json`'s folder. An exported HTML article's URL comes from
+`<link rel="canonical">` or a comment holding just the URL; a `.json` export's from `publicUrl`.
+
+## Start a slot
+
+```bash
+executable-stories docs add 42 --image 2
+```
+
+adds a slot for the second image in article `42` to `docs.json` and prints a scenario to record it,
+one step per sentence the article says before that image. Fill in what each step does.
+
+The article can be its public link instead, as people share it: a Help Scout
+`…/article/16-how-to-create-payees` (looked up by its number), a Confluence page on the same site,
+or, with `--from`, the exported file that carries that link.
+
+## For an agent
+
+`add`, `status`, `review`, `approve` and `publish` take `--json`. `add --json` prints the slot, the
+article's section (title, link, heading, image, text) and the scenario stub, so an agent can write
+the scenario without parsing text; `approve` and `publish` report each slot with the sha256 of the
+file they approved or published.
 
 ## Describe each slot
 
@@ -59,9 +87,30 @@ executable-stories docs status --report reports/index.story-report.json
 executable-stories docs publish --report reports/index.story-report.json
 ```
 
-`status` shows each slot as `changed`, `published`, `failing` or `no media`. `publish` puts each
-changed file into its article and records the placement in `docs.lock.json`. Commit the lock: the
-next publish replaces the same image, and moving a slot to another article publishes it afresh.
+`status` shows each slot as `changed`, `unapproved`, `published`, `failing` or `no media`. `publish`
+puts each changed file into its article and records the placement in `docs.lock.json`. Commit the
+lock: the next publish replaces the same image, and moving a slot to another article publishes it
+afresh.
+
+A slot names its scenario by `scenario` (its title) or `tag` (a tag on it, such as
+`media:add-contact`), which keeps the slot when the scenario is renamed.
+
+## Review and approve
+
+```bash
+executable-stories docs review --report reports/index.story-report.json --out review.html
+executable-stories docs approve add-contact --by "Sam" --report reports/index.story-report.json
+```
+
+`review` writes one page that opens anywhere: for each slot, the image the article shows now beside
+the new recording, the section it illustrates and the scenario's steps. Reviewers need no repo.
+`approve` records who approved which file in `docs.approvals.json`. With `"approval": true` in
+`docs.json`, `publish` sends only approved files, and a re-render needs approving again.
+
+## When the article changes
+
+`publish` notes which steps quote the article. `docs status --wording` reads each published article
+and lists the steps it no longer says, so a reworded article flags its media for a new recording.
 
 `publish` checks the article before it uploads anything. The image to replace must appear exactly
 once; with `--report`, the slot's scenario must have passed, and its title must be unique in the

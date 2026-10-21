@@ -32,7 +32,9 @@ import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
 import type {
+  FileChooser,
   Frame,
+  Locator,
   Page,
   PlaywrightTestArgs,
   PlaywrightTestOptions,
@@ -1152,6 +1154,25 @@ async function capture(page: Page, options: ScreenshotOptions): Promise<Buffer> 
   }
 }
 
+/** Speaking pace a viewer reads a caption at; `executable-stories video` warns at the same pace. */
+const WORDS_PER_MINUTE = 170;
+/** The least an `'auto'` hold stays, so a short step's screen is still seen. */
+const MIN_AUTO_HOLD_MS = 1000;
+
+/**
+ * `'auto'` holds until the current step has been on screen as long as its line takes to read
+ * ("When ..." at 170 words a minute), and at least a second.
+ */
+function holdMs(hold: number | 'auto'): number {
+  if (hold !== 'auto') return hold;
+  const step = activeContext?.meta.steps.at(-1);
+  if (!step) return MIN_AUTO_HOLD_MS;
+  const words = `${step.keyword} ${step.text}`.trim().split(/\s+/).length;
+  const needMs = (words / WORDS_PER_MINUTE) * 60_000;
+  const shownMs = Date.now() - (step.startedAtMs ?? Date.now());
+  return Math.max(MIN_AUTO_HOLD_MS, Math.round(needMs - shownMs));
+}
+
 function screenshotImpl(
   options: ScreenshotOptions & { page: Page },
   children?: DocEntry[],
@@ -1169,7 +1190,7 @@ function screenshotImpl(
     return capture(page, options)
       .then(async (buffer) => {
         // Hold the screen in the video, and only there: a run that isn't recording stays fast.
-        if (options.hold && page.video()) await page.waitForTimeout(options.hold);
+        if (options.hold && page.video()) await page.waitForTimeout(holdMs(options.hold));
         const dataUri = `data:image/png;base64,${buffer.toString('base64')}`;
         return attachDoc(
           {
@@ -1355,6 +1376,21 @@ export const story = {
   },
 
   screenshot: screenshotImpl,
+
+  /**
+   * Pick a file the way a user does: click the control that opens the file picker, then
+   * choose `files` in it. A recording shows the click; the operating system's picker is
+   * never filmed, so assert the chosen file's name on the page next.
+   *
+   * @example
+   * await story.upload(page.getByText('Click to upload'), 'fixtures/contacts.xlsx');
+   * await expect(page.getByText('contacts.xlsx')).toBeVisible();
+   */
+  async upload(trigger: Locator, files: Parameters<FileChooser['setFiles']>[0]): Promise<void> {
+    const chooser = trigger.page().waitForEvent('filechooser');
+    await trigger.click();
+    await (await chooser).setFiles(files);
+  },
 
   video(options: VideoOptions, children?: DocEntry[]): DocEntry {
     // Unlike screenshots, video bytes are never inlined as a data URI — they're

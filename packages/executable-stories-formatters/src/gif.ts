@@ -18,6 +18,8 @@ export interface GifArgs {
   secondsPerFrame?: number;
   /** Frames wider than this are scaled down. Default 1280. */
   maxWidth?: number;
+  /** The run's `projectRoot`: screenshot paths in the run are relative to it, not to the cwd. */
+  projectRoot?: string;
 }
 
 export interface GifDeps {
@@ -32,13 +34,14 @@ export interface GifResult {
 }
 
 /** Each step screenshot of a scenario, in order: data URIs decoded, file paths read. */
-export function screenshotFrames(tc: TestCaseResult): Buffer[] {
+export function screenshotFrames(tc: TestCaseResult, projectRoot = ""): Buffer[] {
   return tc.story.steps.flatMap((step) =>
     (step.docs ?? []).flatMap((doc) => {
       if (doc.kind !== "screenshot") return [];
       const match = /^data:image\/png;base64,(.*)$/.exec(doc.path);
       if (match) return [Buffer.from(match[1], "base64")];
-      return fs.existsSync(doc.path) ? [fs.readFileSync(doc.path)] : [];
+      const file = path.resolve(projectRoot, doc.path);
+      return fs.existsSync(file) ? [fs.readFileSync(file)] : [];
     }),
   );
 }
@@ -60,7 +63,7 @@ export async function writeGifs(args: GifArgs, deps: GifDeps): Promise<GifResult
       result.skipped.push({ scenario, reason: tc.status });
       continue;
     }
-    const frames = screenshotFrames(tc).filter((f) => f.subarray(1, 4).toString() === "PNG");
+    const frames = screenshotFrames(tc, args.projectRoot).filter((f) => f.subarray(1, 4).toString() === "PNG");
     if (frames.length < 2) {
       result.skipped.push({ scenario, reason: `${frames.length} screenshot(s), need 2` });
       continue;

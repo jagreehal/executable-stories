@@ -112,9 +112,10 @@ export interface ScreenshotOptions {
   /**
    * Milliseconds to stay on this screen after the capture, so a recorded walkthrough
    * holds it long enough to read. Only with `page`, and only while Playwright is
-   * recording video for the page; otherwise the step moves on at once.
+   * recording video for the page; otherwise the step moves on at once. `'auto'` holds
+   * until the step has been on screen as long as its line takes to read (at least 1s).
    */
-  hold?: number;
+  hold?: number | 'auto';
 }
 
 export interface VideoOptions {

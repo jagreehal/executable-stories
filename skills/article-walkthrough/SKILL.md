@@ -15,12 +15,16 @@ review without reading code.
 
 ## Find the backlog
 
-`executable-stories docs list --csv > backlog.csv` lists every article in the help centre and
-each image no slot covers yet. Share it as the team's tracker: who takes which article, and in
-what order.
+`executable-stories docs list --csv --images > backlog.csv` lists every image in the help
+centre with the heading it sits under, its article's views, and the slot covering it, if any.
+Share it as the team's tracker: who takes which image, and in what order.
 
-No API key yet? An export of the articles as HTML files works too: point a `markdown` target
-at the folder and `docs list` reads the same backlog offline.
+No API key yet? An export of the articles as HTML, Markdown or Help Scout `.json` files works
+too, from any folder: `docs list --from export` reads the same backlog offline against your
+`docs.json`.
+
+`docs add <article> --image <n>` adds the slot and prints a scenario stub whose steps are the
+article's sentences before that image. Start from it.
 
 ## What you need first
 
@@ -53,8 +57,8 @@ test('add a contact via the interface', async ({ page }, testInfo) => {
 });
 ```
 
-- **Every step ends with `story.screenshot({ hold })`.** The hold is a pause only while
-  recording, so viewers can read the step. It is also the storyboard frame for the GIF.
+- **Every step ends with `story.screenshot({ hold: 'auto' })`.** The hold is a pause only
+  while recording, long enough to read the step's line. It is also the storyboard frame for the GIF.
 - **Assert the outcome the article promises**, not just that a toast appeared. A video of a
   save that silently failed teaches the wrong thing.
 - **Do the article's actions only.** Sign-in and setup go before the first step, or are cut
@@ -68,11 +72,12 @@ The browser cannot film the operating system's file dialog. Do not fake one. Sho
 on the upload control, then the selected file:
 
 ```ts
-const chooser = page.waitForEvent('filechooser');
-await page.getByRole('button', { name: 'Import' }).click();
-await (await chooser).setFiles('fixtures/contacts.xlsx');
+await story.upload(page.getByText('Click to upload'), 'fixtures/contacts.xlsx');
 await expect(page.getByText('contacts.xlsx')).toBeVisible();
 ```
+
+With a mocked API, Chromium hands `page.route` the upload's name but not its bytes: have the
+mock check the name and read the same fixture from disk.
 
 Upload a **real, valid fixture file**, and assert the imported rows appear. Attach its
 contents with `story.table()` so the video can show the spreadsheet before the recording.
@@ -97,9 +102,12 @@ on the control the article names. Fix the scenario, not the still.
 
 ## 4. Hand it back for review
 
-Give the requester the GIF or MP4, the article section it is for, and the step list in plain
-English. Their comments ("the save button isn't visible", "use the newer wording") become
-changes to the scenario, and you re-run. They approve the media, not the code.
+`docs review --report reports/index.story-report.json --out review.html` writes one page
+with each slot's current image beside the new one, the section it illustrates and the steps.
+Send it to the requester. Their comments ("the save button isn't visible", "use the newer
+wording") become changes to the scenario, and you re-run. They approve the media, not the
+code: `docs approve <slot> --by <name>` records it, and with `"approval": true` in `docs.json`
+only approved files publish.
 
 ## 5. Publish
 
@@ -129,7 +137,9 @@ Targets: `markdown` (files in a repo), `helpscout` (`HELPSCOUT_API_KEY`), `confl
 (`CONFLUENCE_BASE_URL`, `CONFLUENCE_EMAIL`, `CONFLUENCE_TOKEN`). Only approved, passing media should reach `publish`:
 run it after the review is merged, not from a branch. Commit `docs.lock.json`; it is the record
 of what is live where, and the reason the next publish replaces the same image. A slot's
-`scenario` must be a title no other scenario in the report shares, or `docs` refuses it.
+`scenario` must be a title no other scenario in the report shares, or `docs` refuses it; a
+`tag` instead (`story.init(..., { tags: ['media:add-contact'] })`) survives renaming it.
 
 Keep the scenario in the suite. When the UI changes and it fails, `docs status` shows the slot
-as `failing`: the article's media is out of date too, and steps 2–5 replace it.
+as `failing`: the article's media is out of date too, and steps 2–5 replace it. When the
+article changes instead, `docs status --wording` lists the steps it no longer says.

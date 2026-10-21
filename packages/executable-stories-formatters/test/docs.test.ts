@@ -7,8 +7,11 @@ import {
   csvCell,
   destination,
   helpScoutTarget,
+  imageSections,
   imagesIn,
   isMedia,
+  markdownTarget,
+  quotedIn,
   replaceImage,
   runDocs,
   type FetchFn,
@@ -594,7 +597,7 @@ describe('docs list', () => {
       '# =HYPERLINK("x")\n\n![](a.gif)\n',
     );
     const { out } = await run(root, 'list', '--csv');
-    expect(out.split('\n')[2]).toBe(`evil.md,"'=HYPERLINK(""x"")",,1,,a.gif`);
+    expect(out.split('\n')[2]).toBe(`evil.md,"'=HYPERLINK(""x"")",,1,,a.gif,1,,`);
   });
 });
 
@@ -607,14 +610,22 @@ describe('list from a help centre', () => {
       'GET /v1/collections/c1/articles?pageSize=100&page=1': {
         articles: {
           pages: 2,
-          items: [{ id: 'a1', name: 'One', publicUrl: 'https://hs/1' }],
+          items: [
+            {
+              id: 'a1',
+              name: 'One',
+              publicUrl: 'https://hs/1',
+              viewCount: 905,
+              updatedAt: '2026-01-02T00:00:00Z',
+            },
+          ],
         },
       },
       'GET /v1/collections/c1/articles?pageSize=100&page=2': {
         articles: { pages: 2, items: [{ id: 'a2', name: 'Two' }] },
       },
       'GET /v1/articles/a1': {
-        article: { text: '<img src="https://hs/x.gif">' },
+        article: { text: '<h2>Add</h2><img src="https://hs/x.gif">' },
       },
       'GET /v1/articles/a2': { article: { text: '<p>none</p>' } },
     });
@@ -624,8 +635,19 @@ describe('list from a help centre', () => {
         title: 'One',
         url: 'https://hs/1',
         images: ['https://hs/x.gif'],
+        headings: ['Add'],
+        views: 905,
+        updatedAt: '2026-01-02T00:00:00Z',
       },
-      { article: 'a2', title: 'Two', url: undefined, images: [] },
+      {
+        article: 'a2',
+        title: 'Two',
+        url: undefined,
+        images: [],
+        headings: [],
+        views: undefined,
+        updatedAt: undefined,
+      },
     ]);
     expect(calls.every((c) => !c.key.includes('not found'))).toBe(true);
   });
@@ -676,6 +698,33 @@ describe('list from a help centre', () => {
   });
 });
 
+describe('confluenceTarget image', () => {
+  it('downloads a page attachment from the same site, and only media', async () => {
+    const { fn, calls } = fakeFetch({
+      'GET /wiki/rest/api/content/7/child/attachment': {
+        results: [{ _links: { download: '/download/attachments/7/add.gif' } }],
+      },
+    });
+    const gif = (async (url: string, init: RequestInit = {}) =>
+      url.includes('/download/')
+        ? new Response('GIF89a-page', { status: 200 })
+        : fn(url, init)) as unknown as FetchFn;
+    const target = confluenceTarget('https://acme.atlassian.net/wiki', { email: 'e', token: 't' }, gif);
+    expect((await target.image!('7', 'add.gif'))?.toString()).toBe('GIF89a-page');
+    expect(calls[0]!.key).toBe('GET /wiki/rest/api/content/7/child/attachment');
+
+    // Spliced onto a site with no path, ".evil.example" would make the host acme.atlassian.net.evil.example.
+    const elsewhere = fakeFetch({
+      'GET /rest/api/content/7/child/attachment': {
+        results: [{ _links: { download: '.evil.example/x.gif' } }],
+      },
+    });
+    const away = confluenceTarget('https://acme.atlassian.net', { email: 'e', token: 't' }, elsewhere.fn);
+    expect(await away.image!('7', 'add.gif')).toBeUndefined();
+    expect(elsewhere.calls).toHaveLength(1);
+  });
+});
+
 describe('helpScoutTarget upload', () => {
   it('sends the API key in the form, as the asset endpoint requires', async () => {
     const { fn, calls } = fakeFetch({
@@ -690,5 +739,400 @@ describe('helpScoutTarget upload', () => {
       .body as FormData;
     expect(form.get('key')).toBe('secret');
     expect(form.get('assetType')).toBe('image');
+  });
+});
+
+/** Rewrites docs.json and the run, for the tests below. */
+type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any -- test fixtures
+
+function edit(root: string, fn: (config: Json, report: Json) => void) {
+  const config = JSON.parse(fs.readFileSync(path.join(root, 'docs.json'), 'utf8'));
+  const reportPath = path.join(root, 'reports/index.story-report.json');
+  const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+  fn(config, report);
+  fs.writeFileSync(path.join(root, 'docs.json'), JSON.stringify(config));
+  fs.writeFileSync(reportPath, JSON.stringify(report));
+}
+
+describe('article sections', () => {
+  const article =
+    '<h1>Contacts</h1><p>Intro.</p><h2>Add a contact</h2><p>Open Contacts from the sidebar. ' +
+    'Select New contact &amp; enter a name.</p><img src="https://cdn/add.gif" alt="a">' +
+    '<p>Then select Save.</p><img src="https://cdn/save.gif"><h2>Import</h2>\n\n![Import](import.gif)';
+
+  it('finds the heading over each image and the text leading up to it', () => {
+    expect(imageSections(article)).toEqual([
+      {
+        src: 'https://cdn/add.gif',
+        heading: 'Add a contact',
+        text: 'Open Contacts from the sidebar. Select New contact & enter a name.',
+      },
+      { src: 'https://cdn/save.gif', heading: 'Add a contact', text: 'Then select Save.' },
+      { src: 'import.gif', heading: 'Import', text: '' },
+    ]);
+  });
+
+  it('matches steps to the article whatever the case, quotes or closing punctuation', () => {
+    expect(
+      quotedIn(article, [
+        'open contacts from the sidebar',
+        'Select New contact & enter a name!',
+        'The contact appears in the list.',
+      ]),
+    ).toEqual(['open contacts from the sidebar', 'Select New contact & enter a name!']);
+  });
+});
+
+describe('docs for a team', () => {
+  it('lists one row per image with its heading, and only the kind asked for', async () => {
+    const root = project();
+    fs.writeFileSync(
+      path.join(root, 'docs/guide.html'),
+      '<!-- https://help.example/article/7-guide -->\n<h1>Guide</h1><h2>Start</h2><img src="a.png"><img src="b.gif">',
+    );
+    const { out } = await run(root, 'list', '--csv', '--images', '--only', 'gif');
+    expect(out.split('\n')).toEqual([
+      'article,title,url,views,heading,image,type,slot',
+      'contacts.md,Contacts,,,Contacts,old/add.gif,gif,add-contact',
+      'contacts.md,Contacts,,,Contacts,old/import.gif,gif,import-contacts',
+      'guide.html,Guide,https://help.example/article/7-guide,,Start,b.gif,gif,',
+    ]);
+  });
+
+  it('lists a local export against slots that name articles by id', async () => {
+    const root = project();
+    fs.mkdirSync(path.join(root, 'export'));
+    fs.writeFileSync(path.join(root, 'export/42.html'), '<h1>Contacts</h1><img src="https://cdn/old/add.gif">');
+    edit(root, (config) => {
+      config.target = { type: 'helpscout' };
+      config.slots = [{ ...config.slots[0], article: '42' }];
+    });
+    const { code, out } = await run(root, 'list', '--from', 'export');
+    expect(code).toBe(0);
+    expect(out).toContain('  1 images    0 uncovered  Contacts  (42.html)');
+  });
+
+  it('follows a slot by tag when its scenario is renamed', async () => {
+    const root = project();
+    edit(root, (config, report) => {
+      config.slots[0] = { ...config.slots[0], scenario: undefined, tag: 'media:add' };
+      report.features[0].scenarios[0] = { title: 'renamed', status: 'passed', tags: ['media:add'] };
+    });
+    expect((await run(root, 'status')).out).toContain('changed    add-contact');
+    edit(root, (_, report) => {
+      report.features[0].scenarios.push({ title: 'copy', status: 'passed', tags: ['media:add'] });
+    });
+    const twice = await run(root, 'status');
+    expect(twice.code).toBe(4);
+    expect(twice.out).toMatch(/several scenarios are tagged "media:add"/);
+  });
+
+  it('publishes only the file someone approved, and asks again after a re-render', async () => {
+    const root = project();
+    edit(root, (config) => (config.approval = true));
+    expect((await run(root, 'status')).out).toContain('unapproved add-contact');
+    expect((await run(root, 'publish')).out).toContain('skip     add-contact: unapproved');
+
+    // A failing scenario cannot be approved.
+    fs.writeFileSync(path.join(root, 'reports/import.gif'), 'GIF89a-2');
+    const refused = await run(root, 'approve', 'add-contact', 'import-contacts', '--by', 'Sam');
+    expect(refused.code).toBe(1);
+    expect(refused.out).toContain('refused  import-contacts: failing');
+    const approvals = JSON.parse(fs.readFileSync(path.join(root, 'docs.approvals.json'), 'utf8'));
+    expect(approvals['add-contact']).toMatchObject({ by: 'Sam', approvedAt: '2026-10-20T00:00:00.000Z' });
+    expect(approvals['import-contacts']).toBeUndefined();
+
+    expect((await run(root, 'publish')).out).toContain('publish  add-contact');
+    fs.writeFileSync(path.join(root, 'reports/add.gif'), 'GIF89a-9');
+    expect((await run(root, 'status')).out).toContain('unapproved add-contact');
+  });
+
+  it.each(['publish', 'status', 'review', 'approve'])(
+    'refuses --from for %s, which would judge or publish against a copy',
+    async (command) => {
+      const root = project();
+      fs.mkdirSync(path.join(root, 'export'));
+      const { code, out } = await run(root, command, 'add-contact', '--from', 'export');
+      expect(code).toBe(4);
+      expect(out).toContain('only works with list and add');
+      expect(fs.existsSync(path.join(root, 'docs.lock.json'))).toBe(false);
+    },
+  );
+
+  it('refuses to approve a slot docs.json does not have', async () => {
+    const { code, out } = await run(project(), 'approve', 'nope');
+    expect(code).toBe(4);
+    expect(out).toContain('No slot "nope"');
+  });
+
+  it('notes which steps quoted the article, and flags them once it stops saying them', async () => {
+    const root = project();
+    fs.writeFileSync(
+      path.join(root, 'docs/contacts.md'),
+      '# Contacts\n\nOpen Contacts from the sidebar.\n\n![Add](old/add.gif)\n\n![Import](old/import.gif)\n',
+    );
+    edit(root, (_, report) => {
+      report.features[0].scenarios[0].steps = [
+        { keyword: 'Given', text: 'Open Contacts from the sidebar.' },
+        { keyword: 'Then', text: 'the contact is saved' },
+      ];
+    });
+    await run(root, 'publish');
+    const lock = JSON.parse(fs.readFileSync(path.join(root, 'docs.lock.json'), 'utf8'));
+    expect(lock['add-contact'].quoted).toEqual(['Open Contacts from the sidebar.']);
+
+    expect((await run(root, 'status', '--wording')).out).not.toContain('no longer says');
+    const article = path.join(root, 'docs/contacts.md');
+    fs.writeFileSync(article, fs.readFileSync(article, 'utf8').replace('from the sidebar', 'from the menu'));
+    expect((await run(root, 'status', '--wording')).out).toContain(
+      'the article no longer says: "Open Contacts from the sidebar."',
+    );
+  });
+
+  it('writes a review page with the new media inline and the steps to check', async () => {
+    const root = project();
+    edit(root, (_, report) => {
+      report.features[0].scenarios[0].steps = [{ keyword: 'Given', text: 'Open <Contacts>' }];
+    });
+    const { code } = await run(root, 'review', '--out', path.join(root, 'review.html'));
+    expect(code).toBe(0);
+    const html = fs.readFileSync(path.join(root, 'review.html'), 'utf8');
+    expect(html).toContain('<h2>add-contact <span class="status changed">changed</span></h2>');
+    expect(html).toContain(`data:image/gif;base64,${Buffer.from('GIF89a-1').toString('base64')}`);
+    expect(html).toContain('<li>Given Open &#60;Contacts&#62;</li>');
+    // The command works as written: the same config and run, and the run approval needs.
+    expect(html).toContain(
+      `executable-stories docs approve add-contact --config ${path.join(root, 'docs.json')} --report ${path.join(root, 'reports/index.story-report.json')}`,
+    );
+    // A slot with no media yet has nothing to review.
+    expect(html).not.toContain('import-contacts');
+  });
+
+  it("embeds the article's current image when its src only resolves inside the docs", async () => {
+    const root = project();
+    fs.mkdirSync(path.join(root, 'docs/old'));
+    fs.writeFileSync(path.join(root, 'docs/old/add.gif'), 'GIF89a-old');
+    await run(root, 'review', '--out', path.join(root, 'review.html'));
+    const html = fs.readFileSync(path.join(root, 'review.html'), 'utf8');
+    expect(html).toContain(`data:image/gif;base64,${Buffer.from('GIF89a-old').toString('base64')}`);
+  });
+
+  it('never embeds a file that is not media, or one outside the docs', async () => {
+    const root = project();
+    fs.writeFileSync(path.join(root, 'secret.gif'), 'GIF89a-secret');
+    fs.writeFileSync(
+      path.join(root, 'docs/contacts.md'),
+      '# Contacts\n\n![Add](../secret.gif)\n\n![Import](../docs.json)\n',
+    );
+    edit(root, (config) => {
+      config.slots[0].replaces = 'secret.gif';
+      config.slots[1].replaces = 'docs.json';
+    });
+    fs.writeFileSync(path.join(root, 'reports/import.gif'), 'GIF89a-2');
+    await run(root, 'review', '--out', path.join(root, 'review.html'));
+    const html = fs.readFileSync(path.join(root, 'review.html'), 'utf8');
+    expect(html).not.toContain(Buffer.from('GIF89a-secret').toString('base64'));
+    expect(html).toContain('<p class="none">../secret.gif</p>');
+    expect(html).toContain('<p class="none">../docs.json</p>');
+  });
+
+  it('links the article only by an http(s) URL', async () => {
+    const root = project();
+    const article = path.join(root, 'docs/contacts.md');
+    fs.writeFileSync(
+      article,
+      `<link rel="canonical" href="javascript:alert(1)">\n${fs.readFileSync(article, 'utf8')}`,
+    );
+    await run(root, 'review', '--out', path.join(root, 'review.html'));
+    const html = fs.readFileSync(path.join(root, 'review.html'), 'utf8');
+    expect(html).not.toContain('javascript:');
+    expect(html).toContain('<a href="#">');
+  });
+
+  it("never prints an article URL that would break out of the stub's comment", async () => {
+    const root = project();
+    fs.writeFileSync(
+      path.join(root, 'docs/team.md'),
+      '<link rel="canonical" href="https://x.test/\nprocess.exit(1)//">\n# Team\n\nOpen Users.\n\n![Invite](img/invite.gif)\n',
+    );
+    const { out } = await run(root, 'add', 'team.md', '--image', '1');
+    expect(out).not.toContain('process.exit');
+    expect(out).toContain('// team.md');
+  });
+
+  it('adds a slot for the nth image and prints a scenario that quotes the article', async () => {
+    const root = project();
+    fs.writeFileSync(
+      path.join(root, 'docs/team.md'),
+      '# Team\n\n## Invite a teammate\n\nOpen Users. Select Invite and enter their email.\n\n![Invite](img/invite.gif)\n',
+    );
+    const { code, out } = await run(root, 'add', 'team.md', '--image', '1');
+    expect(code).toBe(0);
+    const config = JSON.parse(fs.readFileSync(path.join(root, 'docs.json'), 'utf8'));
+    expect(config.slots.at(-1)).toEqual({
+      id: 'invite-a-teammate',
+      article: 'team.md',
+      file: 'reports/gif/invite-a-teammate.gif',
+      replaces: 'invite.gif',
+      scenario: 'invite a teammate',
+    });
+    expect(out).toContain('story.given("Open Users.");');
+    expect(out).toContain('story.when("Select Invite and enter their email.");');
+
+    const again = await run(root, 'add', 'team.md', '--image', '1', '--id', 'invite-a-teammate');
+    expect(again.code).toBe(4);
+    expect(again.out).toMatch(/used already/);
+    expect((await run(root, 'add', 'team.md', '--image', '2')).out).toMatch(/has 1 image/);
+  });
+
+  it('gives a second image under the same heading its own scenario and GIF', async () => {
+    const root = project();
+    fs.writeFileSync(
+      path.join(root, 'docs/two.md'),
+      '# Two\n\n## Import\n\nOpen Import.\n\n![A](a.gif)\n\nPick the file.\n\n![B](b.gif)\n',
+    );
+    expect((await run(root, 'add', 'two.md', '--image', '1')).code).toBe(0);
+    expect((await run(root, 'add', 'two.md', '--image', '2')).code).toBe(0);
+    const slots = JSON.parse(fs.readFileSync(path.join(root, 'docs.json'), 'utf8')).slots.slice(-2);
+    expect(slots.map((s: Json) => [s.id, s.scenario, s.file])).toEqual([
+      ['import', 'import', 'reports/gif/import.gif'],
+      ['import-2', 'import 2', 'reports/gif/import-2.gif'],
+    ]);
+    // Both publish: their scenario titles are distinct in the run.
+    edit(root, (_, report) => {
+      report.features[0].scenarios.push({ title: 'import', status: 'passed' }, { title: 'import 2', status: 'passed' });
+    });
+    expect((await run(root, 'status')).code).toBe(0);
+
+    const taken = await run(root, 'add', 'two.md', '--image', '2', '--scenario', 'import');
+    expect(taken.code).toBe(4);
+    expect(taken.out).toMatch(/scenario "import" is used by another slot/);
+  });
+
+  it('gives a one-sentence section an outcome step, since a GIF needs two frames', async () => {
+    const root = project();
+    fs.writeFileSync(path.join(root, 'docs/one.md'), '# One\n\n## Save\n\nSelect Save.\n\n![Save](save.gif)\n');
+    const { out } = await run(root, 'add', 'one.md', '--image', '1');
+    expect(out.match(/story\.screenshot/g)).toHaveLength(2);
+    expect(out).toContain('story.given("Select Save.");');
+    expect(out).toContain('story.then("TODO: what the viewer sees once it is done");');
+  });
+
+  it('adds a slot from a local export, naming the article as the help centre does', async () => {
+    const root = project();
+    fs.mkdirSync(path.join(root, 'export'));
+    fs.writeFileSync(
+      path.join(root, 'export/42.html'),
+      '<h1>Team</h1><h2>Invite</h2><p>Open Users.</p><img src="https://cdn/a/invite.gif">',
+    );
+    edit(root, (config) => (config.target = { type: 'helpscout' }));
+    const { code } = await run(root, 'add', '42', '--image', '1', '--from', 'export');
+    expect(code).toBe(0);
+    const config = JSON.parse(fs.readFileSync(path.join(root, 'docs.json'), 'utf8'));
+    expect(config.slots.at(-1)).toMatchObject({ article: '42', replaces: 'invite.gif', scenario: 'invite' });
+  });
+});
+
+describe('docs for an agent', () => {
+  it('adds a slot from the article\'s public link and prints it all as JSON', async () => {
+    const root = project();
+    fs.mkdirSync(path.join(root, 'export'));
+    fs.writeFileSync(
+      path.join(root, 'export/42.html'),
+      '<h1>Team</h1>\n<!-- https://help.example/article/7-team -->\n<h2>Invite</h2><p>Open Users.</p><img src="https://cdn/invite.gif">',
+    );
+    edit(root, (config) => (config.target = { type: 'helpscout' }));
+    const { code, out } = await run(
+      root, 'add', 'https://help.example/article/7-team/?utm=x', '--image', '1', '--from', 'export', '--json',
+    );
+    expect(code).toBe(0);
+    const added = JSON.parse(out);
+    expect(added.slot).toMatchObject({ id: 'invite', article: '42', replaces: 'invite.gif', scenario: 'invite' });
+    expect(added.article).toMatchObject({ title: 'Team', url: 'https://help.example/article/7-team', heading: 'Invite', image: 1 });
+    expect(added.steps).toEqual(['Open Users.', 'TODO: what the viewer sees once it is done']);
+    expect(added.scenario).toContain('story.given("Open Users.");');
+
+    const missing = await run(root, 'add', 'https://help.example/article/8-other', '--image', '1', '--from', 'export');
+    expect(missing.code).toBe(4);
+    expect(missing.out).toMatch(/not an article in this help centre/);
+  });
+
+  it('reads Help Scout .json exports from a folder beside the project', async () => {
+    const root = project();
+    const exportDir = fs.mkdtempSync(path.join(os.tmpdir(), 'export-'));
+    fs.writeFileSync(
+      path.join(exportDir, '60ae0add.json'),
+      JSON.stringify({
+        id: '60ae0add',
+        name: 'How to Create Payees',
+        publicUrl: 'https://help.example/article/16-how-to-create-payees',
+        viewCount: 8635,
+        text: '<h2>Add a payee</h2><p>Open Payees. Select New payee.</p><img src="https://cdn/file-abc.gif">',
+      }),
+    );
+    fs.writeFileSync(path.join(exportDir, '_meta.json'), '{"collections": []}');
+    edit(root, (config) => (config.target = { type: 'helpscout' }));
+
+    const listed = JSON.parse((await run(root, 'list', '--from', exportDir, '--json')).out);
+    expect(listed).toMatchObject([{ article: '60ae0add.json', title: 'How to Create Payees', views: 8635, images: ['https://cdn/file-abc.gif'] }]);
+
+    const { code, out } = await run(
+      root, 'add', 'https://help.example/article/16-how-to-create-payees', '--image', '1', '--from', exportDir, '--json',
+    );
+    expect(code).toBe(0);
+    expect(JSON.parse(out).slot).toMatchObject({ article: '60ae0add', replaces: 'file-abc.gif', scenario: 'add a payee' });
+
+    expect((await run(root, 'list', '--from', path.join(exportDir, 'nope'))).out).toMatch(/no such folder/);
+  });
+
+  it('names an article in a nested export by its id alone for a remote target', async () => {
+    const root = project();
+    fs.mkdirSync(path.join(root, 'export/collection'), { recursive: true });
+    fs.writeFileSync(
+      path.join(root, 'export/collection/42.html'),
+      '<h1>Team</h1>\n<!-- https://help.example/article/7-team -->\n<h2>Invite</h2><p>Open Users.</p><img src="https://cdn/invite.gif">',
+    );
+    edit(root, (config) => (config.target = { type: 'helpscout' }));
+    const { code, out } = await run(
+      root, 'add', 'https://help.example/article/7-team', '--image', '1', '--from', 'export', '--json',
+    );
+    expect(code).toBe(0);
+    expect(JSON.parse(out).slot.article).toBe('42');
+  });
+
+  it('refuses to publish into a .json export', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'export-'));
+    fs.writeFileSync(path.join(dir, 'a.json'), JSON.stringify({ text: '<img src="x.gif">' }));
+    const slot = { id: 's', article: 'a.json', file: 'x.gif', replaces: 'x.gif' };
+    await expect(markdownTarget(dir).publish(slot, Buffer.from('GIF89a'))).rejects.toThrow(/export to read/);
+  });
+
+  it('looks up a Help Scout article by the number in its link, and a Confluence page on its own site only', async () => {
+    const hs = fakeFetch({ 'GET /v1/articles/16': { article: { id: '60ae0add' } } });
+    const helpScout = helpScoutTarget('key', hs.fn);
+    expect(await helpScout.resolve!('https://help.acme.com/article/16-how-to-create-payees')).toBe('60ae0add');
+    expect(await helpScout.resolve!('https://help.acme.com/collection/3-guides')).toBeUndefined();
+
+    const confluence = confluenceTarget('https://acme.atlassian.net/wiki', { email: 'e', token: 't' }, fakeFetch({}).fn);
+    expect(await confluence.resolve!('https://acme.atlassian.net/wiki/spaces/ENG/pages/123/Setup')).toBe('123');
+    expect(await confluence.resolve!('https://other.atlassian.net/wiki/spaces/ENG/pages/123/Setup')).toBeUndefined();
+  });
+
+  it('answers approve, publish and review in JSON', async () => {
+    const root = project();
+    edit(root, (config) => (config.approval = true));
+    const approved = JSON.parse((await run(root, 'approve', 'add-contact', '--by', 'Sam', '--json')).out);
+    expect(approved).toMatchObject({ approved: [{ id: 'add-contact', by: 'Sam' }], refused: [] });
+    expect(approved.approved[0].sha256).toMatch(/^[0-9a-f]{64}$/);
+
+    const review = JSON.parse((await run(root, 'review', '--out', path.join(root, 'r.html'), '--json')).out);
+    expect(review).toEqual({ out: path.join(root, 'r.html'), slots: [{ id: 'add-contact', status: 'changed' }] });
+
+    const published = JSON.parse((await run(root, 'publish', '--json')).out);
+    expect(published).toEqual({
+      published: [{ id: 'add-contact', src: 'media/add-contact.gif', sha256: approved.approved[0].sha256 }],
+      skipped: [{ id: 'import-contacts', status: 'no media' }],
+      failed: [],
+    });
   });
 });

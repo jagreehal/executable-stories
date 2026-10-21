@@ -224,6 +224,26 @@ describe("video", () => {
     expect(skipped.map((s) => s.reason)).toEqual(["failed", "no recording (featureVideo)"]);
   });
 
+  it("finds a recording stored relative to the run's projectRoot, whatever the cwd", async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "es-video-root-"));
+    fs.mkdirSync(path.join(root, "reports"));
+    fs.writeFileSync(path.join(root, "reports/rec.webm"), "webm");
+    const probed: string[] = [];
+    const deps: VideoDeps = {
+      exec: async (_command, args) => {
+        probed.push(args.at(-1)!);
+        throw new Error("stop after the probe");
+      },
+    };
+    await expect(
+      writeVideos(
+        { testCases: [recorded("relative", "passed", "reports/rec.webm")], outputDir: path.join(root, "out"), projectRoot: root },
+        deps,
+      ),
+    ).rejects.toThrow("stop after the probe");
+    expect(probed).toEqual([path.join(root, "reports/rec.webm")]);
+  });
+
   it.skipIf(!hasFfmpeg)("writes an MP4 with the blank page load cut off, and its manifest", async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "es-video-"));
     const webm = path.join(dir, "in.webm");

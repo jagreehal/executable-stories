@@ -24,6 +24,8 @@ export interface VideoArgs {
   fromStep?: string;
   /** Also write a still per step, and a close-up of its click, into `<name>/` for an agent to check. */
   frames?: boolean;
+  /** The run's `projectRoot`: a recording too large to embed is stored relative to it, not to the cwd. */
+  projectRoot?: string;
 }
 
 export interface VideoDeps {
@@ -99,10 +101,13 @@ export function leadInSeconds(frames: FrameCoverage[]): number {
 }
 
 /** The recording a scenario carries, as a file path; inline (small) recordings are written to `tmp`. */
-function recordingFile(tc: TestCaseResult, tmp: string): string | undefined {
+function recordingFile(tc: TestCaseResult, tmp: string, projectRoot = ""): string | undefined {
   const att = tc.attachments.find((a) => a.mediaType.startsWith("video/"));
   if (!att) return undefined;
-  if (att.external || att.contentEncoding === "IDENTITY") return fs.existsSync(att.body) ? att.body : undefined;
+  if (att.external || att.contentEncoding === "IDENTITY") {
+    const file = path.resolve(projectRoot, att.body);
+    return fs.existsSync(file) ? file : undefined;
+  }
   const file = path.join(tmp, "recording.webm");
   fs.writeFileSync(file, Buffer.from(att.body, "base64"));
   return file;
@@ -242,7 +247,7 @@ export function frameCommands(
 }
 
 export async function writeVideos(args: VideoArgs, deps: VideoDeps): Promise<VideoResult> {
-  const { testCases, outputDir, trimLeadIn = true, fromStep, frames: withFrames = false } = args;
+  const { testCases, outputDir, trimLeadIn = true, fromStep, frames: withFrames = false, projectRoot } = args;
   const result: VideoResult = { written: [], skipped: [] };
   const used = new Set<string>();
 
@@ -254,7 +259,7 @@ export async function writeVideos(args: VideoArgs, deps: VideoDeps): Promise<Vid
     }
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "es-video-"));
     try {
-      const input = recordingFile(tc, tmp);
+      const input = recordingFile(tc, tmp, projectRoot);
       if (!input) {
         result.skipped.push({ scenario, reason: "no recording (featureVideo)" });
         continue;

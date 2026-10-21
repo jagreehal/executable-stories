@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { articleSteps, articleVideoFrames } from '../src/ArticleVideo.js';
+import { articleSteps, articleVideoFrames, unmatchedQuotes } from '../src/ArticleVideo.js';
 import type { RecordingClip } from '../src/RecordingVideo.js';
 
 const steps = [
@@ -22,6 +22,19 @@ describe('articleSteps', () => {
     expect(
       articleSteps(steps, { 'a contact is named': 'Give your contact a name.' }),
     ).toEqual(['the contacts page', 'Give your contact a name.']);
+  });
+
+  it('takes a quote by step number, which survives rewording the step', () => {
+    expect(articleSteps(steps, { '1': 'Open Contacts.' })).toEqual([
+      'Open Contacts.',
+      'a contact is named',
+    ]);
+  });
+
+  it('finds quotes no step has any more', () => {
+    expect(
+      unmatchedQuotes(steps, { '2': 'x', 'a contact is named': 'y', 'the old step': 'z', '3': 'w' }),
+    ).toEqual(['3', 'the old step']);
   });
 });
 

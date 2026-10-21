@@ -174,6 +174,7 @@ USAGE
   executable-stories deploy record <file> --env <env> [--tag <tag>] [options]
   executable-stories deploy status [options]
   executable-stories deploy diff <env-a> <env-b> [options]
+  executable-stories docs <list|add|status|review|approve|publish> [options]
 
 SUBCOMMANDS
   format             Read raw test results and generate reports
@@ -204,6 +205,8 @@ SUBCOMMANDS
   publish-confluence Publish an ADF JSON file to a Confluence page via REST API
   publish-jira       Publish an ADF JSON file to a Jira issue (as comment or description)
   deploy             Record deployments, show environment status, detect drift
+  docs               Keep help-centre GIFs and videos in step with their scenarios: the backlog, new slots,
+                     a review page, approvals and publishing (docs --help)
 
 OPTIONS
   --format <formats>            Comma-separated formats: html, markdown, release-manifest, traceability-matrix, traceability-csv, junit, cucumber-json, cucumber-messages, cucumber-html, astro-markdown, confluence, story-report-json, scenario-index-json, behavior-manifest-json, agent-text, span-graph, or custom names from config (default: html)
@@ -1990,6 +1993,7 @@ async function runVideo(ctx: CliContext): Promise<void> {
         trimLeadIn: !args.noTrim,
         fromStep: args.fromStep,
         frames: args.frames,
+        projectRoot: run.projectRoot,
       },
       {
         exec: (command, execArgs) =>
@@ -2033,7 +2037,7 @@ async function runGif(ctx: CliContext): Promise<void> {
   const run = applySelection(await readRunInput(args), args);
   try {
     const { written, skipped } = await writeGifs(
-      { testCases: run.testCases, outputDir: path.join(args.outputDir, 'gif') },
+      { testCases: run.testCases, outputDir: path.join(args.outputDir, 'gif'), projectRoot: run.projectRoot },
       {
         ffmpeg: (ffArgs) =>
           new Promise((resolve, reject) =>

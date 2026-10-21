@@ -35,6 +35,7 @@ export const COMPLETION_SUBCOMMANDS: Array<[string, string]> = [
   ["publish-confluence", "Publish an ADF JSON file to Confluence"],
   ["publish-jira", "Publish an ADF JSON file to a Jira issue"],
   ["deploy", "Record deployments, show status, detect drift"],
+  ["docs", "Help-centre media: list, add, status, review, approve, publish"],
   ["completion", "Output a shell completion script"],
 ];
 

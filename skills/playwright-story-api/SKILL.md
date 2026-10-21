@@ -120,14 +120,25 @@ screenshots into an animated GIF (needs `ffmpeg`).
 
 **Recorded walkthroughs:** with `video: "on"` in the config, pass the page so the
 scenario also notes each click and focused field, and `hold` a screen so viewers
-can read it (the hold applies only while the page is being recorded):
+can read it (the hold applies only while the page is being recorded). `hold: "auto"`
+holds until the step's line has been on screen long enough to read (at least 1s):
 
 ```typescript
 test("Lena adds a payee", async ({ page }, testInfo) => {
   story.init({ page }, testInfo, { featureVideo: true }); // before page.goto
   // ...
-  await story.screenshot({ page, alt: "New payee form", hold: 1800 });
+  await story.screenshot({ page, alt: "New payee form", hold: "auto" });
 });
+```
+
+**Uploads:** `story.upload(trigger, files)` clicks the control that opens the file
+picker and chooses `files` in it, so a recording shows the click. The OS picker is
+never filmed: assert the chosen file's name next. Chromium hands `page.route` an
+upload's name but not its bytes, so a mocked import reads the fixture from disk.
+
+```typescript
+await story.upload(page.getByText("Click to upload"), "fixtures/contacts.xlsx");
+await expect(page.getByText("contacts.xlsx")).toBeVisible();
 ```
 
 `executable-stories video reports/raw-run.json` writes an MP4 per passing recorded

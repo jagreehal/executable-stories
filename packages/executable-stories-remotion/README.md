@@ -156,6 +156,6 @@ const article: CalculateMetadataFunction<ArticleVideoProps> = async ({ props }) 
   calculateMetadata={article} />
 ```
 
-- Each step shows its own text unless `quotes` gives the article's wording for it, keyed by the step's text. Write steps in the article's words and you need no `quotes` at all.
+- Each step shows its own text unless `quotes` gives the article's wording for it, keyed by the step's text or its number from 1 (`"2"`, which survives rewording the step). Write steps in the article's words and you need no `quotes` at all. `unmatchedQuotes(clip.steps, quotes)` lists keys no step has, so a reworded step can fail a test instead of silently losing its quote.
 - `table` (`{ label, columns, rows }`) adds a scene before the recording, beside the first step: the spreadsheet an import uploads, read from the run's `story.table()`.
 - `accent` sets the brand colour. Length: `articleVideoFrames(props, fps)`.

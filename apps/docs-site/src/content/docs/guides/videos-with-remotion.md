@@ -117,8 +117,9 @@ const article: CalculateMetadataFunction<ArticleVideoProps> = async ({
 };
 ```
 
-- `quotes` maps a step's text to the article's wording for it. Write steps in the article's words
-  and you need none.
+- `quotes` maps a step's text, or its number from 1, to the article's wording for it. Write steps
+  in the article's words and you need none. `unmatchedQuotes(steps, quotes)` lists keys that match
+  no step.
 - `table` (`{ label, columns, rows }`) adds a scene before the recording, such as the spreadsheet an
   import uploads, read from the run's `story.table()`.
 - `accent` sets the brand colour.
