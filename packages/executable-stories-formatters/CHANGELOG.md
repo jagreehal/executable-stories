@@ -1,5 +1,21 @@
 # executable-stories-formatters
 
+## 1.28.0
+
+### Minor Changes
+
+- 02b03e6: Help-centre media from your scenarios.
+
+  - `<ArticleVideo>` plays a Playwright recording beside the article it illustrates: a title card, an optional table scene, the recording with the article's steps (the one on screen highlighted), and an outro linking the article. `quotes` maps step text to the article's wording; `articleVideoFrames` sizes the composition.
+  - `executable-stories docs list | status | publish` keeps help-centre GIFs and videos in step with the scenarios that record them, in Markdown files, Help Scout Docs or Confluence. `docs.json` names each slot; `publish` replaces exactly one image per slot, only for passing scenarios, and records each placement in `docs.lock.json`. `list --csv` gives the backlog of images no slot covers yet.
+  - New `article-walkthrough` skill: from an article to a recorded, reviewed and published GIF or video.
+
+- 490b135: Feature maps for agent verification skills.
+
+  - `executable-stories list <run> --list-format feature-map` prints one section per story file with Sub-features, How to get to it, Driving it and Gotchas. Agent `verify-<app>` skills, such as pstack's, read this shape, and you regenerate it after each run.
+  - New `stories-verify-skill` skill: wraps your story suite as a `verify-<app>` skill, compares a baseline run with a treatment run, and maps the result to `VERIFIED`, `NOT VERIFIED` or `INCONCLUSIVE` and their ledger verdicts.
+  - `bug-to-scenario` reproduces on the surface where the bug was reported and switches to verify mode when a fix already exists. `story-pr` uses a workflow's own PR headings when it sets them.
+
 ## 1.27.0
 
 ### Minor Changes
