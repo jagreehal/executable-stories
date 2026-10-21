@@ -8,7 +8,7 @@ description: >
 metadata:
   type: core
   library: executable-stories-cypress
-  library_version: "8.9.2"
+  library_version: "8.9.3"
   sources:
     - "jagreehal/executable-stories:packages/executable-stories-cypress/src/reporter.ts"
 ---
