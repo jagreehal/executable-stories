@@ -99,6 +99,8 @@ These write to the tracker, so you start them by name.
   `explain-system`.
 - "Show me" in the middle of a conversation → `show-me`.
 - A narrated demo or a Remotion video from a run's storyboard → `/demo-video`.
+- A GIF or video for a help-centre article, or replacing an outdated one →
+  `article-walkthrough`.
 - Teach a topic as runnable lessons → `executable-lessons`.
 
 ## Cloud

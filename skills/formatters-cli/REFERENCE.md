@@ -271,6 +271,21 @@ executable-stories format raw-run.json \
   --max-failed-tests 5
 ```
 
+## Help-centre media
+
+```bash
+# Every article and the images no slot covers yet; --csv for a spreadsheet
+executable-stories docs list --csv > backlog.csv
+# Which slots are changed, published, failing or missing media
+executable-stories docs status --report reports/index.story-report.json
+# Put each changed file into its article and record it in docs.lock.json
+executable-stories docs publish --report reports/index.story-report.json
+```
+
+`docs.json` lists the slots and a `markdown`, `helpscout` or `confluence` target. Credentials come
+from the environment (`HELPSCOUT_API_KEY`; `CONFLUENCE_BASE_URL`, `CONFLUENCE_EMAIL`,
+`CONFLUENCE_TOKEN`).
+
 ## Other subcommands
 
 `compare` (diff two runs), `gate-release` (verify an RC run against a dev baseline), `review` (Evidence Review of AI-authored changes vs the diff — writes `.md`, `.html`, and `.review.json`, the machine contract a CI surface renders ranked findings from), and `deploy record|status|diff` (deployment ledger + environment drift) round out the CLI — run `executable-stories --help` for the full list and `<subcommand> --help` per command.

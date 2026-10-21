@@ -89,14 +89,14 @@ const recording: CalculateMetadataFunction<RecordingVideoProps> = async ({ props
 A suite that already records its tests needs no showcase. Turn on video in `playwright.config.ts` (`use: { video: 'on' }`) and pass the page to `story.init` so the scenario notes each click and focused field:
 
 ```ts
-test('Lena adds a payee', async ({ page }, testInfo) => {
+test('Lena adds a contact', async ({ page }, testInfo) => {
   story.init({ page }, testInfo, { featureVideo: true }); // before page.goto
-  story.given('Lena is on her payees');
-  await page.goto('/payees');
+  story.given('Lena is on her contacts');
+  await page.goto('/contacts');
   story.when('she adds Lena Hart');
-  await page.getByRole('button', { name: 'New payee' }).click();
+  await page.getByRole('button', { name: 'New contact' }).click();
   await page.getByLabel('Name').fill('Lena Hart');
-  await story.screenshot({ page, alt: 'New payee form', hold: 1800 }); // holds while recording
+  await story.screenshot({ page, alt: 'New contact form', hold: 1800 }); // holds while recording
 });
 ```
 
@@ -110,27 +110,52 @@ Each `<scenario>.video.json` has the clicks (`RecordingVideo` zooms to them) and
 
 ```tsx
 const walkthrough: CalculateMetadataFunction<{ clip: RecordingClip }> = async () => {
-  const [clip] = (await loadClips([{ name: 'lena-adds-a-payee' }], 'video')) as [RecordingClip];
+  const [clip] = (await loadClips([{ name: 'lena-adds-a-contact' }], 'video')) as [RecordingClip];
 
   return { props: { clip }, durationInFrames: clipFrames(clip, 30) };
 };
 
-<Composition id='Payee' component={StoryRecordingVideo} fps={30} width={1920} height={1080} durationInFrames={1}
+<Composition id='Contact' component={StoryRecordingVideo} fps={30} width={1920} height={1080} durationInFrames={1}
   defaultProps={{ clip: undefined as unknown as RecordingClip }} calculateMetadata={walkthrough} />
 ```
 
 Playwright moves no visible pointer, so a recording without showcase's `showCursor` has none. `cursor` draws one from the click log, on `StoryRecordingVideo`, `RecordingVideo`, `RecordingScene` and `RecordingPlayer`: it glides to each click on a slight arc, lands on it as it happens and dips. `cursorAt(clicks, ms, size)` exposes its position.
 
 ```tsx
-<Composition id='Payee' component={StoryRecordingVideo} defaultProps={{ clip, cursor: true }} ... />
+<Composition id='Contact' component={StoryRecordingVideo} defaultProps={{ clip, cursor: true }} ... />
 ```
 
 `executable-stories video` warns when a step's line takes longer to say (about 170 words a minute) than the step is on screen, so a voiceover would talk over the next step. Slow that step down in the test, or shorten its text.
 
-Names are `scenarioSlug(title)` from `executable-stories-core`, the rule `gif` uses too: "Lena's payee" becomes `lenas-payee`. To show a table the test attached with `story.table()`, read it from the StoryReport with `docsOf(getScenario(report, title)!.scenario, 'table')`.
+Names are `scenarioSlug(title)` from `executable-stories-core`, the rule `gif` uses too: "Lena's contact" becomes `lenas-contact`. To show a table the test attached with `story.table()`, read it from the StoryReport with `docsOf(getScenario(report, title)!.scenario, 'table')`.
 
 ## Example
 
 [`apps/remotion-example`](../../apps/remotion-example) renders a state-only video, a screenshot video and a two-clip recording from its own story run: `pnpm --filter remotion-example video`.
 
 Remotion has its own [license](https://www.remotion.dev/license): companies above a small size need a company license.
+
+## A help-centre article as a video
+
+`<ArticleVideo>` puts a Playwright recording beside the article it illustrates: a title card with the article's opening line, the recording with the article's steps beside it (the one being performed highlighted, the camera on each click and typed field), then an outro pointing at the full article.
+
+```tsx
+const article: CalculateMetadataFunction<ArticleVideoProps> = async ({ props }) => {
+  const [clip] = (await loadClips([{ name: 'add-a-contact' }], 'video')) as [RecordingClip];
+
+  return { props: { ...props, clip }, durationInFrames: articleVideoFrames({ ...props, clip }, 30) };
+};
+
+<Composition id='AddAContact' component={ArticleVideo} fps={30} width={1920} height={1080} durationInFrames={1}
+  defaultProps={{
+    article: { kicker: 'Help centre', title: 'Managing contacts', intro: 'Contacts are who you pay.', url: 'help.example.com/contacts' },
+    heading: 'Add a contact',
+    quotes: { 'she saves the contact': 'Once your contact is complete, hit Save.' },
+    clip: undefined as unknown as RecordingClip,
+  }}
+  calculateMetadata={article} />
+```
+
+- Each step shows its own text unless `quotes` gives the article's wording for it, keyed by the step's text. Write steps in the article's words and you need no `quotes` at all.
+- `table` (`{ label, columns, rows }`) adds a scene before the recording, beside the first step: the spreadsheet an import uploads, read from the run's `story.table()`.
+- `accent` sets the brand colour. Length: `articleVideoFrames(props, fps)`.

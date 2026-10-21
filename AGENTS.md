@@ -412,6 +412,7 @@ When working in these areas, load the linked skill file into context for accurat
 | Showing the current topic visually, from the run where possible | `skills/show-me/SKILL.md`                                                                       |
 | Opening app states, screenshots and clips with showcase       | `packages/executable-stories-showcase-cli/skills/executable-stories-showcase/SKILL.md`         |
 | Building a narrated demo video from a run's storyboard frames (ffmpeg or Remotion) | `skills/demo-video/SKILL.md`                                             |
+| Recording and publishing help-centre GIFs and videos from scenarios | `skills/article-walkthrough/SKILL.md`                                  |
 | Explaining a code change as living documentation (with quiz) | `skills/explain-change/SKILL.md`                                                               |
 | Explaining a whole system or feature area for onboarding     | `skills/explain-system/SKILL.md`                                                               |
 | Test-driving a behaviour with a story test as the red step   | `skills/story-tdd/SKILL.md`                                                                    |

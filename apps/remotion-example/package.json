@@ -10,7 +10,7 @@
     "report": "executable-stories format reports/raw-run.json --format story-report-json --output-dir public --output-name index",
     "record": "node scripts/record-demo.mjs",
     "studio": "remotion studio",
-    "render": "remotion render CheckoutStates out/checkout-states.mp4 && remotion render CatalogueSearch out/catalogue-search.mp4 && remotion render DemoRecording out/demo-recording.mp4 && remotion render Walkthrough out/walkthrough.mp4",
+    "render": "remotion render CheckoutStates out/checkout-states.mp4 && remotion render CatalogueSearch out/catalogue-search.mp4 && remotion render DemoRecording out/demo-recording.mp4 && remotion render Walkthrough out/walkthrough.mp4 && remotion render ArticleWalkthrough out/article-walkthrough.mp4",
     "video": "pnpm test && pnpm report && pnpm record && pnpm walkthrough && pnpm render",
     "lint": "eslint .",
     "type-check": "tsc --noEmit",
