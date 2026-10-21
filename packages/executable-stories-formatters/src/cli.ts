@@ -257,7 +257,7 @@ ${presetHelpLines()
   --asset-mode <mode>         Asset bundling: "none" (default) or "copy"
   --allow-missing-assets      Warn on missing assets instead of failing
   --stdin                       Read JSON from stdin instead of file
-  --list-format <format>        list output format: text (default), json, csv, markdown-table
+  --list-format <format>        list output format: text (default), json, csv, markdown-table, feature-map
   --minify                      emit compact JSON for agent artifacts (story-report, scenario-index, list --json)
   --json-summary                Deprecated alias for --list-format json
   --check-format <format>       check / check-explainers output format: text (default) or json
@@ -483,7 +483,7 @@ interface CliArgs {
   frames: boolean;
   /** Emit compact JSON for agent-facing artifacts (story-report, scenario-index, behavior-manifest, list --json). */
   minify: boolean;
-  listFormat: 'text' | 'json' | 'csv' | 'markdown-table';
+  listFormat: 'text' | 'json' | 'csv' | 'markdown-table' | 'feature-map';
   checkFormat: 'text' | 'json';
   /** check-explainers: directory of explainer markdown to audit. */
   explainersDir?: string;
@@ -1243,7 +1243,8 @@ async function parseCliArgs(
       | 'text'
       | 'json'
       | 'csv'
-      | 'markdown-table',
+      | 'markdown-table'
+      | 'feature-map',
     checkFormat,
     explainersDir: values['explainers-dir'] as string | undefined,
     noFail: values['no-fail'] as boolean,
@@ -1952,17 +1953,17 @@ async function runList(ctx: CliContext): Promise<void> {
 
   // --json-summary is a deprecated alias for --list-format json
   const resolvedFormat = args.jsonSummary ? 'json' : args.listFormat;
-  const validListFormats = new Set(['text', 'json', 'csv', 'markdown-table']);
+  const validListFormats = new Set(['text', 'json', 'csv', 'markdown-table', 'feature-map']);
   if (!validListFormats.has(resolvedFormat)) {
     console.error(
-      `Error: Unknown list format "${resolvedFormat}". Valid: text, json, csv, markdown-table.`,
+      `Error: Unknown list format "${resolvedFormat}". Valid: text, json, csv, markdown-table, feature-map.`,
     );
     process.exit(EXIT_USAGE);
   }
   const output = listScenarios(
     {
       testCases: run.testCases,
-      format: resolvedFormat as 'text' | 'json' | 'csv' | 'markdown-table',
+      format: resolvedFormat as 'text' | 'json' | 'csv' | 'markdown-table' | 'feature-map',
       minify: args.minify,
     },
     {},

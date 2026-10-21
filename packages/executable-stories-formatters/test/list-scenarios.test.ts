@@ -234,4 +234,49 @@ describe("listScenarios", () => {
     const result = listScenarios({ testCases: [tc], format: "markdown-table" }, {});
     expect(result).toContain("|  |");
   });
+
+  it("feature-map groups scenarios by story file into the four verify-skill sections", () => {
+    const steps = [
+      { keyword: "Given" as const, text: "a signed-in user", docs: [] },
+      { keyword: "When" as const, text: "they check out", docs: [] },
+      { keyword: "Then" as const, text: "the order is placed", assertions: 0, docs: [] },
+    ];
+    const passed = stubs.testCaseResult({
+      status: "passed",
+      sourceFile: "src/checkout.story.test.ts",
+      sourceLine: 3,
+      titlePath: ["Checkout", "Places an order"],
+      story: stubs.storyMeta({
+        scenario: "Places an order",
+        suitePath: ["Checkout"],
+        steps,
+        docs: [{ kind: "note", text: "Needs the payments stub", phase: "runtime" }],
+      }),
+    });
+    const failed = stubs.testCaseResult({
+      status: "failed",
+      sourceFile: "src/checkout.story.test.ts",
+      sourceLine: 9,
+      errorMessage: "expected 200\nstack",
+      story: stubs.storyMeta({ scenario: "Rejects an empty cart", suitePath: ["Checkout"], steps: [] }),
+    });
+
+    const result = listScenarios({ testCases: [passed, failed], format: "feature-map" }, {});
+
+    expect(result).toContain("- Checkout: `src/checkout.story.test.ts` (2 scenarios, 1 failing)");
+    expect(result.match(/^## Checkout$/gm)).toHaveLength(1);
+    for (const heading of [
+      "### Sub-features",
+      "### How to get to it (user POV)",
+      "### Driving it with the story suite",
+      "### Gotchas",
+    ]) {
+      expect(result).toContain(heading);
+    }
+    expect(result).toContain("- Places an order: Given a signed-in user; When they check out");
+    expect(result).toContain("- Places an order: proven by Then the order is placed");
+    expect(result).toContain("- Rejects an empty cart: failing in this run: expected 200");
+    expect(result).toContain("- Places an order: its Then steps asserted nothing, so a pass proves nothing.");
+    expect(result).toContain("- Places an order: Needs the payments stub");
+  });
 });

@@ -109,6 +109,11 @@ Use [references/template.md](references/template.md). Its rules:
 
 Write plainly, as one person to another. No headings for sections you left empty.
 
+When the repo's agent workflow sets its own PR headings (pstack's opening-a-pr playbook uses
+Why, What changed, Scope, Tradeoffs, Blast Radius and Verification), use its headings. Put
+the behaviour under `## Verification` as 1 to 3 bullets, each a scenario with its surface
+and verdict as `stories-verify-skill` defines them, and link the full changelog.
+
 ## 4. Publish
 
 ```bash

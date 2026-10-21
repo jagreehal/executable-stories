@@ -96,7 +96,7 @@ const FLAG_VALUES: Record<string, string[]> = {
   ],
   "--preset": ["agent", "ci", "docs"],
   "--input-type": ["raw", "canonical", "ndjson"],
-  "--list-format": ["text", "json", "csv", "markdown-table"],
+  "--list-format": ["text", "json", "csv", "markdown-table", "feature-map"],
   "--check-format": ["text", "json"],
   "--attach": ["failed", "all", "none"],
 };

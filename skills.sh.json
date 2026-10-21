@@ -81,7 +81,8 @@
         "bug-bash",
         "failure-triage",
         "agent-loop",
-        "story-control-loop"
+        "story-control-loop",
+        "stories-verify-skill"
       ]
     },
     {
