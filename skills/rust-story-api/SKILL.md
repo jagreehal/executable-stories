@@ -6,7 +6,7 @@ description: >
 metadata:
   type: core
   library: executable-stories-rust
-  library_version: "0.1.0"
+  library_version: "0.2.0"
   sources:
     - "jagreehal/executable-stories:packages/executable-stories-rust/src/story.rs"
     - "jagreehal/executable-stories:packages/executable-stories-rust/src/doc_entry.rs"
