@@ -324,7 +324,7 @@ Limits, each announced in a warning rather than failing the run — what fits is
 
 **Videos become a link, never a player.** `<video>` is not in GitHub's comment HTML allowlist, so the tag renders as nothing at all — the one asset shape that fails silently. The action rewrites it to `▶️ Watch the recording` pointing at the hosted file, or to a `▶️ Video (see HTML report)` label when it is not hosted. A real inline player needs the media uploaded through `user-attachments`, which only `gh pr comment --attach` can do — not the API this action posts through.
 
-> **Concurrency note.** The action commits using the GitHub Git Data API by referencing the branch's current tip as the parent. If two PR runs touch the same `images-branch` simultaneously, the second `updateRef` call will fail with a non-fast-forward error and the action will fall back to placeholders for that run. There's no retry yet — see [executable-stories-action#1](https://github.com/jagreehal/executable-stories-action/pull/1) for context. For most repos this is rare; if you regularly run many parallel PRs and need bullet-proof inline images, consider giving each workflow a different `images-branch`.
+> **Concurrency note.** The action commits using the GitHub Git Data API with the branch's current tip as the parent. When two PR runs push to the same `images-branch` at once, the loser re-reads the tip and retries (up to 3 attempts). The PR comment is only written if the run tested the PR's current head, checked immediately before the write. GitHub has no conditional comment write, so one API round trip remains in which an older run can still land last. To rule that out, serialize the workflow per PR with `concurrency: { group: ${{ github.workflow }}-${{ github.ref }}, cancel-in-progress: false }`.
 
 ### Custom output paths
 
@@ -646,7 +646,7 @@ A video is labelled `▶️ Video (see HTML report)` rather than shown, even wit
 Four known causes. The first two fail the whole step; the last two skip one file and say which:
 
 1. **Missing `contents: write` permission.** Add it to the workflow permissions block.
-2. **Concurrent run race.** Two simultaneous workflows tried to push to the same `images-branch` and the second `updateRef` lost the race. There is no retry currently. Workaround: serialize PR runs (e.g. `concurrency: group: ${{ github.ref }}`), or use a per-workflow `images-branch`.
+2. **Concurrent run race.** More than three simultaneous workflows pushed to the same `images-branch` and this run lost every retry. Serialize PR runs (e.g. `concurrency: group: ${{ github.ref }}`), or use a per-workflow `images-branch`.
 3. **`Skipping '…' — N MB exceeds the 10 MB hosting limit.`** The file stays in the HTML report.
 4. **`Refusing to host '…' — it resolves outside the workspace.`** A reference escaped the checkout. This is deliberate: report content is not trusted input, and hosting publishes bytes to a branch.
 

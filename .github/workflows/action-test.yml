@@ -67,7 +67,8 @@ jobs:
             packages/executable-stories-action/test/asset-refs.test.mjs \
             packages/executable-stories-action/test/build-comment.test.mjs \
             packages/executable-stories-action/test/collect-assets.test.mjs \
-            packages/executable-stories-action/test/own-comment.test.mjs
+            packages/executable-stories-action/test/own-comment.test.mjs \
+            packages/executable-stories-action/test/ref-retry.test.mjs
 
   raw-json:
     name: "report: format raw run JSON with the built binary"
