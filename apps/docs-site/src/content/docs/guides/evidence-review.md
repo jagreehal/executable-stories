@@ -37,6 +37,18 @@ executable-stories review raw-run.json --changed-files changed.json \
   --min-evidence moderate  # exit non-zero when any claim is below this strength
 ```
 
+## Checking less than the base branch
+
+Pass the base branch's run as `--baseline` and the review compares the two:
+
+```bash
+executable-stories review raw-run.json --changed-files changed.json --baseline base-run.json
+```
+
+Each scenario that was removed, newly skipped, or now makes fewer steps or fewer assertions becomes a `weakened` finding in `.review.json`, with the before and after counts as evidence. Scenarios are matched by id, then by the same rename and move pairing `compare` uses, so renaming a scenario does not count as removing it. Assertions are compared only when both runs passed and the adapter counted them in both.
+
+The review counts steps and assertions. Changing an expected value, say `expect(total).toBe(36)` to `expect(total).toBe(30)`, keeps both counts the same.
+
 ## Code Diff: the patch as scenario-linked evidence
 
 A raw diff is indispensable audit evidence but a poor explanation: its file order is accidental and it makes you infer which lines the tests actually prove. Code Diff embeds a **curated, annotated patch** in the review, annotations in conceptual order, each connected to the executed scenario(s) that demonstrate its effect, with the raw patch one click away.

@@ -188,6 +188,10 @@ function verdictReason(findings, review) {
   if (unasserted > 0) {
     parts.push(`${unasserted} passed without asserting anything`);
   }
+  const weakened = count("weakened");
+  if (weakened > 0) {
+    parts.push(`${weakened} scenario${weakened === 1 ? "" : "s"} check less than the base branch`);
+  }
   if (uncovered > 0) {
     parts.push(
       uncovered === 1

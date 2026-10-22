@@ -468,6 +468,7 @@ steps:
 | `changed-files` | — | (review) Optional precomputed changed-files file. If unset, computed from git |
 | `fail-on` | — | (review) Opt-in gate: `uncovered` or `weak` — fail when changed code lacks evidence |
 | `min-evidence` | — | (review) Opt-in gate: `weak`, `moderate`, or `strong` — fail when claims are below this strength |
+| `baseline-run` | — | (review) Base branch run JSON. Scenarios removed, newly skipped, or making fewer steps or assertions than on it become `weakened` findings |
 | `formatter-binary` | — | Path to a prebuilt `executable-stories` binary instead of downloading from Releases |
 | `gate-dev-run` | — | (gate-release) Path to the dev test run used as the baseline |
 | `gate-fail-on-regression` | `true` | (gate-release) Fail if scenarios regressed from dev to the RC |

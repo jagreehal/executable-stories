@@ -145,6 +145,13 @@ run_review() {
   local GATE_ARGS=()
   [[ -n "${FAIL_ON:-}" ]] && GATE_ARGS+=(--fail-on "$FAIL_ON")
   [[ -n "${MIN_EVIDENCE:-}" ]] && GATE_ARGS+=(--min-evidence "$MIN_EVIDENCE")
+  if [[ -n "${BASELINE_RUN:-}" ]]; then
+    if [[ -f "$BASELINE_RUN" ]]; then
+      GATE_ARGS+=(--baseline "$BASELINE_RUN")
+    else
+      echo "::warning::baseline-run '${BASELINE_RUN}' not found; reviewing without a baseline."
+    fi
+  fi
 
   # The review report is written before any gate is evaluated, so even when the
   # gate fails (exit 5) the report exists for the comment/artifact steps. We

@@ -22,6 +22,7 @@ import type {
   ReviewResult,
   ReviewSummary,
 } from "../types/review";
+import { ratchet } from "../goal";
 import { parseUnifiedDiff, relocateAnchor } from "./diff-anchor";
 import {
   VALID_CHANGE_TYPES,
@@ -249,6 +250,7 @@ function buildCodeDiff(
 
 /**
  * Build the review model from a canonical run and optional diff context.
+ * With a baseline run, the ratchet reports what the suite stopped checking.
  *
  * With no `changedFiles`, the report degrades gracefully to "claims only"
  * (no banding). With diff context, changed source files are correlated and
@@ -256,7 +258,8 @@ function buildCodeDiff(
  */
 export function buildReview(
   run: ReviewResult["run"],
-  context: ReviewContext = { changedFiles: [] }
+  context: ReviewContext = { changedFiles: [] },
+  baseline?: ReviewResult["run"]
 ): ReviewResult {
   const changedSource = context.changedFiles.filter((f) =>
     isReviewableSource(f.path)
@@ -310,6 +313,7 @@ export function buildReview(
     claims: sortedClaims,
     changedFiles: sortedFiles,
     codeDiffs: (context.codeDiffs ?? []).map((d) => buildCodeDiff(d, run, context)),
+    ratchet: baseline ? ratchet(baseline, run).violations : [],
   };
 }
 

@@ -290,6 +290,7 @@ ${presetHelpLines()
   --max-regressions <n>         Exit non-zero when regressions exceed threshold
   --release-policy <path>       (gate-release) Path to JSON policy file with allowed exceptions
   --changed-files <path>        (review) Changed files: JSON (ChangedFile[] or {changedFiles,baseRef,headRef}) or "git diff --name-status" text
+  --baseline <path|auto>        (review) Base branch run: report scenarios removed, disabled, or making fewer steps or assertions
   --base-ref <ref>              (review) Base ref label shown in the report (informational)
   --head-ref <ref>              (review) Head ref label shown in the report (informational)
   --fail-on <band>              (review) Gate: "uncovered" or "weak" — exit non-zero when changed code lacks evidence (default: off)
@@ -1919,7 +1920,7 @@ async function runReview(ctx: CliContext): Promise<void> {
   const { args } = ctx;
   const run = applySelection(await readRunInput(args), args);
   const context = loadReviewContext(args);
-  const built = buildReview(run, context);
+  const built = buildReview(run, context, resolveBaselineRun(args, run));
   const review = await withJev(built, (jev) => enrichReview(built, jev));
 
   try {

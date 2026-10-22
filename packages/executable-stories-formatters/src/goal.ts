@@ -9,6 +9,8 @@
  */
 
 import type { TestCaseResult, TestRunResult, TestStatus } from "executable-stories-core/types/test-result";
+import { assertiveSteps } from "executable-stories-core";
+import { diffRuns } from "./compare/diff-runs";
 import { asNoul, type JevClient } from "./jev";
 
 /** Result of one required selector (a tag, ticket, or scenario that must pass). */
@@ -29,6 +31,9 @@ export interface RatchetViolation {
   title: string;
   kind: "removed" | "disabled" | "weakened";
   detail: string;
+  /** Where the scenario now lives. Absent when it was removed. */
+  sourceFile?: string;
+  sourceLine?: number;
 }
 
 export interface GoalReport {
@@ -96,34 +101,8 @@ export function buildGoal(args: GoalArgs, _deps: GoalDeps = {}): GoalReport {
     }
   }
 
-  const violations: RatchetViolation[] = [];
-  const unchecked: GoalReport["ratchet"]["unchecked"] = [];
-  if (baseline && args.enforceRatchet) {
-    const current = new Map(cases.map((tc) => [tc.id, tc]));
-    // A focused run lacks everything it did not target, so its absences prove
-    // nothing. An unknown scope still counts, so the guard stays strict for
-    // adapters that cannot tell.
-    const incomplete = new Set(run.incompleteSourceFiles ?? []);
-    for (const base of baseline.testCases) {
-      const now = current.get(base.id);
-      if (!now && (run.runScope === "filtered" || incomplete.has(base.sourceFile))) {
-        unchecked.push({ id: base.id, title: base.story.scenario });
-        continue;
-      }
-      if (!now) {
-        violations.push({ id: base.id, title: base.story.scenario, kind: "removed", detail: "scenario no longer present" });
-        continue;
-      }
-      if (ACTIVE.includes(base.status) && (now.status === "skipped" || now.status === "pending")) {
-        violations.push({ id: base.id, title: base.story.scenario, kind: "disabled", detail: `${base.status} -> ${now.status}` });
-      }
-      const baseSteps = base.story.steps.length;
-      const nowSteps = now.story.steps.length;
-      if (nowSteps < baseSteps) {
-        violations.push({ id: base.id, title: base.story.scenario, kind: "weakened", detail: `${baseSteps} steps -> ${nowSteps} steps` });
-      }
-    }
-  }
+  const { violations, unchecked } =
+    baseline && args.enforceRatchet ? ratchet(baseline, run) : { violations: [], unchecked: [] };
 
   // A file that broke before declaring its scenarios hides them from every check above.
   const incompleteFiles = [...(run.incompleteSourceFiles ?? [])].sort();
@@ -142,6 +121,70 @@ export function buildGoal(args: GoalArgs, _deps: GoalDeps = {}): GoalReport {
     incompleteFiles,
     ratchet: { enforced: Boolean(baseline && args.enforceRatchet), violations, advisories: [], unchecked },
   };
+}
+
+const count = (n: number, noun: string) => `${n} ${noun}${n === 1 ? "" : "s"}`;
+
+/**
+ * Assertions the claim steps observably made, or undefined when the adapter
+ * observed none of them (absent is "cannot see", never zero).
+ */
+function observedAssertions(tc: TestCaseResult): number | undefined {
+  const counted = assertiveSteps(tc.story.steps).filter((s) => typeof s.assertions === "number");
+  return counted.length === 0 ? undefined : counted.reduce((sum, s) => sum + (s.assertions ?? 0), 0);
+}
+
+/**
+ * The ratchet: what the suite checked on the baseline that it no longer checks.
+ * A scenario is matched by id, then through `diffRuns`' rename/move pairing,
+ * so relabelling a scenario is not reported as removing it. Shared by `goal`
+ * and `review`.
+ */
+export function ratchet(
+  baseline: TestRunResult,
+  run: TestRunResult,
+): { violations: RatchetViolation[]; unchecked: Array<{ id: string; title: string }> } {
+  const current = new Map(run.testCases.map((tc) => [tc.id, tc]));
+  const renamedTo = new Map(
+    diffRuns(baseline, run).scenarios.flatMap((s) => (s.previousId ? [[s.previousId, s.id] as const] : [])),
+  );
+  // A focused run lacks everything it did not target, so its absences prove
+  // nothing. An unknown scope still counts, so the guard stays strict for
+  // adapters that cannot tell.
+  const incomplete = new Set(run.incompleteSourceFiles ?? []);
+  const violations: RatchetViolation[] = [];
+  const unchecked: Array<{ id: string; title: string }> = [];
+
+  for (const base of baseline.testCases) {
+    const now = current.get(base.id) ?? current.get(renamedTo.get(base.id) ?? "");
+    if (!now && (run.runScope === "filtered" || incomplete.has(base.sourceFile))) {
+      unchecked.push({ id: base.id, title: base.story.scenario });
+      continue;
+    }
+    if (!now) {
+      violations.push({ id: base.id, title: base.story.scenario, kind: "removed", detail: "scenario no longer present" });
+      continue;
+    }
+    const at = { sourceFile: now.sourceFile, sourceLine: now.sourceLine };
+    if (ACTIVE.includes(base.status) && (now.status === "skipped" || now.status === "pending")) {
+      violations.push({ id: base.id, title: base.story.scenario, kind: "disabled", detail: `${base.status} -> ${now.status}`, ...at });
+    }
+    const reasons: string[] = [];
+    const baseSteps = base.story.steps.length;
+    const nowSteps = now.story.steps.length;
+    if (nowSteps < baseSteps) reasons.push(`${count(baseSteps, "step")} -> ${count(nowSteps, "step")}`);
+    // Only two green runs compare: a failing run stops at the failure, so its
+    // count is short for a reason that is not weakening.
+    const before = observedAssertions(base);
+    const after = observedAssertions(now);
+    if (base.status === "passed" && now.status === "passed" && before !== undefined && after !== undefined && after < before) {
+      reasons.push(`${count(before, "assertion")} -> ${count(after, "assertion")}`);
+    }
+    if (reasons.length > 0) {
+      violations.push({ id: base.id, title: base.story.scenario, kind: "weakened", detail: reasons.join("; "), ...at });
+    }
+  }
+  return { violations, unchecked };
 }
 
 /** Jev must be this sure before a rewrite is called out as weakening. */
