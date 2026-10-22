@@ -109,6 +109,10 @@ inputs:
     description: "(review mode) Optional precomputed changed-files file (JSON or `git diff --name-status` text). If unset, the action computes it from git."
     required: false
     default: ""
+  baseline-run:
+    description: "(review mode) Optional run JSON from the base branch. Scenarios removed, newly skipped, or making fewer steps or assertions than on it become `weakened` findings. Default: off."
+    required: false
+    default: ""
   fail-on:
     description: "(review mode) Opt-in gate: 'uncovered' or 'weak' — fail the check when changed code lacks evidence. Default: off."
     required: false
@@ -188,6 +192,7 @@ runs:
         RUN_JSON: ${{ inputs.run-json }}
         BASE_REF: ${{ inputs.base-ref }}
         CHANGED_FILES: ${{ inputs.changed-files }}
+        BASELINE_RUN: ${{ inputs.baseline-run }}
         FAIL_ON: ${{ inputs.fail-on }}
         MIN_EVIDENCE: ${{ inputs.min-evidence }}
         FORMATTER_VERSION: ${{ inputs.formatter-version }}
@@ -403,48 +408,20 @@ runs:
           const marker = `<!-- executable-stories: ${title} -->`;
           const body = `${marker}\n${built}`;
 
-          // Paginated: issue comments come back oldest-first, so on a busy PR the
-          // marker sits past the first page. Reading one page there finds nothing
-          // and posts a new comment every run, piling up duplicates on exactly
-          // the pull requests that can least afford them.
-          const comments = await github.paginate(github.rest.issues.listComments, {
+          // A run overtaken by a newer push leaves that push's report in place:
+          // the head is checked after the comment list, immediately before the write.
+          const { writeOwnComment } = require('${{ github.action_path }}/scripts/own-comment.cjs');
+          const commentId = await writeOwnComment({
+            github,
             owner: context.repo.owner,
             repo: context.repo.repo,
-            issue_number: context.issue.number,
-            per_page: 100,
+            issue: context.issue.number,
+            marker,
+            body,
+            runHead: context.payload.pull_request?.head?.sha,
+            log: (m) => (m.startsWith('Not commenting') ? core.notice(m) : core.info(m)),
           });
-          const { findOwnComment } = require('${{ github.action_path }}/scripts/own-comment.cjs');
-          const existing = findOwnComment(comments, marker);
-
-          let commentId;
-          if (existing) {
-            // An identical body still costs an API write and bumps the comment's
-            // updated_at, which shows up as activity on the PR. Skip it.
-            if (existing.body === body) {
-              core.info(`Comment ${existing.id} is already current — nothing to update.`);
-              core.setOutput('comment-id', existing.id);
-              return;
-            }
-            const { data: updated } = await github.rest.issues.updateComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              comment_id: existing.id,
-              body,
-            });
-            commentId = updated.id;
-            core.info(`Updated existing comment ${commentId}`);
-          } else {
-            const { data: created } = await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body,
-            });
-            commentId = created.id;
-            core.info(`Created comment ${commentId}`);
-          }
-
-          core.setOutput('comment-id', commentId);
+          if (commentId) core.setOutput('comment-id', commentId);
 
     - name: Publish run JSON
       id: publish

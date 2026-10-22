@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { buildGoal, renderGoal } from "../src/goal";
+import { buildGoal, ratchet, renderGoal } from "../src/goal";
 import { stubs } from "./stubs";
 
 function tc(over: Parameters<typeof stubs.testCaseResult>[0]) {
@@ -114,6 +114,51 @@ describe("buildGoal", () => {
     expect(report.met).toBe(false);
     const kinds = report.ratchet.violations.map((v) => v.kind).sort();
     expect(kinds).toEqual(["disabled", "removed", "weakened"]);
+  });
+
+  it("ratchet catches a green scenario that now makes fewer assertions with the same steps", () => {
+    const steps = (assertions: number) => [
+      { keyword: "Given" as const, text: "a cart" },
+      { keyword: "Then" as const, text: "the total is £30", assertions },
+    ];
+    const baseline = stubs.testRunResult({
+      testCases: [tc({ id: "total", status: "passed", sourceFile: "cart.story.test.ts", sourceLine: 4, story: stubs.storyMeta({ scenario: "Total", steps: steps(2) }) })],
+    });
+    const run = (status: "passed" | "failed") =>
+      stubs.testRunResult({
+        testCases: [tc({ id: "total", status, sourceFile: "cart.story.test.ts", sourceLine: 4, story: stubs.storyMeta({ scenario: "Total", steps: steps(1) }) })],
+      });
+
+    expect(ratchet(baseline, run("passed")).violations).toEqual([
+      { id: "total", title: "Total", kind: "weakened", detail: "2 assertions -> 1 assertion", sourceFile: "cart.story.test.ts", sourceLine: 4 },
+    ]);
+    // A red run stops at the failure, so its short count is not weakening.
+    expect(ratchet(baseline, run("failed")).violations).toEqual([]);
+  });
+
+  it("ratchet does not count assertions an adapter could not observe", () => {
+    const baseline = stubs.testRunResult({
+      testCases: [tc({ id: "a", status: "passed", story: stubs.storyMeta({ scenario: "A", steps: [{ keyword: "Then", text: "y", assertions: 3 }] }) })],
+    });
+    const run = stubs.testRunResult({
+      testCases: [tc({ id: "a", status: "passed", story: stubs.storyMeta({ scenario: "A", steps: [{ keyword: "Then", text: "y" }] }) })],
+    });
+    expect(ratchet(baseline, run).violations).toEqual([]);
+  });
+
+  it("ratchet follows a renamed scenario instead of reporting it removed", () => {
+    const steps = [
+      { keyword: "Given" as const, text: "a signed-in user" },
+      { keyword: "When" as const, text: "they open settings" },
+      { keyword: "Then" as const, text: "they see their email", assertions: 2 },
+    ];
+    const baseline = stubs.testRunResult({
+      testCases: [tc({ id: "old", status: "passed", sourceFile: "settings.story.test.ts", story: stubs.storyMeta({ scenario: "Settings shows email", steps }) })],
+    });
+    const run = stubs.testRunResult({
+      testCases: [tc({ id: "new", status: "passed", sourceFile: "settings.story.test.ts", story: stubs.storyMeta({ scenario: "Settings page shows the email", steps }) })],
+    });
+    expect(ratchet(baseline, run).violations).toEqual([]);
   });
 
   it("a filtered run's missing scenarios are unchecked, not removed; a skip in it still counts; an incomplete file blocks the goal", () => {

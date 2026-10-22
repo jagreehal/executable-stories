@@ -12,6 +12,7 @@
 
 import type { TestCaseResult } from "executable-stories-core/types/test-result";
 
+import type { RatchetViolation } from "../goal";
 import type {
   ReviewClaim,
   ReviewFinding,
@@ -97,6 +98,29 @@ function unassertedFinding(claim: ReviewClaim): ReviewFinding {
   };
 }
 
+const RATCHET_TITLE: Record<RatchetViolation["kind"], string> = {
+  removed: "Scenario removed",
+  disabled: "Scenario disabled",
+  weakened: "Checks less than the baseline",
+};
+
+/**
+ * Something the baseline run checked that the current run does not, measured
+ * from step and assertion counts. Changing an expected value keeps its count.
+ */
+function weakenedFinding(violation: RatchetViolation): ReviewFinding {
+  return {
+    kind: "weakened",
+    severity: "major",
+    title: `${RATCHET_TITLE[violation.kind]}: ${violation.title}`,
+    ...(violation.sourceFile ? { file: violation.sourceFile, line: violation.sourceLine } : {}),
+    detail: `Against the baseline run, this scenario was ${violation.kind === "weakened" ? "weakened" : violation.kind}, so the suite checks less than it did.`,
+    evidence: [violation.detail],
+    remedy:
+      "Restore the check, or say in the PR why the behaviour it proved no longer applies.",
+  };
+}
+
 function uncoveredFinding(
   file: ReviewResult["changedFiles"][number]
 ): ReviewFinding {
@@ -145,6 +169,10 @@ export function reviewFindings(review: ReviewResult): ReviewFinding[] {
     } else if (claim.strength === "none") {
       findings.push(unassertedFinding(claim));
     }
+  }
+
+  for (const violation of review.ratchet) {
+    findings.push(weakenedFinding(violation));
   }
 
   for (const file of review.changedFiles) {

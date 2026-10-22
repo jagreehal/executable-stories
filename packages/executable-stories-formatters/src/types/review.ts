@@ -13,6 +13,7 @@
 
 import type { TestRunResult, TestCaseResult, TestStatus } from "executable-stories-core/types/test-result";
 import type { AnchorResolution, DiffAnchor, FileDiff } from "./diff";
+import type { RatchetViolation } from "../goal";
 
 /** Who a claim is addressed to. Derived from file convention (override via `audience:` tag). */
 export type ReviewAudience = "stakeholder" | "engineer";
@@ -201,6 +202,11 @@ export interface ReviewResult {
   changedFiles: ChangedFileReview[];
   /** Code Diff evidence groups (empty when the context supplied none). */
   codeDiffs: CodeDiffEvidence[];
+  /**
+   * What the suite checked on the baseline run that it no longer checks
+   * (removed, disabled, or fewer steps or assertions). Empty without a baseline.
+   */
+  ratchet: RatchetViolation[];
 }
 
 /**
@@ -281,6 +287,9 @@ export type ReviewJsonClaim = Pick<
  *   nothing either — the more dangerous of the two, because it reads as proof.
  * - `skipped`: a scenario did not run, so its claim is unproven. Not a failure,
  *   and deliberately the mildest kind — otherwise every `it.skip` blocks a merge.
+ * - `weakened`: versus the baseline run, a scenario was removed, disabled, or
+ *   now makes fewer steps or assertions. Measured from the two runs, not
+ *   judged, and only present when the review was given a baseline.
  * - `uncovered`: a changed source file has no claim behind it at all.
  * - `weak`: a changed source file's only claims are weakly evidenced.
  * - `policy`: an organisation release policy this commit does not satisfy.
@@ -290,6 +299,7 @@ export type ReviewJsonClaim = Pick<
 export type ReviewFindingKind =
   | "failed"
   | "unasserted"
+  | "weakened"
   | "skipped"
   | "uncovered"
   | "weak"

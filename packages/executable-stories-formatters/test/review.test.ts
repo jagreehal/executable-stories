@@ -752,6 +752,35 @@ describe("reviewFindings", () => {
     expect(unasserted.evidence).toContain("the scenario passed without asserting anything");
   });
 
+  it("reports a scenario that checks less than the baseline, only when given one", () => {
+    const run = (assertions: number) =>
+      stubs.testRunResult({
+        testCases: [
+          stubs.testCaseResult({
+            id: "total",
+            status: "passed",
+            sourceFile: "src/cart/total.story.test.ts",
+            sourceLine: 8,
+            story: stubs.storyMeta({
+              scenario: "Total includes VAT",
+              steps: [{ keyword: "Then", text: "the total is £36", assertions }],
+            }),
+          }),
+        ],
+      });
+
+    expect(reviewFindings(buildReview(run(1), { changedFiles: [] })).filter((f) => f.kind === "weakened")).toEqual([]);
+
+    const weakened = reviewFindings(buildReview(run(1), { changedFiles: [] }, run(3))).find((f) => f.kind === "weakened")!;
+    expect(weakened).toMatchObject({
+      severity: "major",
+      title: "Checks less than the baseline: Total includes VAT",
+      file: "src/cart/total.story.test.ts",
+      line: 8,
+      evidence: ["3 assertions -> 1 assertion"],
+    });
+  });
+
   it("reports uncovered changed files above weakly evidenced ones", () => {
     const findings = reviewFindings(buildReview(unprovenRun(), { changedFiles }));
     const kinds = findings.map((f) => f.kind);
