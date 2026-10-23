@@ -152,10 +152,17 @@ export async function showCursor(
     // fill() and keyboard steps focus a field without moving the mouse. An iframe gets focus when
     // something inside it does; that frame reports where.
     addEventListener('focusin', (e) => {
-      if (clicking || !(e.target instanceof Element) || e.target instanceof HTMLIFrameElement) return;
-      // Near the right end, so the pointer doesn't cover what's typed (or chosen) from the left.
-      const r = e.target.getBoundingClientRect();
-      show({ type: 'move', x: r.right - Math.min(24, r.width / 2), y: r.top + r.height / 2 });
+      const target = e.target;
+      if (clicking || !(target instanceof Element) || target instanceof HTMLIFrameElement) return;
+      // A popup (Radix menus, popovers) takes focus before it's positioned, parked off-screen until
+      // it measures itself: read the box a couple of frames later, and never follow it off-screen.
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        if (document.activeElement !== target) return;
+        const r = target.getBoundingClientRect();
+        if (r.bottom < 0 || r.right < 0 || r.top > innerHeight || r.left > innerWidth) return;
+        // Near the right end, so the pointer doesn't cover what's typed (or chosen) from the left.
+        show({ type: 'move', x: r.right - Math.min(24, r.width / 2), y: r.top + r.height / 2 });
+      }));
     }, true);
     addEventListener('message', (e) => {
       const p: Pointer | undefined = e.data?.executableStoriesShowcaseCursor;

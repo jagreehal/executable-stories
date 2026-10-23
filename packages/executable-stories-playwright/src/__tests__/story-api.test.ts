@@ -513,6 +513,29 @@ test.describe("step with inline docs", () => {
     expect(recording!.attention[0].cover).toBeCloseTo((100 * 20) / (width * height), 6);
   });
 
+  test("featureVideo notes where a popup's focused item lands, not where it was parked", async ({ page }, testInfo) => {
+    story.init({ page }, testInfo, { featureVideo: true });
+    // Like a Radix menu: focused while parked above the page, positioned a frame later.
+    await page.goto(
+      "data:text/html," +
+        encodeURIComponent(
+          `<!doctype html><button style="position:absolute;left:10px;top:10px;width:100px;height:20px">Go</button>` +
+            `<div id="menu" hidden style="position:fixed;left:10px;top:0;transform:translate(0,-200%)"><a href="#" style="display:block;width:100px;height:20px">Item</a></div>` +
+            `<script>document.querySelector("button").onclick = () => setTimeout(() => {` +
+            `menu.hidden = false; menu.querySelector("a").focus();` +
+            `requestAnimationFrame(() => (menu.style.transform = "translate(0,40px)"));` +
+            `}, 50)</script>`,
+        ),
+    );
+    await page.getByRole("button").click();
+    await expect.poll(() => getStoryMeta(testInfo)?.recording?.attention.length).toBe(2);
+    const { attention } = getStoryMeta(testInfo)!.recording!;
+    expect(attention.map(({ kind, x, y }) => ({ kind, x: Math.round(x), y: Math.round(y) }))).toEqual([
+      { kind: "click", x: 60, y: 20 },
+      { kind: "focus", x: 60, y: 50 },
+    ]);
+  });
+
   test("story.upload clicks the control and chooses the file in the picker it opens", async ({ page }, testInfo) => {
     story.init({ page }, testInfo);
     await page.setContent(
