@@ -1,5 +1,11 @@
 # executable-stories-react
 
+## 0.21.3
+
+### Patch Changes
+
+- cc8c472: The report's WebMCP tools run on webmcpable 0.7.0, which matches Chrome 155's object arguments for `executeTool`.
+
 ## 0.21.2
 
 ### Patch Changes
