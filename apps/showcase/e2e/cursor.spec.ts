@@ -90,11 +90,12 @@ test('stays on mouse clicks and follows fill() and keyboard focus', async ({ pag
   expect(await target(page)).toBe('110px, 210px');
 
   // fill() and Tab focus without moving the mouse, so the cursor goes to the field.
+  // It follows a couple of frames later, once a popup has had time to position itself.
   await page.fill('#other', 'x');
-  expect(await target(page)).not.toBe('110px, 210px');
+  await expect.poll(() => target(page)).not.toBe('110px, 210px');
   await page.mouse.click(200, 120);
   await page.keyboard.press('Tab');
-  expect(await target(page)).not.toBe('200px, 120px');
+  await expect.poll(() => target(page)).not.toBe('200px, 120px');
 });
 
 test('draws one cursor, in the top frame, over targets in nested iframes', async ({ page }) => {

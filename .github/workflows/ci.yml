@@ -74,7 +74,8 @@ jobs:
         if: hashFiles('packages/executable-stories-formatters/package.json') != ''
         run: cd packages/executable-stories-formatters && pnpm run compile
 
-      # Browser binaries only; --with-deps below still installs system packages.
+      # Browser binaries only; --with-deps below still installs system packages. Every suite runs
+      # Chromium, so only its packages: all three browsers' (WebKit's codecs) took ~25 min of apt.
       - name: Cache Playwright browsers
         uses: actions/cache@v5
         with:
@@ -82,7 +83,7 @@ jobs:
           key: ${{ runner.os }}-playwright-${{ hashFiles('**/pnpm-lock.yaml') }}
 
       - name: Install Playwright browsers
-        run: pnpm --filter executable-stories-playwright exec playwright install --with-deps && pnpm --filter playwright-example exec playwright install && pnpm --filter formatters-e2e exec playwright install
+        run: pnpm --filter executable-stories-playwright exec playwright install --with-deps chromium && pnpm --filter playwright-example exec playwright install chromium && pnpm --filter formatters-e2e exec playwright install chromium
 
       - name: Quality (build, lint, type-check, test)
         run: pnpm quality

@@ -877,6 +877,8 @@ function recordAttention(page: Page, meta: StoryMeta, testInfo: TestInfo): void 
       innerWidth: number;
       innerHeight: number;
       top: unknown;
+      document: { activeElement: unknown };
+      requestAnimationFrame(fn: () => void): number;
     };
     // Share of the page an element covers. Inside an iframe its viewport is not the page's, so none.
     const cover = (el: El | null) => {
@@ -901,11 +903,17 @@ function recordAttention(page: Page, meta: StoryMeta, testInfo: TestInfo): void 
       'focusin',
       (e) => {
         const target = e.target;
-        const r = target?.getBoundingClientRect?.();
         const byClick = !!pressed && (target === pressed || !!target?.contains?.(pressed) || pressed.control === target);
         // An iframe takes focus when something inside it does; that frame reports where.
-        if (byClick || !r || target?.tagName === 'IFRAME') return;
-        page.__executableStoriesAttention?.('focus', r.left + r.width / 2, r.top + r.height / 2, cover(target));
+        if (byClick || target?.tagName === 'IFRAME') return;
+        // A popup (Radix menus, popovers) takes focus before it's positioned, parked off-screen until
+        // it measures itself: read the box a couple of frames later, and never point off-screen.
+        page.requestAnimationFrame(() => page.requestAnimationFrame(() => {
+          const r = target?.getBoundingClientRect?.();
+          if (!r || page.document.activeElement !== target) return;
+          if (r.top + r.height < 0 || r.left + r.width < 0 || r.top > page.innerHeight || r.left > page.innerWidth) return;
+          page.__executableStoriesAttention?.('focus', r.left + r.width / 2, r.top + r.height / 2, cover(target));
+        }));
       },
       true,
     );
