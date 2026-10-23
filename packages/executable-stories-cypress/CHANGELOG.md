@@ -1,5 +1,11 @@
 # executable-stories-cypress
 
+## 8.9.5
+
+### Patch Changes
+
+- executable-stories-formatters@1.30.1
+
 ## 8.9.4
 
 ### Patch Changes
