@@ -12,9 +12,9 @@ import { mixedReport, passingReport } from "./fixtures/sample-report";
 
 /**
  * Every test drives the tools the way an agent does — through
- * `document.modelContext.executeTool` with JSON-string arguments — rather than
+ * `document.modelContext.executeTool` with object arguments — rather than
  * calling the handlers directly. The double reproduces Chrome's measured
- * behaviour (JSON-string args only, thrown errors replaced with a generic
+ * behaviour (object args only, thrown errors replaced with a generic
  * `UnknownError`, results serialised to strings), so a handler that only works
  * when called as a plain function fails here.
  */
@@ -44,18 +44,15 @@ async function call(name: string, args: Record<string, unknown> = {}) {
   const list = await document.modelContext!.getTools();
   const tool = list.find((t) => t.name === name);
   if (!tool) throw new Error(`tool not registered: ${name}`);
-  const raw = await document.modelContext!.executeTool(tool, JSON.stringify(args));
+  const raw = await document.modelContext!.executeTool(tool, args);
   return JSON.parse(raw) as Record<string, unknown>;
 }
 
 /** For the paths that answer with a plain message instead of a JSON payload. */
-async function callRaw(name: string, args: unknown) {
+async function callRaw(name: string, args: Record<string, unknown>) {
   const list = await document.modelContext!.getTools();
   const tool = list.find((t) => t.name === name)!;
-  return document.modelContext!.executeTool(
-    tool,
-    typeof args === "string" ? args : JSON.stringify(args),
-  );
+  return document.modelContext!.executeTool(tool, args);
 }
 
 beforeEach(() => {
@@ -99,6 +96,7 @@ describe("tool registration", () => {
       "get_scenario",
     ]) {
       expect(list.find((t) => t.name === name)?.annotations).toEqual({
+        consequentialHint: false,
         readOnlyHint: true,
         untrustedContentHint: true,
       });
@@ -315,16 +313,15 @@ describe("argument mistakes", () => {
     expect(await callRaw("filter_scenarios", { status: "flaky" })).toContain("must be one of");
   });
 
-  it("rejects object arguments the way Chrome does", async () => {
+  it("rejects JSON-string arguments the way Chrome does", async () => {
     await mount();
     const list = await document.modelContext!.getTools();
     const tool = list.find((t) => t.name === "get_failing_scenarios")!;
     await expect(
-      // Deliberately not a JSON string — Chrome rejects this, and code that
-      // relies on it working in tests would break in a real browser.
+      // Chrome 155 takes an object and rejects the JSON string 152-154 required.
       (document.modelContext!.executeTool as unknown as (t: unknown, i: unknown) => Promise<string>)(
         tool,
-        { statuses: [] },
+        JSON.stringify({ statuses: [] }),
       ),
     ).rejects.toThrow();
   });

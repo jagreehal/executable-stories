@@ -34,7 +34,7 @@ async function invoke(name: string, args: Record<string, unknown> = {}) {
   // act(): the handler calls setState, and the assertions that follow read the
   // DOM it produces.
   await act(async () => {
-    raw = await document.modelContext!.executeTool(tool, JSON.stringify(args));
+    raw = await document.modelContext!.executeTool(tool, args);
   });
   return JSON.parse(raw) as Record<string, unknown>;
 }
