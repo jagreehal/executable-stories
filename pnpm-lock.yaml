@@ -253,8 +253,8 @@ importers:
   apps/remotion-example:
     dependencies:
       '@remotion/media':
-        specifier: 4.0.533
-        version: 4.0.533(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+        specifier: 4.0.536
+        version: 4.0.536(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       executable-stories-core:
         specifier: workspace:*
         version: link:../../packages/executable-stories-core
@@ -1101,8 +1101,8 @@ importers:
         version: link:../executable-stories-core
     devDependencies:
       '@remotion/media':
-        specifier: 4.0.533
-        version: 4.0.533(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+        specifier: 4.0.536
+        version: 4.0.536(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@types/react':
         specifier: 19.3.0
         version: 19.3.0
@@ -4960,6 +4960,12 @@ packages:
 
   '@remotion/media@4.0.533':
     resolution: {integrity: sha512-cgOp43h/jZ+ysB7EteNXFzQPWCD0wGEuUuFfufuwFwAU2n5ouu7p16DJMfguuIgt9dEzBelYYlgKwPFCjhb55Q==}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
+
+  '@remotion/media@4.0.536':
+    resolution: {integrity: sha512-ElkEcBRW5Q5rarsr1YLZb76xkJ9kDEtI6bufSd1CtvlaLdRsdDrtdylz4Tcw0feTAVpgPU2PZLIc7RRrDNTd2Q==}
     peerDependencies:
       react: '>=16.8.0'
       react-dom: '>=16.8.0'
@@ -9215,6 +9221,9 @@ packages:
   mediabunny@1.56.1:
     resolution: {integrity: sha512-DNOm0bRBmeOxJgCK/g3LxNWbxY5morTauNdlychujGmJ9L37ezVezkNoI1WtO2Xdb4WlWWJlYfIKnOEzd5phRw==}
 
+  mediabunny@1.61.3:
+    resolution: {integrity: sha512-kUqLKVXQVwHR62GkOJxYosAmXERJbqnXBgJDTtRlxHEYviVkMg/Evhl9XN6kedqS5LP1tV4kFKyzY/V4a4ofow==}
+
   memfs@3.4.3:
     resolution: {integrity: sha512-eivjfi7Ahr6eQTn44nvTnR60e4a1Fs1Via2kCR5lHo/kyNoiMWaXCNJ/GpSd0ilXas2JSOl9B5FTIhflXu0hlg==}
     engines: {node: '>= 4.0.0'}
@@ -10049,6 +10058,12 @@ packages:
 
   remotion@4.0.533:
     resolution: {integrity: sha512-M3XIFxeZ6tp+P5UMw2tb9wkMbjMrFN6BPgWFWSzeWAP1/aKWz331Wf4vGiOrz+NIq9xVX6G6dwRDQqDQbaxm2A==}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
+
+  remotion@4.0.536:
+    resolution: {integrity: sha512-e2e1TCk7a2qmTY+ow0Tco1NMY9/m/Vss6eBfh9WkZSlLB5EyTWRnUvLKUK/wYMLHDdlvOfUJ9kqtuQyX6RCNRw==}
     peerDependencies:
       react: '>=16.8.0'
       react-dom: '>=16.8.0'
@@ -14664,6 +14679,14 @@ snapshots:
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
       remotion: 4.0.533(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      zod: 4.5.4
+
+  '@remotion/media@4.0.536(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
+    dependencies:
+      mediabunny: 1.61.3
+      react: 19.3.0
+      react-dom: 19.3.0(react@19.3.0)
+      remotion: 4.0.536(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       zod: 4.5.4
 
   '@remotion/openai-whisper@4.0.533':
@@ -19621,6 +19644,11 @@ snapshots:
       '@types/dom-mediacapture-transform': 0.1.12
       '@types/dom-webcodecs': 0.1.13
 
+  mediabunny@1.61.3:
+    dependencies:
+      '@types/dom-mediacapture-transform': 0.1.12
+      '@types/dom-webcodecs': 0.1.13
+
   memfs@3.4.3:
     dependencies:
       fs-monkey: 1.0.3
@@ -20717,6 +20745,11 @@ snapshots:
       - supports-color
 
   remotion@4.0.533(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
+    dependencies:
+      react: 19.3.0
+      react-dom: 19.3.0(react@19.3.0)
+
+  remotion@4.0.536(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
     dependencies:
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
