@@ -17,7 +17,7 @@
   "devDependencies": {
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
-    "@vitejs/plugin-react": "^6.0.0",
+    "@vitejs/plugin-react": "^6.1.2",
     "emulate": "0.12.1",
     "msw": "3.0.2",
     "typescript": "~6.0.3",
