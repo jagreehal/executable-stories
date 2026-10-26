@@ -33,7 +33,7 @@
     "executable-stories-core": "workspace:*"
   },
   "devDependencies": {
-    "@types/bun": "^1.2.0",
+    "@types/bun": "^1.4.3",
     "@types/node": "^26.6.1",
     "eslint-config-executable-stories": "workspace:*",
     "tsup": "^8.5.1",
