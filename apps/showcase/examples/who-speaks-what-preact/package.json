@@ -14,7 +14,7 @@
     "preact-iso": "^2.12.2",
     "executable-stories-showcase": "workspace:*",
     "executable-stories-showcase-react": "workspace:*",
-    "xstate": "^5.33.2",
+    "xstate": "^5.33.3",
     "zod": "4.6.5"
   },
   "devDependencies": {
