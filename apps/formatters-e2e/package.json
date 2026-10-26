@@ -12,7 +12,7 @@
     "test:webmcp:native": "playwright test --config playwright-webmcp-native.config.ts"
   },
   "devDependencies": {
-    "@playwright/test": "^1.63.0",
+    "@playwright/test": "^1.64.1",
     "@types/node": "^26.6.1",
     "executable-stories-formatters": "workspace:*",
     "executable-stories-playwright": "workspace:*",
