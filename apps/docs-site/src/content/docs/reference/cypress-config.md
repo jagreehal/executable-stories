@@ -40,6 +40,18 @@ await generateReportsFromRawRun(rawRun, {
 
 Options are the same **FormatterOptions** used by the other framework reporters: `formats`, `outputDir`, `outputName`, `output`, `markdown`, `html`, `junit`, `cucumberJson`, `cucumberMessages`, `history`, `notification`, and so on.
 
+`buildRawRunFromCypressResult` reads the stories the plugin recorded during that run. Return the plugin's result from `setupNodeEvents`, so `cypress.run()` reports the run's id and the call reads exactly that run, even while another run of the same specs is going:
+
+```typescript
+setupNodeEvents(on, config) {
+  return registerExecutableStoriesPlugin(on, config);
+},
+```
+
+## Where recorded stories go
+
+The support file sends each test's story to the plugin, and the plugin writes it to a directory under the system temp folder, one per run and private to your user. The reporter reads that directory at the end of each spec, and the plugin empties it when the next run starts. Set `EXECUTABLE_STORIES_CYPRESS_STORE` to choose the directory yourself; the store only touches the `es-*.json` files it writes there.
+
 ## Options reference
 
 | Option                | Type             | Default                  | Description                                                                                                     |

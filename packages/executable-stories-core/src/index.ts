@@ -39,6 +39,9 @@ export * from "./storyboard.js";
 // State diffing (frame-to-frame changes for story.state() snapshots)
 export * from "./state-diff.js";
 
+// Screen diffing (what changed between screenshots, from their aria snapshots)
+export * from "./aria-diff.js";
+
 // Journey derivation (journey:<id>[:<n>] tags → ordered multi-scenario walkthroughs)
 export * from "./journeys.js";
 

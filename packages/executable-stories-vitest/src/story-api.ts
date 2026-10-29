@@ -26,7 +26,8 @@
  * ```
  */
 
-import { expect, onTestFinished } from 'vitest';
+import { expect, onTestFailed, onTestFinished } from 'vitest';
+import { STEP_TRAIL_MARKER } from './step-trail';
 import { createRequire } from 'node:module';
 import { tryGetActiveOtelContext, resolveTraceUrl } from 'executable-stories-core/utils/otel-detect';
 import { buildHtmlDocEntry } from 'executable-stories-core/utils/doc-builders';
@@ -58,6 +59,7 @@ interface TaskLike {
   meta: any;
   suite?: VitestSuite;
   file?: { name?: string };
+  result?: { errors?: unknown[] };
 }
 
 // ============================================================================
@@ -116,6 +118,14 @@ interface StoryContext {
   pendingStep: StoryStep | null;
   /** Assertion counter reading taken when {@link pendingStep} was created. */
   pendingFrom?: number;
+  /** The running test, whose `result.errors` soft assertions add to without throwing. */
+  task: TaskLike;
+  /** Steps a soft assertion failed in. */
+  failedSteps: Set<StoryStep>;
+  /** The wrapped step whose body threw, until another step starts (the throw was caught). */
+  thrownStep?: StoryStep;
+  /** How many of the test's errors have been charged to a step so far. */
+  errorsSeen: number;
 }
 
 /** Active story context - set by story.init() */
@@ -484,6 +494,10 @@ function init(task: TaskLike, options?: StoryOptions): void {
     meta,
     currentStep: null,
     taskMeta: task.meta,
+    task,
+    failedSteps: new Set(),
+    // A retry keeps the earlier attempts' errors on the same result.
+    errorsSeen: task.result?.errors?.length ?? 0,
     stepCounter: 0,
     attachments: [],
     activeTimers: new Map(),
@@ -516,6 +530,64 @@ function init(task: TaskLike, options?: StoryOptions): void {
     // Outside a running test (or a framework without the hook) there is nothing
     // to flush against; wrapped steps still measure themselves precisely.
   }
+  try {
+    onTestFailed(({ task: failed }) => {
+      claimErrors(ctx, lastMarker(ctx));
+      const trail = formatStepTrail(ctx);
+      for (const err of failed.result?.errors ?? []) {
+        if (typeof err.message === 'string' && !err.message.includes(STEP_TRAIL_MARKER)) err.message += trail;
+      }
+    });
+  } catch {
+    // Same as above: no running test, no failure to annotate.
+  }
+}
+
+/**
+ * Charge the errors Vitest recorded since the last check to `step`. A failed
+ * `expect.soft` adds to `result.errors` without throwing, so this is how its
+ * step gets the ✗. A marker owns the errors raised after it, until the next
+ * step starts; a wrapped step owns those raised in its body.
+ */
+function claimErrors(ctx: StoryContext, step: StoryStep | undefined): void {
+  const count = ctx.task.result?.errors?.length ?? 0;
+  if (count > ctx.errorsSeen && step) ctx.failedSteps.add(step);
+  ctx.errorsSeen = count;
+}
+
+/**
+ * A new step started, so a throw from an earlier wrapped step was caught and
+ * the test went on: that step no longer owns the failure.
+ */
+function startStep(ctx: StoryContext): void {
+  claimErrors(ctx, lastMarker(ctx));
+  ctx.thrownStep = undefined;
+}
+
+/** A wrapped body threw. Nested steps keep the innermost one that threw. */
+function markThrown(ctx: StoryContext, step: StoryStep): void {
+  ctx.thrownStep ??= step;
+}
+
+/** The last step, when it is a marker: the code after it is checking its claim. */
+function lastMarker(ctx: StoryContext): StoryStep | undefined {
+  const last = ctx.meta.steps[ctx.meta.steps.length - 1];
+  return last && !last.wrapped ? last : undefined;
+}
+
+/**
+ * The story's steps as a checklist for the failure message, so a red test
+ * shows how far the story got without opening the report. Every step an
+ * error was charged to gets ✗; with none, the failure came after the last step.
+ */
+function formatStepTrail(ctx: StoryContext): string {
+  const steps = ctx.meta.steps;
+  if (steps.length === 0) return '';
+  const failed = new Set(ctx.failedSteps);
+  if (ctx.thrownStep) failed.add(ctx.thrownStep);
+  const lines = steps.map((s) => `  ${failed.has(s) ? '✗' : '✓'} ${s.keyword} ${s.text}`);
+  if (failed.size === 0) lines.push('  ✗ (failed after the last step)');
+  return STEP_TRAIL_MARKER + lines.join('\n');
 }
 
 /**
@@ -598,6 +670,7 @@ function createStepMarker(keyword: StepKeyword) {
 
     // Close the previous marker before this step's own assertions begin.
     flushPendingAssertions(ctx);
+    startStep(ctx);
 
     ctx.meta.steps.push(step);
     ctx.currentStep = step;
@@ -636,17 +709,20 @@ function createStepMarker(keyword: StepKeyword) {
       const result = body();
       if (result instanceof Promise) {
         return result.then(
-          (val) => { step.durationMs = performance.now() - start; recordAssertions(step, assertionsBefore); syncMetaToTask(); return val; },
-          (err) => { step.durationMs = performance.now() - start; recordAssertions(step, assertionsBefore); syncMetaToTask(); throw err; },
+          (val) => { step.durationMs = performance.now() - start; claimErrors(ctx, step); recordAssertions(step, assertionsBefore); syncMetaToTask(); return val; },
+          (err) => { step.durationMs = performance.now() - start; claimErrors(ctx, step); recordAssertions(step, assertionsBefore); markThrown(ctx, step); syncMetaToTask(); throw err; },
         ) as T;
       }
       step.durationMs = performance.now() - start;
+      claimErrors(ctx, step);
       recordAssertions(step, assertionsBefore);
       syncMetaToTask();
       return result;
     } catch (err) {
       step.durationMs = performance.now() - start;
+      claimErrors(ctx, step);
       recordAssertions(step, assertionsBefore);
+      markThrown(ctx, step);
       syncMetaToTask();
       throw err;
     }
@@ -1084,6 +1160,7 @@ function fn<T>(keyword: StepKeyword, text: string, body: () => T): T {
     wrapped: true,
   };
 
+  startStep(ctx);
   ctx.meta.steps.push(step);
   ctx.currentStep = step;
   syncMetaToTask();
@@ -1098,11 +1175,14 @@ function fn<T>(keyword: StepKeyword, text: string, body: () => T): T {
       return result.then(
         (val) => {
           step.durationMs = performance.now() - start;
+          claimErrors(ctx, step);
           syncMetaToTask();
           return val;
         },
         (err) => {
           step.durationMs = performance.now() - start;
+          claimErrors(ctx, step);
+          markThrown(ctx, step);
           syncMetaToTask();
           throw err;
         },
@@ -1110,10 +1190,14 @@ function fn<T>(keyword: StepKeyword, text: string, body: () => T): T {
     }
 
     step.durationMs = performance.now() - start;
+
+    claimErrors(ctx, step);
     syncMetaToTask();
     return result;
   } catch (err) {
     step.durationMs = performance.now() - start;
+    claimErrors(ctx, step);
+    markThrown(ctx, step);
     syncMetaToTask();
     throw err;
   }

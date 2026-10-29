@@ -90,6 +90,26 @@ describe("gif", () => {
     expect(calls[0].join(" ")).toContain("pad=4:9:0:0:white");
   });
 
+  it("names the steps whose recorded screen is the same as the frame before", async () => {
+    const red = png(4, 4, [255, 0, 0]);
+    const screen = (aria: string) => ({ ...shot(red), phase: "runtime" as const, aria });
+    const tc = stubs.testCaseResult({
+      story: stubs.storyMeta({
+        scenario: "Hide a column",
+        steps: [
+          { keyword: "Given", text: "the works page", docs: [screen('- columnheader "Composer"')] },
+          { keyword: "When", text: "Composer is hidden", docs: [screen('- columnheader "Title"')] },
+          { keyword: "Then", text: "search for Silver", docs: [screen('- columnheader "Title"')] },
+        ],
+      }),
+    });
+    const { written } = await writeGifs(
+      { testCases: [tc], outputDir: path.join(os.tmpdir(), "es-gif-test") },
+      { ffmpeg: async () => {} },
+    );
+    expect(written[0].unchanged).toEqual(["search for Silver"]);
+  });
+
   it.skipIf(!hasFfmpeg)("writes a real animated GIF with ffmpeg", async () => {
     const outputDir = fs.mkdtempSync(path.join(os.tmpdir(), "es-gif-real-"));
     const ffmpeg: GifDeps["ffmpeg"] = async (args) => void execFileSync("ffmpeg", args, { stdio: "ignore" });

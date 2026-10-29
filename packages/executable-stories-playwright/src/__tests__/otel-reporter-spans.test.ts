@@ -49,6 +49,7 @@ function createMockAutotel(): { api: AutotelApi; spans: MockSpanRecord[] } {
         },
       };
       fn(spanHandle);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return undefined as any;
     },
     SpanStatusCode: { UNSET: 0, ERROR: 2 },

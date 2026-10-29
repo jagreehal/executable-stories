@@ -38,11 +38,40 @@ namespace ExecutableStories.Xunit
             Tags.AddRange(tags);
         }
 
+        /// <summary>The wrapped step whose body threw, if one did.</summary>
+        public StoryStep? FailedStep { get; set; }
+
+        /// <summary>
+        /// The steps as a checklist for a failure, so a red test shows how far
+        /// the story got without opening the report. The failing step is the
+        /// wrapped step that threw, else the last step: a marker states a claim
+        /// and the assertion that broke follows it. When the last step is a
+        /// wrapped body that finished, the failure came after it.
+        /// </summary>
+        public string StepTrail()
+        {
+            if (Steps.Count == 0)
+            {
+                return "";
+            }
+            StoryStep last = Steps[^1];
+            StoryStep? failed = FailedStep ?? (last.Wrapped == true ? null : last);
+            var lines = Steps.Select(s => $"  {(s == failed ? "✗" : "✓")} {s.Keyword} {s.Text}").ToList();
+            if (failed is null)
+            {
+                lines.Add("  ✗ (failed after the last step)");
+            }
+            return "Story steps:\n" + string.Join("\n", lines);
+        }
+
         /// <summary>
         /// Add a new step and set it as the current step.
         /// </summary>
         public void AddStep(string keyword, string text, DocEntry[]? docs = null)
         {
+            // A new step means the test caught an earlier wrapped step's exception.
+            FailedStep = null;
+
             // Auto-And: repeated primary keywords render as "And"
             var effective = keyword;
             if (keyword is "Given" or "When" or "Then")

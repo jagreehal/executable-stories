@@ -80,4 +80,27 @@ describe("AgentTextFormatter", () => {
     // Token diet: no ids, hashes, or durations.
     expect(text).not.toMatch(/durationMs|hash|"id"/);
   });
+
+  it("says what changed on screen between screenshots that recorded it", () => {
+    const shot = (aria: string) => ({ kind: "screenshot" as const, phase: "runtime" as const, path: "s.png", aria });
+    const text = new AgentTextFormatter().format(
+      stubs.testRunResult({
+        testCases: [
+          stubs.testCaseResult({
+            story: stubs.storyMeta({
+              scenario: "Hide a column",
+              steps: [
+                { keyword: "Given", text: "the works page", docs: [shot('- textbox "Search"\n- columnheader "Composer"')] },
+                { keyword: "When", text: "Composer is hidden", docs: [shot('- textbox "Search"')] },
+                { keyword: "Then", text: "nothing else", docs: [shot('- textbox "Search"')] },
+              ],
+            }),
+          }),
+        ],
+      }),
+    );
+    expect(text).toContain('screen changes:\n        − columnheader "Composer"');
+    expect(text).toContain("screen unchanged since the last screenshot");
+    expect(text.match(/screen (changes|unchanged)/g)).toHaveLength(2);
+  });
 });

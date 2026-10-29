@@ -46,6 +46,7 @@ import {
   tryGetActiveOtelContext,
 } from 'executable-stories-core/utils/otel-detect';
 import { isAsyncFunction, runStep } from './step-runner';
+import { TRAIL_ANNOTATION, type TrailState } from './step-trail';
 import type { TestStepInfo } from './step-runner';
 import type {
   AttachmentOptions,
@@ -121,6 +122,12 @@ interface StoryContext {
   pendingStep: StoryStep | null;
   /** Assertion counter reading taken when {@link pendingStep} was created. */
   pendingFrom?: number;
+  /** Steps a soft assertion failed in. */
+  failedSteps: Set<StoryStep>;
+  /** The wrapped step whose body threw, until another step starts (the throw was caught). */
+  thrownStep?: StoryStep;
+  /** How many of `testInfo.errors` have been charged to a step so far. */
+  errorsSeen: number;
 }
 
 /**
@@ -196,6 +203,39 @@ try {
 } catch {
   // Imported outside a Playwright test file (tooling, the reporter): there is
   // no suite to register against and nothing to flush.
+}
+
+/**
+ * Charge the errors Playwright recorded since the last check to `step`. Soft
+ * assertions add to `testInfo.errors` without throwing, so this is how a step
+ * whose `expect.soft` failed gets its ✗. A marker owns the errors raised after
+ * it, until the next step starts; a wrapped step owns those raised in its body.
+ */
+function claimErrors(ctx: StoryContext, step: StoryStep | undefined): void {
+  const count = activeTestInfo?.errors.length ?? ctx.errorsSeen;
+  if (count > ctx.errorsSeen && step) ctx.failedSteps.add(step);
+  ctx.errorsSeen = count;
+}
+
+/** The last step, when it is a marker: the code after it is checking its claim. */
+function lastMarker(ctx: StoryContext): StoryStep | undefined {
+  const last = ctx.meta.steps[ctx.meta.steps.length - 1];
+  return last && !last.wrapped ? last : undefined;
+}
+
+/**
+ * A new step started, so a throw from an earlier wrapped step was caught and
+ * the test went on: that step no longer owns the failure.
+ */
+function startStep(ctx: StoryContext): void {
+  claimErrors(ctx, lastMarker(ctx));
+  ctx.thrownStep = undefined;
+}
+
+/** A wrapped body threw. Nested steps keep the innermost one that threw. */
+function markThrown(ctx: StoryContext, step: StoryStep): void {
+  claimErrors(ctx, step);
+  ctx.thrownStep ??= step;
 }
 
 // ============================================================================
@@ -547,9 +587,9 @@ function createStepMarker(keyword: StepKeyword) {
     text: string,
     body: (fixtures: PlaywrightFixtures, step?: TestStepInfo) => T,
   ): T;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function stepMarker<T>(
     text: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     docsOrBody?: StoryDocs | DocEntry[] | ((...args: any[]) => T),
   ): T | void {
     const ctx = getContext();
@@ -578,6 +618,7 @@ function createStepMarker(keyword: StepKeyword) {
 
     // Close the previous marker before this step's own assertions begin.
     flushPendingAssertions();
+    startStep(ctx);
 
     ctx.meta.steps.push(step);
     ctx.currentStep = step;
@@ -608,7 +649,6 @@ function createStepMarker(keyword: StepKeyword) {
 
     if (!isCallback) return;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const body = docsOrBody as (
       fixtures?: PlaywrightFixtures,
       stepInfo?: TestStepInfo,
@@ -629,16 +669,17 @@ function createStepMarker(keyword: StepKeyword) {
       const fixtures = ctx.fixtures as Record<string, unknown>;
       const result = runStep(
         label,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         body as unknown as (
           fixtures: Record<string, unknown>,
           step?: TestStepInfo,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ) => Promise<any>,
         fixtures,
       );
       return result.then(
         (val: T) => {
           step.durationMs = performance.now() - start;
+          claimErrors(ctx, step);
           recordAssertions(step, assertionsBefore);
           syncAnnotationToTest();
           return val;
@@ -646,6 +687,7 @@ function createStepMarker(keyword: StepKeyword) {
         (err: unknown) => {
           step.durationMs = performance.now() - start;
           recordAssertions(step, assertionsBefore);
+          markThrown(ctx, step);
           syncAnnotationToTest();
           throw err;
         },
@@ -662,6 +704,7 @@ function createStepMarker(keyword: StepKeyword) {
         return result.then(
           (val) => {
             step.durationMs = performance.now() - start;
+            claimErrors(ctx, step);
             recordAssertions(step, assertionsBefore);
             syncAnnotationToTest();
             return val;
@@ -669,16 +712,19 @@ function createStepMarker(keyword: StepKeyword) {
           (err) => {
             step.durationMs = performance.now() - start;
             recordAssertions(step, assertionsBefore);
+            markThrown(ctx, step);
             syncAnnotationToTest();
             throw err;
           },
         ) as T;
       }
       step.durationMs = performance.now() - start;
+      claimErrors(ctx, step);
       syncAnnotationToTest();
       return result;
     } catch (err) {
       step.durationMs = performance.now() - start;
+      markThrown(ctx, step);
       syncAnnotationToTest();
       throw err;
     }
@@ -748,7 +794,6 @@ function init(
 
     // Story -> OTel: enrich active span with story attributes
     try {
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       const reqUrl =
         import.meta.url ??
         (typeof __filename !== 'undefined'
@@ -780,6 +825,10 @@ function init(
     type: 'story-meta',
     description: JSON.stringify(meta),
   });
+  testInfo.annotations.push({
+    type: TRAIL_ANNOTATION,
+    description: JSON.stringify({ failed: [], errorsSeen: testInfo.errors.length } satisfies TrailState),
+  });
 
   const declaredFeature =
     declaredFeatures.get(fileKey(testInfo.file)) ??
@@ -808,6 +857,8 @@ function init(
     fixtures: fixtures as Record<string, unknown> | undefined,
     traceUrlTemplate,
     pendingStep: null,
+    failedSteps: new Set(),
+    errorsSeen: testInfo.errors.length,
   };
   activeTestInfo = testInfo;
 
@@ -963,11 +1014,19 @@ async function pagePoint(frame: Frame, x: number, y: number): Promise<{ x: numbe
  */
 function syncAnnotationToTest(): void {
   if (!activeTestInfo || !activeContext) return;
+  const ctx = activeContext;
   const annotation = activeTestInfo.annotations.find(
     (a) => a.type === 'story-meta',
   );
   if (annotation) {
-    annotation.description = JSON.stringify(activeContext.meta);
+    annotation.description = JSON.stringify(ctx.meta);
+  }
+  // The reporter builds the failure's step checklist from this, so it works in
+  // every spec file a worker runs, not only where this module's hook registered.
+  const trail = activeTestInfo.annotations.find((a) => a.type === TRAIL_ANNOTATION);
+  if (trail) {
+    const failed = [...ctx.failedSteps, ...(ctx.thrownStep ? [ctx.thrownStep] : [])].flatMap((s) => (s.id ? [s.id] : []));
+    trail.description = JSON.stringify({ failed, errorsSeen: ctx.errorsSeen } satisfies TrailState);
   }
 }
 
@@ -1020,10 +1079,10 @@ function fn<T>(
   text: string,
   body: (fixtures: PlaywrightFixtures) => T,
 ): T;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function fn<T>(
   keyword: StepKeyword,
   text: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   body: (...args: any[]) => T,
 ): T {
   const ctx = getContext();
@@ -1040,6 +1099,7 @@ function fn<T>(
     docs: [],
     wrapped: true,
   };
+  startStep(ctx);
   ctx.meta.steps.push(step);
   ctx.currentStep = step;
   syncAnnotationToTest();
@@ -1054,21 +1114,25 @@ function fn<T>(
       return result.then(
         (val) => {
           step.durationMs = performance.now() - start;
+          claimErrors(ctx, step);
           syncAnnotationToTest();
           return val;
         },
         (err) => {
           step.durationMs = performance.now() - start;
+          markThrown(ctx, step);
           syncAnnotationToTest();
           throw err;
         },
       ) as T;
     }
     step.durationMs = performance.now() - start;
+    claimErrors(ctx, step);
     syncAnnotationToTest();
     return result;
   } catch (err) {
     step.durationMs = performance.now() - start;
+    markThrown(ctx, step);
     syncAnnotationToTest();
     throw err;
   }
@@ -1088,9 +1152,6 @@ function storyExpect<T>(text: string, body: () => T): T {
 
 function playwrightAttach(options: AttachmentOptions): void {
   const ctx = getContext();
-  const stepIndex = ctx.currentStep
-    ? ctx.meta.steps.indexOf(ctx.currentStep)
-    : undefined;
   ctx.attachments.push({
     ...options,
     stepId: ctx.currentStep?.id,
@@ -1162,6 +1223,37 @@ async function capture(page: Page, options: ScreenshotOptions): Promise<Buffer> 
   }
 }
 
+const UNHIDDEN_ATTR = 'data-executable-stories-unhidden';
+
+/**
+ * The screen as text: the page's aria snapshot as it looks, not as a screen reader hears it. A menu
+ * or dialog that opens marks the rest of the page `aria-hidden` or `inert`, though it is still
+ * in the picture, so those marks come off for the read (only on elements with text, which leaves
+ * decorative icons hidden) and go back after it.
+ */
+async function screenText(page: Page): Promise<string> {
+  await page.locator('[aria-hidden="true"], [inert]').evaluateAll((els, attr) => {
+    for (const el of els) {
+      if (!el.textContent?.trim()) continue;
+      el.setAttribute(attr, JSON.stringify({ ariaHidden: el.getAttribute('aria-hidden'), inert: el.hasAttribute('inert') }));
+      el.removeAttribute('aria-hidden');
+      el.removeAttribute('inert');
+    }
+  }, UNHIDDEN_ATTR);
+  try {
+    return await page.locator('body').ariaSnapshot();
+  } finally {
+    await page.locator(`[${UNHIDDEN_ATTR}]`).evaluateAll((els, attr) => {
+      for (const el of els) {
+        const was = JSON.parse(el.getAttribute(attr)!) as { ariaHidden: string | null; inert: boolean };
+        if (was.ariaHidden !== null) el.setAttribute('aria-hidden', was.ariaHidden);
+        if (was.inert) el.setAttribute('inert', '');
+        el.removeAttribute(attr);
+      }
+    }, UNHIDDEN_ATTR);
+  }
+}
+
 /** Speaking pace a viewer reads a caption at; `executable-stories video` warns at the same pace. */
 const WORDS_PER_MINUTE = 170;
 /** The least an `'auto'` hold stays, so a short step's screen is still seen. */
@@ -1197,6 +1289,8 @@ function screenshotImpl(
     const page = options.page;
     return capture(page, options)
       .then(async (buffer) => {
+        // Read before the hold, so the text matches the picture.
+        const aria = options.aria ? await screenText(page) : undefined;
         // Hold the screen in the video, and only there: a run that isn't recording stays fast.
         if (options.hold && page.video()) await page.waitForTimeout(holdMs(options.hold));
         const dataUri = `data:image/png;base64,${buffer.toString('base64')}`;
@@ -1205,6 +1299,7 @@ function screenshotImpl(
             kind: 'screenshot',
             path: dataUri,
             alt: options.alt,
+            ...(aria !== undefined && { aria }),
             phase: 'runtime',
           },
           children,

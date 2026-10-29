@@ -232,6 +232,10 @@ Story.attachInline("notes.md", "text/markdown", "## Notes\n\nRetried once.", "ID
 
 The HTML report previews `text/plain`, `text/markdown` and `text/html` attachments inline, next to the download link. Inline text needs the `IDENTITY` encoding.
 
+### Read a failure
+
+When a story test fails, the listener prints the test's name and a `Story steps:` list to stderr: ✓ for each step the test passed, ✗ where it failed. Gradle shows it under the test class in its report and with `--info`. A wrapped step that throws gets the ✗; otherwise the last step does. The raw run keeps the original error message.
+
 ## Common Mistakes
 
 ### CRITICAL Missing Story.init() before steps

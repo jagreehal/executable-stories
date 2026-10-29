@@ -522,10 +522,14 @@ class Story private constructor() {
             if (keyword == "Then") step.assertions = 1
 
             val start = System.nanoTime()
+            var finished = false
             try {
                 body.run()
+                finished = true
             } finally {
                 step.durationMs = (System.nanoTime() - start) / 1_000_000.0
+                // Nested steps keep the innermost one that threw.
+                if (!finished && ctx.thrownStep == null) ctx.thrownStep = step
             }
         }
 
@@ -546,10 +550,13 @@ class Story private constructor() {
             if (keyword == "Then") step.assertions = 1
 
             val start = System.nanoTime()
+            var finished = false
             try {
-                return body.get()
+                return body.get().also { finished = true }
             } finally {
                 step.durationMs = (System.nanoTime() - start) / 1_000_000.0
+                // Nested steps keep the innermost one that threw.
+                if (!finished && ctx.thrownStep == null) ctx.thrownStep = step
             }
         }
 

@@ -167,6 +167,8 @@ class StoryTestExecutionListener : TestExecutionListener {
         val context = Story.getContext()
         val status = resolveStatus(context?.planned == true, testExecutionResult.status)
 
+        if (status == "fail") printStepTrail(testIdentifier, context)
+
         val testCase = LinkedHashMap<String, Any?>()
         testCase["title"] = testIdentifier.displayName
         testCase["status"] = status
@@ -224,6 +226,19 @@ class StoryTestExecutionListener : TestExecutionListener {
 
         testCases.add(testCase)
         Story.clear()
+    }
+
+    /**
+     * Captured test output sits beside the failure in IDEs, the console launcher
+     * and build reports, so the checklist goes there, under the test's name: a
+     * build tool may file it under the class.
+     */
+    private fun printStepTrail(
+        testIdentifier: TestIdentifier,
+        context: StoryContext?,
+    ) {
+        val trail = context?.stepTrail().orEmpty()
+        if (trail.isNotEmpty()) System.err.println("${testIdentifier.displayName}\n$trail")
     }
 
     /**

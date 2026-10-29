@@ -50,6 +50,7 @@ class _StoryContext:
         "otel_spans",
         "planned",
         "started_at_ms",
+        "failed_step",
     )
 
     def __init__(
@@ -78,6 +79,8 @@ class _StoryContext:
         self.otel_spans: list[dict[str, Any]] | None = None
         self.planned: bool = False
         self.started_at_ms: float = time.time() * 1000
+        # The wrapped step whose body raised, if one did.
+        self.failed_step: dict[str, Any] | None = None
 
 
 class Story:
@@ -253,6 +256,24 @@ class Story:
             result["startedAtMs"] = ctx.started_at_ms
         return result
 
+    def _step_trail(self) -> str | None:
+        """The story's steps as a checklist for a failed test's report.
+
+        The failing step is the wrapped step whose body raised, else the last
+        step: a marker states a claim and the assertion that broke follows it.
+        When the last step is a wrapped body that finished, the failure came
+        after it.
+        """
+        ctx = self._ctx
+        if ctx is None or not ctx.steps:
+            return None
+        last = ctx.steps[-1]
+        failed = ctx.failed_step or (None if last.get("wrapped") else last)
+        lines = [f"  {'✗' if s is failed else '✓'} {s['keyword']} {s['text']}" for s in ctx.steps]
+        if failed is None:
+            lines.append("  ✗ (failed after the last step)")
+        return "\n".join(lines)
+
     def _get_attachments(self) -> list[dict[str, Any]]:
         """Return the attachments list for the current test."""
         ctx = self._ctx
@@ -284,6 +305,8 @@ class Story:
         ctx = self._ctx
         if ctx is None:
             raise RuntimeError(f"story.{keyword.lower()}() called before story.init()")
+        # A new step means the test caught an earlier wrapped step's exception.
+        ctx.failed_step = None
         # Auto-And: repeated primary keywords render as "And"
         if keyword in ("Given", "When", "Then"):
             if keyword in ctx.seen_primary_keywords:
@@ -375,6 +398,11 @@ class Story:
         try:
             result = body()
             return result
+        except BaseException:
+            # A nested step that raised first keeps the mark.
+            if ctx.failed_step is None:
+                ctx.failed_step = step
+            raise
         finally:
             step["durationMs"] = (time.perf_counter() - start) * 1000.0
 

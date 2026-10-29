@@ -29,6 +29,9 @@ class StoryContext(
     var currentStep: StoryStep? = null
         private set
 
+    /** The wrapped step whose body threw, until another step starts (the throw was caught). */
+    internal var thrownStep: StoryStep? = null
+
     private val seenPrimaryKeywords: MutableSet<String> = mutableSetOf()
     private var stepCounter = 0
     private val attachments: MutableList<Map<String, Any?>> = mutableListOf()
@@ -64,11 +67,28 @@ class StoryContext(
         step.startedAtMs = System.currentTimeMillis()
         steps.add(step)
         currentStep = step
+        thrownStep = null
         for (doc in docs) {
             if (doc != null) {
                 step.addDoc(doc)
             }
         }
+    }
+
+    /**
+     * The steps as a checklist for a failure, so a red test shows how far the
+     * story got without opening the report. The failing step is the wrapped step
+     * whose body threw, else the last step: a marker states a claim and the
+     * assertion that broke follows it. When the last step is a wrapped body that
+     * finished, the failure came after it. Empty with no steps.
+     */
+    fun stepTrail(): String {
+        if (steps.isEmpty()) return ""
+        val last = steps.last()
+        val failed = thrownStep ?: last.takeIf { it.wrapped != true }
+        val lines = steps.map { "  ${if (it === failed) "✗" else "✓"} ${it.keyword} ${it.text}" }.toMutableList()
+        if (failed == null) lines.add("  ✗ (failed after the last step)")
+        return "Story steps:\n" + lines.joinToString("\n")
     }
 
     fun addDoc(doc: DocEntry) {

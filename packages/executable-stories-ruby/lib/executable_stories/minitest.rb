@@ -36,8 +36,6 @@ module ExecutableStories
       # only final now. Done before the recorded? guard: an explicitly recorded
       # story still needs its final step closed off.
       story.send(:flush_pending_assertions)
-      return if story.recorded?
-
       failure = test.failures.first
       status =
         if failure.nil? then "pass"
@@ -45,14 +43,17 @@ module ExecutableStories
         else "fail"
         end
 
-      file, line = source_location(test)
-      story.record(
-        status: status,
-        suite_path: [test.class.name],
-        source_file: file,
-        source_line: line,
-        error: error_for(failure, status)
-      )
+      unless story.recorded?
+        file, line = source_location(test)
+        story.record(
+          status: status,
+          suite_path: [test.class.name],
+          source_file: file,
+          source_line: line,
+          error: error_for(failure, status)
+        )
+      end
+      story.annotate_failure(failure) if status == "fail"
     end
 
     def self.error_for(failure, status)

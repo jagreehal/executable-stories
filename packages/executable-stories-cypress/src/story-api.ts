@@ -33,7 +33,6 @@ import type {
   DocEntry,
   StoryDocs,
   StoryOptions,
-  GlossaryTerm,
   AttachmentOptions,
   ScopedAttachment,
   RecordMetaPayload,
@@ -53,6 +52,7 @@ import type {
   CustomOptions,
   FeatureInput,
 } from './types';
+import { STEP_TRAIL_MARKER } from './step-trail';
 import { buildHtmlDocEntry } from 'executable-stories-core/utils/doc-builders';
 
 // Re-export types for consumers
@@ -94,6 +94,10 @@ interface StoryContext {
   otelSpans?: ReadonlyArray<Record<string, unknown>>;
   traceUrlTemplate?: string;
   traceDocAdded: boolean;
+  /** The command queue has started: anything failing now is a command, not the test body. */
+  queueStarted?: boolean;
+  /** The wrapped step whose body threw while the test body ran, until another step starts. */
+  failedStep?: StoryStep;
 }
 
 type ScenarioBody = () => unknown;
@@ -106,8 +110,23 @@ type ItLike = ((title: string, body: ScenarioBody) => unknown) & {
 // Cypress-specific context
 // ============================================================================
 
-/** Active story context - set by story.init() */
-let activeContext: StoryContext | null = null;
+/**
+ * State the spec and the support file both reach. Cypress bundles those two
+ * separately, so each loads its own copy of this module. Both run in the same
+ * window, so the state lives on it.
+ */
+interface SharedState {
+  /** Active story context - set by story.init() */
+  activeContext: StoryContext | null;
+  /**
+   * The feature the spec being loaded declared. Cypress runs one spec per
+   * browser context, so the last declaration seen belongs to the tests after it.
+   */
+  declaredFeature: FeatureInput | null;
+}
+
+const shared: SharedState = ((globalThis as { __executableStoriesCypress?: SharedState })
+  .__executableStoriesCypress ??= { activeContext: null, declaredFeature: null });
 
 /** Counter to track source order of stories (increments on each story.init call) */
 let sourceOrderCounter = 0;
@@ -116,12 +135,12 @@ let sourceOrderCounter = 0;
  * Get the current story context. Throws if story.init() wasn't called.
  */
 function getContext(): StoryContext {
-  if (!activeContext) {
+  if (!shared.activeContext) {
     throw new Error(
       "story.init() must be called first. Use: it('name', () => { story.init(); ... });"
     );
   }
-  return activeContext;
+  return shared.activeContext;
 }
 
 // ============================================================================
@@ -353,6 +372,7 @@ function createStepMarker(keyword: StepKeyword, mode?: StepMode): StepMarker {
       ...(isCallback ? { wrapped: true } : {}),
     };
 
+    ctx.failedStep = undefined;
     ctx.meta.steps.push(step);
     ctx.currentStep = step;
     stampWhenReached(step);
@@ -385,13 +405,14 @@ function createStepMarker(keyword: StepKeyword, mode?: StepMode): StepMarker {
       if (result instanceof Promise) {
         return result.then(
           (val) => { step.durationMs = performance.now() - start; return val; },
-          (err) => { step.durationMs = performance.now() - start; throw err; },
+          (err) => { step.durationMs = performance.now() - start; ctx.failedStep ??= step; throw err; },
         ) as T;
       }
       step.durationMs = performance.now() - start;
       return result;
     } catch (err) {
       step.durationMs = performance.now() - start;
+      ctx.failedStep ??= step;
       throw err;
     }
   }
@@ -446,7 +467,7 @@ function init(options?: StoryOptions, scenarioOverride?: string): void {
     startedAtMs: Date.now(),
   };
 
-  activeContext = {
+  shared.activeContext = {
     meta,
     currentStep: null,
     stepCounter: 0,
@@ -458,6 +479,8 @@ function init(options?: StoryOptions, scenarioOverride?: string): void {
     traceUrlTemplate: options?.traceUrlTemplate,
     traceDocAdded: false,
   };
+  const ctx = shared.activeContext;
+  if (typeof cy !== 'undefined') cy.then(() => { ctx.queueStarted = true; });
 }
 
 function runScenario(mode: 'normal' | 'skip' | 'only', title: string, body: ScenarioBody, options?: StoryOptions): unknown {
@@ -484,21 +507,44 @@ function runScenario(mode: 'normal' | 'skip' | 'only', title: string, body: Scen
 }
 
 /**
+ * The story's steps as a checklist for a failure message, so a red test shows
+ * how far the story got without opening the report. Empty with no story.
+ *
+ * A Cypress test body only queues commands, then the queue runs them. A
+ * failure before the queue starts came from the body itself: the wrapped step
+ * that threw, else the last step written. After it starts, the failing step is
+ * the last one the queue reached (`startedAtMs`), and the rest never ran (·).
+ */
+export function stepTrail(): string {
+  const ctx = shared.activeContext;
+  const steps = ctx?.meta.steps ?? [];
+  if (!ctx || steps.length === 0) return '';
+  const reached = steps.filter((s) => s.startedAtMs !== undefined);
+  const failed = ctx.queueStarted
+    ? reached[reached.length - 1]
+    : (ctx.failedStep ?? steps[steps.length - 1]);
+  const at = failed ? steps.indexOf(failed) : -1;
+  const lines = steps.map((s, i) => `  ${i < at ? '✓' : i === at ? '✗' : '·'} ${s.keyword} ${s.text}`);
+  if (!failed) lines.unshift('  ✗ (failed before the first step)');
+  return STEP_TRAIL_MARKER + lines.join('\n');
+}
+
+/**
  * Get the current story meta and clear the active context.
  * Called by the support file after each test to send meta to Node via cy.task.
  * Returns null if story.init() was never called for this test.
  */
 export function getAndClearMeta(): RecordMetaPayload | null {
-  if (!activeContext) return null;
+  if (!shared.activeContext) return null;
   const payload: RecordMetaPayload = {
-    specRelative: activeContext.specRelative,
-    titlePath: activeContext.titlePath,
-    meta: activeContext.meta,
-    attachments: activeContext.attachments.length > 0 ? activeContext.attachments : undefined,
-    otelSpans: activeContext.otelSpans,
-    ...(declaredFeature ? { feature: declaredFeature } : {}),
+    specRelative: shared.activeContext.specRelative,
+    titlePath: shared.activeContext.titlePath,
+    meta: shared.activeContext.meta,
+    attachments: shared.activeContext.attachments.length > 0 ? shared.activeContext.attachments : undefined,
+    otelSpans: shared.activeContext.otelSpans,
+    ...(shared.declaredFeature ? { feature: shared.declaredFeature } : {}),
   };
-  activeContext = null;
+  shared.activeContext = null;
   return payload;
 }
 
@@ -532,6 +578,7 @@ function fn<T>(keyword: StepKeyword, text: string, body: () => T): T {
     // Then before the step is stored.
     ...(keyword === 'Then' ? { assertions: 1 } : {}),
   };
+  ctx.failedStep = undefined;
   ctx.meta.steps.push(step);
   ctx.currentStep = step;
   stampWhenReached(step);
@@ -547,6 +594,7 @@ function fn<T>(keyword: StepKeyword, text: string, body: () => T): T {
         },
         (err) => {
           step.durationMs = performance.now() - start;
+          ctx.failedStep ??= step;
           throw err;
         },
       ) as T;
@@ -555,6 +603,7 @@ function fn<T>(keyword: StepKeyword, text: string, body: () => T): T {
     return result;
   } catch (err) {
     step.durationMs = performance.now() - start;
+    ctx.failedStep ??= step;
     throw err;
   }
 }
@@ -774,14 +823,6 @@ export const doc = {
 export type Story = typeof story;
 
 /**
- * The declaration for the spec currently being loaded.
- *
- * Cypress runs one spec per browser context, so the last declaration seen is
- * the one that belongs to the tests registering after it.
- */
-let declaredFeature: FeatureInput | null = null;
-
-/**
  * Declare what the spec's scenarios are for, before any of them run.
  *
  * Scenarios say what the system does. This says why the feature exists and who
@@ -789,5 +830,5 @@ let declaredFeature: FeatureInput | null = null;
  * spec file, at module scope or at the top of the outermost `describe`.
  */
 function feature(input: FeatureInput): void {
-  declaredFeature = input;
+  shared.declaredFeature = input;
 }

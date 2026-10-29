@@ -712,8 +712,11 @@ public class CheckoutTests
 | Context | Cleanup | ThreadLocal | RAII (Drop) | ThreadLocal | AsyncLocal |
 | Output trigger | `RunAndReport()` | Plugin hooks | Process-exit hook | Listener | `[assembly: StoryRecording]` |
 | Planned scenario | `es.Planned(t, "…")` | `story.planned("…")` | `Story::planned("…")` | `Story.planned("…")` | `Story.Planned("…")` |
+| Failure step list | Test log, at `es.Init` | `Story steps` report section | stderr, with the panic | stderr, under the test class in Gradle | Test output, with `[StoryRecording]` |
 
-Ruby, not in the table above, uses `ExecutableStories.planned("…")`.
+Ruby, not in the table above, uses `ExecutableStories.planned("…")`, and adds the failure step list to the Minitest or RSpec failure message.
+
+Each list shows ✓ for the steps a failed test passed and ✗ for the step that failed: a wrapped step that throws, else the last step. The raw run keeps the original error message.
 
 ### Planned scenarios
 

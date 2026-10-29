@@ -11,58 +11,75 @@ use crate::types::{RawAttachment, RawStepEvent, RawTestCase, StoryMeta, StorySte
 pub struct StepDoc(pub(crate) DocEntry);
 
 impl StepDoc {
+    /// A text note.
     #[must_use]
     pub fn note(text: &str) -> Self {
         StepDoc(DocEntry::note(text))
     }
+    /// One or more tag names.
     #[must_use]
     pub fn tag(names: &[&str]) -> Self {
         StepDoc(DocEntry::tag(names))
     }
+    /// A key-value pair.
     #[must_use]
     pub fn kv(label: &str, value: serde_json::Value) -> Self {
         StepDoc(DocEntry::kv(label, value))
     }
+    /// A value serialized to JSON, rendered as a code block with `lang` json.
     #[must_use]
     pub fn json_doc(label: &str, value: &impl Serialize) -> Self {
         StepDoc(DocEntry::json_doc(label, value))
     }
+    /// A code block, with an optional language for highlighting.
     #[must_use]
     pub fn code(label: &str, content: &str, lang: Option<&str>) -> Self {
         StepDoc(DocEntry::code(label, content, lang))
     }
+    /// A table with column headings and rows of cells.
     #[must_use]
     pub fn table(label: &str, columns: &[&str], rows: &[&[&str]]) -> Self {
         StepDoc(DocEntry::table(label, columns, rows))
     }
+    /// A hyperlink.
     #[must_use]
     pub fn link(label: &str, url: &str) -> Self {
         StepDoc(DocEntry::link(label, url))
     }
+    /// A titled markdown section.
     #[must_use]
     pub fn section(title: &str, markdown: &str) -> Self {
         StepDoc(DocEntry::section(title, markdown))
     }
+    /// A Mermaid diagram, with an optional title.
     #[must_use]
     pub fn mermaid(code: &str, title: Option<&str>) -> Self {
         StepDoc(DocEntry::mermaid(code, title))
     }
+    /// A screenshot reference, with optional alt text.
     #[must_use]
     pub fn screenshot(path: &str, alt: Option<&str>) -> Self {
         StepDoc(DocEntry::screenshot(path, alt))
     }
+    /// A video, played inline in HTML reports. `poster` is the still shown before playback.
     #[must_use]
     pub fn video(path: &str, caption: Option<&str>, poster: Option<&str>) -> Self {
         StepDoc(DocEntry::video(path, caption, poster))
     }
+    /// Embedded HTML, rendered inside a sandboxed iframe. See [`crate::HtmlOptions`].
+    ///
+    /// # Panics
+    /// Panics unless exactly one of `path`, `url` or `content` is set.
     #[must_use]
     pub fn html(opts: crate::doc_entry::HtmlOptions) -> Self {
         StepDoc(DocEntry::html(opts))
     }
+    /// A snapshot of state at this step. Consecutive states with the same label are diffed in the report.
     #[must_use]
     pub fn state(label: Option<&str>, value: serde_json::Value) -> Self {
         StepDoc(DocEntry::state(label, value))
     }
+    /// A custom entry with its own type name and data.
     #[must_use]
     pub fn custom(type_name: &str, data: serde_json::Value) -> Self {
         StepDoc(DocEntry::custom(type_name, data))
@@ -110,6 +127,8 @@ pub struct Story {
     active_timers: HashMap<usize, TimerEntry>,
     timer_counter: usize,
     otel_spans: Option<Vec<serde_json::Value>>,
+    /// The wrapped step whose body panicked, if one did.
+    failed_step: Option<usize>,
     /// `pub(crate)` so a test in another file can prove `#[track_caller]`
     /// records the caller's file and not this one.
     pub(crate) source_file: Option<String>,
@@ -147,6 +166,7 @@ impl Story {
             active_timers: HashMap::new(),
             timer_counter: 0,
             otel_spans: None,
+            failed_step: None,
             source_file: Some(std::panic::Location::caller().file().to_string()),
         };
         collector::ensure_exit_hook();
@@ -201,6 +221,7 @@ impl Story {
 
     /// `OTel` bridge: detect active span, flow data bidirectionally.
     /// This is a no-op when the `otel` feature is not enabled.
+    #[cfg_attr(not(feature = "otel"), allow(clippy::unused_self))]
     fn bridge_otel(&mut self) {
         #[cfg(feature = "otel")]
         {
@@ -255,6 +276,8 @@ impl Story {
     // --- BDD step methods ---
 
     fn add_step(&mut self, keyword: &str, text: &str) -> &mut Self {
+        // A new step means the test caught an earlier wrapped panic and went on.
+        self.failed_step = None;
         // Auto-And: repeated primary keywords render as "And"
         let effective = match keyword {
             "Given" | "When" | "Then" => {
@@ -429,8 +452,38 @@ impl Story {
 
         match result {
             Ok(val) => val,
-            Err(panic) => std::panic::resume_unwind(panic),
+            Err(panic) => {
+                // A nested step that panicked first (a higher index) keeps the mark.
+                if self.failed_step.is_none_or(|f| f <= idx) {
+                    self.failed_step = Some(idx);
+                }
+                std::panic::resume_unwind(panic)
+            }
         }
+    }
+
+    /// The story's steps as a checklist for the failure output, so a red test
+    /// shows how far the story got without opening the report.
+    ///
+    /// The failing step is the wrapped step that panicked, else the last step:
+    /// a marker states a claim and the assertion that broke follows it. When
+    /// the last step is a wrapped body that finished, the failure came after it.
+    fn step_trail(&self) -> String {
+        use std::fmt::Write;
+        let Some(last) = self.steps.last() else {
+            return String::new();
+        };
+        let failed =
+            self.failed_step.or_else(|| (last.wrapped != Some(true)).then(|| self.steps.len() - 1));
+        let mut out = String::from("Story steps:");
+        for (i, step) in self.steps.iter().enumerate() {
+            let mark = if Some(i) == failed { '✗' } else { '✓' };
+            let _ = write!(out, "\n  {mark} {} {}", step.keyword, step.text);
+        }
+        if failed.is_none() {
+            out.push_str("\n  ✗ (failed after the last step)");
+        }
+        out
     }
 
     /// Shorthand for `fn_step("Then", text, body)`.
@@ -667,6 +720,10 @@ impl Drop for Story {
             "pass"
         };
         let duration = self.start_time.elapsed().as_secs_f64() * 1000.0;
+        // stderr from a test is captured and printed with its failure.
+        if status == "fail" && !self.steps.is_empty() {
+            eprintln!("{}", self.step_trail());
+        }
 
         let step_events: Vec<RawStepEvent> = self
             .steps
@@ -1026,6 +1083,45 @@ mod tests {
             panic!("boom");
         });
         story.pass();
+    }
+
+    #[test]
+    fn step_trail_marks_where_the_story_failed() {
+        let mut marker = Story::new("trail: marker");
+        marker.given("a balance of 50");
+        marker.then("the balance is 150");
+        marker.pass();
+        assert_eq!(
+            marker.step_trail(),
+            "Story steps:\n  ✓ Given a balance of 50\n  ✗ Then the balance is 150"
+        );
+
+        let mut wrapped = Story::new("trail: wrapped panic");
+        wrapped.fn_step("Given", "setup", || {});
+        let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            wrapped.fn_step("When", "it breaks", || panic!("kaput"));
+        }));
+        wrapped.pass();
+        assert_eq!(wrapped.step_trail(), "Story steps:\n  ✓ Given setup\n  ✗ When it breaks");
+
+        let mut caught = Story::new("trail: caught panic");
+        let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            caught.fn_step("Given", "a rejected input", || panic!("rejected"));
+        }));
+        caught.then("the total is 3");
+        caught.pass();
+        assert_eq!(
+            caught.step_trail(),
+            "Story steps:\n  ✓ Given a rejected input\n  ✗ Then the total is 3"
+        );
+
+        let mut after = Story::new("trail: after wrapped");
+        after.fn_step("Given", "setup", || {});
+        after.pass();
+        assert_eq!(
+            after.step_trail(),
+            "Story steps:\n  ✓ Given setup\n  ✗ (failed after the last step)"
+        );
     }
 
     #[test]

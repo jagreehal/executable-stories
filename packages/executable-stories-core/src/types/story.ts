@@ -35,7 +35,7 @@ export type DocEntry =
   | { kind: "link"; label: string; url: string; phase: DocPhase; children?: DocEntry[] }
   | { kind: "section"; title: string; markdown: string; phase: DocPhase; children?: DocEntry[] }
   | { kind: "mermaid"; code: string; title?: string; phase: DocPhase; children?: DocEntry[] }
-  | { kind: "screenshot"; path: string; alt?: string; phase: DocPhase; children?: DocEntry[] }
+  | { kind: "screenshot"; path: string; alt?: string; aria?: string; phase: DocPhase; children?: DocEntry[] }
   | { kind: "video"; path: string; caption?: string; poster?: string; phase: DocPhase; children?: DocEntry[] }
   | { kind: "html"; path?: string; url?: string; content?: string; title?: string; height?: number | string; phase: DocPhase; children?: DocEntry[] }
   | { kind: "state"; label?: string; value: unknown; phase: DocPhase; children?: DocEntry[] }

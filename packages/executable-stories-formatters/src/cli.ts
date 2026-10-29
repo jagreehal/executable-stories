@@ -2052,7 +2052,10 @@ async function runGif(ctx: CliContext): Promise<void> {
     );
     if (args.json) console.log(JSON.stringify({ written, skipped }, null, 2));
     else {
-      for (const w of written) console.log(`${w.path}  (${w.frames} frames)  ${w.scenario}`);
+      for (const w of written) {
+        console.log(`${w.path}  (${w.frames} frames)  ${w.scenario}`);
+        for (const step of w.unchanged) console.log(`  same screen as the frame before: "${step}"`);
+      }
       console.log(`${written.length} GIF(s) written, ${skipped.length} scenario(s) skipped`);
     }
     process.exit(EXIT_SUCCESS);

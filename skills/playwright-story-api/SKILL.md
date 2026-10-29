@@ -304,6 +304,10 @@ test.describe("Authentication", () => {
 
 Suite path comes from `testInfo.titlePath`. Describe titles become `##` headings in generated docs.
 
+### Read a failure
+
+With `StoryReporter` configured, a failing story test's error ends with a `Story steps:` list: ✓ for each step the test passed, ✗ where it failed. A wrapped step whose body throws gets the ✗; otherwise the last step before the failing assertion does. Reports keep the original error message, so read the steps from the test output. A failed `expect.soft` marks the step it ran in.
+
 ## Common Mistakes
 
 ### CRITICAL Missing testInfo argument in story.init()

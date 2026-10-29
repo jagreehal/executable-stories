@@ -38,6 +38,7 @@ pub(crate) fn ensure_exit_hook() {
         // SAFETY: `atexit` takes an `extern "C" fn()`. The handler touches only
         // process-wide statics, which outlive every atexit callback, and cannot
         // unwind past the boundary.
+        #[allow(unsafe_code)]
         unsafe {
             libc::atexit(write_results_at_exit);
         }
@@ -310,12 +311,14 @@ mod output_path_tests {
     }
 
     /// The variable is process-wide, so these two run under one lock.
+    #[allow(unsafe_code)]
     fn temp_env(value: &str, body: impl FnOnce()) {
         static LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
         let _guard = LOCK.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
         // SAFETY: no other thread reads this variable while the lock is held.
         unsafe { std::env::set_var("EXECUTABLE_STORIES_OUTPUT", value) };
         body();
+        // SAFETY: as above, the lock is still held.
         unsafe { std::env::remove_var("EXECUTABLE_STORIES_OUTPUT") };
     }
 }

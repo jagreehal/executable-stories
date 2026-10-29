@@ -18,8 +18,8 @@ import { registerExecutableStoriesPlugin } from "executable-stories-cypress/plug
 
 export default defineConfig({
   e2e: {
-    setupNodeEvents(on) {
-      registerExecutableStoriesPlugin(on);
+    setupNodeEvents(on, config) {
+      return registerExecutableStoriesPlugin(on, config);
     },
   },
 });

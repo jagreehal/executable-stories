@@ -39,21 +39,23 @@ test("breaks before declaring a story", () => {
 });
 `;
 
-function runBun(files: Record<string, string>, args: string[] = []): RawRunFile {
+/** The raw run, plus what bun printed to stderr (where it reports failures). */
+function runBun(files: Record<string, string>, args: string[] = []): RawRunFile & { stderr: string } {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "es-bun-"));
   fs.writeFileSync(
     path.join(dir, "bunfig.toml"),
     `[test]\npreload = [${JSON.stringify(path.join(src, "preload.ts"))}]\n`,
   );
   for (const [name, content] of Object.entries(files)) fs.writeFileSync(path.join(dir, name), content);
-  Bun.spawnSync(["bun", "test", ...args], {
+  const proc = Bun.spawnSync(["bun", "test", ...args], {
     cwd: dir,
     // CI=true as on a CI runner, where bun turns any access to `.only` into an error.
     env: { ...process.env, CI: "true", GITHUB_SHA: "abc123", EXECUTABLE_STORIES_OUTPUT: undefined },
     stdout: "ignore",
-    stderr: "ignore",
+    stderr: "pipe",
   });
-  return JSON.parse(fs.readFileSync(path.join(dir, ".executable-stories/raw-run.json"), "utf8")) as RawRunFile;
+  const run = JSON.parse(fs.readFileSync(path.join(dir, ".executable-stories/raw-run.json"), "utf8")) as RawRunFile;
+  return Object.assign(run, { stderr: proc.stderr.toString() });
 }
 
 describe("raw run written by the preload", () => {
@@ -87,6 +89,13 @@ describe("raw run written by the preload", () => {
     expect(byTitle("rejects an expired card")?.stepEvents?.map((e) => e.status)).toEqual(["pass", "fail"]);
   });
 
+  test("prints the story's steps under the failure, and keeps them out of the report", () => {
+    expect(run.stderr).toContain(
+      "Story steps:\n  ✓ Given an expired card\n  ✗ Then the payment is declined",
+    );
+    expect(byTitle("rejects an expired card")?.error?.message).not.toContain("Story steps:");
+  });
+
   test("marks a file incomplete when a test fails before story.init()", () => {
     expect(byTitle("breaks before declaring a story")).toBeUndefined();
     expect(run.incompleteSourceFiles).toEqual(["checkout.test.ts"]);
@@ -98,6 +107,45 @@ describe("raw run written by the preload", () => {
     expect(run.gitSha).toBe("abc123");
     expect(run.coveredSourceFiles).toEqual(["checkout.test.ts"]);
   });
+});
+
+test("the trail marks the step that failed", () => {
+  const { stderr } = runBun({
+    "wrapped.test.ts": `import { story, test } from ${JSON.stringify(path.join(src, "index.ts"))};
+
+test("async body throws", async () => {
+  story.init();
+  story.given("setup", () => {});
+  await story.when("it breaks", async () => { throw new Error("kaput"); });
+});
+
+test("fails after a finished step", () => {
+  story.init();
+  story.given("setup", () => {});
+  throw new Error("later");
+});
+
+test("a caught throw does not own a later failure", () => {
+  story.init();
+  try {
+    story.given("a rejected input", () => { throw new Error("rejected"); });
+  } catch {}
+  story.then("the total is 3");
+  throw new Error("expected 3");
+});
+
+test("nested steps", () => {
+  story.init();
+  story.when("the order is placed", () => {
+    story.and("payment is taken", () => { throw new Error("declined"); });
+  });
+});
+`,
+  });
+  expect(stderr).toContain("kaput\n\nStory steps:\n  ✓ Given setup\n  ✗ When it breaks");
+  expect(stderr).toContain("later\n\nStory steps:\n  ✓ Given setup\n  ✗ (failed after the last step)");
+  expect(stderr).toContain("expected 3\n\nStory steps:\n  ✓ Given a rejected input\n  ✗ Then the total is 3");
+  expect(stderr).toContain("declined\n\nStory steps:\n  ✓ When the order is placed\n  ✗ And payment is taken");
 });
 
 test("a test that bun fails after its body resolves is recorded as a failure", () => {

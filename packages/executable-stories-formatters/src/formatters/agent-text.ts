@@ -1,6 +1,7 @@
 import { toStoryReport } from "executable-stories-core/converters/story-report";
 import type { ReportDocEntry, ReportScenario, StoryReport } from "executable-stories-core/types/story-report";
 import type { TestRunResult } from "executable-stories-core/types/test-result";
+import { diffAria, summarizeAriaChanges } from "executable-stories-core/aria-diff";
 
 /**
  * agent-text — the full behaviour of a run as flat, token-lean plain text for
@@ -55,22 +56,37 @@ function scenarioLines(scenario: ReportScenario): string[] {
   const lines = [`${STATUS_WORD[scenario.status] ?? scenario.status.toUpperCase()} ${scenario.title}${tags}`];
   for (const ticket of scenario.tickets ?? []) lines.push(`  ticket ${ticket.id}${ticket.url ? ` ${ticket.url}` : ""}`);
   if (scenario.covers?.length) lines.push(`  covers ${scenario.covers.join(", ")}`);
+  // The last screen recorded with a screenshot, so each later one says what changed.
+  const screen: Screen = {};
   for (const step of scenario.steps) {
     const failed = step.status === "failed" ? " !! FAILED" : "";
     lines.push(`  ${step.keyword} ${step.text}${failed}`);
     if (step.errorMessage) lines.push(indent(step.errorMessage, "    ! "));
     if (step.expected !== undefined) lines.push(indent(`expected: ${step.expected}`, "    ! "));
     if (step.actual !== undefined) lines.push(indent(`actual: ${step.actual}`, "    ! "));
-    for (const entry of step.docEntries) lines.push(...docLines(entry, "    "));
+    for (const entry of step.docEntries) lines.push(...docLines(entry, "    ", screen));
   }
-  for (const entry of scenario.docEntries) lines.push(...docLines(entry, "  "));
+  for (const entry of scenario.docEntries) lines.push(...docLines(entry, "  ", screen));
   if (scenario.errorMessage) lines.push(indent(`error: ${scenario.errorMessage}`, "  "));
   return lines;
 }
 
-function docLines(entry: ReportDocEntry, pad: string): string[] {
+type Screen = { last?: string };
+
+function docLines(entry: ReportDocEntry, pad: string, screen: Screen): string[] {
   const lines = ownDocLines(entry, pad);
-  for (const child of entry.children ?? []) lines.push(...docLines(child, pad + "  "));
+  if (entry.kind === "screenshot" && entry.aria !== undefined) {
+    if (screen.last !== undefined) {
+      const changes = summarizeAriaChanges(diffAria(screen.last, entry.aria));
+      lines.push(
+        changes.length
+          ? `${pad}  screen changes:\n${changes.map((c) => `${pad}    ${c}`).join("\n")}`
+          : `${pad}  screen unchanged since the last screenshot`,
+      );
+    }
+    screen.last = entry.aria;
+  }
+  for (const child of entry.children ?? []) lines.push(...docLines(child, pad + "  ", screen));
   return lines;
 }
 

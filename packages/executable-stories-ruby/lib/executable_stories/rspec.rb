@@ -84,6 +84,7 @@ module ExecutableStories
         source_line: example.metadata[:line_number],
         error: error_for(example, status)
       )
+      story.annotate_failure(example.exception) if status == "fail" && example.exception
     end
 
     def build_story(example)
