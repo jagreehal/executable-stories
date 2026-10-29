@@ -9,14 +9,14 @@
  *
  * export default defineConfig({
  *   e2e: {
- *     setupNodeEvents(on) {
- *       registerExecutableStoriesPlugin(on);
+ *     setupNodeEvents(on, config) {
+ *       return registerExecutableStoriesPlugin(on, config);
  *     },
  *   },
  * });
  */
 
-import { recordMeta, getMeta } from "./store";
+import { recordMeta, getMeta, clearStore, storeDir, RUN_ENV } from "./store";
 
 const TASK_NAME = "executableStories:recordMeta";
 const GET_STORED_META_TASK = "executableStories:getStoredMeta";
@@ -26,17 +26,24 @@ export interface PluginEvents {
   (event: "task", tasks: Record<string, (arg: unknown) => unknown>): void;
 }
 
-/**
- * Register the executable-stories task on the Cypress `on` handler.
- * Call this from setupNodeEvents in your Cypress config.
- */
 /** Argument for getStoredMeta task (used by tests to assert on recorded meta). */
 export interface GetStoredMetaArg {
   specRelative: string;
   titlePath: string[];
 }
 
-export function registerExecutableStoriesPlugin(on: PluginEvents): void {
+/**
+ * Register the executable-stories task on the Cypress `on` handler. Call this
+ * from setupNodeEvents and return what it returns: given `config`, it adds this
+ * run's id to `config.env`, which `cypress.run()` reports back, so
+ * `buildRawRunFromCypressResult` reads exactly this run's stories.
+ */
+export function registerExecutableStoriesPlugin<C extends { env?: Record<string, unknown> }>(
+  on: PluginEvents,
+  config?: C,
+): C | undefined {
+  // setupNodeEvents runs as a run starts: begin with an empty store for this run.
+  clearStore(process.ppid);
   on("task", {
     [TASK_NAME]: (payload: unknown) => recordMeta(payload as import("./types").RecordMetaPayload),
     [GET_STORED_META_TASK]: (arg: unknown) => {
@@ -44,4 +51,5 @@ export function registerExecutableStoriesPlugin(on: PluginEvents): void {
       return getMeta(specRelative, titlePath) ?? null;
     },
   });
+  return config && { ...config, env: { ...config.env, [RUN_ENV]: storeDir(process.ppid) } };
 }

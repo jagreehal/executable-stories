@@ -237,6 +237,10 @@ describe("Checkout", () => {
 
 Markdown renders the heading with _(planned)_; the HTML report shows a **Planned** badge. A file containing only todos produces nothing — the story-file gate keeps plain suites out of the docs.
 
+### Read a failure
+
+When a story test fails, the error message ends with a `Story steps:` list: ✓ for each step the test passed, ✗ where it failed. A wrapped step whose body throws gets the ✗; otherwise the last step before the failing assertion does. Reports keep the original error message, so read the steps from the test output.
+
 ## Common Mistakes
 
 ### CRITICAL Calling story.init() with a task argument

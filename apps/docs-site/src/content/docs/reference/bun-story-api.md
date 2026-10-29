@@ -85,6 +85,10 @@ npx executable-stories check .executable-stories/raw-run.json
 npx executable-stories format .executable-stories/raw-run.json --format html
 ```
 
+## When a test fails
+
+The failure message lists the story's steps: ✓ for each step the test passed and ✗ for the one that failed. A wrapped step whose body throws gets the ✗; otherwise the last step before the failing assertion does. The raw run keeps the original error message.
+
 ## Scope
 
 - The adapter records tests registered through its own `test` / `it`. Take `describe` from the package too, so tests under `describe.skip` report `skip`.

@@ -247,6 +247,10 @@ s.AttachInline("notes.md", "text/markdown", "## Notes\n\nRetried once.", "IDENTI
 
 The HTML report previews `text/plain`, `text/markdown` and `text/html` attachments inline, next to the download link. Inline text needs the `IDENTITY` encoding.
 
+### Read a failure
+
+When a story test fails, the test log shows a `Story steps:` list at the test's `es.Init` line: ✓ for each step the test passed, ✗ where it failed. A wrapped `s.Fn` step that fails gets the ✗; otherwise the last step does. The raw run keeps the original error.
+
 ## Common Mistakes
 
 ### CRITICAL Missing TestMain with RunAndReport

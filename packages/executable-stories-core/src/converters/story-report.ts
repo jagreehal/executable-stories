@@ -165,6 +165,7 @@ function copyDocEntry(entry: DocEntry): ReportDocEntry {
         kind: 'screenshot',
         path: entry.path,
         ...(entry.alt ? { alt: entry.alt } : {}),
+        ...(entry.aria !== undefined ? { aria: entry.aria } : {}),
         phase: entry.phase,
         ...children,
       };

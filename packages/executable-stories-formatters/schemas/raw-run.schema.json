@@ -663,6 +663,10 @@
             "alt": {
               "type": "string"
             },
+            "aria": {
+              "type": "string",
+              "description": "The page's accessibility snapshot (Playwright ariaSnapshot YAML) when the screenshot was taken."
+            },
             "phase": {
               "$ref": "#/$defs/DocPhase"
             },

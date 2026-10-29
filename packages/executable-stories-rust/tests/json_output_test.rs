@@ -1,3 +1,5 @@
+//! Raw run JSON: the shape each output type serializes to.
+
 use executable_stories::{DocEntry, RawRun, RawTestCase, StoryMeta, StoryStep, Ticket};
 
 #[test]

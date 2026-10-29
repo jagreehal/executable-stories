@@ -65,6 +65,21 @@ describe('Calculator', () => {
 });
 ```
 
+## When a test fails
+
+The failure message lists the story's steps, so you can see how far the story got without opening the report:
+
+```
+expect(received).toBe(expected)
+
+Story steps:
+  ✓ Given a balance of 50
+  ✓ When 100 is deposited
+  ✗ Then the balance is 150
+```
+
+A wrapped step whose body throws gets the ✗. Otherwise the last step before the failing assertion does. The reporter keeps the original error message.
+
 ## StoryOptions
 
 Same as Vitest: `tags`, `ticket`, `meta`, `traceUrlTemplate`. See [Vitest story & doc API](/reference/vitest-story-api/) for detailed doc method descriptions and inline-doc examples.

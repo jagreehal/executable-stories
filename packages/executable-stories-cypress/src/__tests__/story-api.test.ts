@@ -5,7 +5,6 @@
  * we mock Cypress.currentTest and Cypress.spec to test in Vitest.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import type { StoryMeta, StoryStep } from "../types";
 
 // Mock Cypress globals before importing story-api
 const mockCurrentTest = {

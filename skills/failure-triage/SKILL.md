@@ -79,6 +79,10 @@ wrong, and it is the one that matters most. Both look like "test fails, code cha
 The question is whether the *promise* was meant to change. If it was, the scenario edit
 must be visible to readers, because someone is relying on the old behaviour.
 
+### Where a story failed
+
+Each adapter's failure output ends with a `Story steps:` list: ✓ for the steps a test passed, ✗ for the step that failed (Cypress adds `·` for steps the queue never reached). Use it to place a failure in the story before you open the report. The report and the raw run keep the original error message without the list.
+
 ## Flakiness is a measurement, not an opinion
 
 Turn on history and the run tells you rather than you guessing:

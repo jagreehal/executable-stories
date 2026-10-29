@@ -581,6 +581,12 @@ namespace ExecutableStories.Xunit
             RecordAndClear(status, null, null);
         }
 
+        /// <summary>The current story's step checklist, or empty with no story.</summary>
+        internal static string StepTrail()
+        {
+            return _holder.Value?.Context?.StepTrail() ?? "";
+        }
+
         /// <summary>
         /// Record the current story with an outcome and failure details, then clear it.
         /// </summary>
@@ -714,6 +720,12 @@ namespace ExecutableStories.Xunit
             {
                 body();
             }
+            catch
+            {
+                // A nested step that threw first keeps the mark.
+                ctx.FailedStep ??= step;
+                throw;
+            }
             finally
             {
                 step.DurationMs = Stopwatch.GetElapsedTime(start).TotalMilliseconds;
@@ -742,6 +754,12 @@ namespace ExecutableStories.Xunit
             try
             {
                 return body();
+            }
+            catch
+            {
+                // A nested step that threw first keeps the mark.
+                ctx.FailedStep ??= step;
+                throw;
             }
             finally
             {

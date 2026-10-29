@@ -1,13 +1,13 @@
-.PHONY: help quality test lint format format-check type-check security build clean check ci
+.PHONY: help quality test lint features docs format format-check type-check deny msrv build clean check ci
 
-help: ## Show this help message (requires: rustup component add clippy rustfmt; cargo install cargo-audit for security)
+help: ## Show this help message (requires: cargo install cargo-hack cargo-deny)
 	@echo 'Usage: make [target]'
 	@echo ''
 	@echo 'Available targets:'
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-15s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
-# Quality check (runs format-check, lint, security, test)
-quality: format-check lint security test ## Run all quality checks
+# Quality check: what CI runs
+quality: format-check lint features docs test deny msrv ## Run all quality checks
 
 # Formatting
 format: ## Format code (rewrite)
@@ -23,6 +23,14 @@ lint: ## Run clippy (treat warnings as errors)
 	@echo "Running clippy..."
 	@cargo clippy --all-targets --all-features -- -D warnings
 
+features: ## Run clippy for each feature on its own, and for none
+	@echo "Running clippy per feature..."
+	@cargo hack clippy --each-feature --all-targets -- -D warnings
+
+docs: ## Build the API docs, failing on any warning (broken links, missing docs)
+	@echo "Building docs..."
+	@RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --all-features
+
 type-check: ## Type-check without building binaries
 	@echo "Type-checking..."
 	@cargo check --all-targets --all-features
@@ -32,10 +40,15 @@ test: ## Run tests
 	@echo "Running tests..."
 	@cargo test --all-features
 
-# Security (requires: cargo install cargo-audit)
-security: ## Run security audit
-	@echo "Running security audit..."
-	@cargo audit
+# Supply chain: advisories, licences, bans and sources (deny.toml)
+deny: ## Check dependencies against deny.toml
+	@echo "Checking dependencies..."
+	@cargo deny check
+
+msrv: ## Check the declared minimum Rust version still builds
+	@echo "Checking MSRV (1.85)..."
+	@cargo +1.85.0 check --all-targets --all-features
+	@cargo +1.85.0 check --lib --no-default-features
 
 # Build
 build: ## Build all targets and features

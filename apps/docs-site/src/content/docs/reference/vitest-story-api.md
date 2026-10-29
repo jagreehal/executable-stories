@@ -133,6 +133,21 @@ it('login with credentials', ({ task }) => {
 });
 ```
 
+## When a test fails
+
+The failure message lists the story's steps, so you can see how far the story got without opening the report:
+
+```
+AssertionError: expected 150 to be 151
+
+Story steps:
+  ✓ Given a balance of 50
+  ✓ When 100 is deposited
+  ✗ Then the balance is 150
+```
+
+A wrapped step whose body throws gets the ✗. Otherwise the last step before the failing assertion does, since a marker states a claim and the assertion after it checks the claim. A failed `expect.soft` marks the step it ran in, and a story with several soft failures marks each one. The reporter keeps the original error message.
+
 ## StoryOptions
 
 | Option   | Type                      | Default | Description                                                     |

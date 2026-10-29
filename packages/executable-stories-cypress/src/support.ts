@@ -8,13 +8,16 @@
  * import 'executable-stories-cypress/support';
  */
 
-import { getAndClearMeta } from "./story-api";
+import { getAndClearMeta, stepTrail } from "./story-api";
 
 const TASK_NAME = "executableStories:recordMeta";
 
 afterEach(function () {
+  // Read while the story is still active: the queue stopped where the test failed.
+  const failureTrail = this.currentTest?.state === "failed" ? stepTrail() : "";
   const payload = getAndClearMeta();
   if (payload) {
-    cy.task(TASK_NAME, payload);
+    const projectRoot = Cypress.config("projectRoot");
+    cy.task(TASK_NAME, { ...payload, projectRoot, ...(failureTrail ? { failureTrail } : {}) });
   }
 });

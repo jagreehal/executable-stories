@@ -227,6 +227,10 @@ OTel methods and trace-URL templating are gated behind the optional `otel` Cargo
 executable-stories = { version = "0.1", features = ["otel"] }
 ```
 
+### Read a failure
+
+When a story test panics, its captured output ends with a `Story steps:` list: ✓ for each step the test passed, ✗ where it failed. A wrapped step that panics gets the ✗; otherwise the last step does. The raw run keeps the original error.
+
 ## Common Mistakes
 
 ### HIGH Test returns Result and fails without panicking

@@ -15,6 +15,13 @@ import type {
   TestStep,
 } from '@playwright/test/reporter';
 import type { StoryMeta } from 'executable-stories-formatters';
+import {
+  TRAIL_ANNOTATION,
+  appendStepTrail,
+  formatStepTrail,
+  stripStepTrail,
+  type TrailState,
+} from './step-trail';
 // Import from formatters package
 import {
   canonicalizeRun,
@@ -368,7 +375,10 @@ export default class StoryReporter implements Reporter {
       // End test span
       const testHandle = this.testSpans.get(test.id);
       if (testHandle) {
-        testHandle.endSpan(result.status, result.errors?.[0]?.message);
+        testHandle.endSpan(
+          result.status,
+          result.errors?.[0] && stripStepTrail(result.errors[0]).message,
+        );
         this.testSpans.delete(test.id);
       }
     }
@@ -418,9 +428,18 @@ export default class StoryReporter implements Reporter {
       let error: string | undefined;
       let errorStack: string | undefined;
       if (result.status === 'failed' && result.errors?.length) {
-        const err = result.errors[0];
+        const err = stripStepTrail(result.errors[0]);
         error = stripAnsi(err.message || String(err));
         errorStack = err.stack ? stripAnsi(err.stack) : undefined;
+      }
+
+      // Add the step checklist to the errors the terminal reporters print. Done
+      // here, not in the worker, so it covers every spec file and the errors
+      // Playwright records after the test body (timeouts, failing hooks).
+      if ((result.status === 'failed' || result.status === 'timedOut') && result.errors?.length) {
+        const recorded = test.annotations.find((a) => a.type === TRAIL_ANNOTATION)?.description;
+        const state: TrailState = recorded ? JSON.parse(recorded) : { failed: [], errorsSeen: 0 };
+        appendStepTrail(result.errors, formatStepTrail(meta.steps, state, result.errors.length));
       }
 
       // Map Playwright result.attachments → RawAttachment[]. Eagerly persist
@@ -431,9 +450,12 @@ export default class StoryReporter implements Reporter {
       const inlineMaxBytes =
         this.options.attachments?.inlineMaxBytes ??
         DEFAULT_ATTACHMENT_INLINE_MAX_BYTES;
-      const attachmentDir =
+      // Absolute, so a copied file's path in the raw run doesn't depend on the
+      // directory a reader resolves it from (formatters use `projectRoot`).
+      const attachmentDir = this.resolveOutputPath(
         this.options.attachments?.dir ??
-        path.join(this.options.outputDir ?? 'reports', 'attachments');
+          path.join(this.options.outputDir ?? 'reports', 'attachments'),
+      );
       const allAttachments: RawAttachment[] = (result.attachments ?? []).map(
         (a) => {
           if (!persistEnabled) {

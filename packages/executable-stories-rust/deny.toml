@@ -1,0 +1,24 @@
+# Supply-chain policy, enforced in CI by `cargo deny check`.
+# https://embarkstudios.github.io/cargo-deny/
+
+[graph]
+all-features = true
+
+[advisories]
+# Fail on any RustSec vulnerability, and on crates marked unmaintained or yanked.
+unmaintained = "all"
+yanked = "deny"
+ignore = []
+
+[licenses]
+# Permissive licences only, compatible with shipping this crate as Apache-2.0.
+allow = ["Apache-2.0", "MIT", "Unicode-3.0", "Unlicense"]
+confidence-threshold = 0.9
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"

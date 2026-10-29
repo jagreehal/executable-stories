@@ -5,7 +5,6 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
-import type { StoryMeta } from "executable-stories-formatters";
 
 import {
   ReportGenerator,
@@ -21,7 +20,7 @@ import {
   type FormatterOptions,
 } from "executable-stories-formatters";
 
-import { getMeta, getAttachments, getAllMeta, getFeature, clearStore } from "./store";
+import { getMeta, getAttachments, getAllMeta, getFeature, getFailureTrail, loadStore, findRunDir, RUN_ENV } from "./store";
 
 // Re-export types from formatters
 export type {
@@ -156,18 +155,17 @@ function createReporter(
   const specPath = opts.specPath ?? "unknown";
   const startTime = runner.startTime ?? Date.now();
 
-  runner.suite && runner.on?.("end", () => {
+  if (!runner.suite) return;
+  runner.on?.("end", () => {
     const tests = collectTests(runner.suite);
+    loadStore();
     const rawTestCases: RawTestCase[] = [];
 
-    // If specPath not provided, infer from first stored meta (all stored entries are for this spec in a single-spec run)
+    // Without specPath, the spec is the one whose stories were recorded last
+    // among those matching this runner's tests.
     const effectiveSpecPath =
-      specPath !== "unknown"
-        ? specPath
-        : (() => {
-            const all = getAllMeta();
-            return all.length > 0 ? all[0].specRelative : "unknown";
-          })();
+      specPath !== "unknown" ? specPath : (latestSpecFor(tests) ?? "unknown");
+    printFailures(tests, effectiveSpecPath);
 
     // Bodyless tests never run story.init(), so they are collected separately
     // and only kept when the spec has real story tests to sit alongside.
@@ -224,10 +222,7 @@ function createReporter(
       });
     }
 
-    if (rawTestCases.length === 0) {
-      clearStore();
-      return;
-    }
+    if (rawTestCases.length === 0) return;
 
     for (const test of plannedTests) {
       const titlePath = getTitlePath(test);
@@ -280,9 +275,37 @@ function createReporter(
     generator.generate(canonicalRun).catch((err) => {
       console.error("Failed to generate reports:", err);
     });
-
-    clearStore();
   });
+}
+
+/**
+ * Print each failed test with its error, step checklist included. A Cypress
+ * `reporter` replaces Mocha's own, so this reporter prints the failures.
+ */
+/** The spec of the most recently recorded story matching one of `tests`. */
+function latestSpecFor(tests: MochaTest[]): string | undefined {
+  const titles = new Set(tests.map((t) => getTitlePath(t).join("\0")));
+  let latest: { spec: string; at: number } | undefined;
+  for (const entry of getAllMeta()) {
+    if (!titles.has(entry.titlePath.join("\0"))) continue;
+    const at = entry.recordedAt ?? 0;
+    if (!latest || at >= latest.at) latest = { spec: entry.specRelative, at };
+  }
+  return latest?.spec;
+}
+
+function printFailures(tests: MochaTest[], specPath: string): void {
+  const failed = tests.filter((t) => t.state === "failed");
+  if (failed.length === 0) return;
+  const lines = ["", "  Failures:", ""];
+  failed.forEach((test, i) => {
+    const titlePath = getTitlePath(test);
+    lines.push(`  ${i + 1}) ${titlePath.join(" > ")}`);
+    const message = (test.err?.message ?? "(no error message)") + (getFailureTrail(specPath, titlePath) ?? "");
+    for (const line of message.split("\n")) lines.push(`     ${line}`);
+    lines.push("");
+  });
+  process.stdout.write(lines.join("\n") + "\n");
 }
 
 /**
@@ -309,13 +332,38 @@ export interface CypressRunResultRun {
 
 export interface CypressRunResult {
   runs?: CypressRunResultRun[];
-  config?: { projectRoot?: string };
+  config?: { projectRoot?: string; env?: Record<string, unknown> };
+  /** ISO timestamps `cypress.run()` reports for the run's tests. */
+  startedTestsAt?: string;
+  endedTestsAt?: string;
+}
+
+/** The store directory of the run `result` describes. */
+function runDirFor(result: CypressRunResult): string | undefined {
+  const id = result.config?.env?.[RUN_ENV];
+  if (typeof id === "string") return id;
+  const time = (iso?: string) => (iso ? Date.parse(iso) : undefined);
+  const found = findRunDir({
+    projectRoot: result.config?.projectRoot,
+    specs: result.runs?.map((r) => r.spec?.relative ?? "").filter(Boolean) ?? [],
+    startedAt: time(result.startedTestsAt),
+    endedAt: time(result.endedTestsAt),
+  });
+  if (!found.dir && found.candidates.length > 1) {
+    console.warn(
+      `executable-stories-cypress: ${found.candidates.length} runs of these specs overlapped, so no stories were read. ` +
+        "Return registerExecutableStoriesPlugin(on, config) from setupNodeEvents to identify the run.",
+    );
+  }
+  return found.dir;
 }
 
 export function buildRawRunFromCypressResult(
   result: CypressRunResult,
   options: StoryReporterOptions = {}
 ): RawRun {
+  // With no run found, this caller's own (absent) directory leaves the store empty.
+  loadStore(runDirFor(result));
   const projectRoot = options.projectRoot ?? result.config?.projectRoot ?? process.cwd();
   const rawTestCases: RawTestCase[] = [];
 

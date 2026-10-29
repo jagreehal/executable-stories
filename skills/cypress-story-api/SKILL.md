@@ -26,8 +26,8 @@ import { registerExecutableStoriesPlugin } from "executable-stories-cypress/plug
 
 export default defineConfig({
   e2e: {
-    setupNodeEvents(on) {
-      registerExecutableStoriesPlugin(on);
+    setupNodeEvents(on, config) {
+      return registerExecutableStoriesPlugin(on, config);
     },
   },
 });
@@ -234,6 +234,10 @@ assertion for its claim step; it does not inspect the callback. A normal `story.
 followed by queued `.should()` commands stays unobserved rather than becoming zero. Use
 the wrapper when assertion evidence must be visible in reports.
 
+### Read a failure
+
+When a story test fails, the reporter prints the error followed by a `Story steps:` list. A failing command marks the last step the queue reached with ✗ and the steps after it with `·`. A throw in the test body itself marks the last step written. Reports keep the original error message.
+
 ## Common Mistakes
 
 ### CRITICAL Missing plugin registration
@@ -258,8 +262,8 @@ import { registerExecutableStoriesPlugin } from "executable-stories-cypress/plug
 
 export default defineConfig({
   e2e: {
-    setupNodeEvents(on) {
-      registerExecutableStoriesPlugin(on);
+    setupNodeEvents(on, config) {
+      return registerExecutableStoriesPlugin(on, config);
     },
   },
 });

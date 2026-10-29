@@ -1,3 +1,5 @@
+//! The `Story` API: steps, aliases, docs and status.
+
 use executable_stories::Story;
 
 #[test]

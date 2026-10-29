@@ -70,6 +70,10 @@ describe('Checkout', () => {
 - Docs: `note`, `tag`, `kv`, `json`, `code`, `table`, `link`.
 - `describe` callbacks are synchronous. Use the package's `describe` so `describe.skip` marks its tests `skip`.
 
+## Read a failure
+
+When a story test fails, the error message ends with a `Story steps:` list: ✓ for each step the test passed, ✗ where it failed. A wrapped step whose body throws gets the ✗; otherwise the last step before the failing assertion does. Reports keep the original error message, so read the steps from the test output.
+
 ## What the raw run records
 
 - `pass` once the body, its `afterEach` hooks, its `onTestFinished` callbacks and any `expect.assertions()` check succeed; otherwise `fail` with the error.

@@ -7,7 +7,39 @@ require_relative "doc_entry"
 require_relative "collector"
 
 module ExecutableStories
+  # The failure step checklist, kept apart from the step API it reads.
+  module StepTrail
+    STEP_TRAIL_HEADER = "Story steps:"
+
+    # The steps as a checklist for a failure, so a red test shows how far the
+    # story got without opening the report. The failing step is the wrapped step
+    # whose body raised, else the last step: a marker states a claim and the
+    # assertion that broke follows it. When the last step is a wrapped body that
+    # finished, the failure came after it.
+    def step_trail
+      return "" if @steps.empty?
+
+      last = @steps.last
+      failed = @thrown_step || (last.wrapped ? nil : last)
+      lines = @steps.map { |s| "  #{s.equal?(failed) ? "✗" : "✓"} #{s.keyword} #{s.text}" }
+      lines << "  ✗ (failed after the last step)" unless failed
+      "#{STEP_TRAIL_HEADER}\n#{lines.join("\n")}"
+    end
+
+    # Add the checklist to the message the test runner prints for +exception+.
+    # Call it after recording: the recorded error keeps the original message.
+    def annotate_failure(exception)
+      trail = step_trail
+      return if trail.empty? || exception.message.include?(STEP_TRAIL_HEADER)
+
+      message = "#{exception.message}\n\n#{trail}"
+      exception.define_singleton_method(:message) { message }
+    end
+  end
+
   class Story
+    include StepTrail
+
     attr_accessor :scenario, :steps, :tags, :tickets, :covers, :meta, :docs,
                   :current_step, :seen_primary, :start_time, :end_time,
                   :source_order, :step_counter, :attachments, :active_timers,
@@ -115,16 +147,20 @@ module ExecutableStories
 
     def fn(keyword, text, &body)
       add_step(keyword, text)
-      @current_step.wrapped = true
+      step = @current_step
+      step.wrapped = true
 
       start_ms = Process.clock_gettime(Process::CLOCK_MONOTONIC) * 1000.0
+      finished = false
       begin
         result = body.call
-        @current_step.duration_ms = (Process.clock_gettime(Process::CLOCK_MONOTONIC) * 1000.0) - start_ms
+        finished = true
         result
-      rescue StandardError => e
-        @current_step.duration_ms = (Process.clock_gettime(Process::CLOCK_MONOTONIC) * 1000.0) - start_ms
-        raise e
+      ensure
+        step.duration_ms = (Process.clock_gettime(Process::CLOCK_MONOTONIC) * 1000.0) - start_ms
+        # `ensure`, not `rescue`: assertion failures are not StandardErrors.
+        # Nested steps keep the innermost one that threw.
+        @thrown_step ||= step unless finished
       end
     end
 
@@ -354,6 +390,8 @@ module ExecutableStories
         started_at_ms: Process.clock_gettime(Process::CLOCK_REALTIME, :millisecond)
       )
       @step_counter += 1
+      # A new step means a throw from an earlier wrapped step was caught.
+      @thrown_step = nil
       # Close the previous marker before this step's own assertions begin.
       flush_pending_assertions
       @steps << step
@@ -402,6 +440,7 @@ module ExecutableStories
         started_at_ms: Process.clock_gettime(Process::CLOCK_REALTIME, :millisecond)
       )
       @step_counter += 1
+      @thrown_step = nil
       flush_pending_assertions
       @steps << step
       @current_step = step

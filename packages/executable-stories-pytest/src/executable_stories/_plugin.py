@@ -172,6 +172,13 @@ def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo[None]) ->
     if report.when != "call":
         return
 
+    # A red test shows how far its story got without opening the report. A
+    # section, not longrepr, so the recorded error message stays as it was.
+    if report.failed:
+        trail = story._step_trail()
+        if trail:
+            report.sections.append(("Story steps", trail))
+
     start_ms = _test_start_times.pop(item.nodeid, 0.0)
     now_ms = time.time() * 1000
     duration_ms = now_ms - start_ms if start_ms else 0.0

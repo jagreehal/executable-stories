@@ -78,6 +78,10 @@ export interface RecordMetaPayload {
   otelSpans?: ReadonlyArray<Record<string, unknown>>;
   /** Feature declaration from story.feature(), when the spec made one. */
   feature?: FeatureInput;
+  /** The story's step checklist, sent for a failed test so the reporter can print it. */
+  failureTrail?: string;
+  /** The Cypress project that ran the test, so a run's stories can be told from another checkout's. */
+  projectRoot?: string;
 }
 
 /** All inline doc options that can be passed to step markers. */

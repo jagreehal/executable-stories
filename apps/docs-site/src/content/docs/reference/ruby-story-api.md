@@ -74,3 +74,20 @@ RSpec examples automatically capture:
 - `story.meta["rspec"]` with `fullDescription`, `description`, `filePath`, `lineNumber`, and `scopedId`
 
 The Ruby RSpec adapter preserves the same story API and raw JSON shape as the Minitest path, so the formatter package can render both without special handling.
+
+## When a test fails
+
+Minitest and RSpec print the story's steps under the failure message:
+
+```
+  1) Failure:
+CheckoutTest#test_deposit [test/checkout_test.rb:10]:
+Expected: 151
+  Actual: 150
+
+Story steps:
+  ✓ Given a balance of 50
+  ✗ Then the balance is 150
+```
+
+A wrapped step whose body raises gets the ✗; otherwise the last step does. The raw run keeps the original message.

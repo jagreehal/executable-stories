@@ -98,6 +98,27 @@ const toError = (err: unknown) =>
   err instanceof Error ? { message: err.message, stack: err.stack } : { message: String(err) };
 
 /**
+ * The story's steps as a checklist for the failure message, so a red test shows how far the
+ * story got without opening the report. The failing step is the wrapped step that threw, else
+ * the last step: a marker states a claim and the assertion that broke follows it. When the last
+ * step is a wrapped body that finished, the failure came after it.
+ */
+function stepTrail(record: TestRecord): string {
+  const steps = record.story?.steps ?? [];
+  if (steps.length === 0) return "";
+  const last = steps[steps.length - 1];
+  const failed = record.failedStep ?? (last.wrapped ? undefined : last);
+  const lines = steps.map((s) => `  ${s === failed ? "✗" : "✓"} ${s.keyword} ${s.text}`);
+  if (!failed) lines.push("  ✗ (failed after the last step)");
+  return "\n\nStory steps:\n" + lines.join("\n");
+}
+
+/** Append the trail to the error bun prints (bun prints `message`, not the stack's first line). */
+function annotate(err: unknown, record: TestRecord): void {
+  if (err instanceof Error) err.message += stepTrail(record);
+}
+
+/**
  * Run the body with its record active, and record how it settled. A body that resolves has not
  * passed yet: afterEach hooks, onTestFinished callbacks and expect.assertions() can still fail it,
  * and bun reports none of them. So the wrapper registers its own onTestFinished once the body
@@ -107,7 +128,7 @@ const toError = (err: unknown) =>
 function wrap(record: TestRecord, body: TestBody): TestBody {
   return () => {
     // A retry runs the body again: forget the attempt before.
-    Object.assign(record, { ran: true, status: undefined, error: undefined, story: undefined, stepCounter: 0, concurrent: undefined });
+    Object.assign(record, { ran: true, status: undefined, error: undefined, story: undefined, stepCounter: 0, concurrent: undefined, failedStep: undefined });
     record.attempts++;
     const start = performance.now();
     const settle = () => {
@@ -123,7 +144,9 @@ function wrap(record: TestRecord, body: TestBody): TestBody {
     outcome.catch((err: unknown) => {
       record.durationMs = performance.now() - start;
       record.status = "fail";
+      // Recorded before the trail is added: the report lists the steps itself.
       record.error = toError(err);
+      annotate(err, record);
     });
     // Chained outside current.run, so onTestFinished registers from bun's own context.
     return outcome.then(() => {
@@ -244,18 +267,27 @@ function createStep(keyword: StepKeyword) {
       docs: [],
       ...(body ? { wrapped: true } : {}),
     };
+    // A throw from an earlier wrapped step was caught if the test got here.
+    record.failedStep = undefined;
     steps.push(entry);
     if (!body) return;
     const start = performance.now();
     const done = () => (entry.durationMs = performance.now() - start);
     let sync = true;
+    const threw = (err: unknown) => {
+      // Nested steps keep the innermost one that threw.
+      record.failedStep ??= entry;
+      throw err;
+    };
     try {
       const result = body();
       if (result instanceof Promise) {
         sync = false;
-        return result.finally(done) as T;
+        return result.finally(done).catch(threw) as T;
       }
       return result;
+    } catch (err) {
+      return threw(err);
     } finally {
       if (sync) done();
     }

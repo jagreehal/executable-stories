@@ -1131,3 +1131,109 @@ class TestMinitestAssertionCounts < Minitest::Test
     JSON.parse(File.read(output_path))
   end
 end
+
+# A failing story test prints its steps under the failure, so a red run shows
+# how far the story got without opening the report. The raw run keeps the
+# original message.
+class TestFailureStepTrail < Minitest::Test
+  def setup
+    ExecutableStories::Collector.reset
+    @tmpdir = Dir.mktmpdir("executable_stories_trail")
+  end
+
+  def teardown
+    FileUtils.rm_rf(@tmpdir) if @tmpdir
+  end
+
+  def trail(*lines)
+    "Story steps:\n#{lines.join("\n")}"
+  end
+
+  def test_marks_the_last_marker
+    s = ExecutableStories.init("marker")
+    s.given("a balance of 50")
+    s.then("the balance is 150")
+    assert_equal trail("  ✓ Given a balance of 50", "  ✗ Then the balance is 150"), s.step_trail
+  end
+
+  def test_marks_the_wrapped_step_that_raised
+    s = ExecutableStories.init("wrapped")
+    s.given("setup")
+    assert_raises(RuntimeError) { s.fn("When", "it breaks") { raise "kaput" } }
+    assert_equal trail("  ✓ Given setup", "  ✗ When it breaks"), s.step_trail
+  end
+
+  def test_failure_after_a_finished_wrapped_step
+    s = ExecutableStories.init("after")
+    s.fn("Given", "setup") { nil }
+    assert_equal trail("  ✓ Given setup", "  ✗ (failed after the last step)"), s.step_trail
+  end
+
+  def test_a_caught_raise_does_not_own_a_later_failure
+    s = ExecutableStories.init("caught")
+    assert_raises(RuntimeError) { s.fn("Given", "a rejected input") { raise "rejected" } }
+    s.then("the total is 3")
+    assert_equal trail("  ✓ Given a rejected input", "  ✗ Then the total is 3"), s.step_trail
+  end
+
+  def test_nested_steps_mark_the_inner_one
+    s = ExecutableStories.init("nested")
+    assert_raises(RuntimeError) do
+      s.fn("When", "the order is placed") { s.fn("And", "payment is taken") { raise "declined" } }
+    end
+    assert_equal trail("  ✓ When the order is placed", "  ✗ And payment is taken"), s.step_trail
+  end
+
+  def test_minitest_prints_the_trail_and_the_raw_run_keeps_the_message
+    stdout, raw = run_script("trail_test.rb", <<~RUBY)
+      require "minitest/autorun"
+      require "executable_stories"
+      require "executable_stories/minitest"
+
+      class TrailTest < Minitest::Test
+        def test_fails
+          s = ExecutableStories.init("a failing story")
+          s.given("a balance of 50")
+          s.then("the balance is 150")
+          assert_equal 151, 150
+        end
+      end
+    RUBY
+
+    assert_includes stdout, trail("  ✓ Given a balance of 50", "  ✗ Then the balance is 150")
+    refute_includes raw["testCases"][0]["error"]["message"], "Story steps:"
+  end
+
+  def test_rspec_prints_the_trail_and_the_raw_run_keeps_the_message
+    stdout, raw = run_script("trail_spec.rb", <<~RUBY, rspec: true)
+      require "executable_stories/rspec"
+      ExecutableStories::RSpecPlugin.install!
+
+      RSpec.describe "Balance" do
+        story "a failing story" do |s|
+          s.given("a balance of 50")
+          s.then("the balance is 150")
+          expect(150).to eq(151)
+        end
+      end
+    RUBY
+
+    assert_includes stdout, "Story steps:"
+    assert_includes stdout, "✗ Then the balance is 150"
+    refute_includes raw["testCases"][0]["error"]["message"], "Story steps:"
+  end
+
+  private
+
+  def run_script(name, body, rspec: false)
+    path = File.join(@tmpdir, name)
+    output_path = File.join(@tmpdir, "raw-run.json")
+    lib_path = File.expand_path("../lib", __dir__)
+    File.write(path, body)
+    command = [RbConfig.ruby, "-I", lib_path]
+    command += rspec ? [File.join(Gem.bindir, "rspec"), "--format", "progress", path] : [path]
+    stdout, stderr, _status = Open3.capture3({ "EXECUTABLE_STORIES_OUTPUT" => output_path }, *command)
+    assert File.exist?(output_path), "expected #{output_path}\nstdout:\n#{stdout}\nstderr:\n#{stderr}"
+    [stdout, JSON.parse(File.read(output_path))]
+  end
+end

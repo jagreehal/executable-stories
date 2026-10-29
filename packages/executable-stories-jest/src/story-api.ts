@@ -31,6 +31,7 @@ import { createHash } from "node:crypto";
 import { createRequire } from 'node:module';
 import { tryGetActiveOtelContext, resolveTraceUrl } from 'executable-stories-core/utils/otel-detect';
 import { buildHtmlDocEntry } from 'executable-stories-core/utils/doc-builders';
+import { STEP_TRAIL_MARKER } from './step-trail';
 import type {
   DocEntry,
   FeatureInput,
@@ -108,6 +109,10 @@ interface StoryContext {
   pendingStep: StoryStep | null;
   /** Assertion counter reading taken when {@link pendingStep} was created. */
   pendingFrom?: number;
+  /** The wrapped step whose body threw, until another step starts (the throw was caught). */
+  failedStep?: StoryStep;
+  /** jest-circus's record of the test that called init, to skip stale contexts. */
+  test?: CircusTest;
 }
 
 /**
@@ -152,10 +157,84 @@ try {
   }).afterEach;
   registerAfterEach?.(() => {
     flushPendingAssertions();
+    annotateFailure();
   });
 } catch {
   // Imported outside a Jest test context (the reporter, tooling): nothing to
   // register against, and nothing to flush.
+}
+
+/** The parts of jest-circus's running-test record the failure trail uses. */
+interface CircusTest {
+  errors: Array<unknown>;
+}
+
+/**
+ * jest-circus's record of the running test.
+ *
+ * Jest has no onTestFailed, and afterEach is not told about failures, but the
+ * circus state lives on the test global under a private symbol and its
+ * `currentlyRunningTest.errors` already holds the test body's errors when
+ * afterEach runs. They are formatted from `error.stack` after the hooks.
+ */
+function currentCircusTest(): CircusTest | undefined {
+  // Found by the symbol's description; with no match there is no checklist.
+  const sym = Object.getOwnPropertySymbols(globalThis).find(
+    (s) => s.description === 'JEST_STATE_SYMBOL',
+  );
+  const state = sym
+    ? (globalThis as unknown as Record<symbol, { currentlyRunningTest?: CircusTest | null }>)[sym]
+    : undefined;
+  return state?.currentlyRunningTest ?? undefined;
+}
+
+/**
+ * The story's steps as a checklist for the failure message, so a red test
+ * shows how far the story got without opening the report.
+ *
+ * The failing step is the wrapped step that threw, else the last step: a
+ * marker states a claim and the assertion that broke follows it. When the
+ * last step is a wrapped body that finished, the failure came after it.
+ */
+function formatStepTrail(ctx: StoryContext): string {
+  const steps = ctx.meta.steps;
+  if (steps.length === 0) return '';
+  const last = steps[steps.length - 1];
+  const failed = ctx.failedStep ?? (last.wrapped ? undefined : last);
+  const lines = steps.map(
+    (s) => `  ${s === failed ? '✗' : '✓'} ${s.keyword} ${s.text.replace(/\n/g, ' ')}`,
+  );
+  if (!failed) lines.push('  ✗ (failed after the last step)');
+  return STEP_TRAIL_MARKER + lines.join('\n');
+}
+
+/** Append the step checklist to the running test's errors, message and stack. */
+function annotateFailure(): void {
+  const ctx = activeContext;
+  const test = currentCircusTest();
+  if (!ctx || !test || ctx.test !== test || test.errors.length === 0) return;
+  const trail = formatStepTrail(ctx);
+  if (!trail) return;
+  for (const entry of test.errors) {
+    // circus stores either the error or an [error, asyncError] pair. A timeout
+    // is a string paired with the asyncError circus prints it with.
+    if (Array.isArray(entry) && typeof entry[0] === 'string') {
+      if (!entry[0].includes(STEP_TRAIL_MARKER)) entry[0] += trail;
+      continue;
+    }
+    const err = (Array.isArray(entry) ? entry[0] : entry) as
+      | { message?: unknown; stack?: unknown }
+      | undefined;
+    if (!err || typeof err !== 'object' || typeof err.message !== 'string') continue;
+    if (err.message.includes(STEP_TRAIL_MARKER)) continue;
+    const message = err.message;
+    if (typeof err.stack === 'string') {
+      err.stack = err.stack.includes(message)
+        ? err.stack.replace(message, () => message + trail)
+        : message + trail + '\n' + err.stack;
+    }
+    err.message = message + trail;
+  }
 }
 
 /**
@@ -182,9 +261,7 @@ function flushPendingAssertions(): void {
 // Use globalThis to ensure the registry is shared across module instances
 // This is needed because Jest may load the setup file and test files as separate module instances
 declare global {
-  // eslint-disable-next-line no-var
   var __jestExecutableStoriesRegistry: Map<string, StoryMeta[]> | undefined;
-  // eslint-disable-next-line no-var
   var __jestExecutableStoriesExitHandler: boolean | undefined;
 }
 
@@ -440,6 +517,7 @@ function createStepMarker(keyword: StepKeyword) {
 
     // Close the previous marker before this step's own assertions begin.
     flushPendingAssertions();
+    ctx.failedStep = undefined;
 
     ctx.meta.steps.push(step);
     ctx.currentStep = step;
@@ -477,7 +555,7 @@ function createStepMarker(keyword: StepKeyword) {
       if (result instanceof Promise) {
         return result.then(
           (val) => { step.durationMs = performance.now() - start; recordAssertions(step, assertionsBefore); return val; },
-          (err) => { step.durationMs = performance.now() - start; recordAssertions(step, assertionsBefore); throw err; },
+          (err) => { step.durationMs = performance.now() - start; recordAssertions(step, assertionsBefore); ctx.failedStep ??= step; throw err; },
         ) as T;
       }
       step.durationMs = performance.now() - start;
@@ -486,6 +564,7 @@ function createStepMarker(keyword: StepKeyword) {
     } catch (err) {
       step.durationMs = performance.now() - start;
       recordAssertions(step, assertionsBefore);
+      ctx.failedStep ??= step;
       throw err;
     }
   }
@@ -594,7 +673,6 @@ function init(options?: StoryOptions): void {
 
     // Story -> OTel: enrich active span with story attributes
     try {
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       const reqUrl = import.meta.url
         ?? (typeof __filename !== 'undefined' ? `file://${__filename}` : undefined);
       const req = createRequire(reqUrl!);
@@ -636,6 +714,7 @@ function init(options?: StoryOptions): void {
     testPath,
     scenarioIndex,
     pendingStep: null,
+    test: currentCircusTest(),
   };
 
   // Link attachments to the registry for this test file + scenario index
@@ -681,6 +760,7 @@ function fn<T>(keyword: StepKeyword, text: string, body: () => T): T {
     wrapped: true,
   };
 
+  ctx.failedStep = undefined;
   ctx.meta.steps.push(step);
   ctx.currentStep = step;
 
@@ -698,6 +778,7 @@ function fn<T>(keyword: StepKeyword, text: string, body: () => T): T {
         },
         (err) => {
           step.durationMs = performance.now() - start;
+          ctx.failedStep ??= step;
           throw err;
         },
       ) as T;
@@ -707,6 +788,7 @@ function fn<T>(keyword: StepKeyword, text: string, body: () => T): T {
     return result;
   } catch (err) {
     step.durationMs = performance.now() - start;
+    ctx.failedStep ??= step;
     throw err;
   }
 }
@@ -926,6 +1008,7 @@ export type Story = typeof story;
 export const _internal = {
   flushStories,
   flushPendingAssertions,
+  currentCircusTest,
   /** Clear active context (for tests that assert getContext() throws). */
   clearContext(): void {
     activeContext = null;

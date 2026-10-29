@@ -229,6 +229,10 @@ story.attach("notes.md", "text/markdown", body="## Notes\n\nRetried once.", enco
 
 The HTML report previews `text/plain`, `text/markdown` and `text/html` attachments inline, next to the download link. Inline text needs the `IDENTITY` encoding.
 
+### Read a failure
+
+When a story test fails, pytest prints a `Story steps` section under the failure: ✓ for each step the test passed, ✗ where it failed. A wrapped step that raises gets the ✗; otherwise the last step does. The raw run keeps the original error message.
+
 ## Common Mistakes
 
 ### CRITICAL Missing story.init() before steps

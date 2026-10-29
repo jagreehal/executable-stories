@@ -273,3 +273,74 @@ def test_ordinary_story():
         raw_run = json.loads((pytester.path / ".executable-stories" / "raw-run.json").read_text())
         statuses = sorted(tc["status"] for tc in raw_run["testCases"])
         assert statuses == ["pass", "todo"]
+
+
+class TestFailureStepTrail:
+    """A failing story test lists its steps, so a red run shows how far it got."""
+
+    def test_lists_steps_and_marks_the_failing_one(self, pytester):
+        pytester.makepyfile(
+            test_trail="""
+from executable_stories import story
+
+def test_marker():
+    story.init("Marker")
+    story.given("a balance of 50")
+    story.then("the balance is 150")
+    assert 50 + 100 == 151
+
+def test_wrapped():
+    story.init("Wrapped")
+    story.fn("Given", "setup", lambda: None)
+    def boom():
+        raise RuntimeError("kaput")
+    story.fn("When", "it breaks", boom)
+    story.then("never reached")
+
+def test_after_wrapped():
+    story.init("After")
+    story.fn("Given", "setup", lambda: None)
+    raise RuntimeError("later")
+
+def test_caught():
+    story.init("Caught")
+    def rejected():
+        raise ValueError("rejected")
+    try:
+        story.fn("Given", "a rejected input", rejected)
+    except ValueError:
+        pass
+    story.then("the total is 3")
+    assert 1 + 2 == 4
+
+def test_nested():
+    story.init("Nested")
+    def declined():
+        raise RuntimeError("declined")
+    story.fn("When", "the order is placed", lambda: story.fn("And", "payment is taken", declined))
+"""
+        )
+        result = pytester.runpytest_subprocess(*_DISABLE_PLUGINS)
+        result.assert_outcomes(failed=5)
+        result.stdout.fnmatch_lines(
+            [
+                "*Story steps*",
+                "  ✓ Given a balance of 50",
+                "  ✗ Then the balance is 150",
+                "*Story steps*",
+                "  ✓ Given setup",
+                "  ✗ When it breaks",
+                "*Story steps*",
+                "  ✓ Given setup",
+                "  ✗ (failed after the last step)",
+                "*Story steps*",
+                "  ✓ Given a rejected input",
+                "  ✗ Then the total is 3",
+                "*Story steps*",
+                "  ✓ When the order is placed",
+                "  ✗ And payment is taken",
+            ]
+        )
+        # The trail is a report section, not part of the recorded error.
+        raw = (pytester.path / ".executable-stories" / "raw-run.json").read_text()
+        assert "Story steps" not in raw

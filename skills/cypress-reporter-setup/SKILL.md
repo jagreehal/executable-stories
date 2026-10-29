@@ -40,8 +40,8 @@ import {
 
 export default defineConfig({
   e2e: {
-    setupNodeEvents(on) {
-      registerExecutableStoriesPlugin(on);
+    setupNodeEvents(on, config) {
+      return registerExecutableStoriesPlugin(on, config);
     },
   },
 });
@@ -80,6 +80,12 @@ monorepo it will not match `packages/anything/docs/by-file/`. Add the same line 
 
 CI-pipeline variant of the Module API (guarding on `result.status`): [REFERENCE.md](REFERENCE.md).
 
+### Failures and the Module API
+
+The reporter prints each failed test with its error and the story's step list, because a custom Cypress reporter replaces Mocha's terminal output.
+
+The plugin records each test's story to a temp directory for the run, which both the reporter and `buildRawRunFromCypressResult` read. Return `registerExecutableStoriesPlugin(on, config)` from `setupNodeEvents`: it adds the run's id to the config, and `buildRawRunFromCypressResult` uses it to read exactly that run. Set `EXECUTABLE_STORIES_CYPRESS_STORE` to choose the directory; the store only touches the `es-*.json` files it writes.
+
 ## Common Mistakes
 
 ### CRITICAL Forgetting plugin + support wiring
@@ -94,8 +100,8 @@ Wrong:
 // Expecting reporter to auto-generate reports
 export default defineConfig({
   e2e: {
-    setupNodeEvents(on) {
-      registerExecutableStoriesPlugin(on);
+    setupNodeEvents(on, config) {
+      return registerExecutableStoriesPlugin(on, config);
     },
   },
   reporter: "executable-stories-cypress/reporter.cjs",

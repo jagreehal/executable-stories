@@ -15,7 +15,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { execFileSync } from "node:child_process";
 import type { RawRun, RawStatus, RawStepEvent, RawTestCase } from "executable-stories-core/types/raw";
-import type { StoryMeta } from "executable-stories-core/types/story";
+import type { StoryMeta, StoryStep } from "executable-stories-core/types/story";
 
 /** One `test(...)` registered through this package. */
 export interface TestRecord {
@@ -30,6 +30,8 @@ export interface TestRecord {
   ran: boolean;
   story?: StoryMeta;
   stepCounter: number;
+  /** The wrapped step whose body threw, until another step starts (the throw was caught). */
+  failedStep?: StoryStep;
   error?: { message: string; stack?: string };
   durationMs?: number;
   /** Times the body has run: more than one when bun retried it. */

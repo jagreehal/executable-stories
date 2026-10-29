@@ -37,6 +37,22 @@ Same as Vitest/Jest/Playwright: **`story.given`**, **`story.when`**, **`story.th
 
 Same as other frameworks: **`story.note`**, **`story.tag`**, **`story.kv`**, **`story.json`**, **`story.state`**, **`story.code`**, **`story.table`**, **`story.link`**, **`story.section`**, **`story.mermaid`**, **`story.screenshot`**, **`story.custom`**, same signatures as [Vitest story & doc API](/reference/vitest-story-api/).
 
+## When a test fails
+
+The reporter prints each failed test with its error, followed by the story's steps:
+
+```
+1) command fails mid story
+   Timed out retrying after 4000ms: expected 1 to equal 2
+
+   Story steps:
+     ✓ Given a value
+     ✗ When it is checked
+     · Then the total updates
+```
+
+A Cypress test body queues commands and the queue runs them afterwards. When a command fails, the last step the queue reached gets the ✗ and the steps after it get `·`. When the test body itself throws, for example a plain `expect`, the last step written gets the ✗. The raw run and the reports keep the original error message.
+
 ## StoryOptions
 
 | Option   | Type                      | Default | Description                                                     |

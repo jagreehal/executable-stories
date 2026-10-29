@@ -89,6 +89,11 @@ type S struct {
 	// into it goes stale. -1 means none is open.
 	pendingIdx  int
 	pendingFrom int
+	// failedIdx is the wrapped step whose body failed the test, or -1.
+	failedIdx int
+	// failedPanicked: failedIdx's body panicked rather than calling Errorf. A
+	// later step means the test recovered that panic, so it no longer counts.
+	failedPanicked bool
 }
 
 // elapsedMs is milliseconds with sub-millisecond resolution. Truncating to
@@ -254,6 +259,7 @@ func Init(t TestingT, scenario string, opts ...Option) *S {
 		seenPrimary:  make(map[string]bool),
 		activeTimers: make(map[int]*timerEntry),
 		pendingIdx:   -1,
+		failedIdx:    -1,
 	}
 
 	for _, opt := range opts {
@@ -266,6 +272,9 @@ func Init(t TestingT, scenario string, opts ...Option) *S {
 	// Registered before any cleanup the test adds, so LIFO ordering runs it
 	// last and the final marker's assertions are all in.
 	t.Cleanup(func() {
+		// A helper cleanup is reported at the Cleanup call, and Init is a
+		// helper too, so the step trail logs at the test's own Init line.
+		t.Helper()
 		s.closePending()
 
 		duration := elapsedMs(s.startTime)
@@ -273,6 +282,9 @@ func Init(t TestingT, scenario string, opts ...Option) *S {
 		status := "pass"
 		if t.Failed() {
 			status = "fail"
+			if l, ok := t.(logger); ok && len(s.steps) > 0 {
+				l.Log(s.stepTrail())
+			}
 		} else if t.Skipped() {
 			status = "skip"
 		}
@@ -336,6 +348,7 @@ func Planned(t TestingT, scenario string, opts ...Option) {
 		sourceFile:  callerFile(),
 		seenPrimary: make(map[string]bool),
 		pendingIdx:  -1,
+		failedIdx:   -1,
 	}
 	for _, opt := range opts {
 		opt(s)
@@ -398,6 +411,10 @@ func (s *S) addStep(keyword, text string, docs ...DocEntry) *S {
 		} else {
 			s.seenPrimary[keyword] = true
 		}
+	}
+
+	if s.failedPanicked {
+		s.failedIdx, s.failedPanicked = -1, false
 	}
 
 	startedAt := float64(time.Now().UnixMilli())
@@ -532,8 +549,17 @@ func (s *S) Fn(keyword, text string, body func()) *S {
 	isClaim := keyword == "Then"
 	before := s.assertions
 
+	failedBefore := s.t.Failed()
+	completed := false
+
 	start := time.Now()
 	defer func() {
+		// A body that panicked or called FailNow never completed; one that
+		// called Errorf completed but failed the test. A nested step inside
+		// this body that already failed (a higher index) keeps the mark.
+		if (!completed || (!failedBefore && s.t.Failed())) && s.failedIdx <= idx {
+			s.failedIdx, s.failedPanicked = idx, !completed
+		}
 		d := elapsedMs(start)
 		s.steps[idx].DurationMs = &d
 		if n := s.assertions - before; n > 0 {
@@ -550,7 +576,40 @@ func (s *S) Fn(keyword, text string, body func()) *S {
 	}()
 
 	body()
+	completed = true
 	return s
+}
+
+// logger is the logging half of *testing.T, asserted separately from TestingT
+// for the same reason as errorReporter.
+type logger interface {
+	Log(args ...any)
+}
+
+// stepTrail is the story's steps as a checklist for the failure output, so a
+// red test shows how far the story got without opening the report.
+//
+// The failing step is the wrapped step whose body failed, else the last step:
+// a marker states a claim and the check that broke follows it. When the last
+// step is a wrapped body that finished, the failure came after it.
+func (s *S) stepTrail() string {
+	failed := s.failedIdx
+	if failed < 0 && !s.steps[len(s.steps)-1].Wrapped {
+		failed = len(s.steps) - 1
+	}
+	var b strings.Builder
+	b.WriteString("Story steps:")
+	for i, step := range s.steps {
+		mark := "✓"
+		if i == failed {
+			mark = "✗"
+		}
+		fmt.Fprintf(&b, "\n  %s %s %s", mark, step.Keyword, step.Text)
+	}
+	if failed < 0 {
+		b.WriteString("\n  ✗ (failed after the last step)")
+	}
+	return b.String()
 }
 
 // Expect is shorthand for Fn("Then", text, body).

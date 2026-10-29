@@ -18,3 +18,12 @@ opentelemetry = { version = "0.32", optional = true }
 
 [features]
 otel = ["opentelemetry"]
+
+[lints.rust]
+unsafe_code = "deny"
+missing_docs = "deny"
+
+[lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+undocumented_unsafe_blocks = "deny"

@@ -9,6 +9,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import fg from "fast-glob";
+import { stripStepTrail } from "./step-trail";
 import { assertionComparison } from "executable-stories-core/utils/assertion-comparison";
 import type { StoryMeta } from "executable-stories-formatters";
 
@@ -256,7 +257,7 @@ export default class StoryReporter {
           durationMs: matchingTest?.duration ?? 0,
           error: matchingTest?.failureMessages?.length
             ? {
-                message: matchingTest.failureMessages.join("\n"),
+                message: matchingTest.failureMessages.map(stripStepTrail).join("\n"),
                 // Jest sets matcherResult on `expect` failures only.
                 ...assertionComparison(
                   (matchingTest.failureDetails?.[0] as { matcherResult?: unknown } | undefined)

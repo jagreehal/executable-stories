@@ -10,6 +10,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import type { TestCaseResult } from "executable-stories-core/types/test-result";
 import { scenarioSlug } from "executable-stories-core/utils/slug";
+import { screenFrames } from "executable-stories-core/aria-diff";
 
 export interface GifArgs {
   testCases: TestCaseResult[];
@@ -28,7 +29,16 @@ export interface GifDeps {
 }
 
 export interface GifResult {
-  written: { scenario: string; path: string; frames: number }[];
+  written: {
+    scenario: string;
+    path: string;
+    frames: number;
+    /**
+     * Steps whose screenshot reads the same as the one before it, from the screens recorded with
+     * `story.screenshot({ aria: true })`: a frame that shows nothing new, or a step that did nothing.
+     */
+    unchanged: string[];
+  }[];
   /** Scenarios left out, with why: not passing, or fewer than two screenshots. */
   skipped: { scenario: string; reason: string }[];
 }
@@ -91,7 +101,10 @@ export async function writeGifs(args: GifArgs, deps: GifDeps): Promise<GifResult
         "-loop", "0",
         out,
       ]);
-      result.written.push({ scenario, path: out, frames: frames.length });
+      const unchanged = screenFrames(tc.story.steps)
+        .filter((f) => f.changes?.length === 0)
+        .map((f) => f.step);
+      result.written.push({ scenario, path: out, frames: frames.length, unchanged });
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }

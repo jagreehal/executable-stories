@@ -980,6 +980,40 @@ test.describe("standalone doc methods", () => {
     expect(screenshotEntry.path.startsWith("data:image/png;base64,")).toBe(true);
   });
 
+  test("story.screenshot({ page, aria }) records the screen's accessibility snapshot beside the image", async ({
+    page,
+  }, testInfo) => {
+    await page.setContent('<h1>Works</h1><label>Search <input value="Silver"></label>');
+    story.init(testInfo);
+    story.then("the works are searched");
+    const entry = (await story.screenshot({ page, alt: "Searched", aria: true })) as { aria?: string };
+    expect(entry.aria).toContain('heading "Works" [level=1]');
+    expect(entry.aria).toContain('textbox "Search": Silver');
+
+    const plain = (await story.screenshot({ page })) as { aria?: string };
+    expect("aria" in plain).toBe(false);
+  });
+
+  test("story.screenshot({ page, aria }) reads the page behind an open menu, and leaves it hidden", async ({
+    page,
+  }, testInfo) => {
+    await page.setContent(
+      '<main aria-hidden="true"><h1>Works <svg aria-hidden="true"></svg></h1></main>' +
+        '<section inert><p>Behind a dialog</p></section>' +
+        '<div role="menu"><div role="menuitemcheckbox" aria-checked="false">Composer</div></div>',
+    );
+    story.init(testInfo);
+    story.then("the column menu is open");
+    const { aria } = (await story.screenshot({ page, aria: true })) as { aria?: string };
+    expect(aria).toContain('heading "Works" [level=1]');
+    expect(aria).toContain("Behind a dialog");
+    expect(aria).toContain('menuitemcheckbox "Composer"');
+    expect(await page.locator("main").getAttribute("aria-hidden")).toBe("true");
+    expect(await page.locator("svg").getAttribute("aria-hidden")).toBe("true");
+    expect(await page.locator("section").getAttribute("inert")).toBe("");
+    expect(await page.locator("[data-executable-stories-unhidden]").count()).toBe(0);
+  });
+
   test("story.screenshot({ page, path }) also writes the file to disk", async ({ page }, testInfo) => {
     await page.setContent("<h1>Hello</h1>");
     story.init(testInfo);
@@ -1282,7 +1316,7 @@ test.describe("describe and nested describe behavior", () => {
 });
 
 test.describe("step callbacks", () => {
-  test("README contract: step callbacks do not receive fixtures when only story.init(testInfo) is called", async ({ page }, testInfo) => {
+  test("README contract: step callbacks do not receive fixtures when only story.init(testInfo) is called", async ({ page: _page }, testInfo) => {
     story.init(testInfo);
 
     await story.when("callback without fixtures", async (fixtures: { page?: unknown } | undefined) => {

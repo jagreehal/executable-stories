@@ -98,10 +98,10 @@ namespace ExecutableStories.Xunit.Tests
             Story.Given("a user exists");
             Story.Fn("When", "the user logs in", () => { });
 
-            StoryMeta meta = Story.GetContext()!.ToStoryMeta();
-            long scenarioStart = meta.StartedAtMs!.Value;
-            long first = meta.Steps![0].StartedAtMs!.Value;
-            long second = meta.Steps[1].StartedAtMs!.Value;
+            var meta = Story.GetContext()!.ToStoryMeta();
+            var scenarioStart = meta.StartedAtMs!.Value;
+            var first = meta.Steps![0].StartedAtMs!.Value;
+            var second = meta.Steps[1].StartedAtMs!.Value;
             Assert.True(scenarioStart > 1_600_000_000_000);
             Assert.True(first >= scenarioStart);
             Assert.True(second >= first);

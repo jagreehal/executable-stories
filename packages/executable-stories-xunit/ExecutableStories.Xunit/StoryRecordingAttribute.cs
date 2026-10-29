@@ -45,6 +45,17 @@ namespace ExecutableStories.Xunit
                 _ => "pass",
             };
 
+            // The runner prints a failed test's output under its error, so the
+            // checklist sits beside the failure without touching the message.
+            if (status == "fail")
+            {
+                var trail = Story.StepTrail();
+                if (trail.Length > 0)
+                {
+                    TestContext.Current.TestOutputHelper?.WriteLine(trail);
+                }
+            }
+
             Story.RecordAndClear(status, ErrorFrom(state), Story.SuitePathFor(sourceKey), sourceKey);
         }
 

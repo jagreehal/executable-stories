@@ -116,6 +116,14 @@ export interface ScreenshotOptions {
    * until the step has been on screen as long as its line takes to read (at least 1s).
    */
   hold?: number | 'auto';
+  /**
+   * Also record the page's accessibility snapshot (Playwright's `ariaSnapshot()`) beside the
+   * image, so a check can read what each frame shows and what changed since the last one
+   * without looking at pixels (`screenFrames` and `diffAria` in executable-stories-core).
+   * It reads the page as it looks: content an open menu or dialog hides from assistive
+   * technology (`aria-hidden`, `inert`) is still on screen, so it is included. Only with `page`.
+   */
+  aria?: boolean;
 }
 
 export interface VideoOptions {

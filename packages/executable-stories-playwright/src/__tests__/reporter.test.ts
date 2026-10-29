@@ -1105,7 +1105,53 @@ test.describe('StoryReporter', () => {
       expect(content).toContain('expect(received).toBe("weather:Bristol")');
       expect(content).toContain('/runner/work/foo/spec.ts:533:26');
       // Raw ANSI escape bytes must not appear.
+      // eslint-disable-next-line no-control-regex -- matching the escape byte is the point
       expect(content).not.toMatch(/\[/);
+    });
+  });
+
+  test.describe('failure step trail', () => {
+    test('keeps the step checklist out of the report', async () => {
+      // story-api appends the checklist to the error for the terminal; the
+      // report renders its own steps.
+      const reporter = new StoryReporter({
+        formats: ['markdown'],
+        outputDir: TEMP_DIR,
+        outputName: 'step-trail',
+        output: { mode: 'aggregated' },
+        markdown: { includeMetadata: false, includeErrors: true },
+      });
+      const meta: StoryMeta = {
+        scenario: 'failing assertion',
+        steps: [{ keyword: 'Then', text: 'it fails', docs: [] }],
+      };
+      const trail = '\n\nStory steps:\n  ✗ Then it fails';
+
+      reporter.onBegin({} as Parameters<typeof reporter.onBegin>[0]);
+      reporter.onTestEnd(
+        {
+          annotations: [{ type: 'story-meta', description: JSON.stringify(meta) }],
+          location: { file: 'test.spec.ts', line: 1 },
+        } as unknown as Parameters<typeof reporter.onTestEnd>[0],
+        {
+          status: 'failed',
+          errors: [
+            {
+              message: `Error: boom${trail}`,
+              stack: `Error: boom${trail}\n    at /spec.ts:3:9`,
+            },
+          ],
+          duration: 1,
+        } as unknown as Parameters<typeof reporter.onTestEnd>[1],
+      );
+      await reporter.onEnd({ status: 'failed' } as Parameters<
+        typeof reporter.onEnd
+      >[0]);
+
+      const content = await fs.promises.readFile(path.join(TEMP_DIR, 'step-trail.md'), 'utf8');
+      expect(content).toContain('Error: boom');
+      expect(content).toContain('/spec.ts:3:9');
+      expect(content).not.toContain('Story steps:');
     });
   });
 
@@ -1491,7 +1537,8 @@ test.describe('relative output paths', () => {
    */
   async function runWithRoots(
     options: Record<string, unknown>,
-  ): Promise<{ cwdDir: string; rootDir: string }> {
+    attachments: { name: string; contentType: string; path: string }[] = [],
+  ): Promise<{ cwdDir: string; rootDir: string; rawRun?: { testCases: { attachments: { path?: string }[] }[] } }> {
     const cwdDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'es-cwd-'));
     const rootDir = await fs.promises.mkdtemp(
       path.join(os.tmpdir(), 'es-rootdir-'),
@@ -1512,6 +1559,7 @@ test.describe('relative output paths', () => {
         steps: [{ keyword: 'Given', text: 'a run', docs: [] }],
       };
       const mockTestCase: MockTestCase = {
+        id: 'test-roots-1',
         annotations: [
           { type: 'story-meta', description: JSON.stringify(meta) },
         ],
@@ -1522,7 +1570,7 @@ test.describe('relative output paths', () => {
       reporter.onBegin({ rootDir } as Parameters<typeof reporter.onBegin>[0]);
       reporter.onTestEnd(
         mockTestCase as unknown as Parameters<typeof reporter.onTestEnd>[0],
-        { status: 'passed', duration: 1 } as unknown as Parameters<
+        { status: 'passed', duration: 1, attachments } as unknown as Parameters<
           typeof reporter.onTestEnd
         >[1],
       );
@@ -1532,8 +1580,30 @@ test.describe('relative output paths', () => {
     } finally {
       process.chdir(originalCwd);
     }
-    return { cwdDir, rootDir };
+    const rawRunPath = options.rawRunPath as string | undefined;
+    const rawRun = rawRunPath
+      ? JSON.parse(await fs.promises.readFile(path.resolve(cwdDir, rawRunPath), 'utf8'))
+      : undefined;
+    return { cwdDir, rootDir, rawRun };
   }
+
+  test("records a copied attachment's path so it resolves from rootDir", async () => {
+    // Formatters resolve a raw run's relative paths against `projectRoot` (rootDir).
+    const sourceDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'es-attach-src-'));
+    const videoPath = path.join(sourceDir, 'video.webm');
+    await fs.promises.writeFile(videoPath, Buffer.alloc(8 * 1024));
+
+    const { cwdDir, rootDir, rawRun } = await runWithRoots(
+      { rawRunPath: 'reports/raw-run.json', attachments: { inlineMaxBytes: 1024 } },
+      [{ name: 'video', contentType: 'video/webm', path: videoPath }],
+    );
+
+    const recorded = rawRun!.testCases[0].attachments[0].path!;
+    expect(fs.existsSync(path.resolve(rootDir, recorded))).toBe(true);
+    // Copied under the cwd's reports/, like every other relative output path.
+    expect(fs.realpathSync(path.resolve(rootDir, recorded)).startsWith(fs.realpathSync(cwdDir))).toBe(true);
+    await fs.promises.rm(sourceDir, { recursive: true });
+  });
 
   test('resolves a relative rawRunPath from the working directory', async () => {
     const { cwdDir, rootDir } = await runWithRoots({

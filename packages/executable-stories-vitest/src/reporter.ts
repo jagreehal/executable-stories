@@ -24,6 +24,7 @@ import type {
 import * as fs from "node:fs";
 import * as path from "node:path";
 import type { StoryMeta } from "./types";
+import { STEP_TRAIL_MARKER } from "./step-trail";
 import { assertionComparison } from "executable-stories-core/utils/assertion-comparison";
 
 // Import from formatters package
@@ -536,7 +537,7 @@ export default class StoryReporter implements StoryReporterProtocol {
           const errors = (result as { errors?: SerializedError[] }).errors;
           if (errors?.length) {
             const err = errors[0];
-            errorMessage = err.message;
+            errorMessage = err.message?.split(STEP_TRAIL_MARKER)[0];
             errorStack = err.stack;
             comparison = assertionComparison(err, { preformatted: true });
           }

@@ -148,6 +148,8 @@ export interface ReportDocScreenshot {
   kind: 'screenshot';
   path: string;
   alt?: string;
+  /** The page's accessibility snapshot when the screenshot was taken (`story.screenshot({ aria: true })`). */
+  aria?: string;
   phase: DocPhase;
   children?: ReportDocEntry[];
 }

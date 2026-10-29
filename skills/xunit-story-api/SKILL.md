@@ -264,6 +264,10 @@ Story.AttachInline("notes.md", "text/markdown", "## Notes\n\nRetried once.");
 
 The HTML report previews `text/plain`, `text/markdown` and `text/html` attachments inline, next to the download link. Inline attachments default to the `IDENTITY` encoding.
 
+### Read a failure
+
+When a story test fails under `[StoryRecording]`, `dotnet test` prints a `Story steps:` list under the test's Standard Output Messages: ✓ for each step the test passed, ✗ where it failed. A wrapped step that throws gets the ✗; otherwise the last step does. The raw run keeps the original error message.
+
 ## Common Mistakes
 
 ### CRITICAL Missing [assembly: StoryRecording]

@@ -925,7 +925,8 @@ describe('StoryReporter', () => {
             state: 'failed',
             errors: [
               {
-                message: 'Expected 1 to equal 2',
+                // The step checklist story.init appends for the terminal; the report has its own.
+                message: 'Expected 1 to equal 2\n\nStory steps:\n  ✗ Then it fails',
                 diff: '- Expected\n+ Received\n\n- 2\n+ 1',
               },
             ],
@@ -947,6 +948,7 @@ describe('StoryReporter', () => {
       const content = fs.readFileSync(outputFile, 'utf8');
       expect(content).toContain('**Failure**');
       expect(content).toContain('Expected 1 to equal 2');
+      expect(content).not.toContain('Story steps:');
     });
 
     it('shows the assertion expected and actual values', async () => {

@@ -62,6 +62,12 @@ await story.screenshot({
 });
 ```
 
+`aria: true` also records the page's accessibility snapshot (Playwright's `ariaSnapshot()`) beside the image, so a frame can be checked as text. The `agent-text` format then lists what changed on screen since the previous screenshot, `executable-stories gif` names any step whose screen reads the same as the frame before, and `screenFrames` and `diffAria` from `executable-stories-core` give the same changes to your own checks, such as one asking a model whether each caption matches its frame.
+
+```typescript
+await story.screenshot({ page, alt: "Composer hidden", aria: true });
+```
+
 **Example:**
 
 ```typescript
@@ -85,6 +91,21 @@ test.describe('Login', () => {
   });
 });
 ```
+
+## When a test fails
+
+With `StoryReporter` in your reporters, the failure output lists the story's steps, so you can see how far the story got without opening the report:
+
+```
+Error: expect(received).toBe(expected)
+
+Story steps:
+  ✓ Given a balance of 50
+  ✓ When 100 is deposited
+  ✗ Then the balance is 150
+```
+
+A wrapped step whose body throws gets the ✗. Otherwise the last step before the failing assertion does. A failed `expect.soft` marks the step it ran in, and a story with several soft failures marks each one. A timeout marks the step the test was in. The reporter adds the list at the end of each test, so reporters that print failures at the end of the run, such as `list`, show it; the raw run keeps the original error message.
 
 ## StoryOptions
 

@@ -34,8 +34,8 @@ import { registerExecutableStoriesPlugin } from "executable-stories-cypress/plug
 
 export default defineConfig({
   e2e: {
-    setupNodeEvents(on) {
-      registerExecutableStoriesPlugin(on);
+    setupNodeEvents(on, config) {
+      return registerExecutableStoriesPlugin(on, config);
     },
   },
 });
@@ -135,6 +135,6 @@ Source: CLAUDE.md — file naming conventions
 
 ### CRITICAL Forgetting plugin or support file
 
-Both `registerExecutableStoriesPlugin(on)` in cypress.config.ts AND `import "executable-stories-cypress/support"` in e2e.ts are required. Missing either one causes silent failures — stories record in the browser but never reach the reporter.
+Both `registerExecutableStoriesPlugin(on, config)` in cypress.config.ts AND `import "executable-stories-cypress/support"` in e2e.ts are required. Missing either one causes silent failures — stories record in the browser but never reach the reporter.
 
 Source: packages/executable-stories-cypress/src/plugin.ts, packages/executable-stories-cypress/src/support.ts

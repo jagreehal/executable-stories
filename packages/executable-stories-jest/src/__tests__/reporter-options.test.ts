@@ -135,7 +135,8 @@ describe("StoryReporter (unit)", () => {
             {
               fullName: "failing scenario",
               status: "failed",
-              failureMessages: ["Expected: 2\nReceived: 1"],
+              // The step checklist story.init adds for the terminal; the report has its own.
+              failureMessages: ["Expected: 2\nReceived: 1\n\nStory steps:\n  ✗ Then it fails\n    at fail.story.test.ts:1:1"],
             },
           ],
         },
@@ -146,6 +147,7 @@ describe("StoryReporter (unit)", () => {
     expect(raw).toContain("**Failure**");
     expect(raw).toContain("Expected: 2");
     expect(raw).toContain("Received: 1");
+    expect(raw).not.toContain("Story steps:");
   });
 
   it("shows the matcher's expected and actual values", async () => {

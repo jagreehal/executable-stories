@@ -1,4 +1,22 @@
-#![warn(clippy::all, clippy::pedantic)]
+//! Given/When/Then story documentation for Rust tests.
+//!
+//! A [`Story`] records a scenario's steps and docs while the test runs. When the
+//! test binary exits, the crate writes every story to a raw run JSON file, and
+//! the `executable-stories` CLI turns that file into Markdown, HTML and other
+//! reports.
+//!
+//! ```
+//! use executable_stories::Story;
+//!
+//! let mut story = Story::new("adds two numbers");
+//! story.given("two numbers 2 and 3");
+//! story.when("they are added");
+//! story.then("the result is 5");
+//! assert_eq!(2 + 3, 5);
+//! ```
+//!
+//! The story records `pass` or `fail` when it is dropped: a failing assertion
+//! panics, and a story dropped while panicking records `fail`.
 
 mod collector;
 mod doc_entry;
