@@ -54,7 +54,7 @@
     "remotion": "4.0.533",
     "tsup": "^8.5.1",
     "typescript": "~6.0.3",
-    "vitest": "^5.0.1"
+    "vitest": "^5.0.5"
   },
   "engines": {
     "node": ">=22.12.0"

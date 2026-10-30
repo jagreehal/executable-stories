@@ -39,7 +39,7 @@
     "executable-stories-showcase-cli": "workspace:*",
     "executable-stories-vitest": "workspace:*",
     "typescript": "~6.0.3",
-    "vitest": "^5.0.1",
+    "vitest": "^5.0.5",
     "zod": "4.5.4"
   }
 }
