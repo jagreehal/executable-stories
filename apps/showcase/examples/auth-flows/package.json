@@ -8,7 +8,7 @@
     "build": "vite build"
   },
   "dependencies": {
-    "react": "19.3.0",
+    "react": "19.3.1",
     "react-dom": "19.3.0",
     "executable-stories-showcase": "workspace:*",
     "executable-stories-showcase-react": "workspace:*",

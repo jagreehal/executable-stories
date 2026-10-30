@@ -50,7 +50,7 @@
     "@remotion/media": "4.0.533",
     "@types/react": "19.3.0",
     "eslint-config-executable-stories": "workspace:*",
-    "react": "19.3.0",
+    "react": "19.3.1",
     "remotion": "4.0.533",
     "tsup": "^8.5.1",
     "typescript": "~6.0.3",
