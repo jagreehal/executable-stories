@@ -1,6 +1,6 @@
 {
   "name": "executable-stories-remotion",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Remotion compositions built from executable-stories runs: storyboard videos from screenshots and state snapshots, and showcase recordings that zoom to each click.",
   "license": "Apache-2.0",
   "repository": {
