@@ -1,0 +1,39 @@
+{
+  "name": "executable-stories-trackers",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jagreehal/executable-stories.git",
+    "directory": "packages/executable-stories-trackers"
+  },
+  "description": "Put an executable-stories run on the tickets its stories name, in any issue tracker. The tracker-agnostic base for executable-stories-linear (and Jira next).",
+  "keywords": ["executable-stories", "issue-tracker", "test-results", "traceability"],
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "executable-stories-core": "workspace:^"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.1",
+    "tsup": "^8.5.1",
+    "typescript": "~6.0.3",
+    "vitest": "^5.0.1"
+  }
+}

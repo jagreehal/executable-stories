@@ -150,7 +150,8 @@ the pipeline; for Confluence and Jira pages specifically, `publish-confluence` a
 - `scenarios-to-tickets` files the tickets a run says are missing, and writes their ids
   onto the scenarios so receipts can find them.
 - `linear-evidence-review` is the Linear-specific version of this workflow, kept for the
-  Evidence Review receipt shape it already proved.
+  Evidence Review receipt shape it already proved. For Linear from CI, with no agent in the
+  loop, `npx executable-stories-linear publish` posts one updating status per issue.
 - `coverage-audit` answers "is it covered?" by requirement, code, and evidence strength —
   the same questions, without the tracker.
 - `spec-evidence-review` shapes what a claim has to carry before a receipt can call it

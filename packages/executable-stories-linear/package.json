@@ -1,0 +1,43 @@
+{
+  "name": "executable-stories-linear",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jagreehal/executable-stories.git",
+    "directory": "packages/executable-stories-linear"
+  },
+  "description": "Show executable-stories results on the Linear issues your stories name: one Quality checks attachment per issue, updated in place every run. No test issues, no clutter.",
+  "keywords": ["executable-stories", "linear", "test-results", "qa", "traceability"],
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "executable-stories-linear": "./dist/bin.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "type-check": "tsc --noEmit",
+    "smoke": "node scripts/live-smoke.mjs"
+  },
+  "dependencies": {
+    "executable-stories-trackers": "workspace:^"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.1",
+    "tsup": "^8.5.1",
+    "typescript": "~6.0.3",
+    "vitest": "^5.0.1"
+  }
+}

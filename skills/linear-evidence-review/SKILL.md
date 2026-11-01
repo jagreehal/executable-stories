@@ -8,11 +8,11 @@ disable-model-invocation: true
 
 Use this skill for the **interactive agent convenience path**: an IDE/CLI agent reads an executable-stories review, finds linked Linear issues, and posts or updates a short receipt through Linear MCP.
 
-This is not the CI write-back path. Do not promise headless receipt-on-merge here; Linear MCP usually relies on interactive OAuth client setup. CI automation is a later product/API decision once the receipt workflow is proven stable.
+For CI, use the `executable-stories-linear` package instead: `npx executable-stories-linear publish reports/raw-run.json` with `LINEAR_API_KEY` keeps one Quality checks attachment per issue per scope, updated in place every run. This skill covers the interactive case, where Linear MCP signs in through OAuth.
 
 - The executable-stories report is the source of truth.
 - Linear issues are provenance and workflow records.
-- This skill uses Linear MCP only; do not add executable-stories product code.
+- This skill uses Linear MCP only. For headless posting from CI, point the user at `executable-stories-linear`.
 - This is the Linear-specific path. For Jira, GitHub Issues, or any other tracker with an MCP server, use `tracker-receipts`, which generalises this workflow.
 - Do not rename tests after tickets. Behaviour/domain file names preserve review correlation, e.g. `src/checkout/regional-routing.story.test.ts` can correlate to `src/checkout/regional-routing.ts`; `LIN-123.test.ts` cannot.
 
