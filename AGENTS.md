@@ -31,6 +31,8 @@ packages/
   executable-stories-e2e/        # e2e (TesterArmy) reporter + step markers
   executable-stories-bun/        # bun:test adapter (test/describe wrappers + preload)
   executable-stories-formatters/ # Core: report generation (HTML, Markdown, JUnit, Cucumber JSON/HTML/Messages)
+  executable-stories-trackers/   # Tracker-agnostic: group a run by ticket, word a status, publish through a TrackerClient
+  executable-stories-linear/     # Linear TrackerClient + `executable-stories-linear publish` CLI (one updating attachment per issue)
   executable-stories-ruby/       # Ruby adapter (Minitest story API + JSON output)
   executable-stories-go/         # Go adapter (testing.T story API + JSON output)
   executable-stories-rust/       # Rust adapter (Story struct + JSON output)
