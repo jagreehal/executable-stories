@@ -15,7 +15,7 @@
     "executable-stories-showcase": "workspace:*",
     "executable-stories-showcase-react": "workspace:*",
     "xstate": "^5.33.3",
-    "zod": "4.6.5"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@preact/preset-vite": "^2.10.6",
