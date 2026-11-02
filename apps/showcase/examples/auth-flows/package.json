@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "react": "19.3.0",
-    "react-dom": "19.3.0",
+    "react-dom": "19.3.1",
     "executable-stories-showcase": "workspace:*",
     "executable-stories-showcase-react": "workspace:*",
     "zod": "4.6.7"
