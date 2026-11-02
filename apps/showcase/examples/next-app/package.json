@@ -12,7 +12,7 @@
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "executable-stories-showcase": "workspace:*",
-    "zod": "4.6.5"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@types/react": "19.3.0",
