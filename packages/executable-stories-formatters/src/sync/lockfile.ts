@@ -131,6 +131,15 @@ export function entriesFor(lock: Lockfile, provider: string): Record<string, Loc
   return lock.providers[provider] ?? {};
 }
 
+/** Move a binding to a new fingerprint, keeping its case, hash, and ownership. */
+export function moveEntry(lock: Lockfile, provider: string, from: string, to: string): void {
+  const entries = lock.providers[provider];
+  const entry = entries?.[from];
+  if (!entries || !entry) return;
+  entries[to] = entry;
+  delete entries[from];
+}
+
 export function setEntry(
   lock: Lockfile,
   provider: string,

@@ -49,6 +49,10 @@ inputs:
     description: "Header text for the PR comment"
     required: false
     default: "Executable Stories"
+  post-comment:
+    description: "Set to false to skip the PR comment. Reports, annotations and the job summary still run."
+    required: false
+    default: "true"
   host-images:
     description: |
       How to handle screenshots and videos so GitHub can show them in the PR comment.
@@ -392,7 +396,7 @@ runs:
 
     - name: Post or update PR comment
       id: comment
-      if: (inputs.mode == 'report' || inputs.mode == 'review' || inputs.mode == 'gate-release' || inputs.mode == 'ingest') && github.event_name == 'pull_request'
+      if: (inputs.mode == 'report' || inputs.mode == 'review' || inputs.mode == 'gate-release' || inputs.mode == 'ingest') && github.event_name == 'pull_request' && inputs.post-comment != 'false'
       uses: actions/github-script@v7
       env:
         COMMENT_TITLE: ${{ inputs.comment-title }}

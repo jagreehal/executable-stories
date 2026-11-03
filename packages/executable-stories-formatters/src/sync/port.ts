@@ -60,6 +60,10 @@ export interface CaseResult {
   /** Deep link into the generated HTML report for this scenario. */
   url?: string;
   attachments?: ResultAttachment[];
+  /** One entry per step, in order. Only set on cases we own: a hand-written case has its own steps. */
+  steps?: Array<{ status: "passed" | "failed" | "skipped"; message?: string }>;
+  /** Tickets to link this case to as requirements. Only set on cases we own. */
+  requirements?: { title: string; keys: string[] };
 }
 
 /** What a provider did with a batch of results. */
@@ -87,6 +91,11 @@ export interface SyncProvider {
   createCase?(body: CaseBody): Promise<RemoteCase>;
   updateCase?(id: string, body: CaseBody): Promise<RemoteCase>;
   recordResults?(results: CaseResult[]): Promise<RecordResultsSummary>;
+  /**
+   * A story ticket that matches no case is a requirement: the story gets its own
+   * case, linked to that ticket.
+   */
+  linksRequirements?: boolean;
   /**
    * Per-file limit. The engine skips oversized attachments and reports them in
    * the plan, rather than letting an adapter die mid-upload with half a run

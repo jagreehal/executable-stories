@@ -16,6 +16,7 @@
 
 import type {
   AdapterDeps,
+  CaseResult,
   RecordResultsSummary,
   RemoteCase,
   SyncProvider,
@@ -61,6 +62,9 @@ const DEFAULT_TEST_TYPE = "Manual";
 /** Xray embeds evidence as base64 in the results payload, so keep files modest. */
 const DEFAULT_MAX_ATTACHMENT_BYTES = 32 * 1024 * 1024;
 const PAGE_LIMIT = 100;
+/** Step statuses are their own list in Xray, so `statuses` does not apply to them. */
+const STEP_STATUS = { passed: "PASSED", failed: "FAILED", skipped: "TODO" } as const;
+const JIRA_KEY = /^[A-Z][A-Z0-9_]*-\d+$/;
 
 interface XrayStep {
   id: string;
@@ -200,12 +204,12 @@ export function createXrayProvider(
     };
   }
 
-  async function jiraUpdate(key: string, fields: Record<string, unknown>): Promise<void> {
+  async function jiraUpdate(key: string, fields: Record<string, unknown>): Promise<boolean> {
     if (!auth.jiraEmail || !auth.jiraToken) {
       deps.logger.warn(
         `Xray: summary/description for ${key} left unchanged. Set JIRA_EMAIL and JIRA_TOKEN to update Jira fields (steps are updated either way).`,
       );
-      return;
+      return false;
     }
     const basic = Buffer.from(`${auth.jiraEmail}:${auth.jiraToken}`).toString("base64");
     const response = await deps.fetch(`${jiraBase}/rest/api/3/issue/${key}`, {
@@ -216,10 +220,26 @@ export function createXrayProvider(
     if (!response.ok) {
       throw new Error(`Jira update of ${key} failed (${response.status}): ${await response.text()}`);
     }
+    return true;
+  }
+
+  /** Links requirements on an existing test without touching its steps. */
+  function testInfoFor(result: CaseResult): { testInfo?: Record<string, unknown> } {
+    const keys = result.requirements?.keys.filter((key) => JIRA_KEY.test(key)) ?? [];
+    if (!result.requirements || keys.length === 0) return {};
+    return {
+      testInfo: {
+        projectKey: config.projectKey,
+        summary: result.requirements.title,
+        type: config.testType ?? DEFAULT_TEST_TYPE,
+        requirementKeys: keys,
+      },
+    };
   }
 
   return {
     name: "xray",
+    linksRequirements: true,
     maxAttachmentBytes: config.maxAttachmentBytes ?? DEFAULT_MAX_ATTACHMENT_BYTES,
 
     describeTarget() {
@@ -255,7 +275,7 @@ export function createXrayProvider(
       const data = (await graphql(
         `mutation($testType: UpdateTestTypeInput!, $steps: [CreateStepInput], $jira: JSON!) {
            createTest(testType: $testType, steps: $steps, jira: $jira) {
-             test { issueId jira(fields: ["key", "summary", "description"]) }
+             test { issueId jira(fields: ["key", "summary", "description"]) steps { id action data result } }
              warnings
            }
          }`,
@@ -265,7 +285,8 @@ export function createXrayProvider(
           jira: {
             fields: {
               summary: body.title,
-              description: toAdf(encodeDescription(body)),
+              // A string, not ADF: createTest refuses ADF, unlike Jira's own v3 API.
+              description: encodeDescription(body),
               project: { key: config.projectKey },
             },
           },
@@ -295,10 +316,16 @@ export function createXrayProvider(
       // no steps at all if the run dies between the deletes and the adds. This
       // way every prefix is a correct prefix, and a rerun finishes the job.
       const current = (await graphql(
-        `query($issueId: String!) { getTest(issueId: $issueId) { steps { id } } }`,
+        `query($issueId: String!) {
+           getTest(issueId: $issueId) { steps { id } jira(fields: ["summary", "description"]) }
+         }`,
         { issueId },
-      )) as { getTest?: { steps?: Array<{ id: string }> } };
+      )) as { getTest?: { steps?: Array<{ id: string }>; jira?: XrayTest["jira"] } };
       const existing = current.getTest?.steps ?? [];
+      const held = {
+        title: current.getTest?.jira?.summary ?? body.title,
+        ...decodeDescription(fromAdf(current.getTest?.jira?.description)),
+      };
 
       for (const [index, step] of body.steps.entries()) {
         const action = encodeStepText(step);
@@ -306,7 +333,7 @@ export function createXrayProvider(
         if (target) {
           await graphql(
             `mutation($stepId: String!, $step: UpdateStepInput!) {
-               updateTestStep(stepId: $stepId, step: $step)
+               updateTestStep(stepId: $stepId, step: $step) { warnings }
              }`,
             { stepId: target.id, step: { action, result: "" } },
           );
@@ -328,17 +355,23 @@ export function createXrayProvider(
         });
       }
 
-      await jiraUpdate(id, {
-        summary: body.title,
-        description: toAdf(encodeDescription(body)),
-      });
+      // Only Jira can change these, and most edits are steps alone. Asking for
+      // credentials then would warn about nothing.
+      const jiraChanged =
+        held.title !== body.title || encodeDescription(held) !== encodeDescription(body);
+      if (jiraChanged) {
+        await jiraUpdate(id, { summary: body.title, description: toAdf(encodeDescription(body)) });
+      }
 
-      return {
-        id,
-        url: issueUrl(id),
-        title: body.title,
-        body,
-      };
+      // The engine hashes what this returns, so read back what Xray and Jira hold.
+      const stored = (await graphql(
+        `query($issueId: String!) {
+           getTest(issueId: $issueId) { issueId jira(fields: ["key", "summary", "description"]) steps { id action data result } }
+         }`,
+        { issueId },
+      )) as { getTest?: XrayTest };
+      if (!stored.getTest) throw new Error(`Xray getTest returned no test for ${id}`);
+      return toRemoteCase(stored.getTest);
     },
 
     async recordResults(results): Promise<RecordResultsSummary> {
@@ -368,27 +401,49 @@ export function createXrayProvider(
           status: statuses[result.status],
           ...(comment ? { comment } : {}),
           ...(evidence.length > 0 ? { evidence } : {}),
+          ...(result.steps
+            ? {
+                steps: result.steps.map((step) => ({
+                  status: STEP_STATUS[step.status],
+                  ...(step.message ? { actualResult: step.message } : {}),
+                })),
+              }
+            : {}),
+          ...testInfoFor(result),
         };
       });
 
       const bearer = await authenticate();
-      const payload = {
+      const payloadFor = (entries: Array<Record<string, unknown>>) => ({
         ...(config.testExecutionKey ? { testExecutionKey: config.testExecutionKey } : {}),
         info: {
           summary: `${config.executionSummary ?? "executable-stories"} ${new Date().toISOString()}`,
           project: config.projectKey,
           ...(config.testPlanKey ? { testPlanKey: config.testPlanKey } : {}),
         },
-        tests,
-      };
-
-      const response = await deps.fetch(`${xrayBase}/api/v2/import/execution`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${bearer}`, "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        tests: entries,
       });
+      const send = (entries: Array<Record<string, unknown>>) =>
+        deps.fetch(`${xrayBase}/api/v2/import/execution`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${bearer}`, "Content-Type": "application/json" },
+          body: JSON.stringify(payloadFor(entries)),
+        });
 
-      const text = await response.text();
+      let response = await send(tests);
+      let text = await response.text();
+
+      // Xray refuses the whole import when it cannot link one ticket, so send the
+      // results without links.
+      if (response.status === 400 && text.includes("issuelinks")) {
+        const keys = results.flatMap((result) => result.requirements?.keys ?? []);
+        deps.logger.warn(
+          `Xray: could not link requirements (${[...new Set(keys)].join(", ")}), so none were linked this run. Check those issues exist and you can see them. Results were still recorded.`,
+        );
+        response = await send(tests.map(({ testInfo: _testInfo, ...entry }) => entry));
+        text = await response.text();
+      }
+
       if (!response.ok) {
         throw new Error(`Xray import execution failed (${response.status}): ${text}`);
       }

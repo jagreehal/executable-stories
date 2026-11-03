@@ -259,7 +259,10 @@ function stepRoutes(steps: Array<{ id: string }>) {
         },
       },
     },
-    { match: "getTest(", body: { data: { getTest: { steps } } } },
+    {
+      match: "getTest(",
+      body: { data: { getTest: { issueId: "10001", jira: { key: "PROJ-42", summary: "x" }, steps } } },
+    },
     { match: "updateTestStep", body: { data: { updateTestStep: true } } },
     { match: "removeTestStep", body: { data: { removeTestStep: true } } },
     { match: "addTestStep", body: { data: { addTestStep: { id: "new" } } } },
@@ -285,3 +288,252 @@ function stepIds(sent: Array<{ body: unknown }>, mutation: string): string[] {
       : [];
   });
 }
+
+/**
+ * Behaves like Xray Cloud, as measured against a live site: createTest refuses
+ * an ADF description, and a field is only returned if the query selected it.
+ */
+function liveLikeCreateTest() {
+  return (async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    if (url.includes("/authenticate")) return new Response(JSON.stringify("jwt"), { status: 200 });
+
+    const parsed = JSON.parse(String(init?.body)) as {
+      query: string;
+      variables: {
+        jira: { fields: { summary: string; description?: unknown } };
+        steps: Array<{ action: string }>;
+      };
+    };
+    const { fields } = parsed.variables.jira;
+    if (fields.description !== undefined && typeof fields.description !== "string") {
+      return new Response(
+        JSON.stringify({
+          errors: [{ message: "Create issue failed! - description: Operation value must be a string" }],
+        }),
+        { status: 200 },
+      );
+    }
+
+    return new Response(
+      JSON.stringify({
+        data: {
+          createTest: {
+            test: {
+              issueId: "10001",
+              jira: { key: "PROJ-42", summary: fields.summary, description: fields.description },
+              ...(parsed.query.includes("steps {")
+                ? { steps: parsed.variables.steps.map((s, i) => ({ id: `s${i}`, action: s.action })) }
+                : {}),
+            },
+          },
+        },
+      }),
+      { status: 200 },
+    );
+  }) as typeof globalThis.fetch;
+}
+
+describe("Xray adapter against live behaviour", () => {
+  it("creates a test Xray accepts, whose hash matches the next read", async () => {
+    const body = makeBody({
+      title: "User signs in",
+      steps: [{ keyword: "Given", text: "a registered user" }],
+      description: "Some context",
+    });
+    const provider = createXrayProvider(config, auth, {
+      fetch: liveLikeCreateTest(),
+      logger: silentLogger,
+    });
+
+    const created = await provider.createCase!(body);
+
+    expect(hashCaseBody(created.body!)).toBe(hashCaseBody(body));
+  });
+
+  it("sends a status for each step of a test we own", async () => {
+    const { fetch, sent } = xrayFetch([{ match: "import/execution", body: { key: "PROJ-99" } }]);
+    const provider = createXrayProvider(config, auth, { fetch, logger: silentLogger });
+
+    await provider.recordResults!([
+      {
+        caseId: "PROJ-42",
+        status: "failed",
+        durationMs: 1,
+        steps: [
+          { status: "passed" },
+          { status: "failed", message: "boom" },
+          { status: "skipped" },
+        ],
+      },
+    ]);
+
+    const payload = sent.find((c) => c.url.includes("import/execution"))!.body as {
+      tests: Array<{ steps: unknown }>;
+    };
+    expect(payload.tests[0]!.steps).toEqual([
+      { status: "PASSED" },
+      { status: "FAILED", actualResult: "boom" },
+      { status: "TODO" },
+    ]);
+  });
+
+  it("links requirements, dropping tickets that are not Jira keys", async () => {
+    const { fetch, sent } = xrayFetch([{ match: "import/execution", body: { key: "PROJ-99" } }]);
+    const provider = createXrayProvider(config, auth, { fetch, logger: silentLogger });
+
+    await provider.recordResults!([
+      {
+        caseId: "PROJ-42",
+        status: "passed",
+        durationMs: 1,
+        requirements: { title: "User signs in", keys: ["PAY-892", "#123", "lin_abc"] },
+      },
+    ]);
+
+    const payload = sent.find((c) => c.url.includes("import/execution"))!.body as {
+      tests: Array<{ testInfo: unknown }>;
+    };
+    expect(payload.tests[0]!.testInfo).toEqual({
+      projectKey: "PROJ",
+      summary: "User signs in",
+      type: "Manual",
+      requirementKeys: ["PAY-892"],
+    });
+  });
+
+  it("keeps the run when Xray refuses a requirement link, and says so", async () => {
+    const warnings: string[] = [];
+    const bodies: Array<{ tests: Array<{ testInfo?: unknown }> }> = [];
+    const fetchFn = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).includes("/authenticate")) {
+        return new Response(JSON.stringify("jwt"), { status: 200 });
+      }
+      const parsed = JSON.parse(String(init?.body)) as { tests: Array<{ testInfo?: unknown }> };
+      bodies.push(parsed);
+      return parsed.tests[0]!.testInfo
+        ? new Response(
+            JSON.stringify({ error: "Update issue PROJ-42 failed! - issuelinks: Issue does not exist" }),
+            { status: 400 },
+          )
+        : new Response(JSON.stringify({ key: "PROJ-99" }), { status: 200 });
+    }) as typeof globalThis.fetch;
+
+    const provider = createXrayProvider(config, auth, {
+      fetch: fetchFn,
+      logger: { warn: (message) => warnings.push(message) },
+    });
+    const summary = await provider.recordResults!([
+      {
+        caseId: "PROJ-42",
+        status: "passed",
+        durationMs: 1,
+        requirements: { title: "User signs in", keys: ["NOPE-1"] },
+      },
+    ]);
+
+    expect(bodies).toHaveLength(2);
+    expect(summary.recorded).toBe(1);
+    expect(warnings.join(" ")).toContain("NOPE-1");
+  });
+
+  it("leaves Jira alone when an update only changes steps", async () => {
+    const { fetch, sent } = xrayFetch([
+      {
+        match: "getTests",
+        body: {
+          data: {
+            getTests: {
+              results: [
+                {
+                  issueId: "10001",
+                  jira: { key: "PROJ-42", summary: "User signs in", description: "Some context" },
+                  steps: [{ id: "s0", action: "Given a user" }],
+                },
+              ],
+            },
+          },
+        },
+      },
+      {
+        match: "getTest(",
+        body: {
+          data: {
+            getTest: {
+              issueId: "10001",
+              steps: [{ id: "s0" }],
+              jira: { key: "PROJ-42", summary: "User signs in", description: "Some context" },
+            },
+          },
+        },
+      },
+      { match: "updateTestStep", body: { data: { updateTestStep: {} } } },
+    ]);
+    const warnings: string[] = [];
+    const provider = createXrayProvider(
+      config,
+      { ...auth, jiraEmail: "a@b.c", jiraToken: "t" },
+      { fetch, logger: { warn: (message) => warnings.push(message) } },
+    );
+
+    await provider.listCases();
+    await provider.updateCase!(
+      "PROJ-42",
+      makeBody({
+        title: "User signs in",
+        description: "Some context",
+        steps: [{ keyword: "Given", text: "a registered user" }],
+      }),
+    );
+
+    expect(sent.filter((call) => call.url.includes("/rest/api/3/issue"))).toHaveLength(0);
+    expect(warnings).toEqual([]);
+    // Xray answers with an object, so GraphQL refuses a mutation with no selection.
+    const stepUpdate = sent.find((call) =>
+      String((call.body as { query?: string })?.query).includes("updateTestStep"),
+    );
+    expect((stepUpdate!.body as { query: string }).query).toMatch(/updateTestStep\([^)]*\)\s*\{/);
+  });
+
+  it("reports what Jira still holds when it cannot update the description", async () => {
+    const { fetch } = xrayFetch([
+      {
+        match: "getTests",
+        body: {
+          data: {
+            getTests: {
+              results: [
+                {
+                  issueId: "10001",
+                  jira: { key: "PROJ-42", summary: "Old title", description: "Old context" },
+                  steps: [{ id: "s0", action: "Given a user" }],
+                },
+              ],
+            },
+          },
+        },
+      },
+      {
+        match: "getTest(",
+        body: {
+          data: {
+            getTest: {
+              issueId: "10001",
+              steps: [{ id: "s0" }],
+              jira: { key: "PROJ-42", summary: "Old title", description: "Old context" },
+            },
+          },
+        },
+      },
+    ]);
+    const provider = createXrayProvider(config, auth, { fetch, logger: silentLogger });
+
+    await provider.listCases();
+    const updated = await provider.updateCase!(
+      "PROJ-42",
+      makeBody({ title: "New title", description: "New context", steps: [{ keyword: "Given", text: "a user" }] }),
+    );
+
+    expect(updated.body).toMatchObject({ title: "Old title", description: "Old context" });
+  });
+});

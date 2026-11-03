@@ -1,5 +1,7 @@
 name: CI
 
+# Pull requests run the full suite. A push to main only refreshes the pnpm, turbo
+# and Playwright caches that pull requests restore from.
 on:
   push:
     branches:
@@ -71,7 +73,7 @@ jobs:
         run: pnpm build
 
       - name: Build formatters binary
-        if: hashFiles('packages/executable-stories-formatters/package.json') != ''
+        if: github.event_name == 'pull_request' && hashFiles('packages/executable-stories-formatters/package.json') != ''
         run: cd packages/executable-stories-formatters && pnpm run compile
 
       # Browser binaries only; --with-deps below still installs system packages. Every suite runs
@@ -86,6 +88,7 @@ jobs:
         run: pnpm --filter executable-stories-playwright exec playwright install --with-deps chromium && pnpm --filter playwright-example exec playwright install chromium && pnpm --filter formatters-e2e exec playwright install chromium
 
       - name: Quality (build, lint, type-check, test)
+        if: github.event_name == 'pull_request'
         run: pnpm quality
         env:
           CI: true
@@ -95,6 +98,7 @@ jobs:
   # keep the image version in step with @playwright/test so screenshots render
   # identically. The Quality job above runs the showcase unit tests.
   showcase-e2e:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     container:
       image: mcr.microsoft.com/playwright:v1.64.1-noble
@@ -157,6 +161,7 @@ jobs:
   # supply-chain quarantine.
   peer-range:
     name: vitest ${{ matrix.vitest }}
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
