@@ -446,6 +446,7 @@ Pin the `executable-stories` CLI version that the action downloads (only relevan
 | `formatter-version` | `latest` | Version of `executable-stories` binary (`latest` or semver, e.g. `0.7.12`) |
 | `artifact-name` | `executable-stories-report` | Name for the uploaded GitHub artifact. Carries the HTML report and its `assets/` directory, so referenced screenshots and videos open. |
 | `comment-title` | `Executable Stories` | Header text for the PR comment; also used as the marker that lets the action find and update its own comment on subsequent runs |
+| `post-comment` | `true` | Set to `false` to skip the PR comment. Reports, annotations and the job summary still run |
 | `host-images` | `false` | Set to `branch` to commit screenshots and videos to an orphan branch, so screenshots render inline in the PR comment and videos become a link. Requires `contents: write`. See [Render screenshots inline](#render-screenshots-inline-in-pr-comments-opt-in). |
 | `images-branch` | `executable-stories-images` | Branch used when `host-images: branch`. Holds screenshots and videos. Created as orphan on first use. |
 | `gate-dev-run` | — | `gate-release`: dev baseline raw run JSON |

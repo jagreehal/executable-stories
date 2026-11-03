@@ -6,14 +6,13 @@ name: Action Test
 # renames a subcommand/flag the action relies on (format, review, gate-release,
 # deploy), this workflow goes red instead of the break surfacing in production.
 
-# Runs on push (any branch) when the action or the CLI it drives changes, so the
-# contract is exercised on PR branches too. Deliberately NOT on `pull_request`:
-# the action's report mode posts a PR comment on pull_request events, which needs
-# issues/pull-requests write — noise a contract test shouldn't generate. On push
-# the action's own `github.event_name == 'pull_request'` guard skips the comment,
-# leaving the detect → format → artifact contract under test.
+# Runs on pull requests when the action or the CLI it drives changes. Steps that
+# reach the comment stage set post-comment: false, so this workflow tests
+# detect, format and artifact and stays out of the PR conversation.
 on:
-  push:
+  pull_request:
+    branches:
+      - main
     paths:
       - "packages/executable-stories-action/**"
       - "packages/executable-stories-formatters/**"
@@ -87,6 +86,7 @@ jobs:
       - name: Run action (raw JSON → report)
         uses: ./packages/executable-stories-action
         with:
+          post-comment: "false"
           report-dir: reports
           output-name: test-results
           formatter-binary: bin/executable-stories
@@ -122,6 +122,7 @@ jobs:
       - name: Run action (review)
         uses: ./packages/executable-stories-action
         with:
+          post-comment: "false"
           mode: review
           report-dir: reports
           output-name: test-results
@@ -158,6 +159,7 @@ jobs:
       - name: Run action (pre-generated)
         uses: ./packages/executable-stories-action
         with:
+          post-comment: "false"
           report-dir: reports
           output-name: test-results
 
@@ -187,6 +189,7 @@ jobs:
       - name: Run action (host-images off, so it hosts nothing of its own)
         uses: ./packages/executable-stories-action
         with:
+          post-comment: "false"
           report-dir: reports
           output-name: test-results
       - name: Assert nothing from the previous invocation survived

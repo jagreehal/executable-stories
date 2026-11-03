@@ -26,6 +26,7 @@ import type {
 import {
   entriesFor,
   hashCaseBody,
+  moveEntry,
   setEntry,
   type Lockfile,
   type LockEntry,
@@ -129,6 +130,19 @@ export interface SyncAnalysis {
   adopted: PlanUpdate[];
   skipped: PlanSkip[];
   orphaned: PlanOrphan[];
+  /** Stories whose steps changed but keep their case. Applying moves the binding. */
+  rebound: Array<{ from: string; to: string }>;
+  /** Bound stories whose ticket now names a different existing case. The ticket wins. */
+  moved: Array<{
+    scenario: string;
+    from: string;
+    to: string;
+    fingerprint: string;
+    /** The binding this move replaces, when the story's steps changed too. */
+    retiredFingerprint?: string;
+  }>;
+  /** Bound stories whose ticket names no case. They keep their binding and their results. */
+  ticketWarnings: string[];
   /** Results for behaviours already bound. Newly created cases add theirs at apply time. */
   results: CaseResult[];
   attachments: AttachmentSummary;
@@ -368,10 +382,33 @@ export function collectAttachments(
   return { attachments, oversized };
 }
 
+/** Per-step outcomes, when the run recorded one for every step. */
+function stepOutcomes(tc: TestCaseResult): CaseResult["steps"] {
+  if (tc.stepResults.length === 0 || tc.stepResults.length !== tc.story.steps.length) {
+    return undefined;
+  }
+  return tc.stepResults.map((step) => ({
+    status: step.status === "passed" || step.status === "failed" ? step.status : "skipped",
+    ...(step.errorMessage ? { message: step.errorMessage } : {}),
+  }));
+}
+
+function requirementsFor(
+  behaviour: LocalBehaviour,
+  caseId: string,
+  provider: SyncProvider,
+): CaseResult["requirements"] {
+  if (!provider.linksRequirements) return undefined;
+  const keys = (behaviour.testCase.story.tickets ?? [])
+    .map((ticket) => ticket.id)
+    .filter((id) => id !== caseId);
+  return keys.length > 0 ? { title: behaviour.body.title, keys } : undefined;
+}
+
 function toCaseResult(
-  args: { behaviour: LocalBehaviour; caseId: string; provider: SyncProvider; config: SyncEngineConfig },
+  args: { behaviour: LocalBehaviour; caseId: string; provider: SyncProvider; config: SyncEngineConfig; ours: boolean },
 ): { result: CaseResult; oversized: Array<{ filename: string; bytes: number; limit: number }> } | undefined {
-  const { behaviour, caseId, provider, config } = args;
+  const { behaviour, caseId, provider, config, ours } = args;
   const tc = behaviour.testCase;
   // "pending" is a planned scenario (it.todo) — no execution happened, so there
   // is nothing to record. Reporting it as skipped would misrepresent a spec as a
@@ -392,6 +429,8 @@ function toCaseResult(
       message: tc.errorMessage,
       url: scenarioUrl(config, tc),
       attachments: attachments.length > 0 ? attachments : undefined,
+      steps: ours ? stepOutcomes(tc) : undefined,
+      requirements: ours ? requirementsFor(behaviour, caseId, provider) : undefined,
     },
     oversized,
   };
@@ -399,13 +438,60 @@ function toCaseResult(
 
 // --- binding and classification ---------------------------------------------
 
-/** Case id carried on the story itself, e.g. `story.tickets` holding "C1234". */
-function ticketBinding(tc: TestCaseResult, config: SyncEngineConfig): string | undefined {
+/**
+ * Case id carried on the story itself, e.g. `story.tickets` holding "C1234". A
+ * story can carry several, so the case it is bound to comes first, then any case
+ * the provider holds, then the first ticket with the prefix.
+ */
+function ticketBinding(
+  tc: TestCaseResult,
+  config: SyncEngineConfig,
+  remoteIds: ReadonlyMap<string, unknown>,
+  boundCaseId: string | undefined,
+): string | undefined {
   const prefix = config.ticketPrefix;
   if (!prefix) return undefined;
-  const match = (tc.story.tickets ?? []).find((t) => t.id.startsWith(prefix));
-  if (!match) return undefined;
-  return config.ticketPrefixStrip === false ? match.id : match.id.slice(prefix.length);
+  const ids = (tc.story.tickets ?? [])
+    .filter((t) => t.id.startsWith(prefix))
+    .map((t) => (config.ticketPrefixStrip === false ? t.id : t.id.slice(prefix.length)));
+  return ids.find((id) => id === boundCaseId) ?? ids.find((id) => remoteIds.has(id)) ?? ids[0];
+}
+
+/**
+ * A behaviour's fingerprint is a hash of its steps, so editing a step gives the
+ * story a new fingerprint. When exactly one orphaned binding and exactly one
+ * unbound story share a title, the story keeps that case and its history.
+ *
+ * A story that changes its title and its steps in one commit gets a new case.
+ */
+function findRebinds(
+  local: LocalBehaviour[],
+  locked: Record<string, LockEntry>,
+  remoteIds: Set<string>,
+): Map<string, string> {
+  const current = new Set(local.map((b) => b.fingerprint));
+  const orphans = new Map<string, string[]>();
+  for (const [fingerprint, entry] of Object.entries(locked)) {
+    if (current.has(fingerprint) || !remoteIds.has(entry.caseId)) continue;
+    const title = normalizeTitle(entry.title);
+    orphans.set(title, [...(orphans.get(title) ?? []), fingerprint]);
+  }
+
+  const unbound = new Map<string, string[]>();
+  for (const behaviour of local) {
+    if (locked[behaviour.fingerprint]) continue;
+    const title = normalizeTitle(behaviour.body.title);
+    unbound.set(title, [...(unbound.get(title) ?? []), behaviour.fingerprint]);
+  }
+
+  const rebinds = new Map<string, string>();
+  for (const [title, fingerprints] of unbound) {
+    const candidates = orphans.get(title) ?? [];
+    if (fingerprints.length === 1 && candidates.length === 1) {
+      rebinds.set(fingerprints[0]!, candidates[0]!);
+    }
+  }
+  return rebinds;
 }
 
 // --- analysis ---------------------------------------------------------------
@@ -433,14 +519,40 @@ export async function analyzeSync(args: AnalyzeSyncArgs): Promise<SyncAnalysis> 
   const results: CaseResult[] = [];
   const oversized: AttachmentSummary["oversized"] = [];
   const boundCaseIds = new Set<string>();
+  const moved: SyncAnalysis["moved"] = [];
+  const ticketWarnings: string[] = [];
   let driftUncheckable = 0;
 
-  for (const behaviour of local) {
-    const entry = locked[behaviour.fingerprint];
-    const caseId = entry?.caseId ?? ticketBinding(behaviour.testCase, config);
-    const remote = caseId ? remoteById.get(caseId) : undefined;
+  const rebinds = findRebinds(local, locked, new Set(remoteById.keys()));
 
-    if (!caseId) {
+  for (const behaviour of local) {
+    const reboundFrom = rebinds.get(behaviour.fingerprint);
+    const bound = locked[behaviour.fingerprint] ?? (reboundFrom ? locked[reboundFrom] : undefined);
+    const ticket = ticketBinding(behaviour.testCase, config, remoteById, bound?.caseId);
+    const ticketDisagrees = bound !== undefined && ticket !== undefined && ticket !== bound.caseId;
+    const ticketWins = ticketDisagrees && remoteById.has(ticket);
+    if (ticketWins) {
+      moved.push({
+        scenario: behaviour.body.title,
+        from: bound.caseId,
+        to: ticket,
+        fingerprint: behaviour.fingerprint,
+        retiredFingerprint: reboundFrom,
+      });
+      rebinds.delete(behaviour.fingerprint);
+    } else if (ticketDisagrees && !provider.linksRequirements) {
+      ticketWarnings.push(
+        `"${behaviour.body.title}": ticket names case ${ticket}, which ${provider.name} does not have. Staying on ${bound.caseId}.`,
+      );
+    }
+    const entry = ticketWins ? undefined : bound;
+    const ticketCase = entry ? undefined : ticket;
+    const caseId = entry?.caseId ?? ticketCase;
+    const remote = caseId ? remoteById.get(caseId) : undefined;
+    const ticketIsRequirement =
+      ticketCase !== undefined && !remote && provider.linksRequirements === true;
+
+    if (!caseId || ticketIsRequirement) {
       create.push({
         fingerprint: behaviour.fingerprint,
         scenario: behaviour.body.title,
@@ -464,7 +576,18 @@ export async function analyzeSync(args: AnalyzeSyncArgs): Promise<SyncAnalysis> 
 
     boundCaseIds.add(caseId);
 
-    const pending = toCaseResult({ behaviour, caseId, provider, config });
+    // Drift guard: compare the provider's current copy against the hash of what
+    // it held right after our last write. Different means a human edited it.
+    const remoteHash = remote.body ? hashCaseBody(remote.body) : undefined;
+    const drifted = remoteHash !== undefined && remoteHash !== entry?.hash;
+
+    const pending = toCaseResult({
+      behaviour,
+      caseId,
+      provider,
+      config,
+      ours: entry?.owned === true && !drifted,
+    });
     if (pending) {
       results.push(pending.result);
       oversized.push(...pending.oversized);
@@ -486,10 +609,7 @@ export async function analyzeSync(args: AnalyzeSyncArgs): Promise<SyncAnalysis> 
       continue;
     }
 
-    // Drift guard: compare the provider's current copy against the hash of what
-    // it held right after our last write. Different means a human edited it.
-    const remoteHash = remote.body ? hashCaseBody(remote.body) : undefined;
-    if (remoteHash !== undefined && remoteHash !== entry.hash) {
+    if (drifted) {
       skipped.push({
         fingerprint: behaviour.fingerprint,
         caseId,
@@ -568,8 +688,12 @@ export async function analyzeSync(args: AnalyzeSyncArgs): Promise<SyncAnalysis> 
 
   // Orphans: bindings whose behaviour no longer exists in the codebase.
   const localFingerprints = new Set(local.map((b) => b.fingerprint));
+  const reboundFrom = new Set([
+    ...rebinds.values(),
+    ...moved.flatMap((move) => move.retiredFingerprint ?? []),
+  ]);
   const orphaned: PlanOrphan[] = Object.entries(locked)
-    .filter(([fingerprint]) => !localFingerprints.has(fingerprint))
+    .filter(([fingerprint]) => !localFingerprints.has(fingerprint) && !reboundFrom.has(fingerprint))
     .map(([fingerprint, entry]) => ({
       fingerprint,
       caseId: entry.caseId,
@@ -611,6 +735,9 @@ export async function analyzeSync(args: AnalyzeSyncArgs): Promise<SyncAnalysis> 
     adopted,
     skipped,
     orphaned,
+    rebound: [...rebinds].map(([to, from]) => ({ from, to })),
+    moved,
+    ticketWarnings,
     results,
     attachments: { files, bytes, oversized, byRole },
     unsupported,
@@ -656,6 +783,12 @@ export async function applySync(
   const byFingerprint = new Map(analysis.local.map((b) => [b.fingerprint, b]));
   const results = [...analysis.results];
 
+  // First, so a failed update below still leaves the story bound to its case.
+  for (const { from, to } of analysis.rebound) moveEntry(lockfile, provider.name, from, to);
+  for (const { retiredFingerprint, fingerprint } of analysis.moved) {
+    if (retiredFingerprint) moveEntry(lockfile, provider.name, retiredFingerprint, fingerprint);
+  }
+
   if (analysis.create.length > 0 && provider.createCase) {
     for (const planned of analysis.create) {
       try {
@@ -674,7 +807,13 @@ export async function applySync(
 
         const behaviour = byFingerprint.get(planned.fingerprint);
         if (behaviour) {
-          const pending = toCaseResult({ behaviour, caseId: created.id, provider, config });
+          const pending = toCaseResult({
+            behaviour,
+            caseId: created.id,
+            provider,
+            config,
+            ours: true,
+          });
           if (pending) results.push(pending.result);
         }
       } catch (err) {
@@ -682,6 +821,10 @@ export async function applySync(
       }
     }
   }
+
+  // Step outcomes line up with the new steps by position, so they only mean
+  // something on a case that now holds those steps.
+  const staleSteps = new Set(analysis.update.map((planned) => planned.caseId));
 
   if (analysis.update.length > 0 && provider.updateCase) {
     for (const planned of analysis.update) {
@@ -695,9 +838,34 @@ export async function applySync(
           owned: true,
         });
         result.updated.push({ scenario: planned.scenario, caseId: updated.id, url: updated.url });
+        staleSteps.delete(planned.caseId);
       } catch (err) {
         result.errors.push(`update "${planned.scenario}" (${planned.caseId}): ${(err as Error).message}`);
       }
+    }
+  }
+
+  // Xray writes a case step by step, so a failed update can stop part way.
+  // Baselining on what the provider holds now lets the next run retry the case,
+  // and the drift guard still catches a hand edit made after this read.
+  const unwritten = provider.updateCase
+    ? analysis.update.filter((planned) => staleSteps.has(planned.caseId))
+    : [];
+  if (unwritten.length > 0) {
+    try {
+      const current = new Map((await provider.listCases()).map((c) => [c.id, c]));
+      for (const planned of unwritten) {
+        const body = current.get(planned.caseId)?.body;
+        const existing = entriesFor(lockfile, provider.name)[planned.fingerprint];
+        if (body && existing) {
+          setEntry(lockfile, provider.name, planned.fingerprint, { ...existing, hash: hashCaseBody(body) });
+        }
+      }
+    } catch (err) {
+      const ids = unwritten.map((planned) => planned.caseId).join(", ");
+      result.errors.push(
+        `re-read after failed update: ${(err as Error).message}. ${ids} may be half written and will show as edited by hand on the next run.`,
+      );
     }
   }
 
@@ -725,7 +893,9 @@ export async function applySync(
 
   if (results.length > 0 && provider.recordResults) {
     try {
-      const summary = await provider.recordResults(results);
+      const summary = await provider.recordResults(
+        results.map((r) => (staleSteps.has(r.caseId) ? { ...r, steps: undefined } : r)),
+      );
       result.resultsRecorded = summary.recorded;
       result.resultsSkipped = summary.skipped;
       result.attachmentsUploaded = summary.attachmentsUploaded;

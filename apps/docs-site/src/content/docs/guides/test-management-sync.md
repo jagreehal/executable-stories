@@ -183,7 +183,7 @@ That check needs the provider to hand back the case body. TestRail and Xray both
 
 `.executable-stories/sync.lock.json` binds each behaviour to its case. Commit it.
 
-The key is a content fingerprint of the scenario's steps, not its title or file path, so renaming a test or moving a file keeps the binding. When CI creates a case, the lockfile diff appears in the pull request that caused it, so a reviewer sees the new case and its link before anyone opens the test-management system.
+The key is a content fingerprint of the scenario's steps, not its title or file path, so renaming a test or moving a file keeps the binding. Editing a step keeps it too: when exactly one story and one orphaned binding share a title, the plan shows `↻ kept` and the case is updated in place, with its history. Changing a story's title and steps in the same commit makes a new case, because nothing links the two. When CI creates a case, the lockfile diff appears in the pull request that caused it, so a reviewer sees the new case and its link before anyone opens the test-management system.
 
 ## Linking a story to an existing case
 
@@ -197,6 +197,10 @@ it("User signs in", ({ task }) => {
 ```
 
 TestRail ids are numeric, so the `C` is stripped. Xray ids are Jira issue keys (`PROJ-42`) and are used whole.
+
+On Xray, a ticket that is not an existing test is a requirement. The story still gets its own test, and that test is linked to the issue, so `ticket: "PAY-892"` shows up as coverage on PAY-892. A hand-written test you point at with a ticket keeps its own steps and description, and only receives results.
+
+A ticket takes priority over an existing binding. When a bound story's ticket names another existing case, the plan shows `→ moved` with both ids and `sync` records results against the new case. When the ticket names no case, the story keeps its binding and the plan warns you.
 
 ## Evidence
 
@@ -239,6 +243,12 @@ Creating a test needs only the Xray API key pair. Updating an existing test's su
 
 Evidence rides along inside the execution import as base64, so there is no separate upload step.
 
+Each step of a test `sync` created gets its own status, and a failing step carries its error as the actual result. Hand-written tests only get an overall status, because their steps are not the story's.
+
+If Xray refuses a requirement link, usually because the ticket does not exist, `sync` warns and records the results without links, so a typo cannot cost you a run. Xray opens the execution before it refuses the import, so that run leaves an empty execution behind. Tickets that are not Jira keys, such as `#123`, are never sent.
+
+A team-managed Jira project needs setup first: create the Test, Precondition, Test Set, Test Plan, and Test Execution work types, then map them under Space settings, Apps, Xray Settings, Work Types.
+
 ## When it does not work
 
 Every message below comes from a first run against a real instance.
@@ -270,6 +280,8 @@ Point at the raw run your reporter wrote, not at a generated report.
 **Skipped cases you did not expect**
 
 Someone edited those cases in the provider's UI after the last sync. The plan lists each one with its id and URL. Nothing overwrites them until you reconcile the two by hand.
+
+`sync` reads a case back after a failed update and retries it on the next run, so those cases stay off this list. If that read fails too, the error names the cases to check.
 
 **Every story wants a new case on the second run**
 

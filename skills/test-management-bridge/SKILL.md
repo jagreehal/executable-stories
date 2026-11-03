@@ -25,6 +25,9 @@ nothing here works against Jira alone; for docs in Jira or Confluence, use
   and reconcile the counts before you pass it.
 - **Never resolve a "possible duplicate" yourself.** Similarity is a hint for a human.
   Only a lockfile entry or an explicit ticket id may create a binding.
+- **Read every `→ moved` line.** A `ticket` naming another existing case takes priority
+  over the story's binding and sends its results there. A ticket naming no case keeps
+  the binding and warns.
 - **Commit the lockfile.** `.executable-stories/sync.lock.json` is what stops the next run
   creating 300 duplicate cases.
 - **Point at the raw run, never a StoryReport.** A StoryReport has already dropped the

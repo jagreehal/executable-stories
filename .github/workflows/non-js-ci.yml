@@ -1,16 +1,6 @@
 name: Non-JS CI
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - "packages/executable-stories-go/**"
-      - "packages/executable-stories-junit5/**"
-      - "packages/executable-stories-pytest/**"
-      - "packages/executable-stories-ruby/**"
-      - "packages/executable-stories-rust/**"
-      - "packages/executable-stories-xunit/**"
   pull_request:
     branches:
       - main

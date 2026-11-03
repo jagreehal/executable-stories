@@ -216,7 +216,8 @@ describe("reading the store", () => {
   });
 });
 
-describe("finding a Module API run", () => {
+// Each test re-imports the reporter and formatters, which a cold CI run transforms from scratch.
+describe("finding a Module API run", { timeout: 30_000 }, () => {
   const override = process.env.EXECUTABLE_STORIES_CYPRESS_STORE;
   const spec = "cypress/e2e/login.cy.ts";
   /**

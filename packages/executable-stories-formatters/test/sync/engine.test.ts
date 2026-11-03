@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 
 import { analyzeSync, applySync, projectBehaviours, collectAttachments } from "../../src/sync/engine";
 import { emptyLockfile, hashCaseBody, entriesFor, setEntry } from "../../src/sync/lockfile";
+import { renderPlan } from "../../src/sync/report";
 import type { RemoteCase } from "../../src/sync/port";
 import { fakeProvider, makeCase, makeRun, silentLogger } from "./helpers";
 
@@ -414,5 +415,464 @@ describe("applySync", () => {
     const entry = Object.values(entriesFor(lockfile, "fake"))[0];
     expect(entry).toMatchObject({ caseId: "42", owned: false });
     expect(provider.updated).toHaveLength(0);
+  });
+});
+
+describe("a story whose steps changed", () => {
+  const before = makeCase();
+  const edited = makeCase({
+    story: {
+      ...makeCase().story,
+      steps: [{ keyword: "Given", text: "a registered user with a typo fixed" }],
+    },
+  });
+
+  async function syncedOnce(run = makeRun([before])) {
+    const provider = fakeProvider();
+    const lockfile = emptyLockfile();
+    const analysis = await analyzeSync({ run, provider, lockfile, config });
+    await applySync({ analysis, provider, lockfile, config }, { logger: silentLogger });
+    return { provider, lockfile };
+  }
+
+  function remoteFrom(provider: ReturnType<typeof fakeProvider>, index = 0): RemoteCase {
+    const body = provider.created[index]!;
+    const id = String(901 + index);
+    return { id, url: `https://fake/${id}`, title: body.title, body };
+  }
+
+  function withTicket(id: string) {
+    return makeCase({ story: { ...edited.story, tickets: [{ id }] } });
+  }
+
+  it("records no step outcomes against a case whose update failed", async () => {
+    const { provider: first, lockfile } = await syncedOnce();
+    const provider = fakeProvider({ cases: [remoteFrom(first)] });
+    provider.updateCase = async () => {
+      throw new Error("rate limited");
+    };
+    const stepResults = [{ index: 0, status: "passed", durationMs: 1 }] as const;
+    const run = makeRun([makeCase({ ...edited, stepResults: [...stepResults] })]);
+
+    const analysis = await analyzeSync({ run, provider, lockfile, config });
+    const applied = await applySync({ analysis, provider, lockfile, config }, { logger: silentLogger });
+
+    expect(applied.errors).toHaveLength(1);
+    expect(provider.recorded).toEqual([expect.objectContaining({ caseId: "901", steps: undefined })]);
+    expect(analysis.results[0]!.steps).toHaveLength(1);
+  });
+
+  it("keeps step outcomes on a case whose update succeeded", async () => {
+    const { provider: first, lockfile } = await syncedOnce();
+    const provider = fakeProvider({ cases: [remoteFrom(first)] });
+    const stepResults = [{ index: 0, status: "passed", durationMs: 1 }] as const;
+    const run = makeRun([makeCase({ ...edited, stepResults: [...stepResults] })]);
+
+    const analysis = await analyzeSync({ run, provider, lockfile, config });
+    await applySync({ analysis, provider, lockfile, config }, { logger: silentLogger });
+
+    expect(provider.recorded).toEqual([
+      expect.objectContaining({ caseId: "901", steps: [{ status: "passed" }] }),
+    ]);
+  });
+
+  describe("and whose ticket names a case", () => {
+    const ticketConfig = { ticketPrefix: "C" };
+
+    it("follows a ticket naming a different case over the title match", async () => {
+      const { provider: first, lockfile } = await syncedOnce();
+      const other = { id: "902", url: "https://fake/902", title: "Hand written" };
+      const provider = fakeProvider({ cases: [remoteFrom(first), other] });
+
+      const analysis = await analyzeSync({
+        run: makeRun([withTicket("C902")]),
+        provider,
+        lockfile,
+        config: ticketConfig,
+      });
+      await applySync({ analysis, provider, lockfile, config: ticketConfig }, { logger: silentLogger });
+
+      expect(analysis.rebound).toHaveLength(0);
+      expect(analysis.adopted).toEqual([expect.objectContaining({ caseId: "902" })]);
+      expect(analysis.moved).toEqual([expect.objectContaining({ from: "901", to: "902" })]);
+      expect(analysis.orphaned).toHaveLength(0);
+      expect(provider.updated).toHaveLength(0);
+      expect(Object.values(entriesFor(lockfile, "fake"))).toEqual([
+        expect.objectContaining({ caseId: "902", owned: false }),
+      ]);
+    });
+
+    it("keeps the title match and warns when the ticket names no case", async () => {
+      const { provider: first, lockfile } = await syncedOnce();
+      const provider = fakeProvider({ cases: [remoteFrom(first)] });
+
+      const analysis = await analyzeSync({
+        run: makeRun([withTicket("C999")]),
+        provider,
+        lockfile,
+        config: ticketConfig,
+      });
+
+      expect(analysis.rebound).toHaveLength(1);
+      expect(analysis.update).toEqual([expect.objectContaining({ caseId: "901" })]);
+      expect(analysis.skipped).toHaveLength(0);
+      expect(analysis.ticketWarnings).toEqual([expect.stringContaining("999")]);
+    });
+
+    it("stays owned when the ticket names the case it is already bound to", async () => {
+      const { provider: first, lockfile } = await syncedOnce();
+      const provider = fakeProvider({ cases: [remoteFrom(first)] });
+
+      const analysis = await analyzeSync({
+        run: makeRun([withTicket("C901")]),
+        provider,
+        lockfile,
+        config: ticketConfig,
+      });
+
+      expect(analysis.rebound).toHaveLength(1);
+      expect(analysis.update).toEqual([expect.objectContaining({ caseId: "901" })]);
+      expect(analysis.adopted).toHaveLength(0);
+      expect(analysis.orphaned).toHaveLength(0);
+    });
+
+    it("still rebinds when the ticket is a requirement, not a case", async () => {
+      const { provider: first, lockfile } = await syncedOnce();
+      const provider = Object.assign(fakeProvider({ cases: [remoteFrom(first)] }), {
+        linksRequirements: true,
+      });
+
+      const analysis = await analyzeSync({
+        run: makeRun([withTicket("C5")]),
+        provider,
+        lockfile,
+        config: ticketConfig,
+      });
+
+      expect(analysis.rebound).toHaveLength(1);
+      expect(analysis.update).toEqual([expect.objectContaining({ caseId: "901" })]);
+    });
+  });
+
+  describe("and whose update failed partway", () => {
+    async function halfWritten() {
+      const { provider: first, lockfile } = await syncedOnce();
+      const remote = remoteFrom(first);
+      const provider = fakeProvider({ cases: [remote] });
+      const update = provider.updateCase;
+      provider.updateCase = async (_id, body) => {
+        remote.body = { ...remote.body!, steps: [body.steps[0]!, ...remote.body!.steps.slice(1)] };
+        throw new Error("rate limited");
+      };
+      const run = makeRun([edited]);
+      const analysis = await analyzeSync({ run, provider, lockfile, config });
+      const applied = await applySync({ analysis, provider, lockfile, config }, { logger: silentLogger });
+      provider.updateCase = update;
+      return { provider, lockfile, remote, run, applied };
+    }
+
+    it("retries on the next run instead of calling it a human edit", async () => {
+      const { provider, lockfile, run } = await halfWritten();
+
+      const analysis = await analyzeSync({ run, provider, lockfile, config });
+
+      expect(analysis.skipped).toHaveLength(0);
+      expect(analysis.update).toEqual([expect.objectContaining({ caseId: "901" })]);
+    });
+
+    it("still protects a human edit made after the failure", async () => {
+      const { provider, lockfile, remote, run } = await halfWritten();
+      remote.body = { ...remote.body!, description: "edited by hand" };
+
+      const analysis = await analyzeSync({ run, provider, lockfile, config });
+
+      expect(analysis.skipped).toEqual([expect.objectContaining({ reason: "remote-edited" })]);
+    });
+
+    it("says the case may be half written when it cannot be read back", async () => {
+      const { provider: first, lockfile } = await syncedOnce();
+      const provider = fakeProvider({ cases: [remoteFrom(first)] });
+      provider.updateCase = async () => {
+        throw new Error("rate limited");
+      };
+      const analysis = await analyzeSync({ run: makeRun([edited]), provider, lockfile, config });
+      provider.listCases = async () => {
+        throw new Error("still rate limited");
+      };
+
+      const applied = await applySync({ analysis, provider, lockfile, config }, { logger: silentLogger });
+
+      expect(applied.errors).toEqual([
+        expect.stringContaining("rate limited"),
+        expect.stringContaining("may be half written"),
+      ]);
+    });
+  });
+
+  describe("an unchanged story that gains a ticket", () => {
+    const ticketConfig = { ticketPrefix: "C" };
+    const ticketed = (id: string) =>
+      makeCase({ story: { ...before.story, tickets: [{ id }] } });
+
+    it("moves to the case the ticket names and leaves the old one alone", async () => {
+      const { provider: first, lockfile } = await syncedOnce();
+      const other = { id: "902", url: "https://fake/902", title: "Hand written" };
+      const provider = fakeProvider({ cases: [remoteFrom(first), other] });
+
+      const analysis = await analyzeSync({
+        run: makeRun([ticketed("C902")]),
+        provider,
+        lockfile,
+        config: ticketConfig,
+      });
+      await applySync({ analysis, provider, lockfile, config: ticketConfig }, { logger: silentLogger });
+
+      expect(analysis.moved).toEqual([
+        expect.objectContaining({ scenario: "User signs in", from: "901", to: "902" }),
+      ]);
+      expect(renderPlan(analysis, { dryRun: true })).toContain("901 → 902");
+      expect(provider.updated).toHaveLength(0);
+      expect(provider.recorded).toEqual([expect.objectContaining({ caseId: "902", steps: undefined })]);
+      expect(Object.values(entriesFor(lockfile, "fake"))).toEqual([
+        expect.objectContaining({ caseId: "902", owned: false }),
+      ]);
+    });
+
+    it("keeps its binding and results, and warns, when the ticket names no case", async () => {
+      const { provider: first, lockfile } = await syncedOnce();
+      const provider = fakeProvider({ cases: [remoteFrom(first)] });
+
+      const analysis = await analyzeSync({
+        run: makeRun([ticketed("CORE-12")]),
+        provider,
+        lockfile,
+        config: ticketConfig,
+      });
+
+      expect(analysis.moved).toHaveLength(0);
+      expect(analysis.skipped).toHaveLength(0);
+      expect(analysis.results).toEqual([expect.objectContaining({ caseId: "901" })]);
+      expect(renderPlan(analysis, { dryRun: true })).toContain("ORE-12");
+    });
+
+    it("stays on its case when that is one of several tickets", async () => {
+      const { provider: first, lockfile } = await syncedOnce();
+      const other = { id: "100", url: "https://fake/100", title: "Hand written" };
+      const provider = fakeProvider({ cases: [remoteFrom(first), other] });
+      const run = makeRun([
+        makeCase({ story: { ...before.story, tickets: [{ id: "C100" }, { id: "C901" }] } }),
+      ]);
+
+      const analysis = await analyzeSync({ run, provider, lockfile, config: ticketConfig });
+
+      expect(analysis.moved).toHaveLength(0);
+    });
+
+    it("does not warn about a requirement", async () => {
+      const { provider: first, lockfile } = await syncedOnce();
+      const provider = Object.assign(fakeProvider({ cases: [remoteFrom(first)] }), {
+        linksRequirements: true,
+      });
+
+      const analysis = await analyzeSync({
+        run: makeRun([ticketed("C5")]),
+        provider,
+        lockfile,
+        config: ticketConfig,
+      });
+
+      expect(analysis.ticketWarnings).toHaveLength(0);
+    });
+  });
+
+  it("keeps its case and history instead of making a new one", async () => {
+    const { provider: first, lockfile } = await syncedOnce();
+    const provider = fakeProvider({ cases: [remoteFrom(first)] });
+
+    const analysis = await analyzeSync({ run: makeRun([edited]), provider, lockfile, config });
+    await applySync({ analysis, provider, lockfile, config }, { logger: silentLogger });
+
+    expect(analysis.create).toHaveLength(0);
+    expect(analysis.orphaned).toHaveLength(0);
+    expect(analysis.update).toEqual([expect.objectContaining({ caseId: "901" })]);
+    expect(analysis.rebound).toHaveLength(1);
+    expect(provider.updated).toHaveLength(1);
+    expect(Object.values(entriesFor(lockfile, "fake"))).toEqual([
+      expect.objectContaining({ caseId: "901" }),
+    ]);
+  });
+
+  it("changes nothing in the lockfile on a dry run", async () => {
+    const { provider: first, lockfile } = await syncedOnce();
+    const snapshot = JSON.stringify(lockfile);
+
+    await analyzeSync({
+      run: makeRun([edited]),
+      provider: fakeProvider({ cases: [remoteFrom(first)] }),
+      lockfile,
+      config,
+    });
+
+    expect(JSON.stringify(lockfile)).toBe(snapshot);
+  });
+
+  it("does not overwrite a case someone edited by hand", async () => {
+    const { provider: first, lockfile } = await syncedOnce();
+    const remote = remoteFrom(first);
+    remote.body = { ...remote.body!, description: "a tester added this" };
+
+    const analysis = await analyzeSync({
+      run: makeRun([edited]),
+      provider: fakeProvider({ cases: [remote] }),
+      lockfile,
+      config,
+    });
+
+    expect(analysis.update).toHaveLength(0);
+    expect(analysis.skipped).toEqual([expect.objectContaining({ reason: "remote-edited" })]);
+  });
+
+  it("will not guess when two stories share the title", async () => {
+    const { provider: first, lockfile } = await syncedOnce();
+    const twin = makeCase({
+      id: "tc-2",
+      story: { ...makeCase().story, steps: [{ keyword: "Given", text: "another path" }] },
+    });
+
+    const analysis = await analyzeSync({
+      run: makeRun([edited, twin]),
+      provider: fakeProvider({ cases: [remoteFrom(first)] }),
+      lockfile,
+      config,
+    });
+
+    expect(analysis.rebound).toHaveLength(0);
+    expect(analysis.create).toHaveLength(2);
+  });
+
+  it("treats a new title with new steps as a new story", async () => {
+    const { provider: first, lockfile } = await syncedOnce();
+    const other = makeCase({
+      story: {
+        ...makeCase().story,
+        scenario: "User resets a password",
+        steps: [{ keyword: "Given", text: "a forgotten password" }],
+      },
+    });
+
+    const analysis = await analyzeSync({
+      run: makeRun([other]),
+      provider: fakeProvider({ cases: [remoteFrom(first)] }),
+      lockfile,
+      config,
+    });
+
+    expect(analysis.create).toHaveLength(1);
+    expect(analysis.orphaned).toHaveLength(1);
+  });
+});
+
+describe("step results", () => {
+  const steps = [
+    { index: 0, status: "passed", durationMs: 1 },
+    { index: 1, status: "failed", durationMs: 1, errorMessage: "boom" },
+    { index: 2, status: "skipped", durationMs: 0 },
+  ] as const;
+
+  it("travels with a result on a case we own", async () => {
+    const provider = fakeProvider();
+    const lockfile = emptyLockfile();
+    const run = makeRun([makeCase({ status: "failed", stepResults: [...steps] })]);
+
+    const analysis = await analyzeSync({ run, provider, lockfile, config });
+    await applySync({ analysis, provider, lockfile, config }, { logger: silentLogger });
+
+    expect(provider.recorded[0]!.steps).toEqual([
+      { status: "passed" },
+      { status: "failed", message: "boom" },
+      { status: "skipped" },
+    ]);
+  });
+
+  it("stays off a hand-written case, whose steps are not ours", async () => {
+    const run = makeRun([
+      makeCase({
+        status: "failed",
+        stepResults: [...steps],
+        story: { ...makeCase().story, tickets: [{ id: "C42" }] },
+      }),
+    ]);
+    const remote: RemoteCase = { id: "42", url: "https://fake/42", title: "QA", body: undefined };
+
+    const analysis = await analyzeSync({
+      run,
+      provider: fakeProvider({ cases: [remote] }),
+      lockfile: emptyLockfile(),
+      config: { ticketPrefix: "C" },
+    });
+
+    expect(analysis.results[0]!.steps).toBeUndefined();
+  });
+});
+
+describe("a story ticket that names a requirement", () => {
+  const ticketed = makeCase({
+    story: { ...makeCase().story, tickets: [{ id: "PROJ-5" }, { id: "PAY-892" }] },
+  });
+  const xrayLike = { ticketPrefix: "PROJ-", ticketPrefixStrip: false };
+
+  it("creates the test and links the requirement", async () => {
+    const provider = Object.assign(fakeProvider(), { linksRequirements: true });
+    const lockfile = emptyLockfile();
+    const run = makeRun([ticketed]);
+
+    const analysis = await analyzeSync({ run, provider, lockfile, config: xrayLike });
+    await applySync({ analysis, provider, lockfile, config: xrayLike }, { logger: silentLogger });
+
+    expect(analysis.skipped).toHaveLength(0);
+    expect(analysis.create).toHaveLength(1);
+    expect(provider.recorded[0]!.requirements).toEqual({
+      title: "User signs in",
+      keys: ["PROJ-5", "PAY-892"],
+    });
+  });
+
+  it("adopts the test a later ticket names, past a requirement", async () => {
+    const provider = Object.assign(
+      fakeProvider({ cases: [{ id: "PROJ-42", url: "https://fake/42", title: "Hand written" }] }),
+      { linksRequirements: true },
+    );
+    const run = makeRun([
+      makeCase({ story: { ...makeCase().story, tickets: [{ id: "PROJ-1" }, { id: "PROJ-42" }] } }),
+    ]);
+
+    const analysis = await analyzeSync({ run, provider, lockfile: emptyLockfile(), config: xrayLike });
+
+    expect(analysis.create).toHaveLength(0);
+    expect(analysis.adopted).toEqual([expect.objectContaining({ caseId: "PROJ-42" })]);
+  });
+
+  it("still skips a missing case on a provider without requirements", async () => {
+    const analysis = await analyzeSync({
+      run: makeRun([ticketed]),
+      provider: fakeProvider(),
+      lockfile: emptyLockfile(),
+      config: xrayLike,
+    });
+
+    expect(analysis.skipped).toEqual([expect.objectContaining({ reason: "case-missing" })]);
+  });
+});
+
+describe("the plan", () => {
+  it("counts the results a new case will record", async () => {
+    const analysis = await analyzeSync({
+      run: makeRun([makeCase(), makeCase({ id: "tc-2", status: "pending", story: { ...makeCase().story, scenario: "Later", steps: [] } })]),
+      provider: fakeProvider(),
+      lockfile: emptyLockfile(),
+      config,
+    });
+
+    expect(renderPlan(analysis, { dryRun: true })).toMatch(/results\s+1 executions/);
   });
 });

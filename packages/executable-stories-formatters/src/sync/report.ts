@@ -256,6 +256,13 @@ export function renderPlan(analysis: SyncAnalysis, opts: { dryRun: boolean }): s
   lines.push(`  + create    ${pad(analysis.create.length)} cases`);
   lines.push(`  ~ update    ${pad(analysis.update.length)} cases`);
   lines.push(`  = unchanged ${pad(analysis.unchanged.length)} cases`);
+  if (analysis.rebound.length > 0) {
+    lines.push(`  ↻ kept      ${pad(analysis.rebound.length)} cases  (steps changed, same title, history stays)`);
+  }
+  if (analysis.moved.length > 0) {
+    lines.push(`  → moved     ${pad(analysis.moved.length)} cases  (story ticket names a different case)`);
+    for (const move of analysis.moved) lines.push(`      ${move.scenario}: ${move.from} → ${move.to}`);
+  }
   if (analysis.adopted.length > 0) {
     lines.push(`  · linked    ${pad(analysis.adopted.length)} cases  (hand-authored, results only)`);
   }
@@ -273,7 +280,7 @@ export function renderPlan(analysis: SyncAnalysis, opts: { dryRun: boolean }): s
     lines.push(`  ? orphaned  ${pad(analysis.orphaned.length)} cases  (story deleted from codebase, never removed)`);
   }
 
-  lines.push(`  → results   ${pad(analysis.results.length)} executions`);
+  lines.push(`  → results   ${pad(plannedResults(analysis))} executions`);
 
   if (analysis.attachments.files > 0) {
     const roles = Object.entries(analysis.attachments.byRole)
@@ -292,6 +299,8 @@ export function renderPlan(analysis: SyncAnalysis, opts: { dryRun: boolean }): s
   for (const capability of analysis.unsupported) {
     lines.push(`  ! ${analysis.provider} does not support ${capability} — those changes are not applied`);
   }
+
+  for (const warning of analysis.ticketWarnings) lines.push(`  ! ${warning}`);
 
   if (analysis.driftUncheckable > 0) {
     lines.push(
@@ -318,6 +327,15 @@ export function renderPlan(analysis: SyncAnalysis, opts: { dryRun: boolean }): s
   }
 
   return lines.join("\n");
+}
+
+/** Includes cases this run creates, whose results are recorded straight after. */
+function plannedResults(analysis: SyncAnalysis): number {
+  const local = new Map(analysis.local.map((b) => [b.fingerprint, b]));
+  const created = analysis.create.filter(
+    (planned) => local.get(planned.fingerprint)?.testCase.status !== "pending",
+  );
+  return analysis.results.length + created.length;
 }
 
 function hasWork(analysis: SyncAnalysis): boolean {
