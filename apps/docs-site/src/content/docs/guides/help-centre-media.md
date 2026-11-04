@@ -60,7 +60,7 @@ replaces on first publish, and the scenario that records it:
     {
       "id": "add-contact",
       "article": "5f1c0a2b",
-      "file": "reports/video/add-a-contact-via-the-interface.gif",
+      "file": "reports/video/add-a-contact-via-the-interface.mp4",
       "replaces": "old-add-contact.gif",
       "scenario": "add a contact via the interface"
     }
@@ -75,9 +75,18 @@ replaces on first publish, and the scenario that records it:
 | `{ "type": "confluence", "spaceId": "ENG" }` | the page id             | `CONFLUENCE_BASE_URL`, `CONFLUENCE_EMAIL`, `CONFLUENCE_TOKEN` |
 
 `file` must be a GIF, PNG, JPEG, WebP, MP4 or WebM, by extension and by its first bytes, so a
-slot can only publish media. `publish` swaps the source of an existing image, and an `<img>` will
-not play an MP4, so a slot replacing an image needs a GIF. `executable-stories video` writes the
-MP4; convert it with [gifski](https://gif.ski) or any video-to-GIF tool.
+slot can only publish media. `executable-stories video` writes the MP4.
+
+An MP4 or WebM replaces the whole image, and each target embeds it its own way:
+
+| Target     | A video slot writes                                       |
+| ---------- | --------------------------------------------------------- |
+| Markdown   | A `<video>` element that plays in the article             |
+| Help Scout | A link to the video, uploaded as an article attachment    |
+| Confluence | A link to the video, uploaded as a page attachment        |
+
+For a picture that plays inside a Help Scout or Confluence article, convert the MP4 with
+[gifski](https://gif.ski) or any video-to-GIF tool and point the slot at the GIF.
 
 Credentials and the Confluence host come from the environment, so a pull request that edits
 `docs.json` cannot send them anywhere else. `collections` and `spaceId` only scope `docs list`.

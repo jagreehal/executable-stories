@@ -8,9 +8,8 @@ BDD-style executable stories for Vitest with Markdown and HTML documentation gen
 pnpm add -D executable-stories-vitest executable-stories-formatters
 ```
 
-Supports Vitest 4 and Vitest 5, from the declared floor of 4.1.5 upward. Both
-are covered by CI. Vitest 5 asks for Node >= 22.12 and Vite >= 6.4; on Vitest 4
-this package's own floor of Node >= 22 applies.
+Supports Vitest 5.0.5 and later, covered by CI. Vitest 5 asks for Node >= 22.12
+and Vite >= 6.4.
 
 ## Getting started
 

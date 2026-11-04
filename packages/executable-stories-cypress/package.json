@@ -42,19 +42,19 @@
     "lint": "eslint ."
   },
   "peerDependencies": {
-    "cypress": ">=13.0.0"
+    "cypress": ">=16.2.1"
   },
   "dependencies": {
     "executable-stories-core": "workspace:*",
     "executable-stories-formatters": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "^26.6.1",
-    "cypress": "^16.2.0",
+    "@types/node": "^26.6.6",
+    "cypress": "^16.2.1",
     "eslint-config-executable-stories": "workspace:*",
-    "tsup": "^8.5.1",
+    "tsup": "^9.0.0",
     "typescript": "~6.0.3",
-    "vitest": "^5.0.1"
+    "vitest": "^5.0.5"
   },
   "repository": {
     "type": "git",

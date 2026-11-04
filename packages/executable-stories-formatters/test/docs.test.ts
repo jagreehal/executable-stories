@@ -972,7 +972,7 @@ describe('docs for a team', () => {
     expect(config.slots.at(-1)).toEqual({
       id: 'invite-a-teammate',
       article: 'team.md',
-      file: 'reports/video/invite-a-teammate.gif',
+      file: 'reports/video/invite-a-teammate.mp4',
       replaces: 'invite.gif',
       scenario: 'invite a teammate',
     });
@@ -995,8 +995,8 @@ describe('docs for a team', () => {
     expect((await run(root, 'add', 'two.md', '--image', '2')).code).toBe(0);
     const slots = JSON.parse(fs.readFileSync(path.join(root, 'docs.json'), 'utf8')).slots.slice(-2);
     expect(slots.map((s: Json) => [s.id, s.scenario, s.file])).toEqual([
-      ['import', 'import', 'reports/video/import.gif'],
-      ['import-2', 'import 2', 'reports/video/import-2.gif'],
+      ['import', 'import', 'reports/video/import.mp4'],
+      ['import-2', 'import 2', 'reports/video/import-2.mp4'],
     ]);
     // Both publish: their scenario titles are distinct in the run.
     edit(root, (_, report) => {
@@ -1134,5 +1134,98 @@ describe('docs for an agent', () => {
       skipped: [{ id: 'import-contacts', status: 'no media' }],
       failed: [],
     });
+  });
+});
+
+describe('video slots', () => {
+  const video = { ...slot, file: 'reports/video/add-contact.mp4', scenario: 'add a contact' };
+  const bytes = Buffer.from('\0\0\0\x18ftypmp42');
+
+  it('replaces the whole image element, title and attributes included', () => {
+    const embed = (src: string) => `[${src}]`;
+    expect(replaceImage('a ![b](old.gif "t") c', 'old.gif', 'n&m.mp4', embed)).toBe('a [n&amp;m.mp4] c');
+    expect(replaceImage('a <img src="old.gif" width="9"> c', 'old.gif', 'n.mp4', embed)).toBe('a [n.mp4] c');
+    expect(replaceImage('<ac:image><ri:attachment ri:filename="old.gif"/></ac:image>', 'old.gif', 'n.mp4', embed)).toBe('[n.mp4]');
+  });
+
+  it('reads past quoted text that looks like the end of the element', () => {
+    const embed = (src: string) => `[${src}]`;
+    expect(replaceImage('<img src="old.gif" title="a>b" width="9"> c', 'old.gif', 'n.mp4', embed)).toBe('[n.mp4] c');
+    expect(replaceImage("<img src='old.gif' alt='c>d'> e", 'old.gif', 'n.mp4', embed)).toBe('[n.mp4] e');
+    expect(replaceImage('![a](old.gif "b)c") d', 'old.gif', 'n.mp4', embed)).toBe('[n.mp4] d');
+    expect(replaceImage('![a](old.gif (b)) c', 'old.gif', 'n.mp4', embed)).toBe('[n.mp4] c');
+    expect(replaceImage('<a href="a.mp4" title="x>y">Watch</a> z', 'a.mp4', 'n.mp4', embed)).toBe('[n.mp4] z');
+    expect(replaceImage('<video src="a.mp4"/> z', 'a.mp4', 'n.mp4', embed)).toBe('[n.mp4] z');
+  });
+
+  it('refuses an element whose end the markup does not give', () => {
+    const embed = (src: string) => `[${src}]`;
+    for (const page of [
+      '<video src="a.mp4" controls>',
+      '<video src="a.mp4"><video src="b.webm"></video>',
+      '<a href="a.mp4">Watch',
+      '<ac:link><ri:attachment ri:filename="a.mp4"/>',
+      '<img src="a.gif" title="unclosed>',
+    ])
+      expect(() => replaceImage(page, 'a.', 'n.mp4', embed)).toThrow(/ends/);
+  });
+
+  it('finds a video embed again, and keeps an image out of one', () => {
+    const page = '<video src="m/a.mp4" controls></video>';
+    expect(imagesIn(page)).toEqual(['m/a.mp4']);
+    expect(replaceImage(page, 'a.mp4', 'b.mp4', (s) => `<video src="${s}"></video>`)).toBe('<video src="b.mp4"></video>');
+    expect(() => replaceImage(page, 'a.mp4', 'b.gif')).toThrow(/is a video/);
+  });
+
+  it('leaves links to other files alone', () => {
+    expect(imagesIn('<a href="guide.pdf">Guide</a>')).toEqual([]);
+    expect(imagesIn('<ac:link><ri:attachment ri:filename="contacts.xlsx"/></ac:link>')).toEqual([]);
+  });
+
+  it('writes a playable video into a Markdown article, then publishes over it', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'es-docs-video-'));
+    const file = path.join(dir, 'a.md');
+    fs.writeFileSync(file, 'Intro\n\n![old](old.gif)\n');
+    const target = markdownTarget(dir);
+    const first = { ...video, article: 'a.md' };
+    const { src } = await target.publish(first, bytes);
+    expect(src).toBe('media/add-contact.mp4');
+    const written = '<video src="media/add-contact.mp4" aria-label="add a contact" controls muted loop playsinline></video>';
+    expect(fs.readFileSync(file, 'utf8')).toBe(`Intro\n\n${written}\n`);
+    await target.publish(first, bytes, { to: 'x', src, sha256: 'x', publishedAt: 'x' });
+    expect(fs.readFileSync(file, 'utf8')).toBe(`Intro\n\n${written}\n`);
+  });
+
+  it('links to a Help Scout attachment', async () => {
+    const { fn, calls } = fakeFetch({
+      'GET /v1/articles/42': { article: { text: '<p><img src="https://hs/old.gif" alt="x"></p>' } },
+      'POST /v1/assets/article': { filelink: 'https://hs/add-contact.mp4' },
+      'PUT /v1/articles/42': {},
+    });
+    await helpScoutTarget('secret', fn).publish(video, bytes);
+    const form = calls.find((c) => c.key === 'POST /v1/assets/article')!.body as FormData;
+    expect(form.get('assetType')).toBe('attachment');
+    expect(JSON.parse(calls.at(-1)!.body as string).text).toBe(
+      '<p><a href="https://hs/add-contact.mp4">Watch the video: add a contact</a></p>',
+    );
+  });
+
+  it('links to a Confluence attachment', async () => {
+    const { fn, calls } = fakeFetch({
+      'GET /wiki/api/v2/pages/7': {
+        title: 'Contacts',
+        version: { number: 3 },
+        body: { storage: { value: '<ac:image><ri:attachment ri:filename="old.gif"/></ac:image>' } },
+      },
+      'PUT /wiki/rest/api/content/7/child/attachment': {},
+      'PUT /wiki/api/v2/pages/7': {},
+    });
+    await confluenceTarget('https://acme.atlassian.net/wiki', { email: 'e', token: 't' }, fn).publish(
+      { ...video, article: '7', replaces: 'old.gif' },
+      bytes,
+    );
+    expect(JSON.parse(calls.at(-1)!.body as string).body.value).toBe(
+      '<ac:link><ri:attachment ri:filename="add-contact.mp4"/><ac:link-body>Watch the video: add a contact</ac:link-body></ac:link>',
+    );
   });
 });

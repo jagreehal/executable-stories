@@ -36,7 +36,7 @@
     "lint": "eslint ."
   },
   "peerDependencies": {
-    "jest": ">=30.4.2"
+    "jest": ">=30.5.2"
   },
   "dependencies": {
     "executable-stories-core": "workspace:*",
@@ -44,14 +44,14 @@
     "fast-glob": "^3.3.3"
   },
   "devDependencies": {
-    "@jest/globals": "^30.5.1",
+    "@jest/globals": "^30.5.2",
     "@opentelemetry/api": "^1.9.1",
     "@types/jest": "^30.0.0",
-    "@types/node": "^26.6.1",
+    "@types/node": "^26.6.6",
     "eslint-config-executable-stories": "workspace:*",
     "jest": "^30.5.2",
-    "ts-jest": "^29.4.14",
-    "tsup": "^8.5.1",
+    "ts-jest": "^29.4.15",
+    "tsup": "^9.0.0",
     "typescript": "~6.0.3"
   },
   "repository": {

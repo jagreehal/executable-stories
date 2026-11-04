@@ -95,9 +95,10 @@ on the control the article names. Fix the scenario, not the still.
 
 ## 3. Render
 
-- **GIF for the article body:** `executable-stories video reports/raw-run.json`, then convert the
-  MP4 with [gifski](https://gif.ski) or any video-to-GIF tool. `docs publish` swaps an `<img>`'s
-  source, so a slot replacing an image needs a GIF, not the MP4.
+- **Video for the article body:** `executable-stories video reports/raw-run.json`. A slot's MP4
+  replaces the image: a `<video>` in Markdown, a link in Help Scout and Confluence. For a picture
+  that plays inline there, convert the MP4 with [gifski](https://gif.ski) and point the slot at
+  the GIF.
 - **Video with the article beside it:** `<ArticleVideo>` from `executable-stories-remotion`
   (see its README). Steps already in the article's wording need no `quotes`. Remotion has its
   own licence terms for companies; check them before adding it.
@@ -122,7 +123,7 @@ Add the slot to `docs.json` (article, rendered file, the image it replaces, the 
     {
       "id": "add-contact",
       "article": "5f1c…",
-      "file": "reports/video/add-a-contact-via-the-interface.gif",
+      "file": "reports/video/add-a-contact-via-the-interface.mp4",
       "replaces": "old-add-contact.gif",
       "scenario": "add a contact via the interface"
     }

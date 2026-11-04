@@ -26,20 +26,20 @@
     "test": "vitest run"
   },
   "peerDependencies": {
-    "e2e": ">=0.15.0"
+    "e2e": ">=0.21.3"
   },
   "dependencies": {
     "executable-stories-core": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "^26.6.1",
-    "e2e": "0.21.2",
+    "@types/node": "^26.6.6",
+    "e2e": "0.21.3",
     "eslint-config-executable-stories": "workspace:*",
     "executable-stories-formatters": "workspace:*",
     "executable-stories-vitest": "workspace:*",
-    "tsup": "^8.5.1",
+    "tsup": "^9.0.0",
     "typescript": "~6.0.3",
-    "vitest": "^5.0.1"
+    "vitest": "^5.0.5"
   },
   "engines": {
     "node": ">=22.12.0"
