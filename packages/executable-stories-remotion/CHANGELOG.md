@@ -1,5 +1,12 @@
 # executable-stories-remotion
 
+## 0.5.2
+
+### Patch Changes
+
+- Updated dependencies [5b8555c]
+  - executable-stories-core@0.32.0
+
 ## 0.5.1
 
 ### Patch Changes
