@@ -3,11 +3,13 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { describe, it, expect } from "vitest";
+import { ffmpegPath } from "executable-stories-core/utils/ffmpeg-path";
 import {
   frameCommands,
   fromStepIndex,
   leadInSeconds,
   parseFrames,
+  parseVideoSize,
   stepOverruns,
   videoManifest,
   writeVideos,
@@ -37,14 +39,7 @@ const recorded = (name: string, status: "passed" | "failed", file: string) =>
     }),
   });
 
-const hasFfmpeg = (() => {
-  try {
-    execFileSync("ffmpeg", ["-version"], { stdio: "ignore" });
-    return true;
-  } catch {
-    return false;
-  }
-})();
+const ffmpeg = ffmpegPath(import.meta.url);
 
 describe("fromStepIndex", () => {
   const steps = [{ keyword: "Given" }, { keyword: "Given" }, { keyword: "When" }, { keyword: "Then" }];
@@ -213,8 +208,18 @@ describe("video", () => {
     expect(clicks.map(({ x, y }) => [x, y])).toEqual([[600, 338], [190, 337]]);
   });
 
+  it("reads the input's size from ffmpeg's log", () => {
+    const log = [
+      "  Stream #0:0: Video: vp8, yuv420p(progressive), 1440x900, SAR 1:1 DAR 8:5, 25 fps, 25 tbr, 1k tbn",
+      "  Stream #0:0: Video: wrapped_avframe, yuv420p, 640x400, q=2-31",
+    ].join("\n");
+    expect(parseVideoSize(log)).toEqual({ width: 1440, height: 900 });
+    expect(parseVideoSize("  Stream #0:0: Video: h264 (avc1 / 0x31637661), yuv420p(tv, bt709), 320x240")).toEqual({ width: 320, height: 240 });
+    expect(parseVideoSize("  Stream #0:0: Audio: opus, 48000 Hz")).toBeUndefined();
+  });
+
   it("skips failing and unrecorded scenarios", async () => {
-    const deps: VideoDeps = { exec: async () => ({ stdout: "", stderr: "" }) };
+    const deps: VideoDeps = { ffmpeg: async () => ({ stdout: "", stderr: "" }) };
     const out = fs.mkdtempSync(path.join(os.tmpdir(), "es-video-out-"));
     const { written, skipped } = await writeVideos(
       { testCases: [recorded("broken", "failed", "x.webm"), stubs.testCaseResult({ status: "passed" })], outputDir: out },
@@ -228,11 +233,11 @@ describe("video", () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "es-video-root-"));
     fs.mkdirSync(path.join(root, "reports"));
     fs.writeFileSync(path.join(root, "reports/rec.webm"), "webm");
-    const probed: string[] = [];
+    const inputs: string[] = [];
     const deps: VideoDeps = {
-      exec: async (_command, args) => {
-        probed.push(args.at(-1)!);
-        throw new Error("stop after the probe");
+      ffmpeg: async (args) => {
+        inputs.push(args[args.indexOf("-i") + 1]!);
+        throw new Error("stop after the first read");
       },
     };
     await expect(
@@ -240,24 +245,24 @@ describe("video", () => {
         { testCases: [recorded("relative", "passed", "reports/rec.webm")], outputDir: path.join(root, "out"), projectRoot: root },
         deps,
       ),
-    ).rejects.toThrow("stop after the probe");
-    expect(probed).toEqual([path.join(root, "reports/rec.webm")]);
+    ).rejects.toThrow("stop after the first read");
+    expect(inputs).toEqual([path.join(root, "reports/rec.webm")]);
   });
 
-  it.skipIf(!hasFfmpeg)("writes an MP4 with the blank page load cut off, and its manifest", async () => {
+  it("writes an MP4 with the blank page load cut off, and its manifest", async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "es-video-"));
     const webm = path.join(dir, "in.webm");
     // One second of white page, then a second of content.
-    execFileSync("ffmpeg", [
+    execFileSync(ffmpeg, [
       "-v", "error",
       "-f", "lavfi", "-i", "color=white:s=320x240:d=1:r=25",
       "-f", "lavfi", "-i", "testsrc=s=320x240:d=1:r=25",
       "-filter_complex", "[0][1]concat=n=2", "-c:v", "libvpx", webm,
     ]);
     const deps: VideoDeps = {
-      exec: (command, args) =>
+      ffmpeg: (args) =>
         new Promise((resolve, reject) =>
-          execFile(command, args, { maxBuffer: 64 * 1024 * 1024 }, (err, stdout, stderr) =>
+          execFile(ffmpeg, args, { maxBuffer: 64 * 1024 * 1024 }, (err, stdout, stderr) =>
             err ? reject(err) : resolve({ stdout, stderr })),
         ),
     };
@@ -273,20 +278,20 @@ describe("video", () => {
     expect(manifest.durationMs).toBeLessThan(1100);
   }, 30_000);
 
-  it.skipIf(!hasFfmpeg)("starts at a later step and writes a still per step", async () => {
+  it("starts at a later step and writes a still per step", async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "es-video-"));
     const webm = path.join(dir, "in.webm");
     // One second of white page, then three of content.
-    execFileSync("ffmpeg", [
+    execFileSync(ffmpeg, [
       "-v", "error",
       "-f", "lavfi", "-i", "color=white:s=320x240:d=1:r=25",
       "-f", "lavfi", "-i", "testsrc=s=320x240:d=3:r=25",
       "-filter_complex", "[0][1]concat=n=2", "-c:v", "libvpx", webm,
     ]);
     const deps: VideoDeps = {
-      exec: (command, args) =>
+      ffmpeg: (args) =>
         new Promise((resolve, reject) =>
-          execFile(command, args, { maxBuffer: 64 * 1024 * 1024 }, (err, stdout, stderr) =>
+          execFile(ffmpeg, args, { maxBuffer: 64 * 1024 * 1024 }, (err, stdout, stderr) =>
             err ? reject(err) : resolve({ stdout, stderr })),
         ),
     };
@@ -313,15 +318,15 @@ describe("video", () => {
     for (const f of [written[0].frames![0].frame, written[0].frames![0].closeUp!]) expect(fs.statSync(f).size).toBeGreaterThan(0);
   }, 30_000);
 
-  it.skipIf(!hasFfmpeg)("skips a scenario whose --from-step begins after the recording ends", async () => {
+  it("skips a scenario whose --from-step begins after the recording ends", async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "es-video-"));
     const webm = path.join(dir, "in.webm");
     // Two seconds of content; the When began 2.5s in.
-    execFileSync("ffmpeg", ["-v", "error", "-f", "lavfi", "-i", "testsrc=s=320x240:d=2:r=25", "-c:v", "libvpx", webm]);
+    execFileSync(ffmpeg, ["-v", "error", "-f", "lavfi", "-i", "testsrc=s=320x240:d=2:r=25", "-c:v", "libvpx", webm]);
     const deps: VideoDeps = {
-      exec: (command, args) =>
+      ffmpeg: (args) =>
         new Promise((resolve, reject) =>
-          execFile(command, args, { maxBuffer: 64 * 1024 * 1024 }, (err, stdout, stderr) =>
+          execFile(ffmpeg, args, { maxBuffer: 64 * 1024 * 1024 }, (err, stdout, stderr) =>
             err ? reject(err) : resolve({ stdout, stderr })),
         ),
     };

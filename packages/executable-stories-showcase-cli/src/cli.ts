@@ -56,7 +56,7 @@ const HELP = `Usage: executable-stories-showcase <command> <scenarios-dir> [opti
              --fps n (GIF default 12), --width px to downscale, --hold ms on the last frame (default 800).
              --cursor arrow (default), dot or a path to an .svg file; --cursor-color any CSS color (default #ff3d71).
              Writes <name>.video.json next to each video: size, length, description and clicks.
-             mp4, gif, --element, --fps and --width need ffmpeg on PATH (or FFMPEG_PATH)
+             mp4, gif, --element, --fps and --width use the bundled ffmpeg; FFMPEG_PATH overrides it
   suggest    Ask Claude which UI states lack scenarios and draft them into --out (default <dir>/proposed).
              --src dir[,dir] (required), --schema file, --max n, --model (default $EXECUTABLE_STORIES_SHOWCASE_MODEL or claude-opus-5-5).
              Needs ANTHROPIC_API_KEY or \`ant auth login\`; ANTHROPIC_BASE_URL points it at a compatible proxy.

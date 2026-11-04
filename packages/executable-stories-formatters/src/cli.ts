@@ -67,7 +67,7 @@ import {
   startWatch,
 } from './index.js';
 import { listScenarios } from './list-scenarios';
-import { writeGifs } from './gif';
+import { ffmpegPath } from 'executable-stories-core/utils/ffmpeg-path';
 import { writeVideos } from './video';
 import { sendNotifications } from './notifiers/send-notifications';
 import type {
@@ -183,12 +183,11 @@ SUBCOMMANDS
   gate-release       Verify a release candidate against the dev test baseline (RC gate)
   review             Generate an Evidence Review of AI-authored changes (correlate a run to the diff)
   list               List scenarios from a test run (text table or JSON)
-  gif                Animated GIF per passing scenario from its step screenshots (needs ffmpeg), into <output-dir>/gif
   video              MP4 per passing scenario Playwright recorded (featureVideo), page load trimmed, with a
-                     <name>.video.json manifest for executable-stories-remotion (needs ffmpeg), into <output-dir>/video.
+                     <name>.video.json manifest for executable-stories-remotion, into <output-dir>/video.
                      --no-trim keeps the page load. --from-step <n|keyword> starts at that step (setup off camera);
                      --frames writes a still per step, plus a ringed close-up of its click, into video/<name>/ to check.
-                     gif and video take --json to print what they wrote.
+                     --json prints what it wrote.
   check              Backpressure summary: compress passing, expand failing (GWT + error + covers); non-zero exit on failures
   check-explainers   Audit explainer docs (explain-change skill) against a run: stale when a cited scenario changed/renamed/vanished (exit 5)
   goal               Behavioral definition-of-done for agent loops: required scenarios pass, no regressions, no weakened scenarios (exit 0 = met, 5 = not)
@@ -435,7 +434,6 @@ interface CliArgs {
     | 'gate-release'
     | 'review'
     | 'list'
-    | 'gif'
     | 'video'
     | 'check'
     | 'check-explainers'
@@ -477,7 +475,7 @@ interface CliArgs {
   /** Markdown keeps local screenshot/video paths, for `gh ... --attach`. */
   attachImages: boolean;
   jsonSummary: boolean;
-  /** gif/video: print what was written as JSON. */
+  /** video: print what was written as JSON. */
   json: boolean;
   /** video: keep the page load at the start of each recording. */
   noTrim: boolean;
@@ -678,7 +676,6 @@ async function parseCliArgs(
     subcommand !== 'deploy' &&
     subcommand !== 'review' &&
     subcommand !== 'list' &&
-    subcommand !== 'gif' &&
     subcommand !== 'video' &&
     subcommand !== 'check' &&
     subcommand !== 'check-explainers' &&
@@ -698,7 +695,7 @@ async function parseCliArgs(
     subcommand !== 'runs'
   ) {
     console.error(
-      `Unknown subcommand: "${subcommand}". Use "format", "watch", "compare", "gate-release", "deploy", "review", "list", "gif", "video", "check", "check-explainers", "goal", "triage", "validate", "doctor", "completion", "check-links", "push", "share", "docs", "sync", "coverage", "publish-confluence", or "publish-jira".`,
+      `Unknown subcommand: "${subcommand}". Use "format", "watch", "compare", "gate-release", "deploy", "review", "list", "video", "check", "check-explainers", "goal", "triage", "validate", "doctor", "completion", "check-links", "push", "share", "docs", "sync", "coverage", "publish-confluence", or "publish-jira".`,
     );
     process.exit(EXIT_USAGE);
   }
@@ -1204,7 +1201,6 @@ async function parseCliArgs(
       | 'gate-release'
       | 'review'
       | 'list'
-      | 'gif'
       | 'video'
       | 'check'
       | 'validate',
@@ -1778,7 +1774,6 @@ const SUBCOMMAND_HANDLERS: Record<string, (ctx: CliContext) => Promise<void>> =
     'gate-release': runGateRelease,
     review: runReview,
     list: runList,
-    gif: runGif,
     video: runVideo,
     check: runCheck,
     'check-explainers': runCheckExplainers,
@@ -1997,10 +1992,10 @@ async function runVideo(ctx: CliContext): Promise<void> {
         projectRoot: run.projectRoot,
       },
       {
-        exec: (command, execArgs) =>
+        ffmpeg: (ffArgs) =>
           new Promise((resolve, reject) =>
             // Frame stats run to a few MB on a long recording.
-            execFile(command, execArgs, { maxBuffer: 256 * 1024 * 1024 }, (err, stdout, stderr) =>
+            execFile(ffmpegPath(import.meta.url), ffArgs, { maxBuffer: 256 * 1024 * 1024 }, (err, stdout, stderr) =>
               err
                 ? reject((err as NodeJS.ErrnoException).code === 'ENOENT' ? err : new Error(stderr.trim() || err.message))
                 : resolve({ stdout, stderr }),
@@ -2025,46 +2020,8 @@ async function runVideo(ctx: CliContext): Promise<void> {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(
       (err as NodeJS.ErrnoException).code === 'ENOENT'
-        ? 'video needs ffmpeg and ffprobe on PATH (brew install ffmpeg / apt install ffmpeg).'
+        ? 'video needs ffmpeg: set FFMPEG_PATH, or put ffmpeg on PATH.'
         : `video failed: ${msg}`,
-    );
-    process.exit(EXIT_GENERATION);
-  }
-}
-
-async function runGif(ctx: CliContext): Promise<void> {
-  const { args } = ctx;
-  warnStaleRun(args);
-  const run = applySelection(await readRunInput(args), args);
-  try {
-    const { written, skipped } = await writeGifs(
-      { testCases: run.testCases, outputDir: path.join(args.outputDir, 'gif'), projectRoot: run.projectRoot },
-      {
-        ffmpeg: (ffArgs) =>
-          new Promise((resolve, reject) =>
-            execFile('ffmpeg', ffArgs, (err, _stdout, stderr) =>
-              err
-                ? reject((err as NodeJS.ErrnoException).code === 'ENOENT' ? err : new Error(stderr.trim() || err.message))
-                : resolve(),
-            ),
-          ),
-      },
-    );
-    if (args.json) console.log(JSON.stringify({ written, skipped }, null, 2));
-    else {
-      for (const w of written) {
-        console.log(`${w.path}  (${w.frames} frames)  ${w.scenario}`);
-        for (const step of w.unchanged) console.log(`  same screen as the frame before: "${step}"`);
-      }
-      console.log(`${written.length} GIF(s) written, ${skipped.length} scenario(s) skipped`);
-    }
-    process.exit(EXIT_SUCCESS);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error(
-      (err as NodeJS.ErrnoException).code === 'ENOENT'
-        ? 'gif needs ffmpeg on PATH (brew install ffmpeg / apt install ffmpeg).'
-        : `gif failed: ${msg}`,
     );
     process.exit(EXIT_GENERATION);
   }

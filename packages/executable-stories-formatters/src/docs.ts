@@ -1426,7 +1426,7 @@ async function addSlot(
   }
   // The title names the scenario and the GIF it renders, so no two slots may share it: a second
   // image under one heading becomes "<heading> 2". A --scenario that is taken is refused instead.
-  const gifFor = (t: string) => `reports/gif/${scenarioSlug(t)}.gif`;
+  const gifFor = (t: string) => `reports/video/${scenarioSlug(t)}.gif`;
   const taken = (t: string) =>
     config.slots.some((s) => s.scenario === t || s.file === gifFor(t));
   const base = (image.heading || found.title).toLowerCase();
@@ -1457,7 +1457,7 @@ async function addSlot(
   }
   config.slots.push(slot);
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
-  // A GIF needs two frames or more: one per step, so a short section gets an outcome step.
+  // One step per sentence, and a short section gets an outcome step.
   const steps = sentences(image.text);
   const lines = [...(steps.length ? steps : ['TODO: the first step'])];
   if (lines.length < 2) lines.push('TODO: what the viewer sees once it is done');

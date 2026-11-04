@@ -55,7 +55,7 @@ npx executable-stories-showcase record src/scenarios --base-url http://localhost
   page). `RecordingVideo` from `executable-stories-remotion` reads it to caption each clip and
   zoom to its clicks in Remotion. Add a short `page.waitForTimeout` before each click so the
   zoom has time to arrive.
-- MP4, GIF, `--element`, `--fps` and `--width` need ffmpeg on `PATH`, or `FFMPEG_PATH`. Plain WebM
+- MP4, GIF, `--element`, `--fps` and `--width` use the ffmpeg that installs with this package on macOS, Windows and Linux. `FFMPEG_PATH` overrides it. Plain WebM
   doesn't.
 - `--cursor dot` or `--cursor pointer.svg` swaps the default pulsing arrow; `--cursor-color '#00b3ff'` recolors it.
 - Act with locators (`page.getByRole(...).click()`, `.fill()`): during `record` each locator click,

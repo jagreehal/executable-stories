@@ -4,7 +4,7 @@ import { openScenario } from 'executable-stories-showcase/playwright';
 
 // Each walkthrough opens its exact starting state from a scenario (no backend, no seed
 // data), then captures one screenshot per step. `pnpm walkthrough` turns the run into
-// docs/walkthroughs.md, an HTML report, and docs/gif/<walkthrough>.gif.
+// docs/walkthroughs.md and an HTML report.
 
 test('Find a country', async ({ page }, testInfo) => {
   story.init(testInfo, { tags: ['docs'], featureVideo: true });

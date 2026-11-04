@@ -160,7 +160,7 @@ Correct: leave `--reporter` off, or name both:
 npx playwright test --reporter=line,executable-stories-playwright/reporter
 ```
 
-`executable-stories doctor` (and `gif`/`video`) say so when `test-results/.last-run.json` is newer than the run file.
+`executable-stories doctor` (and `video`) say so when `test-results/.last-run.json` is newer than the run file.
 
 ### MEDIUM Default format is html, not markdown
 

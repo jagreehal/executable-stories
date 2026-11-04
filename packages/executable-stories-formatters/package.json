@@ -88,5 +88,8 @@
     "typescript": "~6.0.3",
     "vitest": "^5.0.1",
     "vitest-mock-extended": "^5.1.1"
+  },
+  "optionalDependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0"
   }
 }

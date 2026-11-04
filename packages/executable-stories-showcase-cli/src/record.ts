@@ -1,6 +1,7 @@
 import type { Frame } from '@playwright/test';
 import { spawnSync } from 'node:child_process';
 import { copyFileSync } from 'node:fs';
+import { ffmpegPath } from 'executable-stories-core/utils/ffmpeg-path';
 import { CliError } from './errors.js';
 
 export type VideoFormat = 'mp4' | 'gif' | 'webm';
@@ -95,16 +96,14 @@ export function encodeVideo(options: Parameters<typeof ffmpegArgs>[0]) {
     return { start: 0 };
   }
 
-  // FFMPEG_PATH is the usual override when ffmpeg isn't on PATH (common on Windows).
-  const ffmpeg = process.env.FFMPEG_PATH || 'ffmpeg';
-  const result = spawnSync(ffmpeg, ffmpegArgs(options), { encoding: 'utf8' });
+  const result = spawnSync(ffmpegPath(import.meta.url), ffmpegArgs(options), { encoding: 'utf8' });
 
   if (result.error) {
     throw new CliError(
       'FFMPEG_MISSING',
       `record needs ffmpeg for ${options.format}${
         options.format === 'webm' ? ' with --element, --fps or --width' : ''
-      }: install it (https://ffmpeg.org/download.html) or set FFMPEG_PATH`,
+      }: set FFMPEG_PATH, or put ffmpeg on PATH`,
     );
   }
 

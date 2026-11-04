@@ -117,7 +117,7 @@ export function reportFixture(overrides: Partial<StoryReport> = {}): StoryReport
 
 /**
  * A report with a single feature holding a single scenario — mirrors the
- * standalone "Trolley Widget" report (one Playwright story). Reproduces the
+ * standalone "Payout Widget" report (one Playwright story). Reproduces the
  * sparse-report layout case: an in-content TOC rail for one scenario looks
  * unbalanced next to the content, so the design must adapt when scenarios are
  * few. Use to iterate that layout in Storybook.
@@ -137,14 +137,14 @@ export function singleScenarioReport(overrides: Partial<StoryReport> = {}): Stor
         kind: "section",
         title: "Artist payout profile",
         markdown:
-          "Curve embeds the Trolley Widget so payees can enter payout details themselves.\n\n" +
+          "The app embeds a payout widget so payees can enter payout details themselves.\n\n" +
           "**Who cares:** Artists onboarding to get paid. **Risk if broken:** payees can't self-serve, so ops onboard by hand.",
       },
     ] as ReportScenario["docEntries"],
   });
   const feature: ReportFeature = {
     id: id("feature"),
-    title: "Trolley Widget: payee self-serve profile",
+    title: "Payout Widget: payee self-serve profile",
     sourceFile: "widget.story.spec.ts",
     summary: summaryOf([scenario]),
     scenarios: [scenario],

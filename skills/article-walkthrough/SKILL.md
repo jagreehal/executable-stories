@@ -58,7 +58,7 @@ test('add a contact via the interface', async ({ page }, testInfo) => {
 ```
 
 - **Every step ends with `story.screenshot({ hold: 'auto' })`.** The hold is a pause only
-  while recording, long enough to read the step's line. It is also the storyboard frame for the GIF.
+  while recording, long enough to read the step's line. It is also the storyboard frame.
 - **Assert the outcome the article promises**, not just that a toast appeared. A video of a
   save that silently failed teaches the wrong thing.
 - **Do the article's actions only.** Sign-in and setup go before the first step, or are cut
@@ -95,7 +95,9 @@ on the control the article names. Fix the scenario, not the still.
 
 ## 3. Render
 
-- **GIF for the article body:** `executable-stories gif reports/raw-run.json`.
+- **GIF for the article body:** `executable-stories video reports/raw-run.json`, then convert the
+  MP4 with [gifski](https://gif.ski) or any video-to-GIF tool. `docs publish` swaps an `<img>`'s
+  source, so a slot replacing an image needs a GIF, not the MP4.
 - **Video with the article beside it:** `<ArticleVideo>` from `executable-stories-remotion`
   (see its README). Steps already in the article's wording need no `quotes`. Remotion has its
   own licence terms for companies; check them before adding it.
@@ -120,7 +122,7 @@ Add the slot to `docs.json` (article, rendered file, the image it replaces, the 
     {
       "id": "add-contact",
       "article": "5f1c…",
-      "file": "reports/gif/add-a-contact-via-the-interface.gif",
+      "file": "reports/video/add-a-contact-via-the-interface.gif",
       "replaces": "old-add-contact.gif",
       "scenario": "add a contact via the interface"
     }

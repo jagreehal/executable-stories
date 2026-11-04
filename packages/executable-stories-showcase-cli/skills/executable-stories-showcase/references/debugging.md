@@ -37,7 +37,7 @@ save into the project. Each problem prints its code and fix. `--json` for script
 | `UNKNOWN_SCENARIO`    |    2 | A name isn't in the catalog                                          | The message lists known names                                                                                                   |
 | `DEV_SERVER_DOWN`     |    3 | Nothing answers at `--base-url`                                      | Start the dev server, or pass the URL it prints                                                                                 |
 | `BROWSER_MISSING`     |    3 | Playwright or Chromium isn't installed                               | `npm i -D @playwright/test && npx playwright install chromium`                                                                  |
-| `FFMPEG_MISSING`      |    3 | `record` needs ffmpeg                                                | Install it, or set `FFMPEG_PATH`                                                                                                |
+| `FFMPEG_MISSING`      |    3 | `record` needs ffmpeg                                                | Set `FFMPEG_PATH`, or put ffmpeg on `PATH`                                                                                                |
 | `WORKER_NOT_SERVED`   |    3 | `/mockServiceWorker.js` 404s                                         | `msw({ mode: 'worker-only' })` in Vite, or `npx msw init public`                                                                |
 
 ## Common causes
