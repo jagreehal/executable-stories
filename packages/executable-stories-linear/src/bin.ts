@@ -6,6 +6,7 @@ import { runCli } from "./cli";
 const code = await runCli(process.argv.slice(2), {
   env: process.env,
   readFile: (path) => readFile(path, "utf8"),
+  readBytes: (path) => readFile(path),
   exists: existsSync,
   fetch: globalThis.fetch,
   out: (line) => console.log(line),

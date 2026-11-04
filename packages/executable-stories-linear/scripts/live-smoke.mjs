@@ -9,7 +9,7 @@
  */
 
 import { execFile } from "node:child_process";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -186,6 +186,30 @@ try {
       `exits ${a.code}/${b.code}, ${left.length} left ${a.stderr.trim()} ${b.stderr.trim()}`,
     );
   }
+
+  // A scenario's video: stored in Linear, skipped when unchanged, replaced when it changes.
+  const videos = async () =>
+    (
+      await linear("query($id: String!) { issue(id: $id) { attachments { nodes { title url metadata } } } }", {
+        id: issue.identifier,
+      })
+    ).issue.attachments.nodes.filter((a) => a.metadata?.source === "executable-stories-video");
+  const clip = process.env.SMOKE_VIDEO ? await readFile(process.env.SMOKE_VIDEO) : Buffer.from("\0\0\0\x18ftypmp42smoke");
+  await mkdir(join(dir, "video"));
+  await writeFile(join(dir, "video", "refund-a-card-payment.mp4"), clip);
+  const attach = await publish(dir, second, ["--videos", "video"]);
+  check("publish --videos attaches the file", attach.code === 0 && attach.stdout.includes(`attached ${issue.identifier}: refund-a-card-payment.mp4`), `${attach.stdout.trim()} ${attach.stderr.trim()}`);
+  const stored1 = await videos();
+  check("Linear stores the video", stored1.length === 1 && new URL(stored1[0].url).hostname === "uploads.linear.app", JSON.stringify(stored1).slice(0, 300));
+  const download = await fetch(stored1[0].url, { headers: { authorization: apiKey } });
+  const bytes = Buffer.from(await download.arrayBuffer());
+  check("the stored file is the same bytes", download.ok && bytes.equals(clip), `${download.status} ${download.headers.get("content-type")} ${bytes.length} bytes`);
+  const again = await publish(dir, second, ["--videos", "video"]);
+  check("the same bytes upload nothing", again.stdout.includes(`unchanged ${issue.identifier}`) && (await videos())[0]?.url === stored1[0].url, again.stdout.trim());
+  await writeFile(join(dir, "video", "refund-a-card-payment.mp4"), Buffer.concat([clip, Buffer.from("changed")]));
+  const replaced = await publish(dir, second, ["--videos", "video"]);
+  const stored2 = await videos();
+  check("a changed video replaces the old one", replaced.code === 0 && stored2.length === 1 && stored2[0].url !== stored1[0].url, JSON.stringify(stored2.map((a) => a.url)));
 } finally {
   await rm(dir, { recursive: true, force: true });
   const deleted = await linear("mutation($id: String!) { issueDelete(id: $id) { success } }", { id: issue.id }).then(

@@ -31,6 +31,17 @@ Opening the attachment shows Linear's own modal. You see one entry per scenario,
 
 Use a personal key (`lin_api_…`) for a bot member, or `LINEAR_ACCESS_TOKEN` for OAuth. In Actions the scope defaults to `CI <owner/repo> <branch>` and the link to the repository. Elsewhere, pass `--link`. Try it with `--dry-run` first: it prints what it would post and needs no key.
 
+## Videos
+
+`executable-stories video` writes an MP4 per recorded scenario. `--videos` attaches each one to the issues its scenario names, stored in Linear:
+
+```bash
+npx executable-stories video reports/raw-run.json
+npx executable-stories-linear publish reports/raw-run.json --videos reports/video
+```
+
+Each scenario keeps one video per scope. Publishing the same file uploads nothing, and a changed file replaces the old attachment.
+
 ## Scopes
 
 Each scope keeps its own attachment, so `--scope nightly` sits beside `CI acme/app main` on the same issue. Writers that share a scope share one attachment. To share it with another writer, such as the hosted app, pass that writer's link with `--trust <url>` (repeatable) or `EXECUTABLE_STORIES_TRUSTED_LINKS`. The CLI leaves attachments with any other link alone.

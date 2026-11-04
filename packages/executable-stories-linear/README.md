@@ -35,12 +35,22 @@ It reads a raw run as the framework reporters write it (`rawRunPath`), or a Stor
 | `--link <url>` | the GitHub repository in Actions | Where the attachment links for good: your report site or the repository |
 | `--run-url <url>` | the Actions run, or the run's `ci.url` | This run, kept in the attachment's details |
 | `--trust <url>` | | Another writer's link whose status for the scope you share (repeatable) |
+| `--videos <dir>` | | Also attach each scenario's `<dir>/<slug>.mp4` to its issues |
 | `--dry-run` | | Print what would be posted; needs no key |
 | `--json` | | Print the result as JSON |
 
 Credentials: `LINEAR_API_KEY` (a personal key, `lin_api_…`; use one for a bot member, not a person) or `LINEAR_ACCESS_TOKEN` (OAuth).
 
 Exit codes: `0` posted, or nothing to post; `1` Linear refused some issues (deleted, no access), the rest were still posted; `2` usage or setup error.
+
+### Videos on the issue
+
+```bash
+npx executable-stories video reports/raw-run.json
+npx executable-stories-linear publish reports/raw-run.json --videos reports/video
+```
+
+`--videos` uploads each scenario's MP4 into Linear's storage and attaches it to the issues the scenario names, one video per scenario and scope. A later publish with the same file uploads nothing. A changed file attaches first, then replaces the old attachment. Scenarios with no file in the folder stay as they are.
 
 ### GitHub Actions
 
@@ -83,5 +93,7 @@ const result = await publishRun({ report: readRun(text), client, scope: "CI main
 The tracker-agnostic part lives in [executable-stories-trackers](../executable-stories-trackers).
 
 ## Checking it against a real workspace
+
+Set `SMOKE_VIDEO` to an MP4 to run the video checks with a real file.
 
 `LINEAR_API_KEY=… pnpm --filter executable-stories-linear smoke` runs the built CLI against your workspace: it creates a throwaway issue, publishes twice, checks the attachment updated in place, and deletes the issue.
