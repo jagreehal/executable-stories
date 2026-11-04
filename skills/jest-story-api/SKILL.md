@@ -6,7 +6,7 @@ description: >
 metadata:
   type: core
   library: executable-stories-jest
-  library_version: "8.11.1"
+  library_version: "8.11.2"
   sources:
     - "jagreehal/executable-stories:packages/executable-stories-jest/src/index.ts"
     - "jagreehal/executable-stories:packages/executable-stories-jest/src/story-api.ts"

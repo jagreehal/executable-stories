@@ -1,5 +1,12 @@
 # executable-stories-trackers
 
+## 0.2.1
+
+### Patch Changes
+
+- Updated dependencies [5b8555c]
+  - executable-stories-core@0.32.0
+
 ## 0.2.0
 
 ### Minor Changes

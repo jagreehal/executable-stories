@@ -1,5 +1,11 @@
 # executable-stories-core
 
+## 0.32.0
+
+### Minor Changes
+
+- 5b8555c: Remove the `gif` command and `writeGifs`: use `video`, and convert an MP4 with gifski or any video-to-GIF tool. `video` and showcase `record` now install ffmpeg with the npm package on macOS, Windows and Linux, and `FFMPEG_PATH` overrides it.
+
 ## 0.31.0
 
 ### Minor Changes
