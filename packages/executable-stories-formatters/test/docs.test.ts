@@ -972,7 +972,7 @@ describe('docs for a team', () => {
     expect(config.slots.at(-1)).toEqual({
       id: 'invite-a-teammate',
       article: 'team.md',
-      file: 'reports/gif/invite-a-teammate.gif',
+      file: 'reports/video/invite-a-teammate.gif',
       replaces: 'invite.gif',
       scenario: 'invite a teammate',
     });
@@ -995,8 +995,8 @@ describe('docs for a team', () => {
     expect((await run(root, 'add', 'two.md', '--image', '2')).code).toBe(0);
     const slots = JSON.parse(fs.readFileSync(path.join(root, 'docs.json'), 'utf8')).slots.slice(-2);
     expect(slots.map((s: Json) => [s.id, s.scenario, s.file])).toEqual([
-      ['import', 'import', 'reports/gif/import.gif'],
-      ['import-2', 'import 2', 'reports/gif/import-2.gif'],
+      ['import', 'import', 'reports/video/import.gif'],
+      ['import-2', 'import 2', 'reports/video/import-2.gif'],
     ]);
     // Both publish: their scenario titles are distinct in the run.
     edit(root, (_, report) => {

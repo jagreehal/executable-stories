@@ -115,9 +115,6 @@ await story.screenshot({
 });
 ```
 
-`executable-stories gif reports/raw-run.json` turns each passing scenario's step
-screenshots into an animated GIF (needs `ffmpeg`).
-
 **Recorded walkthroughs:** with `video: "on"` in the config, pass the page so the
 scenario also notes each click and focused field, and `hold` a screen so viewers
 can read it (the hold applies only while the page is being recorded). `hold: "auto"`

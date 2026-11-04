@@ -62,7 +62,7 @@ await story.screenshot({
 });
 ```
 
-`aria: true` also records the page's accessibility snapshot (Playwright's `ariaSnapshot()`) beside the image, so a frame can be checked as text. The `agent-text` format then lists what changed on screen since the previous screenshot, `executable-stories gif` names any step whose screen reads the same as the frame before, and `screenFrames` and `diffAria` from `executable-stories-core` give the same changes to your own checks, such as one asking a model whether each caption matches its frame.
+`aria: true` also records the page's accessibility snapshot (Playwright's `ariaSnapshot()`) beside the image, so a frame can be checked as text. The `agent-text` format then lists what changed on screen since the previous screenshot, and `screenFrames` and `diffAria` from `executable-stories-core` give the same changes to your own checks, such as one asking a model whether each caption matches its frame.
 
 ```typescript
 await story.screenshot({ page, alt: "Composer hidden", aria: true });

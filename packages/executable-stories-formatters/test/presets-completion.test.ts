@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import { completionScript, COMPLETION_SUBCOMMANDS } from "../src/completion";
@@ -112,5 +113,13 @@ describe("--open", () => {
     expect(openCommand("darwin").command).toBe("open");
     expect(openCommand("linux").command).toBe("xdg-open");
     expect(openCommand("win32")).toEqual({ command: "cmd", args: ["/c", "start", ""] });
+  });
+});
+
+describe("completion subcommands", () => {
+  it("lists exactly the subcommands the CLI accepts", () => {
+    const cli = readFileSync(new URL("../src/cli.ts", import.meta.url), "utf8");
+    const accepted = [...cli.matchAll(/subcommand !== '([a-z-]+)'/g)].map((m) => m[1]);
+    expect(COMPLETION_SUBCOMMANDS.map(([name]) => name).sort()).toEqual([...new Set(accepted)].sort());
   });
 });

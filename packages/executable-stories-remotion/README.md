@@ -127,7 +127,7 @@ Playwright moves no visible pointer, so a recording without showcase's `showCurs
 
 `executable-stories video` warns when a step's line takes longer to say (about 170 words a minute) than the step is on screen, so a voiceover would talk over the next step. Slow that step down in the test, or shorten its text.
 
-Names are `scenarioSlug(title)` from `executable-stories-core`, the rule `gif` uses too: "Lena's contact" becomes `lenas-contact`. To show a table the test attached with `story.table()`, read it from the StoryReport with `docsOf(getScenario(report, title)!.scenario, 'table')`.
+Names are `scenarioSlug(title)` from `executable-stories-core`: "Lena's contact" becomes `lenas-contact`. To show a table the test attached with `story.table()`, read it from the StoryReport with `docsOf(getScenario(report, title)!.scenario, 'table')`.
 
 ## Example
 

@@ -1,5 +1,6 @@
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
+import { ffmpegPath } from 'executable-stories-core/utils/ffmpeg-path';
 import { join } from 'node:path';
 import type { Catalog } from 'executable-stories-showcase';
 import { type BrowserFlags, checkServer, contextOptions, launchChromium, scenarioLink } from './browser.js';
@@ -216,7 +217,7 @@ const SESSION_FIX =
 
 /** Checks that need no browser: ffmpeg for record, and whether agents can find the skills and MCP server. */
 function setupChecks(cwd: string): Check[] {
-  const ffmpeg = spawnSync(process.env.FFMPEG_PATH || 'ffmpeg', ['-version']);
+  const ffmpeg = spawnSync(ffmpegPath(import.meta.url), ['-version']);
 
   const mcp = ['.mcp.json', '.cursor/mcp.json'].some((f) => {
     const path = join(cwd, f);
@@ -231,7 +232,7 @@ function setupChecks(cwd: string): Check[] {
         status: 'warn',
         code: 'FFMPEG_MISSING',
         detail: 'Not found: record can only save uncropped WebM',
-        fix: 'Install from https://ffmpeg.org/download.html or set FFMPEG_PATH',
+        fix: 'Set FFMPEG_PATH, or put ffmpeg on PATH',
       }
       : { name: 'ffmpeg', status: 'ok', detail: 'Found, for record' },
     existsSync(join(cwd, '.agents/skills/executable-stories-showcase'))

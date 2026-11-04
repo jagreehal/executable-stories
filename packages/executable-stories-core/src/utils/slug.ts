@@ -18,7 +18,7 @@ export function slugify(text: string): string {
 }
 
 /**
- * The file name every artifact of a scenario uses (`gif`, `video`, their
+ * The file name every artifact of a scenario uses (`video`, its
  * manifests): its slugified title, or "scenario" when nothing is left.
  * An apostrophe is dropped, not split: "an artist's" → "an-artists".
  */

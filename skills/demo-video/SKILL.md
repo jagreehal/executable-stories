@@ -39,8 +39,9 @@ If the ask is just "show the app running", there may be nothing to build at all:
 `featureVideo` and you have a playable walkthrough in the report today. Narration is the
 only reason to go further.
 
-If the ask is a silent loop for a README or a docs page, `executable-stories gif
-reports/raw-run.json` writes one GIF per passing scenario from the same storyboard frames.
+If the ask is a silent loop for a README or a docs page, `executable-stories video
+reports/raw-run.json` writes an MP4 per recorded scenario. Convert it with
+[gifski](https://gif.ski) if the page only takes a GIF.
 
 ## Decide the path first
 

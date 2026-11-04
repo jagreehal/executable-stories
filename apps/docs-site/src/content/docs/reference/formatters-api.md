@@ -473,20 +473,9 @@ Each JSON entry carries `assertion`: `asserted`, `unasserted` (its Then steps ra
 
 `--list-format feature-map` prints a feature map for agent `verify-<app>` skills: one section per story file with Sub-features, How to get to it (Given and When steps), Driving it (the Then steps that prove it), and Gotchas (failing, pending and unasserted scenarios, plus `story.note()` text).
 
-### `gif`
-
-One animated GIF per passing scenario, one frame per step screenshot, for product docs and READMEs. The frames come from the run's `story.screenshot()` calls, so you regenerate a GIF with one command. Needs `ffmpeg` on `PATH`.
-
-```bash
-executable-stories gif reports/raw-run.json                     # → reports/gif/<scenario>.gif
-executable-stories gif reports/by-file --include-tags docs       # only scenarios tagged for docs
-```
-
-The command skips and counts scenarios that did not pass or have fewer than two screenshots. Each frame shows for 1.5 seconds. The command pads frames of different sizes to the largest and scales them to at most 1280px wide. It takes the same input and tag-filter flags as `list`, plus `--output-dir` (default `reports`). `--json` prints the files written and the scenarios skipped.
-
 ### `video`
 
-One MP4 per passing scenario that Playwright recorded (`story.init({ page }, testInfo, { featureVideo: true })` with `video: "on"`), for marketing pages and help articles. Needs `ffmpeg` and `ffprobe` on `PATH`.
+One MP4 per passing scenario that Playwright recorded (`story.init({ page }, testInfo, { featureVideo: true })` with `video: "on"`), for marketing pages and help articles. ffmpeg installs with the npm package on macOS, Windows and Linux. `FFMPEG_PATH` overrides it, and the prebuilt CLI binary reads `FFMPEG_PATH` or `PATH`.
 
 ```bash
 executable-stories video reports/raw-run.json                   # → reports/video/<scenario>.mp4
@@ -498,9 +487,11 @@ executable-stories video reports/raw-run.json                   # → reports/vi
 - **Starting later:** `--from-step <n|keyword>` starts each video at that step, a number from 1 or the first step with that keyword (`--from-step when`), so sign-in and setup in the Givens stay off camera. Earlier steps leave the manifest; a scenario without that step is not cut.
 - **Stills to check:** `--frames` writes `<scenario>/step-NN.jpg`, each step's last frame, and `step-NN-click.jpg`, a third-of-the-frame close-up of the step's last click with a magenta ring on it. `--json` lists them under `frames`. An agent reads them to confirm the video shows what each step claims.
 - **Narration overruns:** a step whose line takes longer to say (about 170 words a minute) than the step is on screen is printed as a warning and listed in `--json` as `overruns`, before any voiceover is made.
-- **Naming:** the same as `gif`: `scenarioSlug(title)` from `executable-stories-core`. `--json` prints what it wrote.
+- **Naming:** `scenarioSlug(title)` from `executable-stories-core`. `--json` prints what it wrote.
 
-Both commands warn when `test-results/.last-run.json` is newer than the run file: Playwright ran, but `--reporter` on the command line replaced the stories reporter, so the run file is from an earlier run.
+To get a GIF, convert the MP4 with [gifski](https://gif.ski) (a macOS app, plus command-line builds for macOS and Windows) or any video-to-GIF tool. Showcase's `record --format gif` also writes one from a recording.
+
+The command warns when `test-results/.last-run.json` is newer than the run file: Playwright ran, but `--reporter` on the command line replaced the stories reporter, so the run file is from an earlier run.
 
 ### `check`
 

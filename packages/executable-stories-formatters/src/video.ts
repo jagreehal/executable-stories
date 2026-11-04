@@ -3,7 +3,7 @@
  * scenario that Playwright recorded (`story.init(..., { featureVideo: true })`),
  * with the blank page load cut off the start, and a `<name>.video.json` manifest
  * beside it that executable-stories-remotion reads: size, length, each click and
- * focused field, and when each step began. Same naming as `gif`.
+ * focused field, and when each step began.
  */
 
 import * as fs from "node:fs";
@@ -29,8 +29,8 @@ export interface VideoArgs {
 }
 
 export interface VideoDeps {
-  /** Runs ffmpeg or ffprobe; resolves with their output, rejects when it fails or is missing. */
-  exec(command: "ffmpeg" | "ffprobe", args: string[]): Promise<{ stdout: string; stderr: string }>;
+  /** Runs ffmpeg; resolves with its output, rejects when it fails or is missing. */
+  ffmpeg(args: string[]): Promise<{ stdout: string; stderr: string }>;
 }
 
 /** `<name>.video.json`: the shape executable-stories-remotion's `VideoManifest` reads. */
@@ -88,6 +88,12 @@ interface FrameCoverage {
  */
 export function parseFrames(log: string): FrameCoverage[] {
   return [...log.matchAll(/pblack:(\d+).*? t:([\d.]+)/g)].map((m) => ({ t: Number(m[2]), white: Number(m[1]) }));
+}
+
+/** The input's size, from the stream line of ffmpeg's log: `Video: vp8, yuv420p, 1440x900, ...`. */
+export function parseVideoSize(log: string): { width: number; height: number } | undefined {
+  const m = /Stream #.*Video:.*?, (\d+)x(\d+)/.exec(log);
+  return m ? { width: Number(m[1]), height: Number(m[2]) } : undefined;
 }
 
 /**
@@ -265,15 +271,12 @@ export async function writeVideos(args: VideoArgs, deps: VideoDeps): Promise<Vid
         continue;
       }
 
-      const probe = await deps.exec("ffprobe", [
-        "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "json", input,
-      ]);
-      const stream = (JSON.parse(probe.stdout) as { streams?: { width: number; height: number }[] }).streams?.[0];
-      if (!stream) throw new Error(`${input} has no video stream`);
       // Playwright's WebM has no duration in its header, so the frames give it.
-      const stats = await deps.exec("ffmpeg", [
+      const stats = await deps.ffmpeg([
         "-v", "info", "-i", input, "-vf", "negate,blackframe=amount=0:threshold=32", "-f", "null", "-",
       ]);
+      const stream = parseVideoSize(stats.stderr);
+      if (!stream) throw new Error(`${input} has no video stream`);
       const coverage = parseFrames(stats.stderr);
       const lead = trimLeadIn ? leadInSeconds(coverage) : 0;
       const fullMs = ((coverage.at(-1)?.t ?? 0) - lead) * 1000;
@@ -297,7 +300,7 @@ export async function writeVideos(args: VideoArgs, deps: VideoDeps): Promise<Vid
       fs.mkdirSync(outputDir, { recursive: true });
       const video = path.join(outputDir, `${name}.mp4`);
       // H.264 in yuv420p plays everywhere, Safari and phones included; it needs even sizes.
-      await deps.exec("ffmpeg", [
+      await deps.ffmpeg([
         "-y", "-loglevel", "error", "-i", input, "-ss", (trimmedMs / 1000).toFixed(3), "-an",
         "-vf", "scale=trunc(iw/2)*2:trunc(ih/2)*2",
         "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "23", "-movflags", "+faststart", video,
@@ -312,7 +315,7 @@ export async function writeVideos(args: VideoArgs, deps: VideoDeps): Promise<Vid
         fs.rmSync(dir, { recursive: true, force: true });
         fs.mkdirSync(dir, { recursive: true });
         const { frames, commands } = frameCommands(written, video, dir);
-        for (const command of commands) await deps.exec("ffmpeg", command);
+        for (const command of commands) await deps.ffmpeg(command);
         entry.frames = frames;
       }
       result.written.push(entry);

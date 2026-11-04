@@ -76,7 +76,7 @@ export const Embedded: Story = {
  * the CDN-loaded mermaid/hljs having finished.
  */
 /**
- * Sparse standalone report: one feature, one scenario (the Trolley Widget
+ * Sparse standalone report: one feature, one scenario (the Payout Widget
  * Playwright story). The in-content TOC rail for a single scenario reads as
  * unbalanced dead space — this story is where we iterate the few-scenario
  * layout so the report looks intentional at any size.

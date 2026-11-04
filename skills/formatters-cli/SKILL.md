@@ -262,24 +262,17 @@ Each JSON entry carries `assertion`: `asserted`, `unasserted` (its Then steps ra
 
 The discovery index for agents and explorers — one scenario per line (text) or machine-parsable JSON. Use it for triage before reading source tests. Point it at `by-file/` for the accumulated suite; a single run file lists only what that run executed.
 
-### gif — walkthrough GIFs for docs
-
-```bash
-executable-stories gif reports/raw-run.json                  # → reports/gif/<scenario>.gif
-executable-stories gif reports/by-file --include-tags docs   # scenarios tagged for docs
-```
-
-Writes one looping GIF per passing scenario, one frame per step screenshot. Needs `ffmpeg` on `PATH`. Pair it with `format --asset-mode copy` so the Markdown links screenshots as files in `assets/`.
-
 ### video — MP4s of recorded scenarios
 
 ```bash
 executable-stories video reports/raw-run.json --json         # → reports/video/<scenario>.mp4 + <scenario>.video.json
 ```
 
-One MP4 (H.264, `yuv420p`, `+faststart`) per passing scenario Playwright recorded with `story.init({ page }, testInfo, { featureVideo: true })`, with the blank page load cut off the start (`--no-trim` keeps it). Beside each is a `<scenario>.video.json` manifest for `executable-stories-remotion`: size, length, clicks and focused fields, and when each step began, all in ms into the trimmed video. Needs `ffmpeg` and `ffprobe` on `PATH`.
+One MP4 (H.264, `yuv420p`, `+faststart`) per passing scenario Playwright recorded with `story.init({ page }, testInfo, { featureVideo: true })`, with the blank page load cut off the start (`--no-trim` keeps it). Beside each is a `<scenario>.video.json` manifest for `executable-stories-remotion`: size, length, clicks and focused fields, and when each step began, all in ms into the trimmed video. ffmpeg installs with the npm package on macOS, Windows and Linux. `FFMPEG_PATH` overrides it, and the prebuilt CLI binary reads `FFMPEG_PATH` or `PATH`.
 
-`gif` and `video` name files with `scenarioSlug(title)` from `executable-stories-core` (an apostrophe is dropped: "an artist's" → `an-artists`), and `--json` prints what they wrote and skipped. Both warn when Playwright's last run (`test-results/.last-run.json`) is newer than the run file, which means `--reporter` on the command line replaced the stories reporter.
+`video` names files with `scenarioSlug(title)` from `executable-stories-core` (an apostrophe is dropped: "an artist's" → `an-artists`), and `--json` prints what it wrote and skipped. It warns when Playwright's last run (`test-results/.last-run.json`) is newer than the run file, which means `--reporter` on the command line replaced the stories reporter.
+
+There is no `gif` command. For a GIF, convert the MP4 with [gifski](https://gif.ski) or any video-to-GIF tool.
 
 ### watch — keep agent artifacts fresh
 
