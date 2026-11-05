@@ -27,11 +27,11 @@ If a test is skipped, failed, or todo, the docs reflect that.
 
 | Package                                                                   | Ecosystem                    | Install / Usage                          |
 | ------------------------------------------------------------------------- | ---------------------------- | ---------------------------------------- |
-| [executable-stories-jest](./packages/executable-stories-jest)             | Jest 30+                     | `npm i -D executable-stories-jest`       |
-| [executable-stories-vitest](./packages/executable-stories-vitest)         | Vitest 4 or 5                | `npm i -D executable-stories-vitest`     |
-| [executable-stories-playwright](./packages/executable-stories-playwright) | Playwright 1.58+             | `npm i -D executable-stories-playwright` |
-| [executable-stories-cypress](./packages/executable-stories-cypress)       | Cypress 13+                  | `npm i -D executable-stories-cypress`    |
-| [executable-stories-e2e](./packages/executable-stories-e2e)               | e2e (TesterArmy) 0.15+       | `npm i -D executable-stories-e2e`        |
+| [executable-stories-jest](./packages/executable-stories-jest)             | Jest 30.5+                   | `npm i -D executable-stories-jest`       |
+| [executable-stories-vitest](./packages/executable-stories-vitest)         | Vitest 5+                    | `npm i -D executable-stories-vitest`     |
+| [executable-stories-playwright](./packages/executable-stories-playwright) | Playwright 1.64+             | `npm i -D executable-stories-playwright` |
+| [executable-stories-cypress](./packages/executable-stories-cypress)       | Cypress 16+                  | `npm i -D executable-stories-cypress`    |
+| [executable-stories-e2e](./packages/executable-stories-e2e)               | e2e (TesterArmy) 0.21+       | `npm i -D executable-stories-e2e`        |
 | [executable-stories-bun](./packages/executable-stories-bun)               | Bun 1.3.3+ (`bun:test`)      | `bun add -d executable-stories-bun`      |
 | [executable-stories-ruby](./packages/executable-stories-ruby)             | Ruby / Minitest              | Ruby gem/package in repo                 |
 | [executable-stories-go](./packages/executable-stories-go)                 | Go `testing`                 | Go module in repo                        |

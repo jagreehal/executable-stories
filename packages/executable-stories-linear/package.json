@@ -8,7 +8,13 @@
     "directory": "packages/executable-stories-linear"
   },
   "description": "Show executable-stories results on the Linear issues your stories name: one Quality checks attachment per issue, updated in place every run. No test issues, no clutter.",
-  "keywords": ["executable-stories", "linear", "test-results", "qa", "traceability"],
+  "keywords": [
+    "executable-stories",
+    "linear",
+    "test-results",
+    "qa",
+    "traceability"
+  ],
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -23,7 +29,9 @@
       "require": "./dist/index.cjs"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup",
     "lint": "eslint .",
@@ -35,9 +43,9 @@
     "executable-stories-trackers": "workspace:^"
   },
   "devDependencies": {
-    "@types/node": "^26.6.1",
-    "tsup": "^8.5.1",
+    "@types/node": "^26.6.6",
+    "tsup": "^9.0.0",
     "typescript": "~6.0.3",
-    "vitest": "^5.0.1"
+    "vitest": "^5.0.5"
   }
 }

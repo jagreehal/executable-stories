@@ -17,20 +17,20 @@
     "walkthrough": "playwright test -c e2e/playwright.config.ts && executable-stories video reports/walkthrough/raw-run.json --output-dir public"
   },
   "dependencies": {
-    "@remotion/media": "4.0.533",
+    "@remotion/media": "4.0.539",
     "executable-stories-core": "workspace:*",
     "executable-stories-remotion": "workspace:*",
-    "react": "19.3.0",
-    "react-dom": "19.3.0",
-    "remotion": "4.0.533"
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "remotion": "4.0.539"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.1",
     "@remotion/cli": "4.0.539",
-    "@types/node": "^25.9.2",
+    "@types/node": "^26.6.6",
     "@types/react": "19.3.0",
     "demo-react": "workspace:*",
-    "eslint": "^10.12.0",
+    "eslint": "^10.13.0",
     "eslint-config-executable-stories": "workspace:*",
     "eslint-plugin-executable-stories-vitest": "workspace:*",
     "executable-stories-formatters": "workspace:*",
@@ -39,7 +39,7 @@
     "executable-stories-showcase-cli": "workspace:*",
     "executable-stories-vitest": "workspace:*",
     "typescript": "~6.0.3",
-    "vitest": "^5.0.1",
+    "vitest": "^5.0.5",
     "zod": "4.6.7"
   }
 }

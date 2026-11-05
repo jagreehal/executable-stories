@@ -8,7 +8,12 @@
     "directory": "packages/executable-stories-trackers"
   },
   "description": "Put an executable-stories run on the tickets its stories name, in any issue tracker. The tracker-agnostic base for executable-stories-linear (and Jira next).",
-  "keywords": ["executable-stories", "issue-tracker", "test-results", "traceability"],
+  "keywords": [
+    "executable-stories",
+    "issue-tracker",
+    "test-results",
+    "traceability"
+  ],
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -20,7 +25,9 @@
       "require": "./dist/index.cjs"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup",
     "lint": "eslint .",
@@ -31,9 +38,9 @@
     "executable-stories-core": "workspace:^"
   },
   "devDependencies": {
-    "@types/node": "^26.6.1",
-    "tsup": "^8.5.1",
+    "@types/node": "^26.6.6",
+    "tsup": "^9.0.0",
     "typescript": "~6.0.3",
-    "vitest": "^5.0.1"
+    "vitest": "^5.0.5"
   }
 }

@@ -24,7 +24,7 @@ export interface DocsSlot {
   id: string;
   /** Markdown: file path under `dir`. Help Scout: article id. Confluence: page id. */
   article: string;
-  /** The rendered GIF or MP4, relative to docs.json. */
+  /** The rendered media, relative to docs.json. An MP4 or WebM replaces the whole image with the target's video embed. */
   file: string;
   /** On first publish, the image this slot replaces: a unique part of its src or filename. */
   replaces?: string;
@@ -126,27 +126,45 @@ const sameLink = (a: string, b: string) => {
 /**
  * Each way an article shows an image. Group 1 is the text a publish replaces, the last group the
  * src (or `scan` finds where it ends): Markdown `![](src)` or `![](<src>)`, HTML
- * `<img src="…">`, Confluence `<ac:image>` holding an attachment or an external `ri:url`. Links,
- * iframes, attachments linked for download and other `src`s that are not images do not count.
- * An `attr` src is an HTML or XML attribute value: read with its entities decoded, written escaped.
+ * `<img src="…">`, Confluence `<ac:image>` holding an attachment or an external `ri:url`, and the
+ * `video` embeds a publish writes. Other links, iframes and attachments do not count. `close` ends
+ * the element. An `attr` src is an HTML or XML attribute value: read with its entities decoded,
+ * written escaped.
  */
 const IMAGE_REFS: {
   re: RegExp;
+  close: string;
   scan?: (body: string, start: number) => number | undefined;
   to?: (next: string) => string;
   attr?: true;
+  video?: true;
 }[] = [
-  { re: /!\[[^\]]*\]\(\s*<([^<>\n]*)>/dg },
-  { re: /!\[[^\]]*\]\(\s*(?=[^\s<])()/dg, scan: markdownSrcEnd },
-  { re: /<img\b[^>]*?\ssrc="([^"]*)"/dg, attr: true },
-  { re: /<img\b[^>]*?\ssrc='([^']*)'/dg, attr: true },
+  { re: /!\[[^\]]*\]\(\s*<([^<>\n]*)>/dg, close: ')' },
+  { re: /!\[[^\]]*\]\(\s*(?=[^\s<])()/dg, close: ')', scan: markdownSrcEnd },
+  { re: /<img\b[^>]*?\ssrc="([^"]*)"/dg, close: '>', attr: true },
+  { re: /<img\b[^>]*?\ssrc='([^']*)'/dg, close: '>', attr: true },
   {
     re: /<ac:image\b[^>]*>\s*<ri:attachment\b[^>]*?\sri:filename="([^"]*)"/dg,
+    close: '</ac:image>',
     attr: true,
+  },
+  { re: /<video\b[^>]*?\ssrc="([^"]*)"/dg, close: '</video>', attr: true, video: true },
+  {
+    re: /<a\b[^>]*?\shref="([^"]*\.(?:mp4|webm)(?:[?#][^"]*)?)"/dg,
+    close: '</a>',
+    attr: true,
+    video: true,
+  },
+  {
+    re: /<ac:link\b[^>]*>\s*<ri:attachment\b[^>]*?\sri:filename="([^"]*\.(?:mp4|webm))"/dg,
+    close: '</ac:link>',
+    attr: true,
+    video: true,
   },
   // An external image, `<ri:url …/>` or `<ri:url …></ri:url>`: publishing turns it into the attachment.
   {
     re: /<ac:image\b[^>]*>\s*(<ri:url\b[^>]*?\sri:value="([^"]*)"[^>]*?(?:\/>|>\s*<\/ri:url>))/dg,
+    close: '</ac:image>',
     to: (next) => `<ri:attachment ri:filename="${next}"/>`,
     attr: true,
   },
@@ -169,6 +187,39 @@ function markdownSrcEnd(body: string, start: number) {
   return undefined;
 }
 
+/** The index just past the `stop` that ends a tag or Markdown image, read outside quotes and nested parentheses. */
+function unquotedEnd(body: string, from: number, stop: '>' | ')') {
+  let quote = '';
+  let depth = 0;
+  for (let i = from; i < body.length; i++) {
+    const c = body[i];
+    if (quote) {
+      if (c === quote) quote = '';
+    } else if (c === '"' || c === "'") quote = c;
+    else if (stop === ')' && c === '(') depth++;
+    else if (c === stop && depth-- === 0) return i + 1;
+  }
+  return undefined;
+}
+
+/**
+ * Where the element holding a src ending at `end` closes, or undefined when the markup does not
+ * say: no closing tag, or another element of the same kind opening before it.
+ */
+function elementEnd(body: string, end: number, close: string) {
+  const single = close === '>' || close === ')';
+  const nested = close.startsWith('</ac:');
+  // An attribute's src ends at its closing quote, which must not open a new quoted value.
+  const from = /["']/.test(body[end] ?? '') ? end + 1 : end;
+  const open = nested ? from : unquotedEnd(body, from, close === ')' ? ')' : '>');
+  if (open === undefined || single) return open;
+  if (!nested && body[open - 2] === '/') return open;
+  const closed = body.indexOf(close, open);
+  if (closed < 0) return undefined;
+  const opener = new RegExp(`<${close.slice(2, -1)}\\b`);
+  return opener.test(body.slice(open, closed)) ? undefined : closed + close.length;
+}
+
 const ENTITIES: Record<string, string> = {
   amp: '&',
   lt: '<',
@@ -189,7 +240,7 @@ const decodeEntities = (s: string) =>
   });
 
 const imageRefs = (body: string) =>
-  IMAGE_REFS.flatMap(({ re, scan, to = (next: string) => next, attr }) =>
+  IMAGE_REFS.flatMap(({ re, close, scan, to = (next: string) => next, attr, video }) =>
     [...body.matchAll(re)].flatMap((m) => {
       const [start, groupEnd] = m.indices![1]!;
       const end = scan ? scan(body, start) : groupEnd;
@@ -200,6 +251,9 @@ const imageRefs = (body: string) =>
           src: attr ? decodeEntities(src) : src,
           start,
           end,
+          outerStart: m.index,
+          outerEnd: elementEnd(body, end, close),
+          video,
           // `replaceImage` already refuses quotes and angle brackets; `&` is all left to escape.
           to: attr ? (next: string) => to(next.replace(/&/g, '&amp;')) : to,
         },
@@ -249,7 +303,7 @@ export function imageSections(body: string) {
     };
     const from = Math.max(head?.end ?? 0, prev ? after(prev.end) : 0);
     // Up to where this image's markup begins, so none of it reads as text.
-    const opens = [...body.slice(from, r.start).matchAll(/<img\b|<ac:image\b|!\[/gi)];
+    const opens = [...body.slice(from, r.start).matchAll(/<img\b|<ac:image\b|<video\b|<a\b|<ac:link\b|!\[/gi)];
     const to = from + (opens.at(-1)?.index ?? r.start - from);
     return { src: r.src, heading: head?.text ?? '', text: plainText(body.slice(from, to)) };
   });
@@ -285,12 +339,14 @@ const urlIn = (body: string) =>
 
 /**
  * Swaps exactly one image whose src contains `match` for `next` (see `IMAGE_REFS`). None or
- * several is an error, so a publish never lands on the wrong image.
+ * several is an error, so a publish never lands on the wrong image. With `embed`, the whole
+ * element becomes what it returns for `next`, which is how a video replaces an image.
  */
 export function replaceImage(
   body: string,
   match: string,
   next: string,
+  embed?: (src: string) => string,
 ): string {
   // `next` is spliced into markup: nothing in it may close the attribute or link.
   if (/["'<>()\s]/.test(next)) throw new Error(`unsafe image src "${next}"`);
@@ -303,6 +359,11 @@ export function replaceImage(
     );
   }
   const [hit] = hits;
+  if (embed) {
+    if (hit.outerEnd === undefined) throw new Error(`cannot find where the element holding "${match}" ends`);
+    return body.slice(0, hit.outerStart) + embed(next.replace(/&/g, '&amp;')) + body.slice(hit.outerEnd);
+  }
+  if (hit.video) throw new Error(`"${match}" is a video; publish an MP4 or WebM to replace it`);
   return body.slice(0, hit.start) + hit.to(next) + body.slice(hit.end);
 }
 
@@ -408,6 +469,14 @@ async function ok(res: Response, what: string): Promise<Response> {
     );
   return res;
 }
+
+const isVideo = (file: string) => /\.(mp4|webm)$/i.test(file.split(/[?#]/)[0]);
+
+/** For a video slot, the target's markup with the slot's escaped label; undefined for an image. */
+const videoEmbed = (slot: DocsSlot, markup: (src: string, label: string) => string) =>
+  isVideo(slot.file)
+    ? (src: string) => markup(src, escapeHtml(slot.scenario ?? slot.id))
+    : undefined;
 
 const firstSrc = (slot: DocsSlot, previous?: Published) => {
   const match = previous?.src ?? slot.replaces;
@@ -527,7 +596,15 @@ export function markdownTarget(dir: string): DocsTarget {
         throw new Error(`media for "${slot.id}" is outside ${dir}`);
       // Checked before the media is written: the article must still show exactly one image to replace.
       const body = fs.readFileSync(article, 'utf8');
-      const next = replaceImage(body, firstSrc(slot, previous), src);
+      const next = replaceImage(
+        body,
+        firstSrc(slot, previous),
+        src,
+        videoEmbed(
+          slot,
+          (s, label) => `<video src="${s}" aria-label="${label}" controls muted loop playsinline></video>`,
+        ),
+      );
       fs.mkdirSync(path.join(path.dirname(article), 'media'), {
         recursive: true,
       });
@@ -624,12 +701,14 @@ export function helpScoutTarget(
         article: { text: string };
       };
       const match = firstSrc(slot, previous);
+      // Help Scout documents inline assets for images and links for other files.
+      const embed = videoEmbed(slot, (s, label) => `<a href="${s}">Watch the video: ${label}</a>`);
       // Checked before the upload: the article must still show exactly one image to replace.
-      replaceImage(article.text, match, 'pending');
+      replaceImage(article.text, match, 'pending', embed);
       const form = new FormData();
       form.set('key', apiKey);
       form.set('articleId', slot.article);
-      form.set('assetType', 'image');
+      form.set('assetType', embed ? 'attachment' : 'image');
       form.set(
         'file',
         new Blob([new Uint8Array(media)]),
@@ -644,7 +723,7 @@ export function helpScoutTarget(
         'Help Scout asset upload',
       );
       const { filelink } = (await upload.json()) as { filelink: string };
-      const text = replaceImage(article.text, match, filelink);
+      const text = replaceImage(article.text, match, filelink, embed);
       await ok(
         await fetchFn(url, {
           method: 'PUT',
@@ -758,6 +837,11 @@ export function confluenceTarget(
         current.body.storage.value,
         firstSrc(slot, previous),
         src,
+        videoEmbed(
+          slot,
+          (s, label) =>
+            `<ac:link><ri:attachment ri:filename="${s}"/><ac:link-body>Watch the video: ${label}</ac:link-body></ac:link>`,
+        ),
       );
       const form = new FormData();
       form.set('file', new Blob([new Uint8Array(media)]), src);
@@ -1325,7 +1409,9 @@ async function writeReview(
     const current = !section
       ? '<p class="none">Not found in the article</p>'
       : /^https?:\/\//.test(section.src)
-        ? `<img src="${escapeHtml(section.src)}" alt="Current image">`
+        ? isVideo(section.src)
+          ? `<video src="${escapeHtml(section.src)}" controls muted loop playsinline></video>`
+          : `<img src="${escapeHtml(section.src)}" alt="Current image">`
         : bytes
           ? mediaTag(section.src, bytes, 'Current image')
           : `<p class="none">${escapeHtml(section.src)}</p>`;
@@ -1424,11 +1510,11 @@ async function addSlot(
     deps.error(`"${found.title}" has ${sections.length} image(s), not ${n}`);
     return 4;
   }
-  // The title names the scenario and the GIF it renders, so no two slots may share it: a second
+  // The title names the scenario and the video it renders, so no two slots may share it: a second
   // image under one heading becomes "<heading> 2". A --scenario that is taken is refused instead.
-  const gifFor = (t: string) => `reports/video/${scenarioSlug(t)}.gif`;
+  const videoFor = (t: string) => `reports/video/${scenarioSlug(t)}.mp4`;
   const taken = (t: string) =>
-    config.slots.some((s) => s.scenario === t || s.file === gifFor(t));
+    config.slots.some((s) => s.scenario === t || s.file === videoFor(t));
   const base = (image.heading || found.title).toLowerCase();
   let title = opts.scenario ?? base;
   if (opts.scenario && taken(title)) {
@@ -1443,7 +1529,7 @@ async function addSlot(
   const slot: DocsSlot = {
     id,
     article,
-    file: gifFor(title),
+    file: videoFor(title),
     replaces,
     scenario: title,
   };
