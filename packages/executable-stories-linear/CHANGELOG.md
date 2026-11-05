@@ -1,5 +1,11 @@
 # executable-stories-linear
 
+## 0.3.0
+
+### Minor Changes
+
+- 4cb1062: `publish --videos <dir>` uploads each scenario's MP4 into Linear and attaches it to the issues the scenario names, one video per scenario and scope. Publishing the same file uploads nothing, and a changed file replaces the old attachment.
+
 ## 0.2.0
 
 ### Minor Changes
