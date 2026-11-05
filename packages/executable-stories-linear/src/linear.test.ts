@@ -5,6 +5,7 @@ import type { TicketScenario, TicketStatus } from "executable-stories-trackers";
 
 import {
   attachmentInput,
+  attachVideo,
   canonicalStatus,
   isTrustedStatusUrl,
   linearRequest,
@@ -16,6 +17,7 @@ import {
   postLinearStatus,
   scenarioMessage,
   STEP_LIMIT,
+  VIDEO_SOURCE,
 } from "./linear";
 
 type Call = { query: string; variables: Record<string, unknown> };
@@ -61,6 +63,7 @@ function cli(env: CliDeps["env"], fetch: typeof globalThis.fetch = vi.fn() as un
   const deps: CliDeps = {
     env,
     readFile: async () => run,
+    readBytes: async () => new Uint8Array([1, 2, 3]),
     exists: (path) => path === ".executable-stories/raw-run.json",
     fetch,
     out: (line) => out.push(line),
@@ -528,5 +531,147 @@ describe("canonicalStatus", () => {
   it("is the smallest id, whatever order a writer saw them in", () => {
     expect(canonicalStatus(["c", "a", "b"])).toBe("a");
     expect(canonicalStatus([])).toBeUndefined();
+  });
+});
+
+describe("attachVideo", () => {
+  const options = { auth: { apiKey: "lin_api_x" } };
+  const video = { ticket: "PAY-12", scenario: "Refund", scope: "Local", filename: "refund.mp4", bytes: new Uint8Array([1, 2, 3]) };
+  const sha256 = "039058c6f2c0cb492c533b0a4d14ef77cc0f78abccced5287d84a1a2011cfb81";
+  const uploaded = (id: string, hash: string, url = `https://uploads.linear.app/${id}`, scenario = "Refund") => ({
+    id,
+    url,
+    metadata: { source: VIDEO_SOURCE, scenario, scope: "Local", sha256: hash },
+  });
+
+  /** A fake Linear and its storage: GraphQL goes through `fakeLinear`, the PUT through `storage`. */
+  function linear(nodes: object[], storage = new Response()) {
+    const puts: { url: string; init: RequestInit }[] = [];
+    const graphql = fakeLinear((call) => {
+      if (call.query.includes("attachments")) return { data: { issue: { attachments: { nodes } } } };
+      if (call.query.includes("fileUpload")) {
+        return {
+          data: {
+            fileUpload: {
+              success: true,
+              uploadFile: {
+                uploadUrl: "https://storage.example/put",
+                assetUrl: "https://uploads.linear.app/new",
+                headers: [{ key: "x-signed", value: "yes" }],
+              },
+            },
+          },
+        };
+      }
+      if (call.query.includes("attachmentCreate")) return { data: { attachmentCreate: { success: true } } };
+      return { data: { attachmentDelete: { success: true } } };
+    });
+    const fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (init?.method === "PUT") {
+        puts.push({ url: String(input), init });
+        return storage;
+      }
+      return graphql.fetch(input, init);
+    }) as typeof globalThis.fetch;
+    return { fetch, calls: graphql.calls, puts };
+  }
+
+  it("uploads the bytes with the signed headers, then attaches the stored file", async () => {
+    const { fetch, calls, puts } = linear([]);
+    expect(await attachVideo(options, video, { fetch })).toBe("attached");
+    expect(calls.find((c) => c.query.includes("fileUpload"))?.variables).toEqual({
+      contentType: "video/mp4",
+      filename: "refund.mp4",
+      size: 3,
+    });
+    expect(puts[0]?.url).toBe("https://storage.example/put");
+    expect(puts[0]?.init.headers).toEqual({
+      "Content-Type": "video/mp4",
+      "Cache-Control": "public, max-age=31536000",
+      "x-signed": "yes",
+    });
+    expect(calls.find((c) => c.query.includes("attachmentCreate"))?.variables).toEqual({
+      input: {
+        issueId: "PAY-12",
+        title: "Video: Refund",
+        subtitle: "Local",
+        url: "https://uploads.linear.app/new",
+        metadata: { source: VIDEO_SOURCE, scenario: "Refund", scope: "Local", sha256 },
+      },
+    });
+  });
+
+  it("uploads nothing when the issue already has these bytes", async () => {
+    const { fetch, calls, puts } = linear([uploaded("a", sha256)]);
+    expect(await attachVideo(options, video, { fetch })).toBe("unchanged");
+    expect(puts).toEqual([]);
+    expect(calls).toHaveLength(1);
+  });
+
+  it("replaces an older video only after the new one is attached", async () => {
+    const { fetch, calls } = linear([uploaded("old", "other")]);
+    await attachVideo(options, video, { fetch });
+    const order = calls.map((c) => /attachmentCreate|attachmentDelete/.exec(c.query)?.[0]).filter(Boolean);
+    expect(order).toEqual(["attachmentCreate", "attachmentDelete"]);
+    expect(calls.at(-1)?.variables).toEqual({ id: "old" });
+  });
+
+  it("leaves another scenario's video, and a lookalike hosted elsewhere, alone", async () => {
+    const { fetch, calls } = linear([
+      uploaded("other", "x", undefined, "Another scenario"),
+      uploaded("fake", "x", "https://evil.example/video.mp4"),
+    ]);
+    await attachVideo(options, video, { fetch });
+    expect(calls.some((c) => c.query.includes("attachmentDelete"))).toBe(false);
+  });
+
+  it("keeps the old video when storage refuses the upload", async () => {
+    const { fetch, calls } = linear([uploaded("old", "other")], new Response(null, { status: 403 }));
+    await expect(attachVideo(options, video, { fetch })).rejects.toThrow(/storage answered 403/);
+    expect(calls.some((c) => /attachmentCreate|attachmentDelete/.test(c.query))).toBe(false);
+  });
+});
+
+describe("publish --videos", () => {
+  const key = { LINEAR_API_KEY: "lin_api_x", GITHUB_SERVER_URL: "https://github.com", GITHUB_REPOSITORY: "acme/app" };
+  const withStorage = (status = 200) => {
+    const nodes: object[] = [];
+    const graphql = fakeLinear((call) => {
+      if (call.query.includes("viewer")) return workspace;
+      if (call.query.includes("fileUpload")) {
+        return { data: { fileUpload: { success: true, uploadFile: { uploadUrl: "https://s/put", assetUrl: "https://uploads.linear.app/n", headers: [] } } } };
+      }
+      if (call.query.includes("attachments { nodes")) return { data: { issue: { attachments: { nodes } } } };
+      const input = call.variables.input as { url?: string; metadata?: object } | undefined;
+      if (call.query.includes("attachmentCreate")) nodes.push({ id: `n${nodes.length}`, url: input?.url, metadata: input?.metadata });
+      return { data: { attachmentCreate: { success: true }, attachmentUpdate: { success: true } } };
+    });
+    const fetch = (async (input: RequestInfo | URL, init?: RequestInit) =>
+      init?.method === "PUT" ? new Response(null, { status }) : graphql.fetch(input, init)) as typeof globalThis.fetch;
+    return { fetch, calls: graphql.calls };
+  };
+
+  it("attaches each scenario's file, and skips scenarios without one", async () => {
+    const { fetch, calls } = withStorage();
+    const { deps, out } = cli(key, fetch);
+    deps.exists = (file) => file.endsWith("refund.mp4");
+    expect(await runCli(["publish", "run.json", "--videos", "reports/video"], deps)).toBe(0);
+    expect(out).toContain("attached PAY-12: refund.mp4");
+    expect(calls.filter((c) => c.query.includes("fileUpload"))).toHaveLength(1);
+  });
+
+  it("exits 1 when a video cannot be attached", async () => {
+    const { fetch } = withStorage(403);
+    const { deps, err } = cli(key, fetch);
+    deps.exists = (file) => file.endsWith("refund.mp4");
+    expect(await runCli(["publish", "run.json", "--videos", "reports/video"], deps)).toBe(1);
+    expect(err.join("\n")).toMatch(/could not attach .*refund\.mp4: Linear's storage answered 403/);
+  });
+
+  it("lists the videos in a dry run, with no key", async () => {
+    const { deps, out } = cli({ GITHUB_SERVER_URL: "https://github.com", GITHUB_REPOSITORY: "acme/app" });
+    deps.exists = (file) => file.endsWith("refund.mp4");
+    expect(await runCli(["publish", "run.json", "--videos", "reports/video", "--dry-run"], deps)).toBe(0);
+    expect(out).toContain("would attach to PAY-12: refund.mp4");
   });
 });

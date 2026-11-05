@@ -7,6 +7,8 @@
  * the same attachment run after run.
  */
 
+import { createHash } from "node:crypto";
+
 import type { ReportTicket, TicketScenario, TicketStatus, TrackerClient } from "executable-stories-trackers";
 import { STATUS_SOURCE, TICKET_KEY } from "executable-stories-trackers";
 
@@ -371,25 +373,35 @@ export async function postLinearStatus(options: LinearOptions, status: TicketSta
   throw new Error(`Gave up posting to ${status.ticket}: other writers kept replacing its status`);
 }
 
-/** Ids of trusted status attachments on the issue for this scope. */
-async function scopeStatusIds(options: LinearOptions, status: TicketStatus, deps: LinearDeps) {
+/** The issue's attachments, as Linear lists them. */
+async function issueAttachments(options: LinearOptions, ticket: string, deps: LinearDeps) {
   const data = await linearRequest(
     options,
     "query($id: String!) { issue(id: $id) { attachments { nodes { id url metadata } } } }",
-    { id: status.ticket },
+    { id: ticket },
     deps,
   );
   const issue = data["issue"];
   const attachments = isRecord(issue) ? issue["attachments"] : undefined;
   const nodes = isRecord(attachments) && Array.isArray(attachments["nodes"]) ? attachments["nodes"] : [];
-  return nodes.flatMap((node) => {
-    if (!isRecord(node) || typeof node["id"] !== "string" || typeof node["url"] !== "string") return [];
-    const metadata = node["metadata"];
-    const sameScope =
-      isRecord(metadata) && metadata["source"] === STATUS_SOURCE && metadata["scope"] === status.scope;
-    const trusted = isTrustedStatusUrl(node["url"], status.ticket, status.stableUrl, options.trustedLinks);
-    return sameScope && trusted ? [node["id"]] : [];
-  });
+  return nodes.flatMap((node) =>
+    isRecord(node) && typeof node["id"] === "string" && typeof node["url"] === "string"
+      ? [{ id: node["id"], url: node["url"], metadata: isRecord(node["metadata"]) ? node["metadata"] : {} }]
+      : [],
+  );
+}
+
+/** Ids of trusted status attachments on the issue for this scope. */
+async function scopeStatusIds(options: LinearOptions, status: TicketStatus, deps: LinearDeps) {
+  const nodes = await issueAttachments(options, status.ticket, deps);
+  return nodes
+    .filter(
+      (node) =>
+        node.metadata["source"] === STATUS_SOURCE &&
+        node.metadata["scope"] === status.scope &&
+        isTrustedStatusUrl(node.url, status.ticket, status.stableUrl, options.trustedLinks),
+    )
+    .map((node) => node.id);
 }
 
 /**
@@ -411,6 +423,105 @@ async function deleteStatus(options: LinearOptions, status: TicketStatus, id: st
   if ((await scopeStatusIds(options, status, deps)).includes(id)) {
     throw new Error(`Posted the status to ${status.ticket}, but Linear would not remove a duplicate (${id})`);
   }
+}
+
+/** Marks an attachment as a scenario's video, as `STATUS_SOURCE` marks a status. */
+export const VIDEO_SOURCE = "executable-stories-video";
+
+/** Where Linear stores uploads. Only a file there can be ours, whatever its metadata says. */
+const UPLOADS_HOST = "uploads.linear.app";
+
+export interface ScenarioVideo {
+  ticket: string;
+  scenario: string;
+  scope: string;
+  filename: string;
+  bytes: Uint8Array;
+}
+
+/** The upload Linear signs for a file: where to PUT it, the headers it signed, and its address after. */
+async function prepareUpload(options: LinearOptions, video: ScenarioVideo, deps: LinearDeps) {
+  const data = await linearRequest(
+    options,
+    `mutation($contentType: String!, $filename: String!, $size: Int!) {
+      fileUpload(contentType: $contentType, filename: $filename, size: $size) {
+        success
+        uploadFile { uploadUrl assetUrl headers { key value } }
+      }
+    }`,
+    { contentType: "video/mp4", filename: video.filename, size: video.bytes.byteLength },
+    deps,
+  );
+  const payload = data["fileUpload"];
+  const file = isRecord(payload) && payload["success"] === true ? payload["uploadFile"] : undefined;
+  if (!isRecord(file) || typeof file["uploadUrl"] !== "string" || typeof file["assetUrl"] !== "string") {
+    throw new Error(`Linear did not prepare an upload for ${video.filename}`);
+  }
+  const signed = Array.isArray(file["headers"]) ? file["headers"].filter(isRecord) : [];
+  return {
+    uploadUrl: file["uploadUrl"],
+    assetUrl: file["assetUrl"],
+    headers: Object.fromEntries(signed.map((header) => [String(header["key"]), String(header["value"])])),
+  };
+}
+
+/**
+ * Attach a scenario's video to its issue: Linear stores the file, and the
+ * attachment points at it. One video per scenario and scope. The same bytes
+ * upload nothing; new ones attach first and remove the old after, so a failed
+ * upload leaves the issue with the video it had.
+ */
+export async function attachVideo(
+  options: LinearOptions,
+  video: ScenarioVideo,
+  deps: LinearDeps,
+): Promise<"attached" | "unchanged"> {
+  const sha256 = createHash("sha256").update(video.bytes).digest("hex");
+  const previous = (await issueAttachments(options, video.ticket, deps)).filter(
+    (node) =>
+      URL.canParse(node.url) &&
+      new URL(node.url).hostname === UPLOADS_HOST &&
+      node.metadata["source"] === VIDEO_SOURCE &&
+      node.metadata["scenario"] === video.scenario &&
+      node.metadata["scope"] === video.scope,
+  );
+  if (previous.some((node) => node.metadata["sha256"] === sha256)) return "unchanged";
+
+  const upload = await prepareUpload(options, video, deps);
+  const stored = await deps.fetch(upload.uploadUrl, {
+    method: "PUT",
+    headers: { "Content-Type": "video/mp4", "Cache-Control": "public, max-age=31536000", ...upload.headers },
+    body: new Uint8Array(video.bytes),
+  });
+  if (!stored.ok) throw new Error(`Linear's storage answered ${stored.status} for ${video.filename}`);
+
+  const data = await linearRequest(
+    options,
+    "mutation($input: AttachmentCreateInput!) { attachmentCreate(input: $input) { success } }",
+    {
+      input: {
+        issueId: video.ticket,
+        title: `Video: ${video.scenario}`,
+        subtitle: video.scope,
+        url: upload.assetUrl,
+        metadata: { source: VIDEO_SOURCE, scenario: video.scenario, scope: video.scope, sha256 },
+      },
+    },
+    deps,
+  );
+  const created = data["attachmentCreate"];
+  if (!isRecord(created) || created["success"] !== true) {
+    throw new Error(`Linear did not attach ${video.filename} to ${video.ticket}`);
+  }
+  for (const { id } of previous) {
+    await linearRequest(
+      options,
+      "mutation($id: String!) { attachmentDelete(id: $id) { success } }",
+      { id },
+      deps,
+    );
+  }
+  return "attached";
 }
 
 /** A TrackerClient for the workspace the credentials belong to. */

@@ -5,15 +5,25 @@
  * without a terminal or Linear.
  */
 
+import * as path from "node:path";
 import { parseArgs } from "node:util";
 
-import { DEFAULT_RUN_FILES, defaultScope, publishRun, readRun, ticketStatuses } from "executable-stories-trackers";
+import { scenarioSlug } from "executable-stories-core/utils/slug";
+import {
+  DEFAULT_RUN_FILES,
+  defaultScope,
+  publishRun,
+  readRun,
+  type TicketStatus,
+  ticketStatuses,
+} from "executable-stories-trackers";
 
-import { createLinearClient, type LinearAuth, ownsTicket } from "./linear";
+import { attachVideo, createLinearClient, type LinearAuth, type LinearOptions, ownsTicket } from "./linear";
 
 export interface CliDeps {
   env: Record<string, string | undefined>;
   readFile: (path: string) => Promise<string>;
+  readBytes: (path: string) => Promise<Uint8Array>;
   exists: (path: string) => boolean;
   fetch: typeof fetch;
   out: (line: string) => void;
@@ -35,6 +45,8 @@ one "Quality checks" attachment per issue, updated in place by the next run of t
   --trust <url>        another writer's link whose status for the scope may be shared
                        (repeatable; also EXECUTABLE_STORIES_TRUSTED_LINKS, comma-separated),
                        e.g. the hosted app. Statuses with any other link are left alone.
+  --videos <dir>       also attach each scenario's <dir>/<slug>.mp4 to its issues, stored in
+                       Linear; write them with \`executable-stories video\` (reports/video)
   --dry-run            print what would be posted; needs no Linear key
   --json               print the result as JSON
 
@@ -51,6 +63,17 @@ function authOf(env: CliDeps["env"]): LinearAuth | null {
   return null;
 }
 
+/** Each scenario of these statuses with a file in `dir`, one per ticket it names. */
+function videoFiles(statuses: readonly TicketStatus[], dir: string, exists: CliDeps["exists"]) {
+  return statuses.flatMap((status) =>
+    status.scenarios.flatMap((scenario) => {
+      const filename = `${scenarioSlug(scenario.title)}.mp4`;
+      const file = path.join(dir, filename);
+      return exists(file) ? [{ ticket: status.ticket, scope: status.scope, scenario: scenario.title, filename, file }] : [];
+    }),
+  );
+}
+
 export async function runCli(argv: readonly string[], deps: CliDeps): Promise<number> {
   let parsed;
   try {
@@ -62,6 +85,7 @@ export async function runCli(argv: readonly string[], deps: CliDeps): Promise<nu
         link: { type: "string" },
         "run-url": { type: "string" },
         trust: { type: "string", multiple: true },
+        videos: { type: "string" },
         "dry-run": { type: "boolean", default: false },
         json: { type: "boolean", default: false },
         help: { type: "boolean", short: "h", default: false },
@@ -116,6 +140,11 @@ export async function runCli(argv: readonly string[], deps: CliDeps): Promise<nu
     if (parsed.values.json) deps.out(JSON.stringify({ dryRun: true, statuses }, null, 2));
     else if (statuses.length === 0) deps.out("No Linear issues named in this run.");
     else for (const status of statuses) deps.out(`would post ${status.ticket}: ${status.title}`);
+    if (!parsed.values.json && parsed.values.videos) {
+      for (const video of videoFiles(statuses, parsed.values.videos, deps.exists)) {
+        deps.out(`would attach to ${video.ticket}: ${video.filename}`);
+      }
+    }
     return 0;
   }
 
@@ -125,22 +154,47 @@ export async function runCli(argv: readonly string[], deps: CliDeps): Promise<nu
     return 2;
   }
   let client;
-  try {
-    const trustedLinks = [
+  const options: LinearOptions = {
+    auth,
+    apiUrl: deps.env.LINEAR_API_URL,
+    trustedLinks: [
       ...(parsed.values.trust ?? []),
       ...(deps.env.EXECUTABLE_STORIES_TRUSTED_LINKS ?? "").split(",").map((link) => link.trim()).filter(Boolean),
-    ];
-    client = await createLinearClient(
-      { auth, apiUrl: deps.env.LINEAR_API_URL, trustedLinks },
-      { fetch: deps.fetch },
-    );
+    ],
+  };
+  try {
+    client = await createLinearClient(options, { fetch: deps.fetch });
   } catch (error) {
     deps.err(`Linear refused the credentials: ${error instanceof Error ? error.message : String(error)}`);
     return 2;
   }
   const result = await publishRun({ report, client, scope, link, runUrl });
+  const videos = { attached: [] as string[], unchanged: [] as string[], failed: [] as { file: string; error: string }[] };
+  if (parsed.values.videos) {
+    const posted = result.statuses.filter((status) => result.posted.includes(status.ticket));
+    for (const { file, ...video } of videoFiles(posted, parsed.values.videos, deps.exists)) {
+      try {
+        const bytes = await deps.readBytes(file);
+        const outcome = await attachVideo(options, { ...video, bytes }, { fetch: deps.fetch });
+        videos[outcome].push(`${video.ticket}: ${video.filename}`);
+      } catch (error) {
+        videos.failed.push({ file, error: error instanceof Error ? error.message : String(error) });
+      }
+    }
+  }
   if (parsed.values.json) {
-    deps.out(JSON.stringify({ workspace: client.workspace, posted: result.posted, failed: result.failed }, null, 2));
+    deps.out(
+      JSON.stringify(
+        {
+          workspace: client.workspace,
+          posted: result.posted,
+          failed: result.failed,
+          ...(parsed.values.videos ? { videos } : {}),
+        },
+        null,
+        2,
+      ),
+    );
   } else {
     if (result.posted.length === 0 && result.failed.length === 0) {
       deps.out(`No issues in the ${client.workspace} workspace are named in this run.`);
@@ -149,6 +203,9 @@ export async function runCli(argv: readonly string[], deps: CliDeps): Promise<nu
       deps.out(`posted ${status.ticket}: ${status.title}`);
     }
     for (const failure of result.failed) deps.err(`could not post ${failure.ticket}: ${failure.error}`);
+    for (const line of videos.attached) deps.out(`attached ${line}`);
+    for (const line of videos.unchanged) deps.out(`unchanged ${line}`);
+    for (const failure of videos.failed) deps.err(`could not attach ${failure.file}: ${failure.error}`);
   }
-  return result.failed.length > 0 ? 1 : 0;
+  return result.failed.length > 0 || videos.failed.length > 0 ? 1 : 0;
 }

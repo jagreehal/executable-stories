@@ -1,5 +1,6 @@
 export {
   attachmentInput,
+  attachVideo,
   LINE_LIMIT,
   MESSAGE_LIMIT,
   MODAL_BUDGET,
@@ -21,5 +22,7 @@ export {
   linearWorkspace,
   ownsTicket,
   postLinearStatus,
+  type ScenarioVideo,
+  VIDEO_SOURCE,
 } from "./linear";
 export { runCli, type CliDeps } from "./cli";
