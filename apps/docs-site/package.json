@@ -12,7 +12,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "type-check": "tsc --noEmit",
+    "type-check": "astro sync && tsc --noEmit",
     "test": "node node_modules/executable-stories-formatters/dist/cli.js check-links src/content/docs"
   },
   "dependencies": {
