@@ -358,7 +358,7 @@ See also: eslint-vitest-rules/SKILL.md — ESLint enforces correct story.init() 
 
 ## Parameterized Scenarios (Scenario Outline equivalent)
 
-Use Vitest's `it.each` with `story.init(task)` to produce one scenario per data row — the framework-native replacement for Cucumber's Scenario Outline + Examples. `story` is a plain object (not callable); each row still goes through the same `init` + step-marker calls as any other story.
+Use Vitest's `it.for` with `story.init(task)` to produce one scenario per data row — the framework-native replacement for Cucumber's Scenario Outline + Examples. `story` is a plain object (not callable); each row still goes through the same `init` + step-marker calls as any other story.
 
 ```ts
 import { story } from "executable-stories-vitest";
@@ -370,7 +370,7 @@ const cases = [
 ];
 
 describe("Doubling", () => {
-  it.each(cases)("doubles $input to $expected", ({ input, expected }, { task }) => {
+  it.for(cases)("doubles $input to $expected", ({ input, expected }, { task }) => {
     story.init(task);
 
     story.given(`the input is ${input}`);
@@ -382,3 +382,23 @@ describe("Doubling", () => {
 ```
 
 Each iteration produces a separate scenario in the generated report. Use interpolated titles so each scenario has a distinct, descriptive name.
+
+### HIGH Using it.each instead of it.for
+
+Wrong:
+
+```ts
+it.each(cases)("doubles $input", ({ input }, { task }) => {
+  story.init(task); // TypeError: Cannot destructure property 'task' of 'undefined'
+});
+```
+
+Correct:
+
+```ts
+it.for(cases)("doubles $input", ({ input }, { task }) => {
+  story.init(task);
+});
+```
+
+`it.each` passes only the row's values, never the test context, so there is no `task` to give `story.init`. `it.for` passes the row as one argument and the test context as the second. A row of primitives works the same way: `it.for(["a", "b"])("handles %s", (value, { task }) => …)`.
