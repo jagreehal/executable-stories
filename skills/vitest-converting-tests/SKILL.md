@@ -8,7 +8,7 @@ description: >
 metadata:
   type: lifecycle
   library: executable-stories-vitest
-  library_version: "8.12.2"
+  library_version: "9.0.0"
   requires:
     - vitest-story-api
   sources:

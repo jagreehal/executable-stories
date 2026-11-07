@@ -1,5 +1,16 @@
 # executable-stories-jest
 
+## 9.0.0
+
+### Major Changes
+
+- f73fd7d: `docs publish` embeds video slots: an MP4 or WebM replaces the image with a `<video>` in Markdown and a link to the uploaded video in Help Scout and Confluence. `docs add` now points new slots at `reports/video/<slug>.mp4`. Peer ranges now start at the latest releases, including Vitest 5.0.5, Playwright 1.64, Cypress 16, React 19, MSW 3 and Vite 8, and dependencies move to their latest releases.
+
+### Patch Changes
+
+- Updated dependencies [f73fd7d]
+  - executable-stories-formatters@2.1.0
+
 ## 8.11.2
 
 ### Patch Changes
