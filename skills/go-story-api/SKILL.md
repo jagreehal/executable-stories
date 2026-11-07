@@ -7,7 +7,7 @@ description: >
 metadata:
   type: core
   library: executable-stories-go
-  library_version: "0.1.0"
+  library_version: "0.2.0"
   sources:
     - "jagreehal/executable-stories:packages/executable-stories-go/story.go"
     - "jagreehal/executable-stories:packages/executable-stories-go/doc.go"
@@ -17,10 +17,10 @@ metadata:
 
 ## Install
 
-The canonical module path is `github.com/jagreehal/executable-stories/packages/executable-stories-go`. Release tags are prefixed (e.g. `go-executable-stories-v0.1.0`), not bare `v0.1.0`, so target the tag explicitly:
+The canonical module path is `github.com/jagreehal/executable-stories/packages/executable-stories-go`. Because the module lives in a subdirectory, Go only resolves version tags prefixed with that path (`packages/executable-stories-go/v0.2.0`). Ask for the version and Go finds that tag:
 
 ```bash
-go get github.com/jagreehal/executable-stories/packages/executable-stories-go@go-executable-stories-v0.1.0
+go get github.com/jagreehal/executable-stories/packages/executable-stories-go@v0.2.0
 ```
 
 ## Setup
