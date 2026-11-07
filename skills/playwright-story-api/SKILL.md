@@ -7,7 +7,7 @@ description: >
 metadata:
   type: core
   library: executable-stories-playwright
-  library_version: "8.15.2"
+  library_version: "9.0.0"
 ---
 
 # executable-stories-playwright — Story API
