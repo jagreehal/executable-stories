@@ -44,6 +44,16 @@ Then add a row to your `AGENTS.md` so the agent knows when to load it:
 
 This repo does exactly that in its own [AGENTS.md](https://github.com/jagreehal/executable-stories/blob/main/AGENTS.md).
 
+### .NET
+
+`ExecutableStories.Xunit` ships `xunit-story-api` inside the NuGet package, matched to the package version. `dotnet restore` puts it on your machine:
+
+```bash
+ls ~/.nuget/packages/executablestories.xunit/*/skills/xunit-story-api/SKILL.md
+```
+
+Point your agent at that file, or copy it into `.claude/skills/` or `.agents/skills/`.
+
 ### Which ones to start with
 
 Install the few that match your stack rather than all 56:

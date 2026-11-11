@@ -4,7 +4,9 @@ xUnit adapter for executable-stories.
 
 Provides a static `Story` API for framework-native xUnit tests and emits reportable raw story metadata.
 
-Requires the .NET 10 SDK and xUnit v3.
+Requires the .NET 10 SDK and xUnit v3. Runs on .NET 10 and .NET 11.
+
+The package carries its agent skill at `skills/xunit-story-api/SKILL.md`. After `dotnet restore`, your agent finds it in the NuGet cache under `~/.nuget/packages/executablestories.xunit/<version>/skills/`.
 
 ## Usage
 
