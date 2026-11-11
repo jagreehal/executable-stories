@@ -27,5 +27,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\README.md" Pack="true" PackagePath="\" Link="README.md" />
+    <None Include="..\..\..\skills\xunit-story-api\SKILL.md" Pack="true" PackagePath="skills/xunit-story-api/" Link="skills/xunit-story-api/SKILL.md" />
   </ItemGroup>
 </Project>
