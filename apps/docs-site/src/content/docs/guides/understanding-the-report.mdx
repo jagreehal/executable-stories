@@ -83,6 +83,9 @@ When a scenario fails, the report leads with the error and the step that failed:
   caption="A failure shows the assertion error and points at the exact step that broke."
 />
 
+The stack trace sits in a collapsed **Stack trace** section under the error. Printing the
+report, or saving it as a PDF, includes the full trace and every row of long tables.
+
 ## State snapshots: storyboards for data
 
 Storyboards are not screenshot-only. `story.state({ label?, value })` captures
@@ -181,7 +184,17 @@ carries none of it between them.
 The search box matches more than titles. A reader arrives with something from somewhere
 else: a ticket id from the tracker, a string out of a stack trace, a path from a pull
 request. So the query also matches scenario tags, step text, ticket ids, the failing
-scenario's error message, and the source file of the feature.
+scenario's error message, and the source file of the feature. Press `/` to jump to the
+search box from anywhere on the page.
+
+A search narrows the scenarios you read. The summary cards, status filters and failure
+banner keep counting the whole run, and the line under the search box says how many
+scenarios match, for example "40 of 2,000 scenarios".
+
+On wide screens the **Contents** sidebar lists every scenario. It scrolls on its own,
+separate from the page, and keeps the scenario you are reading in view. Clicking a link
+jumps to that scenario. Once you scroll a screen down, a back-to-top button
+appears above the `?` shortcuts button.
 
 On a red run the failure banner offers **Copy N failures for an agent**: every failing
 scenario's steps, the failing step marked, and its error verbatim, numbered, in one paste.

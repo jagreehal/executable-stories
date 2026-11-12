@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -73,6 +73,8 @@ export const Actions: Story = {
   play: async ({ canvasElement }) => {
     await userEvent.click(within(canvasElement).getByRole("button", { name: "Actions" }));
     const body = within(canvasElement.ownerDocument.body);
-    await expect(await body.findByRole("menuitem", { name: "Copy as Markdown" })).toBeVisible();
+    const item = await body.findByRole("menuitem", { name: "Copy as Markdown" });
+    // Visible once the 150ms entry fade has started (opacity leaves 0).
+    await waitFor(() => expect(item).toBeVisible());
   },
 };

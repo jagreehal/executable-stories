@@ -64,3 +64,15 @@ export const EscapeClears: Story = {
     await expect(input).toHaveValue("");
   },
 };
+
+// The `/` hint shows while the box is empty and disappears once you type.
+export const ShortcutHint: Story = {
+  render: (args) => <StatefulSearch {...args} matchedCount={2} totalCount={5} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const hint = () => canvasElement.querySelector("kbd");
+    await expect(hint()).toHaveTextContent("/");
+    await userEvent.type(canvas.getByRole("searchbox", { name: "Search" }), "x");
+    await expect(hint()).toBeNull();
+  },
+};

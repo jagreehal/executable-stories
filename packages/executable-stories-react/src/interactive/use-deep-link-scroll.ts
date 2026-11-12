@@ -6,8 +6,7 @@ import { splitHash } from "../lib/hash-state";
 
 /**
  * Scrolls to a scenario by URL hash on mount and whenever the deep link
- * changes. No-op in SSR (only runs in useEffect). Honours
- * `prefers-reduced-motion`.
+ * changes. No-op in SSR (only runs in useEffect).
  *
  * The fragment also carries filter state (`#<anchor>?q=...`), so only the
  * anchor half is read — and a hashchange that merely rewrote the filters must

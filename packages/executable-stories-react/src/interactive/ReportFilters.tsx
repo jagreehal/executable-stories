@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { StatusFilter } from "./filter";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+import { cn, formatCount } from "@/lib/utils";
 
 // Above this many tags the filter list collapses to one row behind a "+N more"
 // toggle, so a tag-heavy report doesn't open with a tall grey brick before the
@@ -48,14 +48,17 @@ export function ReportFilters({
                 aria-pressed={active}
                 onClick={() => onStatus(active && opt.key !== "all" ? "all" : opt.key)}
                 className={cn(
-                  "cursor-pointer rounded-md border px-2 py-1 text-xs transition-colors",
+                  "cursor-pointer rounded-md border px-2 py-1 text-xs outline-none transition-[color,background-color,border-color,scale] duration-150 ease-snappy focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-1 focus-visible:ring-offset-background active:scale-[0.97] pointer-coarse:min-h-11 motion-reduce:transition-none",
                   active
                     ? "border-primary bg-primary text-primary-foreground"
                     : "border-border text-muted-foreground hover:bg-muted hover:text-foreground",
                 )}
               >
                 {opt.label}
-                <span className="ml-1 font-mono opacity-70">{opt.count}</span>
+                {/* Full opacity on the active pill keeps the count at AA contrast. */}
+                <span className={cn("ml-1 font-mono tabular-nums", !active && "opacity-70")}>
+                  {formatCount(opt.count)}
+                </span>
               </button>
             );
           })}
@@ -66,12 +69,13 @@ export function ReportFilters({
           {visibleTags.map((tag) => {
             const active = activeTags.includes(tag);
             return (
-              <li key={tag}>
+              <li key={tag} className="max-w-full">
                 <button
                   type="button"
                   aria-pressed={active}
                   onClick={() => onToggleTag(tag)}
-                  className="cursor-pointer"
+                  title={tag}
+                  className="block max-w-full cursor-pointer rounded-full outline-none transition-[scale] duration-150 ease-snappy focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-1 focus-visible:ring-offset-background active:scale-[0.97] motion-reduce:transition-none"
                 >
                   {/* Always the `tag` variant (font-mono) so the active state
                       only swaps colours, never the font family. Switching to a
@@ -80,6 +84,7 @@ export function ReportFilters({
                   <Badge
                     variant="tag"
                     className={cn(
+                      "block truncate",
                       active && "border-primary bg-primary text-primary-foreground",
                     )}
                   >

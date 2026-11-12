@@ -108,6 +108,23 @@ export const FiltersOnSearch: Story = {
   },
 };
 
+// During a search the summary keeps the whole run's numbers, matching the
+// status chips and the failure banner.
+export const SummaryStaysOnWholeRunWhileSearching: Story = {
+  args: { report: kitchenSinkReport() },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const total = () =>
+      canvasElement.querySelector(
+        'dl[aria-label="Run summary"] [data-status="total"] dd',
+      )?.textContent;
+    const before = total();
+    await userEvent.type(canvas.getByRole('searchbox', { name: 'Search' }), 'loyalty discount');
+    await expect(await canvas.findByText(/^1 of \d+ scenarios$/)).toBeVisible();
+    await expect(total()).toBe(before);
+  },
+};
+
 // A Result-wrapped report (e.g. from parseStoryReport) is unwrapped and rendered.
 export const ResultWrapped: Story = {
   args: { report: ok(kitchenSinkReport()) },

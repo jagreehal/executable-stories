@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useReport } from "../hooks/useReport";
 import { scrollToScenarioId } from "../lib/scroll";
 import { cn } from "@/lib/utils";
@@ -21,6 +21,7 @@ const DOT: Record<string, string> = {
 export function TocContent({ onNavigate }: { onNavigate?: () => void }) {
   const report = useReport();
   const [activeId, setActiveId] = useState<string | null>(null);
+  const listRef = useRef<HTMLUListElement>(null);
 
   const scenarioIds = useMemo(
     () => report.features.flatMap((f) => f.scenarios.map((s) => s.id)),
@@ -75,16 +76,34 @@ export function TocContent({ onNavigate }: { onNavigate?: () => void }) {
     };
   }, [scenarioIds]);
 
+  // Keep the active link visible inside the TOC's own scroll box (the sidebar
+  // nav or the drawer popup). Set scrollTop directly: scrollIntoView would also
+  // scroll the window. The sidebar's sticky "Contents" label covers its top.
+  useEffect(() => {
+    const list = listRef.current;
+    const box = list?.parentElement;
+    const link = list?.querySelector<HTMLElement>("[aria-current]");
+    if (!box || !link) return;
+    const label = box.tagName === "NAV" ? (box.firstElementChild as HTMLElement | null) : null;
+    const b = box.getBoundingClientRect();
+    const top = b.top + (label && label !== list ? label.offsetHeight : 0);
+    const l = link.getBoundingClientRect();
+    if (l.top < top) box.scrollTop += l.top - top - 16;
+    else if (l.bottom > b.bottom) box.scrollTop += l.bottom - b.bottom + 16;
+  }, [activeId]);
+
   if (report.features.length === 0) return null;
 
   // `list-none pl-0` explicitly: the drawer portals OUTSIDE `.es-report-island`,
   // so it can't rely on the island's list reset — bullets would leak otherwise.
   return (
-    <ul className="flex list-none flex-col gap-4 pl-0">
+    <ul ref={listRef} className="flex list-none flex-col gap-4 pl-0">
       {report.features.map((feature) => (
         <li key={feature.id}>
           <p className="mb-1.5 font-semibold leading-snug text-foreground">{feature.title}</p>
-          <ul className="flex list-none flex-col gap-0.5 pl-0">
+          {/* The rail lives on the list so it stays one unbroken line; the active
+              link overlays it with its own 2px border. */}
+          <ul className="flex list-none flex-col gap-0.5 border-l-2 border-border pl-0">
             {feature.scenarios.map((scenario) => {
               const active = activeId === scenario.id;
               return (
@@ -98,17 +117,20 @@ export function TocContent({ onNavigate }: { onNavigate?: () => void }) {
                     }}
                     aria-current={active ? "true" : undefined}
                     className={cn(
-                      "flex items-start gap-2 border-l-2 py-1 pl-2.5 leading-snug hover:text-foreground",
+                      // One font weight for every state keeps the active link from rewrapping.
+                      // Inset ring because the scroll box clips outlines.
+                      "-ml-0.5 flex items-start gap-2 rounded-r-sm border-l-2 py-1 pl-2.5 leading-snug no-underline outline-none hover:text-foreground hover:underline focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset",
                       active
-                        ? "border-primary font-medium text-foreground"
-                        : "border-border text-muted-foreground",
+                        ? "border-primary text-foreground"
+                        : "border-transparent text-muted-foreground",
                     )}
                   >
                     <span
                       aria-hidden
                       className={cn("mt-1 size-1.5 shrink-0 rounded-full", DOT[scenario.status])}
                     />
-                    <span className="break-words">{scenario.title}</span>
+                    {/* Explicit wrap: the drawer portals outside the island's root rule. */}
+                    <span dir="auto" className="min-w-0 wrap-anywhere">{scenario.title}</span>
                   </a>
                 </li>
               );
@@ -126,13 +148,39 @@ export function TocContent({ onNavigate }: { onNavigate?: () => void }) {
  */
 export function ReportToc() {
   const report = useReport();
-  if (report.features.length === 0) return null;
+  const empty = report.features.length === 0;
+  const navRef = useRef<HTMLElement>(null);
+
+  // Fade the bottom edge while more links sit below it.
+  useEffect(() => {
+    const nav = navRef.current;
+    if (!nav) return;
+    const update = () =>
+      nav.toggleAttribute(
+        "data-more-below",
+        nav.scrollTop + nav.clientHeight < nav.scrollHeight - 1,
+      );
+    update();
+    nav.addEventListener("scroll", update, { passive: true });
+    // Filtering changes the list's length; the nav's own box changes with the viewport.
+    const ro = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(update);
+    ro?.observe(nav);
+    if (nav.lastElementChild) ro?.observe(nav.lastElementChild);
+    return () => {
+      nav.removeEventListener("scroll", update);
+      ro?.disconnect();
+    };
+  }, [empty]);
+
+  if (empty) return null;
   return (
     <nav
+      ref={navRef}
       aria-label="Table of contents"
-      className="sticky top-4 hidden h-fit w-64 shrink-0 self-start text-xs lg:block"
+      className="es-report-toc sticky top-4 hidden max-h-[calc(100dvh-2rem)] w-64 shrink-0 self-start overflow-y-auto overscroll-contain pr-2 text-xs data-[more-below]:[mask-image:linear-gradient(to_bottom,black_calc(100%-2.5rem),transparent)] lg:block"
     >
-      <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      {/* Pinned inside the nav's own scroll box so the list keeps its heading. */}
+      <p className="sticky top-0 z-10 mb-0 bg-background pb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         Contents
       </p>
       <TocContent />

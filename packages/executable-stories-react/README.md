@@ -44,7 +44,7 @@ export default async function Page() {
 
 ### `<ReportInteractive>` — loaded with chrome
 
-Adds live search (`/` to focus), failure jump (`f`), deep-link auto-scroll, sticky failure banner, keyboard shortcut help (`?`). Same data, same primitives, plus the affordances engineers want when triaging.
+Adds live search (`/` to focus), failure jump (`f`), deep-link auto-scroll, sticky failure banner, a contents sidebar that scrolls on its own, a back-to-top button, keyboard shortcut help (`?`). Same data, same primitives, plus the affordances engineers want when triaging.
 
 ```tsx
 "use client";

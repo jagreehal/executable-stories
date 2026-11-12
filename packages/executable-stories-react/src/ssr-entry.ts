@@ -88,7 +88,8 @@ function cdnAssets(syntaxHighlighting: boolean, mermaid: boolean): { head: strin
 
   if (syntaxHighlighting) {
     headParts.push(`<link rel="stylesheet" href="${HLJS_CSS_LIGHT}">`);
-    headParts.push(`<link rel="stylesheet" href="${HLJS_CSS_DARK}" media="(prefers-color-scheme: dark)">`);
+    // use-theme retargets `media` when the reader picks a theme, so code follows the toggle, not only the OS.
+    headParts.push(`<link rel="stylesheet" href="${HLJS_CSS_DARK}" media="(prefers-color-scheme: dark)" data-es-hljs-dark>`);
     imports.push(`import hljs from "${HLJS_URL}";`);
     init.push("document.querySelectorAll('pre code').forEach((el) => hljs.highlightElement(el));");
   }
@@ -196,6 +197,7 @@ ${REPORT_FAVICON_LINK}
 ${cdn.head}
 ${headExtra}
 <style>${css}</style>
+<style>html{background:var(--background);color-scheme:light}html[data-theme="dark"]{color-scheme:dark}</style>
 </head>
 <body>
 <div${rootAttrs} class="es-report-island font-sans text-foreground">${markup}</div>

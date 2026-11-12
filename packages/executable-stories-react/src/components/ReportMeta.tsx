@@ -82,8 +82,8 @@ export function ReportMeta() {
     // collapsed disclosure so it doesn't push the result down. Native <details>
     // so it works with no JS (the SSR/no-hydration report still toggles).
     <details data-es-meta-card className="es-run-details group rounded-lg border border-border bg-card text-xs">
-      <summary className="flex cursor-pointer list-none select-none items-center gap-1.5 px-4 py-2 font-medium text-muted-foreground [&::-webkit-details-marker]:hidden">
-        <span aria-hidden className="text-xs transition-transform group-open:rotate-90">▸</span>
+      <summary className="flex cursor-pointer list-none select-none items-center gap-1.5 rounded-lg px-4 py-2 font-medium text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring/50 [&::-webkit-details-marker]:hidden">
+        <span aria-hidden className="text-xs group-open:rotate-90">▸</span>
         Run details
       </summary>
       <dl className="flex flex-wrap gap-x-5 gap-y-2 border-t border-border px-4 py-3 text-muted-foreground" aria-label="Run metadata">

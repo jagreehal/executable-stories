@@ -8,7 +8,7 @@ import {
 } from "react";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
+import { cn, formatCount } from "@/lib/utils";
 
 export interface ReportSearchProps {
   value: string;
@@ -51,7 +51,7 @@ export const ReportSearch = forwardRef<HTMLInputElement, ReportSearchProps>(
     // `es-search` is kept only as the print-hide hook (styles.css @media print);
     // all styling is the shadcn Input + utilities now.
     return (
-      <div className={cn("es-search flex flex-col gap-1", className)}>
+      <div className={cn("es-search relative flex flex-col", className)}>
         <label htmlFor={inputId} className="sr-only">
           Search
         </label>
@@ -71,15 +71,27 @@ export const ReportSearch = forwardRef<HTMLInputElement, ReportSearchProps>(
             autoComplete="off"
             spellCheck={false}
             aria-keyshortcuts="/"
-            className="pl-8"
+            // Ellipsis when the placeholder outgrows a phone screen.
+            className={cn("peer pl-8 text-ellipsis", value === "" && "pointer-fine:pr-8")}
           />
+          {/* `/` shortcut hint on devices with a keyboard; hidden on focus. */}
+          {value === "" ? (
+            <kbd
+              aria-hidden
+              className="pointer-events-none absolute top-1/2 right-2.5 hidden -translate-y-1/2 rounded border border-border px-1.5 font-mono text-[0.6875rem] leading-4 text-muted-foreground pointer-fine:block peer-focus:hidden"
+            >
+              /
+            </kbd>
+          ) : null}
         </div>
         {showCounts ? (
           <span
-            className="text-xs tabular-nums text-muted-foreground"
+            // Absolute, in the gap below, so the header keeps its height while you type.
+            className="absolute top-full right-0 text-xs leading-4 tabular-nums text-muted-foreground"
             aria-live="polite"
           >
-            {matchedCount} of {totalCount} scenarios
+            {formatCount(matchedCount)} of {formatCount(totalCount)}{" "}
+            {totalCount === 1 ? "scenario" : "scenarios"}
           </span>
         ) : null}
       </div>

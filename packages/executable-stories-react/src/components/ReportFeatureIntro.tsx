@@ -29,7 +29,7 @@ export function ReportFeatureIntro({ feature }: ReportFeatureIntroProps) {
 
       {hasGlossary ? (
         <dl
-          className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1.5 text-xs"
+          className="grid grid-cols-[fit-content(40%)_minmax(0,1fr)] gap-x-4 gap-y-1.5 text-xs"
           aria-label="Glossary"
         >
           {feature.glossary!.map((entry) => (

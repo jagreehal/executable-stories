@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { expect, userEvent, within } from 'storybook/test';
+import { expect, userEvent, waitFor, within } from 'storybook/test';
 import { ReportRoot } from '../context/ReportRoot';
 import { kitchenSinkReport } from '../test/kitchen-sink';
 import { ReportTocDrawer } from './ReportTocDrawer';
@@ -36,8 +36,11 @@ export const MobileContents: Story = {
     await expect(link).toHaveAttribute('href', '#checkout-discount');
 
     await userEvent.click(link);
-    await expect(
-      page.queryByRole('dialog', { name: 'Contents' }),
-    ).not.toBeInTheDocument();
+    // The drawer unmounts after its 150ms exit transition.
+    await waitFor(() =>
+      expect(
+        page.queryByRole('dialog', { name: 'Contents' }),
+      ).not.toBeInTheDocument(),
+    );
   },
 };

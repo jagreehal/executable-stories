@@ -11,6 +11,7 @@
  * than hydration.
  */
 
+import { ReportErrorBoundary } from "./interactive/ReportErrorBoundary";
 import { createElement } from "react";
 import { createRoot } from "react-dom/client";
 import { ReportInteractive } from "./interactive/ReportInteractive";
@@ -78,7 +79,7 @@ export function mountReportIsland(): void {
   const staleAfterDays = Number.isFinite(staleDaysRaw) && staleDaysRaw >= 0 ? staleDaysRaw : 7;
 
   createRoot(mount).render(
-    createElement(ReportInteractive, {
+    createElement(ReportErrorBoundary, null, createElement(ReportInteractive, {
       report: result,
       title,
       renderers,
@@ -87,7 +88,7 @@ export function mountReportIsland(): void {
       share,
       shareCommand,
       architecture,
-    }),
+    })),
   );
 }
 

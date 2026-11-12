@@ -58,8 +58,17 @@
   /* Neutralise host (Starlight) flow margins + default list markers inside the
      island; component utilities (mt-*, list-*) still win via the utilities
      layer. :where() keeps specificity at 0. */
-  .es-report-island :where(h1, h2, h3, h4, h5, h6, p, ul, ol, dl, figure, pre, blockquote) {
+  .es-report-island :where(h1, h2, h3, h4, h5, h6, p, ul, ol, dl, dd, figure, pre, blockquote) {
     margin: 0;
+  }
+  /* Test data can hold long URLs, hashes and paths. `anywhere` breaks them
+     inside their card and lets flex/grid items shrink below the token. Tables
+     keep normal wrapping and scroll in their own box. */
+  .es-report-island {
+    overflow-wrap: anywhere;
+  }
+  .es-report-island :where(table) {
+    overflow-wrap: normal;
   }
   .es-report-island :where(ul, ol) {
     list-style: none;
@@ -79,7 +88,8 @@
   --card-foreground: hsl(0 0% 9%);
   --popover: hsl(0 0% 100%);
   --popover-foreground: hsl(0 0% 9%);
-  --primary: hsl(145 63% 36%);
+  /* 30% lightness: white text on it (active filter pills, buttons) clears AA at 5.2:1. */
+  --primary: hsl(145 63% 30%);
   --primary-foreground: hsl(0 0% 100%);
   --secondary: hsl(0 0% 96.5%);
   --secondary-foreground: hsl(0 0% 9%);
@@ -196,6 +206,34 @@
   --font-mono: var(--es-font-mono);
 
   --radius: var(--es-radius);
+
+  /* Strong ease-out for entrances and presses; iOS-style easing for drawers. */
+  --ease-snappy: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* The interactive report paints the shadcn surface, so in dark mode the page,
+   cards and sticky TOC label share one neutral palette. */
+.es-report-interactive {
+  background: var(--background);
+}
+
+/* Set by use-theme for one frame while the theme flips. */
+[data-theme-switching] * {
+  transition: none !important;
+}
+
+/* Hairline borders carry the layout's structure; strengthen them on request. */
+@media (prefers-contrast: more) {
+  :root,
+  [data-theme="light"] {
+    --border: hsl(0 0% 70%);
+    --input: hsl(0 0% 70%);
+  }
+  [data-theme="dark"] {
+    --border: hsl(0 0% 35%);
+    --input: hsl(0 0% 35%);
+  }
 }
 
 /*
@@ -243,4 +281,14 @@
 }
 .es-doc-prose :where(a) {
   text-underline-offset: 2px;
+  overflow-wrap: anywhere;
+}
+/* The code block's own surface shows through; the highlight theme only colours tokens. */
+.es-report-island .hljs {
+  background: transparent;
+}
+/* Markdown tables get no wrapper element, so the table itself scrolls. */
+.es-doc-prose :where(table) {
+  display: block;
+  overflow-x: auto;
 }
