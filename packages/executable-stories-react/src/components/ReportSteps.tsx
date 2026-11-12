@@ -84,7 +84,7 @@ export function ReportStepItem({
         >
           {step.keyword}
         </span>
-        <span className="flex-1 text-foreground">
+        <span dir="auto" className="min-w-0 flex-1 text-foreground">
           {highlightStepParams(step.text)}
         </span>
         {unasserted ? (
@@ -109,7 +109,7 @@ export function ReportStepItem({
       {step.expected !== undefined || step.actual !== undefined ? (
         <dl
           data-slot="step-comparison"
-          className="mt-1.5 ml-6 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 font-mono text-xs"
+          className="mt-1.5 ml-6 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 font-mono text-xs"
         >
           {step.expected !== undefined ? (
             <>

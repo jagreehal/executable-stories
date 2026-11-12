@@ -1,6 +1,7 @@
 import { fileURLToPath } from "node:url";
 import { storybookTest } from "@storybook/addon-vitest/vitest-plugin";
 import { playwright } from "@vitest/browser-playwright";
+import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vitest/config";
 
 /**
@@ -10,7 +11,8 @@ import { defineConfig } from "vitest/config";
  *   pnpm test:component
  */
 export default defineConfig({
-  plugins: [storybookTest({ configDir: ".storybook" })],
+  // Tailwind, so a11y contrast and visibility checks run against the shipped styles.
+  plugins: [tailwindcss(), storybookTest({ configDir: ".storybook" })],
   resolve: {
     alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
   },

@@ -14,9 +14,17 @@ function resolve(pref: ThemePref): "light" | "dark" {
 }
 
 function applyTheme(pref: ThemePref): void {
-  if (typeof document !== "undefined") {
-    document.documentElement.setAttribute("data-theme", resolve(pref));
-  }
+  if (typeof document === "undefined") return;
+  const root = document.documentElement;
+  // Suspend transitions for one frame so every colour flips together.
+  root.setAttribute("data-theme-switching", "");
+  const resolved = resolve(pref);
+  root.setAttribute("data-theme", resolved);
+  // The standalone report's dark code theme: follow the chosen theme.
+  document
+    .querySelector("link[data-es-hljs-dark]")
+    ?.setAttribute("media", resolved === "dark" ? "all" : "not all");
+  requestAnimationFrame(() => root.removeAttribute("data-theme-switching"));
 }
 
 function initialPref(): ThemePref {

@@ -51,3 +51,34 @@ export const SingleFeature: Story = {
     ).toBeInTheDocument();
   },
 };
+
+/**
+ * A long run: the sidebar scrolls on its own, keeps its "Contents" label
+ * pinned, and fades its bottom edge while more links sit below. The nav is
+ * lg-only, so view this story at a desktop width.
+ */
+export const LongRun: Story = {
+  render: () => {
+    const base = kitchenSinkReport();
+    const features = Array.from({ length: 6 }, (_, f) => ({
+      ...base.features[0]!,
+      id: `feature-${f}`,
+      title: `Feature ${f + 1}`,
+      scenarios: Array.from({ length: 12 }, (_, i) => ({
+        ...base.features[0]!.scenarios[0]!,
+        id: `feature-${f}-scenario-${i}`,
+        title: `Scenario ${i + 1} of feature ${f + 1}, with a title long enough to wrap`,
+      })),
+    }));
+    return (
+      <ReportRoot report={{ ...base, features }}>
+        <ReportToc />
+      </ReportRoot>
+    );
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("Contents")).toBeInTheDocument();
+    await expect(canvas.getAllByRole("link", { hidden: true })).toHaveLength(72);
+  },
+};

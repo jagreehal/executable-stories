@@ -78,3 +78,19 @@ export const ManyPairs: Story = {
     expect(new Set(lefts).size).toBe(1);
   },
 };
+
+// A long label takes at most 40% of the row and wraps, keeping the value
+// visible at phone width.
+export const LongLabelOnPhone: Story = {
+  args: kv("214px", "Sheet position (px) after the first finger moved 80px"),
+  render: (args) => (
+    <div style={{ width: 340 }}>
+      <DocKv {...args} />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const dl = canvasElement.querySelector("dl")!;
+    await expect(dl.scrollWidth).toBeLessThanOrEqual(dl.clientWidth);
+    await expect(within(canvasElement).getByText("214px")).toBeVisible();
+  },
+};

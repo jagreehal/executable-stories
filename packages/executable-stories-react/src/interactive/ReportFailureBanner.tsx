@@ -3,6 +3,7 @@
 import { useCallback } from "react";
 import type { FailureRef } from "./filter";
 import { scrollToScenarioId } from "../lib/scroll";
+import { formatCount } from "../lib/utils";
 
 export interface ReportFailureBannerProps {
   failures: readonly FailureRef[];
@@ -30,7 +31,7 @@ export function ReportFailureBanner({ failures, onCopyAll }: ReportFailureBanner
       aria-label="Failure summary"
     >
       <span className="es-failure-banner-text">
-        <strong>{failures.length}</strong>{" "}
+        <strong>{formatCount(failures.length)}</strong>{" "}
         failure{failures.length === 1 ? "" : "s"}
       </span>
       <button
@@ -48,7 +49,7 @@ export function ReportFailureBanner({ failures, onCopyAll }: ReportFailureBanner
           onClick={onCopyAll}
           aria-label="Copy failures for an agent"
         >
-          Copy {failures.length} failure{failures.length === 1 ? "" : "s"} for an agent
+          Copy {formatCount(failures.length)} failure{failures.length === 1 ? "" : "s"} for an agent
         </button>
       ) : null}
     </div>

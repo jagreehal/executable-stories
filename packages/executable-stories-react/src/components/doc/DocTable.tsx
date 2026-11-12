@@ -8,12 +8,13 @@ export function DocTable({ entry }: { entry: ReportDocTable }) {
           {entry.label}
         </figcaption>
       ) : null}
-      <div tabIndex={0} className="overflow-x-auto rounded-md border border-border">
+      {/* Long tables scroll inside the box under a pinned header. */}
+      <div tabIndex={0} className="es-doc-table-scroll max-h-[28rem] overflow-auto rounded-md border border-border">
         <table className="w-full border-collapse text-sm">
           <thead>
-            <tr className="bg-muted/50">
+            <tr>
               {entry.columns.map((c) => (
-                <th key={c} scope="col" className="border-b border-border px-3 py-2 text-left font-semibold">
+                <th key={c} scope="col" className="sticky top-0 border-b border-border bg-muted px-3 py-2 text-left font-semibold">
                   {c}
                 </th>
               ))}

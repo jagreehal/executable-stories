@@ -49,7 +49,8 @@ function queryMatches(scenario: ReportScenario, q: string, sourceFile?: string):
     if (tag.toLowerCase().includes(q)) return true;
   }
   for (const ticket of scenario.tickets ?? []) {
-    if (ticket.id.toLowerCase().includes(q)) return true;
+    // Per-file state comes from disk, so tolerate a ticket without an id.
+    if (ticket.id?.toLowerCase().includes(q)) return true;
   }
   for (const step of scenario.steps) {
     if (step.text.toLowerCase().includes(q)) return true;

@@ -2,7 +2,6 @@
 
 import type { StoryReport } from 'executable-stories-core';
 import { Monitor, Moon, Sun } from 'lucide-react';
-import { useTools } from 'webmcpable/react';
 import {
   useCallback,
   useDeferredValue,
@@ -11,12 +10,13 @@ import {
   useRef,
   useState,
 } from 'react';
+import { useTools } from 'webmcpable/react';
 import { ReportEmpty } from '../components/ReportEmpty';
 import { ReportFeatureList } from '../components/ReportFeatureList';
 import { ReportMeta } from '../components/ReportMeta';
 import { ReportErrorShell } from '../components/ReportShell';
 import { ReportSpanGraph } from '../components/ReportSpanGraph';
-import { ReportSummary } from '../components/ReportSummary';
+import { ReportSummaryView } from '../components/ReportSummary';
 import { Switch } from '../components/ui/switch';
 import { ToggleGroup, ToggleGroupItem } from '../components/ui/toggle-group';
 import { ReportRoot } from '../context/ReportRoot';
@@ -40,14 +40,15 @@ import {
   type StatusFilter,
 } from './filter';
 import { ReportAgentFilterNotice } from './ReportAgentFilterNotice';
+import { ReportBackToTop } from './ReportBackToTop';
 import { ReportFailureBanner } from './ReportFailureBanner';
 import { ReportFilters } from './ReportFilters';
 import { ReportFreshness } from './ReportFreshness';
 import { ReportLastRunDelta } from './ReportLastRunDelta';
 import { ReportSearch } from './ReportSearch';
 import { ReportShare } from './ReportShare';
-import { ReportSinceLastVisit } from './ReportSinceLastVisit';
 import { ReportShortcutsHelp } from './ReportShortcutsHelp';
+import { ReportSinceLastVisit } from './ReportSinceLastVisit';
 import { ReportToc } from './ReportToc';
 import { ReportTocDrawer } from './ReportTocDrawer';
 import {
@@ -283,8 +284,9 @@ function ReportInteractiveView({
     [copy],
   );
   const copyAllFailures = useCallback(
-    () => copy(failuresToPrompt(failedScenarios(filtered)), 'Failures copied'),
-    [copy, filtered],
+    // Every failure in the run, matching the banner's count.
+    () => copy(failuresToPrompt(failedScenarios(report)), 'Failures copied'),
+    [copy, report],
   );
   const failureIndexRef = useRef(0);
 
@@ -419,7 +421,14 @@ function ReportInteractiveView({
               renderers={renderers}
             >
               <main
-                className={cn('es-report', 'es-report-interactive', className)}
+                className={cn(
+                  'es-report',
+                  'es-report-interactive',
+                  'outline-none',
+                  className,
+                )}
+                // Programmatically focusable: back-to-top hands focus here.
+                tabIndex={-1}
                 aria-label={title ?? 'Test report'}
                 aria-busy={isFiltering}
                 data-theme={dataTheme}
@@ -457,7 +466,11 @@ function ReportInteractiveView({
                   </div>
                   {hideHeader ? null : (
                     <>
-                      <ReportSummary />
+                      {/* Whole-run numbers, like the status chips and failure banner. */}
+                      <ReportSummaryView
+                        summary={report.summary}
+                        ariaLabel="Run summary"
+                      />
                       <ReportMeta />
                     </>
                   )}
@@ -480,52 +493,57 @@ function ReportInteractiveView({
                   />
                   <ReportSinceLastVisit report={report} />
 
-                  {/* Filters first (what's shown: status, then tags)… */}
-                  <ReportFilters
-                    statuses={statusOptions}
-                    status={statusFilter}
-                    onStatus={setStatusFilter}
-                    tags={tagOptions}
-                    activeTags={activeTags}
-                    onToggleTag={toggleTag}
-                  />
-                  {/* …then the view controls (how it's shown), separated by a hairline
+                  {/* An empty run has nothing to filter, expand or document. */}
+                  {totalScenarios > 0 ? (
+                    <>
+                      {/* Filters first (what's shown: status, then tags)… */}
+                      <ReportFilters
+                        statuses={statusOptions}
+                        status={statusFilter}
+                        onStatus={setStatusFilter}
+                        tags={tagOptions}
+                        activeTags={activeTags}
+                        onToggleTag={toggleTag}
+                      />
+                      {/* …then the view controls (how it's shown), separated by a hairline
                 so "filter the data" and "change the view" read as distinct.
                 Switches, not checkboxes: these are immediate on/off view modes,
                 which is what a switch signals. "Show only failures" is the
                 Failed status filter's job, not a view mode. */}
-                  <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-border/60 pt-3">
-                    {/* Narrow-screen scenario nav (the sidebar is lg-only). */}
-                    {showToc ? <ReportTocDrawer /> : null}
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        id={expandId}
-                        checked={expandedAll}
-                        onCheckedChange={setExpanded}
-                      />
-                      <label
-                        htmlFor={expandId}
-                        className="cursor-pointer text-sm text-muted-foreground select-none"
-                      >
-                        Expand all
-                      </label>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        id={docsId}
-                        checked={detail === 'full'}
-                        onCheckedChange={(checked) =>
-                          setDetail(checked ? 'full' : 'minimal')
-                        }
-                      />
-                      <label
-                        htmlFor={docsId}
-                        className="cursor-pointer text-sm text-muted-foreground select-none"
-                      >
-                        Show documentation
-                      </label>
-                    </div>
-                  </div>
+                      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-border/60 pt-3">
+                        {/* Narrow-screen scenario nav (the sidebar is lg-only). */}
+                        {showToc ? <ReportTocDrawer /> : null}
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            id={expandId}
+                            checked={expandedAll}
+                            onCheckedChange={setExpanded}
+                          />
+                          <label
+                            htmlFor={expandId}
+                            className="cursor-pointer text-sm text-muted-foreground select-none"
+                          >
+                            Expand all
+                          </label>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            id={docsId}
+                            checked={detail === 'full'}
+                            onCheckedChange={(checked) =>
+                              setDetail(checked ? 'full' : 'minimal')
+                            }
+                          />
+                          <label
+                            htmlFor={docsId}
+                            className="cursor-pointer text-sm text-muted-foreground select-none"
+                          >
+                            Show documentation
+                          </label>
+                        </div>
+                      </div>
+                    </>
+                  ) : null}
                 </header>
                 {showAgentFilter ? (
                   <ReportAgentFilterNotice
@@ -534,7 +552,10 @@ function ReportInteractiveView({
                     onDismiss={() => setAgentFilter(null)}
                   />
                 ) : null}
-                <ReportFailureBanner failures={failures} onCopyAll={copyAllFailures} />
+                <ReportFailureBanner
+                  failures={failures}
+                  onCopyAll={copyAllFailures}
+                />
                 {hasContent ? (
                   showToc ? (
                     <div className="flex gap-6">
@@ -560,13 +581,14 @@ function ReportInteractiveView({
               works regardless of where ? sits on the user's keyboard layout. */}
                 <button
                   type="button"
-                  className="es-shortcuts-trigger fixed right-4 bottom-4 z-40 flex size-9 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50"
+                  className="es-shortcuts-trigger fixed right-4 bottom-4 z-40 flex size-9 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-sm transition-[color,background-color,scale] duration-150 ease-snappy outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97] pointer-coarse:size-11 motion-reduce:transition-none"
                   aria-label="Keyboard shortcuts"
                   aria-keyshortcuts="?"
                   onClick={toggleHelp}
                 >
                   ?
                 </button>
+                <ReportBackToTop />
                 <ReportShortcutsHelp
                   open={helpOpen}
                   onClose={() => setHelpOpen(false)}
@@ -575,7 +597,7 @@ function ReportInteractiveView({
                   <div
                     role="status"
                     aria-live="polite"
-                    className="fixed bottom-4 left-1/2 -translate-x-1/2 rounded-md bg-foreground px-3 py-1.5 text-xs font-medium text-background shadow-lg"
+                    className="fixed bottom-4 left-1/2 -translate-x-1/2 rounded-md bg-foreground px-3 py-1.5 text-xs font-medium text-background shadow-lg transition-opacity duration-150 ease-snappy starting:opacity-0 motion-reduce:transition-none"
                   >
                     {toast}
                   </div>

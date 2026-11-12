@@ -1,6 +1,6 @@
 import type { ReportSummary as ReportSummaryT } from "executable-stories-core";
 import { useReport } from "../hooks/useReport";
-import { cn } from "@/lib/utils";
+import { cn, formatCount } from "@/lib/utils";
 
 export interface ReportSummaryProps {
   className?: string;
@@ -71,8 +71,9 @@ export function ReportSummaryView({ summary, className, ariaLabel }: ReportSumma
               <span className={cn("size-1.5 shrink-0 rounded-full", tone.dot)} aria-hidden="true" />
               {c.label}
             </dt>
-            <dd className={cn("mt-2 text-3xl font-semibold leading-none tracking-tight tabular-nums", tone.num)}>
-              {c.value}
+            {/* Zero counts stay muted. */}
+            <dd className={cn("mt-2 text-3xl font-semibold leading-none tracking-tight tabular-nums", c.value === 0 ? "text-muted-foreground" : tone.num)}>
+              {formatCount(c.value)}
             </dd>
           </div>
         );
