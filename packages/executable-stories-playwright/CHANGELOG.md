@@ -1,5 +1,13 @@
 # executable-stories-playwright
 
+## 9.0.1
+
+### Patch Changes
+
+- Updated dependencies [be94534]
+  - executable-stories-core@0.32.1
+  - executable-stories-formatters@2.1.1
+
 ## 9.0.0
 
 ### Major Changes

@@ -1,5 +1,12 @@
 # executable-stories-bun
 
+## 0.2.2
+
+### Patch Changes
+
+- Updated dependencies [be94534]
+  - executable-stories-core@0.32.1
+
 ## 0.2.1
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # executable-stories-formatters
 
+## 2.1.1
+
+### Patch Changes
+
+- Updated dependencies [be94534]
+  - executable-stories-react@0.22.1
+  - executable-stories-core@0.32.1
+
 ## 2.1.0
 
 ### Minor Changes

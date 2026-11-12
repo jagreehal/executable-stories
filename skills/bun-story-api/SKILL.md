@@ -7,7 +7,7 @@ description: >
 metadata:
   type: core
   library: executable-stories-bun
-  library_version: "0.2.1"
+  library_version: "0.2.2"
   sources:
     - 'jagreehal/executable-stories:packages/executable-stories-bun/src/index.ts'
     - 'jagreehal/executable-stories:packages/executable-stories-bun/src/collector.ts'

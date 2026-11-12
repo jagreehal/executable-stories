@@ -8,7 +8,7 @@ description: >
 metadata:
   type: core
   library: executable-stories-e2e
-  library_version: "0.3.0"
+  library_version: "0.3.1"
   sources:
     - "jagreehal/executable-stories:packages/executable-stories-e2e/src/index.ts"
     - "jagreehal/executable-stories:packages/executable-stories-e2e/src/story.ts"
