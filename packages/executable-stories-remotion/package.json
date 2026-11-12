@@ -47,7 +47,7 @@
     "remotion": "^4.0.539"
   },
   "devDependencies": {
-    "@remotion/media": "4.0.539",
+    "@remotion/media": "4.0.540",
     "@types/react": "19.3.0",
     "eslint-config-executable-stories": "workspace:*",
     "react": "19.3.1",
