@@ -7,7 +7,7 @@ description: >
 metadata:
   type: core
   library: executable-stories-playwright
-  library_version: "9.0.0"
+  library_version: "9.0.1"
   sources:
     - "jagreehal/executable-stories:packages/executable-stories-playwright/src/reporter.ts"
 ---
