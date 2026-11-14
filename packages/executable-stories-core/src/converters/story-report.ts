@@ -348,6 +348,10 @@ function buildScenario(
     scenario.otelSpans = tc.story.otelSpans;
   }
 
+  if (tc.story.otelLogs && tc.story.otelLogs.length > 0) {
+    scenario.otelLogs = tc.story.otelLogs;
+  }
+
   if (tc.lastRunAtMs !== undefined) scenario.lastRunAtMs = tc.lastRunAtMs;
   if (tc.lastRunGitSha !== undefined) scenario.lastRunGitSha = tc.lastRunGitSha;
 

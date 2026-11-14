@@ -195,7 +195,7 @@ export function ReportScenario({ scenario, hideTitle = false }: ReportScenarioPr
           </div>
         ) : null}
         <ReportAttachments attachments={scenario.attachments} />
-        <ReportTrace spans={scenario.otelSpans} />
+        <ReportTrace spans={scenario.otelSpans} logs={scenario.otelLogs} steps={scenario.steps} />
       </CardContent>
     </Card>
   );

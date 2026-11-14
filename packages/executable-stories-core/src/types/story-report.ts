@@ -9,7 +9,7 @@
  * Source of truth: schemas/story-report-v1.json. Types here must stay in sync.
  */
 
-import type { OtelSpan } from './otel.js';
+import type { OtelLog, OtelSpan } from './otel.js';
 import type { DocPhase } from './story.js';
 
 export type StoryReportSchemaVersion = `1.${number}`;
@@ -246,6 +246,8 @@ export interface ReportScenario {
   attachments: ReportAttachment[];
   /** OTel spans for the trace waterfall (carried through from the run). */
   otelSpans?: OtelSpan[];
+  /** OTel logs from the scenario's trace, shown under the span that wrote them. */
+  otelLogs?: OtelLog[];
   /**
    * When this scenario last actually ran (epoch ms), and the commit it ran on.
    * Present when the report was assembled from accumulated runs, where the

@@ -18,6 +18,12 @@ export interface ReadableSpanLike {
   parentSpanId?: string;
   attributes?: Record<string, unknown>;
   status?: { code: number; message?: string };
+  /** OTel API SpanKind: 0 internal, 1 server, 2 client, 3 producer, 4 consumer. */
+  kind?: number;
+  /** OTel HrTime: [seconds, nanoseconds]. */
+  startTime?: [number, number];
+  duration?: [number, number];
+  events?: { name: string; time?: [number, number]; attributes?: Record<string, unknown> }[];
 }
 
 /** A span in the shape the story report carries. */
@@ -28,6 +34,13 @@ export interface CollectedSpan {
   attributes?: Record<string, unknown>;
   status: "ok" | "error" | "unset";
   statusMessage?: string;
+  /** Server or client side of a call: API coverage counts only server spans. */
+  kind?: "internal" | "server" | "client" | "producer" | "consumer";
+  /** Epoch ms, so the report can draw the span on the waterfall and line it up with steps. */
+  startTimeMs?: number;
+  durationMs?: number;
+  /** A recorded exception, a console message: what happened inside the span. */
+  events?: { name: string; timeMs?: number; attributes?: Record<string, unknown> }[];
 }
 
 /**
@@ -58,6 +71,10 @@ export interface StorySpanCollector {
 const MAX_SPANS_PER_TRACE = 500;
 
 /** OTel SpanStatusCode: 0 UNSET, 1 OK, 2 ERROR. */
+const hrMs = (hr: [number, number]) => hr[0] * 1000 + hr[1] / 1e6;
+
+const API_KINDS = ["internal", "server", "client", "producer", "consumer"] as const;
+
 function statusOf(code: number | undefined): "ok" | "error" | "unset" {
   if (code === 2) return "error";
   if (code === 1) return "ok";
@@ -118,6 +135,19 @@ export function storySpanCollector(): StorySpanCollector {
           : {}),
         status: statusOf(span.status?.code),
         ...(span.status?.message ? { statusMessage: span.status.message } : {}),
+        ...(span.kind !== undefined && API_KINDS[span.kind] ? { kind: API_KINDS[span.kind] } : {}),
+        ...(span.startTime && span.duration
+          ? { startTimeMs: hrMs(span.startTime), durationMs: hrMs(span.duration) }
+          : {}),
+        ...(span.events?.length
+          ? {
+              events: span.events.map((e) => ({
+                name: e.name,
+                ...(e.time ? { timeMs: hrMs(e.time) } : {}),
+                ...(e.attributes && Object.keys(e.attributes).length > 0 ? { attributes: e.attributes } : {}),
+              })),
+            }
+          : {}),
       });
       byTrace.set(traceId, spans);
     },

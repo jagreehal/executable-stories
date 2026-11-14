@@ -11,6 +11,14 @@ import * as os from "node:os";
 import * as path from "node:path";
 import type { TestCaseResult } from "executable-stories-core/types/test-result";
 import { scenarioSlug } from "executable-stories-core/utils/slug";
+import {
+  backgroundArgs,
+  DEFAULT_FRAME_BACKGROUND,
+  findFont,
+  frameFilter,
+  parseBackground,
+  writeUrlFiles,
+} from "./video-frame";
 
 export interface VideoArgs {
   testCases: TestCaseResult[];
@@ -26,6 +34,21 @@ export interface VideoArgs {
   frames?: boolean;
   /** The run's `projectRoot`: a recording too large to embed is stored relative to it, not to the cwd. */
   projectRoot?: string;
+  /**
+   * How much faster to play a stretch where the picture does not change (a wait on the
+   * network, a spinner, a long read), past its first `IDLE_HOLD_MS`. Default 8; 1 plays
+   * everything in real time.
+   */
+  idleSpeed?: number;
+  /**
+   * Also write `<name>.framed.mp4`: click rings (fingertips for taps), a browser title bar with
+   * the page's address, and a padded background. For videos that never go through Remotion.
+   */
+  frame?: boolean;
+  /** `--frame` background: "#rrggbb", or "#rrggbb,#rrggbb" for a gradient. */
+  frameBackground?: string;
+  /** A font for the title bar's address; found on the machine when not given. */
+  fontFile?: string;
 }
 
 export interface VideoDeps {
@@ -42,9 +65,11 @@ export interface VideoManifest {
   height: number;
   durationMs: number;
   /** Clicks and focused fields: ms into the video, pixels in it, and the share of the page the element covers. */
-  clicks: { t: number; x: number; y: number; kind: "click" | "focus"; cover?: number }[];
+  clicks: { t: number; x: number; y: number; kind: "click" | "focus"; cover?: number; touch?: boolean }[];
   /** Each step, from when it began: ms into the video. Steps before the trim start at 0. */
   steps: { t: number; keyword: string; text: string }[];
+  /** Each address the page showed, from when it showed it: ms into the video. The first is at 0. */
+  pages?: { t: number; url: string }[];
 }
 
 /** A step whose line, said aloud, runs past the next step (or the end of the video). */
@@ -69,11 +94,17 @@ export interface VideoResult {
     video: string;
     manifest: string;
     trimmedMs: number;
+    /** Real-time ms the idle fast-forward took out; 0 when nothing was still for long. */
+    idleSavedMs: number;
+    /** `<name>.framed.mp4`, with `--frame`. */
+    framed?: string;
     overruns: StepOverrun[];
     frames?: StepFrame[];
   }[];
   /** Scenarios left out, with why: not passing, or not recorded. */
   skipped: { scenario: string; reason: string }[];
+  /** What `--frame` could not do on this machine (no font, an ffmpeg without drawtext). */
+  warnings?: string[];
 }
 
 /** One frame: its time, and the share of it (0 to 100) that is near-white. */
@@ -106,6 +137,63 @@ export function leadInSeconds(frames: FrameCoverage[]): number {
   return frames.find((f) => f.white < 99)?.t ?? 0;
 }
 
+/** A still stretch is played in real time for this long, so an outcome lands before it speeds up. */
+export const IDLE_HOLD_MS = 1500;
+/** Shorter fast-forwards than this are not worth the jump. */
+const IDLE_MIN_MS = 500;
+
+/**
+ * Still stretches from ffmpeg's `freezedetect` log, in seconds of the input. A stretch still
+ * running when the input ends has no `freeze_end`, so it ends at `endS`.
+ */
+export function parseFreezes(log: string, endS: number): { start: number; end: number }[] {
+  const starts = [...log.matchAll(/freeze_start: ([\d.]+)/g)].map((m) => Number(m[1]));
+  const ends = [...log.matchAll(/freeze_end: ([\d.]+)/g)].map((m) => Number(m[1]));
+  return starts.map((start, i) => ({ start, end: ends[i] ?? endS }));
+}
+
+/** A stretch of the cut video's timeline (ms) and how fast it plays. */
+export interface Segment {
+  from: number;
+  to: number;
+  speed: number;
+}
+
+/**
+ * The cut video's timeline as segments: real time, except each still stretch past its first
+ * `holdMs`, which plays `speed` times faster. Covers `[0, durationMs]` without gaps.
+ */
+export function idleSegments(
+  still: { from: number; to: number }[],
+  durationMs: number,
+  { speed, holdMs = IDLE_HOLD_MS }: { speed: number; holdMs?: number },
+): Segment[] {
+  const segments: Segment[] = [];
+  let at = 0;
+  if (speed > 1) {
+    for (const { from, to } of [...still].sort((a, b) => a.from - b.from)) {
+      const fast = Math.max(at, from + holdMs);
+      const end = Math.min(to, durationMs);
+      if (end - fast < IDLE_MIN_MS) continue;
+      if (fast > at) segments.push({ from: at, to: fast, speed: 1 });
+      segments.push({ from: fast, to: end, speed });
+      at = end;
+    }
+  }
+  if (at < durationMs || segments.length === 0) segments.push({ from: at, to: durationMs, speed: 1 });
+  return segments;
+}
+
+/** Where `ms` of the cut video lands once its segments play at their speeds. */
+export function remapTime(segments: Segment[], ms: number): number {
+  let out = 0;
+  for (const s of segments) {
+    if (ms <= s.from) break;
+    out += (Math.min(ms, s.to) - s.from) / s.speed;
+  }
+  return Math.round(out);
+}
+
 /** The recording a scenario carries, as a file path; inline (small) recordings are written to `tmp`. */
 function recordingFile(tc: TestCaseResult, tmp: string, projectRoot = ""): string | undefined {
   const att = tc.attachments.find((a) => a.mediaType.startsWith("video/"));
@@ -126,11 +214,27 @@ function recordingFile(tc: TestCaseResult, tmp: string, projectRoot = ""): strin
  */
 export function videoManifest(
   tc: TestCaseResult,
-  { name, size, durationMs, trimmedMs }: { name: string; size: { width: number; height: number }; durationMs: number; trimmedMs: number },
+  {
+    name,
+    size,
+    durationMs,
+    trimmedMs,
+    remap = (ms) => ms,
+  }: {
+    name: string;
+    size: { width: number; height: number };
+    /** Of the output video, after any remap. */
+    durationMs: number;
+    trimmedMs: number;
+    /** Maps a time in the cut video to the output, when idle stretches were sped up. */
+    remap?: (ms: number) => number;
+  },
 ): VideoManifest {
   const recording = tc.story.recording;
   const origin = recording?.startedAtMs;
-  const at = (ms: number) => Math.round(ms - (origin ?? 0) - trimmedMs);
+  const cut = (ms: number) => ms - (origin ?? 0) - trimmedMs;
+  // Before the cut there is no footage, so those points pin to 0 rather than through the remap.
+  const at = (ms: number) => Math.round(cut(ms) < 0 ? cut(ms) : remap(cut(ms)));
   // Playwright fits the viewport inside the video, top-left, so the tighter side sets the scale:
   // a portrait viewport in a landscape video is scaled by height. It only scales down: a phone
   // viewport in a larger video stays 1:1 in the corner, with the rest padded. After a resize it
@@ -164,6 +268,7 @@ export function videoManifest(
                 y: Math.round(p.y * r),
                 kind: p.kind,
                 ...(cover !== undefined ? { cover: Math.round(cover * 1000) / 1000 } : {}),
+                ...(p.touch ? { touch: true } : {}),
               };
             })
             .filter((c) => c.t >= 0 && c.t <= durationMs && c.x >= 0 && c.y >= 0 && c.x < size.width && c.y < size.height),
@@ -173,7 +278,24 @@ export function videoManifest(
         : tc.story.steps
             .filter((s) => s.startedAtMs !== undefined)
             .map((s) => ({ t: Math.max(0, at(s.startedAtMs!)), keyword: s.keyword, text: s.text })),
+    ...(origin !== undefined && recording?.pages?.length ? { pages: pagesAt(recording.pages, at, durationMs) } : {}),
   };
+}
+
+/** The address showing at each moment: the last one before the cut shows from 0. */
+function pagesAt(
+  pages: { at: number; url: string }[],
+  at: (ms: number) => number,
+  durationMs: number,
+): { t: number; url: string }[] {
+  const out: { t: number; url: string }[] = [];
+  for (const p of pages) {
+    const t = Math.max(0, at(p.at));
+    if (t > durationMs) break;
+    if (out.at(-1)?.t === t) out.pop();
+    out.push({ t, url: p.url });
+  }
+  return out;
 }
 
 /** Speaking pace for narration: a typical TTS voice, and about how fast a viewer reads a caption. */
@@ -253,8 +375,34 @@ export function frameCommands(
 }
 
 export async function writeVideos(args: VideoArgs, deps: VideoDeps): Promise<VideoResult> {
-  const { testCases, outputDir, trimLeadIn = true, fromStep, frames: withFrames = false, projectRoot } = args;
+  const {
+    testCases,
+    outputDir,
+    trimLeadIn = true,
+    fromStep,
+    frames: withFrames = false,
+    projectRoot,
+    idleSpeed = 8,
+    frame = false,
+    frameBackground,
+  } = args;
   const result: VideoResult = { written: [], skipped: [] };
+  // The address needs drawtext (libfreetype) and a font; without either, the bar still frames.
+  let fontFile: string | undefined;
+  if (frame) {
+    if (frameBackground !== undefined && !parseBackground(frameBackground)) {
+      throw new Error(`--frame-background must be "#rrggbb" or "#rrggbb,#rrggbb", got "${frameBackground}"`);
+    }
+    const filters = await deps.ffmpeg(["-hide_banner", "-filters"]).catch(() => ({ stdout: "", stderr: "" }));
+    const hasDrawtext = /\bdrawtext\b/.test(filters.stdout + filters.stderr);
+    fontFile = args.fontFile ?? findFont();
+    if (!hasDrawtext) {
+      result.warnings = ["--frame: this ffmpeg has no drawtext filter (built without libfreetype), so the title bar shows no address"];
+      fontFile = undefined;
+    } else if (!fontFile) {
+      result.warnings = ["--frame: no font found for the title bar's address; it is left out"];
+    }
+  }
   const used = new Set<string>();
 
   for (const tc of testCases) {
@@ -273,7 +421,11 @@ export async function writeVideos(args: VideoArgs, deps: VideoDeps): Promise<Vid
 
       // Playwright's WebM has no duration in its header, so the frames give it.
       const stats = await deps.ffmpeg([
-        "-v", "info", "-i", input, "-vf", "negate,blackframe=amount=0:threshold=32", "-f", "null", "-",
+        // freezedetect finds the still stretches the idle fast-forward plays faster; its noise floor
+        // lets a small spinner count as still, which is the wait it is there to shorten.
+        "-v", "info", "-i", input, "-vf",
+        `negate,blackframe=amount=0:threshold=32,freezedetect=n=0.003:d=${(IDLE_HOLD_MS + IDLE_MIN_MS) / 1000}`,
+        "-f", "null", "-",
       ]);
       const stream = parseVideoSize(stats.stderr);
       if (!stream) throw new Error(`${input} has no video stream`);
@@ -292,7 +444,13 @@ export async function writeVideos(args: VideoArgs, deps: VideoDeps): Promise<Vid
         continue;
       }
       const trimmedMs = leadMs + cutMs;
-      const durationMs = fullMs - cutMs;
+      const cutDurationMs = fullMs - cutMs;
+      const still = parseFreezes(stats.stderr, coverage.at(-1)?.t ?? 0).map((f) => ({
+        from: f.start * 1000 - trimmedMs,
+        to: f.end * 1000 - trimmedMs,
+      }));
+      const segments = idleSegments(still, cutDurationMs, { speed: idleSpeed });
+      const durationMs = remapTime(segments, cutDurationMs);
 
       let name = scenarioSlug(scenario);
       for (let n = 2; used.has(name); n++) name = `${scenarioSlug(scenario)}-${n}`;
@@ -300,16 +458,45 @@ export async function writeVideos(args: VideoArgs, deps: VideoDeps): Promise<Vid
       fs.mkdirSync(outputDir, { recursive: true });
       const video = path.join(outputDir, `${name}.mp4`);
       // H.264 in yuv420p plays everywhere, Safari and phones included; it needs even sizes.
-      await deps.ffmpeg([
-        "-y", "-loglevel", "error", "-i", input, "-ss", (trimmedMs / 1000).toFixed(3), "-an",
-        "-vf", "scale=trunc(iw/2)*2:trunc(ih/2)*2",
-        "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "23", "-movflags", "+faststart", video,
-      ]);
+      const encode = ["-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "23", "-movflags", "+faststart", video];
+      await deps.ffmpeg(
+        // Only a single real-time segment can skip the graph: a recording that is all one still
+        // stretch is a single segment too, and it must still play at its speed.
+        segments.length === 1 && segments[0]!.speed === 1
+          ? [
+              "-y", "-loglevel", "error", "-i", input, "-ss", (trimmedMs / 1000).toFixed(3), "-an",
+              "-vf", "scale=trunc(iw/2)*2:trunc(ih/2)*2", ...encode,
+            ]
+          : ["-y", "-loglevel", "error", "-i", input, "-an", "-filter_complex", speedFilter(segments, trimmedMs), "-map", "[out]", ...encode],
+      );
       const manifest = path.join(outputDir, `${name}.video.json`);
-      const written = videoManifest(tc, { name, size, durationMs, trimmedMs });
+      const written = videoManifest(tc, {
+        name,
+        size,
+        durationMs,
+        trimmedMs,
+        remap: (ms) => remapTime(segments, ms),
+      });
       if (from !== undefined) written.steps = written.steps.slice(from);
       fs.writeFileSync(manifest, `${JSON.stringify(written, null, 2)}\n`);
-      const entry: VideoResult["written"][number] = { scenario, video, manifest, trimmedMs, overruns: stepOverruns(written) };
+      const entry: VideoResult["written"][number] = {
+        scenario,
+        video,
+        manifest,
+        trimmedMs,
+        idleSavedMs: Math.round(cutDurationMs - durationMs),
+        overruns: stepOverruns(written),
+      };
+      if (frame) {
+        entry.framed = path.join(outputDir, `${name}.framed.mp4`);
+        const backdrop = path.join(tmp, "background.png");
+        await deps.ffmpeg(backgroundArgs(written, frameBackground ?? DEFAULT_FRAME_BACKGROUND, backdrop));
+        await deps.ffmpeg([
+          "-y", "-loglevel", "error", "-i", video, "-loop", "1", "-i", backdrop, "-filter_complex",
+          frameFilter(written, fontFile ? { fontFile, urlFiles: writeUrlFiles(written, tmp) } : {}),
+          "-map", "[out]", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "20", "-movflags", "+faststart", entry.framed,
+        ]);
+      }
       if (withFrames) {
         const dir = path.join(outputDir, name);
         fs.rmSync(dir, { recursive: true, force: true });
@@ -325,4 +512,17 @@ export async function writeVideos(args: VideoArgs, deps: VideoDeps): Promise<Vid
   }
 
   return result;
+}
+
+/**
+ * One ffmpeg graph that plays each segment of the input, from `offsetMs`, at its speed and
+ * joins them. Trim is frame-exact, so the joins land where the manifest says they do.
+ */
+export function speedFilter(segments: Segment[], offsetMs: number): string {
+  const sec = (ms: number) => ((ms + offsetMs) / 1000).toFixed(3);
+  const parts = segments.map(
+    (s, i) => `[0:v]trim=start=${sec(s.from)}:end=${sec(s.to)},setpts=(PTS-STARTPTS)/${s.speed}[s${i}]`,
+  );
+  const inputs = segments.map((_, i) => `[s${i}]`).join("");
+  return `${parts.join(";")};${inputs}concat=n=${segments.length}:v=1:a=0,scale=trunc(iw/2)*2:trunc(ih/2)*2[out]`;
 }

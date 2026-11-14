@@ -28,5 +28,5 @@ export {
   type ArticleVideoProps,
 } from './ArticleVideo.js';
 export { StoryVideo } from './StoryVideo.js';
-export { cursorAt } from './cursor.js';
-export { type Click, clipFrames, type ManifestStep, type VideoManifest, zoomAt } from './zoom.js';
+export { cursorAt, touchAt } from './cursor.js';
+export { type Click, clipFrames, type ManifestStep, pageAt, type VideoManifest, zoomAt } from './zoom.js';

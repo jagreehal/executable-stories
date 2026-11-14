@@ -24,7 +24,7 @@ run that nothing verified, next to a real one that already has the frames.
 | Scene list, in order | `deriveStoryboard()` in `executable-stories-core`, or the steps in the StoryReport JSON |
 | Narration script | the step's `text` |
 | Screen recording | Playwright `story.init({ page }, testInfo, { featureVideo: true })` promotes the `.webm` with no per-test call (needs `video: "on"` in the Playwright config) |
-| MP4, trimmed, with step times | `executable-stories video reports/raw-run.json` → `reports/video/<scenario>.mp4` + `.video.json` (clicks, focused fields, `steps[].t`). `--from-step when` leaves sign-in and setup off camera |
+| MP4, trimmed, with step times | `executable-stories video reports/raw-run.json` → `reports/video/<scenario>.mp4` + `.video.json` (clicks, focused fields, `steps[].t`). `--from-step when` leaves sign-in and setup off camera. Still stretches past 1.5s play 8x (`--idle-speed 1` keeps real time); `pages[]` gives Remotion a title bar with the address, and taps on a touch device get a fingertip instead of an arrow. `--frame` writes a framed copy (click rings, title bar, background) for videos that skip Remotion |
 | A check that the video shows what each step claims | `video --frames` → `reports/video/<scenario>/step-NN.jpg` (each step as it ends) and `step-NN-click.jpg` (its click, ringed) |
 | Steps too short to narrate | `video` warns per step ("narration overrun") before you pay for any TTS |
 | Step captions over the recording | `StoryRecordingVideo` in `executable-stories-remotion`, from that manifest |

@@ -109,6 +109,10 @@ export default defineConfig({
 
 The reporter reads story metadata from test annotations with `type: "story-meta"`. This is handled automatically when using `story.init(testInfo)` — no manual annotation is needed.
 
+### Traces from fixture annotations
+
+When the suite's Playwright fixture annotates `otel-spans`, `otel-logs` and `otel-trace-id`, the reporter needs no extra wiring. It reads `otel-spans` into the scenario's waterfall (unless the test called `story.attachSpans()`), `otel-logs` under the test's span, and the trace id from `otel-trace-id`, so `format --otel-traces` can join backend spans to the scenario.
+
 ## Common Mistakes
 
 ### HIGH Using default export syntax incorrectly

@@ -257,6 +257,12 @@
           "items": {
             "$ref": "#/$defs/OtelSpan"
           }
+        },
+        "otelLogs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/OtelLog"
+          }
         }
       },
       "required": [
@@ -856,6 +862,18 @@
       "required": ["kind", "type", "data", "phase"],
       "additionalProperties": false
     },
+    "OtelLog": {
+      "type": "object",
+      "required": ["body"],
+      "properties": {
+        "spanId": { "type": "string" },
+        "timeMs": { "type": "number" },
+        "severity": { "type": "string" },
+        "body": { "type": "string" },
+        "attributes": { "type": "object" }
+      },
+      "additionalProperties": false
+    },
     "OtelSpan": {
       "type": "object",
       "required": ["spanId", "name", "status"],
@@ -887,8 +905,24 @@
         "statusMessage": {
           "type": "string"
         },
+        "kind": {
+          "enum": ["internal", "server", "client", "producer", "consumer"]
+        },
         "attributes": {
           "type": "object"
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "properties": {
+              "name": { "type": "string" },
+              "timeMs": { "type": "number" },
+              "attributes": { "type": "object" }
+            },
+            "additionalProperties": false
+          }
         }
       },
       "additionalProperties": false

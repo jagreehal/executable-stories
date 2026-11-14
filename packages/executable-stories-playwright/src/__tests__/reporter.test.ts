@@ -1662,3 +1662,111 @@ test.describe("pageCreatedAt", () => {
     expect(pageCreatedAt([step("pw:api", "Navigate", 0, 1)])).toBeUndefined();
   });
 });
+
+test.describe('OTel spans from annotations', () => {
+  async function spansFor(name: string, annotations: MockAnnotation[]) {
+    await fs.promises.mkdir(TEMP_DIR, { recursive: true });
+    const rawRunPath = path.join(TEMP_DIR, `${name}.raw.json`);
+    const reporter = new StoryReporter({
+      formats: [],
+      outputDir: TEMP_DIR,
+      outputName: name,
+      output: { mode: 'aggregated' },
+      rawRunPath,
+    });
+    const meta: StoryMeta = { scenario: name, steps: [] };
+    reporter.onBegin({} as Parameters<typeof reporter.onBegin>[0]);
+    reporter.onTestEnd(
+      {
+        id: name,
+        annotations: [{ type: 'story-meta', description: JSON.stringify(meta) }, ...annotations],
+        location: { file: 'test.spec.ts', line: 1 },
+      } as unknown as Parameters<typeof reporter.onTestEnd>[0],
+      { status: 'passed', duration: 1 } as unknown as Parameters<typeof reporter.onTestEnd>[1],
+    );
+    await reporter.onEnd({ status: 'passed' } as Parameters<typeof reporter.onEnd>[0]);
+    const rawRun = JSON.parse(await fs.promises.readFile(rawRunPath, 'utf8'));
+    return rawRun.testCases[0].story.otelSpans as Array<{ name: string }> | undefined;
+  }
+
+  const span = (name: string) => ({ spanId: name, name, startTimeMs: 1, durationMs: 1, status: 'ok' });
+
+  test("reads the spans a fixture drained", async () => {
+    const spans = await spansFor('otel-fixture', [
+      { type: 'otel-spans', description: JSON.stringify([span('e2e:checkout')]) },
+    ]);
+    expect(spans?.map((s) => s.name)).toEqual(['e2e:checkout']);
+  });
+
+  test('prefers spans the test attached itself', async () => {
+    const spans = await spansFor('attached-wins', [
+      { type: 'otel-spans', description: JSON.stringify([span('from-fixture')]) },
+      { type: 'story-otel-spans', description: JSON.stringify([span('attached')]) },
+    ]);
+    expect(spans?.map((s) => s.name)).toEqual(['attached']);
+  });
+});
+
+test.describe('OTel trace id from fixture annotation', () => {
+  test("takes the fixture's trace id when the story recorded none", async () => {
+    await fs.promises.mkdir(TEMP_DIR, { recursive: true });
+    const rawRunPath = path.join(TEMP_DIR, 'fixture-trace-id.raw.json');
+    const reporter = new StoryReporter({
+      formats: [],
+      outputDir: TEMP_DIR,
+      outputName: 'fixture-trace-id',
+      output: { mode: 'aggregated' },
+      rawRunPath,
+    });
+    const meta: StoryMeta = { scenario: 'fixture trace id', steps: [] };
+    reporter.onBegin({} as Parameters<typeof reporter.onBegin>[0]);
+    reporter.onTestEnd(
+      {
+        id: 'fixture-trace-id',
+        annotations: [
+          { type: 'story-meta', description: JSON.stringify(meta) },
+          { type: 'otel-trace-id', description: 'a'.repeat(32) },
+        ],
+        location: { file: 'trace.spec.ts', line: 1 },
+      } as unknown as Parameters<typeof reporter.onTestEnd>[0],
+      { status: 'passed', duration: 1 } as unknown as Parameters<typeof reporter.onTestEnd>[1],
+    );
+    await reporter.onEnd({ status: 'passed' } as Parameters<typeof reporter.onEnd>[0]);
+    const rawRun = JSON.parse(await fs.promises.readFile(rawRunPath, 'utf8'));
+    expect(rawRun.testCases[0].story.meta.otel.traceId).toBe('a'.repeat(32));
+  });
+});
+
+test.describe('OTel logs from fixture annotation', () => {
+  test("reads the fixture's browser log records into the scenario", async () => {
+    await fs.promises.mkdir(TEMP_DIR, { recursive: true });
+    const rawRunPath = path.join(TEMP_DIR, 'fixture-logs.raw.json');
+    const reporter = new StoryReporter({
+      formats: [],
+      outputDir: TEMP_DIR,
+      outputName: 'fixture-logs',
+      output: { mode: 'aggregated' },
+      rawRunPath,
+    });
+    const meta: StoryMeta = { scenario: 'fixture logs', steps: [] };
+    const records = [
+      { spanId: 'b'.repeat(16), timeMs: 1, severity: 'ERROR', body: 'Failed to load cart', attributes: {} },
+      { severity: 'ERROR' },
+    ];
+    reporter.onBegin({} as Parameters<typeof reporter.onBegin>[0]);
+    reporter.onTestEnd(
+      {
+        id: 'fixture-logs',
+        annotations: [
+          { type: 'story-meta', description: JSON.stringify(meta) },
+          { type: 'otel-logs', description: JSON.stringify(records) },
+        ],
+        location: { file: 'logs.spec.ts', line: 1 },
+      } as unknown as Parameters<typeof reporter.onTestEnd>[0],
+      { status: 'passed', duration: 1 } as unknown as Parameters<typeof reporter.onTestEnd>[1],
+    );
+    await reporter.onEnd({ status: 'passed' } as Parameters<typeof reporter.onEnd>[0]);
+    const rawRun = JSON.parse(await fs.promises.readFile(rawRunPath, 'utf8'));
+    expect(rawRun.testCases[0].story.otelLogs).toEqual([records[0]]);
+  });
+});

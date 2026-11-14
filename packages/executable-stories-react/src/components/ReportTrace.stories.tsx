@@ -42,6 +42,23 @@ export const ErrorSpans: Story = {
   },
 };
 
+// Logs from the same trace sit under the span that wrote them.
+export const WithLogs: Story = {
+  args: {
+    spans: failingSpans,
+    logs: [
+      { spanId: "q", severity: "ERROR", body: "card declined by issuer (code 05)" },
+      { spanId: "p", severity: "INFO", body: "checkout attempt for cart 42" },
+    ],
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const summary = canvas.getByText(/2 spans, 2 logs/);
+    summary.click();
+    await expect(canvas.getByText("card declined by issuer (code 05)")).toBeVisible();
+  },
+};
+
 // No spans → the component renders nothing.
 export const Empty: Story = {
   args: { spans: [] },
