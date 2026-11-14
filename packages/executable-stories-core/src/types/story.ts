@@ -6,7 +6,7 @@
  * from the same place that defines RawRun (the output contract).
  */
 
-import type { OtelSpan } from "./otel.js";
+import type { OtelLog, OtelSpan } from "./otel.js";
 
 // ============================================================================
 // Step Keywords
@@ -115,6 +115,8 @@ export interface StoryMeta {
   sourceOrder?: number;
   /** OTel spans from autotel for trace waterfall rendering */
   otelSpans?: OtelSpan[];
+  /** OTel logs from the scenario's trace, rendered under the span that wrote them */
+  otelLogs?: OtelLog[];
   /** When the scenario started (epoch ms): `story.init()` */
   startedAtMs?: number;
   /** Set when the scenario was screen-recorded (Playwright `featureVideo`) */
@@ -133,6 +135,8 @@ export interface AttentionPoint {
   cover?: number;
   /** The page size when it happened; a test can resize the page partway through */
   viewport?: { width: number; height: number };
+  /** A finger, not a mouse: a tap, or any click on a touch device. A video draws a fingertip, not an arrow */
+  touch?: boolean;
 }
 
 /** What a screen recording needs to line up with its scenario. */
@@ -142,6 +146,8 @@ export interface StoryRecording {
   /** Page size in CSS pixels at the start; a point's own `viewport` wins */
   viewport?: { width: number; height: number };
   attention: AttentionPoint[];
+  /** Each address the page showed, from when it showed it (epoch ms): navigations and client-side route changes */
+  pages?: { at: number; url: string }[];
 }
 
 /** Key used to store StoryMeta in test metadata */

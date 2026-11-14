@@ -75,6 +75,10 @@ Inline documentation renders as semantic HTML. You author tables and diagrams in
   caption="An OpenTelemetry trace renders as a span waterfall, so you can see where the time went."
 />
 
+Under each span sit the things that happened inside it: a recorded exception (its type and message, with the stack a click away), a console error or warning, and any logs joined with `format --otel-logs`. The collapsed summary counts the exceptions, so a trace that threw is visible before you open it. When the steps' start times fall inside the trace, a **Steps** lane above the spans marks where each step began, with its screenshot when it has one, and a faint line crosses every bar at that moment: the step that says what happened sits over the request that made it happen.
+
+With a Playwright fixture that annotates `otel-spans`, `otel-logs` and `otel-trace-id`, the waterfall also shows the browser: the page load, each fetch and asset as a span (failed and 4xx/5xx requests in red), and console errors and uncaught page errors as logs under the test's span. The Playwright reporter reads those annotations into the scenario.
+
 When a scenario fails, the report leads with the error and the step that failed:
 
 <ReportScreenshot

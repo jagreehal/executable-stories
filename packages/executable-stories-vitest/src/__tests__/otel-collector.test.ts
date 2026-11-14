@@ -32,6 +32,38 @@ describe("storySpanCollector", () => {
       "checkout.submit",
     ]);
   });
+  it("keeps when a span ran and what happened inside it", () => {
+    // Without times the waterfall cannot draw the span, nor line it up with
+    // the steps; without events a thrown error is only a red bar.
+    const collector = storySpanCollector();
+    collector.onEnd({
+      ...endedSpan("trace-1", "a", "checkout.submit"),
+      kind: 1,
+      startTime: [1_700_000_000, 250_000_000],
+      duration: [0, 40_000_000],
+      events: [
+        {
+          name: "exception",
+          time: [1_700_000_000, 260_000_000],
+          attributes: { "exception.message": "card declined" },
+        },
+      ],
+    });
+
+    expect(collector.takeSpansForTrace("trace-1")[0]).toMatchObject({
+      // The API numbers kinds from 0, unlike OTLP: 1 is SERVER.
+      kind: "server",
+      startTimeMs: 1_700_000_000_250,
+      durationMs: 40,
+      events: [
+        {
+          name: "exception",
+          timeMs: 1_700_000_000_260,
+          attributes: { "exception.message": "card declined" },
+        },
+      ],
+    });
+  });
   it("releases a trace once it has been taken", () => {
     // A suite runs thousands of tests. Holding every trace after the story
     // that wanted it has finished is a leak with no reader.

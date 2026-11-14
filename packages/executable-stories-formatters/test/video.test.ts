@@ -1,4 +1,4 @@
-import { execFile, execFileSync } from "node:child_process";
+import { execFile, execFileSync, spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -7,8 +7,12 @@ import { ffmpegPath } from "executable-stories-core/utils/ffmpeg-path";
 import {
   frameCommands,
   fromStepIndex,
+  idleSegments,
   leadInSeconds,
   parseFrames,
+  parseFreezes,
+  remapTime,
+  speedFilter,
   parseVideoSize,
   stepOverruns,
   videoManifest,
@@ -337,5 +341,143 @@ describe("video", () => {
 
     expect(written).toEqual([]);
     expect(skipped).toEqual([{ scenario: "Late", reason: "--from-step When begins after the recording ends" }]);
+  }, 30_000);
+});
+
+describe("idle fast-forward", () => {
+  it("reads still stretches from freezedetect, closing one still running at the end", () => {
+    const log = [
+      "[freezedetect @ 0x1] lavfi.freezedetect.freeze_start: 2.04",
+      "[freezedetect @ 0x1] lavfi.freezedetect.freeze_duration: 5.96",
+      "[freezedetect @ 0x1] lavfi.freezedetect.freeze_end: 8",
+      "[freezedetect @ 0x1] lavfi.freezedetect.freeze_start: 9.5",
+    ].join("\n");
+    expect(parseFreezes(log, 11)).toEqual([
+      { start: 2.04, end: 8 },
+      { start: 9.5, end: 11 },
+    ]);
+  });
+
+  it("plays a still stretch in real time for the hold, then fast, and nothing else", () => {
+    const segments = idleSegments(
+      [
+        { from: 1000, to: 7000 },
+        // Too short past its hold to be worth a jump.
+        { from: 7500, to: 9200 },
+      ],
+      10_000,
+      { speed: 8 },
+    );
+    expect(segments).toEqual([
+      { from: 0, to: 2500, speed: 1 },
+      { from: 2500, to: 7000, speed: 8 },
+      { from: 7000, to: 10_000, speed: 1 },
+    ]);
+    expect(remapTime(segments, 2500)).toBe(2500);
+    expect(remapTime(segments, 7000)).toBe(3063);
+    expect(remapTime(segments, 10_000)).toBe(6063);
+  });
+
+  it("does nothing at speed 1", () => {
+    expect(idleSegments([{ from: 0, to: 9000 }], 10_000, { speed: 1 })).toEqual([
+      { from: 0, to: 10_000, speed: 1 },
+    ]);
+  });
+
+  it("clips a stretch that runs past the end, and starts a stretch begun before the cut at its hold", () => {
+    expect(idleSegments([{ from: -3000, to: 12_000 }], 10_000, { speed: 4 })).toEqual([
+      { from: 0, to: 10_000, speed: 4 },
+    ]);
+  });
+
+  it("builds one graph that trims each segment from the cut and joins them", () => {
+    expect(
+      speedFilter(
+        [
+          { from: 0, to: 2500, speed: 1 },
+          { from: 2500, to: 7000, speed: 8 },
+        ],
+        1000,
+      ),
+    ).toBe(
+      "[0:v]trim=start=1.000:end=3.500,setpts=(PTS-STARTPTS)/1[s0];" +
+        "[0:v]trim=start=3.500:end=8.000,setpts=(PTS-STARTPTS)/8[s1];" +
+        "[s0][s1]concat=n=2:v=1:a=0,scale=trunc(iw/2)*2:trunc(ih/2)*2[out]",
+    );
+  });
+
+  it("speeds up a cut that is one still stretch end to end, matching its manifest", async () => {
+    // --from-step lands 2.5s into an 8s still screen: the whole cut is one fast segment.
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "es-video-"));
+    const webm = path.join(dir, "in.webm");
+    execFileSync(ffmpeg, ["-v", "error", "-f", "lavfi", "-i", "color=red:s=320x240:d=8:r=25", "-c:v", "libvpx", webm]);
+    const deps: VideoDeps = {
+      ffmpeg: (args) =>
+        new Promise((resolve, reject) =>
+          execFile(ffmpeg, args, { maxBuffer: 64 * 1024 * 1024 }, (err, stdout, stderr) =>
+            err ? reject(err) : resolve({ stdout, stderr })),
+        ),
+    };
+    const { written } = await writeVideos(
+      { testCases: [recorded("All still", "passed", webm)], outputDir: path.join(dir, "out"), fromStep: "When" },
+      deps,
+    );
+    const manifest = JSON.parse(fs.readFileSync(written[0].manifest, "utf8"));
+    // 5.5s left after the cut, at 8x: about 0.69s.
+    expect(manifest.durationMs).toBeGreaterThan(600);
+    expect(manifest.durationMs).toBeLessThan(800);
+    const probe = spawnSync(ffmpeg, ["-i", written[0].video]).stderr.toString();
+    const [, h, m, sec] = /Duration: (\d+):(\d+):([\d.]+)/.exec(probe)!;
+    const actualMs = (Number(h) * 3600 + Number(m) * 60 + Number(sec)) * 1000;
+    expect(Math.abs(actualMs - manifest.durationMs)).toBeLessThan(120);
+  }, 30_000);
+
+  it("writes a video as long as its manifest says, with steps and pages moved onto the faster timeline", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "es-video-"));
+    const webm = path.join(dir, "in.webm");
+    // White page 1s (trimmed), content 1s, a still screen 6s (a wait), content 1s.
+    execFileSync(ffmpeg, [
+      "-v", "error",
+      "-f", "lavfi", "-i", "color=white:s=320x240:d=1:r=25",
+      "-f", "lavfi", "-i", "testsrc=s=320x240:d=1:r=25",
+      "-f", "lavfi", "-i", "color=red:s=320x240:d=6:r=25",
+      "-f", "lavfi", "-i", "testsrc=s=320x240:d=1:r=25",
+      "-filter_complex", "[0][1][2][3]concat=n=4", "-c:v", "libvpx", webm,
+    ]);
+    const tc = recorded("Waits for the order", "passed", webm);
+    // Recording began at 10s; the cut video starts 1s later.
+    tc.story.steps.push({ keyword: "Then", text: "the order is confirmed", startedAtMs: 18_100 });
+    tc.story.recording!.pages = [
+      { at: 10_050, url: "http://localhost/" },
+      { at: 18_100, url: "http://localhost/done" },
+    ];
+    const deps: VideoDeps = {
+      ffmpeg: (args) =>
+        new Promise((resolve, reject) =>
+          execFile(ffmpeg, args, { maxBuffer: 64 * 1024 * 1024 }, (err, stdout, stderr) =>
+            err ? reject(err) : resolve({ stdout, stderr })),
+        ),
+    };
+    const out = path.join(dir, "out");
+    const { written } = await writeVideos({ testCases: [tc], outputDir: out }, deps);
+
+    const manifest = JSON.parse(fs.readFileSync(written[0].manifest, "utf8"));
+    // 8s cut: 1s content + 1.5s hold + 4.5s at 8x + 1s content, about 4.06s.
+    expect(manifest.durationMs).toBeGreaterThan(3950);
+    expect(manifest.durationMs).toBeLessThan(4200);
+    expect(written[0].idleSavedMs).toBeGreaterThan(3800);
+    const probe = spawnSync(ffmpeg, ["-i", written[0].video]).stderr.toString();
+    const [, h, m, sec] = /Duration: (\d+):(\d+):([\d.]+)/.exec(probe)!;
+    const actualMs = (Number(h) * 3600 + Number(m) * 60 + Number(sec)) * 1000;
+    expect(Math.abs(actualMs - manifest.durationMs)).toBeLessThan(120);
+    // Cut time 7.1s: past the fast stretch, so 4.5s of it became about 0.56s.
+    const then = manifest.steps.at(-1);
+    expect(then.text).toBe("the order is confirmed");
+    expect(then.t).toBeGreaterThan(3050);
+    expect(then.t).toBeLessThan(3300);
+    expect(manifest.pages).toEqual([
+      { t: 0, url: "http://localhost/" },
+      { t: then.t, url: "http://localhost/done" },
+    ]);
   }, 30_000);
 });

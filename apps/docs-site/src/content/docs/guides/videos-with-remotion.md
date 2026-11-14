@@ -95,6 +95,17 @@ const recording: CalculateMetadataFunction<RecordingVideoProps> = async ({
 Add a short `page.waitForTimeout` before each click in your steps, so the zoom
 has time to arrive.
 
+A recording from `executable-stories video` carries more in its manifest. With
+`pages[]`, the card wears a browser title bar showing the address at each
+moment (`chrome={false}` leaves it off). Clicks marked `touch` come from a tap,
+or from any click on an emulated phone, and `cursor` draws a fingertip on them
+in place of a gliding arrow. Where the arrow has nothing to do for 2.5 seconds,
+it fades out until its next move.
+
+For a video that never goes through Remotion, such as a help-centre GIF,
+`executable-stories video --frame` writes a framed copy with ffmpeg alone:
+a ring on each click, the title bar, and a padded background.
+
 ## A help-centre article as a video
 
 `<ArticleVideo>` plays a Playwright recording beside the article it illustrates: a title card

@@ -880,6 +880,18 @@ function recordAttention(page: Page, meta: StoryMeta, testInfo: TestInfo): void 
   meta.recording = recording;
   syncAnnotationToTest();
 
+  // The address bar a video editor draws over the recording. Playwright reports
+  // history-API route changes as navigations too, so client-side routing counts.
+  const pages: NonNullable<typeof recording.pages> = [];
+  recording.pages = pages;
+  page.on('framenavigated', (frame) => {
+    if (frame !== page.mainFrame()) return;
+    const url = frame.url();
+    if (url === 'about:blank' || pages.at(-1)?.url === url) return;
+    pages.push({ at: Date.now(), url });
+    if (activeTestInfo === testInfo) syncAnnotationToTest();
+  });
+
   // Recording starts when the page is created, and the blank page it opens on
   // was made then too. Otherwise the reporter reads Playwright's page-creation step.
   if (page.url() === 'about:blank') {
@@ -896,7 +908,7 @@ function recordAttention(page: Page, meta: StoryMeta, testInfo: TestInfo): void 
   page
     .exposeBinding(
       '__executableStoriesAttention',
-      async ({ frame }, kind: 'click' | 'focus', x: number, y: number, cover?: number) => {
+      async ({ frame }, kind: 'click' | 'focus', x: number, y: number, cover?: number, touch?: boolean) => {
         const at = Date.now();
         // The page's size now: a test can resize it, and the video fits each size differently.
         const size = page.viewportSize();
@@ -908,6 +920,7 @@ function recordAttention(page: Page, meta: StoryMeta, testInfo: TestInfo): void 
           kind,
           ...(cover !== undefined ? { cover } : {}),
           ...(size ? { viewport: size } : {}),
+          ...(touch ? { touch: true } : {}),
         });
         // Mapping an iframe's point takes a round trip, so points can arrive out of order.
         recording.attention.sort((a, b) => a.at - b.at);
@@ -920,10 +933,11 @@ function recordAttention(page: Page, meta: StoryMeta, testInfo: TestInfo): void 
     // Runs in the page; typed by hand because this package has no DOM lib.
     type Rect = { left: number; top: number; width: number; height: number };
     type El = { getBoundingClientRect?(): Rect; contains?(other: El): boolean; control?: El | null; tagName?: string };
-    type Pointer = { clientX: number; clientY: number; target: El | null };
+    type Pointer = { clientX: number; clientY: number; target: El | null; pointerType?: string };
     const page = globalThis as unknown as {
       addEventListener(type: string, fn: (e: Pointer) => void, capture: boolean): void;
-      __executableStoriesAttention?: (kind: string, x: number, y: number, cover?: number) => void;
+      __executableStoriesAttention?: (kind: string, x: number, y: number, cover?: number, touch?: boolean) => void;
+      matchMedia?(query: string): { matches: boolean };
       __executableStoriesAttentionOn?: boolean;
       innerWidth: number;
       innerHeight: number;
@@ -945,7 +959,10 @@ function recordAttention(page: Page, meta: StoryMeta, testInfo: TestInfo): void 
       'pointerdown',
       (e) => {
         pressed = e.target;
-        page.__executableStoriesAttention?.('click', e.clientX, e.clientY, cover(e.target));
+        // Playwright's click() sends mouse events even on an emulated phone, so a coarse
+        // pointer (the device has touch and no mouse) counts as a finger too.
+        const touch = e.pointerType === 'touch' || !!page.matchMedia?.('(pointer: coarse)').matches;
+        page.__executableStoriesAttention?.('click', e.clientX, e.clientY, cover(e.target), touch);
       },
       true,
     );

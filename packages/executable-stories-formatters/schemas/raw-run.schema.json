@@ -293,6 +293,13 @@
           },
           "description": "OpenTelemetry spans captured for this scenario (from autotel), used to render a trace waterfall."
         },
+        "otelLogs": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          },
+          "description": "OpenTelemetry log records from this scenario's trace, shown under the span that wrote them."
+        },
         "startedAtMs": {
           "type": "number",
           "minimum": 0,
@@ -1072,6 +1079,28 @@
           "additionalProperties": false,
           "description": "Page size in CSS pixels; attention points are measured in it."
         },
+        "pages": {
+          "type": "array",
+          "description": "Each address the page showed, from when it showed it: navigations and client-side route changes.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "at": {
+                "type": "number",
+                "minimum": 0,
+                "description": "When the page showed this address (epoch ms)."
+              },
+              "url": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "at",
+              "url"
+            ],
+            "additionalProperties": false
+          }
+        },
         "attention": {
           "type": "array",
           "items": {
@@ -1118,6 +1147,10 @@
                 ],
                 "additionalProperties": false,
                 "description": "Page size in CSS pixels when this happened."
+              },
+              "touch": {
+                "type": "boolean",
+                "description": "A finger, not a mouse: a tap, or any click on a touch device."
               }
             },
             "required": [

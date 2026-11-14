@@ -106,7 +106,7 @@ Then turn the run into MP4s and manifests in `public/video`:
 executable-stories video reports/raw-run.json --output-dir public
 ```
 
-Each `<scenario>.video.json` has the clicks (`RecordingVideo` zooms to them) and each step's start (`steps[].t`), both counted from after the blank page load the command trims off. `StoryRecordingVideo` captions the steps. A step on screen for under a second shares a caption with the step after it (up to three lines), so a burst of quick steps doesn't flash past; `captionGroups` exposes the grouping:
+Each `<scenario>.video.json` has the clicks (`RecordingVideo` zooms to them) and each step's start (`steps[].t`), both counted from after the blank page load the command trims off, on a timeline where long still stretches play faster (`--idle-speed`). `StoryRecordingVideo` captions the steps. A step on screen for under a second shares a caption with the step after it (up to three lines), so a burst of quick steps doesn't flash past; `captionGroups` exposes the grouping:
 
 ```tsx
 const walkthrough: CalculateMetadataFunction<{ clip: RecordingClip }> = async () => {
@@ -119,7 +119,9 @@ const walkthrough: CalculateMetadataFunction<{ clip: RecordingClip }> = async ()
   defaultProps={{ clip: undefined as unknown as RecordingClip }} calculateMetadata={walkthrough} />
 ```
 
-Playwright moves no visible pointer, so a recording without showcase's `showCursor` has none. `cursor` draws one from the click log, on `StoryRecordingVideo`, `RecordingVideo`, `RecordingScene` and `RecordingPlayer`: it glides to each click on a slight arc, lands on it as it happens and dips. `cursorAt(clicks, ms, size)` exposes its position.
+Playwright moves no visible pointer, so a recording without showcase's `showCursor` has none. `cursor` draws one from the click log, on `StoryRecordingVideo`, `RecordingVideo`, `RecordingScene` and `RecordingPlayer`: it glides to each click on a slight arc, lands on it as it happens and dips. On a recording made on a touch device (each click in the manifest says `touch` when it was a tap, or any click on an emulated phone), it draws a fingertip instead: a dot that appears on each tap, presses in and fades, with no arrow gliding between taps. `touchAt(clicks, ms)` exposes it. Parked for more than 2.5 seconds, the arrow fades out, and fades back in before its next move, so a long read has no pointer hovering over it. `cursorAt(clicks, ms, size)` exposes its position and `opacity`.
+
+When the manifest has `pages` (the addresses `executable-stories video` notes from a Playwright run), `RecordingVideo`, `RecordingScene` and `StoryRecordingVideo` frame the recording in a browser title bar showing the address at each moment. `chrome={false}` leaves it off; `pageAt(pages, ms)` exposes the address.
 
 ```tsx
 <Composition id='Contact' component={StoryRecordingVideo} defaultProps={{ clip, cursor: true }} ... />

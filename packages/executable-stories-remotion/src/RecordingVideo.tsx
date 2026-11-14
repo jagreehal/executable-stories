@@ -9,9 +9,9 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from 'remotion';
-import { cursorAt } from './cursor.js';
+import { cursorAt, touchAt } from './cursor.js';
 import { accent, background, font, ink, muted, TitleCard } from './theme.js';
-import { clipFrames, type ManifestStep, zoomAt, type VideoManifest } from './zoom.js';
+import { clipFrames, type ManifestStep, pageAt, zoomAt, type VideoManifest } from './zoom.js';
 
 /** A recording to play: its manifest, where the video loads from, and an optional caption. */
 export type RecordingClip = VideoManifest & {
@@ -28,12 +28,14 @@ export type RecordingVideoProps = {
   zoom?: number;
   /** Draw a pointer gliding to each click, for recordings without one (showcase draws its own). */
   cursor?: boolean;
+  /** A browser title bar showing the page's address, when the manifest has `pages`. Default true. */
+  chrome?: boolean;
 };
 
 const TITLE_SECONDS = 1.5;
 
 /** Showcase recordings in sequence, each as a captioned card whose camera zooms to every click. */
-export function RecordingVideo({ title, clips, zoom, cursor }: RecordingVideoProps) {
+export function RecordingVideo({ title, clips, zoom, cursor, chrome }: RecordingVideoProps) {
   const { fps } = useVideoConfig();
 
   return (
@@ -55,7 +57,7 @@ export function RecordingVideo({ title, clips, zoom, cursor }: RecordingVideoPro
             durationInFrames={clipFrames(clip, fps)}
             name={clip.name}
           >
-            <RecordingScene clip={clip} zoom={zoom} cursor={cursor} />
+            <RecordingScene clip={clip} zoom={zoom} cursor={cursor} chrome={chrome} />
           </Series.Sequence>
         ))}
       </Series>
@@ -95,15 +97,44 @@ export function RecordingPlayer({
         }}
       >
         <Video src={clip.src} muted style={{ width: '100%', height: '100%' }} />
-        {cursor && <Pointer clip={clip} ms={ms} />}
+        {cursor && (clip.clicks.some((c) => c.touch) ? <Fingertip clip={clip} ms={ms} /> : <Pointer clip={clip} ms={ms} />)}
       </div>
     </div>
   );
 }
 
+/**
+ * A fingertip for a recording made on a touch device, where an arrow gliding between taps
+ * would be false: a translucent dot appears on each tap, presses in and fades.
+ */
+function Fingertip({ clip, ms }: { clip: RecordingClip; ms: number }) {
+  const tap = touchAt(clip.clicks, ms);
+  if (!tap) return null;
+  const size = (100 / 9) * (1 - 0.12 * tap.press);
+
+  return (
+    <span
+      style={{
+        position: 'absolute',
+        width: `${size}%`,
+        aspectRatio: '1',
+        left: `${(tap.x / clip.width) * 100}%`,
+        top: `${(tap.y / clip.height) * 100}%`,
+        transform: 'translate(-50%, -50%)',
+        borderRadius: '50%',
+        background: 'rgba(255,255,255,.55)',
+        border: '2px solid rgba(17,17,17,.55)',
+        boxShadow: '0 2px 8px rgba(0,0,0,.3)',
+        opacity: tap.opacity,
+      }}
+    />
+  );
+}
+
 /** An arrow pointer from the click log, a share of the displayed width, dipping as each click lands. */
 function Pointer({ clip, ms }: { clip: RecordingClip; ms: number }) {
-  const { x, y, press } = cursorAt(clip.clicks, ms, clip);
+  const { x, y, press, opacity } = cursorAt(clip.clicks, ms, clip);
+  if (opacity === 0) return null;
 
   return (
     <svg
@@ -115,6 +146,7 @@ function Pointer({ clip, ms }: { clip: RecordingClip; ms: number }) {
         left: `${(x / clip.width) * 100}%`,
         top: `${(y / clip.height) * 100}%`,
         overflow: 'visible',
+        opacity,
         filter: 'drop-shadow(0 2px 3px rgba(0,0,0,.35))',
       }}
     >
@@ -124,38 +156,98 @@ function Pointer({ clip, ms }: { clip: RecordingClip; ms: number }) {
   );
 }
 
-/** The recording as a card that fits the composition, above a caption. */
+/** Title bar height, as a share of the card's width. */
+const BAR = 0.034;
+
+/**
+ * The recording as a card that fits the composition, above a caption. With the page's
+ * addresses in the manifest it wears a browser title bar showing the current one.
+ */
 function RecordingCard({
   clip,
   zoom,
   cursor,
+  chrome = true,
   below = 0.08,
 }: {
   clip: RecordingClip;
   zoom?: number;
   cursor?: boolean;
+  chrome?: boolean;
   /** Room under the card, as a share of the height. */
   below?: number;
 }) {
   const { width, height } = useVideoConfig();
+  const bar = chrome && clip.pages?.length ? BAR : 0;
   const fit = Math.min(
     (width * 0.86) / clip.width,
-    (height * (0.86 - below)) / clip.height,
+    (height * (0.86 - below)) / (clip.height + clip.width * bar),
   );
+  const cardWidth = clip.width * fit;
 
   return (
-    <RecordingPlayer
-      clip={clip}
-      zoom={zoom}
-      cursor={cursor}
+    <div
       style={{
-        width: clip.width * fit,
-        height: clip.height * fit,
+        width: cardWidth,
         marginBottom: height * below,
         borderRadius: 16,
+        overflow: 'hidden',
         boxShadow: '0 30px 80px rgba(0,0,0,.45)',
       }}
-    />
+    >
+      {bar > 0 && <TitleBar pages={clip.pages} height={cardWidth * bar} />}
+      <RecordingPlayer
+        clip={clip}
+        zoom={zoom}
+        cursor={cursor}
+        style={{ width: cardWidth, height: clip.height * fit }}
+      />
+    </div>
+  );
+}
+
+/** A browser's title bar: three window buttons and the address the page shows at this frame. */
+function TitleBar({ pages, height }: { pages: VideoManifest['pages']; height: number }) {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const url = pageAt(pages, (frame / fps) * 1000);
+  const dot = height * 0.36;
+
+  return (
+    <div
+      style={{
+        height,
+        display: 'flex',
+        alignItems: 'center',
+        gap: dot * 0.6,
+        padding: `0 ${height * 0.45}px`,
+        background: '#e8e8ec',
+        borderBottom: '1px solid #d0d0d6',
+      }}
+    >
+      {['#ff5f57', '#febc2e', '#28c840'].map((color) => (
+        <span key={color} style={{ width: dot, height: dot, borderRadius: '50%', background: color, flexShrink: 0 }} />
+      ))}
+      <span
+        style={{
+          flex: 1,
+          margin: `0 ${height * 1.6}px 0 ${height * 0.6}px`,
+          height: height * 0.62,
+          borderRadius: height * 0.18,
+          background: '#fff',
+          color: '#3c3c43',
+          fontSize: height * 0.4,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          overflow: 'hidden',
+          whiteSpace: 'nowrap',
+          textOverflow: 'ellipsis',
+        }}
+      >
+        {url}
+      </span>
+    </div>
   );
 }
 
@@ -167,11 +259,14 @@ export function RecordingScene({
   clip,
   zoom,
   cursor,
+  chrome,
   caption = clip.caption ?? clip.description ?? clip.name,
 }: {
   clip: RecordingClip;
   zoom?: number;
   cursor?: boolean;
+  /** A browser title bar showing the page's address, when the manifest has `pages`. Default true. */
+  chrome?: boolean;
   caption?: string | null;
 }) {
   const frame = useCurrentFrame();
@@ -179,7 +274,7 @@ export function RecordingScene({
 
   return (
     <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center' }}>
-      <RecordingCard clip={clip} zoom={zoom} cursor={cursor} below={caption === null ? 0 : 0.08} />
+      <RecordingCard clip={clip} zoom={zoom} cursor={cursor} chrome={chrome} below={caption === null ? 0 : 0.08} />
       {caption !== null && (
         <p
           style={{
@@ -244,11 +339,14 @@ export function StoryRecordingVideo({
   clip,
   zoom,
   cursor,
+  chrome,
 }: {
   clip: RecordingClip;
   zoom?: number;
   /** Draw a pointer gliding to each click; Playwright's recordings have none. */
   cursor?: boolean;
+  /** A browser title bar showing the page's address, when the manifest has `pages`. Default true. */
+  chrome?: boolean;
 }) {
   const frame = useCurrentFrame();
   const { fps, height } = useVideoConfig();
@@ -276,6 +374,7 @@ export function StoryRecordingVideo({
         clip={clip}
         zoom={zoom}
         cursor={cursor}
+        chrome={chrome}
         below={lines ? 0.08 + (lines * fontSize * 1.3) / height : 0}
       />
       {first && (

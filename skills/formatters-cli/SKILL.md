@@ -87,6 +87,18 @@ executable-stories format reports/raw-run.json --format markdown \
 executable-stories format reports/raw-run.json --format span-graph \
   --output-dir reports --output-name index --baseline last-release/raw-run.json
 
+# Spans from other processes (a service in a container, a dev server), joined
+# onto scenarios by trace id: OTLP JSON/NDJSON or an OTLP HTTP readback.
+executable-stories format reports/raw-run.json --format html \
+  --otel-traces http://127.0.0.1:4318/v1/traces \
+  --otel-logs http://127.0.0.1:4318/v1/logs
+# --otel-logs puts each log under the span that wrote it in the waterfall.
+# --json-summary adds lostContextTraces for traces with no scenario context.
+
+# Which OpenAPI / .proto operations a scenario's server spans reached, and which
+# none did. Point at reports/by-file to include --otel-traces spans.
+executable-stories coverage api reports/by-file --openapi openapi.yaml --proto shop.proto
+
 # The same architecture as a section inside the HTML report (opt-in: only an
 # instrumented run has anything to draw).
 executable-stories format reports/raw-run.json --format html --html-architecture
@@ -269,6 +281,8 @@ executable-stories video reports/raw-run.json --json         # → reports/video
 ```
 
 One MP4 (H.264, `yuv420p`, `+faststart`) per passing scenario Playwright recorded with `story.init({ page }, testInfo, { featureVideo: true })`, with the blank page load cut off the start (`--no-trim` keeps it). Beside each is a `<scenario>.video.json` manifest for `executable-stories-remotion`: size, length, clicks and focused fields, and when each step began, all in ms into the trimmed video. ffmpeg installs with the npm package on macOS, Windows and Linux. `FFMPEG_PATH` overrides it, and the prebuilt CLI binary reads `FFMPEG_PATH` or `PATH`.
+
+Where the picture holds still for over 1.5s (a network wait, a spinner, a long read), the rest of that stretch plays 8x, and the manifest's times follow; `--idle-speed <n>` sets the factor and `--idle-speed 1` keeps real time. The manifest also lists each address the page showed (`pages[]`) and marks taps (`touch`). `--frame` writes `<scenario>.framed.mp4` beside each video for places that skip Remotion (a help-centre GIF, a README): a ring on each click, a browser title bar with the address, and a padded background (`--frame-background "#rrggbb"` or `"#rrggbb,#rrggbb"`).
 
 `video` names files with `scenarioSlug(title)` from `executable-stories-core` (an apostrophe is dropped: "an artist's" → `an-artists`), and `--json` prints what it wrote and skipped. It warns when Playwright's last run (`test-results/.last-run.json`) is newer than the run file, which means `--reporter` on the command line replaced the stories reporter.
 

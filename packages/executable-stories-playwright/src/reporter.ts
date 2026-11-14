@@ -392,10 +392,21 @@ export default class StoryReporter implements Reporter {
     try {
       const meta: StoryMeta = JSON.parse(storyAnnotation.description);
 
-      // Read autotel OTel spans from annotations
-      const otelSpansAnnotation = test.annotations.find(
-        (a) => a.type === 'story-otel-spans',
-      );
+      // Fixture annotation: the test body's active span is outside story.init's
+      // view, so the reporter copies the id for join and linking.
+      const fixtureTraceId = test.annotations.find(
+        (a) => a.type === 'otel-trace-id',
+      )?.description;
+      const otelMeta = (meta.meta as { otel?: { traceId?: string } } | undefined)
+        ?.otel;
+      if (fixtureTraceId && !otelMeta?.traceId) {
+        meta.meta = { ...meta.meta, otel: { ...otelMeta, traceId: fixtureTraceId } };
+      }
+
+      // story.attachSpans() wins; otherwise take the fixture's drained spans.
+      const otelSpansAnnotation =
+        test.annotations.find((a) => a.type === 'story-otel-spans') ??
+        test.annotations.find((a) => a.type === 'otel-spans');
       if (otelSpansAnnotation?.description) {
         try {
           const spans = JSON.parse(otelSpansAnnotation.description);
@@ -410,6 +421,25 @@ export default class StoryReporter implements Reporter {
             if (valid.length > 0) {
               meta.otelSpans = valid;
             }
+          }
+        } catch {
+          /* ignore parse errors */
+        }
+      }
+
+      // Console errors and page exceptions from the fixture, under the test span.
+      const otelLogsAnnotation = test.annotations.find((a) => a.type === 'otel-logs');
+      if (otelLogsAnnotation?.description && !meta.otelLogs) {
+        try {
+          const records = JSON.parse(otelLogsAnnotation.description);
+          if (Array.isArray(records)) {
+            const valid = records.filter(
+              (r: unknown) =>
+                r != null &&
+                typeof r === 'object' &&
+                typeof (r as Record<string, unknown>).body === 'string',
+            );
+            if (valid.length > 0) meta.otelLogs = valid;
           }
         } catch {
           /* ignore parse errors */

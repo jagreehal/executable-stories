@@ -3,7 +3,7 @@
  * A `focus` is a field taking focus to be typed into; the camera holds on it until the next point.
  * `cover` is the share of the picture (0 to 1) its element covers.
  */
-export type Click = { t: number; x: number; y: number; kind?: 'click' | 'focus'; cover?: number };
+export type Click = { t: number; x: number; y: number; kind?: 'click' | 'focus'; cover?: number; touch?: boolean };
 
 /** A step from the manifest `executable-stories video` writes: when it began, ms into the video. */
 export type ManifestStep = { t: number; keyword: string; text: string };
@@ -22,7 +22,15 @@ export type VideoManifest = {
   durationMs: number;
   clicks: Click[];
   steps?: ManifestStep[];
+  /** Each address the page showed, ms into the video. Only `executable-stories video` writes it. */
+  pages?: { t: number; url: string }[];
 };
+
+/** The address showing at `ms`, without its scheme, or undefined before the first. */
+export function pageAt(pages: VideoManifest['pages'], ms: number): string | undefined {
+  const url = pages?.findLast((p) => p.t <= ms)?.url ?? pages?.[0]?.url;
+  return url?.replace(/^[a-z][a-z0-9+.-]*:\/\//i, '');
+}
 
 const LEAD = 400;
 const HOLD = 900;

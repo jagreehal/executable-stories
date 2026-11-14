@@ -95,7 +95,7 @@ on the control the article names. Fix the scenario, not the still.
 
 ## 3. Render
 
-- **Video for the article body:** `executable-stories video reports/raw-run.json`. A slot's MP4
+- **Video for the article body:** `executable-stories video reports/raw-run.json --frame` writes `<scenario>.framed.mp4` beside the plain one: a ring on each click, a browser title bar with the address, and a padded background. Use the framed copy for the article. A slot's MP4
   replaces the image: a `<video>` in Markdown, a link in Help Scout and Confluence. For a picture
   that plays inline there, convert the MP4 with [gifski](https://gif.ski) and point the slot at
   the GIF.

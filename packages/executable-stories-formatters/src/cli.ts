@@ -15,6 +15,15 @@ import * as path from 'node:path';
 import { parseArgs } from 'node:util';
 import { canonicalizeRun } from 'executable-stories-core/converters/acl/canonicalize';
 import {
+  attachLogs,
+  attachTraces,
+  describeUnlinked,
+  parseOtelLogs,
+  parseOtelTraces,
+  type ImportedLog,
+  type ImportedSpan,
+} from './otel-traces';
+import {
   assertValidRun,
   validateCanonicalRun,
 } from 'executable-stories-core/converters/acl/validate';
@@ -29,6 +38,7 @@ import type {
 } from 'executable-stories-core/types/test-result';
 import { assertionState } from 'executable-stories-core/utils/assertive-steps';
 import { aggregateReports } from './aggregate-reports';
+import { runApiCoverage } from './api-coverage';
 import { writeArtifactsReadme } from './artifacts-readme';
 import { buildCheck, renderCheck } from './check';
 import { checkLinks, formatLinkReport } from './check-links';
@@ -168,6 +178,7 @@ USAGE
   executable-stories push <run.json|results.xml|allure-results/> [--format <fmt>] [--title <text>] [--env <name>] [--description <text|@file.md>] [--gate] [--force]
   executable-stories share <reports-dir|report.json> [--emails <a@b,c@d>] [--expires-days <n>]
   executable-stories coverage <testrail|xray> <run.json> [options]
+  executable-stories coverage api <run.json|reports-dir> --openapi <spec> [--proto <file>] [--json]
   executable-stories sync <testrail|xray> <run.json> [--apply] [options]
   executable-stories publish-confluence <file.adf.json> [options]
   executable-stories publish-jira <file.adf.json> [options]
@@ -187,6 +198,11 @@ SUBCOMMANDS
                      <name>.video.json manifest for executable-stories-remotion, into <output-dir>/video.
                      --no-trim keeps the page load. --from-step <n|keyword> starts at that step (setup off camera);
                      --frames writes a still per step, plus a ringed close-up of its click, into video/<name>/ to check.
+                     Stretches where the picture holds still play 8x after 1.5s (the manifest's times follow);
+                     --idle-speed <n> changes the factor, 1 keeps real time.
+                     --frame also writes <name>.framed.mp4 for videos that skip Remotion (help-centre GIFs, READMEs):
+                     a ring on each click (a fingertip for taps), a browser title bar with the page's address, and a
+                     padded background (--frame-background "#rrggbb" or "#rrggbb,#rrggbb" for a gradient).
                      --json prints what it wrote.
   check              Backpressure summary: compress passing, expand failing (GWT + error + covers); non-zero exit on failures
   check-explainers   Audit explainer docs (explain-change skill) against a run: stale when a cited scenario changed/renamed/vanished (exit 5)
@@ -199,7 +215,8 @@ SUBCOMMANDS
   check-links        Scan docs for broken internal/external links (CI-friendly exit code)
   push               Send a run to a cloud ingest endpoint: StoryReport, raw run, JUnit XML, Playwright JSON or allure-results
   share              Publish a report (with its screenshots and video) and print a link to it
-  coverage           Compare your stories against a test-management system (read-only)
+  coverage           Compare your stories against a test-management system (read-only);
+                     "coverage api" lists OpenAPI/proto operations no scenario's spans reached
   sync               Push cases, executions, and evidence to TestRail or Xray (dry run by default)
   publish-confluence Publish an ADF JSON file to a Confluence page via REST API
   publish-jira       Publish an ADF JSON file to a Jira issue (as comment or description)
@@ -302,6 +319,11 @@ ${presetHelpLines()
   <output-name>.review.json — the machine contract CI surfaces render (ranked
   findings, evidence bands, per-claim strength). See the ReviewJson type.
   --emit-canonical <path>       Write canonical JSON to given path
+  --otel-traces <file|url>      Join spans other processes exported (OTLP JSON/NDJSON, or OTLP HTTP
+                                GET /v1/traces) onto scenarios by trace id, and name traces that started
+                                without a scenario's context (--json-summary: lostContextTraces)
+  --otel-logs <file|url>        Join trace-correlated logs (OTLP JSON/NDJSON, or OTLP HTTP
+                                GET /v1/logs) onto scenarios; shown under the span that wrote them
   --help                        Show this help message
 
 LIST
@@ -483,6 +505,11 @@ interface CliArgs {
   fromStep: string | undefined;
   /** video: write a still per step, and a close-up of its click. */
   frames: boolean;
+  /** video: how much faster still stretches play (1 = real time). */
+  idleSpeed?: number;
+  /** video: also write a framed copy (click rings, title bar, background). */
+  frame: boolean;
+  frameBackground?: string;
   /** Emit compact JSON for agent-facing artifacts (story-report, scenario-index, behavior-manifest, list --json). */
   minify: boolean;
   listFormat: 'text' | 'json' | 'csv' | 'markdown-table' | 'feature-map';
@@ -506,6 +533,10 @@ interface CliArgs {
   /** (triage) Keep the first n ranked items. */
   limit?: number;
   emitCanonical?: string;
+  /** OTLP JSON/NDJSON file, or a readback URL, whose spans join scenarios by trace id. */
+  otelTraces?: string;
+  /** Same shapes as otelTraces, for logs: OTLP `resourceLogs`, or OTLP HTTP GET /v1/logs. */
+  otelLogs?: string;
   slackWebhook?: string;
   teamsWebhook?: string;
   notify: NotifyCondition;
@@ -590,6 +621,9 @@ const CLI_OPTIONS = {
   json: { type: 'boolean', default: false },
   'no-trim': { type: 'boolean', default: false },
   'from-step': { type: 'string' },
+  'idle-speed': { type: 'string' },
+  frame: { type: 'boolean', default: false },
+  'frame-background': { type: 'string' },
   frames: { type: 'boolean', default: false },
   minify: { type: 'boolean', default: false },
   'list-format': { type: 'string', default: 'text' },
@@ -608,6 +642,8 @@ const CLI_OPTIONS = {
   'goal-format': { type: 'string', default: 'text' },
   'triage-format': { type: 'string', default: 'text' },
   'emit-canonical': { type: 'string' },
+  'otel-traces': { type: 'string' },
+  'otel-logs': { type: 'string' },
   'slack-webhook': { type: 'string' },
   'teams-webhook': { type: 'string' },
   notify: { type: 'string', default: 'on-failure' },
@@ -784,6 +820,23 @@ async function parseCliArgs(
   if (subcommand === 'docs') process.exit(await runDocs(args.slice(1)));
   if (subcommand === 'sync')
     process.exit(await runSyncCommand('sync', args.slice(1)));
+  if (subcommand === 'coverage' && args[1] === 'api')
+    process.exit(
+      runApiCoverage(args.slice(2), {
+        readFile: (p) => fs.readFileSync(path.resolve(p), 'utf8'),
+        isDirectory: (p) =>
+          fs.existsSync(path.resolve(p)) && fs.statSync(path.resolve(p)).isDirectory(),
+        listDir: (dir) => {
+          try {
+            return fs.readdirSync(dir);
+          } catch {
+            return undefined;
+          }
+        },
+        log: (msg) => console.log(msg),
+        error: (msg) => console.error(msg),
+      }),
+    );
   if (subcommand === 'coverage')
     process.exit(await runSyncCommand('coverage', args.slice(1)));
 
@@ -1237,6 +1290,9 @@ async function parseCliArgs(
     json: values.json as boolean,
     noTrim: values['no-trim'] as boolean,
     fromStep: values['from-step'] as string | undefined,
+    idleSpeed: parseIdleSpeed(values['idle-speed'] as string | undefined),
+    frame: values.frame as boolean,
+    frameBackground: values['frame-background'] as string | undefined,
     frames: values.frames as boolean,
     minify: values['minify'] as boolean,
     listFormat: values['list-format'] as string as
@@ -1262,6 +1318,8 @@ async function parseCliArgs(
     byOwner: values['by-owner'] === true,
     limit: parseLimit(values.limit as string | undefined),
     emitCanonical: values['emit-canonical'] as string | undefined,
+    otelTraces: values['otel-traces'] as string | undefined,
+    otelLogs: values['otel-logs'] as string | undefined,
     slackWebhook,
     teamsWebhook,
     notify: notifyValue as NotifyCondition,
@@ -1304,6 +1362,92 @@ async function parseCliArgs(
 // ============================================================================
 // Input Reading
 // ============================================================================
+
+/**
+ * Lost-context traces `applyOtelTraces` found, for `--json-summary`. Module state
+ * because the four input pipelines each call it and all end in `printResult`;
+ * undefined means no spans were read, so nothing was measured.
+ */
+let lostContextTraces: number | undefined;
+
+async function readOtelSource(flag: string, source: string): Promise<string> {
+  try {
+    if (/^https?:\/\//.test(source)) {
+      const res = await fetch(source);
+      if (!res.ok) throw new Error(`HTTP ${res.status} from ${source}`);
+      return await res.text();
+    }
+    return fs.readFileSync(path.resolve(source), 'utf8');
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`Error: could not read ${flag} ${source}: ${msg}`);
+    process.exit(EXIT_USAGE);
+  }
+}
+
+function parseOtelSource(flag: string, source: string, text: string) {
+  try {
+    return { spans: parseOtelTraces(text), logs: parseOtelLogs(text) };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`Error: could not parse ${flag} ${source}: ${msg}`);
+    process.exit(EXIT_USAGE);
+  }
+}
+
+/**
+ * Join `--otel-traces` spans and `--otel-logs` logs onto the run. Either source
+ * may hold both signals (a collector's file exporter can write both to one
+ * file), so each is read for both. Runs before reports are generated, so
+ * per-file state keeps them and later aggregation renders them.
+ */
+async function applyOtelTraces(
+  run: TestRunResult,
+  args: CliArgs,
+): Promise<TestRunResult> {
+  const sources = [
+    ['--otel-traces', args.otelTraces],
+    ['--otel-logs', args.otelLogs],
+  ].filter((entry): entry is [string, string] => Boolean(entry[1]));
+  if (sources.length === 0) return run;
+
+  let spans: ImportedSpan[] = [];
+  let logs: ImportedLog[] = [];
+  for (const [flag, source] of sources) {
+    const parsed = parseOtelSource(flag, source, await readOtelSource(flag, source));
+    spans = spans.concat(parsed.spans);
+    logs = logs.concat(parsed.logs);
+  }
+
+  let joined = run;
+  // Spans join from whichever flag brought them: a mixed export handed to --otel-logs alone counts.
+  if (args.otelTraces || spans.length > 0) {
+    const traced = attachTraces(joined, spans);
+    joined = traced.run;
+    lostContextTraces = traced.unlinked.length;
+    console.error(
+      spans.length === 0
+        ? `--otel-traces: no spans in ${args.otelTraces} (expected OTLP JSON, OTLP NDJSON, or OTLP HTTP /v1/traces).`
+        : `OTel: ${traced.attached} of ${spans.length} span(s) joined to scenarios.`,
+    );
+    if (traced.unlinked.length > 0) {
+      const lines = describeUnlinked(traced.unlinked);
+      console.error(
+        `${traced.unlinked.length} trace(s) started during the run without a scenario's context: a hop that dropped traceparent, or work no scenario caused (health checks, jobs):`,
+      );
+      for (const line of lines.slice(0, 10)) console.error(`  ${line}`);
+      if (lines.length > 10) console.error(`  ...and ${lines.length - 10} more`);
+    }
+  }
+  if (logs.length > 0 || args.otelLogs) {
+    const logged = attachLogs(joined, logs);
+    joined = logged.run;
+    console.error(
+      `--otel-logs: ${logged.attached} of ${logs.length} trace-correlated log(s) joined to scenarios.`,
+    );
+  }
+  return joined;
+}
 
 async function readInput(args: CliArgs): Promise<string> {
   if (args.stdin) {
@@ -1971,6 +2115,17 @@ async function runList(ctx: CliContext): Promise<void> {
   process.exit(EXIT_SUCCESS);
 }
 
+/** `--idle-speed`: a factor of 1 or more; anything else is a usage error rather than a silent default. */
+function parseIdleSpeed(raw: string | undefined): number | undefined {
+  if (raw === undefined) return undefined;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 1) {
+    console.error(`Error: --idle-speed must be a number of 1 or more (1 keeps real time), got "${raw}".`);
+    process.exit(EXIT_USAGE);
+  }
+  return n;
+}
+
 /** Warn, on stderr, when Playwright ran without writing this run file (see `doctor`). */
 function warnStaleRun(args: CliArgs): void {
   const stale = args.stdin ? undefined : staleRunCheck(args.inputFile);
@@ -1982,7 +2137,7 @@ async function runVideo(ctx: CliContext): Promise<void> {
   warnStaleRun(args);
   const run = applySelection(await readRunInput(args), args);
   try {
-    const { written, skipped } = await writeVideos(
+    const { written, skipped, warnings } = await writeVideos(
       {
         testCases: run.testCases,
         outputDir: path.join(args.outputDir, 'video'),
@@ -1990,6 +2145,9 @@ async function runVideo(ctx: CliContext): Promise<void> {
         fromStep: args.fromStep,
         frames: args.frames,
         projectRoot: run.projectRoot,
+        idleSpeed: args.idleSpeed,
+        frame: args.frame || args.frameBackground !== undefined,
+        frameBackground: args.frameBackground,
       },
       {
         ffmpeg: (ffArgs) =>
@@ -2003,10 +2161,13 @@ async function runVideo(ctx: CliContext): Promise<void> {
           ),
       },
     );
+    for (const w of warnings ?? []) console.error(`Warning: ${w}`);
     if (args.json) console.log(JSON.stringify({ written, skipped }, null, 2));
     else {
       for (const w of written) {
-        console.log(`${w.video}  (trimmed ${(w.trimmedMs / 1000).toFixed(1)}s)  ${w.scenario}`);
+        const idle = w.idleSavedMs > 0 ? `, idle ${(w.idleSavedMs / 1000).toFixed(1)}s sped up` : '';
+        console.log(`${w.video}  (trimmed ${(w.trimmedMs / 1000).toFixed(1)}s${idle})  ${w.scenario}`);
+        if (w.framed) console.log(`  framed: ${w.framed}`);
         if (w.frames) console.log(`  ${w.frames.length} step still(s) in ${path.join(path.dirname(w.video), path.basename(w.video, '.mp4'))}`);
         for (const o of w.overruns) {
           console.log(`  narration overrun: "${o.step}" takes ~${(o.needMs / 1000).toFixed(1)}s to say, on screen ${(o.haveMs / 1000).toFixed(1)}s`);
@@ -2226,7 +2387,7 @@ async function runFormatOrValidate(ctx: CliContext): Promise<void> {
   const aggregated = readAggregateInput(args);
   if (aggregated) {
     try {
-      const run = applySelection(aggregated, args);
+      const run = await applyOtelTraces(applySelection(aggregated, args), args);
       const history = runHistoryPipeline(run, args);
       const result = await generateReports(run, args, history, 0, {
         persist: false,
@@ -2297,6 +2458,7 @@ async function runFormatOrValidate(ctx: CliContext): Promise<void> {
       console.error(`NDJSON parse failed: ${msg}`);
       process.exit(EXIT_SCHEMA_VALIDATION);
     }
+    run = await applyOtelTraces(run, args);
 
     // Emit canonical if requested
     if (args.emitCanonical) {
@@ -2378,7 +2540,7 @@ async function runFormatOrValidate(ctx: CliContext): Promise<void> {
       process.exit(EXIT_CANONICAL_VALIDATION);
     }
 
-    const run = data as TestRunResult;
+    const run = await applyOtelTraces(data as TestRunResult, args);
 
     // Emit canonical if requested
     if (args.emitCanonical) {
@@ -2447,8 +2609,8 @@ async function runFormatOrValidate(ctx: CliContext): Promise<void> {
     }
   }
 
-  // 4. Canonicalize
-  const canonical = canonicalizeRun(raw);
+  // 4. Canonicalize, then join spans other processes exported
+  const canonical = await applyOtelTraces(canonicalizeRun(raw), args);
 
   // 5. Assert canonical validity
   try {
@@ -3106,6 +3268,10 @@ function printResult(
     }
     if (droppedMissingStory > 0) {
       summary.droppedMissingStory = droppedMissingStory;
+    }
+    // Traces that started in the run with no scenario's context (--otel-traces).
+    if (lostContextTraces !== undefined) {
+      summary.lostContextTraces = lostContextTraces;
     }
     console.log(JSON.stringify(summary, null, 2));
   } else {
@@ -3810,6 +3976,7 @@ function createDefaultCliArgs(): CliArgs {
     noTrim: false,
     fromStep: undefined,
     frames: false,
+    frame: false,
     minify: false,
     listFormat: 'text',
     checkFormat: 'text',
