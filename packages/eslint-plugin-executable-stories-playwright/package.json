@@ -46,7 +46,7 @@
   },
   "devDependencies": {
     "@types/eslint": "^9.6.1",
-    "@types/estree": "^1.0.9",
+    "@types/estree": "^1.0.10",
     "@types/node": "^26.6.6",
     "eslint": "^10.13.0",
     "eslint-config-executable-stories": "workspace:*",
