@@ -6,7 +6,7 @@
     "walkthrough": "rm -rf docs reports && playwright test && executable-stories format reports/raw-run.json --format markdown,html --asset-mode copy --output-dir docs --output-name walkthroughs && node verify.mjs"
   },
   "devDependencies": {
-    "@playwright/test": "1.64.1",
+    "@playwright/test": "1.65.0",
     "executable-stories-formatters": "workspace:*",
     "executable-stories-playwright": "workspace:*",
     "executable-stories-showcase": "workspace:*"
