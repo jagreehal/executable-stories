@@ -19,7 +19,7 @@
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "^6.2.1",
     "emulate": "0.12.3",
-    "msw": "3.0.3",
+    "msw": "3.0.4",
     "typescript": "~6.0.3",
     "vite": "8.3.5"
   }

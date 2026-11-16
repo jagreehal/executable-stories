@@ -20,7 +20,7 @@
     "executable-stories-showcase": "workspace:*",
     "executable-stories-showcase-cli": "workspace:*",
     "happy-dom": "^21.0.4",
-    "msw": "3.0.3",
+    "msw": "3.0.4",
     "redux": "5.0.1",
     "typescript": "~6.0.3",
     "vite": "^8.3.5",
