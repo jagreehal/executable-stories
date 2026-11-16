@@ -30,7 +30,7 @@
     "@types/node": "^26.6.6",
     "@types/react": "19.3.0",
     "demo-react": "workspace:*",
-    "eslint": "^10.13.0",
+    "eslint": "^10.14.0",
     "eslint-config-executable-stories": "workspace:*",
     "eslint-plugin-executable-stories-vitest": "workspace:*",
     "executable-stories-formatters": "workspace:*",

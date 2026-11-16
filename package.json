@@ -30,7 +30,7 @@
     "@ianvs/prettier-plugin-sort-imports": "^4.7.1",
     "@typescript-eslint/eslint-plugin": "^8.72.1",
     "@typescript-eslint/parser": "^8.72.1",
-    "eslint": "^10.13.0",
+    "eslint": "^10.14.0",
     "eslint-config-executable-stories": "workspace:*",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-unicorn": "^79.0.0",
