@@ -135,6 +135,10 @@ export function ReportTrace({
     0,
   );
   const marks = stepMarks(steps, minStartMs, totalMs);
+  // OpenTelemetry JS stamps a span's start with Date.now(), whole milliseconds,
+  // and measures its duration finer. Spans that began within one millisecond
+  // share a start, so their bars line up rather than follow one another.
+  const sharedStart = new Set(rows.map((row) => row.startTimeMs)).size < rows.length && totalMs < rows.length;
 
   return (
     <details className="mt-3 rounded-md border border-border bg-muted/30">
@@ -150,6 +154,11 @@ export function ReportTrace({
           .join(", ")}
         )
       </summary>
+      {sharedStart ? (
+        <p data-es-trace-note className="px-3 pb-1 text-[0.6875rem] text-muted-foreground">
+          Start times are recorded to the millisecond, so spans that began in the same millisecond start together here.
+        </p>
+      ) : null}
       <ul className="flex flex-col gap-0.5 px-3 pb-3 font-mono text-[0.6875rem]">
         {marks.length > 0 ? (
           <li data-es-trace-steps className="mb-1 flex items-end gap-2">
