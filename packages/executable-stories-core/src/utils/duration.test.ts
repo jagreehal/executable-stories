@@ -3,6 +3,11 @@ import { formatDuration } from "./duration";
 
 describe("formatDuration", () => {
   it.each([
+    [0, "0 ms"],
+    [0.0004, "1 µs"],
+    [0.026, "26 µs"],
+    [0.9994, "999 µs"],
+    [0.9996, "1 ms"],
     [999, "999 ms"],
     [1500, "1.50 s"],
     [150_000, "2m 30s"],

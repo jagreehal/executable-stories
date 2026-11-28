@@ -6,9 +6,15 @@
  * Format milliseconds as human-readable duration.
  *
  * @param ms - Duration in milliseconds
- * @returns Formatted string (e.g., "123 ms", "1.5 s", "2m 30s")
+ * @returns Formatted string (e.g., "26 µs", "123 ms", "1.5 s", "2m 30s")
  */
 export function formatDuration(ms: number): string {
+  // Under a millisecond, microseconds: an in-process span reads "26 µs", not "0 ms".
+  const micros = Math.round(ms * 1000);
+  if (ms > 0 && micros < 1000) {
+    return `${Math.max(1, micros)} µs`;
+  }
+
   if (ms < 1000) {
     return `${Math.round(ms)} ms`;
   }
